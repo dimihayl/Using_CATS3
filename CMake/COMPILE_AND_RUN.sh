@@ -1,3 +1,3 @@
 #!/bin/bash
-make
+./COMPILE.sh
 ./RUN_EXEC.sh

@@ -2,7 +2,7 @@
 #include "LamLamMcExclusionMAIN.h"
 #include "LamLamMcExclusion.h"
 
-#include "DLM_MergeSort.h"
+#include "DLM_Sort.h"
 
 #include <iostream>
 #include <fstream>
@@ -520,7 +520,7 @@ void FinalExclusionPlot(const TString Computer,const int Chi2Map,const TString O
         //delete nt_dChi2;
         delete File_dChi2;
 
-        DLM_MergeSort < double, unsigned > SortTool;
+        DLM_Sort < double, unsigned > SortTool;
         SortTool.SetData(dChi2Val,NumEntries);
         SortTool.MergeSort(false);
         SortTool.GetSortedData(dChi2Val,dChi2Val);
@@ -980,9 +980,9 @@ int LamLamMcExclusionMAIN(int narg, char** ARGS){
 //16 = DataSets
 
     const TString Computer = "XMG";
-    const int Chi2Map = 0;
+    const int Chi2Map = -12;
     const bool Bootstrap = false;
-    const int NumBootIter = 16;
+    const int NumBootIter = 2;
     const double TimeLimit = 9000;
     const int JobId = 0;
     const int SystId = 0;
@@ -991,10 +991,18 @@ int LamLamMcExclusionMAIN(int narg, char** ARGS){
     const int SepBL = 0;//-1 is no BL
     const int FitFun = 7;
 
-    for(unsigned uSystId=0; uSystId<27; uSystId++){
+    LamLamConfidence_22Oct2018(Computer.Data(),"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/LamLam/EB_Answers/pp13TeV/",Chi2Map,Bootstrap,NumBootIter,TimeLimit,0,0,false,0,SepBL,FitFun,0,2,0,"pp13TeV");
+    LamLamConfidence_22Oct2018(Computer.Data(),"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/LamLam/EB_Answers/pPb5TeV/",Chi2Map,Bootstrap,NumBootIter,TimeLimit,0,0,false,0,SepBL,FitFun,0,2,0,"pPb5TeV");
+    LamLamConfidence_22Oct2018(Computer.Data(),"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/LamLam/EB_Answers/Full/",Chi2Map,Bootstrap,NumBootIter,TimeLimit,0,0,false,0,SepBL,FitFun,0,2,0,"pp13TeV,pPb5TeV,pp7TeV");
+    //for(unsigned uSystId=0; uSystId<27; uSystId++){
         //printf("uSystId=%u\n",uSystId);
-        LamLamConfidence_22Oct2018(Computer.Data(),"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Temp/",Chi2Map,Bootstrap,NumBootIter,TimeLimit,0,uSystId,false,uSystId,SepBL,FitFun,0,2,0,"pp13TeV,pPb5TeV,pp7TeV");
-    }
+        //LamLamConfidence_22Oct2018(Computer.Data(),"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Temp/",Chi2Map,Bootstrap,NumBootIter,TimeLimit,0,uSystId,false,uSystId,SepBL,FitFun,0,2,0,"pp13TeV,pPb5TeV,pp7TeV");
+    //}
+
+    //FinalExclusionPlot(Computer,-2,"/home/dmihaylov/Temp/Output/170119/MC_Default_BL_AllDataSets/",1);
+    //FinalExclusionPlot(Computer,-2,"/home/dmihaylov/Temp/Output/170119/MC_FullSyst_BL_AllDataSets/",121);
+    //ComputeBindingEnergy("/home/dmihaylov/Temp/Output/170119/MC_Default_BL_AllDataSets/");
+    //ComputeBindingEnergy("/home/dmihaylov/Temp/Output/170119/MC_FullSyst_BL_AllDataSets/");
 
     return 0;
 }
