@@ -895,7 +895,6 @@ void ShowChi2Plots(const TString InputFolderName, const TString InputFileName){
     f4Sigma->SetLineWidth(2);
     f4Sigma->SetLineStyle(2);
 
-
     hDeltaChi2_CDF->SetStats(false);
     hDeltaChi2_CDF->SetTitle("");
     hDeltaChi2_CDF->GetXaxis()->SetLabelSize(0.065);
@@ -941,7 +940,6 @@ void ShowChi2Plots(const TString InputFolderName, const TString InputFileName){
     myLegend->Draw("same");
     cDeltaChi2_CDF->SaveAs(InputFolderName+"cDeltaChi2_CDF.png");
     cDeltaChi2_CDF->SaveAs(InputFolderName+"cDeltaChi2_CDF.pdf");
-
 
     delete hDeltaChi2;
     delete hDeltaChi2_CDF;
@@ -991,9 +989,9 @@ int LamLamMcExclusionMAIN(int narg, char** ARGS){
     const int SepBL = 0;//-1 is no BL
     const int FitFun = 7;
 
-    LamLamConfidence_22Oct2018(Computer.Data(),"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/LamLam/EB_Answers/pp13TeV/",Chi2Map,Bootstrap,NumBootIter,TimeLimit,0,0,false,0,SepBL,FitFun,0,2,0,"pp13TeV");
-    LamLamConfidence_22Oct2018(Computer.Data(),"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/LamLam/EB_Answers/pPb5TeV/",Chi2Map,Bootstrap,NumBootIter,TimeLimit,0,0,false,0,SepBL,FitFun,0,2,0,"pPb5TeV");
-    LamLamConfidence_22Oct2018(Computer.Data(),"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/LamLam/EB_Answers/Full/",Chi2Map,Bootstrap,NumBootIter,TimeLimit,0,0,false,0,SepBL,FitFun,0,2,0,"pp13TeV,pPb5TeV,pp7TeV");
+    //LamLamConfidence_22Oct2018(Computer.Data(),"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/LamLam/EB_Answers/pp13TeV/",Chi2Map,Bootstrap,NumBootIter,TimeLimit,0,0,false,0,SepBL,FitFun,0,2,0,"pp13TeV");
+    //LamLamConfidence_22Oct2018(Computer.Data(),"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/LamLam/EB_Answers/pPb5TeV/",Chi2Map,Bootstrap,NumBootIter,TimeLimit,0,0,false,0,SepBL,FitFun,0,2,0,"pPb5TeV");
+    //LamLamConfidence_22Oct2018(Computer.Data(),"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/LamLam/EB_Answers/Full/",Chi2Map,Bootstrap,NumBootIter,TimeLimit,0,0,false,0,SepBL,FitFun,0,2,0,"pp13TeV,pPb5TeV,pp7TeV");
     //for(unsigned uSystId=0; uSystId<27; uSystId++){
         //printf("uSystId=%u\n",uSystId);
         //LamLamConfidence_22Oct2018(Computer.Data(),"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Temp/",Chi2Map,Bootstrap,NumBootIter,TimeLimit,0,uSystId,false,uSystId,SepBL,FitFun,0,2,0,"pp13TeV,pPb5TeV,pp7TeV");

@@ -7,6 +7,7 @@
 #include "DLM_Potentials.h"
 #include "DLM_WfModel.h"
 #include "DLM_DrawingTools.h"
+#include "DLM_Random.h"
 
 #include "TH1F.h"
 #include "TH2F.h"
@@ -202,7 +203,7 @@ void Test_Tom_pXi(){
     Kitty.SetAnaSource(GaussSource, pSource);
     Kitty.SetExcludeFailedBins(false);
 
-    InitESC08_v2("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/Tom/Tom_10122018wfs/",Kitty,&WaveFunctionU,&RadBins,NumRadBins,kMax);
+    InitESC16_v2("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/Tom/Tom_10122018wfs/",Kitty,&WaveFunctionU,&RadBins,NumRadBins,kMax);
 
     Kitty.SetChannelWeight(0,1./4.);
     Kitty.SetChannelWeight(1,3./4.);
@@ -1164,3 +1165,202 @@ double DEV = fabs(ValueClever-ValueAna)/ValueAna*100.;
     delete fOutput;
 }
 
+//test if single or pair distributions are the one corresponding to the standard
+//definitions used in femtoscopy
+void TestCleverLevy2(){
+    const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/TestCleverLevy2/";
+
+    const unsigned NumStabSteps = 5;
+    const double StabMin = 1;
+    const double StabMax = 2;
+    const double StabStep = NumStabSteps>1?(StabMax-StabMin)/double(NumStabSteps-1):0;
+
+    const unsigned NumScaleSteps = 3;
+    const double ScaleMin = NumScaleSteps>1?1.0:1;
+    const double ScaleMax = 2.0;
+    const double ScaleStep = NumScaleSteps>1?(ScaleMax-ScaleMin)/double(NumScaleSteps-1):0;
+
+    const double kMin = 0;
+    const double kMax = 280;
+    const unsigned NumMomBins = 70;
+
+    CATSparameters SourcePars(CATSparameters::tSource,2,true);
+    SourcePars.SetParameter(0,0.5*(ScaleMax+ScaleMin));
+    SourcePars.SetParameter(1,0.5*(StabMax+StabMin));
+
+    DLM_CleverLevy CleverSingleLevy;
+    CleverSingleLevy.InitStability(NumStabSteps,StabMin,StabMax);
+    CleverSingleLevy.InitScale(NumScaleSteps,ScaleMin,ScaleMax);
+    CleverSingleLevy.InitRad(256,0,64);
+    CleverSingleLevy.InitType(0);
+
+    DLM_CleverLevy CleverPairLevy;
+    CleverPairLevy.InitStability(20,StabMin,StabMax);
+    CleverPairLevy.InitScale(30,ScaleMin,ScaleMax);
+    CleverPairLevy.InitRad(256,0,64);
+    CleverPairLevy.InitType(1);
+
+    CATS CatSingleLevy;
+    CatSingleLevy.SetMaxNumThreads(1);
+    CatSingleLevy.SetAnaSource(MemberSourceForwarder, &CleverSingleLevy, 2);
+    CatSingleLevy.SetAnaSource(0,0.5*(ScaleMax+ScaleMin),false);
+    CatSingleLevy.SetAnaSource(1,0.5*(StabMax+StabMin),false);
+    CatSingleLevy.SetUseAnalyticSource(true);
+    CatSingleLevy.SetThetaDependentSource(false);
+    CatSingleLevy.SetMomentumDependentSource(false);
+    CatSingleLevy.SetExcludeFailedBins(false);
+    CatSingleLevy.SetMomBins(NumMomBins,kMin,kMax);
+    CatSingleLevy.SetNumChannels(1);
+    CatSingleLevy.SetSpin(0,0);
+    CatSingleLevy.SetChannelWeight(0, 1);
+    CatSingleLevy.SetQ1Q2(0);
+    CatSingleLevy.SetPdgId(2212, 2212);
+    const double Mass_pion = 134.9766;
+    CatSingleLevy.SetRedMass( 0.5*Mass_pion );
+    CatSingleLevy.KillTheCat();
+
+    CATS CatPairLevy;
+    CatPairLevy.SetMaxNumThreads(1);
+    CatPairLevy.SetAnaSource(MemberSourceForwarder, &CleverPairLevy, 2);
+    CatPairLevy.SetAnaSource(0,0.5*(ScaleMax+ScaleMin),false);
+    CatPairLevy.SetAnaSource(1,0.5*(StabMax+StabMin),false);
+    CatPairLevy.SetUseAnalyticSource(true);
+    CatPairLevy.SetThetaDependentSource(false);
+    CatPairLevy.SetMomentumDependentSource(false);
+    CatPairLevy.SetExcludeFailedBins(false);
+    CatPairLevy.SetMomBins(NumMomBins,kMin,kMax);
+    CatPairLevy.SetNumChannels(1);
+    CatPairLevy.SetSpin(0,0);
+    CatPairLevy.SetChannelWeight(0, 1);
+    CatPairLevy.SetQ1Q2(0);
+    CatPairLevy.SetPdgId(2212, 2212);
+    CatPairLevy.SetRedMass( 0.5*Mass_pion );
+    CatPairLevy.KillTheCat();
+
+    TFile* fOutput = new TFile(OutputFolder+"fOutput.root","recreate");
+
+    double Scale;
+    double Stability;
+    CatSingleLevy.SetNotifications(CATS::nSilent);
+    CatPairLevy.SetNotifications(CATS::nSilent);
+    for(unsigned uScale=0; uScale<NumScaleSteps; uScale++){
+        Scale = ScaleMin+double(uScale)*ScaleStep;
+        for(unsigned uStab=0; uStab<NumStabSteps; uStab++){
+            Stability = StabMin+double(uStab)*StabStep;
+            printf("\r\033[K σ=%.2f; α=%.2f",Scale,Stability);
+            cout << flush;
+
+            CatSingleLevy.SetAnaSource(0,Scale,true);
+            CatSingleLevy.SetAnaSource(1,Stability,true);
+            CatSingleLevy.KillTheCat();
+            CatPairLevy.SetAnaSource(0,Scale,true);
+            CatPairLevy.SetAnaSource(1,Stability,true);
+            CatPairLevy.KillTheCat();
+            TGraph gSingleLevy;
+            gSingleLevy.Set(NumMomBins);
+            gSingleLevy.SetName(TString::Format("gSingleLevy_%.2f_%.2f",Scale,Stability));
+            for(unsigned uBin=0; uBin<NumMomBins; uBin++){
+                gSingleLevy.SetPoint(uBin,CatSingleLevy.GetMomentum(uBin),CatSingleLevy.GetCorrFun(uBin));
+            }
+            gSingleLevy.SetLineWidth(5);
+            gSingleLevy.SetLineColor(kRed);
+            TGraph gPairLevy;
+            gPairLevy.Set(NumMomBins);
+            gPairLevy.SetName(TString::Format("gPairLevy_%.2f_%.2f",Scale,Stability));
+            for(unsigned uBin=0; uBin<NumMomBins; uBin++){
+                gPairLevy.SetPoint(uBin,CatPairLevy.GetMomentum(uBin),CatPairLevy.GetCorrFun(uBin));
+            }
+            gPairLevy.SetLineWidth(4);
+            gPairLevy.SetLineColor(kBlue);
+            TGraph gAnaLevy;
+            gAnaLevy.Set(NumMomBins);
+            gAnaLevy.SetName(TString::Format("gAnaLevy_%.2f_%.2f",Scale,Stability));
+            for(unsigned uBin=0; uBin<NumMomBins; uBin++){
+                double Momentum = CatPairLevy.GetMomentum(uBin);
+                gAnaLevy.SetPoint(uBin,Momentum,1.+exp(-pow(2.*Momentum*Scale*CatPairLevy.FmNu(),Stability)));
+            }
+            gAnaLevy.SetLineWidth(3);
+            gAnaLevy.SetLineColor(kGreen+1);
+            TGraph gAnaLevy2;
+            gAnaLevy2.Set(NumMomBins);
+            gAnaLevy2.SetName(TString::Format("gAnaLevy2_%.2f_%.2f",Scale,Stability));
+            for(unsigned uBin=0; uBin<NumMomBins; uBin++){
+                double Momentum = CatPairLevy.GetMomentum(uBin);
+                gAnaLevy2.SetPoint(uBin,Momentum,1.+exp(-pow(2.*Momentum*Scale/sqrt(Stability)*CatPairLevy.FmNu(),Stability)));
+            }
+            gAnaLevy2.SetLineWidth(2.5);
+            gAnaLevy2.SetLineColor(kViolet);
+            gSingleLevy.Write();
+            gPairLevy.Write();
+            gAnaLevy.Write();
+            gAnaLevy2.Write();
+        }
+    }
+    delete fOutput;
+}
+
+
+void TestManyLevyParametrizations(const double& Stability, const double& Scale){
+    DLM_Random RanGen(11);
+    const unsigned NumBins=256;
+
+    TH1F* hStable3D_0 = new TH1F("hStable3D_0","hStable3D_0",NumBins,0,16);
+    hStable3D_0->SetLineColor(kRed);
+    TH1F* hStable3D_1 = new TH1F("hStable3D_1","hStable3D_1",NumBins,0,16);
+    hStable3D_1->SetLineColor(kBlue);
+    TH1F* hGauss3D = new TH1F("hGauss3D","hGauss3D",NumBins,0,16);
+    TH1F* hCauchy3D = new TH1F("hCauchy3D","hCauchy3D",NumBins,0,16);
+    TGraph gAnaLevy_0;
+    gAnaLevy_0.Set(NumBins);
+    gAnaLevy_0.SetName("gAnaLevy_0");
+    TGraph gAnaLevy_1;
+    gAnaLevy_1.Set(NumBins);
+    gAnaLevy_1.SetName("gAnaLevy_1");
+    TGraph gAnaLevy_2;
+    gAnaLevy_2.Set(NumBins);
+    gAnaLevy_2.SetName("gAnaLevy_2");
+
+    const unsigned NumIter = 400000;
+    for(unsigned uIter=0; uIter<NumIter; uIter++){
+        hStable3D_0->Fill(RanGen.StableR(3,Stability,0,Scale,0));
+        hStable3D_1->Fill(RanGen.StableDiffR(3,Stability,0,Scale,0));
+        hGauss3D->Fill(RanGen.GaussR(3,0,Scale));
+        hCauchy3D->Fill(RanGen.CauchyR(3,0,Scale));
+    }
+    for(unsigned uBin=0; uBin<NumBins; uBin++){
+        double PARS[5];
+        PARS[1] = hStable3D_0->GetBinCenter(uBin+1);
+        PARS[3] = Scale;
+        PARS[4] = Stability;
+        gAnaLevy_0.SetPoint(uBin,PARS[1],LevySource3D_single(PARS));
+        gAnaLevy_1.SetPoint(uBin,PARS[1],LevySource3D_2particle(PARS));
+        gAnaLevy_2.SetPoint(uBin,PARS[1],LevySource3D(PARS));
+    }
+
+    hStable3D_0->Scale(1./double(NumIter),"width");
+    hStable3D_1->Scale(1./double(NumIter),"width");
+    hGauss3D->Scale(1./double(NumIter),"width");
+    hCauchy3D->Scale(1./double(NumIter),"width");
+
+    printf("Integral hStable3D_0 = %f\n",hStable3D_0->Integral(1,hStable3D_0->GetNbinsX()));
+    printf("Integral hStable3D_1 = %f\n",hStable3D_1->Integral(1,hStable3D_1->GetNbinsX()));
+    printf("Integral hGauss3D = %f\n",hGauss3D->Integral(1,hGauss3D->GetNbinsX()));
+    printf("Integral hCauchy3D = %f\n",hCauchy3D->Integral(1,hCauchy3D->GetNbinsX()));
+
+    TFile* OutFile = new TFile(
+        TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/TestManyLevyParametrizations/OutFile_%.2f_%.2f.root",Stability,Scale)
+                               ,"recreate");
+    hStable3D_0->Write();
+    hStable3D_1->Write();
+    hGauss3D->Write();
+    hCauchy3D->Write();
+    gAnaLevy_0.Write();
+    gAnaLevy_1.Write();
+    gAnaLevy_2.Write();
+
+    delete hStable3D_0;
+    delete hStable3D_1;
+    delete hGauss3D;
+    delete hCauchy3D;
+    delete OutFile;
+}

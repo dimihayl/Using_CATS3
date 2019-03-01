@@ -782,7 +782,16 @@ double fitterRad_CC(double* rad, double* par){
     return      Weight1 *2.00*2.*Size1*Radius*Radius/PI*pow(Radius*Radius+0.25*2.00*2.00*Size1*Size1,-2.)+
             (1.-Weight1)*2.00*2.*Size2*Radius*Radius/PI*pow(Radius*Radius+0.25*2.00*2.00*Size2*Size2,-2.);
 }
+/*
+double fitterRad_CleverLevy(double* rad, double* par){
+    double& Radius = rad[0];
+    if(Radius<=0) return 0;
+    double& Scale = par[0];
+    if(Size1<=0) return 0;
+    double& Stability = par[1];
 
+}
+*/
     //const TString System = "pp";
     //const TString System = "pL";
     //const TString SubSample = "Full";
@@ -1171,7 +1180,6 @@ void GetSource(const TString& System, const TString& SubSample, const bool& TauC
     else if(System=="LL") OutputFolder = TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/ForGerhard/GetSourceTest/%.0f_%.0f/LL/",kMin,kMax);
     else if(System=="pXim") OutputFolder = TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/ForGerhard/GetSourceTest/%.0f_%.0f/pXim/",kMin,kMax);
 
-
     //there are 2 CATS objects, one for the fitting (4 MeV bin width) and one for the differential look into the source (40 MeV bin width)
     const unsigned MaxNumEvents = 1000000;
     const short MixingDepth = 32;//!put to one for the actual source. To enhance statistics at the expense of 5-10% uncertainty, put to 8
@@ -1484,6 +1492,12 @@ void GetSource(const TString& System, const TString& SubSample, const bool& TauC
     hRad[1]->Scale(1./double(NumPairs),"width");
     //hRad[1]->Scale(1./hRad[1]->Integral(1,hRad[1]->GetNbinsX()),"width");
 
+    //cheap way of getting rid of the Sigma0
+    if(System=="pL"&&SubSample=="Full"){
+        hRad[0]->Scale(4./3.);
+        hRad[1]->Scale(4./3.);
+    }
+
 printf("hRad[1]->Integral(1,hRad[1]->GetNbinsX())=%f (%f)\n",hRad[1]->Integral(1,hRad[1]->GetNbinsX()),hRad[1]->Integral(1,hRad[1]->GetNbinsX()+1));
 
     hSingleParticle[0]->Sumw2();
@@ -1497,12 +1511,14 @@ printf("hRad[1]->Integral(1,hRad[1]->GetNbinsX())=%f (%f)\n",hRad[1]->Integral(1
     TF1** fitRad_GC = new TF1* [2];
     TF1** fitRad_GG = new TF1* [2];
     TF1** fitRad_CC = new TF1* [2];
+    TF1** fitRad_CleverLevy = new TF1* [2];
 
     double Chi2Ndf_Gauss[2];
     double Chi2Ndf_Cauchy[2];
     double Chi2Ndf_GC[2];
     double Chi2Ndf_GG[2];
     double Chi2Ndf_CC[2];
+    double Chi2Ndf_CleverLevy[2];
 
     TLegend** myLegend = new TLegend*[2];
     TCanvas** cGauss = new TCanvas*[2];
@@ -1519,6 +1535,9 @@ printf("hRad[1]->Integral(1,hRad[1]->GetNbinsX())=%f (%f)\n",hRad[1]->Integral(1
 
     TCanvas** cCC = new TCanvas*[2];
     TPaveText** PT_CC = new TPaveText*[2];
+
+    TCanvas** cCleverLevy = new TCanvas*[2];
+    TPaveText** PT_CleverLevy = new TPaveText*[2];
 
     for(int iSeMe=0; iSeMe<2; iSeMe++){
         TString AddOn;
@@ -1541,6 +1560,11 @@ printf("hRad[1]->Integral(1,hRad[1]->GetNbinsX())=%f (%f)\n",hRad[1]->Integral(1
         fitRad_GC[iSeMe] = new TF1("fitRad_GC_"+AddOn,fitterRad_GC,RadMin,RadMax,3);
         fitRad_GG[iSeMe] = new TF1("fitRad_GG_"+AddOn,fitterRad_GG,RadMin,RadMax,3);
         fitRad_CC[iSeMe] = new TF1("fitRad_CC_"+AddOn,fitterRad_CC,RadMin,RadMax,3);
+
+        DLM_CleverLevy CleverLevy;
+        CleverLevy.InitType(1);
+        fitRad_CleverLevy[iSeMe] = new TF1("fitRad_CleverLevy"+AddOn,&CleverLevy,&DLM_CleverLevy::RootEval,RadMin,RadMax,2,"DLM_CleverLevy","RootEval");
+        //fitRad_CleverLevy[iSeMe] = new TF1("fitRad_CleverLevy"+AddOn,fitterRad_CleverLevy,RadMin,RadMax,2);
 
         fitRad_Gauss[iSeMe]->SetParameter(0,1);
         fitRad_Gauss[iSeMe]->SetParLimits(0,0.1,2);
@@ -1579,11 +1603,19 @@ printf("hRad[1]->Integral(1,hRad[1]->GetNbinsX())=%f (%f)\n",hRad[1]->Integral(1
         fitRad_CC[iSeMe]->SetLineColor(kRed);
         fitRad_CC[iSeMe]->SetLineWidth(4);
 
+        fitRad_CleverLevy[iSeMe]->SetParameter(0,1);
+        fitRad_CleverLevy[iSeMe]->SetParLimits(0,0.1,2);
+        fitRad_CleverLevy[iSeMe]->SetParameter(1,1.5);
+        fitRad_CleverLevy[iSeMe]->SetParLimits(1,1,2);
+        fitRad_CleverLevy[iSeMe]->SetLineColor(kRed);
+        fitRad_CleverLevy[iSeMe]->SetLineWidth(4);
+
         hRad[iSeMe]->Fit(fitRad_Gauss[iSeMe], "Q, S, N, R, M");
         hRad[iSeMe]->Fit(fitRad_Cauchy[iSeMe], "Q, S, N, R, M");
         hRad[iSeMe]->Fit(fitRad_GC[iSeMe], "Q, S, N, R, M");
         hRad[iSeMe]->Fit(fitRad_GG[iSeMe], "Q, S, N, R, M");
         hRad[iSeMe]->Fit(fitRad_CC[iSeMe], "Q, S, N, R, M");
+        hRad[iSeMe]->Fit(fitRad_CleverLevy[iSeMe], "Q, S, N, R, M");
 
         hRad[iSeMe]->SetStats(false);
         hRad[iSeMe]->SetTitle("");
@@ -1607,6 +1639,7 @@ printf("hRad[1]->Integral(1,hRad[1]->GetNbinsX())=%f (%f)\n",hRad[1]->Integral(1
         Chi2Ndf_GC[iSeMe] = fitRad_GC[iSeMe]->GetChisquare()/double(fitRad_GC[iSeMe]->GetNDF());
         Chi2Ndf_GG[iSeMe] = fitRad_GG[iSeMe]->GetChisquare()/double(fitRad_GG[iSeMe]->GetNDF());
         Chi2Ndf_CC[iSeMe] = fitRad_CC[iSeMe]->GetChisquare()/double(fitRad_CC[iSeMe]->GetNDF());
+        Chi2Ndf_CleverLevy[iSeMe] = fitRad_CleverLevy[iSeMe]->GetChisquare()/double(fitRad_CleverLevy[iSeMe]->GetNDF());
 
         printf("%s:\n",AddOn.Data());
         printf("Chi2Ndf_Gauss = %.2f\n",Chi2Ndf_Gauss[iSeMe]);
@@ -1614,6 +1647,7 @@ printf("hRad[1]->Integral(1,hRad[1]->GetNbinsX())=%f (%f)\n",hRad[1]->Integral(1
         printf("Chi2Ndf_GC = %.2f\n",Chi2Ndf_GC[iSeMe]);
         printf("Chi2Ndf_GG = %.2f\n",Chi2Ndf_GG[iSeMe]);
         printf("Chi2Ndf_CC = %.2f\n",Chi2Ndf_CC[iSeMe]);
+        printf("Chi2Ndf_CleverLevy = %.2f\n",Chi2Ndf_CleverLevy[iSeMe]);
         printf("\n");
 
         myLegend[iSeMe] = new TLegend(0.65,0.80,0.95,0.95);//lbrt
@@ -1700,7 +1734,6 @@ printf("hRad[1]->Integral(1,hRad[1]->GetNbinsX())=%f (%f)\n",hRad[1]->Integral(1
         PT_GG[iSeMe]->AddText(TString::Format("#chi^{2}_{ndf}=%.2f\n",Chi2Ndf_GG[iSeMe]));
         PT_GG[iSeMe]->AddText(TString::Format("RG1/RG2=%.3f/%.3f fm\n",fitRad_GG[iSeMe]->GetParameter(0),fitRad_GG[iSeMe]->GetParameter(1)));
         PT_GG[iSeMe]->AddText(TString::Format("wG1/wG2=%.3f/%.3f fm\n",fitRad_GG[iSeMe]->GetParameter(2),1.-fitRad_GG[iSeMe]->GetParameter(2)));
-
         PT_GG[iSeMe]->Draw("same");
 
         cCC[iSeMe] = new TCanvas("cCC_"+AddOn, "cCC_"+AddOn, 1);
@@ -1723,6 +1756,28 @@ printf("hRad[1]->Integral(1,hRad[1]->GetNbinsX())=%f (%f)\n",hRad[1]->Integral(1
         PT_CC[iSeMe]->AddText(TString::Format("wC1/wC2=%.3f/%.3f fm\n",fitRad_CC[iSeMe]->GetParameter(2),1.-fitRad_CC[iSeMe]->GetParameter(2)));
         PT_CC[iSeMe]->Draw("same");
 
+
+        cCleverLevy[iSeMe] = new TCanvas("cCleverLevy_"+AddOn, "cCleverLevy_"+AddOn, 1);
+        cCleverLevy[iSeMe]->cd(0);
+        cCleverLevy[iSeMe]->SetCanvasSize(1280, 720);
+        cCleverLevy[iSeMe]->SetMargin(0.15,0.05,0.2,0.05);//lrbt
+        hRad[iSeMe]->Draw();
+        fitRad_CleverLevy[iSeMe]->Draw("same");
+        myLegend[iSeMe]->Draw("same");
+
+        PT_CleverLevy[iSeMe] = new TPaveText(0.65,0.55,0.95,0.80, "blNDC");//lbrt
+        PT_CleverLevy[iSeMe]->SetName("PT_CleverLevy"+AddOn);
+        PT_CleverLevy[iSeMe]->SetBorderSize(1);
+        PT_CleverLevy[iSeMe]->SetTextSize(0.045);
+        PT_CleverLevy[iSeMe]->SetFillColor(kWhite);
+        PT_CleverLevy[iSeMe]->SetTextFont(22);
+        PT_CleverLevy[iSeMe]->AddText("Levy source ("+SystemName+"):");
+        PT_CleverLevy[iSeMe]->AddText(TString::Format("#chi^{2}_{ndf}=%.2f\n",Chi2Ndf_CC[iSeMe]));
+        PT_CleverLevy[iSeMe]->AddText(TString::Format("#sigma=%.3f#pm %.3f fm\n",fitRad_CleverLevy[iSeMe]->GetParameter(0),fitRad_CleverLevy[iSeMe]->GetParError(0)));
+        PT_CleverLevy[iSeMe]->AddText(TString::Format("#alpha=%.3f#pm %.3f fm\n",fitRad_CleverLevy[iSeMe]->GetParameter(1),fitRad_CleverLevy[iSeMe]->GetParError(1)));
+        PT_CleverLevy[iSeMe]->Draw("same");
+
+
         hRad[iSeMe]->Write();
         //fitRad_Gauss[iSeMe]->Write();
         //fitRad_Cauchy[iSeMe]->Write();
@@ -1740,6 +1795,7 @@ printf("hRad[1]->Integral(1,hRad[1]->GetNbinsX())=%f (%f)\n",hRad[1]->Integral(1
         cGC[iSeMe]->SaveAs(OutputFolder+"cGC_"+SubSample+"_"+AddOn+".png");
         cGG[iSeMe]->SaveAs(OutputFolder+"cGG_"+SubSample+"_"+AddOn+".png");
         cCC[iSeMe]->SaveAs(OutputFolder+"cCC_"+SubSample+"_"+AddOn+".png");
+        cCleverLevy[iSeMe]->SaveAs(OutputFolder+"cCleverLevy_"+SubSample+"_"+AddOn+".png");
     }
 
     TF1** fitRad_Gauss_SP = new TF1* [2];
@@ -2085,10 +2141,10 @@ void GetSource_Compare(){
 int GerhardMAIN(int narg, char** ARGS){
     printf("Running GerhardMAIN\n");
     //EposFit_pp_1();
-    FitEposSource_pp("pp","Full");
-    FitEposSource_pp("pp","Prim");
-    FitEposSource_pp("pL","Full");
-    FitEposSource_pp("pL","Prim");
+    //FitEposSource_pp("pp","Full");
+    //FitEposSource_pp("pp","Prim");
+    //FitEposSource_pp("pL","Full");
+    //FitEposSource_pp("pL","Prim");
 
     const double KMIN[12] = {   0,  50, 100, 150, 200, 250, 150, 500,1000,2000,   0,   0};
     const double KMAX[12] = {  50, 100, 150, 200, 250, 300, 500,1000,2000,8000, 150,8000};
@@ -2100,7 +2156,6 @@ int GerhardMAIN(int narg, char** ARGS){
 
     for(int iMom=0; iMom<12; iMom++){
 if(iMom!=10) continue;
-break;
         GetSource("pp","Full",false,true,KMIN[iMom],KMAX[iMom]);
         GetSource("pp","Prim",false,true,KMIN[iMom],KMAX[iMom]);
         GetSource("pL","Full",false,true,KMIN[iMom],KMAX[iMom]);
