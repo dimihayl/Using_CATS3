@@ -11,6 +11,7 @@ SET(GSL_INCLUDE "/usr/include/gsl")#where are all GSL related .h files
 SET(GSL_LIB "/usr/lib")#where are the GSL .a and .so files
 SET(CATS_PATH "/home/dmihaylov/Apps/CATS")#the CATS main folder (containing cats-config)
 SET(CATS_TYPE "dev")#basic, extended or dev
+SET(GENTLE_FEMTO_PATH "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/GentleFemto")
 
 SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_DESTINATION}/CMake/bin)
 
@@ -18,10 +19,12 @@ add_executable(${PROJECT_NAME} ${PROJECT_DESTINATION}/main.cpp
 #${PROJECT_DESTINATION}/LamLamMcExclusionMAIN.cpp ${PROJECT_DESTINATION}/LamLamMcExclusion.cpp 
 #${PROJECT_DESTINATION}/CATS3_Scripts1.cpp 
 ${PROJECT_DESTINATION}/ForBernie.cpp 
-#${PROJECT_DESTINATION}/ForGerhard.cpp 
+${PROJECT_DESTINATION}/ForGerhard.cpp 
 #${PROJECT_DESTINATION}/KaonProton.cpp  
 ${PROJECT_DESTINATION}/pLambda_1.cpp  
 ${PROJECT_DESTINATION}/CommonAnaFunctions.cpp
+${PROJECT_DESTINATION}/GentleDimi.cpp
+${PROJECT_DESTINATION}/FemtoBoyzScripts.cpp
 #ADD BELOW ANY OTHER .CPP FILES THAT YOU WOULD LIKE TO COMPILE (FULL PATH)
 )
 # DO NOT CHANGE THE REST #
@@ -67,8 +70,11 @@ include_directories(${PROJECT_DESTINATION}/CATSpotentials)
 include_directories(${CATS_INCLUDE})
 include_directories(${GSL_INCLUDE})
 include_directories(${ROOT_INCLUDE})
+include_directories(${GENTLE_FEMTO_PATH}/DreamFunction)
+include_directories(${GENTLE_FEMTO_PATH}/ForgivingQA)
+include_directories(${GENTLE_FEMTO_PATH}/GentleKitty)
 
-target_link_libraries(${PROJECT_NAME} -L${CATS_LIBS} ${LIBS} -L${GSL_LIB} -lgsl -lgslcblas)
+target_link_libraries(${PROJECT_NAME} -L${CATS_LIBS} ${LIBS} -L${GSL_LIB} -lgsl -lgslcblas -L${GENTLE_FEMTO_PATH}/install/lib -lDreamFunctions -lForgivingFnct -ltidyCATS)
 
 file(WRITE CMakeDLM.txt "${PROJECT_NAME}\n")
 file(APPEND CMakeDLM.txt "${PROJECT_DESTINATION}\n")

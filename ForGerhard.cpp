@@ -104,7 +104,7 @@ void EposFit_pp_1(){
             //StabDistr[sCat].SetLocation(0);
             //StabDistr[sCat].SetScale(1.0);
             //StabDistr[sCat].SetSkewness(0);
-            AB_pp[sCat].SetAnaSource(MemberSourceForwarder, &StabDistr[sCat], 4);
+            AB_pp[sCat].SetAnaSource(CatsSourceForwarder, &StabDistr[sCat], 4);
             AB_pp[sCat].SetAnaSource(0,1.5,false);
             AB_pp[sCat].SetAnaSource(1,0,false);
             AB_pp[sCat].SetAnaSource(2,1.0,false);
@@ -1175,19 +1175,21 @@ void FitEposSource_pp(const TString& System, const TString& SubSample){
 void GetSource(const TString& System, const TString& SubSample, const bool& TauCorrection, const bool& BoostToCm,
                const double& kMin, const double& kMax){
     TString OutputFolder;
-    if(System=="pp") OutputFolder = TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/ForGerhard/GetSourceTest/%.0f_%.0f/pp/",kMin,kMax);
-    else if(System=="pL") OutputFolder = TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/ForGerhard/GetSourceTest/%.0f_%.0f/pL/",kMin,kMax);
-    else if(System=="LL") OutputFolder = TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/ForGerhard/GetSourceTest/%.0f_%.0f/LL/",kMin,kMax);
-    else if(System=="pXim") OutputFolder = TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/ForGerhard/GetSourceTest/%.0f_%.0f/pXim/",kMin,kMax);
+    if(System=="pp") OutputFolder = TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/ForGerhard/GetSource120319/%.0f_%.0f/pp/",kMin,kMax);
+    else if(System=="pL") OutputFolder = TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/ForGerhard/GetSource120319/%.0f_%.0f/pL/",kMin,kMax);
+    else if(System=="LL") OutputFolder = TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/ForGerhard/GetSource120319/%.0f_%.0f/LL/",kMin,kMax);
+    else if(System=="pXim") OutputFolder = TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/ForGerhard/GetSource120319/%.0f_%.0f/pXim/",kMin,kMax);
 
     //there are 2 CATS objects, one for the fitting (4 MeV bin width) and one for the differential look into the source (40 MeV bin width)
-    const unsigned MaxNumEvents = 1000000;
+    const unsigned MaxNumEvents = 250000;
     const short MixingDepth = 32;//!put to one for the actual source. To enhance statistics at the expense of 5-10% uncertainty, put to 8
     //const unsigned NumMomBins_pp = 30;
 
     const unsigned NumRadBins=128;
     const double RadMin=0;
     const double RadMax=8;
+
+    const unsigned NumMomBins=1024;
 
     const double Rescale = 1;
 
@@ -1324,6 +1326,9 @@ void GetSource(const TString& System, const TString& SubSample, const bool& TauC
     hSingleParticle[0] = new TH1F("hSingleParticle0","hSingleParticle0",NumRadBins,RadMin,RadMax);
     hSingleParticle[1] = new TH1F("hSingleParticle1","hSingleParticle1",NumRadBins,RadMin,RadMax);
 
+    TH1F** hMomDist = new TH1F* [2];
+    hMomDist[0] = new TH1F("hMomDistSe","hMomDistSe",NumMomBins,kMin,kMax);
+    hMomDist[1] = new TH1F("hMomDistMe","hMomDistMe",NumMomBins,kMin,kMax);
 
     //!---Iteration over all events---
     while(!feof(InFile)){
@@ -1409,6 +1414,7 @@ void GetSource(const TString& System, const TString& SubSample, const bool& TauC
                 RedMomMeV = 500.*RelMom;
                 if(RedMomMeV>=kMin&&RedMomMeV<=kMax){
                     hRad[1]->Fill(RelPos);
+                    hMomDist[1]->Fill(RedMomMeV);
                     NumPairs++;
                 }
             }
@@ -1423,6 +1429,7 @@ void GetSource(const TString& System, const TString& SubSample, const bool& TauC
                 RedMomMeV = 500.*RelMom;
                 if(RedMomMeV>=kMin&&RedMomMeV<=kMax){
                     hRad[0]->Fill(RelPos);
+                    hMomDist[0]->Fill(RedMomMeV);
 //if(RelPos>RadMax){
 //printf("---> RelPos=%e\n",RelPos);
 //}
@@ -1454,6 +1461,8 @@ void GetSource(const TString& System, const TString& SubSample, const bool& TauC
         }
     }//while(!feof(InFile))
 
+
+    printf("TotNumEvents = %u\n",TotNumEvents);
 //printf("NumSingleParticles1=%u\n",NumSingleParticles1);
 //printf("NumSingleParticles2=%u\n",NumSingleParticles2);
 
@@ -1491,6 +1500,15 @@ void GetSource(const TString& System, const TString& SubSample, const bool& TauC
     hRad[1]->Sumw2();
     hRad[1]->Scale(1./double(NumPairs),"width");
     //hRad[1]->Scale(1./hRad[1]->Integral(1,hRad[1]->GetNbinsX()),"width");
+
+    hMomDist[0]->Sumw2();
+    hMomDist[0]->Scale(1./double(NumSePairs),"width");
+
+    hMomDist[1]->Sumw2();
+    hMomDist[1]->Scale(1./double(NumPairs),"width");
+
+    printf("Number of same events pairs: %u\n",NumSePairs);
+    printf("Number of mixed events pairs: %u\n",NumPairs);
 
     //cheap way of getting rid of the Sigma0
     if(System=="pL"&&SubSample=="Full"){
@@ -1779,16 +1797,19 @@ printf("hRad[1]->Integral(1,hRad[1]->GetNbinsX())=%f (%f)\n",hRad[1]->Integral(1
 
 
         hRad[iSeMe]->Write();
-        //fitRad_Gauss[iSeMe]->Write();
-        //fitRad_Cauchy[iSeMe]->Write();
-        //fitRad_GC[iSeMe]->Write();
-        //fitRad_GG[iSeMe]->Write();
-        //fitRad_CC[iSeMe]->Write();
-        //cGauss[iSeMe]->Write();
-        //cCauchy[iSeMe]->Write();
-        //cGC[iSeMe]->Write();
-        //cGG[iSeMe]->Write();
-        //cCC[iSeMe]->Write();
+        hMomDist[iSeMe]->Write();
+        fitRad_Gauss[iSeMe]->Write();
+        fitRad_Cauchy[iSeMe]->Write();
+        fitRad_GC[iSeMe]->Write();
+        fitRad_GG[iSeMe]->Write();
+        fitRad_CC[iSeMe]->Write();
+        fitRad_CleverLevy[iSeMe]->Write();
+        cGauss[iSeMe]->Write();
+        cCauchy[iSeMe]->Write();
+        cGC[iSeMe]->Write();
+        cGG[iSeMe]->Write();
+        cCC[iSeMe]->Write();
+        cCleverLevy[iSeMe]->Write();
 
         cGauss[iSeMe]->SaveAs(OutputFolder+"cGauss_"+SubSample+"_"+AddOn+".png");
         cCauchy[iSeMe]->SaveAs(OutputFolder+"cCauchy_"+SubSample+"_"+AddOn+".png");
@@ -2055,6 +2076,7 @@ printf("hRad[1]->Integral(1,hRad[1]->GetNbinsX())=%f (%f)\n",hRad[1]->Integral(1
 
     for(int iSeMe=0; iSeMe<2; iSeMe++){
         delete hRad[iSeMe];
+        delete hMomDist[iSeMe];
         delete fitRad_Gauss[iSeMe];
         delete fitRad_Cauchy[iSeMe];
         delete fitRad_GC[iSeMe];
@@ -2074,6 +2096,7 @@ printf("hRad[1]->Integral(1,hRad[1]->GetNbinsX())=%f (%f)\n",hRad[1]->Integral(1
         delete cCC[iSeMe];
     }
     delete [] hRad;
+    delete [] hMomDist;
     delete [] fitRad_Gauss;
     delete [] fitRad_Cauchy;
     delete [] fitRad_GC;
@@ -2149,11 +2172,15 @@ int GerhardMAIN(int narg, char** ARGS){
     const double KMIN[12] = {   0,  50, 100, 150, 200, 250, 150, 500,1000,2000,   0,   0};
     const double KMAX[12] = {  50, 100, 150, 200, 250, 300, 500,1000,2000,8000, 150,8000};
 
-    //GetSource("pp","Full",false,true,0,150);
-    //GetSource("pp","Prim",false,true,0,150);
+    //GetSource("pp","Full",false,true,0,8000);
+    //GetSource("pp","Prim",false,true,0,8000);
+
+    //GetSource("pp","Full",false,false,0,8000);
+    //GetSource("pp","Prim",false,false,0,8000);
+
     //GetSource("pL","Full",false,true,0,150);
     //GetSource("pL","Prim",false,true,0,150);
-
+//return 0;
     for(int iMom=0; iMom<12; iMom++){
 if(iMom!=10) continue;
         GetSource("pp","Full",false,true,KMIN[iMom],KMAX[iMom]);

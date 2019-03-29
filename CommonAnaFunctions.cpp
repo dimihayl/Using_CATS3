@@ -11,18 +11,27 @@
 #include "TFile.h"
 #include "TROOT.h"
 
-DLM_CleverLevy** CleverLevy = NULL;
-unsigned NumCleverLevyObjects = 0;
+DLM_CommonAnaFunctions::DLM_CommonAnaFunctions():NumCleverLevyObjects(3){
+    //Simple_Reso = NULL;
+    //Simple_Reso = new MS_GaussExp_mT_Simple [NumCleverLevyObjects];
+    CleverLevy = NULL;
+    CleverLevy = new DLM_CleverLevy [NumCleverLevyObjects];
+    CleverMcLevyReso = NULL;
+    CleverMcLevyReso = new DLM_CleverMcLevyReso [NumCleverLevyObjects];
+}
+
+DLM_CommonAnaFunctions::~DLM_CommonAnaFunctions(){
+    //if(Simple_Reso){delete[]Simple_Reso;Simple_Reso=NULL;}
+    if(CleverLevy){delete[]CleverLevy;CleverLevy=NULL;}
+    if(CleverMcLevyReso){delete[]CleverMcLevyReso;CleverMcLevyReso=NULL;}
+}
+
 //POT:
 //  "AV18"
-void SetUpCats_pp(CATS& Kitty, const TString& POT, const TString& SOURCE){
+void DLM_CommonAnaFunctions::SetUpCats_pp(CATS& Kitty, const TString& POT, const TString& SOURCE){
 
     CATSparameters* cPars = NULL;
-    //DLM_CleverLevy* CleverLevy = NULL;
-    if(!CleverLevy){
-        CleverLevy = new DLM_CleverLevy* [1000];
-    }
-    CleverLevy[NumCleverLevyObjects] = NULL;
+
     CATSparameters* cPotPars1S0 = NULL;
     CATSparameters* cPotPars3P0 = NULL;
     CATSparameters* cPotPars3P1 = NULL;
@@ -61,44 +70,81 @@ void SetUpCats_pp(CATS& Kitty, const TString& POT, const TString& SOURCE){
         Kitty.SetUseAnalyticSource(true);
     }
     else if(SOURCE=="CleverLevy_Nolan"){
-        CleverLevy[NumCleverLevyObjects] = new DLM_CleverLevy();
-        CleverLevy[NumCleverLevyObjects]->InitStability(20,1,2);
-        CleverLevy[NumCleverLevyObjects]->InitScale(35,0.25,2.0);
-        CleverLevy[NumCleverLevyObjects]->InitRad(256,0,64);
-        CleverLevy[NumCleverLevyObjects]->InitType(2);
-        Kitty.SetAnaSource(CatsSourceForwarder, CleverLevy[NumCleverLevyObjects], 2);
+        CleverLevy[0].InitStability(20,1,2);
+        CleverLevy[0].InitScale(35,0.25,2.0);
+        CleverLevy[0].InitRad(256,0,64);
+        CleverLevy[0].InitType(2);
+        Kitty.SetAnaSource(CatsSourceForwarder, &CleverLevy[0], 2);
         Kitty.SetAnaSource(0,1.2);
         Kitty.SetAnaSource(1,1.6);
         Kitty.SetUseAnalyticSource(true);
-        NumCleverLevyObjects++;
     }
     else if(SOURCE=="CleverLevy_Single"){
-        CleverLevy[NumCleverLevyObjects] = new DLM_CleverLevy();
-        CleverLevy[NumCleverLevyObjects]->InitStability(20,1,2);
-        CleverLevy[NumCleverLevyObjects]->InitScale(35,0.25,2.0);
-        CleverLevy[NumCleverLevyObjects]->InitRad(256,0,64);
-        CleverLevy[NumCleverLevyObjects]->InitType(0);
-        Kitty.SetAnaSource(CatsSourceForwarder, CleverLevy[NumCleverLevyObjects], 2);
+        CleverLevy[0].InitStability(20,1,2);
+        CleverLevy[0].InitScale(35,0.25,2.0);
+        CleverLevy[0].InitRad(256,0,64);
+        CleverLevy[0].InitType(0);
+        Kitty.SetAnaSource(CatsSourceForwarder, &CleverLevy[0], 2);
         Kitty.SetAnaSource(0,sqrt(1.6)*1.2);
         Kitty.SetAnaSource(1,1.6);
         Kitty.SetUseAnalyticSource(true);
-        NumCleverLevyObjects++;
     }
     else if(SOURCE=="CleverLevy_Diff"){
-        CleverLevy[NumCleverLevyObjects] = new DLM_CleverLevy();
-        CleverLevy[NumCleverLevyObjects]->InitStability(20,1,2);
-        CleverLevy[NumCleverLevyObjects]->InitScale(35,0.25,2.0);
-        CleverLevy[NumCleverLevyObjects]->InitRad(256,0,64);
-        CleverLevy[NumCleverLevyObjects]->InitType(1);
-        Kitty.SetAnaSource(CatsSourceForwarder, CleverLevy[NumCleverLevyObjects], 2);
+        CleverLevy[0].InitStability(20,1,2);
+        CleverLevy[0].InitScale(35,0.25,2.0);
+        CleverLevy[0].InitRad(256,0,64);
+        CleverLevy[0].InitType(1);
+        Kitty.SetAnaSource(CatsSourceForwarder, &CleverLevy[0], 2);
         Kitty.SetUseAnalyticSource(true);
         Kitty.SetAnaSource(0,0.5*1.6*1.2);
         Kitty.SetAnaSource(1,1.6);
-        NumCleverLevyObjects++;
     }
-    else if(SOURCE=="Gauss_mT_Reso"){
-        printf("\033[1;33mWARNING:\033[0m The CommonAnaFunction is still under construction (Gauss_mT_Reso)\n");
-        goto CLEAN_SetUpCats_pp;
+    else if(SOURCE=="GaussExpTotSimple_2body"){
+        //printf("\033[1;33mWARNING:\033[0m The CommonAnaFunction is still under construction (Gauss_mT_Reso)\n");
+        cPars = new CATSparameters(CATSparameters::tSource,11,true);
+        cPars->SetParameter(0,1.2);
+        cPars->SetParameter(1,1.65);//tau
+        cPars->SetParameter(2,1.-0.3578);//prim
+        cPars->SetParameter(3,1361.52);//reso mass
+        cPars->SetParameter(4,Mass_p);
+        cPars->SetParameter(5,Mass_pic);
+        cPars->SetParameter(6,1.65);
+        cPars->SetParameter(7,1.-0.3578);
+        cPars->SetParameter(8,1361.52);
+        cPars->SetParameter(9,Mass_p);
+        cPars->SetParameter(10,Mass_pic);
+        Kitty.SetAnaSource(GaussExpTotSimple_2body, *cPars);
+        Kitty.SetUseAnalyticSource(true);
+    }
+    else if(SOURCE=="McLevyNolan_Reso"){
+        CleverMcLevyReso[0].InitStability(21,1,2);
+        CleverMcLevyReso[0].InitScale(38,0.15,2.0);
+        CleverMcLevyReso[0].InitRad(257,0,64);
+        CleverMcLevyReso[0].InitType(2);
+        CleverMcLevyReso[0].InitReso(0,1);
+        CleverMcLevyReso[0].InitReso(1,1);
+        CleverMcLevyReso[0].SetUpReso(0,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic);
+        CleverMcLevyReso[0].SetUpReso(1,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic);
+        CleverMcLevyReso[0].InitNumMcIter(1000000);
+        Kitty.SetAnaSource(CatsSourceForwarder, &CleverMcLevyReso[0], 2);
+        Kitty.SetAnaSource(0,1.2);
+        Kitty.SetAnaSource(1,1.6);
+        Kitty.SetUseAnalyticSource(true);
+    }
+    else if(SOURCE=="McGauss_Reso"){
+        CleverMcLevyReso[0].InitStability(1,2-1e-6,2+1e-6);
+        CleverMcLevyReso[0].InitScale(38,0.15,2.0);
+        CleverMcLevyReso[0].InitRad(257,0,64);
+        CleverMcLevyReso[0].InitType(2);
+        CleverMcLevyReso[0].InitReso(0,1);
+        CleverMcLevyReso[0].InitReso(1,1);
+        CleverMcLevyReso[0].SetUpReso(0,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic);
+        CleverMcLevyReso[0].SetUpReso(1,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic);
+        CleverMcLevyReso[0].InitNumMcIter(1000000);
+        Kitty.SetAnaSource(CatsSourceForwarder, &CleverMcLevyReso[0], 2);
+        Kitty.SetAnaSource(0,1.2);
+        Kitty.SetAnaSource(1,2.0);
+        Kitty.SetUseAnalyticSource(true);
     }
     else if(SOURCE=="EPOS"){
         printf("\033[1;33mWARNING:\033[0m The CommonAnaFunction is still under construction (EPOS)\n");
@@ -170,17 +216,14 @@ void SetUpCats_pp(CATS& Kitty, const TString& POT, const TString& SOURCE){
 }
 //POT:
 //  "LO"
+//  "LO_Coupled_S"
 //  "NLO"
 //  "NLO_Coupled_S"
 //  "Usmani"
-void SetUpCats_pL(CATS& Kitty, const TString& POT, const TString& SOURCE){
+void DLM_CommonAnaFunctions::SetUpCats_pL(CATS& Kitty, const TString& POT, const TString& SOURCE){
     CATSparameters* cPars = NULL;
     CATSparameters* pPars = NULL;
-    //DLM_CleverLevy* CleverLevy = NULL;
-    if(!CleverLevy){
-        CleverLevy = new DLM_CleverLevy* [100];
-    }
-    CleverLevy[NumCleverLevyObjects] = NULL;
+
     CATSparameters* cPotPars1S0 = NULL;
     CATSparameters* cPotPars3S1 = NULL;
 
@@ -220,44 +263,68 @@ void SetUpCats_pL(CATS& Kitty, const TString& POT, const TString& SOURCE){
         Kitty.SetUseAnalyticSource(true);
     }
     else if(SOURCE=="CleverLevy_Nolan"){
-        CleverLevy[NumCleverLevyObjects] = new DLM_CleverLevy();
-        CleverLevy[NumCleverLevyObjects]->InitStability(20,1,2);
-        CleverLevy[NumCleverLevyObjects]->InitScale(35,0.25,2.0);
-        CleverLevy[NumCleverLevyObjects]->InitRad(256,0,64);
-        CleverLevy[NumCleverLevyObjects]->InitType(2);
-        Kitty.SetAnaSource(CatsSourceForwarder, CleverLevy[NumCleverLevyObjects], 2);
+        CleverLevy[1].InitStability(20,1,2);
+        CleverLevy[1].InitScale(35,0.25,2.0);
+        CleverLevy[1].InitRad(256,0,64);
+        CleverLevy[1].InitType(2);
+        Kitty.SetAnaSource(CatsSourceForwarder, &CleverLevy[1], 2);
         Kitty.SetAnaSource(0,1.2);
         Kitty.SetAnaSource(1,1.2);
         Kitty.SetUseAnalyticSource(true);
-        NumCleverLevyObjects++;
     }
     else if(SOURCE=="CleverLevy_Single"){
-        CleverLevy[NumCleverLevyObjects] = new DLM_CleverLevy();
-        CleverLevy[NumCleverLevyObjects]->InitStability(20,1,2);
-        CleverLevy[NumCleverLevyObjects]->InitScale(35,0.25,2.0);
-        CleverLevy[NumCleverLevyObjects]->InitRad(256,0,64);
-        CleverLevy[NumCleverLevyObjects]->InitType(0);
-        Kitty.SetAnaSource(CatsSourceForwarder, CleverLevy[NumCleverLevyObjects], 2);
+        CleverLevy[1].InitStability(20,1,2);
+        CleverLevy[1].InitScale(35,0.25,2.0);
+        CleverLevy[1].InitRad(256,0,64);
+        CleverLevy[1].InitType(0);
+        Kitty.SetAnaSource(CatsSourceForwarder, &CleverLevy[1], 2);
         Kitty.SetAnaSource(0,sqrt(1.2)*1.2);
         Kitty.SetAnaSource(1,1.2);
         Kitty.SetUseAnalyticSource(true);
-        NumCleverLevyObjects++;
     }
     else if(SOURCE=="CleverLevy_Diff"){
-        CleverLevy[NumCleverLevyObjects] = new DLM_CleverLevy();
-        CleverLevy[NumCleverLevyObjects]->InitStability(20,1,2);
-        CleverLevy[NumCleverLevyObjects]->InitScale(35,0.25,2.0);
-        CleverLevy[NumCleverLevyObjects]->InitRad(256,0,64);
-        CleverLevy[NumCleverLevyObjects]->InitType(1);
-        Kitty.SetAnaSource(CatsSourceForwarder, CleverLevy[NumCleverLevyObjects], 2);
+        CleverLevy[1].InitStability(20,1,2);
+        CleverLevy[1].InitScale(35,0.25,2.0);
+        CleverLevy[1].InitRad(256,0,64);
+        CleverLevy[1].InitType(1);
+        Kitty.SetAnaSource(CatsSourceForwarder, &CleverLevy[1], 2);
         Kitty.SetAnaSource(0,0.5*1.2*1.2);
         Kitty.SetAnaSource(1,1.2);
         Kitty.SetUseAnalyticSource(true);
-        NumCleverLevyObjects++;
     }
-    else if(SOURCE=="Gauss_mT_Reso"){
-        printf("\033[1;33mWARNING:\033[0m The CommonAnaFunction is still under construction (Gauss_mT_Reso)\n");
+    else if(SOURCE=="GaussExpTotSimple_2body"){
+        printf("\033[1;33mWARNING:\033[0m The CommonAnaFunction is still under construction (GaussExpTotSimple_2body)\n");
         goto CLEAN_SetUpCats_pL;
+    }
+    else if(SOURCE=="McLevyNolan_Reso"){
+        CleverMcLevyReso[1].InitStability(21,1,2);
+        CleverMcLevyReso[1].InitScale(38,0.15,2.0);
+        CleverMcLevyReso[1].InitRad(257,0,64);
+        CleverMcLevyReso[1].InitType(2);
+        CleverMcLevyReso[1].InitReso(0,1);
+        CleverMcLevyReso[1].InitReso(1,1);
+        CleverMcLevyReso[1].SetUpReso(0,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic);
+        CleverMcLevyReso[1].SetUpReso(1,0,1.-0.3562,1462.93,4.69,Mass_L,Mass_pic);
+        CleverMcLevyReso[1].InitNumMcIter(1000000);
+        Kitty.SetAnaSource(CatsSourceForwarder, &CleverMcLevyReso[1], 2);
+        Kitty.SetAnaSource(0,1.2);
+        Kitty.SetAnaSource(1,1.6);
+        Kitty.SetUseAnalyticSource(true);
+    }
+    else if(SOURCE=="McGauss_Reso"){
+        CleverMcLevyReso[1].InitStability(1,2-1e-6,2+1e-6);
+        CleverMcLevyReso[1].InitScale(35,0.25,2.0);
+        CleverMcLevyReso[1].InitRad(256,0,64);
+        CleverMcLevyReso[1].InitType(2);
+        CleverMcLevyReso[1].InitReso(0,1);
+        CleverMcLevyReso[1].InitReso(1,1);
+        CleverMcLevyReso[1].SetUpReso(0,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic);
+        CleverMcLevyReso[1].SetUpReso(1,0,1.-0.3562,1462.93,4.69,Mass_L,Mass_pic);
+        CleverMcLevyReso[1].InitNumMcIter(1000000);
+        Kitty.SetAnaSource(CatsSourceForwarder, &CleverMcLevyReso[1], 2);
+        Kitty.SetAnaSource(0,1.2);
+        Kitty.SetAnaSource(1,2.0);
+        Kitty.SetUseAnalyticSource(true);
     }
     else if(SOURCE=="EPOS"){
         printf("\033[1;33mWARNING:\033[0m The CommonAnaFunction is still under construction (EPOS)\n");
@@ -281,14 +348,25 @@ void SetUpCats_pL(CATS& Kitty, const TString& POT, const TString& SOURCE){
                                 Kitty, 0, 600);
         NumChannels=2;
     }
+    else if(POT=="LO_Coupled_S"){
+        ExternalWF = Init_pL_Haidenbauer(   "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/Haidenbauer/pLambdaLO_Coupling/",
+                                Kitty, 1, 600);
+        NumChannels=4;
+    }
     else if(POT=="NLO"){
         ExternalWF = Init_pL_Haidenbauer(   "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/Haidenbauer/pLambdaNLO/",
-                                Kitty, 1, 600);
+                                Kitty, 10, 600);
         NumChannels=2;
+    }
+    //s and p waves
+    else if(POT=="NLO_sp"){
+        ExternalWF = Init_pL_Haidenbauer(   "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/Haidenbauer/pLambdaNLO/",
+                                Kitty, 12, 600);
+        NumChannels=4;
     }
     else if(POT=="NLO_Coupled_S"){
         ExternalWF = Init_pL_Haidenbauer(   "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/Haidenbauer/pLambdaNLO_Coupling/",
-                                Kitty, 2, 600);
+                                Kitty, 11, 600);
         NumChannels=4;
     }
     else if(POT=="Usmani"){
@@ -314,9 +392,12 @@ void SetUpCats_pL(CATS& Kitty, const TString& POT, const TString& SOURCE){
 
     Kitty.SetNumChannels(NumChannels);
     for(unsigned uCh=0; uCh<NumChannels; uCh++){
-        Kitty.SetNumPW(uCh,1);
-        Kitty.SetSpin(uCh, uCh%2==0?0:1);
-        Kitty.SetChannelWeight(uCh, uCh%2==0?0.25:0.75);
+        if(!ExternalWF){
+            Kitty.SetNumPW(uCh,1);
+            Kitty.SetSpin(uCh, uCh%2==0?0:1);
+            Kitty.SetChannelWeight(uCh, uCh%2==0?0.25:0.75);
+        }
+
 
         if(cPotPars1S0&&uCh==0)Kitty.SetShortRangePotential(uCh,0,fDlmPot,*cPotPars1S0);
         else if(cPotPars3S1&&uCh==1) Kitty.SetShortRangePotential(uCh,0,fDlmPot,*cPotPars3S1);
@@ -325,6 +406,9 @@ void SetUpCats_pL(CATS& Kitty, const TString& POT, const TString& SOURCE){
                 //Kitty.UseExternalWaveFunction(uMomBin,uCh,0,WaveFunctionU[uMomBin][uCh][0], NumRadBins, RadBins, PhaseShifts[uMomBin][uCh][0]);
 //printf("Look at that view (%u)!\n",uCh);
                 Kitty.SetExternalWaveFunction(uCh,0,ExternalWF[0][uCh][0],ExternalWF[1][uCh][0]);
+                if(Kitty.GetNumPW(uCh)==2){
+                    Kitty.SetExternalWaveFunction(uCh,1,ExternalWF[0][uCh][1],ExternalWF[1][uCh][1]);
+                }
 //printf(" --Look at that view (%u)!\n",uCh);
             //}
         }
@@ -349,14 +433,10 @@ void SetUpCats_pL(CATS& Kitty, const TString& POT, const TString& SOURCE){
 //POT:
 //  "pXim_Lattice" (the first version)
 //  "pXim_HALQCD1" (the second version)
-void SetUpCats_pXim(CATS& Kitty, const TString& POT, const TString& SOURCE){
+void DLM_CommonAnaFunctions::SetUpCats_pXim(CATS& Kitty, const TString& POT, const TString& SOURCE){
     CATSparameters* cPars = NULL;
     CATSparameters* pPars = NULL;
-    //DLM_CleverLevy* CleverLevy = NULL;
-    if(!CleverLevy){
-        CleverLevy = new DLM_CleverLevy* [100];
-    }
-    CleverLevy[NumCleverLevyObjects] = NULL;
+
     CATSparameters* cPotParsI0S0 = NULL;
     CATSparameters* cPotParsI0S1 = NULL;
     CATSparameters* cPotParsI1S0 = NULL;
@@ -395,43 +475,41 @@ void SetUpCats_pXim(CATS& Kitty, const TString& POT, const TString& SOURCE){
         Kitty.SetUseAnalyticSource(true);
     }
     else if(SOURCE=="CleverLevy_Nolan"){
-        CleverLevy[NumCleverLevyObjects] = new DLM_CleverLevy();
-        CleverLevy[NumCleverLevyObjects]->InitStability(20,1,2);
-        CleverLevy[NumCleverLevyObjects]->InitScale(35,0.25,2.0);
-        CleverLevy[NumCleverLevyObjects]->InitRad(256,0,64);
-        CleverLevy[NumCleverLevyObjects]->InitType(2);
-        Kitty.SetAnaSource(CatsSourceForwarder, CleverLevy[NumCleverLevyObjects], 2);
+        CleverLevy[2].InitStability(20,1,2);
+        CleverLevy[2].InitScale(35,0.25,2.0);
+        CleverLevy[2].InitRad(256,0,64);
+        CleverLevy[2].InitType(2);
+        Kitty.SetAnaSource(CatsSourceForwarder, &CleverLevy[2], 2);
         Kitty.SetUseAnalyticSource(true);
         Kitty.SetAnaSource(0,1.2);
         Kitty.SetAnaSource(1,1.8);
-        NumCleverLevyObjects++;
     }
     else if(SOURCE=="CleverLevy_Single"){
-        CleverLevy[NumCleverLevyObjects] = new DLM_CleverLevy();
-        CleverLevy[NumCleverLevyObjects]->InitStability(20,1,2);
-        CleverLevy[NumCleverLevyObjects]->InitScale(35,0.25,2.0);
-        CleverLevy[NumCleverLevyObjects]->InitRad(256,0,64);
-        CleverLevy[NumCleverLevyObjects]->InitType(0);
-        Kitty.SetAnaSource(CatsSourceForwarder, CleverLevy[NumCleverLevyObjects], 2);
+        CleverLevy[2].InitStability(20,1,2);
+        CleverLevy[2].InitScale(35,0.25,2.0);
+        CleverLevy[2].InitRad(256,0,64);
+        CleverLevy[2].InitType(0);
+        Kitty.SetAnaSource(CatsSourceForwarder, &CleverLevy[2], 2);
         Kitty.SetAnaSource(0,sqrt(1.8)*1.2);
         Kitty.SetAnaSource(1,1.8);
         Kitty.SetUseAnalyticSource(true);
-        NumCleverLevyObjects++;
     }
     else if(SOURCE=="CleverLevy_Diff"){
-        CleverLevy[NumCleverLevyObjects] = new DLM_CleverLevy();
-        CleverLevy[NumCleverLevyObjects]->InitStability(20,1,2);
-        CleverLevy[NumCleverLevyObjects]->InitScale(35,0.25,2.0);
-        CleverLevy[NumCleverLevyObjects]->InitRad(256,0,64);
-        CleverLevy[NumCleverLevyObjects]->InitType(1);
-        Kitty.SetAnaSource(CatsSourceForwarder, CleverLevy[NumCleverLevyObjects], 2);
+        CleverLevy[2].InitStability(20,1,2);
+        CleverLevy[2].InitScale(35,0.25,2.0);
+        CleverLevy[2].InitRad(256,0,64);
+        CleverLevy[2].InitType(1);
+        Kitty.SetAnaSource(CatsSourceForwarder, &CleverLevy[2], 2);
         Kitty.SetUseAnalyticSource(true);
         Kitty.SetAnaSource(0,0.5*1.8*1.2);
         Kitty.SetAnaSource(1,1.8);
-        NumCleverLevyObjects++;
     }
-    else if(SOURCE=="Gauss_mT_Reso"){
-        printf("\033[1;33mWARNING:\033[0m The CommonAnaFunction is still under construction (Gauss_mT_Reso)\n");
+    else if(SOURCE=="GaussExpTotSimple_2body"){
+        printf("\033[1;33mWARNING:\033[0m The CommonAnaFunction is still under construction (GaussExpTotSimple_2body)\n");
+        goto CLEAN_SetUpCats_pp;
+    }
+    else if(SOURCE=="McLevyNolan_Reso"){
+        printf("\033[1;33mWARNING:\033[0m The CommonAnaFunction is still under construction (McLevyNolan_Reso)\n");
         goto CLEAN_SetUpCats_pp;
     }
     else if(SOURCE=="EPOS"){
@@ -514,13 +592,13 @@ void SetUpCats_pXim(CATS& Kitty, const TString& POT, const TString& SOURCE){
     if(cPotParsI1S1){delete cPotParsI1S1; cPotParsI1S1=NULL;}
 }
 
-void SetUpBinning_pp(const TString& DataSample, unsigned& NumMomBins, double*& MomBins, double*& FitRegion){
+void DLM_CommonAnaFunctions::SetUpBinning_pp(const TString& DataSample, unsigned& NumMomBins, double*& MomBins, double*& FitRegion){
     if(DataSample=="pp13TeV_MB_Run2paper"){
         const double kMin=0;
         const double kStep=4;
         NumMomBins=94;//(i.e. max=376 MeV)
         if(MomBins) delete [] MomBins;
-        MomBins = new double [NumMomBins];
+        MomBins = new double [NumMomBins+1];
         MomBins[0] = kMin;
         for(unsigned uBin=1; uBin<=NumMomBins; uBin++){
             MomBins[uBin] = MomBins[uBin-1]+kStep;
@@ -537,7 +615,7 @@ void SetUpBinning_pp(const TString& DataSample, unsigned& NumMomBins, double*& M
         const double kStep=4;
         NumMomBins=94;//(i.e. max=376 MeV)
         if(MomBins) delete [] MomBins;
-        MomBins = new double [NumMomBins];
+        MomBins = new double [NumMomBins+1];
         MomBins[0] = kMin;
         for(unsigned uBin=1; uBin<=NumMomBins; uBin++){
             MomBins[uBin] = MomBins[uBin-1]+kStep;
@@ -550,15 +628,21 @@ void SetUpBinning_pp(const TString& DataSample, unsigned& NumMomBins, double*& M
         FitRegion[3] = MomBins[NumMomBins]+kStep*31.;//till 500
     }
     else if(DataSample=="pPb5TeV_Run2paper"){
-        const double kMin=0;
+        const double kMin=4;
         const double kStep=4;
-        NumMomBins=94;//(i.e. max=376 MeV)
+        NumMomBins=93;//(i.e. max=376 MeV)
         if(MomBins) delete [] MomBins;
         MomBins = new double [NumMomBins+1];
         MomBins[0] = kMin;
         for(unsigned uBin=1; uBin<=NumMomBins; uBin++){
             MomBins[uBin] = MomBins[uBin-1]+kStep;
         }
+        if(FitRegion) delete [] FitRegion;
+        FitRegion = new double [4];
+        FitRegion[0] = MomBins[0];
+        FitRegion[1] = MomBins[NumMomBins];
+        FitRegion[2] = MomBins[NumMomBins]+kStep;
+        FitRegion[3] = MomBins[NumMomBins]+kStep*31.;//till 500
     }
     else{
         printf("\033[1;31mERROR:\033[0m The data sample '%s' does not exist\n",DataSample.Data());
@@ -566,15 +650,15 @@ void SetUpBinning_pp(const TString& DataSample, unsigned& NumMomBins, double*& M
         return;
     }
 }
-void SetUpBinning_pL(const TString& DataSample, unsigned& NumMomBins, double*& MomBins, double*& FitRegion){
+void DLM_CommonAnaFunctions::SetUpBinning_pL(const TString& DataSample, unsigned& NumMomBins, double*& MomBins, double*& FitRegion){
 
     if(DataSample=="pp13TeV_MB_Run2paper"){
         const double kMin=0;
-        const double kFineMin=272;
-        const double kFineMax=304;
-        const double kMax=336;
-        const double kCoarseStep=16;
-        const double kFineStep=8;
+        const double kFineMin=336;//272//216
+        const double kFineMax=336;//304
+        const double kMax=336;//336
+        const double kCoarseStep=12;
+        const double kFineStep=12;
 
         //the number of coarse bins below kFineMin
         //floor/ceil combination makes sure that we include the WHOLE region we want in the fine binning,
@@ -606,11 +690,11 @@ void SetUpBinning_pL(const TString& DataSample, unsigned& NumMomBins, double*& M
     }
     else if(DataSample=="pp13TeV_HM_March19"){
         const double kMin=0;
-        const double kFineMin=264;
-        const double kFineMax=312;
+        const double kFineMin=336;
+        const double kFineMax=336;
         const double kMax=336;
         const double kCoarseStep=12;
-        const double kFineStep=8;
+        const double kFineStep=12;
 
         //the number of coarse bins below kFineMin
         //floor/ceil combination makes sure that we include the WHOLE region we want in the fine binning,
@@ -641,9 +725,40 @@ void SetUpBinning_pL(const TString& DataSample, unsigned& NumMomBins, double*& M
         FitRegion[3] = MomBins[NumMomBins]+kCoarseStep*10.;//till 496
     }
     else if(DataSample=="pPb5TeV_Run2paper"){
-        printf("\033[1;33mWARNING:\033[0m pPb5TeV_Run2paper is not available yet (in SetUpBinning_pL)!\n");
-        NumMomBins=0;
-        return;
+        const double kMin=0;
+        const double kFineMin=336;
+        const double kFineMax=336;
+        const double kMax=336;
+        const double kCoarseStep=12;
+        const double kFineStep=12;
+
+        //the number of coarse bins below kFineMin
+        //floor/ceil combination makes sure that we include the WHOLE region we want in the fine binning,
+        //and if there is rounding needed it is done so that we make our region larger, not smaller!
+        unsigned NumCoarseBinsBelow = floor((kFineMin-kMin)/kCoarseStep);
+        unsigned NumFineBins = ceil((kFineMax-double(NumCoarseBinsBelow)*kCoarseStep)/kFineStep);
+        //we floor the highest point, to make sure we do not run out of the range provided by experimental data
+        unsigned NumCoarseBinsAbove = floor((kMax-double(NumCoarseBinsBelow)*kCoarseStep-double(NumFineBins)*kFineStep)/kCoarseStep);
+
+        NumMomBins=NumCoarseBinsBelow+NumFineBins+NumCoarseBinsAbove;
+
+        if(MomBins) delete [] MomBins;
+        MomBins = new double [NumMomBins+1];
+        MomBins[0] = kMin;
+        for(unsigned uBin=1; uBin<=NumMomBins; uBin++){
+            if(uBin<=NumCoarseBinsBelow||uBin>NumCoarseBinsBelow+NumFineBins){
+                MomBins[uBin] = MomBins[uBin-1]+kCoarseStep;
+            }
+            else{
+                MomBins[uBin] = MomBins[uBin-1]+kFineStep;
+            }
+        }
+        if(FitRegion) delete [] FitRegion;
+        FitRegion = new double [4];
+        FitRegion[0] = MomBins[0];
+        FitRegion[1] = MomBins[NumMomBins];
+        FitRegion[2] = MomBins[NumMomBins]+kCoarseStep;
+        FitRegion[3] = MomBins[NumMomBins]+kCoarseStep*10.;//till 496
     }
     else{
         printf("\033[1;31mERROR:\033[0m The data sample '%s' does not exist\n",DataSample.Data());
@@ -654,14 +769,13 @@ void SetUpBinning_pL(const TString& DataSample, unsigned& NumMomBins, double*& M
 }
 
 
-void GetPurities_p(const TString& DataSample, const int& Variation, double* Purities){
+void DLM_CommonAnaFunctions::GetPurities_p(const TString& DataSample, const int& Variation, double* Purities){
     double PurityProton;
     if(DataSample=="pp13TeV_MB_Run2paper"){
         PurityProton = 0.989859;
     }
     else if(DataSample=="pp13TeV_HM_March19"){
-        printf("\033[1;33mWARNING:\033[0m pp13TeV_HM_March19 is not available yet!\n");
-        PurityProton = 0.989859;
+        PurityProton = 0.9943;
     }
     else if(DataSample=="pPb5TeV_Run2paper"){
         PurityProton = 0.984265;
@@ -684,7 +798,9 @@ void GetPurities_p(const TString& DataSample, const int& Variation, double* Puri
     Purities[2] = PurityProton;
     Purities[3] = 1.-PurityProton;
 }
-void GetPurities_L(const TString& DataSample, const int& Variation, double* Purities){
+
+
+void DLM_CommonAnaFunctions::GetPurities_L(const TString& DataSample, const int& Variation, double* Purities){
     double PurityLambda;
     if(DataSample=="pp13TeV_MB_Run2paper"){
         PurityLambda = 0.96768;
@@ -713,7 +829,8 @@ void GetPurities_L(const TString& DataSample, const int& Variation, double* Puri
     Purities[3] = PurityLambda;
     Purities[4] = 1.-PurityLambda;
 }
-void GetPurities_Xim(const TString& DataSample, const int& Variation, double* Purities){
+
+void DLM_CommonAnaFunctions::GetPurities_Xim(const TString& DataSample, const int& Variation, double* Purities){
     double PurityXim;
     if(DataSample=="pp13TeV_MB_Run2paper"){
         PurityXim = 0.956;
@@ -741,8 +858,9 @@ void GetPurities_Xim(const TString& DataSample, const int& Variation, double* Pu
     Purities[3] = PurityXim;
     Purities[4] = 1.-PurityXim;
 }
+
 //no variations are possible
-void GetFractions_p(const TString& DataSample, const int& Variation, double* Fractions){
+void DLM_CommonAnaFunctions::GetFractions_p(const TString& DataSample, const int& Variation, double* Fractions){
     //following my lambda pars with the 3 possible modifications
     //for the proton:
     //0 = primary
@@ -751,6 +869,8 @@ void GetFractions_p(const TString& DataSample, const int& Variation, double* Fra
     //3 = missidentified
     double Modify_pp=1;
     switch(Variation){
+        case 0 : Modify_pp=0.8; break;
+        case 1 : Modify_pp=1.2; break;
         default : Modify_pp=1; break;
     }
     double pp_f0;//primary protons
@@ -760,9 +880,9 @@ void GetFractions_p(const TString& DataSample, const int& Variation, double* Fra
         pp_f1 = 0.0882211;
     }
     else if(DataSample=="pp13TeV_HM_March19"){
-        printf("\033[1;33mWARNING:\033[0m pp13TeV_HM_March19 is not available yet!\n");
-        pp_f0 = 0.87397;
-        pp_f1 = 0.0882211;
+        printf("\033[1;33mWARNING:\033[0m pp13TeV_HM_March19 CROSS CHECK pp_f0 and pp_f1!\n");
+        pp_f0 = 0.873;
+        pp_f1 = 0.0898;
     }
     else if(DataSample=="pPb5TeV_Run2paper"){
         pp_f0 = 0.862814;
@@ -783,7 +903,7 @@ void GetFractions_p(const TString& DataSample, const int& Variation, double* Fra
 //first digit->Modify_SigL
 //second digit->Modify_XiL
 //0 -> default; 1 = -20%; 2 = +20%
-void GetFractions_L(const TString& DataSample, const int& Variation, double* Fractions){
+void DLM_CommonAnaFunctions::GetFractions_L(const TString& DataSample, const int& Variation, double* Fractions){
     double Modify_SigL=1;
     double Modify_XiL=1;
     switch(Variation%10){
@@ -804,13 +924,12 @@ void GetFractions_L(const TString& DataSample, const int& Variation, double* Fra
     if(DataSample=="pp13TeV_MB_Run2paper"){
         pL_f0 = 0.601008;
         pL_f1 = 0.200336;
-        pL_f2 = 0.0993283;
+        pL_f2 = 0.099328;
     }
     else if(DataSample=="pp13TeV_HM_March19"){
-        printf("\033[1;33mWARNING:\033[0m pp13TeV_HM_March19 is not available yet!\n");
-        pL_f0 = 0.601008;
-        pL_f1 = 0.200336;
-        pL_f2 = 0.0993283;
+        pL_f0 = 0.576066;
+        pL_f1 = 0.192022;
+        pL_f2 = 0.115956;
     }
     else if(DataSample=="pPb5TeV_Run2paper"){
         pL_f0 = 0.521433;
@@ -838,7 +957,7 @@ void GetFractions_L(const TString& DataSample, const int& Variation, double* Fra
     Fractions[3] = 1.-Fractions[0]-Fractions[1]-Fractions[2];
     Fractions[4] = 1.;
 }
-void GetFractions_Xim(const TString& DataSample, const int& Variation, double* Fractions){
+void DLM_CommonAnaFunctions::GetFractions_Xim(const TString& DataSample, const int& Variation, double* Fractions){
     //0 = primary
     //1 = from Xi-(1530)
     //2 = from Omega
@@ -863,7 +982,7 @@ void GetFractions_Xim(const TString& DataSample, const int& Variation, double* F
 //1 is pL->pp
 //2 is flat feed
 //3 is missid
-void SetUpLambdaPars_pp(const TString& DataSample, const int& Variation_p, double* lambda_pars){
+void DLM_CommonAnaFunctions::SetUpLambdaPars_pp(const TString& DataSample, const int& Variation_p, double* lambda_pars){
     double Purities_p[4];
     double Fraction_p[4];
     GetPurities_p(DataSample,Variation_p,Purities_p);
@@ -885,7 +1004,7 @@ void SetUpLambdaPars_pp(const TString& DataSample, const int& Variation_p, doubl
 //2 is pXim->pL
 //3 is the flat feeddown
 //4 is missid
-void SetUpLambdaPars_pL(const TString& DataSample, const int& Variation_p, const int& Variation_L, double* lambda_pars){
+void DLM_CommonAnaFunctions::SetUpLambdaPars_pL(const TString& DataSample, const int& Variation_p, const int& Variation_L, double* lambda_pars){
     double Purities_p[4];
     double Fraction_p[4];
     double Purities_L[5];
@@ -912,7 +1031,7 @@ void SetUpLambdaPars_pL(const TString& DataSample, const int& Variation_p, const
 //2 is from Xin1530
 //3
 //4 is missid
-void SetUpLambdaPars_pXim(const TString& DataSample, const int& Variation_p, const int& Variation_Xim, double* lambda_pars){
+void DLM_CommonAnaFunctions::SetUpLambdaPars_pXim(const TString& DataSample, const int& Variation_p, const int& Variation_Xim, double* lambda_pars){
     double Purities_p[4];
     double Fraction_p[4];
     double Purities_Xim[5];
@@ -938,7 +1057,7 @@ void SetUpLambdaPars_pXim(const TString& DataSample, const int& Variation_p, con
 //        DataPeriod=="pp13TeV"?  :
 //                                ;
 
-TH2F* GetResolutionMatrix(const TString& DataSample,const TString&& System){
+TH2F* DLM_CommonAnaFunctions::GetResolutionMatrix(const TString& DataSample,const TString&& System){
     TString FileName;
     TString HistoName;
 
@@ -978,6 +1097,7 @@ TH2F* GetResolutionMatrix(const TString& DataSample,const TString&& System){
     //and we need to play with the name a little bit, else we are fucked!
     TFile* FileROOT = new TFile(FileName, "read");
     TH2F* histo = (TH2F*)FileROOT->Get(HistoName);
+    if(!histo){printf("\033[1;31mERROR:\033[0m The histo '%s' does not exist\n",HistoName.Data());return NULL;}
     TString Name = histo->GetName();
     gROOT->cd();
     TH2F *histoCopy = (TH2F*)histo->Clone("histoCopy");
@@ -985,7 +1105,7 @@ TH2F* GetResolutionMatrix(const TString& DataSample,const TString&& System){
     histoCopy->SetName(Name);
     return histoCopy;
 }
-TH2F* GetResidualMatrix(const TString&& FinalSystem, const TString& InitialSystem){
+TH2F* DLM_CommonAnaFunctions::GetResidualMatrix(const TString&& FinalSystem, const TString& InitialSystem){
     TString FileName;
     TString HistoName;
 
@@ -1008,6 +1128,7 @@ TH2F* GetResidualMatrix(const TString&& FinalSystem, const TString& InitialSyste
     }
     TFile* FileROOT = new TFile(FileName, "read");
     TH2F* histo = (TH2F*)FileROOT->Get(HistoName);
+    if(!histo){printf("\033[1;31mERROR:\033[0m The histo '%s' does not exist\n",HistoName.Data());return NULL;}
     TString Name = histo->GetName();
     gROOT->cd();
     TH2F *histoCopy = (TH2F*)histo->Clone("histoCopy");
@@ -1017,7 +1138,7 @@ TH2F* GetResidualMatrix(const TString&& FinalSystem, const TString& InitialSyste
 }
 
 //iReb = 0 is 4 MeV, 1 is 8, 2 is 12, 3 is 16, 4 is 20
-TH1F* GetAliceExpCorrFun(const TString& DataSample,const TString& System,const int& iReb){
+TH1F* DLM_CommonAnaFunctions::GetAliceExpCorrFun(const TString& DataSample,const TString& System,const int& iReb){
     TString FileName;
     TString HistoName;
 
@@ -1044,19 +1165,19 @@ TH1F* GetAliceExpCorrFun(const TString& DataSample,const TString& System,const i
     }
     else if(DataSample=="pp13TeV_HM_March19"){
         if(System=="pp"){
-            FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample8HM/CFOutput_pp.root";
+            FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM/CFOutput_pp.root";
             HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
         }
         else if(System=="pLambda"){
-            FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample8HM/CFOutput_pL.root";
+            FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM/CFOutput_pL.root";
             HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
         }
         else if(System=="LambdaLambda"){
-            FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample8HM/CFOutput_LL.root";
+            FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM/CFOutput_LL.root";
             HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
         }
         else if(System=="pXim"){
-            FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample8HM/CFOutput_pXi.root";
+            FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM/CFOutput_pXi.root";
             HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
         }
         else{
@@ -1065,19 +1186,19 @@ TH1F* GetAliceExpCorrFun(const TString& DataSample,const TString& System,const i
     }
     else if(DataSample=="pPb5TeV_Run2paper"){
         if(System=="pp"){
-            FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pPb_5TeV/Sample8/ClosePairRej/CFOutput_pp.root";
+            FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pPb_5TeV/Sample10/CFOutput_pp.root";
             HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
         }
         else if(System=="pLambda"){
-            FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pPb_5TeV/Sample8/ClosePairRej/CFOutput_pL.root";
+            FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pPb_5TeV/Sample10/CFOutput_pL.root";
             HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
         }
         else if(System=="LambdaLambda"){
-            FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pPb_5TeV/Sample8/ClosePairRej/CFOutput_LL.root";
+            FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pPb_5TeV/Sample10/CFOutput_LL.root";
             HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
         }
         else if(System=="pXim"){
-            FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pPb_5TeV/Sample8/ClosePairRej/CFOutput_pXi.root";
+            FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pPb_5TeV/Sample10/CFOutput_pXi.root";
             HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
         }
         else{
@@ -1091,6 +1212,7 @@ TH1F* GetAliceExpCorrFun(const TString& DataSample,const TString& System,const i
 
     TFile* FileROOT = new TFile(FileName, "read");
     TH1F* histo = (TH1F*)FileROOT->Get(HistoName);
+    if(!histo){printf("\033[1;31mERROR:\033[0m The histo '%s' does not exist\n",HistoName.Data());return NULL;}
     TString Name = histo->GetName();
     gROOT->cd();
     TH1F *histoCopy = (TH1F*)histo->Clone("histoCopy");
@@ -1099,11 +1221,11 @@ TH1F* GetAliceExpCorrFun(const TString& DataSample,const TString& System,const i
     return histoCopy;
 }
 
-void Clean_CommonAnaFunctions(){
-    for(unsigned uLevy=0; uLevy<NumCleverLevyObjects; uLevy++){
-        delete CleverLevy[uLevy];
-        CleverLevy[uLevy] = NULL;
-    }
-    delete [] CleverLevy;
-    CleverLevy=NULL;
+void DLM_CommonAnaFunctions::Clean_CommonAnaFunctions(){
+    //for(unsigned uLevy=0; uLevy<NumCleverLevyObjects; uLevy++){
+    //    delete CleverLevy[uLevy];
+    //    CleverLevy[uLevy] = NULL;
+    //}
+    //delete [] CleverLevy;
+    //CleverLevy=NULL;
 }

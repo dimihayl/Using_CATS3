@@ -849,7 +849,7 @@ void RUN2_main(const unsigned& NumIter, const unsigned& NumJobs, const unsigned&
 
     DLM_Histo<complex<double>>*** ExternalWF=NULL;
     ExternalWF = Init_pL_Haidenbauer(   "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/Haidenbauer/pLambdaNLO/",
-                                AB_pL, 1, 600);
+                                AB_pL, 10, 600);
     AB_pL.SetExternalWaveFunction(ExternalWF);
 
 //AB_pL.SetMaxNumThreads(1);
