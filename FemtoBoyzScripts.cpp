@@ -17,6 +17,7 @@
 #include "TMath.h"
 #include "TColor.h"
 #include "TLine.h"
+#include "TPaveText.h"
 
 std::vector<int> fFillColors = {kGray+1, kRed-10, kBlue-9, kGreen-8, kMagenta-9, kOrange-9, kCyan-8, kYellow-7};
 std::vector<int> fColors     = {kBlack, kRed+1 , kBlue+2, kGreen+3, kMagenta+1, kOrange-1, kCyan+2, kYellow+2};
@@ -357,7 +358,7 @@ TGraphErrors *DrawSystematicError(TH1F* histexp,TH1F *histerr,double errorwidth)
       return ge_SysError_C2;
 }
 
-TGraphErrors *DrawSystematicError_FAST(TH1F* histexp,TH1F *histerr,double errorwidth)
+TGraphErrors *DrawSystematicError_FAST(TH1F* histexp,TH1F *histerr,TF1* ferr,double errorwidth)
 {
       //Input are the experimental histogram with statistical errors only and a histogram containing the errors
       const int histbins = histexp->GetNbinsX();
@@ -367,14 +368,26 @@ TGraphErrors *DrawSystematicError_FAST(TH1F* histexp,TH1F *histerr,double errorw
       //for(int i=0;i<histbins;i++){
       //  GR_EXP.SetPoint(i,histexp->GetBinCenter(i+1),histexp->GetBinContent(i+1));
       //}
+    int systbins;
+    TGraph GR_SYS;
+    GR_SYS.SetName("GR_SYS");
+    //take the errors from the histo
+    if(histerr){
+        systbins = histerr->GetNbinsX();
+        GR_SYS.Set(systbins);
+        for(int i=0;i<systbins;i++){
+            GR_SYS.SetPoint(i,histerr->GetBinCenter(i+1),histerr->GetBinContent(i+1));
+        }
+    }
+    //in the very old output files there was the TF1 fit of the errors, here we read off those
+    else if(ferr){
+        systbins = histbins;
+        GR_SYS.Set(systbins);
+        for(int i=0;i<systbins;i++){
+            GR_SYS.SetPoint(i,histexp->GetBinCenter(i+1),ferr->Eval(histexp->GetBinCenter(i+1)*0.001));
+        }
+    }
 
-      const int systbins = histerr->GetNbinsX();
-      TGraph GR_SYS;
-      GR_SYS.SetName("GR_SYS");
-      GR_SYS.Set(systbins);
-      for(int i=0;i<systbins;i++){
-        GR_SYS.SetPoint(i,histerr->GetBinCenter(i+1),histerr->GetBinContent(i+1));
-      }
 
       TGraphErrors *ge_SysError_C2 = new TGraphErrors();
       for(int i=0;i<histbins;i++)
@@ -3015,9 +3028,13 @@ void Plot_pL_FAST(      const TString& WorkFolder,
 
     TFile* DataSystFile = new TFile(DataSystFileName);
     TH1F* DataSystHisto = (TH1F*)DataSystFile->Get("SystErrRel");
+    TF1* ExtrapolOLD = NULL;
     if(!DataSystHisto){
-        DataSystHisto = (TH1F*)DataSystFile->Get("C2totalsysPL");
+        ExtrapolOLD = (TF1*)DataSystFile->Get("RelSysPLUnbinned");
     }
+//printf("DataSystFile=%p\n",DataSystFile);
+//printf("DataSystHisto=%p\n",DataSystHisto);
+//printf("ExtrapolOLD=%p\n",ExtrapolOLD);
 
     gStyle->SetCanvasPreferGL(1);
     SetStyle();
@@ -3076,7 +3093,7 @@ void Plot_pL_FAST(      const TString& WorkFolder,
     SetStyleHisto(DataHisto,2,0);
     DataHisto->Draw();
 
-    TGraphErrors *Tgraph_syserror_LL_ALAL = DrawSystematicError_FAST(DataHisto, DataSystHisto, 3);
+    TGraphErrors *Tgraph_syserror_LL_ALAL = DrawSystematicError_FAST(DataHisto, DataSystHisto, ExtrapolOLD, 3);
     Tgraph_syserror_LL_ALAL->SetLineColor(kWhite);
 
     //baselineLL->Draw("same");
@@ -3115,7 +3132,7 @@ void Plot_pL_FAST(      const TString& WorkFolder,
     //else BeamText.DrawLatex(0.55, 0.825, Form("pp #sqrt{#it{s}} = 7 TeV"));
     BeamText.DrawLatex(0.50, 0.91, "ALICE Preliminary");
     if(DataSample=="pp13TeV_MB_Run2paper") BeamText.DrawLatex(0.50, 0.86, "pp #sqrt{#it{s}} = 13 TeV");
-    else if(DataSample=="pPb5TeV_Run2paper") BeamText.DrawLatex(0.50, 0.86, "p#minusPb #sqrt{#it{s}_{NN}} = 5.02 TeV");
+    else if(DataSample.Contains("pPb")&&DataSample.Contains("5TeV")) BeamText.DrawLatex(0.50, 0.86, "p#minusPb #sqrt{#it{s}_{NN}} = 5.02 TeV");
     else if(DataSample=="pp13TeV_HM_March19") BeamText.DrawLatex(0.50, 0.86, "pp (HM) #sqrt{#it{s}} = 13 TeV");
     else BeamText.DrawLatex(0.50, 0.86, "ALICE pp #sqrt{#it{s}} = 7 TeV");
 
@@ -3187,6 +3204,202 @@ void Plot_pL_FAST(      const TString& WorkFolder,
 }
 
 
+void mT_Plots(const TString& DataSample, const bool& LevySource){
+
+    const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/mT_Plots/";
+
+    TString FileName_mT_pp;
+    TString FileName_mT_pL_LO;
+    TString FileName_mT_pL_NLO;
+    TString FileName_mT_pXim_HAL;
+
+    if(DataSample=="pp13TeV_HM_March19"){
+        FileName_mT_pp = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/"
+        "Output/pp_FitDiff_CompareToTotal/250319/HM/Output_pp13TeV_HM_March19_McGauss_Reso_Norm.root";
+        FileName_mT_pL_LO = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/"
+        "Output/pp_FitDiff_CompareToTotal/250319/HM/pL/LO/Output_pp13TeV_HM_March19_McGauss_Reso_Norm.root";
+        FileName_mT_pL_NLO = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/"
+        "Output/pp_FitDiff_CompareToTotal/250319/HM/pL/NLO/Output_pp13TeV_HM_March19_McGauss_Reso_Norm.root";
+        FileName_mT_pXim_HAL = "NOT SET";
+    }
+    else if(DataSample=="pPb5TeV_CPR_Mar19"){
+        FileName_mT_pp = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/"
+        "Output/pp_FitDiff_CompareToTotal/250319/pPb/Output_pPb5TeV_CPR_Mar19_McGauss_Reso_Norm.root";
+        FileName_mT_pL_LO = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/"
+        "Output/pp_FitDiff_CompareToTotal/250319/pPb/pL/LO/Output_pPb5TeV_CPR_Mar19_McGauss_Reso_Norm.root";
+        FileName_mT_pL_NLO = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/"
+        "Output/pp_FitDiff_CompareToTotal/250319/pPb/pL/NLO/Output_pPb5TeV_CPR_Mar19_McGauss_Reso_Norm.root";
+        FileName_mT_pXim_HAL = "NOT SET";
+    }
+    else{
+        printf("Trouble in Plot_mT\n");
+        return;
+    }
+
+    const TString GraphName_pp = "Radius_pp";
+    const TString GraphName_pL_LO = "Radius_pL";
+    const TString GraphName_pL_NLO = "Radius_pL";
+    const TString GraphName_pXim_HAL = "whatever";
+
+    const TString CkBaseName_pp = "hCk";
+    const TString CkBaseName_pL_LO = "hCk";
+    const TString CkBaseName_pL_NLO = "hCk";
+    const TString CkBaseName_pXim_HAL = "hCk";
+
+    const TString FitBaseName_pp = "ppFit_mT";
+    const TString FitBaseName_pL_LO = "pLambdaFit_mT";
+    const TString FitBaseName_pL_NLO = "pLambdaFit_mT";
+    const TString FitBaseName_pXim_HAL = "pXimFit_mT";
+
+    const TString CkTotName_pp = "hTotCk";
+    const TString CkTotName_pL_LO = "hTotCk";
+    const TString CkTotName_pL_NLO = "hTotCk";
+    const TString CkTotName_pXim_HAL = "hTotCk";
+
+    const TString FitTotName_pp = "fit_CkTot";
+    const TString FitTotName_pL_LO = "fit_CkTot";
+    const TString FitTotName_pL_NLO = "fit_CkTot";
+    const TString FitTotName_pXim_HAL = "fit_CkTot";
+
+    const TString Avg_mT_Name_pp = "ppFit_TOTAL";
+    const TString Avg_mT_Name_pL_LO = "pLambdaFit_TOTAL";
+    const TString Avg_mTName_pL_NLO = "pLambdaFit_TOTAL";
+    const TString Avg_mTName_pXim_HAL = "pXimFit_TOTAL";
+
+    TFile* File_mT_pp=NULL;
+    TFile* File_mT_pL_LO=NULL;
+    TFile* File_mT_pL_NLO=NULL;
+    TFile* File_mT_pXim_HAL=NULL;
+
+    File_mT_pp = new TFile(FileName_mT_pp,"read");
+    if(!File_mT_pp->IsOpen()){delete File_mT_pp; File_mT_pp=NULL;}
+    printf("File_mT_pp=%p\n",File_mT_pp);
+    File_mT_pL_LO = new TFile(FileName_mT_pL_LO,"read");
+    if(!File_mT_pL_LO->IsOpen()){delete File_mT_pL_LO; File_mT_pL_LO=NULL;}
+    printf("File_mT_pL_LO=%p\n",File_mT_pL_LO);
+    File_mT_pL_NLO = new TFile(FileName_mT_pL_NLO,"read");
+    if(!File_mT_pL_NLO->IsOpen()){delete File_mT_pL_NLO; File_mT_pL_NLO=NULL;}
+    printf("File_mT_pL_NLO=%p\n",File_mT_pL_NLO);
+    File_mT_pXim_HAL = new TFile(FileName_mT_pXim_HAL,"read");
+    if(!File_mT_pXim_HAL->IsOpen()){delete File_mT_pXim_HAL; File_mT_pXim_HAL=NULL;}
+    printf("File_mT_pXim_HAL=%p\n",File_mT_pXim_HAL);
+
+    TGraph* mT_pp=NULL;
+    TGraph* mT_pL_LO=NULL;
+    TGraph* mT_pL_NLO=NULL;
+    TGraph* mT_pXim=NULL;
+
+    if(File_mT_pp){
+        mT_pp = (TGraph*)File_mT_pp->Get(GraphName_pp);
+    }
+    if(File_mT_pL_LO){
+        mT_pL_LO = (TGraph*)File_mT_pL_LO->Get(GraphName_pL_LO);
+    }
+    if(File_mT_pL_NLO){
+        mT_pL_NLO = (TGraph*)File_mT_pL_NLO->Get(GraphName_pL_NLO);
+    }
+    if(File_mT_pXim_HAL){
+        mT_pXim = (TGraph*)File_mT_pXim_HAL->Get(GraphName_pXim_HAL);
+    }
+
+    TH1F* hAxis = new TH1F("hAxis", "hAxis", 128, 0.7, 2.6);
+    hAxis->SetStats(false);
+    hAxis->SetTitle("");
+    hAxis->GetXaxis()->SetTitle("<m_{T}> (GeV/#it{c}^{2})");
+    hAxis->GetXaxis()->SetTitleSize(0.06);
+    hAxis->GetXaxis()->SetLabelSize(0.06);
+    hAxis->GetXaxis()->CenterTitle();
+    hAxis->GetXaxis()->SetTitleOffset(1.3);
+    hAxis->GetXaxis()->SetLabelOffset(0.02);
+
+    if(LevySource) hAxis->GetYaxis()->SetTitle("Levy core (fm)");
+    else hAxis->GetYaxis()->SetTitle("Gaussian core (fm)");
+    hAxis->GetYaxis()->SetTitleSize(0.06);
+    hAxis->GetYaxis()->SetLabelSize(0.06);
+    hAxis->GetYaxis()->CenterTitle();
+    hAxis->GetYaxis()->SetTitleOffset(0.90);
+
+    //hAxis->GetXaxis()->SetNdivisions(506);
+    hAxis->GetYaxis()->SetRangeUser(0.4, 1.45);
+
+    TLegend* lLegend = new TLegend(0.6,0.65,0.95,0.95);//lbrt
+    lLegend->SetName(TString::Format("lLegend"));
+    lLegend->SetTextSize(0.05);
+    if(mT_pp)lLegend->AddEntry(mT_pp,"p#minusp (AV18)");
+    if(mT_pL_LO)lLegend->AddEntry(mT_pL_LO,"p#minus#Lambda (LO)");
+    if(mT_pL_NLO)lLegend->AddEntry(mT_pL_NLO,"p#minus#Lambda (NLO)");
+    if(mT_pXim)lLegend->AddEntry(mT_pXim,"p#minus#Xi^{#minus} (HAL QCD)");
+
+    TPaveText* PT1 = new TPaveText(0.4,0.9,0.975,0.975, "blNDC");//lbrt
+    PT1->SetName("PT1");
+    PT1->SetBorderSize(1);
+    PT1->SetTextSize(0.04);
+    PT1->SetFillColor(kWhite);
+    PT1->SetTextFont(22);
+    if(DataSample=="pp13TeV_HM_March19"){
+        PT1->AddText("pp #sqrt{#it{s}} = 13 TeV (HM)");
+    }
+    else if(DataSample=="pPb5TeV_CPR_Mar19"){
+        PT1->AddText("p-Pb #sqrt{#it{s}_{NN}} 5.02 TeV");
+    }
+
+    TCanvas* cmT = new TCanvas("cmT", "cmT", 1);
+    cmT->cd(0); cmT->SetCanvasSize(1920, 1080); cmT->SetMargin(0.15,0.05,0.2,0.05);//lrbt
+
+    hAxis->Draw("axis");
+    if(mT_pp)mT_pp->Draw("same,PL");
+    if(mT_pL_LO)mT_pL_LO->Draw("same,PL");
+    if(mT_pL_NLO)mT_pL_NLO->Draw("same,PL");
+    if(mT_pXim)mT_pXim->Draw("same,PL");
+    lLegend->Draw("same");
+
+
+    gStyle->SetLineWidth(2.5);
+	if(mT_pp)mT_pp->SetLineWidth(4);
+	if(mT_pL_LO)mT_pL_LO->SetLineWidth(4);
+	if(mT_pL_NLO)mT_pL_NLO->SetLineWidth(4);
+	if(mT_pXim)mT_pXim->SetLineWidth(4);
+	if(mT_pp)mT_pp->SetLineColor(kBlue+2);
+	if(mT_pL_LO)mT_pL_LO->SetLineColor(kGreen+3);
+	if(mT_pL_NLO)mT_pL_NLO->SetLineColor(kRed+1);
+	if(mT_pXim)mT_pXim->SetLineColor(kOrange-1);
+	if(mT_pp)mT_pp->SetMarkerStyle(20);
+	if(mT_pL_LO)mT_pL_LO->SetMarkerStyle(21);
+	if(mT_pL_NLO)mT_pL_NLO->SetMarkerStyle(22);
+	if(mT_pXim)mT_pXim->SetMarkerStyle(23);
+	if(mT_pp)mT_pp->SetMarkerSize(2);
+	if(mT_pL_LO)mT_pL_LO->SetMarkerSize(2);
+	if(mT_pL_NLO)mT_pL_NLO->SetMarkerSize(2);
+	if(mT_pXim)mT_pXim->SetMarkerSize(2);
+	if(mT_pp)mT_pp->SetMarkerColor(kBlue+2);
+	if(mT_pL_LO)mT_pL_LO->SetMarkerColor(kGreen+3);
+	if(mT_pL_NLO)mT_pL_NLO->SetMarkerColor(kRed+1);
+	if(mT_pXim)mT_pXim->SetMarkerColor(kOrange-1);
+
+    cmT->SaveAs(TString::Format("%smT_Plots_%s_%s.png",OutputFolder.Data(),DataSample.Data(),LevySource?"Levy":"Gauss"));
+
+	gStyle->SetLineWidth(1);
+	if(mT_pp)mT_pp->SetLineWidth(mT_pp->GetLineWidth()/2.5);
+	if(mT_pL_LO)mT_pL_LO->SetLineWidth(mT_pL_LO->GetLineWidth()/2.5);
+	if(mT_pL_NLO)mT_pL_NLO->SetLineWidth(mT_pL_NLO->GetLineWidth()/2.5);
+	if(mT_pXim)mT_pXim->SetLineWidth(mT_pXim->GetLineWidth()/2.5);
+    cmT->SaveAs(TString::Format("%smT_Plots_%s_%s.pdf",OutputFolder.Data(),DataSample.Data(),LevySource?"Levy":"Gauss"));
+	gStyle->SetLineWidth(2.5);
+	if(mT_pp)mT_pp->SetLineWidth(mT_pp->GetLineWidth()*2.5);
+	if(mT_pL_LO)mT_pL_LO->SetLineWidth(mT_pL_LO->GetLineWidth()*2.5);
+	if(mT_pL_NLO)mT_pL_NLO->SetLineWidth(mT_pL_NLO->GetLineWidth()*2.5);
+	if(mT_pXim)mT_pXim->SetLineWidth(mT_pXim->GetLineWidth()*2.5);
+
+    delete lLegend;
+    delete hAxis;
+    delete cmT;
+
+    if(File_mT_pp){delete File_mT_pp; File_mT_pp=NULL;}
+    if(File_mT_pL_LO){delete File_mT_pL_LO; File_mT_pL_LO=NULL;}
+    if(File_mT_pL_NLO){delete File_mT_pL_NLO; File_mT_pL_NLO=NULL;}
+    if(File_mT_pXim_HAL){delete File_mT_pXim_HAL; File_mT_pXim_HAL=NULL;}
+}
+
 int FEMTOBOYZ_MAIN(int narg, char** ARGS){
     //plotMorePreliminaries("pp");
     //plotMorePreliminaries("p#minusPb");
@@ -3214,7 +3427,7 @@ int FEMTOBOYZ_MAIN(int narg, char** ARGS){
                              "/home/dmihaylov/Temp/Output/061118/MC_FullSyst_BL_AllDataSets/BindingEnergy.root",
                              "f0Inv");
 */
-
+/*
     PlotDimiExclusion_ver1("/home/dmihaylov/Temp/Output/150319/MC_Default_BL_AllDataSets/","hFinalEP_Confidence",
                            "/home/dmihaylov/Temp/Output/150319/MC_Default_BL_AllDataSets/Chi2Map_SystId0.root","hNegativeLedni",3,3,
                            "pp7TeV,pp13TeV,pPb5TeV");
@@ -3226,7 +3439,7 @@ int FEMTOBOYZ_MAIN(int narg, char** ARGS){
                              "/home/dmihaylov/Temp/Output/150319/MC_Default_BL_AllDataSets/BindingEnergy.root",
                              "/home/dmihaylov/Temp/Output/150319/MC_FullSyst_BL_AllDataSets/BindingEnergy.root",
                              "d0");
-
+*/
 
     //void PlotLamLamFit(const TString FitFolder, const unsigned WhichDataSet, const unsigned NumSystIter,
     //               const TString DataFileName, const TString DataHistoName, const double parA, const double parB,
@@ -3250,7 +3463,7 @@ Data set 2: a=1.003e+00; b=-2.650e-06
 */
 
 
-
+/*
     PlotLamLamFit("/home/dmihaylov/Temp/Output/150319/StuffForLamLamFit/",0,27,
                   "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample7/Data/CFOutput_LLMEReweighted_Rebin_5.root",
                   "hCkTotNormWeight",9.531e-01,1.397e-04,
@@ -3268,7 +3481,10 @@ Data set 2: a=1.003e+00; b=-2.650e-06
 
     plotManyLambdaLambdaModels("/home/dmihaylov/Temp/Output/150319/StuffForLamLamFit/","pp");
     plotManyLambdaLambdaModels("/home/dmihaylov/Temp/Output/150319/StuffForLamLamFit/","pPb");
+*/
 
+    mT_Plots("pp13TeV_HM_March19",false);
+    mT_Plots("pPb5TeV_CPR_Mar19",false);
 
     return 0;
 }

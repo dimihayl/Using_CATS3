@@ -32,20 +32,20 @@ void GetCorrelations(const char* foldername, const char* filename, const char* p
   DreamFile->SetAnalysisFile(filename, prefix, addon);
 
   DreamCF* CF_pp = new DreamCF();
-  DreamPair* pp = new DreamPair("Part",0.2,0.4);
-  DreamPair* ApAp = new DreamPair("AntiPart",0.2,0.4);
+  DreamPair* pp = new DreamPair("Part",-1.0,4.0);
+  DreamPair* ApAp = new DreamPair("AntiPart",-1.0,4.0);
 
   DreamCF* CF_pL = new DreamCF();
-  DreamPair* pL = new DreamPair("Part",0.2,0.4);
-  DreamPair* ApAL = new DreamPair("AntiPart",0.2,0.4);
+  DreamPair* pL = new DreamPair("Part",-1.0,4.0);
+  DreamPair* ApAL = new DreamPair("AntiPart",-1.0,4.0);
 
   DreamCF* CF_LL = new DreamCF();
-  DreamPair* LL = new DreamPair("Part",0.2,0.4);
-  DreamPair* ALAL = new DreamPair("AntiPart",0.2,0.4);
+  DreamPair* LL = new DreamPair("Part",-1.0,4.0);
+  DreamPair* ALAL = new DreamPair("AntiPart",-1.0,4.0);
 
   DreamCF* CF_pXi = new DreamCF();
-  DreamPair* pXi = new DreamPair("Part",0.2,0.4);
-  DreamPair* ApAXi = new DreamPair("AntiPart",0.2,0.4);
+  DreamPair* pXi = new DreamPair("Part",-1.0,4.0);
+  DreamPair* ApAXi = new DreamPair("AntiPart",-1.0,4.0);
 
   std::cout << "=========================" << std::endl;
   std::cout << "========Pair Set=========" << std::endl;
@@ -169,20 +169,20 @@ void GetCorrelationsBbarB(const char* foldername, const char* filename, const ch
   DreamFile->SetAnalysisFile(filename, prefix, addon);
 
   DreamCF* CF_pAp_App = new DreamCF();
-  DreamPair* pAp = new DreamPair("PartAntiPart",0.2,0.4);
+  DreamPair* pAp = new DreamPair("PartAntiPart",-1.0,4.0);
 //  DreamPair* App = new DreamPair("AntiPartPart");
 
   DreamCF* CF_pAL_ApL = new DreamCF();
-  DreamPair* pAL = new DreamPair("PartAntiPart",0.2,0.4);
-  DreamPair* ApL = new DreamPair("AntiPartPart",0.2,0.4);
+  DreamPair* pAL = new DreamPair("PartAntiPart",-1.0,4.0);
+  DreamPair* ApL = new DreamPair("AntiPartPart",-1.0,4.0);
 
   DreamCF* CF_ALL_LAL = new DreamCF();
-  DreamPair* LAL = new DreamPair("PartAntiPart",0.2,0.4);
+  DreamPair* LAL = new DreamPair("PartAntiPart",-1.0,4.0);
 //  DreamPair* ALL = new DreamPair("AntiPartPart");
 
   DreamCF* CF_pAXi_ApXi = new DreamCF();
-  DreamPair* pAXi = new DreamPair("PartAntiPart",0.2,0.4);
-  DreamPair* ApXi = new DreamPair("AntiPartPart",0.2,0.4);
+  DreamPair* pAXi = new DreamPair("PartAntiPart",-1.0,4.0);
+  DreamPair* ApXi = new DreamPair("AntiPartPart",-1.0,4.0);
 
   std::cout << "=========================" << std::endl;
   std::cout << "========Pair Set=========" << std::endl;
@@ -406,7 +406,7 @@ void ReweightingQA(TList* PairList) {
     PairRew->SetSEMultDist((TH2F*) PairReweightedList->At(5 * iQA + 1), "_");
     PairRew->SetMEDist((TH1F*) PairReweightedList->At(5 * iQA + 2), "_");
     PairRew->SetMEMultDist((TH2F*) PairReweightedList->At(5 * iQA + 3), "_");
-    PairRew->Calculate_CF(0.2,0.4);
+    PairRew->Calculate_CF(-1.0,4.0);
     //Get the corresponding unmodified pair, which was just reweighted!
     DreamDist* Pair=nullptr;
     TString SEName = PairRew->GetSEDist()->GetName();
@@ -447,7 +447,7 @@ void ReweightingQA(TList* PairList) {
                 Form("MEMultDist_%s_clone_Shifted_FixShifted_Rebinned_%s",
                      PartName.Data(), RebinName.Data())),
             "_");
-        Pair->Calculate_CF(0.2,0.4);
+        Pair->Calculate_CF(-1.0,4.0);
       } else {
         std::cout
             << "===========" << '\n' << "==Missing==" << '\n' << "==========="
@@ -477,7 +477,7 @@ void ReweightingQA(TList* PairList) {
             (TH2F*) UntouchedPairList->FindObject(
                 Form("MEMultDist_%s_clone_Shifted_FixShifted", PartName.Data())),
             "_");
-        Pair->Calculate_CF(0.2,0.4);
+        Pair->Calculate_CF(-1.0,4.0);
       } else {
         std::cout << "===========" << '\n' << "==Missing==" << '\n'
                   << "===========" << '\n'
@@ -554,6 +554,7 @@ int ExecuteCFmT_pp(int argc, char* argv[]) {
   //foldername.ReplaceAll("AnalysisResults.root", "");
   DreamKayTee* mTppDists;
   DreamFile->ReadmTHistos(filename, prefix, addon);
+
   mTppDists = DreamFile->GetmTPairDistributions(0, 0, 1, 1);
 
   //std::vector<float> mTppBins = TString(filename)=="/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample9HM/AnalysisResults.root"?{ 0.9 ,1.07,1.13,1.19,1.25,1.37,1.55,1.97,4.5 }:
@@ -563,11 +564,15 @@ int ExecuteCFmT_pp(int argc, char* argv[]) {
     if(TString(filename)=="/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM/AnalysisResults.root"){
         mTppBins = { 0.9 ,1.07,1.13,1.19,1.25,1.37,1.55,1.97,4.5 };
     }
+    else if(TString(filename)=="/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample11HM/AnalysisResults.root"){
+        mTppBins = { 0.9 ,1.07,1.13,1.19,1.25,1.37,1.55,1.97,4.5 };
+    }
     else if(TString(filename)=="/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample9/AnalysisResults.root"){
         mTppBins = { 0.9 ,1.1,1.25,1.5,4.5 };
     }
     else if(TString(filename)=="/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pPb_5TeV/Sample11/AnalysisResults.root"){
-        mTppBins = { 0.9 ,1.1,1.25,1.5,4.5 };
+        //mTppBins = { 0.9 ,1.1,1.25,1.5,4.5 };
+        mTppBins = { 0.9 ,1.1,1.2,1.4,1.9,4.5 };
     }
     else{
         mTppBins = { 0,1,2,3,4,5 };
@@ -577,7 +582,7 @@ int ExecuteCFmT_pp(int argc, char* argv[]) {
   TString CalibPP = Form("%s/CFOutput_pp.root",CalibName);
   mTppDists->SetSEMEReweightingRatio(CalibPP,"pp");
   mTppDists->SetKayTeeBins(mTppBins);
-  mTppDists->SetNormalization(0.2,0.4);
+  mTppDists->SetNormalization(-1.0,4.0);
   mTppDists->ObtainTheCorrelationFunction(gSystem->pwd(), prefix, "pp");
 
   DreamKayTee* mTpLDists;
@@ -591,7 +596,7 @@ int ExecuteCFmT_pp(int argc, char* argv[]) {
   //TString CalibPL = Form("%s/CFOutput_pL.root",CalibName);
   //mTpLDists->SetSEMEReweightingRatio(CalibPL, "pL");
   //mTpLDists->SetKayTeeBins(mTpLBins);
-  //mTpLDists->SetNormalization(0.2,0.4);
+  //mTpLDists->SetNormalization(-1.0,4.0);
   //mTpLDists->ObtainTheCorrelationFunction(gSystem->pwd(), prefix, "pL");
 
   return 1;
@@ -618,7 +623,7 @@ int ExecuteCFmT_pL(int argc, char* argv[]) {
         mTpLBins = { 1.08, 1.29, 1.44, 1.65, 4.5 };
     }
     else if(TString(filename)=="/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pPb_5TeV/Sample11/AnalysisResults.root"){
-        mTpLBins = { 1.08, 1.29, 1.44, 1.65, 4.5 };
+        mTpLBins = { 1.08, 1.29, 1.44, 1.7, 4.5 };
     }
     else{
         mTpLBins = { 0,1,2,3,4,5 };
@@ -628,7 +633,7 @@ int ExecuteCFmT_pL(int argc, char* argv[]) {
   TString CalibPP = Form("%s/CFOutput_pL.root",CalibName);
   mTpLDists->SetSEMEReweightingRatio(CalibPP,"pL");
   mTpLDists->SetKayTeeBins(mTpLBins);
-  mTpLDists->SetNormalization(0.2,0.4);
+  mTpLDists->SetNormalization(-1.0,4.0);
   mTpLDists->SetRebin(3);
   mTpLDists->ObtainTheCorrelationFunction(gSystem->pwd(), prefix, "pL");
 
@@ -825,7 +830,7 @@ AB_pL.SetAnaSource(0,1.2);
         }
         fitter->SetSeparateBL(0,false);
 
-        fitter->SetParameter("pp",DLM_Fitter1::p_a,1.0,0.7,1.3);
+        fitter->SetParameter("pp",DLM_Fitter1::p_a,1.0,0.5,2.0);
         if(FittingMode_pp=="Baseline"||FittingMode_pp=="LongBaseline")
             fitter->SetParameter("pp",DLM_Fitter1::p_b,0,-2e-3,2e-3);
         else
@@ -907,9 +912,10 @@ AB_pL.SetAnaSource(0,1.2);
         //if(uMom==0) printf("Momentum[%u] = %f\n",uMom,Momentum);
         for(unsigned umT=0; umT<Num_mT_Bins; umT++){
             Avg_mT->GetPoint(umT,Dummy,Value_mT);
-            Weight=hWeightsME->GetBinContent(hWeightsME->GetXaxis()->FindBin(Momentum*0.001),hWeightsME->GetYaxis()->FindBin(Value_mT));
+            Weight=hWeightsME->GetBinContent(hWeightsME->GetXaxis()->FindBin(Momentum*0.001),umT+1);//hWeightsME->GetYaxis()->FindBin(Value_mT)
+            if(uMom==0) printf("Value_mT = %.3f, Bin_mT = %i\n",Value_mT,umT);
             CkVal += Weight*gCkTh_pp[umT].Eval(Momentum);
-            //if(uMom==0) printf(" CkVal[%u] += %f*%f\n",umT,Weight,gCkTh_pp[umT].Eval(Momentum));
+            if(uMom==0) printf(" CkVal[%u] += %.3f(%.3f)*%.3f\n",umT,Weight,Value_mT,gCkTh_pp[umT].Eval(Momentum));
         }
         //if(uMom==0) printf(" CkVal = %f\n",CkVal);
         gCkTot_Th.SetPoint(uMom,Momentum,CkVal);
@@ -919,16 +925,33 @@ AB_pL.SetAnaSource(0,1.2);
     gCkTot_Exp.SetName("gCkTot_Exp");
     gCkTot_Exp.Set(AB_pp.GetNumMomBins());
 
+    TH1F* hCkTot_Exp = new TH1F("hCkTot_Exp","hCkTot_Exp",hTotCk->GetNbinsX(),hTotCk->GetBinLowEdge(1),hTotCk->GetXaxis()->GetBinUpEdge(hTotCk->GetNbinsX()));
+
     for(unsigned uMom=0; uMom<AB_pp.GetNumMomBins(); uMom++){
         double Momentum=AB_pp.GetMomentum(uMom);
         double CkVal=0;
         double Weight;
         for(unsigned umT=0; umT<Num_mT_Bins; umT++){
             Avg_mT->GetPoint(umT,Dummy,Value_mT);
-            Weight=hWeightsME->GetBinContent(hWeightsME->GetXaxis()->FindBin(Momentum*0.001),hWeightsME->GetYaxis()->FindBin(Value_mT));
+            Weight=hWeightsME->GetBinContent(hWeightsME->GetXaxis()->FindBin(Momentum*0.001),umT+1);
             CkVal += Weight*FitResult_pp[umT].Eval(Momentum);
         }
         gCkTot_Exp.SetPoint(uMom,Momentum,CkVal);
+    }
+
+    for(unsigned uMom=0; uMom<hTotCk->GetNbinsX(); uMom++){
+        double Momentum=hTotCk->GetBinCenter(uMom+1);
+        double Weight;
+        double CkVal_Exp=0;
+        double CkErr_Exp=0;
+        for(unsigned umT=0; umT<Num_mT_Bins; umT++){
+            Avg_mT->GetPoint(umT,Dummy,Value_mT);
+            Weight=hWeightsME->GetBinContent(hWeightsME->GetXaxis()->FindBin(Momentum*0.001),umT+1);
+            CkVal_Exp += Weight*hCk[umT]->GetBinContent(uMom+1);
+            CkErr_Exp += pow(Weight*hCk[umT]->GetBinError(uMom+1),2.);
+        }
+        hCkTot_Exp->SetBinContent(uMom+1,CkVal_Exp);
+        hCkTot_Exp->SetBinError(uMom+1,sqrt(CkErr_Exp));
     }
 
     TF1* fit_CkTot = new TF1("fit_CkTot",[&](double*x, double *p){ return (p[0]+p[1]*x[0]+p[2]*x[0]*x[0])*gCkTot_Th.Eval(x[0]); }, AB_pp.GetMomBinLowEdge(0), AB_pp.GetMomBinUpEdge(AB_pp.GetNumMomBins()-1), 3);
@@ -970,7 +993,7 @@ AB_pL.SetAnaSource(0,1.2);
     }
     fitter->SetSeparateBL(0,false);
 
-    fitter->SetParameter("pp",DLM_Fitter1::p_a,1.0,0.7,1.3);
+    fitter->SetParameter("pp",DLM_Fitter1::p_a,1.0,0.5,2.0);
     if(FittingMode_pp=="Baseline"||FittingMode_pp=="LongBaseline")
         fitter->SetParameter("pp",DLM_Fitter1::p_b,0,-2e-3,2e-3);
     else
@@ -1027,6 +1050,8 @@ AB_pL.SetAnaSource(0,1.2);
 
     delete fitter;
 
+    //Radius_pp.GetXaxis()->SetRangeUser(0,3);
+    TH1F* FUCK_ROOT = new TH1F("ROOT_IS_GREAT","ROOT_IS_GREAT",300,0,3);
 
     fOut->cd();
     Radius_pp.Write();
@@ -1034,14 +1059,17 @@ AB_pL.SetAnaSource(0,1.2);
     Chi2ndf_pp.Write();
 
     hTotCk->Write();
+    hCkTot_Exp->Write();
     gCkTot_Th.Write();
     gCkTot_Exp.Write();
     fit_CkTot->Write();
+    FUCK_ROOT->Write();
 
     delete [] hCk;
     delete hTotCk;
     delete hResolution_pp;
     delete hResidual_pp_pL;
+    delete hCkTot_Exp;
     delete fInDiff;
     delete fInTot;
     delete [] MomBins_pp;
@@ -1102,7 +1130,7 @@ printf("hCk[%u]=%p\n",umT,hCk[umT]);
     double* FitRegion_pL = NULL;
     unsigned NumMomBins_pL;
 
-    AnalysisObject.SetUpBinning_pL(DataSample,NumMomBins_pL,MomBins_pL,FitRegion_pL);
+    AnalysisObject.SetUpBinning_pL(DataSample,NumMomBins_pL,MomBins_pL,FitRegion_pL,0,0);
     TH2F* hResolution_pL = AnalysisObject.GetResolutionMatrix(DataSample,"pLambda");
 
     double lam_pL[5];
@@ -1115,7 +1143,7 @@ printf("hCk[%u]=%p\n",umT,hCk[umT]);
     CATS AB_pL;
     AB_pL.SetMaxNumThreads(4);
     AB_pL.SetMomBins(NumMomBins_pL,MomBins_pL);
-    AnalysisObject.SetUpCats_pL(AB_pL,"LO_Coupled_S",SourceType);
+    AnalysisObject.SetUpCats_pL(AB_pL,"NLO_Coupled_S",SourceType);
     AB_pL.SetNotifications(CATS::nWarning);
     AB_pL.KillTheCat();
     DLM_Ck* Ck_pL = new DLM_Ck(AB_pL.GetNumSourcePars(),0,AB_pL);
@@ -1158,7 +1186,7 @@ printf("hCk[%u]=%p\n",umT,hCk[umT]);
         }
         fitter->SetSeparateBL(0,false);
 
-        fitter->SetParameter("pLambda",DLM_Fitter1::p_a,1.0,0.7,1.3);
+        fitter->SetParameter("pLambda",DLM_Fitter1::p_a,1.0,0.5,2.0);
         if(FittingMode_pL=="Baseline"||FittingMode_pL=="LongBaseline")
             fitter->SetParameter("pLambda",DLM_Fitter1::p_b,0,-2e-3,2e-3);
         else
@@ -1239,7 +1267,7 @@ printf("hCk[%u]=%p\n",umT,hCk[umT]);
         //if(uMom==0) printf("Momentum[%u] = %f\n",uMom,Momentum);
         for(unsigned umT=0; umT<Num_mT_Bins; umT++){
             Avg_mT->GetPoint(umT,Dummy,Value_mT);
-            Weight=hWeightsME->GetBinContent(hWeightsME->GetXaxis()->FindBin(Momentum*0.001),hWeightsME->GetYaxis()->FindBin(Value_mT));
+            Weight=hWeightsME->GetBinContent(hWeightsME->GetXaxis()->FindBin(Momentum*0.001),umT+1);
             CkVal += Weight*gCkTh_pL[umT].Eval(Momentum);
             //if(uMom==0) printf(" CkVal[%u] += %f*%f\n",umT,Weight,gCkTh_pL[umT].Eval(Momentum));
         }
@@ -1257,7 +1285,7 @@ printf("hCk[%u]=%p\n",umT,hCk[umT]);
         double Weight;
         for(unsigned umT=0; umT<Num_mT_Bins; umT++){
             Avg_mT->GetPoint(umT,Dummy,Value_mT);
-            Weight=hWeightsME->GetBinContent(hWeightsME->GetXaxis()->FindBin(Momentum*0.001),hWeightsME->GetYaxis()->FindBin(Value_mT));
+            Weight=hWeightsME->GetBinContent(hWeightsME->GetXaxis()->FindBin(Momentum*0.001),umT+1);
             CkVal += Weight*FitResult_pL[umT].Eval(Momentum);
         }
         gCkTot_Exp.SetPoint(uMom,Momentum,CkVal);
@@ -1302,7 +1330,7 @@ printf("hCk[%u]=%p\n",umT,hCk[umT]);
     }
     fitter->SetSeparateBL(0,false);
 
-    fitter->SetParameter("pLambda",DLM_Fitter1::p_a,1.0,0.7,1.3);
+    fitter->SetParameter("pLambda",DLM_Fitter1::p_a,1.0,0.5,2.0);
     if(FittingMode_pL=="Baseline"||FittingMode_pL=="LongBaseline")
         fitter->SetParameter("pLambda",DLM_Fitter1::p_b,0,-2e-3,2e-3);
     else
@@ -1358,6 +1386,8 @@ printf("hCk[%u]=%p\n",umT,hCk[umT]);
 
     delete fitter;
 
+    TH1F* FUCK_ROOT = new TH1F("ROOT_IS_GREAT","ROOT_IS_GREAT",300,0.5,2.5);
+    //Radius_pL.GetXaxis()->SetRangeUser(0.5,2.5);
 
     fOut->cd();
     Radius_pL.Write();
@@ -1368,6 +1398,7 @@ printf("hCk[%u]=%p\n",umT,hCk[umT]);
     gCkTot_Th.Write();
     gCkTot_Exp.Write();
     fit_CkTot->Write();
+    FUCK_ROOT->Write();
 
     delete [] hCk;
     delete hTotCk;
@@ -1608,15 +1639,21 @@ void DimiExecuteCFmT(){
 //return;
 
 
-    strcpy(ARGV[0],"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM/");
-    strcpy(ARGV[1],"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM/AnalysisResults.root");
-    strcpy(ARGV[2],"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM/");
+    strcpy(ARGV[0],"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample11HM/");
+    strcpy(ARGV[1],"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample11HM/AnalysisResults.root");
+    strcpy(ARGV[2],"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample11HM/");
     strcpy(ARGV[3],"HM");
     strcpy(ARGV[4],"");
 
     //strcpy(ARGV[0],"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample9/");
     //strcpy(ARGV[1],"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample9/AnalysisResults.root");
     //strcpy(ARGV[2],"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample9/");
+    //strcpy(ARGV[3],"MB");
+    //strcpy(ARGV[4],"");
+
+    //strcpy(ARGV[0],"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pPb_5TeV/Sample10/");
+    //strcpy(ARGV[1],"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pPb_5TeV/Sample10/AnalysisResults.root");
+    //strcpy(ARGV[2],"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pPb_5TeV/Sample10/");
     //strcpy(ARGV[3],"MB");
     //strcpy(ARGV[4],"");
 
@@ -1634,7 +1671,7 @@ void DimiExecuteCFmT(){
     //QA_for_pp_mT();
     //ExecuteCFmT_pL(5,ARGV);
 //return;
-    strcpy(ARGV[0],"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pp_FitDiff_CompareToTotal/250319/HM/pL/LO/");
+    strcpy(ARGV[0],"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pp_FitDiff_CompareToTotal/010419/HM/pL/NLO/");
     //pp_FitDiff_CompareToTotal(ARGV,"pp13TeV_HM_March19","Gauss","Norm");
     //pp_FitDiff_CompareToTotal(ARGV,"pp13TeV_HM_March19","McGauss_Reso","Norm");
     //pp_FitDiff_CompareToTotal(ARGV,"pp13TeV_HM_March19","McLevyNolan_Reso","Norm");
@@ -1666,7 +1703,16 @@ return;
     //pp_FitDiff_CompareToTotal(ARGV,"pPb5TeV_Run2paper","McGauss_Reso","Norm");
     //pp_FitDiff_CompareToTotal(ARGV,"pPb5TeV_Run2paper","McLevyNolan_Reso","Norm");
 
+    //strcpy(ARGV[0],"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pp_FitDiff_CompareToTotal/250319/pPb/");
+    //pp_FitDiff_CompareToTotal(ARGV,"pPb5TeV_CPR_Mar19","Gauss","Norm");
+    //pp_FitDiff_CompareToTotal(ARGV,"pPb5TeV_CPR_Mar19","McGauss_Reso","Norm");
+    //pp_FitDiff_CompareToTotal(ARGV,"pPb5TeV_CPR_Mar19","McLevyNolan_Reso","Norm");
+    //pp_FitDiff_CompareToTotal(ARGV,"pPb5TeV_CPR_Mar19","Gauss","Baseline");
+    //pp_FitDiff_CompareToTotal(ARGV,"pPb5TeV_CPR_Mar19","McGauss_Reso","Baseline");
+    //pp_FitDiff_CompareToTotal(ARGV,"pPb5TeV_CPR_Mar19","McLevyNolan_Reso","Baseline");
 
+    //strcpy(ARGV[0],"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pp_FitDiff_CompareToTotal/250319/pPb/pL/LO/");
+    //pL_FitDiff_CompareToTotal(ARGV,"pPb5TeV_CPR_Mar19","McGauss_Reso","Norm");
 
     for(int i=0; i<8; i++) delete[]ARGV[i];
     delete [] ARGV;

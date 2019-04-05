@@ -53,7 +53,7 @@ public:
     void SetUpCats_pXim(CATS& Kitty, const TString& POT, const TString& SOURCE);
 
     void SetUpBinning_pp(const TString& DataSample, unsigned& NumMomBins, double*& MomBins, double*& FitRegion);
-    void SetUpBinning_pL(const TString& DataSample, unsigned& NumMomBins, double*& MomBins, double*& FitRegion);
+    void SetUpBinning_pL(const TString& DataSample, unsigned& NumMomBins, double*& MomBins, double*& FitRegion, const int& MomBinVar, const int& FitRegVar);
 
     //DataSamples: SystemEnergy_Trigger_Version
     //the version is there to mark the different versions based on our own analysis, it can be some short description
@@ -61,8 +61,9 @@ public:
     //  Run2paper: as used for all of the first Run2 papers (LL, pXim etc)
     //DataSamples:
     //  pp13TeV_MB_Run2paper
-    //  pp13TeV_HM_Run2paper
+    //  pp13TeV_HM_March19
     //  pPb5TeV_Run2paper
+    //  pPb5TeV_CPR_Mar19 (with close pair rejection, as in end of March 2019)
     //The Variation flag is there for the systematics, refer to the functions themselves for more information
     void GetPurities_p(const TString& DataSample, const int& Variation, double* Purities);
     void GetPurities_L(const TString& DataSample, const int& Variation, double* Purities);

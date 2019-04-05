@@ -644,21 +644,68 @@ void DLM_CommonAnaFunctions::SetUpBinning_pp(const TString& DataSample, unsigned
         FitRegion[2] = MomBins[NumMomBins]+kStep;
         FitRegion[3] = MomBins[NumMomBins]+kStep*31.;//till 500
     }
+    else if(DataSample=="pPb5TeV_CPR_Mar19"){
+        const double kMin=4;
+        const double kStep=4;
+        NumMomBins=93;//(i.e. max=376 MeV)
+        if(MomBins) delete [] MomBins;
+        MomBins = new double [NumMomBins+1];
+        MomBins[0] = kMin;
+        for(unsigned uBin=1; uBin<=NumMomBins; uBin++){
+            MomBins[uBin] = MomBins[uBin-1]+kStep;
+        }
+        if(FitRegion) delete [] FitRegion;
+        FitRegion = new double [4];
+        FitRegion[0] = MomBins[0];
+        FitRegion[1] = MomBins[NumMomBins];
+        FitRegion[2] = MomBins[NumMomBins]+kStep;
+        FitRegion[3] = MomBins[NumMomBins]+kStep*31.;//till 500
+    }
     else{
         printf("\033[1;31mERROR:\033[0m The data sample '%s' does not exist\n",DataSample.Data());
         NumMomBins=0;
         return;
     }
 }
-void DLM_CommonAnaFunctions::SetUpBinning_pL(const TString& DataSample, unsigned& NumMomBins, double*& MomBins, double*& FitRegion){
+void DLM_CommonAnaFunctions::SetUpBinning_pL(const TString& DataSample, unsigned& NumMomBins, double*& MomBins, double*& FitRegion,
+                                             const int& MomBinVar, const int& FitRegVar){
+
+    double kMin;
+    double kFineMin;
+    double kFineMax;
+    double kMax;
+    double kCoarseStep;
+    double kFineStep;
 
     if(DataSample=="pp13TeV_MB_Run2paper"){
-        const double kMin=0;
-        const double kFineMin=336;//272//216
-        const double kFineMax=336;//304
-        const double kMax=336;//336
-        const double kCoarseStep=12;
-        const double kFineStep=12;
+        if(MomBinVar==0){
+            kMin=0;
+            kFineMin=336;//272//216
+            kFineMax=336;//304
+            kMax=336;//336
+            kCoarseStep=12;
+            kFineStep=12;
+        }
+        else if(MomBinVar==1){
+            kMin=0;
+            kFineMin=312;//272//216
+            kFineMax=312;//304
+            kMax=312;//336
+            kCoarseStep=12;
+            kFineStep=12;
+        }
+        else if(MomBinVar==2){
+            kMin=0;
+            kFineMin=348;//272//216
+            kFineMax=348;//304
+            kMax=348;//336
+            kCoarseStep=12;
+            kFineStep=12;
+        }
+        else{
+            printf("\033[1;31mERROR:\033[0m The MomBinVar '%i' does not exist\n",MomBinVar);
+            return;
+        }
 
         //the number of coarse bins below kFineMin
         //floor/ceil combination makes sure that we include the WHOLE region we want in the fine binning,
@@ -685,16 +732,38 @@ void DLM_CommonAnaFunctions::SetUpBinning_pL(const TString& DataSample, unsigned
         FitRegion = new double [4];
         FitRegion[0] = MomBins[0];
         FitRegion[1] = MomBins[NumMomBins];
-        FitRegion[2] = MomBins[NumMomBins]+kCoarseStep;
-        FitRegion[3] = MomBins[NumMomBins]+kCoarseStep*10.;//till 496
+        FitRegion[2] = MomBins[NumMomBins]+kCoarseStep;//348
+        FitRegion[3] = MomBins[NumMomBins]+kCoarseStep*20.;//588
     }
     else if(DataSample=="pp13TeV_HM_March19"){
-        const double kMin=0;
-        const double kFineMin=336;
-        const double kFineMax=336;
-        const double kMax=336;
-        const double kCoarseStep=12;
-        const double kFineStep=12;
+        if(MomBinVar==0){
+            kMin=0;
+            kFineMin=336;//272//216
+            kFineMax=336;//304
+            kMax=336;//336
+            kCoarseStep=12;
+            kFineStep=12;
+        }
+        else if(MomBinVar==1){
+            kMin=0;
+            kFineMin=312;//272//216
+            kFineMax=312;//304
+            kMax=312;//336
+            kCoarseStep=12;
+            kFineStep=12;
+        }
+        else if(MomBinVar==2){
+            kMin=0;
+            kFineMin=348;//272//216
+            kFineMax=348;//304
+            kMax=348;//336
+            kCoarseStep=12;
+            kFineStep=12;
+        }
+        else{
+            printf("\033[1;31mERROR:\033[0m The MomBinVar '%i' does not exist\n",MomBinVar);
+            return;
+        }
 
         //the number of coarse bins below kFineMin
         //floor/ceil combination makes sure that we include the WHOLE region we want in the fine binning,
@@ -719,18 +788,37 @@ void DLM_CommonAnaFunctions::SetUpBinning_pL(const TString& DataSample, unsigned
         }
         if(FitRegion) delete [] FitRegion;
         FitRegion = new double [4];
-        FitRegion[0] = MomBins[0];
-        FitRegion[1] = MomBins[NumMomBins];
-        FitRegion[2] = MomBins[NumMomBins]+kCoarseStep;
-        FitRegion[3] = MomBins[NumMomBins]+kCoarseStep*10.;//till 496
+
+        if(FitRegVar==0){
+            FitRegion[0] = MomBins[0];
+            FitRegion[1] = MomBins[NumMomBins];
+            FitRegion[2] = MomBins[NumMomBins];//336
+            FitRegion[3] = 576;
+        }
+        else if(FitRegVar==1){
+            FitRegion[0] = MomBins[0];
+            FitRegion[1] = MomBins[NumMomBins];
+            FitRegion[2] = MomBins[NumMomBins];//336
+            FitRegion[3] = 552;
+        }
+        else if(FitRegVar==2){
+            FitRegion[0] = MomBins[0];
+            FitRegion[1] = MomBins[NumMomBins];
+            FitRegion[2] = MomBins[NumMomBins];//336
+            FitRegion[3] = 600;
+        }
+        else{
+            printf("\033[1;31mERROR:\033[0m The FitRegVar '%i' does not exist\n",FitRegVar);
+            return;
+        }
     }
     else if(DataSample=="pPb5TeV_Run2paper"){
-        const double kMin=0;
-        const double kFineMin=336;
-        const double kFineMax=336;
-        const double kMax=336;
-        const double kCoarseStep=12;
-        const double kFineStep=12;
+        kMin=0;
+        kFineMin=336;
+        kFineMax=336;
+        kMax=336;
+        kCoarseStep=12;
+        kFineStep=12;
 
         //the number of coarse bins below kFineMin
         //floor/ceil combination makes sure that we include the WHOLE region we want in the fine binning,
@@ -757,8 +845,44 @@ void DLM_CommonAnaFunctions::SetUpBinning_pL(const TString& DataSample, unsigned
         FitRegion = new double [4];
         FitRegion[0] = MomBins[0];
         FitRegion[1] = MomBins[NumMomBins];
-        FitRegion[2] = MomBins[NumMomBins]+kCoarseStep;
-        FitRegion[3] = MomBins[NumMomBins]+kCoarseStep*10.;//till 496
+        FitRegion[2] = MomBins[NumMomBins]+kCoarseStep;//348
+        FitRegion[3] = MomBins[NumMomBins]+kCoarseStep*20.;//588
+    }
+    else if(DataSample=="pPb5TeV_CPR_Mar19"){
+        kMin=0;
+        kFineMin=336;
+        kFineMax=336;
+        kMax=336;
+        kCoarseStep=12;
+        kFineStep=12;
+
+        //the number of coarse bins below kFineMin
+        //floor/ceil combination makes sure that we include the WHOLE region we want in the fine binning,
+        //and if there is rounding needed it is done so that we make our region larger, not smaller!
+        unsigned NumCoarseBinsBelow = floor((kFineMin-kMin)/kCoarseStep);
+        unsigned NumFineBins = ceil((kFineMax-double(NumCoarseBinsBelow)*kCoarseStep)/kFineStep);
+        //we floor the highest point, to make sure we do not run out of the range provided by experimental data
+        unsigned NumCoarseBinsAbove = floor((kMax-double(NumCoarseBinsBelow)*kCoarseStep-double(NumFineBins)*kFineStep)/kCoarseStep);
+
+        NumMomBins=NumCoarseBinsBelow+NumFineBins+NumCoarseBinsAbove;
+
+        if(MomBins) delete [] MomBins;
+        MomBins = new double [NumMomBins+1];
+        MomBins[0] = kMin;
+        for(unsigned uBin=1; uBin<=NumMomBins; uBin++){
+            if(uBin<=NumCoarseBinsBelow||uBin>NumCoarseBinsBelow+NumFineBins){
+                MomBins[uBin] = MomBins[uBin-1]+kCoarseStep;
+            }
+            else{
+                MomBins[uBin] = MomBins[uBin-1]+kFineStep;
+            }
+        }
+        if(FitRegion) delete [] FitRegion;
+        FitRegion = new double [4];
+        FitRegion[0] = MomBins[0];
+        FitRegion[1] = MomBins[NumMomBins];
+        FitRegion[2] = MomBins[NumMomBins]+kCoarseStep;//348
+        FitRegion[3] = MomBins[NumMomBins]+kCoarseStep*18.;//564
     }
     else{
         printf("\033[1;31mERROR:\033[0m The data sample '%s' does not exist\n",DataSample.Data());
@@ -778,6 +902,9 @@ void DLM_CommonAnaFunctions::GetPurities_p(const TString& DataSample, const int&
         PurityProton = 0.9943;
     }
     else if(DataSample=="pPb5TeV_Run2paper"){
+        PurityProton = 0.984265;
+    }
+    else if(DataSample=="pPb5TeV_CPR_Mar19"){
         PurityProton = 0.984265;
     }
     else{
@@ -806,10 +933,13 @@ void DLM_CommonAnaFunctions::GetPurities_L(const TString& DataSample, const int&
         PurityLambda = 0.96768;
     }
     else if(DataSample=="pp13TeV_HM_March19"){
-        printf("\033[1;33mWARNING:\033[0m pp13TeV_HM_March19 is not available yet!\n");
-        PurityLambda = 0.96768;
+        //printf("\033[1;33mWARNING:\033[0m pp13TeV_HM_March19 is not available yet!\n");
+        PurityLambda = 0.9595;
     }
     else if(DataSample=="pPb5TeV_Run2paper"){
+        PurityLambda = 0.937761;
+    }
+    else if(DataSample=="pPb5TeV_CPR_Mar19"){
         PurityLambda = 0.937761;
     }
     else{
@@ -842,6 +972,9 @@ void DLM_CommonAnaFunctions::GetPurities_Xim(const TString& DataSample, const in
     else if(DataSample=="pPb5TeV_Run2paper"){
         PurityXim = 0.88;
     }
+    else if(DataSample=="pPb5TeV_CPR_Mar19"){
+        PurityXim = 0.88;
+    }
     else{
         printf("\033[1;31mERROR:\033[0m The data sample '%s' does not exist\n",DataSample.Data());
         PurityXim = 1.0;
@@ -869,8 +1002,8 @@ void DLM_CommonAnaFunctions::GetFractions_p(const TString& DataSample, const int
     //3 = missidentified
     double Modify_pp=1;
     switch(Variation){
-        case 0 : Modify_pp=0.8; break;
-        case 1 : Modify_pp=1.2; break;
+        case 1 : Modify_pp=0.8; break;
+        case 2 : Modify_pp=1.2; break;
         default : Modify_pp=1; break;
     }
     double pp_f0;//primary protons
@@ -885,6 +1018,10 @@ void DLM_CommonAnaFunctions::GetFractions_p(const TString& DataSample, const int
         pp_f1 = 0.0898;
     }
     else if(DataSample=="pPb5TeV_Run2paper"){
+        pp_f0 = 0.862814;
+        pp_f1 = 0.09603;
+    }
+    else if(DataSample=="pPb5TeV_CPR_Mar19"){
         pp_f0 = 0.862814;
         pp_f1 = 0.09603;
     }
@@ -932,6 +1069,11 @@ void DLM_CommonAnaFunctions::GetFractions_L(const TString& DataSample, const int
         pL_f2 = 0.115956;
     }
     else if(DataSample=="pPb5TeV_Run2paper"){
+        pL_f0 = 0.521433;
+        pL_f1 = 0.173811;
+        pL_f2 = 0.152378;
+    }
+    else if(DataSample=="pPb5TeV_CPR_Mar19"){
         pL_f0 = 0.521433;
         pL_f1 = 0.173811;
         pL_f2 = 0.152378;
@@ -1071,6 +1213,9 @@ TH2F* DLM_CommonAnaFunctions::GetResolutionMatrix(const TString& DataSample,cons
     else if(DataSample=="pPb5TeV_Run2paper"){
         FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pPb_5TeV/ResolutionMatrices/Sample3_MeV_compact.root";
     }
+    else if(DataSample=="pPb5TeV_CPR_Mar19"){
+        FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pPb_5TeV/ResolutionMatrices/Sample3_MeV_compact.root";
+    }
     else{
         printf("\033[1;31mERROR:\033[0m The data sample '%s' does not exist\n",DataSample.Data());
         FileName = "";
@@ -1205,6 +1350,27 @@ TH1F* DLM_CommonAnaFunctions::GetAliceExpCorrFun(const TString& DataSample,const
             printf("\033[1;31mERROR:\033[0m The system '%s' does not exist\n",System.Data());
         }
     }
+    else if(DataSample=="pPb5TeV_CPR_Mar19"){
+        if(System=="pp"){
+            FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pPb_5TeV/Sample11/CFOutput_pp.root";
+            HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
+        }
+        else if(System=="pLambda"){
+            FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pPb_5TeV/Sample11/CFOutput_pL.root";
+            HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
+        }
+        else if(System=="LambdaLambda"){
+            FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pPb_5TeV/Sample11/CFOutput_LL.root";
+            HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
+        }
+        else if(System=="pXim"){
+            FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pPb_5TeV/Sample11/CFOutput_pXi.root";
+            HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
+        }
+        else{
+            printf("\033[1;31mERROR:\033[0m The system '%s' does not exist\n",System.Data());
+        }
+    }
     else{
         printf("\033[1;31mERROR:\033[0m The data sample '%s' does not exist\n",DataSample.Data());
         FileName = "";
@@ -1220,12 +1386,20 @@ TH1F* DLM_CommonAnaFunctions::GetAliceExpCorrFun(const TString& DataSample,const
     histoCopy->SetName(Name);
     return histoCopy;
 }
-
+/*
 void DLM_CommonAnaFunctions::Clean_CommonAnaFunctions(){
-    //for(unsigned uLevy=0; uLevy<NumCleverLevyObjects; uLevy++){
-    //    delete CleverLevy[uLevy];
-    //    CleverLevy[uLevy] = NULL;
-    //}
-    //delete [] CleverLevy;
-    //CleverLevy=NULL;
+    for(unsigned uLevy=0; uLevy<NumCleverLevyObjects; uLevy++){
+        delete CleverLevy[uLevy];
+        CleverLevy[uLevy] = NULL;
+    }
+    delete [] CleverLevy;
+    CleverLevy=NULL;
+
+    for(unsigned uLevy=0; uLevy<NumCleverLevyObjects; uLevy++){
+        delete CleverMcLevyReso[uLevy];
+        CleverMcLevyReso[uLevy] = NULL;
+    }
+    delete [] CleverMcLevyReso;
+    CleverMcLevyReso=NULL;
 }
+*/

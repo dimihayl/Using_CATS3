@@ -1,6 +1,8 @@
 
 #include "CommonAnaFunctions.h"
 #include "GentleDimi.h"
+#include "FemtoBoyzScripts.h"
+
 
 #include <iostream>
 #include <stdio.h>
@@ -250,8 +252,8 @@ void plot_pL(){
     const double kFine=200;
     const unsigned NumFineBins = 20;
     const double kFineStep = (kFine-kMin)/double(NumFineBins);
-    const double kMax=300;
-    const unsigned NumCoarseBins = 10;
+    const double kMax=340;
+    const unsigned NumCoarseBins = 14;
     const double kCoarseStep = (kMax-kFine)/double(NumCoarseBins);
     const unsigned NumMomBins=NumFineBins+NumCoarseBins;
     double* MomBins = new double[NumMomBins];
@@ -282,7 +284,7 @@ void plot_pL(){
         gKittyNLO.SetName(TString::Format("gKittyNLO_%.2f",Stability));
         gKittyNLO.Set(NumMomBins);
         for(unsigned uBin=0; uBin<NumMomBins; uBin++){
-            printf("C(%.2f) = %.2f\n",KittyNLO.GetMomentum(uBin),KittyNLO.GetCorrFun(uBin));
+            printf("C(%.2f) = %.3f\n",KittyNLO.GetMomentum(uBin),KittyNLO.GetCorrFun(uBin));
             gKittyNLO.SetPoint(uBin,KittyNLO.GetMomentum(uBin),KittyNLO.GetCorrFun(uBin));
         }
         gKittyNLO.Write();
@@ -290,7 +292,7 @@ void plot_pL(){
         CATS KittyLO;
         KittyLO.SetMaxNumThreads(1);
         KittyLO.SetMomBins(NumMomBins,MomBins);
-        AnalysisObject.SetUpCats_pL(KittyLO,"LO_Coupled_S","Gauss");
+        AnalysisObject.SetUpCats_pL(KittyLO,"LO","Gauss");
         KittyLO.SetAnaSource(0,SourceSize);
         KittyLO.SetAnaSource(1,Stability);
         KittyLO.SetEpsilonProp(1e-8);
@@ -299,7 +301,7 @@ void plot_pL(){
         gKittyLO.SetName(TString::Format("gKittyLO_%.2f",Stability));
         gKittyLO.Set(NumMomBins);
         for(unsigned uBin=0; uBin<NumMomBins; uBin++){
-            printf("C(%.2f) = %.2f\n",KittyLO.GetMomentum(uBin),KittyLO.GetCorrFun(uBin));
+            printf("C(%.2f) = %.3f\n",KittyLO.GetMomentum(uBin),KittyLO.GetCorrFun(uBin));
             gKittyLO.SetPoint(uBin,KittyLO.GetMomentum(uBin),KittyLO.GetCorrFun(uBin));
         }
         gKittyLO.Write();
@@ -650,6 +652,45 @@ void TestTomPotential(){
     //Kitty.SetShortRangePotential(3,0,ESC16_pXim_EXAMPLE,&PotParsI1S1);
 }
 
+void TestTomWF1(){
+    const unsigned NumMomBins = 35;
+    const double kMin = 0;
+    const double kMax = 350;
+    DLM_Histo<complex<double>>*** ExternalWF=NULL;
+    CATS Kitty;
+    Kitty.SetMomBins(NumMomBins,kMin,kMax);
+
+    CATSparameters cPars(CATSparameters::tSource,1,true);
+    cPars.SetParameter(0,0.8);
+
+    Kitty.SetUseAnalyticSource(true);
+    Kitty.SetAnaSource(GaussSource,cPars);
+    ExternalWF = Init_pXi_ESC16_Iavg_Coulomb("//home/dmihaylov/CernBox/CATS_potentials/Tom/WithCoulomb_Iavg/",Kitty);
+    Kitty.SetExternalWaveFunction(0,0,ExternalWF[0][0][0],ExternalWF[1][0][0]);
+    Kitty.SetExternalWaveFunction(1,0,ExternalWF[0][1][0],ExternalWF[1][1][0]);
+
+    Kitty.SetMomentumDependentSource(false);
+    Kitty.SetThetaDependentSource(false);
+    Kitty.SetExcludeFailedBins(false);
+
+    Kitty.KillTheCat();
+
+    TGraph gKitty;
+    gKitty.Set(Kitty.GetNumMomBins());
+    gKitty.SetName("gKitty");
+
+    for(unsigned uBin=0; uBin<Kitty.GetNumMomBins(); uBin++){
+        printf("C(%.2f) = %.3f\n",Kitty.GetMomentum(uBin),Kitty.GetCorrFun(uBin));
+        gKitty.SetPoint(uBin,Kitty.GetMomentum(uBin),Kitty.GetCorrFun(uBin));
+    }
+
+    TFile* OutputFile = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/TestTomWF1/OutputFile.root","recreate");
+    gKitty.Write();
+
+    delete OutputFile;
+}
+
+
 void TestHaide_pL_pWaves(){
 
     DLM_CommonAnaFunctions AnalysisObject;
@@ -699,12 +740,31 @@ int main(int argc, char *argv[])
 
     //ExecuteCFmT(argc,ARGV);
 
+    //DimiExecuteCFmT();
+    //TestTomWF1();
+/*
+DLM_CommonAnaFunctions AO;
+double lambdapars[5];
 
-    DimiExecuteCFmT();
+AO.SetUpLambdaPars_pp("pp13TeV_HM_March19",0,lambdapars);
+printf("%.3f\n",lambdapars[0]*100.);
+printf("%.3f\n",lambdapars[1]*100.);
+printf("%.3f\n",lambdapars[2]*100.);
+printf("%.3f\n\n",lambdapars[3]*100.);
 
-    //PLAMBDA_1_MAIN(argc,ARGV);
+AO.SetUpLambdaPars_pL("pp13TeV_HM_March19",0,0,lambdapars);
+printf("%.3f\n",lambdapars[0]*100.);
+printf("%.3f\n",lambdapars[1]*100.);
+printf("%.3f\n",lambdapars[2]*100.);
+printf("%.3f\n",lambdapars[3]*100.);
+printf("%.3f\n",lambdapars[4]*100.);
+*/
+
+    PLAMBDA_1_MAIN(argc,ARGV);
     //CALL_BERNIE_AND_VALE();
+    //FEMTOBOYZ_MAIN(argc,ARGV);
     //GerhardMAIN(argc,ARGV);
+
 
     //TestCommonInit();
     //plot_pp();
