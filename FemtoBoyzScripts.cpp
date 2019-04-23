@@ -1,5 +1,7 @@
 #include "FemtoBoyzScripts.h"
 
+//#include "math.h"
+
 #include "TH2F.h"
 #include "TSystem.h"
 #include "TH1.h"
@@ -18,6 +20,7 @@
 #include "TColor.h"
 #include "TLine.h"
 #include "TPaveText.h"
+#include "TNtuple.h"
 
 std::vector<int> fFillColors = {kGray+1, kRed-10, kBlue-9, kGreen-8, kMagenta-9, kOrange-9, kCyan-8, kYellow-7};
 std::vector<int> fColors     = {kBlack, kRed+1 , kBlue+2, kGreen+3, kMagenta+1, kOrange-1, kCyan+2, kYellow+2};
@@ -397,7 +400,7 @@ TGraphErrors *DrawSystematicError_FAST(TH1F* histexp,TH1F *histerr,TF1* ferr,dou
           double REL_ERROR = GR_SYS.Eval(MOM);
           double ABS_ERROR = fabs(VALUE*REL_ERROR);
         //if(histexp->GetBinCenter(i+1) > 0.2) continue;
-        if(histexp->GetBinCenter(i+1) > 500) continue;
+        if(histexp->GetBinCenter(i+1) > 600) continue;
         ge_SysError_C2->SetPoint(i, MOM, VALUE);
         //printf("ERR at %.2f is %.3f\n",histexp->GetBinCenter(i+1),histerr->GetBinContent(i+1));
         ge_SysError_C2->SetPointError(i, errorwidth, ABS_ERROR);
@@ -3204,6 +3207,792 @@ void Plot_pL_FAST(      const TString& WorkFolder,
 }
 
 
+//from DataSample,SourceType etc. I can get the fit result file, which also has in it the data
+//=> the data file name is this file.
+//the graph with the fit result in the same file is to be used for default, up and lower limit!
+
+
+void Plot_pL_FASTsyst(
+
+                      //const TString& DataFileName, const TString& DataHistoName,
+                      //  const TString&
+
+                      //const TString& WorkFolder,
+                        //const TString& DataSample, const TString& SourceType, const TString& FittingMode_pp, const TString& FittingMode_pL,
+                        //const TString& pL_Model1, const TString& pL_Model2,
+                        //const TString& LegendSource_line1, const TString& LegendSource_line2,
+                        //const double parA, const double parB, const TString DataSystFileName
+                        ){
+
+                //const TString FitFolder, const unsigned WhichDataSet, const unsigned NumSystIter,
+                //   const TString DataFileName, const TString DataHistoName, const double parA, const double parB,
+                //   const TString DataSystFileName){
+
+
+//MODE = 0 -> the coupled fit
+//MODE = 1 -> the one without coupled
+    int MODE = 0;
+    double MinMomentum=0;
+    double MaxMomentum=336;
+    int DefaultIter = 2349;
+
+
+    TString DataFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM/CFOutput_pL.root";
+    TString DataHistoName = "hCk_ReweightedMeV_2";
+    TFile* DataFile = new TFile(DataFileName,"read");
+    TH1F* hData = (TH1F*)DataFile->Get(DataHistoName);
+
+    TString DataSystFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM/Systematics_pL.root";
+    TString DataSystHistoName = "SystErrRel";//"RelSysPLUnbinned"
+    TFile* SystFile = new TFile(DataSystFileName,"read");
+    TH1F* hSyst = (TH1F*)SystFile->Get(DataSystHistoName);
+    TF1* fSyst = (TF1*)SystFile->Get(DataSystHistoName);
+//SystematicsAdd_100419_2 pm15
+//SystematicsAdd_120419 pm10
+    TString FitSystFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pL/SystematicsAdd_120419/";
+    TString FitSystFileName = FitSystFolder+"NTfile.root";
+
+    TFile* ntFile = new TFile(FitSystFileName,"read");
+    TNtuple* ntResult = (TNtuple*)ntFile->Get("ntResult");
+    unsigned NumNtEntries = ntResult->GetEntries();
+
+    Float_t Iter;
+    Float_t SourceType;
+    Float_t SourceScale;
+    Float_t Potential;
+    Float_t Baseline;
+    Float_t FemRan;
+    Float_t FitRan;
+    Float_t pFrac;
+    Float_t LamFrac;
+    Float_t kcVar;
+    Float_t mTbin;
+    Float_t FemtoMin;
+    Float_t FemtoMax;
+    Float_t BlMin;
+    Float_t BlMax;
+    Float_t p_a;
+    Float_t e_a;
+    Float_t p_b;
+    Float_t e_b;
+    Float_t p_c;
+    Float_t e_c;
+    Float_t p_Cl;
+    Float_t e_Cl;
+    Float_t p_kc;
+    Float_t e_kc;
+    Float_t p_sor0;
+    Float_t e_sor0;
+    Float_t p_sor1;
+    Float_t e_sor1;
+    Float_t chi2;
+    Float_t ndf;
+
+    ntResult->SetBranchAddress("Iter",&Iter);
+    ntResult->SetBranchAddress("SourceType",&SourceType);
+    ntResult->SetBranchAddress("SourceScale",&SourceScale);
+    ntResult->SetBranchAddress("Potential",&Potential);
+    ntResult->SetBranchAddress("Baseline",&Baseline);
+    ntResult->SetBranchAddress("FemRan",&FemRan);
+    ntResult->SetBranchAddress("FitRan",&FitRan);
+    ntResult->SetBranchAddress("pFrac",&pFrac);
+    ntResult->SetBranchAddress("LamFrac",&LamFrac);
+    ntResult->SetBranchAddress("kcVar",&kcVar);
+    ntResult->SetBranchAddress("mTbin",&mTbin);
+    ntResult->SetBranchAddress("FemtoMin",&FemtoMin);
+    ntResult->SetBranchAddress("FemtoMax",&FemtoMax);
+    ntResult->SetBranchAddress("BlMin",&BlMin);
+    ntResult->SetBranchAddress("BlMax",&BlMax);
+    ntResult->SetBranchAddress("p_a",&p_a);
+    ntResult->SetBranchAddress("e_a",&e_a);
+    ntResult->SetBranchAddress("p_b",&p_b);
+    ntResult->SetBranchAddress("e_b",&e_b);
+    ntResult->SetBranchAddress("p_c",&p_c);
+    ntResult->SetBranchAddress("e_c",&e_c);
+    ntResult->SetBranchAddress("p_Cl",&p_Cl);
+    ntResult->SetBranchAddress("e_Cl",&e_Cl);
+    ntResult->SetBranchAddress("p_kc",&p_kc);
+    ntResult->SetBranchAddress("e_kc",&e_kc);
+    ntResult->SetBranchAddress("p_sor0",&p_sor0);
+    ntResult->SetBranchAddress("e_sor0",&e_sor0);
+    ntResult->SetBranchAddress("p_sor1",&p_sor1);
+    ntResult->SetBranchAddress("e_sor1",&e_sor1);
+    ntResult->SetBranchAddress("chi2",&chi2);
+    ntResult->SetBranchAddress("ndf",&ndf);
+
+    TGraph gLowerLO;
+    gLowerLO.SetName("gLowerLO");
+    TGraph gUpperLO;
+    gUpperLO.SetName("gUpperLO");
+    TGraph gBestLO;
+    gBestLO.SetName("gBestLO");
+
+    //baseline
+    TGraph bOuterLowerLO;
+    bOuterLowerLO.SetName("bOuterLowerLO");
+    TGraph bOuterUpperLO;
+    bOuterUpperLO.SetName("bOuterUpperLO");
+    TGraph bOuterBestLO;
+    bOuterBestLO.SetName("bOuterBestLO");
+    TGraph bLowerLO;
+    bLowerLO.SetName("bLowerLO");
+    TGraph bUpperLO;
+    bUpperLO.SetName("bUpperLO");
+    TGraph bBestLO;
+    bBestLO.SetName("bBestLO");
+
+    TGraph gLowerNLO;
+    gLowerNLO.SetName("gLowerNLO");
+    TGraph gUpperNLO;
+    gUpperNLO.SetName("gUpperNLO");
+    TGraph gBestNLO;
+    gBestNLO.SetName("gBestNLO");
+
+    TGraph bOuterLowerNLO;
+    bOuterLowerNLO.SetName("bOuterLowerNLO");
+    TGraph bOuterUpperNLO;
+    bOuterUpperNLO.SetName("bOuterUpperNLO");
+    TGraph bOuterBestNLO;
+    bOuterBestNLO.SetName("bOuterBestNLO");
+    TGraph bLowerNLO;
+    bLowerNLO.SetName("bLowerNLO");
+    TGraph bUpperNLO;
+    bUpperNLO.SetName("bUpperNLO");
+    TGraph bBestNLO;
+    bBestNLO.SetName("bBestNLO");
+
+    double BestChi2NdfLO = 1e6;
+    double WorstChi2NdfLO = 0;
+    double BestChi2NdfNLO = 1e6;
+    double WorstChi2NdfNLO = 0;
+    unsigned NumAcceptedEntries = 0;
+
+    double GlobalBestPval_LO = 0;
+    double GlobalBestPval_NLO = 0;
+
+    //TString LegendSource_line1 = "Gaussian core with m_{T} scaling";
+    TString LegendSource_line1 = "Levy core with m_{T} scaling";
+    //TString LegendSource_line1 = "Gaussian source";
+
+    //TString LegendSource_line2 = "Constant baseline";
+    //TString LegendSource_line2 = "Linear baseline";
+    TString LegendSource_line2 = "Quadratic baseline";
+//printf("NumNtEntries=%u\n",NumNtEntries);
+    for(unsigned uEntry=0; uEntry<NumNtEntries; uEntry++){
+        ntFile->cd();
+        ntResult->GetEntry(uEntry);
+        int Config;
+        Config = int(Iter)%100;
+        int ITER = int(Iter)/100;
+        int Id_LO;
+        int Id_NLO;
+        if(Config<10){
+            Id_LO = 1;
+            Id_NLO = 11;
+        }
+        else if(Config<100){
+            Id_LO = 0;
+            Id_NLO = 10;
+        }
+//printf("Iter=%i; Config=%i; LO=%i; NLO=%i\n",ITER,Config,Id_LO,Id_NLO);
+        //! Conditions
+
+        //if(Config!=0&&Config!=2) continue; //select Gauss+Reso and Gauss
+        if(Config!=0) continue; //select Gauss+Reso
+        //if(Config!=1) continue; //select Levy+Reso
+        //if(Config!=2) continue; //select Gauss
+        //if(round(Baseline)!=0) continue; //select only norm
+        //if(int(Baseline)!=11) continue; //select only pol1
+        if(int(Baseline)!=12) continue; //select only pol2
+        //if(SourceScale>0) continue;
+        //if(SourceScale<0.8&&SourceScale>0) continue;
+
+        bool BestSoFarLO=false;
+        if(Potential==Id_LO&&(chi2/ndf)>WorstChi2NdfLO&&pFrac==0&&LamFrac==0){
+            WorstChi2NdfLO=chi2/ndf;
+        }
+        if(Potential==Id_LO&&(chi2/ndf)<BestChi2NdfLO&&pFrac==0&&LamFrac==0){
+            BestChi2NdfLO=chi2/ndf;
+            BestSoFarLO=true;
+        }
+        if(Potential==Id_LO&&TMath::Prob(chi2,ndf)>GlobalBestPval_LO){
+            GlobalBestPval_LO=TMath::Prob(chi2,ndf);
+//printf("GlobalBestPval_LO=%f\n",GlobalBestPval_LO);
+            //BestSoFarLO=true;
+        }
+
+
+        bool BestSoFarNLO=false;
+        //select the best solution, demanding the default lambda parameters though
+        if(Potential==Id_NLO&&(chi2/ndf)>WorstChi2NdfNLO&&pFrac==0&&LamFrac==0){
+            WorstChi2NdfNLO=chi2/ndf;
+        }
+        if(Potential==Id_NLO&&(chi2/ndf)<BestChi2NdfNLO&&pFrac==0&&LamFrac==0){
+            BestChi2NdfNLO=chi2/ndf;
+            BestSoFarNLO=true;
+//printf("Hello %i\n",ITER);
+        }
+        if(Potential==Id_NLO&&TMath::Prob(chi2,ndf)>GlobalBestPval_NLO){
+            GlobalBestPval_NLO=TMath::Prob(chi2,ndf);
+            //BestSoFarNLO=true;
+        }
+
+        TFile* FileGraph = new TFile(TString::Format("%sConfig%i_Iter%i.root",FitSystFolder.Data(),Config,ITER),"read");
+        TGraph* FitResult = (TGraph*)FileGraph->Get("FitResult_pL");
+        TF1* FitBaseline = (TF1*)FileGraph->Get("fBaseline");
+        double xVal,xValLowUp;
+        double yVal,yValLowUp;
+        TGraph& gLower = Potential==Id_LO?gLowerLO:gLowerNLO;
+        TGraph& gUpper = Potential==Id_LO?gUpperLO:gUpperNLO;
+
+        //TGraph& gDefault = Potential==1?gDefaultLO:gDefaultNLO;
+        for(int iPoint=0; iPoint<FitResult->GetN(); iPoint++){
+            FitResult->GetPoint(iPoint,xVal,yVal);
+            if(gLower.GetN()<iPoint+1){
+                gLower.SetPoint(iPoint,xVal,yVal);
+            }
+            else{
+                gLower.GetPoint(iPoint,yValLowUp,yValLowUp);
+                if(yVal<yValLowUp){
+                    gLower.SetPoint(iPoint,xVal,yVal);
+                }
+            }
+            if(gUpper.GetN()<iPoint+1){
+                gUpper.SetPoint(iPoint,xVal,yVal);
+            }
+            else{
+                gUpper.GetPoint(iPoint,yValLowUp,yValLowUp);
+                if(yVal>yValLowUp){
+                    gUpper.SetPoint(iPoint,xVal,yVal);
+                }
+            }
+            //if(ITER==DefaultIter){
+            //    gDefault.SetPoint(iPoint,xVal,yVal);
+            //}
+            if(BestSoFarLO){
+                gBestLO.SetPoint(iPoint,xVal,yVal);
+            }
+            if(BestSoFarNLO){
+                gBestNLO.SetPoint(iPoint,xVal,yVal);
+            }
+        }
+        int CounterBlLO=0;
+        int CounterBlNLO=0;
+        for(int iPoint=0; iPoint<hData->GetNbinsX(); iPoint++){
+            xVal = hData->GetBinCenter(iPoint+1);
+            yVal = FitBaseline->Eval(xVal);
+            if(Potential==Id_LO&&BlMin<=xVal&&xVal<=BlMax){
+                if(bOuterLowerLO.GetN()<CounterBlLO+1){
+                    bOuterLowerLO.SetPoint(CounterBlLO,xVal,yVal);
+                }
+                else{
+                    bOuterLowerLO.GetPoint(iPoint,xValLowUp,yValLowUp);
+                    if(yVal<yValLowUp){
+                        bOuterLowerLO.SetPoint(CounterBlLO,xVal,yVal);
+                    }
+                }
+                if(bOuterUpperLO.GetN()<CounterBlLO+1){
+                    bOuterUpperLO.SetPoint(CounterBlLO,xVal,yVal);
+                }
+                else{
+                    bOuterUpperLO.GetPoint(iPoint,xValLowUp,yValLowUp);
+                    if(yVal>yValLowUp){
+                        bOuterUpperLO.SetPoint(CounterBlLO,xVal,yVal);
+                    }
+                }
+                if(BestSoFarLO){
+                    bOuterBestLO.SetPoint(CounterBlLO,xVal,yVal);
+                }
+                CounterBlLO++;
+            }
+            if(Potential==Id_NLO&&BlMin<=xVal&&xVal<=BlMax){
+                if(bOuterLowerNLO.GetN()<CounterBlNLO+1){
+                    bOuterLowerNLO.SetPoint(CounterBlNLO,xVal,yVal);
+                }
+                else{
+                    bOuterLowerNLO.GetPoint(iPoint,xValLowUp,yValLowUp);
+                    if(yVal<yValLowUp){
+                        bOuterLowerNLO.SetPoint(CounterBlNLO,xVal,yVal);
+                    }
+                }
+                if(bOuterUpperNLO.GetN()<CounterBlNLO+1){
+                    bOuterUpperNLO.SetPoint(CounterBlNLO,xVal,yVal);
+                }
+                else{
+                    bOuterUpperNLO.GetPoint(iPoint,xValLowUp,yValLowUp);
+                    if(yVal>yValLowUp){
+                        bOuterUpperNLO.SetPoint(CounterBlNLO,xVal,yVal);
+                    }
+                }
+                if(BestSoFarNLO){
+                    bOuterBestNLO.SetPoint(CounterBlNLO,xVal,yVal);
+                }
+                CounterBlNLO++;
+            }
+        }
+
+        CounterBlLO=0;
+        CounterBlNLO=0;
+        for(int iPoint=0; iPoint<hData->GetNbinsX(); iPoint++){
+            xVal = hData->GetBinCenter(iPoint+1);
+            yVal = FitBaseline->Eval(xVal);
+            if(Potential==Id_LO){
+                if(bLowerLO.GetN()<CounterBlLO+1){
+                    bLowerLO.SetPoint(CounterBlLO,xVal,yVal);
+                }
+                else{
+                    bLowerLO.GetPoint(iPoint,xValLowUp,yValLowUp);
+                    if(yVal<yValLowUp){
+                        bLowerLO.SetPoint(CounterBlLO,xVal,yVal);
+                    }
+                }
+                if(bUpperLO.GetN()<CounterBlLO+1){
+                    bUpperLO.SetPoint(CounterBlLO,xVal,yVal);
+                }
+                else{
+                    bUpperLO.GetPoint(iPoint,xValLowUp,yValLowUp);
+                    if(yVal>yValLowUp){
+                        bUpperLO.SetPoint(CounterBlLO,xVal,yVal);
+                    }
+                }
+                if(BestSoFarLO){
+                    bBestLO.SetPoint(CounterBlLO,xVal,yVal);
+                }
+                CounterBlLO++;
+            }
+            if(Potential==Id_NLO){
+                if(bLowerNLO.GetN()<CounterBlNLO+1){
+                    bLowerNLO.SetPoint(CounterBlNLO,xVal,yVal);
+                }
+                else{
+                    bLowerNLO.GetPoint(iPoint,xValLowUp,yValLowUp);
+                    if(yVal<yValLowUp){
+                        bLowerNLO.SetPoint(CounterBlNLO,xVal,yVal);
+                    }
+                }
+                if(bUpperNLO.GetN()<CounterBlNLO+1){
+                    bUpperNLO.SetPoint(CounterBlNLO,xVal,yVal);
+                }
+                else{
+                    bUpperNLO.GetPoint(iPoint,xValLowUp,yValLowUp);
+                    if(yVal>yValLowUp){
+                        bUpperNLO.SetPoint(CounterBlNLO,xVal,yVal);
+                    }
+                }
+                if(BestSoFarNLO){
+                    bBestNLO.SetPoint(CounterBlNLO,xVal,yVal);
+                }
+                CounterBlNLO++;
+            }
+        }
+        NumAcceptedEntries++;
+        delete FileGraph;
+    }
+
+    double BestNsigma_LO = sqrt(2)*TMath::ErfcInverse(GlobalBestPval_LO);
+    double BestNsigma_NLO = sqrt(2)*TMath::ErfcInverse(GlobalBestPval_NLO);
+
+    printf("BestNsigma_LO = %.2f\n",BestNsigma_LO);
+    printf("BestNsigma_NLO = %.2f\n",BestNsigma_NLO);
+
+    TFile* fPlot = new TFile(FitSystFolder+"PLOT/fPlot.root","recreate");
+    gLowerLO.Write();
+    gUpperLO.Write();
+    gBestLO.Write();
+    gLowerNLO.Write();
+    gUpperNLO.Write();
+    gBestNLO.Write();
+
+    gStyle->SetCanvasPreferGL(1);
+    SetStyle();
+    const float right = 0.025;
+    const float top = 0.025;
+
+    TGraphErrors *grFemto_LO;
+    grFemto_LO = FemtoModelFitBandsSimple(&gLowerLO, &gUpperLO);
+    grFemto_LO->SetFillColorAlpha(fColors[3],0.3);
+    grFemto_LO->SetLineColor(fColors[3]);
+    grFemto_LO->SetLineWidth(5);
+    TGraphErrors *grOuterBl_LO;
+    grOuterBl_LO = FemtoModelFitBandsSimple(&bOuterLowerLO, &bOuterUpperLO);
+    grOuterBl_LO->SetFillColorAlpha(fColors[3],0.3);
+    grOuterBl_LO->SetLineColor(fColors[3]);
+    grOuterBl_LO->SetLineWidth(5);
+    gBestLO.SetLineColor(fColors[3]);
+    gBestLO.SetLineWidth(5);
+    bOuterBestLO.SetLineColor(fColors[3]);
+    bOuterBestLO.SetLineWidth(5);
+    bBestLO.SetLineColor(fColors[3]);
+    bBestLO.SetLineWidth(4);
+    bBestLO.SetLineStyle(2);
+
+    TGraphErrors *grFemto_NLO;
+    grFemto_NLO = FemtoModelFitBandsSimple(&gLowerNLO, &gUpperNLO);
+    grFemto_NLO->SetFillColorAlpha(fColors[1],0.3);
+    grFemto_NLO->SetLineColor(fColors[1]);
+    grFemto_NLO->SetLineWidth(5);
+    TGraphErrors *grOuterBl_NLO;
+    grOuterBl_NLO = FemtoModelFitBandsSimple(&bOuterLowerNLO, &bOuterUpperNLO);
+    grOuterBl_NLO->SetFillColorAlpha(fColors[1],0.3);
+    grOuterBl_NLO->SetLineColor(fColors[1]);
+    grOuterBl_NLO->SetLineWidth(5);
+    gBestNLO.SetLineColor(fColors[1]);
+    gBestNLO.SetLineWidth(5);
+    bOuterBestNLO.SetLineColor(fColors[1]);
+    bOuterBestNLO.SetLineWidth(5);
+    bBestNLO.SetLineColor(fColors[1]);
+    bBestNLO.SetLineWidth(4);
+    bBestNLO.SetLineStyle(7);
+
+    TCanvas *Can_CF_pL = new TCanvas("pL","pL", 0,0,650,550);
+    Can_CF_pL->SetRightMargin(right);
+    Can_CF_pL->SetTopMargin(top);
+
+    hData->SetTitle("; #it{k*} (MeV/#it{c}); #it{C}(#it{k*})");
+    hData->GetXaxis()->SetRangeUser(0, 320);
+    hData->GetXaxis()->SetNdivisions(505);
+    hData->GetYaxis()->SetRangeUser(0.85, 2.3);
+    hData->SetFillColor(fFillColors[0]);
+    SetStyleHisto(hData,2,0);
+    hData->Draw();
+
+    TGraphErrors *Tgraph_syserror = DrawSystematicError_FAST(hData, hSyst, fSyst, 3);
+    Tgraph_syserror->SetLineColor(kWhite);
+
+    //baselineLL->Draw("same");
+
+    if(grFemto_LO) {grFemto_LO->Draw("3 same");}
+    if(grOuterBl_LO&&MODE==1) {grOuterBl_LO->Draw("3 same");}
+    if(grFemto_NLO) grFemto_NLO->Draw("3 same");
+    if(grOuterBl_NLO&&MODE==1) {grOuterBl_NLO->Draw("3 same");}
+    if(grFemto_LO) gBestLO.Draw("l same");
+    if(grFemto_LO&&MODE==1) {bOuterBestLO.Draw("l same");}
+    if(grFemto_NLO) gBestNLO.Draw("l same");
+    if(grFemto_NLO&&MODE==1) {bOuterBestNLO.Draw("l same");}
+    if(grFemto_LO&&MODE==0) {bBestLO.Draw("l same");}
+    if(grFemto_NLO&&MODE==0) {bBestNLO.Draw("l same");}
+    hData->Draw("same");
+
+    Tgraph_syserror->SetFillColorAlpha(kBlack, 0.4);
+    Tgraph_syserror->Draw("2 same");
+    //hData->Draw("pe same");
+
+    unsigned NumRows=4;
+    TLegend *legend = new TLegend(0.49,0.76-0.04*NumRows,0.73,0.76);//lbrt
+    legend->SetBorderSize(0);
+    legend->SetTextFont(42);
+    legend->SetTextSize(gStyle->GetTextSize()*0.70);
+    TH1F* hCk_Fake;
+    hCk_Fake = (TH1F*)hData->Clone("hCk_Fake");
+    hCk_Fake->SetName("hCk_Fake");
+    hCk_Fake->SetLineColor(hCk_Fake->GetFillColor());
+
+    legend->AddEntry(hCk_Fake, "p#minus#Lambda #oplus #bar{p}#minus#bar{#Lambda} pairs", "fpe");
+//  legend->AddEntry(hist_CF_LL_ALAL_exp[2], "with Syst. uncertainties", "");
+    //legend->AddEntry(baselineLL,"Baseline","l");
+    legend->AddEntry(grFemto_LO,"Femtoscopic fit (#chiEFT LO)","l");
+    legend->AddEntry(grFemto_NLO,"Femtoscopic fit (#chiEFT NLO)","l");
+    legend->Draw("same");
+    TLatex BeamText;
+    BeamText.SetTextSize(gStyle->GetTextSize()*0.75);
+    BeamText.SetNDC(kTRUE);
+    //BeamText.DrawLatex(0.55, 0.875, "ALICE Preliminary");
+    //if(WhichDataSet==0) BeamText.DrawLatex(0.55, 0.825, Form("pp #sqrt{#it{s}} = 13 TeV"));
+    //else if(WhichDataSet==1) BeamText.DrawLatex(0.55, 0.825, Form("p#minusPb #sqrt{#it{s}_{NN}} = 5.02 TeV"));
+    //else BeamText.DrawLatex(0.55, 0.825, Form("pp #sqrt{#it{s}} = 7 TeV"));
+    BeamText.DrawLatex(0.50, 0.925, "ALICE Preliminary");
+    //if(DataSample=="pp13TeV_MB_Run2paper") BeamText.DrawLatex(0.50, 0.86, "pp #sqrt{#it{s}} = 13 TeV");
+    //else if(DataSample.Contains("pPb")&&DataSample.Contains("5TeV")) BeamText.DrawLatex(0.50, 0.86, "p#minusPb #sqrt{#it{s}_{NN}} = 5.02 TeV");
+    //else if(DataSample=="pp13TeV_HM_March19") BeamText.DrawLatex(0.50, 0.86, "pp (HM) #sqrt{#it{s}} = 13 TeV");
+    //else BeamText.DrawLatex(0.50, 0.86, "ALICE pp #sqrt{#it{s}} = 7 TeV");
+    BeamText.DrawLatex(0.50, 0.88, "pp (HM) #sqrt{#it{s}} = 13 TeV");
+
+    TLatex BeamTextSource;
+    BeamTextSource.SetTextSize(gStyle->GetTextSize()*0.70);
+    BeamTextSource.SetNDC(kTRUE);
+    BeamTextSource.DrawLatex(0.50, 0.835, LegendSource_line1);
+    BeamTextSource.DrawLatex(0.50, 0.79, LegendSource_line2);
+
+//INLET -------------------------------------------------------------------------------------------------------------------
+
+    TH1F* DataHisto_Inlet = (TH1F*)hData->Clone("DataHisto_Inlet");
+    DataHisto_Inlet->SetMarkerSize(hData->GetMarkerSize()*0.67);
+    DataHisto_Inlet->SetLineWidth(hData->GetLineWidth()*0.67);
+    DataHisto_Inlet->GetXaxis()->SetTitleSize(hData->GetXaxis()->GetTitleSize()*1.75);
+    DataHisto_Inlet->GetXaxis()->SetLabelSize(hData->GetXaxis()->GetLabelSize()*1.75);
+    DataHisto_Inlet->GetXaxis()->SetRangeUser(120, MODE==1?600:560);
+    DataHisto_Inlet->GetXaxis()->SetNdivisions(505);
+
+    DataHisto_Inlet->GetYaxis()->SetTitleSize(hData->GetYaxis()->GetTitleSize()*1.75);
+    DataHisto_Inlet->GetYaxis()->SetLabelSize(hData->GetYaxis()->GetLabelSize()*1.75);
+    DataHisto_Inlet->GetYaxis()->SetTitleOffset(hData->GetYaxis()->GetTitleOffset()*0.67);
+    DataHisto_Inlet->GetYaxis()->SetRangeUser(0.962, 1.048);
+
+    TGraph* grFemto_LO_Inlet = (TGraph*)grFemto_LO->Clone("grFemto_LO_Inlet");
+    grFemto_LO_Inlet->SetLineWidth(grFemto_LO->GetLineWidth()*0.67);
+
+    TGraph* grFemto_NLO_Inlet = (TGraph*)grFemto_NLO->Clone("grFemto_NLO_Inlet");
+    grFemto_NLO_Inlet->SetLineWidth(grFemto_NLO->GetLineWidth()*0.67);
+
+    TGraph* gBestLO_Inlet = (TGraph*)gBestLO.Clone("gBestLO_Inlet");
+    gBestLO_Inlet->SetLineWidth(gBestLO.GetLineWidth()*0.67);
+
+    TGraph* gBestNLO_Inlet = (TGraph*)gBestNLO.Clone("gBestNLO_Inlet");
+    gBestNLO_Inlet->SetLineWidth(gBestNLO.GetLineWidth()*0.67);
+
+    const double fXMinInlet=0.35;
+    const double fYMinInlet=0.25;
+    const double fXMaxInlet=0.95;
+    const double fYMaxInlet=0.57;
+    TPad *inset_pad = new TPad("insert", "insertPad", fXMinInlet, fYMinInlet,
+                             fXMaxInlet, fYMaxInlet);
+    inset_pad->SetTopMargin(0.01);
+    inset_pad->SetRightMargin(0.05);
+    inset_pad->SetBottomMargin(0.28);
+    inset_pad->SetLeftMargin(0.28);
+    inset_pad->SetFillStyle(4000);
+    inset_pad->Draw();
+    inset_pad->cd();
+    DataHisto_Inlet->Draw();
+    //if(grFemto_LO) grFemto_LO_Inlet->Draw("3 same");
+    //if(grFemto_NLO) grFemto_NLO_Inlet->Draw("3 same");
+    //if(grFemto_LO) gBestLO_Inlet->Draw("l same");
+    //if(grFemto_NLO) gBestNLO_Inlet->Draw("l same");
+    if(grFemto_LO) {grFemto_LO->Draw("3 same");}
+    if(grOuterBl_LO&&MODE==1) {grOuterBl_LO->Draw("3 same");}
+    if(grFemto_NLO) grFemto_NLO->Draw("3 same");
+    if(grOuterBl_NLO&&MODE==1) {grOuterBl_NLO->Draw("3 same");}
+    if(grFemto_LO) gBestLO.Draw("l same");
+    if(grFemto_LO&&MODE==1) {bOuterBestLO.Draw("l same");}
+    if(grFemto_NLO) gBestNLO.Draw("l same");
+    if(grFemto_NLO&&MODE==1) {bOuterBestNLO.Draw("l same");}
+    DataHisto_Inlet->Draw("same");
+    Tgraph_syserror->Draw("2 same");
+    if(grFemto_LO&&MODE==0) {bBestLO.Draw("l same");}
+    if(grFemto_NLO&&MODE==0) {bBestNLO.Draw("l same");}
+
+
+
+    Can_CF_pL->SaveAs(FitSystFolder+"PLOT/Can_CF_pL.pdf");
+
+    delete DataFile;
+    delete SystFile;
+    delete ntFile;
+    delete legend;
+    delete hCk_Fake;
+    delete Tgraph_syserror;
+    delete grFemto_LO;
+    delete grFemto_NLO;
+    delete grOuterBl_LO;
+    delete grOuterBl_NLO;
+    delete Can_CF_pL;
+    delete fPlot;
+/*
+    //const int NumConfigs = 2;
+    //int WhichConfiguration[NumConfigs] = {0,2};
+
+    //const int NumConfigs = 3;
+    //int WhichConfiguration[NumConfigs] = {0,1,2};
+
+    TString FitResultHistoName1 = "pL_AV18_"+pL_Model1+"_pXim_HALQCD1";
+    TString FitResultHistoName2 = "pL_AV18_"+pL_Model2+"_pXim_HALQCD1";
+
+    TFile* DataFile = new TFile(DataFileName,"read");
+    if(!DataFile){
+        printf("Problem with %s\n",DataFileName.Data());
+        return;
+    }
+    TH1F* DataHisto = (TH1F*)DataFile->Get(DataHistoName);
+    if(!DataHisto){
+        printf("Problem with %s\n",DataHistoName.Data());
+        return;
+    }
+    TGraph* FitResult1 = (TGraph*)DataFile->Get(FitResultHistoName1);
+    TGraph* FitResult2 = (TGraph*)DataFile->Get(FitResultHistoName2);
+
+    TGraph gDownLimit;
+    TGraph gUpLimit;
+
+    TFile* DataSystFile = new TFile(DataSystFileName);
+    TH1F* DataSystHisto = (TH1F*)DataSystFile->Get(DataSystHistoName);
+    TF1* ExtrapolOLD = NULL;
+    if(!DataSystHisto){
+        ExtrapolOLD = (TF1*)DataSystFile->Get("RelSysPLUnbinned");
+    }
+//printf("DataSystFile=%p\n",DataSystFile);
+//printf("DataSystHisto=%p\n",DataSystHisto);
+//printf("ExtrapolOLD=%p\n",ExtrapolOLD);
+
+    gStyle->SetCanvasPreferGL(1);
+    SetStyle();
+    const float right = 0.025;
+    const float top = 0.025;
+
+    TGraphErrors *grFemtoLL_1;
+    grFemtoLL_1 = FemtoModelFitBandsSimple(FitResult1, FitResult1);
+    grFemtoLL_1->SetFillColor(fColors[3]);
+    grFemtoLL_1->SetLineColor(fColors[3]);
+    grFemtoLL_1->SetLineWidth(5);
+
+    TGraphErrors *grFemtoLL_2;
+    grFemtoLL_2 = FemtoModelFitBandsSimple(FitResult2, FitResult2);
+    grFemtoLL_2->SetFillColor(fColors[1]);
+    grFemtoLL_2->SetLineColor(fColors[1]);
+    grFemtoLL_2->SetLineWidth(5);
+
+    TCanvas *Can_CF_LL = new TCanvas("LL","LL", 0,0,650,550);
+    Can_CF_LL->SetRightMargin(right);
+    Can_CF_LL->SetTopMargin(top);
+
+    TF1 *baselineLL = new TF1("baselineLL", "pol1", 0, 1000);
+    baselineLL->SetParameter(0,parA);
+    baselineLL->SetParameter(1,parB);
+    baselineLL->SetLineStyle(2);
+    baselineLL->SetLineColor(fFillColors[6]);
+    baselineLL->SetLineWidth(4);
+
+    TGraph *grFakeLL = new TGraph();
+    grFakeLL->SetLineColor(fColors[5]);
+    grFakeLL->SetLineWidth(4);
+
+    unsigned NumMomBins = DataHisto->GetNbinsX();
+    double MinMom = DataHisto->GetBinLowEdge(1);
+    double MaxMom = DataHisto->GetXaxis()->GetBinUpEdge(NumMomBins);
+    TH1F* hGeV = new TH1F("hGeV","hGeV",NumMomBins,MinMom*0.001,MaxMom*0.001);
+    for(unsigned uBin=1; uBin<=NumMomBins; uBin++){
+        hGeV->SetBinContent(uBin,DataHisto->GetBinContent(uBin));
+        hGeV->SetBinError(uBin,DataHisto->GetBinError(uBin));
+    }
+    hGeV->SetTitle("; #it{k*} (GeV/#it{c}); #it{C}(#it{k*})");
+    hGeV->GetXaxis()->SetRangeUser(0, 0.32);
+    hGeV->GetXaxis()->SetNdivisions(505);
+    hGeV->GetYaxis()->SetRangeUser(0.85, 2.3);
+    hGeV->SetFillColor(fFillColors[0]);
+    SetStyleHisto(hGeV,2,0);
+    hGeV->SetMarkerSize(1.5);
+    //hGeV->Draw();
+
+    DataHisto->SetTitle("; #it{k*} (MeV/#it{c}); #it{C}(#it{k*})");
+    DataHisto->GetXaxis()->SetRangeUser(0, 320);
+    DataHisto->GetXaxis()->SetNdivisions(505);
+    DataHisto->GetYaxis()->SetRangeUser(0.85, 2.3);
+    DataHisto->SetFillColor(fFillColors[0]);
+    SetStyleHisto(DataHisto,2,0);
+    DataHisto->Draw();
+
+    TGraphErrors *Tgraph_syserror_LL_ALAL = DrawSystematicError_FAST(DataHisto, DataSystHisto, ExtrapolOLD, 3);
+    Tgraph_syserror_LL_ALAL->SetLineColor(kWhite);
+
+    //baselineLL->Draw("same");
+
+    if(grFemtoLL_1) grFemtoLL_1->Draw("l3 same");
+    if(grFemtoLL_2) grFemtoLL_2->Draw("l3 same");
+    //hGeV->Draw("same");
+    DataHisto->Draw("same");
+
+    Tgraph_syserror_LL_ALAL->SetFillColorAlpha(kBlack, 0.4);
+    Tgraph_syserror_LL_ALAL->Draw("2 same");
+    //DataHisto->Draw("pe same");
+
+    unsigned NumRows=4;
+    TLegend *legLL2 = new TLegend(0.49,0.76-0.04*NumRows,0.73,0.76);//lbrt
+    legLL2->SetBorderSize(0);
+    legLL2->SetTextFont(42);
+    legLL2->SetTextSize(gStyle->GetTextSize()*0.70);
+    TH1F* hCk_Fake;
+    hCk_Fake = (TH1F*)hGeV->Clone("hCk_Fake");
+    hCk_Fake->SetName("hCk_Fake");
+    hCk_Fake->SetLineColor(hCk_Fake->GetFillColor());
+
+    legLL2->AddEntry(hCk_Fake, "p#minus#Lambda #oplus #bar{p}#minus#bar{#Lambda} pairs", "fpe");
+//  legLL2->AddEntry(hist_CF_LL_ALAL_exp[2], "with Syst. uncertainties", "");
+    //legLL2->AddEntry(baselineLL,"Baseline","l");
+    legLL2->AddEntry(grFemtoLL_1,"Femtoscopic fit (#chiEFT LO)","l");
+    legLL2->AddEntry(grFemtoLL_2,"Femtoscopic fit (#chiEFT NLO)","l");
+    legLL2->Draw("same");
+    TLatex BeamText;
+    BeamText.SetTextSize(gStyle->GetTextSize()*0.80);
+    BeamText.SetNDC(kTRUE);
+    //BeamText.DrawLatex(0.55, 0.875, "ALICE Preliminary");
+    //if(WhichDataSet==0) BeamText.DrawLatex(0.55, 0.825, Form("pp #sqrt{#it{s}} = 13 TeV"));
+    //else if(WhichDataSet==1) BeamText.DrawLatex(0.55, 0.825, Form("p#minusPb #sqrt{#it{s}_{NN}} = 5.02 TeV"));
+    //else BeamText.DrawLatex(0.55, 0.825, Form("pp #sqrt{#it{s}} = 7 TeV"));
+    BeamText.DrawLatex(0.50, 0.91, "ALICE Preliminary");
+    if(DataSample=="pp13TeV_MB_Run2paper") BeamText.DrawLatex(0.50, 0.86, "pp #sqrt{#it{s}} = 13 TeV");
+    else if(DataSample.Contains("pPb")&&DataSample.Contains("5TeV")) BeamText.DrawLatex(0.50, 0.86, "p#minusPb #sqrt{#it{s}_{NN}} = 5.02 TeV");
+    else if(DataSample=="pp13TeV_HM_March19") BeamText.DrawLatex(0.50, 0.86, "pp (HM) #sqrt{#it{s}} = 13 TeV");
+    else BeamText.DrawLatex(0.50, 0.86, "ALICE pp #sqrt{#it{s}} = 7 TeV");
+
+    TLatex BeamTextSource;
+    BeamTextSource.SetTextSize(gStyle->GetTextSize()*0.70);
+    BeamTextSource.SetNDC(kTRUE);
+    BeamTextSource.DrawLatex(0.50, 0.81, LegendSource_line1);
+
+
+
+//INLET -------------------------------------------------------------------------------------------------------------------
+
+    TH1F* DataHisto_Inlet = (TH1F*)DataHisto->Clone("DataHisto_Inlet");
+    DataHisto_Inlet->SetMarkerSize(DataHisto->GetMarkerSize()*0.67);
+    DataHisto_Inlet->SetLineWidth(DataHisto->GetLineWidth()*0.67);
+    DataHisto_Inlet->GetXaxis()->SetTitleSize(DataHisto->GetXaxis()->GetTitleSize()*1.75);
+    DataHisto_Inlet->GetXaxis()->SetLabelSize(DataHisto->GetXaxis()->GetLabelSize()*1.75);
+    DataHisto_Inlet->GetXaxis()->SetRangeUser(120, 320);
+    DataHisto_Inlet->GetXaxis()->SetNdivisions(505);
+
+    DataHisto_Inlet->GetYaxis()->SetTitleSize(DataHisto->GetYaxis()->GetTitleSize()*1.75);
+    DataHisto_Inlet->GetYaxis()->SetLabelSize(DataHisto->GetYaxis()->GetLabelSize()*1.75);
+    DataHisto_Inlet->GetYaxis()->SetTitleOffset(DataHisto->GetYaxis()->GetTitleOffset()*0.67);
+    DataHisto_Inlet->GetYaxis()->SetRangeUser(0.98, 1.045);
+
+    TGraph* grFemtoLL_1_Inlet = (TGraph*)grFemtoLL_1->Clone("grFemtoLL_1_Inlet");
+    grFemtoLL_1_Inlet->SetLineWidth(grFemtoLL_1->GetLineWidth()*0.67);
+
+    TGraph* grFemtoLL_2_Inlet = (TGraph*)grFemtoLL_2->Clone("grFemtoLL_2_Inlet");
+    grFemtoLL_2_Inlet->SetLineWidth(grFemtoLL_2->GetLineWidth()*0.67);
+
+    const double fXMinInlet=0.35;
+    const double fYMinInlet=0.25;
+    const double fXMaxInlet=0.95;
+    const double fYMaxInlet=0.57;
+    TPad *inset_pad = new TPad("insert", "insertPad", fXMinInlet, fYMinInlet,
+                             fXMaxInlet, fYMaxInlet);
+    inset_pad->SetTopMargin(0.01);
+    inset_pad->SetRightMargin(0.05);
+    inset_pad->SetBottomMargin(0.28);
+    inset_pad->SetLeftMargin(0.28);
+    inset_pad->SetFillStyle(4000);
+    inset_pad->Draw();
+    inset_pad->cd();
+    DataHisto_Inlet->Draw();
+    if(grFemtoLL_1) grFemtoLL_1_Inlet->Draw("l3 same");
+    if(grFemtoLL_2) grFemtoLL_2_Inlet->Draw("l3 same");
+    DataHisto_Inlet->Draw("same");
+    Tgraph_syserror_LL_ALAL->Draw("2 same");
+
+    Can_CF_LL->Print(WorkFolder+TString::Format("PlotLamLamFit_%s_%s_%s.pdf",DataSample.Data(),SourceType.Data(),FittingMode_pp.Data()));
+
+    delete inset_pad;
+    delete DataHisto_Inlet;
+    delete grFemtoLL_1_Inlet;
+    delete grFemtoLL_2_Inlet;
+
+    delete grFemtoLL_1;
+    delete grFemtoLL_2;
+    delete Can_CF_LL;
+    delete baselineLL;
+    delete legLL2;
+    delete grFakeLL;
+    delete hGeV;
+    delete hCk_Fake;
+
+    delete DataFile;
+    delete DataSystFile;
+*/
+}
+
+
+
 void mT_Plots(const TString& DataSample, const bool& LevySource){
 
     const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/mT_Plots/";
@@ -3483,8 +4272,12 @@ Data set 2: a=1.003e+00; b=-2.650e-06
     plotManyLambdaLambdaModels("/home/dmihaylov/Temp/Output/150319/StuffForLamLamFit/","pPb");
 */
 
-    mT_Plots("pp13TeV_HM_March19",false);
-    mT_Plots("pPb5TeV_CPR_Mar19",false);
+    //mT_Plots("pp13TeV_HM_March19",false);
+    //mT_Plots("pPb5TeV_CPR_Mar19",false);
+
+    Plot_pL_FASTsyst();
+
+
 
     return 0;
 }

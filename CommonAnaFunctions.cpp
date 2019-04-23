@@ -10,6 +10,7 @@
 #include "TH2F.h"
 #include "TFile.h"
 #include "TROOT.h"
+#include "TGraph.h"
 
 DLM_CommonAnaFunctions::DLM_CommonAnaFunctions():NumCleverLevyObjects(3){
     //Simple_Reso = NULL;
@@ -760,6 +761,30 @@ void DLM_CommonAnaFunctions::SetUpBinning_pL(const TString& DataSample, unsigned
             kCoarseStep=12;
             kFineStep=12;
         }
+        else if(MomBinVar==10){
+            kMin=0;
+            kFineMin=202;//272//216
+            kFineMax=202;//304
+            kMax=202;//336
+            kCoarseStep=12;
+            kFineStep=12;
+        }
+        else if(MomBinVar==11){
+            kMin=0;
+            kFineMin=180;//272//216
+            kFineMax=180;//304
+            kMax=180;//336
+            kCoarseStep=12;
+            kFineStep=12;
+        }
+        else if(MomBinVar==12){
+            kMin=0;
+            kFineMin=228;//272//216
+            kFineMax=228;//304
+            kMax=228;//336
+            kCoarseStep=12;
+            kFineStep=12;
+        }
         else{
             printf("\033[1;31mERROR:\033[0m The MomBinVar '%i' does not exist\n",MomBinVar);
             return;
@@ -805,6 +830,24 @@ void DLM_CommonAnaFunctions::SetUpBinning_pL(const TString& DataSample, unsigned
             FitRegion[0] = MomBins[0];
             FitRegion[1] = MomBins[NumMomBins];
             FitRegion[2] = MomBins[NumMomBins];//336
+            FitRegion[3] = 600;
+        }
+        else if(FitRegVar==10){
+            FitRegion[0] = MomBins[0];
+            FitRegion[1] = MomBins[NumMomBins];
+            FitRegion[2] = 420;//420
+            FitRegion[3] = 576;
+        }
+        else if(FitRegVar==11){
+            FitRegion[0] = MomBins[0];
+            FitRegion[1] = MomBins[NumMomBins];
+            FitRegion[2] = 432;//432
+            FitRegion[3] = 552;
+        }
+        else if(FitRegVar==12){
+            FitRegion[0] = MomBins[0];
+            FitRegion[1] = MomBins[NumMomBins];
+            FitRegion[2] = 408;//408
             FitRegion[3] = 600;
         }
         else{
@@ -1030,6 +1073,7 @@ void DLM_CommonAnaFunctions::GetFractions_p(const TString& DataSample, const int
         pp_f0 = 1.0;
         pp_f1 = 0.0;
     }
+    //ratio between feed-down lambdas and all feed downs, it is by default 0.7, i.e. 70% of the feed-down into protons is from lambdas
     double arrayPercLamProton = pp_f1/(1.-pp_f0)*Modify_pp;
     Fractions[0] = pp_f0;
     Fractions[1] = (1.-pp_f0)*(arrayPercLamProton);
@@ -1085,7 +1129,9 @@ void DLM_CommonAnaFunctions::GetFractions_L(const TString& DataSample, const int
         pL_f2 = 0.0;
     }
     double SigLambdaPrimDir = pL_f0+pL_f1;
+    //ratio between sigma0 feed down and primary lambdas. By default this should be 1:3
     double arrayPercSigLambda=pL_f1/pL_f0*Modify_SigL;
+    //ration between xim feed down to the flat (xi0) feed. By default we assume it is 0.5
     double arrayPercXiLambda=pL_f2/(1.-pL_f0-pL_f1)*Modify_XiL;
     double FracOfLambda = 1./(1.+arrayPercSigLambda);
     //0 is primary
@@ -1282,27 +1328,51 @@ TH2F* DLM_CommonAnaFunctions::GetResidualMatrix(const TString&& FinalSystem, con
     return histoCopy;
 }
 
+//mTbin == -1 means we take the integrated function
 //iReb = 0 is 4 MeV, 1 is 8, 2 is 12, 3 is 16, 4 is 20
-TH1F* DLM_CommonAnaFunctions::GetAliceExpCorrFun(const TString& DataSample,const TString& System,const int& iReb){
+TH1F* DLM_CommonAnaFunctions::GetAliceExpCorrFun(const TString& DataSample,const TString& System,const int& iReb, const bool& AddSyst, const int mTbin){
     TString FileName;
     TString HistoName;
+    TString SystFileName="";
+    TString SystHistName="";
+    TGraph* gRelSyst=NULL;
 
     if(DataSample=="pp13TeV_MB_Run2paper"){
         if(System=="pp"){
-            FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample8/CFOutput_pp.root";
-            HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
+            if(mTbin==-1){
+                FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample8/CFOutput_pp.root";
+                HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
+            }
+            else{
+                printf("\033[1;31mERROR:\033[0m The mT bin #%i is not defined for %s (%s)\n",mTbin,DataSample.Data(),System.Data());
+            }
         }
         else if(System=="pLambda"){
-            FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample8/CFOutput_pL.root";
-            HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
+            if(mTbin==-1){
+                FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample8/CFOutput_pL.root";
+                HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
+            }
+            else{
+                printf("\033[1;31mERROR:\033[0m The mT bin #%i is not defined for %s (%s)\n",mTbin,DataSample.Data(),System.Data());
+            }
         }
         else if(System=="LambdaLambda"){
-            FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample8/CFOutput_LL.root";
-            HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
+            if(mTbin==-1){
+                FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample8/CFOutput_LL.root";
+                HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
+            }
+            else{
+                printf("\033[1;31mERROR:\033[0m The mT bin #%i is not defined for %s (%s)\n",mTbin,DataSample.Data(),System.Data());
+            }
         }
         else if(System=="pXim"){
-            FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample8/CFOutput_pXi.root";
-            HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
+            if(mTbin==-1){
+                FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample8/CFOutput_pXi.root";
+                HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
+            }
+            else{
+                printf("\033[1;31mERROR:\033[0m The mT bin #%i is not defined for %s (%s)\n",mTbin,DataSample.Data(),System.Data());
+            }
         }
         else{
             printf("\033[1;31mERROR:\033[0m The system '%s' does not exist\n",System.Data());
@@ -1310,20 +1380,48 @@ TH1F* DLM_CommonAnaFunctions::GetAliceExpCorrFun(const TString& DataSample,const
     }
     else if(DataSample=="pp13TeV_HM_March19"){
         if(System=="pp"){
-            FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM/CFOutput_pp.root";
-            HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
+            if(mTbin==-1){
+                FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM/CFOutput_pp.root";
+                HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
+            }
+            else{
+                printf("\033[1;31mERROR:\033[0m The mT bin #%i is not defined for %s (%s)\n",mTbin,DataSample.Data(),System.Data());
+            }
         }
         else if(System=="pLambda"){
-            FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM/CFOutput_pL.root";
-            HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
+            if(mTbin==-1){
+                FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM/CFOutput_pL.root";
+                HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
+                SystFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM/Systematics_pL.root";
+                SystHistName = "SystErrRel";
+            }
+            else if(mTbin>=0&&mTbin<5){
+                FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM/CFOutputALL_mT_pL_HM.root";
+                HistoName = TString::Format("hCk_RebinnedMeV_%i_mTBin_%i",0,mTbin);
+                SystFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM/Systematics_pL.root";
+                SystHistName = "SystErrRel";
+            }
+            else{
+                printf("\033[1;31mERROR:\033[0m The mT bin #%i is not defined for %s (%s)\n",mTbin,DataSample.Data(),System.Data());
+            }
         }
         else if(System=="LambdaLambda"){
-            FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM/CFOutput_LL.root";
-            HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
+            if(mTbin==-1){
+                FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM/CFOutput_LL.root";
+                HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
+            }
+            else{
+                printf("\033[1;31mERROR:\033[0m The mT bin #%i is not defined for %s (%s)\n",mTbin,DataSample.Data(),System.Data());
+            }
         }
         else if(System=="pXim"){
-            FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM/CFOutput_pXi.root";
-            HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
+            if(mTbin==-1){
+                FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM/CFOutput_pXi.root";
+                HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
+            }
+            else{
+                printf("\033[1;31mERROR:\033[0m The mT bin #%i is not defined for %s (%s)\n",mTbin,DataSample.Data(),System.Data());
+            }
         }
         else{
             printf("\033[1;31mERROR:\033[0m The system '%s' does not exist\n",System.Data());
@@ -1331,20 +1429,40 @@ TH1F* DLM_CommonAnaFunctions::GetAliceExpCorrFun(const TString& DataSample,const
     }
     else if(DataSample=="pPb5TeV_Run2paper"){
         if(System=="pp"){
-            FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pPb_5TeV/Sample10/CFOutput_pp.root";
-            HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
+            if(mTbin==-1){
+                FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pPb_5TeV/Sample10/CFOutput_pp.root";
+                HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
+            }
+            else{
+                printf("\033[1;31mERROR:\033[0m The mT bin #%i is not defined for %s (%s)\n",mTbin,DataSample.Data(),System.Data());
+            }
         }
         else if(System=="pLambda"){
-            FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pPb_5TeV/Sample10/CFOutput_pL.root";
-            HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
+            if(mTbin==-1){
+                FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pPb_5TeV/Sample10/CFOutput_pL.root";
+                HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
+            }
+            else{
+                printf("\033[1;31mERROR:\033[0m The mT bin #%i is not defined for %s (%s)\n",mTbin,DataSample.Data(),System.Data());
+            }
         }
         else if(System=="LambdaLambda"){
-            FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pPb_5TeV/Sample10/CFOutput_LL.root";
-            HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
+            if(mTbin==-1){
+                FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pPb_5TeV/Sample10/CFOutput_LL.root";
+                HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
+            }
+            else{
+                printf("\033[1;31mERROR:\033[0m The mT bin #%i is not defined for %s (%s)\n",mTbin,DataSample.Data(),System.Data());
+            }
         }
         else if(System=="pXim"){
-            FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pPb_5TeV/Sample10/CFOutput_pXi.root";
-            HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
+            if(mTbin==-1){
+                FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pPb_5TeV/Sample10/CFOutput_pXi.root";
+                HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
+            }
+            else{
+                printf("\033[1;31mERROR:\033[0m The mT bin #%i is not defined for %s (%s)\n",mTbin,DataSample.Data(),System.Data());
+            }
         }
         else{
             printf("\033[1;31mERROR:\033[0m The system '%s' does not exist\n",System.Data());
@@ -1352,20 +1470,40 @@ TH1F* DLM_CommonAnaFunctions::GetAliceExpCorrFun(const TString& DataSample,const
     }
     else if(DataSample=="pPb5TeV_CPR_Mar19"){
         if(System=="pp"){
-            FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pPb_5TeV/Sample11/CFOutput_pp.root";
-            HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
+            if(mTbin==-1){
+                FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pPb_5TeV/Sample11/CFOutput_pp.root";
+                HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
+            }
+            else{
+                printf("\033[1;31mERROR:\033[0m The mT bin #%i is not defined for %s (%s)\n",mTbin,DataSample.Data(),System.Data());
+            }
         }
         else if(System=="pLambda"){
-            FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pPb_5TeV/Sample11/CFOutput_pL.root";
-            HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
+            if(mTbin==-1){
+                FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pPb_5TeV/Sample11/CFOutput_pL.root";
+                HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
+            }
+            else{
+                printf("\033[1;31mERROR:\033[0m The mT bin #%i is not defined for %s (%s)\n",mTbin,DataSample.Data(),System.Data());
+            }
         }
         else if(System=="LambdaLambda"){
-            FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pPb_5TeV/Sample11/CFOutput_LL.root";
-            HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
+            if(mTbin==-1){
+                FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pPb_5TeV/Sample11/CFOutput_LL.root";
+                HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
+            }
+            else{
+                printf("\033[1;31mERROR:\033[0m The mT bin #%i is not defined for %s (%s)\n",mTbin,DataSample.Data(),System.Data());
+            }
         }
         else if(System=="pXim"){
-            FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pPb_5TeV/Sample11/CFOutput_pXi.root";
-            HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
+            if(mTbin==-1){
+                FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pPb_5TeV/Sample11/CFOutput_pXi.root";
+                HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
+            }
+            else{
+                printf("\033[1;31mERROR:\033[0m The mT bin #%i is not defined for %s (%s)\n",mTbin,DataSample.Data(),System.Data());
+            }
         }
         else{
             printf("\033[1;31mERROR:\033[0m The system '%s' does not exist\n",System.Data());
@@ -1377,13 +1515,39 @@ TH1F* DLM_CommonAnaFunctions::GetAliceExpCorrFun(const TString& DataSample,const
     }
 
     TFile* FileROOT = new TFile(FileName, "read");
+    if(!FileROOT){printf("\033[1;31mERROR:\033[0m The file '%s' does not exist\n",FileName.Data());return NULL;}
     TH1F* histo = (TH1F*)FileROOT->Get(HistoName);
     if(!histo){printf("\033[1;31mERROR:\033[0m The histo '%s' does not exist\n",HistoName.Data());return NULL;}
     TString Name = histo->GetName();
     gROOT->cd();
     TH1F *histoCopy = (TH1F*)histo->Clone("histoCopy");
-    delete FileROOT;
+    delete FileROOT; FileROOT=NULL;
     histoCopy->SetName(Name);
+
+    if(AddSyst){
+        FileROOT = new TFile(SystFileName, "read");
+        if(FileROOT){
+            TH1F* hRelSyst = (TH1F*)FileROOT->Get(SystHistName);
+            if(!hRelSyst){printf("\033[1;31mERROR:\033[0m The hRelSyst '%s' does not exist\n",SystHistName.Data());}
+            else{
+                double MaxMom = hRelSyst->GetXaxis()->GetBinUpEdge(hRelSyst->GetNbinsX());
+                gRelSyst = new TGraph();
+                gRelSyst->SetName("gRelSyst");
+                for(int iBin=1; iBin<=hRelSyst->GetNbinsX(); iBin++){
+                    gRelSyst->SetPoint(iBin-1,hRelSyst->GetBinCenter(iBin),hRelSyst->GetBinContent(iBin));
+                }
+                for(int iBin=1; iBin<=histoCopy->GetNbinsX(); iBin++){
+                    if(histoCopy->GetBinCenter(iBin)>MaxMom) break;
+                    double StatErr = histoCopy->GetBinError(iBin);
+                    double SystErr = histoCopy->GetBinContent(iBin)*gRelSyst->Eval(histoCopy->GetBinCenter(iBin));
+                    double TotErr = sqrt(StatErr*StatErr+SystErr*SystErr);
+                    histoCopy->SetBinError(iBin,TotErr);
+                }
+            }
+        }
+        if(FileROOT) {delete FileROOT; FileROOT=NULL;}
+    }
+
     return histoCopy;
 }
 /*

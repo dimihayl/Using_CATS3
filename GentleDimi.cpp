@@ -32,20 +32,20 @@ void GetCorrelations(const char* foldername, const char* filename, const char* p
   DreamFile->SetAnalysisFile(filename, prefix, addon);
 
   DreamCF* CF_pp = new DreamCF();
-  DreamPair* pp = new DreamPair("Part",-1.0,4.0);
-  DreamPair* ApAp = new DreamPair("AntiPart",-1.0,4.0);
+  DreamPair* pp = new DreamPair("Part",0.2,0.4);
+  DreamPair* ApAp = new DreamPair("AntiPart",0.2,0.4);
 
   DreamCF* CF_pL = new DreamCF();
-  DreamPair* pL = new DreamPair("Part",-1.0,4.0);
-  DreamPair* ApAL = new DreamPair("AntiPart",-1.0,4.0);
+  DreamPair* pL = new DreamPair("Part",0.2,0.4);
+  DreamPair* ApAL = new DreamPair("AntiPart",0.2,0.4);
 
   DreamCF* CF_LL = new DreamCF();
-  DreamPair* LL = new DreamPair("Part",-1.0,4.0);
-  DreamPair* ALAL = new DreamPair("AntiPart",-1.0,4.0);
+  DreamPair* LL = new DreamPair("Part",0.2,0.4);
+  DreamPair* ALAL = new DreamPair("AntiPart",0.2,0.4);
 
   DreamCF* CF_pXi = new DreamCF();
-  DreamPair* pXi = new DreamPair("Part",-1.0,4.0);
-  DreamPair* ApAXi = new DreamPair("AntiPart",-1.0,4.0);
+  DreamPair* pXi = new DreamPair("Part",0.2,0.4);
+  DreamPair* ApAXi = new DreamPair("AntiPart",0.2,0.4);
 
   std::cout << "=========================" << std::endl;
   std::cout << "========Pair Set=========" << std::endl;
@@ -169,20 +169,20 @@ void GetCorrelationsBbarB(const char* foldername, const char* filename, const ch
   DreamFile->SetAnalysisFile(filename, prefix, addon);
 
   DreamCF* CF_pAp_App = new DreamCF();
-  DreamPair* pAp = new DreamPair("PartAntiPart",-1.0,4.0);
+  DreamPair* pAp = new DreamPair("PartAntiPart",0.2,0.4);
 //  DreamPair* App = new DreamPair("AntiPartPart");
 
   DreamCF* CF_pAL_ApL = new DreamCF();
-  DreamPair* pAL = new DreamPair("PartAntiPart",-1.0,4.0);
-  DreamPair* ApL = new DreamPair("AntiPartPart",-1.0,4.0);
+  DreamPair* pAL = new DreamPair("PartAntiPart",0.2,0.4);
+  DreamPair* ApL = new DreamPair("AntiPartPart",0.2,0.4);
 
   DreamCF* CF_ALL_LAL = new DreamCF();
-  DreamPair* LAL = new DreamPair("PartAntiPart",-1.0,4.0);
+  DreamPair* LAL = new DreamPair("PartAntiPart",0.2,0.4);
 //  DreamPair* ALL = new DreamPair("AntiPartPart");
 
   DreamCF* CF_pAXi_ApXi = new DreamCF();
-  DreamPair* pAXi = new DreamPair("PartAntiPart",-1.0,4.0);
-  DreamPair* ApXi = new DreamPair("AntiPartPart",-1.0,4.0);
+  DreamPair* pAXi = new DreamPair("PartAntiPart",0.2,0.4);
+  DreamPair* ApXi = new DreamPair("AntiPartPart",0.2,0.4);
 
   std::cout << "=========================" << std::endl;
   std::cout << "========Pair Set=========" << std::endl;
@@ -406,7 +406,7 @@ void ReweightingQA(TList* PairList) {
     PairRew->SetSEMultDist((TH2F*) PairReweightedList->At(5 * iQA + 1), "_");
     PairRew->SetMEDist((TH1F*) PairReweightedList->At(5 * iQA + 2), "_");
     PairRew->SetMEMultDist((TH2F*) PairReweightedList->At(5 * iQA + 3), "_");
-    PairRew->Calculate_CF(-1.0,4.0);
+    PairRew->Calculate_CF(0.2,0.4);
     //Get the corresponding unmodified pair, which was just reweighted!
     DreamDist* Pair=nullptr;
     TString SEName = PairRew->GetSEDist()->GetName();
@@ -447,7 +447,7 @@ void ReweightingQA(TList* PairList) {
                 Form("MEMultDist_%s_clone_Shifted_FixShifted_Rebinned_%s",
                      PartName.Data(), RebinName.Data())),
             "_");
-        Pair->Calculate_CF(-1.0,4.0);
+        Pair->Calculate_CF(0.2,0.4);
       } else {
         std::cout
             << "===========" << '\n' << "==Missing==" << '\n' << "==========="
@@ -477,7 +477,7 @@ void ReweightingQA(TList* PairList) {
             (TH2F*) UntouchedPairList->FindObject(
                 Form("MEMultDist_%s_clone_Shifted_FixShifted", PartName.Data())),
             "_");
-        Pair->Calculate_CF(-1.0,4.0);
+        Pair->Calculate_CF(0.2,0.4);
       } else {
         std::cout << "===========" << '\n' << "==Missing==" << '\n'
                   << "===========" << '\n'
@@ -582,7 +582,7 @@ int ExecuteCFmT_pp(int argc, char* argv[]) {
   TString CalibPP = Form("%s/CFOutput_pp.root",CalibName);
   mTppDists->SetSEMEReweightingRatio(CalibPP,"pp");
   mTppDists->SetKayTeeBins(mTppBins);
-  mTppDists->SetNormalization(-1.0,4.0);
+  mTppDists->SetNormalization(0.2,0.4);
   mTppDists->ObtainTheCorrelationFunction(gSystem->pwd(), prefix, "pp");
 
   DreamKayTee* mTpLDists;
@@ -596,7 +596,7 @@ int ExecuteCFmT_pp(int argc, char* argv[]) {
   //TString CalibPL = Form("%s/CFOutput_pL.root",CalibName);
   //mTpLDists->SetSEMEReweightingRatio(CalibPL, "pL");
   //mTpLDists->SetKayTeeBins(mTpLBins);
-  //mTpLDists->SetNormalization(-1.0,4.0);
+  //mTpLDists->SetNormalization(0.2,0.4);
   //mTpLDists->ObtainTheCorrelationFunction(gSystem->pwd(), prefix, "pL");
 
   return 1;
@@ -633,10 +633,9 @@ int ExecuteCFmT_pL(int argc, char* argv[]) {
   TString CalibPP = Form("%s/CFOutput_pL.root",CalibName);
   mTpLDists->SetSEMEReweightingRatio(CalibPP,"pL");
   mTpLDists->SetKayTeeBins(mTpLBins);
-  mTpLDists->SetNormalization(-1.0,4.0);
+  mTpLDists->SetNormalization(0.2,0.4);
   mTpLDists->SetRebin(3);
   mTpLDists->ObtainTheCorrelationFunction(gSystem->pwd(), prefix, "pL");
-
 
   return 1;
 }
@@ -772,6 +771,8 @@ void pp_FitDiff_CompareToTotal(char* argv[], const TString& DataSample, const TS
     AB_pp.SetMomBins(NumMomBins_pp,MomBins_pp);
     AnalysisObject.SetUpCats_pp(AB_pp,"AV18",SourceType);
     AB_pp.SetNotifications(CATS::nWarning);
+    AB_pp.SetEpsilonConv(1e-9);
+    AB_pp.SetEpsilonProp(1e-9);
     AB_pp.KillTheCat();
     DLM_Ck* Ck_pp = new DLM_Ck(AB_pp.GetNumSourcePars(),0,AB_pp);
 
@@ -817,11 +818,11 @@ AB_pL.SetAnaSource(0,1.2);
         gCkTh_pp[umT].Set(AB_pp.GetNumMomBins());
         DLM_Fitter1* fitter = new DLM_Fitter1(1);
 
-        if(FittingMode_pp=="Norm"||FittingMode_pp=="Baseline"){
+        if(FittingMode_pp=="Norm"||FittingMode_pp.Contains("Baseline")){
             fitter->SetSystem(0,*hCk[umT],1,CkDec_pp,
                             FitRegion_pp[0],FitRegion_pp[1],FitRegion_pp[1],FitRegion_pp[1]);
         }
-        else if(FittingMode_pp=="LongBaseline"){
+        else if(FittingMode_pp.Contains("Longbaseline")){
             fitter->SetSystem(0,*hCk[umT],1,CkDec_pp,
                             FitRegion_pp[0],FitRegion_pp[1],FitRegion_pp[2],FitRegion_pp[3]);
         }
@@ -831,11 +832,15 @@ AB_pL.SetAnaSource(0,1.2);
         fitter->SetSeparateBL(0,false);
 
         fitter->SetParameter("pp",DLM_Fitter1::p_a,1.0,0.5,2.0);
-        if(FittingMode_pp=="Baseline"||FittingMode_pp=="LongBaseline")
+        if(FittingMode_pp.Contains("Baseline")||FittingMode_pp.Contains("Longbaseline"))
             fitter->SetParameter("pp",DLM_Fitter1::p_b,0,-2e-3,2e-3);
         else
             fitter->FixParameter("pp",DLM_Fitter1::p_b,0);
-        fitter->FixParameter("pp",DLM_Fitter1::p_c,0);
+        if(FittingMode_pp.Contains("Baseline2")||FittingMode_pp.Contains("Longbaseline2"))
+            fitter->SetParameter("pp",DLM_Fitter1::p_c,0,-2e-4,2e-4);
+        else
+            fitter->FixParameter("pp",DLM_Fitter1::p_c,0);
+
         fitter->FixParameter("pp",DLM_Fitter1::p_Cl,-1);
 
         if(SourceType=="Gauss"){
@@ -959,11 +964,10 @@ AB_pL.SetAnaSource(0,1.2);
         fit_CkTot->FixParameter(1,0);
         fit_CkTot->FixParameter(2,0);
     }
-    else if(FittingMode_pp=="Baseline"||FittingMode_pp=="LongBaseline"){
+    else if(FittingMode_pp=="Baseline"||FittingMode_pp=="Longbaseline"){
         fit_CkTot->FixParameter(2,0);
     }
     hTotCk->Fit(fit_CkTot,"S, N, R, M");
-
 
     double AVG_MT = 0;
     unsigned NUM_AVG_PTS = 0;
@@ -980,11 +984,11 @@ AB_pL.SetAnaSource(0,1.2);
 
     DLM_Fitter1* fitter = new DLM_Fitter1(1);
 
-    if(FittingMode_pp=="Norm"||FittingMode_pp=="Baseline"){
+    if(FittingMode_pp=="Norm"||FittingMode_pp.Contains("Baseline")){
         fitter->SetSystem(0,*hTotCk,1,CkDec_pp,
                         FitRegion_pp[0],FitRegion_pp[1],FitRegion_pp[1],FitRegion_pp[1]);
     }
-    else if(FittingMode_pp=="LongBaseline"){
+    else if(FittingMode_pp.Contains("Longbaseline")){
         fitter->SetSystem(0,*hTotCk,1,CkDec_pp,
                         FitRegion_pp[0],FitRegion_pp[1],FitRegion_pp[2],FitRegion_pp[3]);
     }
@@ -994,11 +998,15 @@ AB_pL.SetAnaSource(0,1.2);
     fitter->SetSeparateBL(0,false);
 
     fitter->SetParameter("pp",DLM_Fitter1::p_a,1.0,0.5,2.0);
-    if(FittingMode_pp=="Baseline"||FittingMode_pp=="LongBaseline")
+    if(FittingMode_pp.Contains("Baseline")||FittingMode_pp.Contains("Longbaseline"))
         fitter->SetParameter("pp",DLM_Fitter1::p_b,0,-2e-3,2e-3);
     else
         fitter->FixParameter("pp",DLM_Fitter1::p_b,0);
-    fitter->FixParameter("pp",DLM_Fitter1::p_c,0);
+    if(FittingMode_pp.Contains("Baseline2")||FittingMode_pp.Contains("Longbaseline2"))
+        fitter->SetParameter("pp",DLM_Fitter1::p_c,0,-2e-4,2e-4);
+    else
+        fitter->FixParameter("pp",DLM_Fitter1::p_c,0);
+
     fitter->FixParameter("pp",DLM_Fitter1::p_Cl,-1);
 
     if(SourceType=="Gauss"){
@@ -1082,7 +1090,7 @@ AB_pL.SetAnaSource(0,1.2);
 }
 
 
-
+//the Longbaseline2 does not work properly
 void pL_FitDiff_CompareToTotal(char* argv[], const TString& DataSample, const TString& SourceType, const TString& FittingMode_pL){
 
     TString InputFileNameDiff = TString(argv[2])+"CFOutputALL_mT_pL_"+argv[3]+".root";
@@ -1177,7 +1185,11 @@ printf("hCk[%u]=%p\n",umT,hCk[umT]);
             fitter->SetSystem(0,*hCk[umT],1,CkDec_pL,
                             FitRegion_pL[0],FitRegion_pL[1],FitRegion_pL[1],FitRegion_pL[1]);
         }
-        else if(FittingMode_pL=="LongBaseline"){
+        else if(FittingMode_pL=="Longbaseline"){
+            fitter->SetSystem(0,*hCk[umT],1,CkDec_pL,
+                            FitRegion_pL[0],FitRegion_pL[1],FitRegion_pL[2],FitRegion_pL[3]);
+        }
+        else if(FittingMode_pL=="Longbaseline2"){
             fitter->SetSystem(0,*hCk[umT],1,CkDec_pL,
                             FitRegion_pL[0],FitRegion_pL[1],FitRegion_pL[2],FitRegion_pL[3]);
         }
@@ -1187,11 +1199,14 @@ printf("hCk[%u]=%p\n",umT,hCk[umT]);
         fitter->SetSeparateBL(0,false);
 
         fitter->SetParameter("pLambda",DLM_Fitter1::p_a,1.0,0.5,2.0);
-        if(FittingMode_pL=="Baseline"||FittingMode_pL=="LongBaseline")
+        if(FittingMode_pL.Contains("Baseline")||FittingMode_pL.Contains("Longbaseline"))
             fitter->SetParameter("pLambda",DLM_Fitter1::p_b,0,-2e-3,2e-3);
         else
             fitter->FixParameter("pLambda",DLM_Fitter1::p_b,0);
-        fitter->FixParameter("pLambda",DLM_Fitter1::p_c,0);
+        if(FittingMode_pL.Contains("Baseline2")||FittingMode_pL.Contains("Longbaseline2"))
+            fitter->SetParameter("pLambda",DLM_Fitter1::p_c,0,-2e-3,2e-3);
+        else
+            fitter->FixParameter("pLambda",DLM_Fitter1::p_c,0);
         fitter->FixParameter("pLambda",DLM_Fitter1::p_Cl,-1);
 
         if(SourceType=="Gauss"){
@@ -1296,11 +1311,13 @@ printf("hCk[%u]=%p\n",umT,hCk[umT]);
         fit_CkTot->FixParameter(1,0);
         fit_CkTot->FixParameter(2,0);
     }
-    else if(FittingMode_pL=="Baseline"||FittingMode_pL=="LongBaseline"){
+    else if(FittingMode_pL=="Baseline"||FittingMode_pL=="Longbaseline"){
         fit_CkTot->FixParameter(2,0);
     }
-    hTotCk->Fit(fit_CkTot,"S, N, R, M");
+    else{
 
+    }
+    hTotCk->Fit(fit_CkTot,"S, N, R, M");
 
     double AVG_MT = 0;
     unsigned NUM_AVG_PTS = 0;
@@ -1321,7 +1338,7 @@ printf("hCk[%u]=%p\n",umT,hCk[umT]);
         fitter->SetSystem(0,*hTotCk,1,CkDec_pL,
                         FitRegion_pL[0],FitRegion_pL[1],FitRegion_pL[1],FitRegion_pL[1]);
     }
-    else if(FittingMode_pL=="LongBaseline"){
+    else if(FittingMode_pL=="Longbaseline"||FittingMode_pL=="Longbaseline2"){
         fitter->SetSystem(0,*hTotCk,1,CkDec_pL,
                         FitRegion_pL[0],FitRegion_pL[1],FitRegion_pL[2],FitRegion_pL[3]);
     }
@@ -1331,11 +1348,14 @@ printf("hCk[%u]=%p\n",umT,hCk[umT]);
     fitter->SetSeparateBL(0,false);
 
     fitter->SetParameter("pLambda",DLM_Fitter1::p_a,1.0,0.5,2.0);
-    if(FittingMode_pL=="Baseline"||FittingMode_pL=="LongBaseline")
+    if(FittingMode_pL.Contains("Baseline")||FittingMode_pL.Contains("Longbaseline"))
         fitter->SetParameter("pLambda",DLM_Fitter1::p_b,0,-2e-3,2e-3);
     else
         fitter->FixParameter("pLambda",DLM_Fitter1::p_b,0);
-    fitter->FixParameter("pLambda",DLM_Fitter1::p_c,0);
+    if(FittingMode_pL.Contains("Baseline2")||FittingMode_pL.Contains("Longbaseline2"))
+        fitter->SetParameter("pLambda",DLM_Fitter1::p_c,0,-2e-4,2e-4);
+    else
+        fitter->FixParameter("pLambda",DLM_Fitter1::p_c,0);
     fitter->FixParameter("pLambda",DLM_Fitter1::p_Cl,-1);
 
     if(SourceType=="Gauss"){
@@ -1638,10 +1658,10 @@ void DimiExecuteCFmT(){
 //mT_Scaled_Source_Prelim2019();
 //return;
 
-
-    strcpy(ARGV[0],"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample11HM/");
-    strcpy(ARGV[1],"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample11HM/AnalysisResults.root");
-    strcpy(ARGV[2],"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample11HM/");
+//home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM/Systematics
+    strcpy(ARGV[0],"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM/");
+    strcpy(ARGV[1],"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM/AnalysisResults.root");
+    strcpy(ARGV[2],"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM/");
     strcpy(ARGV[3],"HM");
     strcpy(ARGV[4],"");
 
@@ -1669,17 +1689,27 @@ void DimiExecuteCFmT(){
     //ExecuteCFDream(5,ARGV);
     //ExecuteCFmT_pp(5,ARGV);
     //QA_for_pp_mT();
-    //ExecuteCFmT_pL(5,ARGV);
-//return;
-    strcpy(ARGV[0],"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pp_FitDiff_CompareToTotal/010419/HM/pL/NLO/");
+    ExecuteCFmT_pL(5,ARGV);
+return;
+    //strcpy(ARGV[0],"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pp_FitDiff_CompareToTotal/250319/HM/pL/NLO/");
     //pp_FitDiff_CompareToTotal(ARGV,"pp13TeV_HM_March19","Gauss","Norm");
     //pp_FitDiff_CompareToTotal(ARGV,"pp13TeV_HM_March19","McGauss_Reso","Norm");
     //pp_FitDiff_CompareToTotal(ARGV,"pp13TeV_HM_March19","McLevyNolan_Reso","Norm");
-    pL_FitDiff_CompareToTotal(ARGV,"pp13TeV_HM_March19","McGauss_Reso","Norm");
-return;
+
+    //pL_FitDiff_CompareToTotal(ARGV,"pp13TeV_HM_March19","Gauss","Norm");
+    //pL_FitDiff_CompareToTotal(ARGV,"pp13TeV_HM_March19","McGauss_Reso","Norm");
+
+    //pL_FitDiff_CompareToTotal(ARGV,"pp13TeV_HM_March19","Gauss","Longbaseline2");
+    //pL_FitDiff_CompareToTotal(ARGV,"pp13TeV_HM_March19","McGauss_Reso","Longbaseline2");
+
+    strcpy(ARGV[0],"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pp_FitDiff_CompareToTotal/Test/");
     //pp_FitDiff_CompareToTotal(ARGV,"pp13TeV_HM_March19","Gauss","Baseline");
+    //pp_FitDiff_CompareToTotal(ARGV,"pp13TeV_HM_March19","McGauss_Reso","Norm");
     //pp_FitDiff_CompareToTotal(ARGV,"pp13TeV_HM_March19","McGauss_Reso","Baseline");
+    //pp_FitDiff_CompareToTotal(ARGV,"pp13TeV_HM_March19","McGauss_Reso","Baseline2");
+    //pp_FitDiff_CompareToTotal(ARGV,"pp13TeV_HM_March19","McLevyNolan_Reso","Norm");
     //pp_FitDiff_CompareToTotal(ARGV,"pp13TeV_HM_March19","McLevyNolan_Reso","Baseline");
+    //pp_FitDiff_CompareToTotal(ARGV,"pp13TeV_HM_March19","McLevyNolan_Reso","Baseline2");
 
     //strcpy(ARGV[0],"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pp_FitDiff_CompareToTotal/");
     //pp_FitDiff_CompareToTotal(ARGV,"pPb5TeV_Run2paper","Gauss","Norm");

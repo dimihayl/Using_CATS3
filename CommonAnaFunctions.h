@@ -79,7 +79,7 @@ public:
 
     TH2F* GetResolutionMatrix(const TString& DataSample,const TString&& System);
     TH2F* GetResidualMatrix(const TString&& FinalSystem, const TString& InitialSystem);
-    TH1F* GetAliceExpCorrFun(const TString& DataSample,const TString& System,const int& iReb);
+    TH1F* GetAliceExpCorrFun(const TString& DataSample,const TString& System,const int& iReb, const bool& AddSyst=false,const int mTbin=-1);
 
 private:
     void Clean_CommonAnaFunctions();
