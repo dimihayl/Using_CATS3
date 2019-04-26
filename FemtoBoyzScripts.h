@@ -16,11 +16,13 @@ void PlotDimiExclusionBE_ver1(const TString OutputFolder,
                               const TString FileNameStat, const TString FileNameSyst, const TString f0Inv_or_d0);
 
 
-void Plot_pL_FAST(      const TString& WorkFolder,
-                        const TString& DataSample, const TString& SourceType, const TString& FittingMode_pp, const TString& FittingMode_pL,
-                        const TString& pL_Model1, const TString& pL_Model2,
-                        const TString& LegendSource_line1, const TString& LegendSource_line2,
-                        const double parA, const double parB, const TString DataSystFileName);
+void Plot_pL_FAST(
+                        //const TString& WorkFolder,
+                        //const TString& DataSample, const TString& SourceType, const TString& FittingMode_pp, const TString& FittingMode_pL,
+                        //const TString& pL_Model1, const TString& pL_Model2,
+                        //const TString& LegendSource_line1, const TString& LegendSource_line2,
+                        //const double parA, const double parB, const TString DataSystFileName
+                        );
 
 int FEMTOBOYZ_MAIN(int narg, char** ARGS);
 

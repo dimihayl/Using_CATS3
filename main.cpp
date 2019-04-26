@@ -714,6 +714,62 @@ void TestHaide_pL_pWaves(){
     delete [] FitRegion_pL;
 }
 
+void TestSigma0(){
+    const unsigned NumMomBins = 35;
+    const double kMin = 0;
+    const double kMax = 350;
+    DLM_Histo<complex<double>>*** ExternalWF=NULL;
+    CATS Kitty;
+    Kitty.SetMomBins(NumMomBins,kMin,kMax);
+
+    CATSparameters cPars(CATSparameters::tSource,1,true);
+    cPars.SetParameter(0,1.0);
+
+    Kitty.SetUseAnalyticSource(true);
+    Kitty.SetAnaSource(GaussSource,cPars);
+    ExternalWF = Init_pS0_ESC08("//home/dmihaylov/CernBox/CATS_potentials/Tom/pSigma0/030419/",Kitty);
+    Kitty.SetExternalWaveFunction(0,0,ExternalWF[0][0][0],ExternalWF[1][0][0]);
+    Kitty.SetExternalWaveFunction(1,0,ExternalWF[0][1][0],ExternalWF[1][1][0]);
+
+    Kitty.SetMomentumDependentSource(false);
+    Kitty.SetThetaDependentSource(false);
+    Kitty.SetExcludeFailedBins(false);
+//Kitty.SetChannelWeight(0,0);
+//Kitty.SetChannelWeight(1,1);
+    Kitty.KillTheCat();
+
+    TFile* OutputFile = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/TestSigma0/OutputFile.root","recreate");
+
+    TGraph gKitty;
+    gKitty.Set(Kitty.GetNumMomBins());
+    gKitty.SetName("gKitty");
+
+    for(unsigned uBin=0; uBin<Kitty.GetNumMomBins(); uBin++){
+        printf("C(%.2f) = %.3f\n",Kitty.GetMomentum(uBin),Kitty.GetCorrFun(uBin));
+        gKitty.SetPoint(uBin,Kitty.GetMomentum(uBin),Kitty.GetCorrFun(uBin));
+
+        TGraph gWF1S0;
+        gWF1S0.SetName(TString::Format("gWF1S0_%.0f",Kitty.GetMomentum(uBin)));
+        TGraph gWF3S1;
+        gWF3S1.SetName(TString::Format("gWF3S1_%.0f",Kitty.GetMomentum(uBin)));
+        int COUNTER=0;
+        for(double RAD=0.05; RAD<15; RAD+=0.05){
+            gWF1S0.SetPoint(COUNTER,RAD,real(Kitty.EvalRadialWaveFunction(uBin,0,0,RAD,false)));
+            gWF3S1.SetPoint(COUNTER,RAD,real(Kitty.EvalRadialWaveFunction(uBin,1,0,RAD,false)));
+            COUNTER++;
+        }
+        OutputFile->cd();
+        gWF1S0.Write();
+        gWF3S1.Write();
+    }
+
+    OutputFile->cd();
+    gKitty.Write();
+
+    delete OutputFile;
+
+}
+
 int main(int argc, char *argv[])
 {
 
@@ -772,6 +828,7 @@ printf("%.3f\n",lambdapars[4]*100.);
     //plot_pSigma0();
     //McLevyTest1();
     //testCats();
+    //TestSigma0();
 
     //TestCATS3_NewExtWf("Usmani");
     //TestCATS3_NewExtWf("NLO");

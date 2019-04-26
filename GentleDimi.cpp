@@ -618,6 +618,7 @@ int ExecuteCFmT_pL(int argc, char* argv[]) {
     std::vector<float> mTpLBins;
     if(TString(filename)=="/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM/AnalysisResults.root"){
         mTpLBins = { 1.08, 1.26, 1.32, 1.44, 1.68, 4.5 };
+        //mTpLBins = { 1.08, 1.26, 1.32, 1.44, 1.65, 1.9, 4.5 };
     }
     else if(TString(filename)=="/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample9/AnalysisResults.root"){
         mTpLBins = { 1.08, 1.29, 1.44, 1.65, 4.5 };

@@ -3,6 +3,8 @@
 #include "CATS.h"
 #include "CATStools.h"
 #include "DLM_Source.h"
+#include "DLM_CkModels.h"
+#include "DLM_CkDecomposition.h"
 #include "DLM_Potentials.h"
 #include "DLM_WfModel.h"
 
@@ -593,6 +595,64 @@ void DLM_CommonAnaFunctions::SetUpCats_pXim(CATS& Kitty, const TString& POT, con
     if(cPotParsI1S1){delete cPotParsI1S1; cPotParsI1S1=NULL;}
 }
 
+DLM_Ck* DLM_CommonAnaFunctions::SetUpLednicky_pL(const unsigned& NumMomBins, const double* MomBins,  const TString& POT){
+    double p0,p1,p2,p3;
+    if(POT=="Lednicky_ND"){
+        p0=1.77,p2=2.06,p1=3.78,p3=3.18;
+    }
+    else if(POT=="Lednicky_NF"){
+        p0=2.18,p2=1.93,p1=3.19,p3=3.358;
+    }
+    else if(POT=="Lednicky_NSC89"){
+        p0=2.73,p2=1.48,p1=2.87,p3=3.04;
+    }
+    else if(POT=="Lednicky_NSC97a"){
+        p0=0.71,p2=2.18,p1=5.86,p3=2.76;
+    }
+    else if(POT=="Lednicky_NSC97b"){
+        p0=0.9,p2=2.13,p1=4.92,p3=2.84;
+    }
+    else if(POT=="Lednicky_NSC97c"){
+        p0=1.2,p2=2.08,p1=4.11,p3=2.92;
+    }
+    else if(POT=="Lednicky_NSC97d"){
+        p0=1.71,p2=1.95,p1=3.46,p3=3.08;
+    }
+    else if(POT=="Lednicky_NSC97e"){
+        p0=2.1,p2=1.86,p1=3.19,p3=3.19;
+    }
+    else if(POT=="Lednicky_NSC97f"){
+        p0=2.51,p2=1.75,p1=3.03,p3=3.32;
+    }
+    else if(POT=="Lednicky_ESC08"){
+        p0=2.7,p2=1.65,p1=2.97,p3=3.63;
+    }
+    else if(POT=="Lednicky_XeftLO"){
+        p0=1.91,p2=1.23,p1=1.4,p3=2.13;
+    }
+    else if(POT=="Lednicky_XeftNLO"){
+        p0=2.91,p2=1.54,p1=2.78,p3=2.72;
+    }
+    else if(POT=="Lednicky_JulichA"){
+        p0=1.56,p2=1.59,p1=1.43,p3=3.16;
+    }
+    else if(POT=="Lednicky_JulichJ04"){
+        p0=2.56,p2=1.66,p1=2.75,p3=2.93;
+    }
+    else if(POT=="Lednicky_JulichJ04c"){
+        p0=2.66,p2=1.57,p1=2.67,p3=3.08;
+    }
+    else{
+        printf("\033[1;31mERROR:\033[0m The pΛ potential '%s' does not exist\n",POT.Data());
+    }
+    DLM_Ck* DlmCk = new DLM_Ck(1,4,NumMomBins,MomBins,Lednicky_SingletTriplet);//
+	DlmCk->SetPotPar(0,p0);
+	DlmCk->SetPotPar(1,p1);
+	DlmCk->SetPotPar(2,p2);
+	DlmCk->SetPotPar(3,p3);
+    return DlmCk;
+}
+
 void DLM_CommonAnaFunctions::SetUpBinning_pp(const TString& DataSample, unsigned& NumMomBins, double*& MomBins, double*& FitRegion){
     if(DataSample=="pp13TeV_MB_Run2paper"){
         const double kMin=0;
@@ -763,9 +823,9 @@ void DLM_CommonAnaFunctions::SetUpBinning_pL(const TString& DataSample, unsigned
         }
         else if(MomBinVar==10){
             kMin=0;
-            kFineMin=202;//272//216
-            kFineMax=202;//304
-            kMax=202;//336
+            kFineMin=204;//272//216
+            kFineMax=204;//304
+            kMax=204;//336
             kCoarseStep=12;
             kFineStep=12;
         }
@@ -835,19 +895,19 @@ void DLM_CommonAnaFunctions::SetUpBinning_pL(const TString& DataSample, unsigned
         else if(FitRegVar==10){
             FitRegion[0] = MomBins[0];
             FitRegion[1] = MomBins[NumMomBins];
-            FitRegion[2] = 420;//420
+            FitRegion[2] = 360;//420
             FitRegion[3] = 576;
         }
         else if(FitRegVar==11){
             FitRegion[0] = MomBins[0];
             FitRegion[1] = MomBins[NumMomBins];
-            FitRegion[2] = 432;//432
+            FitRegion[2] = 336;//432
             FitRegion[3] = 552;
         }
         else if(FitRegVar==12){
             FitRegion[0] = MomBins[0];
             FitRegion[1] = MomBins[NumMomBins];
-            FitRegion[2] = 408;//408
+            FitRegion[2] = 384;//408
             FitRegion[3] = 600;
         }
         else{

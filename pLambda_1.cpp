@@ -484,12 +484,22 @@ void Fit_pL(DLM_CommonAnaFunctions& AnalysisObject, const TString& OutputFolder,
     hData_pL->Write();
 
     CATS AB_pL;
-    AB_pL.SetMomBins(NumMomBins_pL,MomBins_pL);
-    AnalysisObject.SetUpCats_pL(AB_pL,pL_Pot,SourceType);
-    AB_pL.SetNotifications(CATS::nWarning);
-    AB_pL.KillTheCat();
-
-    DLM_Ck* Ck_pL = new DLM_Ck(AB_pL.GetNumSourcePars(),0,AB_pL);
+    DLM_Ck* Ck_pL;
+    if(pL_Pot.Contains("Lednicky_")){
+        Ck_pL = AnalysisObject.SetUpLednicky_pL(NumMomBins_pL,MomBins_pL,pL_Pot);
+        Ck_pL->SetSourcePar(0,SourceScale);
+    }
+    else{
+        AB_pL.SetMomBins(NumMomBins_pL,MomBins_pL);
+        AnalysisObject.SetUpCats_pL(AB_pL,pL_Pot,SourceType);
+        AB_pL.SetNotifications(CATS::nWarning);
+        AB_pL.KillTheCat();
+        DLM_Ck* Ck_pL = new DLM_Ck(AB_pL.GetNumSourcePars(),0,AB_pL);
+        Ck_pL->SetSourcePar(0,SourceScale);
+        if(AB_pL.GetNumSourcePars()>1){
+            Ck_pL->SetSourcePar(0,SourceStability);
+        }
+    }
 
     CATS AB_pXim;
     //same binning as pL, as we only use pXim as feed-down
@@ -535,15 +545,21 @@ void Fit_pL(DLM_CommonAnaFunctions& AnalysisObject, const TString& OutputFolder,
         fitter->SetSeparateBL(0,true);
         fitter->FixParameter("pLambda",DLM_Fitter1::p_Cl,-1);
     }
-    else {
+    else{
         fitter->SetSeparateBL(0,false);
         //fitter->FixParameter("pLambda",DLM_Fitter1::p_Cl,-1);
         //fitter->SetParameter("pLambda",DLM_Fitter1::p_Cl,-1,-1,-0.95);
 
-        //fitter->SetParameter("pLambda",DLM_Fitter1::p_Cl,1,0.9,1.1);
-        if(VARIATIONS[4]>0&&FittingMode_pL!="Norm") fitter->FixParameter("pLambda",DLM_Fitter1::p_kc,VARIATIONS[4]);
-        else fitter->SetParameter("pLambda",DLM_Fitter1::p_kc,2000,400,10000);
-        //fitter->SetParameter("pLambda",DLM_Fitter1::p_kc,2000,400,10000);
+        if(pL_Pot.Contains("Lednicky_")){
+            fitter->FixParameter("pLambda",DLM_Fitter1::p_Cl,1);
+        }
+        else{
+            //fitter->SetParameter("pLambda",DLM_Fitter1::p_Cl,1,0.9,1.1);
+            if(VARIATIONS[4]>0&&FittingMode_pL!="Norm") fitter->FixParameter("pLambda",DLM_Fitter1::p_kc,VARIATIONS[4]);
+            else fitter->SetParameter("pLambda",DLM_Fitter1::p_kc,2000,400,10000);
+            //fitter->SetParameter("pLambda",DLM_Fitter1::p_kc,2000,400,10000);
+        }
+
     }
 
 
@@ -637,6 +653,14 @@ void Fit_pL(DLM_CommonAnaFunctions& AnalysisObject, const TString& OutputFolder,
         printf("\033[1;31mERROR:\033[0m '%s' does not exist",SourceType.Data());
     }
 
+    if(pL_Pot.Contains("Lednicky_")){
+        fitter->FixParameter("pLambda",DLM_Fitter1::p_pot0,Ck_pL->GetPotPar(0));
+        fitter->FixParameter("pLambda",DLM_Fitter1::p_pot1,Ck_pL->GetPotPar(1));
+        fitter->FixParameter("pLambda",DLM_Fitter1::p_pot2,Ck_pL->GetPotPar(2));
+        fitter->FixParameter("pLambda",DLM_Fitter1::p_pot3,Ck_pL->GetPotPar(3));
+        //fitter->SetFullCkForBaseline(0,true);
+        //fitter->FixParameter("pLambda",DLM_Fitter1::p_Cl,-1);
+    }
 
     CkDec_pL.Update();
     CkDec_pSigma0.Update();
@@ -736,74 +760,90 @@ void Fit_pL(DLM_CommonAnaFunctions& AnalysisObject, const TString& OutputFolder,
         if(!ntResult){
             //printf("\033[1;31mERROR:\033[0m For whatever reason the ");
             ntResult = new TNtuple("ntResult", "ntResult",
-            "Iter:SourceType:SourceScale:SourceStability:Potential:Baseline:FemRan:FitRan:pFrac:LamFrac:kcVar:mTbin:FemtoMin:FemtoMax:BlMin:BlMax:"
+            "Iter:Config:SourceType:SourceScale:SourceStability:Potential:Baseline:FemRan:FitRan:pFrac:LamFrac:kcVar:mTbin:FemtoMin:FemtoMax:BlMin:BlMax:"
             "p_a:e_a:p_b:e_b:p_c:e_c:p_Cl:e_Cl:p_kc:e_kc:p_sor0:e_sor0:p_sor1:e_sor1:chi2:ndf");
         }
     }
 
     if(NtFile&&ntResult){
-        Float_t buffer[32];
-        buffer[0] = UniqueID;
-        if(SourceType=="Gauss") buffer[1] = 0;
-        if(SourceType=="McGauss_Reso") buffer[1] = 1;
-        if(SourceType=="McLevyNolan_Reso") buffer[1] = 2;
+        Float_t buffer[33];
+        buffer[0] = UniqueID/1000;
+        buffer[1] = UniqueID%1000;
+        if(SourceType=="Gauss") buffer[2] = 0;
+        if(SourceType=="McGauss_Reso") buffer[2] = 1;
+        if(SourceType=="McLevyNolan_Reso") buffer[2] = 2;
 
-        buffer[2] = SourceScale;
-        buffer[3] = SourceStability;
+        buffer[3] = SourceScale;
+        buffer[4] = SourceStability;
 
-        if(pL_Pot=="LO") buffer[4] = 0;
-        if(pL_Pot=="NLO") buffer[4] = 10;
-        if(pL_Pot=="LO_Coupled_S") buffer[4] = 1;
-        if(pL_Pot=="NLO_Coupled_S") buffer[4] = 11;
-        if(pL_Pot=="NLO_sp") buffer[4] = 12;
-        if(pL_Pot=="Usmani") buffer[4] = 100;
+        if(pL_Pot=="LO") buffer[5] = 0;
+        if(pL_Pot=="NLO") buffer[5] = 10;
+        if(pL_Pot=="LO_Coupled_S") buffer[5] = 1;
+        if(pL_Pot=="NLO_Coupled_S") buffer[5] = 11;
+        if(pL_Pot=="NLO_sp") buffer[5] = 12;
+        if(pL_Pot=="Usmani") buffer[5] = 100;
+        if(pL_Pot=="Lednicky_ND") buffer[5] = 1001;
+        if(pL_Pot=="Lednicky_NF") buffer[5] = 1002;
+        if(pL_Pot=="Lednicky_NSC89") buffer[5] = 1003;
+        if(pL_Pot=="Lednicky_NSC97a") buffer[5] = 1004;
+        if(pL_Pot=="Lednicky_NSC97b") buffer[5] = 1005;
+        if(pL_Pot=="Lednicky_NSC97c") buffer[5] = 1006;
+        if(pL_Pot=="Lednicky_NSC97d") buffer[5] = 1007;
+        if(pL_Pot=="Lednicky_NSC97e") buffer[5] = 1008;
+        if(pL_Pot=="Lednicky_NSC97f") buffer[5] = 1009;
+        if(pL_Pot=="Lednicky_ESC08") buffer[5] = 1010;
+        if(pL_Pot=="Lednicky_XeftLO") buffer[5] = 1011;
+        if(pL_Pot=="Lednicky_XeftNLO") buffer[5] = 1012;
+        if(pL_Pot=="Lednicky_JulichA") buffer[5] = 1013;
+        if(pL_Pot=="Lednicky_JulichJ04") buffer[5] = 1014;
+        if(pL_Pot=="Lednicky_JulichJ04c") buffer[5] = 1015;
 
-        if(FittingMode_pL=="Norm") buffer[5] = 0;
-        if(FittingMode_pL=="Baseline") buffer[5] = 1;
-        if(FittingMode_pL=="Baseline2") buffer[5] = 2;
-        if(FittingMode_pL=="Longbaseline") buffer[5] = 11;
-        if(FittingMode_pL=="Longbaseline2") buffer[5] = 12;
-        if(FittingMode_pL=="Norm_prefit") buffer[5] = 100;
-        if(FittingMode_pL=="Baseline_prefit") buffer[5] = 101;
-        if(FittingMode_pL=="Baseline2_prefit") buffer[5] = 102;
-        if(FittingMode_pL=="Longbaseline_prefit") buffer[5] = 111;
-        if(FittingMode_pL=="Longbaseline2_prefit") buffer[5] = 112;
+        if(FittingMode_pL=="Norm") buffer[6] = 0;
+        if(FittingMode_pL=="Baseline") buffer[6] = 1;
+        if(FittingMode_pL=="Baseline2") buffer[6] = 2;
+        if(FittingMode_pL=="Longbaseline") buffer[6] = 11;
+        if(FittingMode_pL=="Longbaseline2") buffer[6] = 12;
+        if(FittingMode_pL=="Norm_prefit") buffer[6] = 100;
+        if(FittingMode_pL=="Baseline_prefit") buffer[6] = 101;
+        if(FittingMode_pL=="Baseline2_prefit") buffer[6] = 102;
+        if(FittingMode_pL=="Longbaseline_prefit") buffer[6] = 111;
+        if(FittingMode_pL=="Longbaseline2_prefit") buffer[6] = 112;
 
-        buffer[6] = VARIATIONS[0];
-        buffer[7] = VARIATIONS[1];
-        buffer[8] = VARIATIONS[2];
-        buffer[9] = VARIATIONS[3];
-        buffer[10] = VARIATIONS[4];
-        buffer[11] = VARIATIONS[5];
+        buffer[7] = VARIATIONS[0];
+        buffer[8] = VARIATIONS[1];
+        buffer[9] = VARIATIONS[2];
+        buffer[10] = VARIATIONS[3];
+        buffer[11] = VARIATIONS[4];
+        buffer[12] = VARIATIONS[5];
 
-        buffer[12] = FitRegion_pL[0];
-        buffer[13] = FitRegion_pL[1];
-        buffer[14] = FitRegion_pL[2];
-        buffer[15] = FitRegion_pL[3];
+        buffer[13] = FitRegion_pL[0];
+        buffer[14] = FitRegion_pL[1];
+        buffer[15] = FitRegion_pL[2];
+        buffer[16] = FitRegion_pL[3];
 
-        buffer[16] = fitter->GetParameter("pLambda",DLM_Fitter1::p_a);
-        buffer[17] = fitter->GetParError("pLambda",DLM_Fitter1::p_a);
+        buffer[17] = fitter->GetParameter("pLambda",DLM_Fitter1::p_a);
+        buffer[18] = fitter->GetParError("pLambda",DLM_Fitter1::p_a);
 
-        buffer[18] = fitter->GetParameter("pLambda",DLM_Fitter1::p_b);
-        buffer[19] = fitter->GetParError("pLambda",DLM_Fitter1::p_b);
+        buffer[19] = fitter->GetParameter("pLambda",DLM_Fitter1::p_b);
+        buffer[20] = fitter->GetParError("pLambda",DLM_Fitter1::p_b);
 
-        buffer[20] = fitter->GetParameter("pLambda",DLM_Fitter1::p_c);
-        buffer[21] = fitter->GetParError("pLambda",DLM_Fitter1::p_c);
+        buffer[21] = fitter->GetParameter("pLambda",DLM_Fitter1::p_c);
+        buffer[22] = fitter->GetParError("pLambda",DLM_Fitter1::p_c);
 
-        buffer[22] = fitter->GetParameter("pLambda",DLM_Fitter1::p_Cl);
-        buffer[23] = fitter->GetParError("pLambda",DLM_Fitter1::p_Cl);
+        buffer[23] = fitter->GetParameter("pLambda",DLM_Fitter1::p_Cl);
+        buffer[24] = fitter->GetParError("pLambda",DLM_Fitter1::p_Cl);
 
-        buffer[24] = fitter->GetParameter("pLambda",DLM_Fitter1::p_kc);
-        buffer[25] = fitter->GetParError("pLambda",DLM_Fitter1::p_kc);
+        buffer[25] = fitter->GetParameter("pLambda",DLM_Fitter1::p_kc);
+        buffer[26] = fitter->GetParError("pLambda",DLM_Fitter1::p_kc);
 
-        buffer[26] = fitter->GetParameter("pLambda",DLM_Fitter1::p_sor0);
-        buffer[27] = fitter->GetParError("pLambda",DLM_Fitter1::p_sor0);
+        buffer[27] = fitter->GetParameter("pLambda",DLM_Fitter1::p_sor0);
+        buffer[28] = fitter->GetParError("pLambda",DLM_Fitter1::p_sor0);
 
-        buffer[28] = fitter->GetParameter("pLambda",DLM_Fitter1::p_sor1);
-        buffer[29] = fitter->GetParError("pLambda",DLM_Fitter1::p_sor1);
+        buffer[29] = fitter->GetParameter("pLambda",DLM_Fitter1::p_sor1);
+        buffer[30] = fitter->GetParError("pLambda",DLM_Fitter1::p_sor1);
 
-        buffer[30] = fitter->GetChi2();
-        buffer[31] = fitter->GetNdf();
+        buffer[31] = fitter->GetChi2();
+        buffer[32] = fitter->GetNdf();
 
         NtFile->cd();
         ntResult->Fill(buffer);
@@ -991,6 +1031,22 @@ void pL_SystematicsHM(const TString& OutputFolder, const int& WhichConfiguration
             NumLambdaFracVars = 9;
             NumKcVars = 3;
             NumMtVars = 6;
+            break;
+        //the case of meson exchange models
+        //without the peak region (Lednicky)
+        case 112 :
+            NumSourceVars = 1;
+            NumSourceScaleVars = 3;
+            NumSourceStabilityVars = 1;
+            NumPotVars = 15;
+            NumBaselineVars = 3;
+            NumFemtoRangeVars = 3;
+            NumFitRangeVars = 3;
+            NumProtonFracVars = 3;
+            NumLambdaFracVars = 9;
+
+            NumKcVars = 1;
+            NumMtVars = 1;
             break;
         default : return;
     }
@@ -1414,6 +1470,73 @@ void pL_SystematicsHM(const TString& OutputFolder, const int& WhichConfiguration
         MtVars[5] = 4;
         DefMt = 0;
     }
+    //meson exchange models with Lednicky, without the peak region
+    else if(WhichConfiguration==112){
+        Source[0] = "Gauss";
+        DefSource = 0;
+        SourceScale[0] = 1.31;
+        SourceScale[1] = 1.31*0.90;
+        SourceScale[2] = 1.31*1.10;
+        DefSourceScale = 0;
+        SourceStability[0] = 0;//dummy
+        DefSourceStability = 0;
+        Potential[0] = "Lednicky_ND";
+        Potential[1] = "Lednicky_NF";
+        Potential[2] = "Lednicky_NSC89";
+        Potential[3] = "Lednicky_NSC97a";
+        Potential[4] = "Lednicky_NSC97b";
+        Potential[5] = "Lednicky_NSC97c";
+        Potential[6] = "Lednicky_NSC97d";
+        Potential[7] = "Lednicky_NSC97e";
+        Potential[8] = "Lednicky_NSC97f";
+        Potential[9] = "Lednicky_ESC08";
+        Potential[10] = "Lednicky_XeftLO";
+        Potential[11] = "Lednicky_XeftNLO";
+        Potential[12] = "Lednicky_JulichA";
+        Potential[13] = "Lednicky_JulichJ04";
+        Potential[14] = "Lednicky_JulichJ04c";
+        DefPot = 11;
+
+        Baseline[0] = "Norm";
+        Baseline[1] = "Longbaseline";
+        Baseline[2] = "Longbaseline2";
+        DefBaseline = 2;
+
+        FemtoRangeVars[0] = 10;//default
+        FemtoRangeVars[1] = 11;//down
+        FemtoRangeVars[2] = 12;//up
+        DefFemtoRange = 0;
+
+        FitRangeVars[0] = 10;//default
+        FitRangeVars[1] = 11;//down
+        FitRangeVars[2] = 12;//up
+        DefFitRange = 0;
+
+        pFracVars[0] = 0;//default
+        pFracVars[1] = 1;
+        pFracVars[2] = 2;
+        DefProtonFrac = 0;
+
+        LamFracVars[0] = 0;//default
+        LamFracVars[1] = 1;
+        LamFracVars[2] = 2;
+
+        LamFracVars[3] = 10;
+        LamFracVars[4] = 11;
+        LamFracVars[5] = 12;
+
+        LamFracVars[6] = 20;
+        LamFracVars[7] = 21;
+        LamFracVars[8] = 22;
+
+        DefLambdaFrac = 0;
+
+        kcVars[0] = 1e6;
+        DefKc = 0;
+
+        MtVars[0] = -1;
+        DefMt = 0;
+    }
     else{
         printf("????????????\n");
     }
@@ -1474,7 +1597,7 @@ void pL_SystematicsHM(const TString& OutputFolder, const int& WhichConfiguration
             unsigned EffectiveFraction = OnlyFraction;
             if(Baseline[iBl]=="Norm"){
                 EffectiveFraction /= NumFemtoRangeVars;
-                EffectiveFraction /= NumFitRangeVars;
+                if(!Potential[iPot].Contains("Lednicky_")) EffectiveFraction /= NumFitRangeVars;
                 if(EffectiveFraction<0||EffectiveFraction>OnlyFraction) EffectiveFraction=1;
             }
             //this is here in order to make sure we take more Norm events (now they are much less due to some conditions above)
@@ -1520,7 +1643,7 @@ void pL_SystematicsHM(const TString& OutputFolder, const int& WhichConfiguration
         CheckIfFile = NULL;
 
         Fit_pL(AnalysisObject, OutputFolder, FileName,"pp13TeV_HM_March19",Source[iSource],SourceScale[iSourceScal],SourceStability[iSourceStab],
-               Potential[iPot],Baseline[iBl],VARIATIONS,IterationCounter*100+WhichConfiguration,ntFileName,"ntResult");
+               Potential[iPot],Baseline[iBl],VARIATIONS,IterationCounter*1000+WhichConfiguration,ntFileName,"ntResult");
 
         IterationCounter++;
         ComputedIterations++;
@@ -1792,11 +1915,14 @@ printf("NumNtEntries=%u\n",NumNtEntries);
     mTStat_pp->GetPoint(0,xValUp,yValUp);
     DimiStat_pp.SetUp(0,mTStat_pp->GetN(),xValLow-0.001,xValUp+0.001);
     DimiStat_pp.Initialize();
+printf("mT Radius Stat Syst\n");
+printf(" pp AV18:\n");
     for(unsigned uBin=0; uBin<mTStat_pp->GetN(); uBin++){
         mTStat_pp->GetPoint(uBin,xVal,yVal);
         DimiStat_pp.SetBinCenter(0,uBin,xVal);
         DimiStat_pp.SetBinContent(uBin,yVal);
         DimiStat_pp.SetBinError(uBin,mTStat_pp->GetErrorY(uBin));
+printf("  %.3f   %.3f   %.3f   %.3f\n",xVal,yVal,mTStat_pp->GetErrorY(uBin),mTSyst_pp->GetErrorY(uBin));
 //printf(" DimiStat_pp: cen/con/err = %.3f/%.3f/%.3f\n",DimiStat_pp.GetBinCenter(0,uBin),DimiStat_pp.GetBinContent(uBin),DimiStat_pp.GetBinError(uBin));
     }
 
@@ -1805,11 +1931,14 @@ printf("NumNtEntries=%u\n",NumNtEntries);
     mTStat_pL_LO.GetPoint(0,xValUp,yValUp);
     DimiStat_pL_LO.SetUp(0,mTStat_pL_LO.GetN(),xValLow-0.001,xValUp+0.001);
     DimiStat_pL_LO.Initialize();
+printf("mT Radius Stat Syst\n");
+printf(" pL LO:\n");
     for(unsigned uBin=0; uBin<mTStat_pL_LO.GetN(); uBin++){
         mTStat_pL_LO.GetPoint(0,xVal,yVal);
         DimiStat_pL_LO.SetBinCenter(0,uBin,xVal);
         DimiStat_pL_LO.SetBinContent(uBin,yVal);
         DimiStat_pL_LO.SetBinError(uBin,mTStat_pL_LO.GetErrorY(uBin));
+printf("  %.3f   %.3f   %.3f   %.3f\n",xVal,yVal,mTStat_pL_LO.GetErrorY(uBin),mTSyst_pL_LO.GetErrorY(uBin));
     }
 
     DimiStat_pL_NLO.SetUp(1);
@@ -1817,11 +1946,14 @@ printf("NumNtEntries=%u\n",NumNtEntries);
     mTStat_pL_NLO.GetPoint(0,xValUp,yValUp);
     DimiStat_pL_NLO.SetUp(0,mTStat_pL_NLO.GetN(),xValLow-0.001,xValUp+0.001);
     DimiStat_pL_NLO.Initialize();
+printf("mT Radius Stat Syst\n");
+printf(" pL NLO:\n");
     for(unsigned uBin=0; uBin<mTStat_pL_NLO.GetN(); uBin++){
         mTStat_pL_NLO.GetPoint(uBin,xVal,yVal);
         DimiStat_pL_NLO.SetBinCenter(0,uBin,xVal);
         DimiStat_pL_NLO.SetBinContent(uBin,yVal);
         DimiStat_pL_NLO.SetBinError(uBin,mTStat_pL_NLO.GetErrorY(uBin));
+printf("  %.3f   %.3f   %.3f   %.3f\n",xVal,yVal,mTStat_pL_NLO.GetErrorY(uBin),mTSyst_pL_NLO.GetErrorY(uBin));
 //printf(" cen/con/err = %.3f/%.3f/%.3f\n",DimiStat_pL_NLO.GetBinCenter(0,uBin),DimiStat_pL_NLO.GetBinContent(uBin),DimiStat_pL_NLO.GetBinError(uBin));
     }
 
@@ -1832,7 +1964,7 @@ printf("DimiStatEff_pL_NLO.GetNbins()=%u\n",DimiStatEff_pL_NLO.GetNbins());
         double mT_VALUE = DimiStatEff_pL_NLO.GetBinCenter(0,uBin);
         DimiStatEff_pL_NLO.SetBinContent(uBin,DimiStat_pL_NLO.Eval(&mT_VALUE));
         DimiStatEff_pL_NLO.SetBinError(uBin,DimiStat_pL_NLO.EvalError(&mT_VALUE));
-printf(" mT_VALUE=%.3f; Value=%.3f+/-%.3f\n",mT_VALUE,DimiStat_pL_NLO.Eval(&mT_VALUE),DimiStat_pL_NLO.EvalError(&mT_VALUE));
+//printf(" NLO: mT_VALUE=%.3f; Value=%.3f+/-%.3f\n",mT_VALUE,DimiStat_pL_NLO.Eval(&mT_VALUE),DimiStat_pL_NLO.EvalError(&mT_VALUE));
     }
 
     DimiStatRatio_pL_NLO.Copy(DimiStatEff_pL_NLO);
@@ -1983,11 +2115,11 @@ int PLAMBDA_1_MAIN(int argc, char *argv[]){
 //SystematicsAdd_100419_2
 //const TString& OutputFolder, const int& WhichConfiguration, const int& FirstIter, const int& LastIter, const unsigned& OnlyFraction,
                       //const int& RANDOMSEED, const bool& JustNumIter
-    //pL_SystematicsHM("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pL/SystematicsAdd_150419/",
-    //                 atoi(argv[1]),atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),atoi(argv[5]),atoi(argv[6]));
-    //pL_SystematicsHM("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pL/SystematicsAdd_150419/",
+    pL_SystematicsHM("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pL/SystematicsAdd_250419/",
+                     atoi(argv[1]),atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),atoi(argv[5]),atoi(argv[6]));
+    //pL_SystematicsHM("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pL/SystematicsAdd_250419/",
     //                 atoi(argv[1])+2,atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),atoi(argv[5]),atoi(argv[6]));
-    //pL_SystematicsHM("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pL/SystematicsAdd_150419/",
+    //pL_SystematicsHM("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pL/SystematicsAdd_250419/",
     //                 atoi(argv[1])+1,atoi(argv[2])*3,(atoi(argv[3])+1)*3-1,atoi(argv[4])*3,atoi(argv[5]),atoi(argv[6]));
 
     //pL_SystematicsHM("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pL/SystematicsAdd_070419/",

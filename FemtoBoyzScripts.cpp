@@ -3236,7 +3236,6 @@ void Plot_pL_FASTsyst(
     double MaxMomentum=336;
     int DefaultIter = 2349;
 
-
     TString DataFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM/CFOutput_pL.root";
     TString DataHistoName = "hCk_ReweightedMeV_2";
     TFile* DataFile = new TFile(DataFileName,"read");
@@ -3249,14 +3248,16 @@ void Plot_pL_FASTsyst(
     TF1* fSyst = (TF1*)SystFile->Get(DataSystHistoName);
 //SystematicsAdd_100419_2 pm15
 //SystematicsAdd_120419 pm10
-    TString FitSystFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pL/SystematicsAdd_120419/";
-    TString FitSystFileName = FitSystFolder+"NTfile.root";
+//SystematicsAddMeson_230419
+    TString FitSystFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pL/SystematicsAddMeson_230419/";
+    TString FitSystFileName = FitSystFolder+"NTfile_112.root";
 
     TFile* ntFile = new TFile(FitSystFileName,"read");
     TNtuple* ntResult = (TNtuple*)ntFile->Get("ntResult");
     unsigned NumNtEntries = ntResult->GetEntries();
 
     Float_t Iter;
+    Float_t Config;
     Float_t SourceType;
     Float_t SourceScale;
     Float_t Potential;
@@ -3289,6 +3290,7 @@ void Plot_pL_FASTsyst(
     Float_t ndf;
 
     ntResult->SetBranchAddress("Iter",&Iter);
+    ntResult->SetBranchAddress("Config",&Config);
     ntResult->SetBranchAddress("SourceType",&SourceType);
     ntResult->SetBranchAddress("SourceScale",&SourceScale);
     ntResult->SetBranchAddress("Potential",&Potential);
@@ -3381,26 +3383,29 @@ void Plot_pL_FASTsyst(
     for(unsigned uEntry=0; uEntry<NumNtEntries; uEntry++){
         ntFile->cd();
         ntResult->GetEntry(uEntry);
-        int Config;
-        Config = int(Iter)%100;
-        int ITER = int(Iter)/100;
+        int ITER = int(Iter);
+        int CONFIG = int(Config);
         int Id_LO;
         int Id_NLO;
-        if(Config<10){
+        if(CONFIG<10){
             Id_LO = 1;
             Id_NLO = 11;
         }
-        else if(Config<100){
+        else if(CONFIG<100){
             Id_LO = 0;
             Id_NLO = 10;
         }
-//printf("Iter=%i; Config=%i; LO=%i; NLO=%i\n",ITER,Config,Id_LO,Id_NLO);
+        else if(CONFIG<1000){
+            Id_LO = 1012;
+            Id_NLO = 1013;
+        }
+//printf("Iter=%i; CONFIG=%i; LO=%i; NLO=%i\n",ITER,CONFIG,Id_LO,Id_NLO);
         //! Conditions
 
-        //if(Config!=0&&Config!=2) continue; //select Gauss+Reso and Gauss
-        if(Config!=0) continue; //select Gauss+Reso
-        //if(Config!=1) continue; //select Levy+Reso
-        //if(Config!=2) continue; //select Gauss
+        //if(CONFIG!=0&&CONFIG!=2) continue; //select Gauss+Reso and Gauss
+        //if(CONFIG!=0) continue; //select Gauss+Reso
+        //if(CONFIG!=1) continue; //select Levy+Reso
+        //if(CONFIG!=2) continue; //select Gauss
         //if(round(Baseline)!=0) continue; //select only norm
         //if(int(Baseline)!=11) continue; //select only pol1
         if(int(Baseline)!=12) continue; //select only pol2
@@ -3437,7 +3442,7 @@ void Plot_pL_FASTsyst(
             //BestSoFarNLO=true;
         }
 
-        TFile* FileGraph = new TFile(TString::Format("%sConfig%i_Iter%i.root",FitSystFolder.Data(),Config,ITER),"read");
+        TFile* FileGraph = new TFile(TString::Format("%sConfig%i_Iter%i.root",FitSystFolder.Data(),CONFIG,ITER),"read");
         TGraph* FitResult = (TGraph*)FileGraph->Get("FitResult_pL");
         TF1* FitBaseline = (TF1*)FileGraph->Get("fBaseline");
         double xVal,xValLowUp;

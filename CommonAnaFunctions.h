@@ -7,6 +7,7 @@ class TH2F;
 class CATS;
 class DLM_CleverLevy;
 class DLM_CleverMcLevyReso;
+class DLM_Ck;
 //class MS_GaussExp_mT_Simple;
 
 const double Mass_pi0 = 134.9766;
@@ -51,6 +52,8 @@ public:
     //  "pXim_Lattice" (the first version)
     //  "pXim_HALQCD1" (the second version, THE ONE TO USE)
     void SetUpCats_pXim(CATS& Kitty, const TString& POT, const TString& SOURCE);
+
+    DLM_Ck* SetUpLednicky_pL(const unsigned& NumMomBins, const double* MomBins,  const TString& POT);
 
     void SetUpBinning_pp(const TString& DataSample, unsigned& NumMomBins, double*& MomBins, double*& FitRegion);
     void SetUpBinning_pL(const TString& DataSample, unsigned& NumMomBins, double*& MomBins, double*& FitRegion, const int& MomBinVar, const int& FitRegVar);
