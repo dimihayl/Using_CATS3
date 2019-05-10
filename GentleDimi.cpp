@@ -2,6 +2,8 @@
 
 #include <string.h>
 #include <iostream>
+//#include <stdio.h>
+//#include <stdlib.h>
 
 #include "DreamKayTee.h"
 #include "ReadDreamFile.h"
@@ -26,7 +28,7 @@
 using namespace std;
 
 void GetCorrelations(const char* foldername, const char* filename, const char* prefix,
-                     const char* addon = "") {
+                     const char* addon, double& Dev_pL) {
   //gStyle->SetOptStat(0);
   ReadDreamFile* DreamFile = new ReadDreamFile(6, 6);
   DreamFile->SetAnalysisFile(filename, prefix, addon);
@@ -55,6 +57,18 @@ void GetCorrelations(const char* foldername, const char* filename, const char* p
 
   pL->SetPair(DreamFile->GetPairDistributions(0, 2, ""));
   ApAL->SetPair(DreamFile->GetPairDistributions(1, 3, ""));
+  TH1F* hSE = DreamFile->GetPairDistributions(0, 2, "")->GetSEDist();
+  int NumPairs = hSE->Integral(1,hSE->FindBin(0.312-1e-6));
+  const static int DefNumPairs = hSE->Integral(1,hSE->FindBin(0.312-1e-6));
+  static int VariationNr = -1;
+  VariationNr++;
+  Dev_pL = double(NumPairs-DefNumPairs)/double(DefNumPairs);
+  printf("Addon: %s\n",addon);
+  printf(" NumPairs = %u k\n",NumPairs/1000);
+  printf(" Deviation: ");
+  if(Dev_pL<0.2) printf("%.1f%%\n",100.*Dev_pL);
+  else printf("\033[1;31m%.1f%%\033[0m\n",100.*Dev_pL);
+  //usleep(2000e3);
 
   LL->SetPair(DreamFile->GetPairDistributions(2, 2, ""));
   ALAL->SetPair(DreamFile->GetPairDistributions(3, 3, ""));
@@ -147,19 +161,19 @@ void GetCorrelations(const char* foldername, const char* filename, const char* p
 
   CF_pp->SetPairs(pp, ApAp);
   CF_pp->GetCorrelations();
-  CF_pp->WriteOutput(Form("%sCFOutput_pp.root", foldername));
+  CF_pp->WriteOutput(Form("%sCFOutput_pp_%s.root", foldername, addon));
 
   CF_pL->SetPairs(pL, ApAL);
   CF_pL->GetCorrelations();
-  CF_pL->WriteOutput(Form("%sCFOutput_pL.root", foldername));
+  CF_pL->WriteOutput(Form("%sCFOutput_pL_%s.root", foldername, addon));
 
   CF_LL->SetPairs(LL, ALAL);
   CF_LL->GetCorrelations();
-  CF_LL->WriteOutput(Form("%sCFOutput_LL.root", foldername));
+  CF_LL->WriteOutput(Form("%sCFOutput_LL_%s.root", foldername, addon));
 
   CF_pXi->SetPairs(pXi, ApAXi);
   CF_pXi->GetCorrelations();
-  CF_pXi->WriteOutput(Form("%sCFOutput_pXi.root", foldername));
+  CF_pXi->WriteOutput(Form("%sCFOutput_pXi_%s.root", foldername, addon));
 }
 
 void GetCorrelationsBbarB(const char* foldername, const char* filename, const char* prefix,
@@ -278,22 +292,22 @@ void GetCorrelationsBbarB(const char* foldername, const char* filename, const ch
   std::cout << "Get CF \n";
   CF_pAp_App->GetCorrelations();
   std::cout << "Write Output \n";
-  CF_pAp_App->WriteOutput(Form("%sCFOutput_pAp_App.root", foldername));
+  CF_pAp_App->WriteOutput(Form("%sCFOutput_pAp_App_%s.root", foldername, addon));
 
   std::cout << "pL CF \n";
   CF_pAL_ApL->SetPairs(pAL, ApL);
   CF_pAL_ApL->GetCorrelations();
-  CF_pAL_ApL->WriteOutput(Form("%sCFOutput_pAL_ApL.root", foldername));
+  CF_pAL_ApL->WriteOutput(Form("%sCFOutput_pAL_ApL_%s.root", foldername, addon));
 
   std::cout << "LL CF \n";
   CF_ALL_LAL->SetPairs(LAL, nullptr);
   CF_ALL_LAL->GetCorrelations();
-  CF_ALL_LAL->WriteOutput(Form("%sCFOutput_LAL_ALL.root", foldername));
+  CF_ALL_LAL->WriteOutput(Form("%sCFOutput_LAL_ALL_%s.root", foldername, addon));
 
   std::cout << "pXi CF \n";
   CF_pAXi_ApXi->SetPairs(pAXi, ApXi);
   CF_pAXi_ApXi->GetCorrelations();
-  CF_pAXi_ApXi->WriteOutput(Form("%sCFOutput_pAXi_ApXi.root", foldername));
+  CF_pAXi_ApXi->WriteOutput(Form("%sCFOutput_pAXi_ApXi_%s.root", foldername, addon));
 }
 
 void GetQADistributions(const char* PairName, DreamDist* PairOrg,
@@ -497,11 +511,13 @@ void ReweightingQA(TList* PairList) {
   return;
 }
 
-void METoSEReweighting(const char* foldername) {
+void METoSEReweighting(const char* foldername, const char* addon) {
   const char* filenames[8] = { "pp", "pXi", "pL", "LL", "pAp_App", "pAL_ApL",
       "LAL_ALL", "pAXi_ApXi" };
   for (int iFile = 0; iFile < 8; ++iFile) {
-    TString FileName = Form("%sCFOutput_%s.root", foldername, filenames[iFile]);
+    TString FileName;
+    if(strcmp(addon,"")!=0) FileName = Form("%sCFOutput_%s_%s.root", foldername, filenames[iFile], addon);
+    else FileName = Form("%sCFOutput_%s.root", foldername, filenames[iFile]);
     std::cout << FileName.Data() << std::endl;
     TFile* file = TFile::Open(FileName, "update");
     TList* PairDist = (TList*) file->Get("PairDist");
@@ -616,9 +632,9 @@ int ExecuteCFmT_pL(int argc, char* argv[]) {
   mTpLDists = DreamFile->GetmTPairDistributions(0, 2, 1, 3);
 
     std::vector<float> mTpLBins;
-    if(TString(filename)=="/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM/AnalysisResults.root"){
-        mTpLBins = { 1.08, 1.26, 1.32, 1.44, 1.68, 4.5 };
-        //mTpLBins = { 1.08, 1.26, 1.32, 1.44, 1.65, 1.9, 4.5 };
+    if(TString(filename)=="/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample12HM/AnalysisResults.root"){
+        //mTpLBins = { 1.08, 1.26, 1.32, 1.44, 1.68, 4.5 };
+        mTpLBins = { 1.08, 1.26, 1.32, 1.44, 1.65, 1.9, 4.5 };
     }
     else if(TString(filename)=="/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample9/AnalysisResults.root"){
         mTpLBins = { 1.08, 1.29, 1.44, 1.65, 4.5 };
@@ -631,27 +647,30 @@ int ExecuteCFmT_pL(int argc, char* argv[]) {
     }
 
 //  std::vector<float> mTBins = { 1.01,1.13,1.25,1.55,4.5 };
-  TString CalibPP = Form("%s/CFOutput_pL.root",CalibName);
+  TString CalibPP;
+  if(strcmp(addon,"")!=0) CalibPP = Form("%sCFOutput_pL_%s.root",CalibName,addon);
+  else CalibPP = Form("%sCFOutput_pL.root",CalibName);
+  printf("CalibPP=%s\n",CalibPP.Data());
   mTpLDists->SetSEMEReweightingRatio(CalibPP,"pL");
   mTpLDists->SetKayTeeBins(mTpLBins);
   mTpLDists->SetNormalization(0.2,0.4);
   mTpLDists->SetRebin(3);
-  mTpLDists->ObtainTheCorrelationFunction(gSystem->pwd(), prefix, "pL");
+  mTpLDists->ObtainTheCorrelationFunction(gSystem->pwd(), prefix, "pL", addon);
 
   return 1;
 }
 
-int ExecuteCFDream(int argc, char* argv[]) {
+int ExecuteCFDream(int argc, char* argv[], double& Dev_pL) {
   const char* foldername = argv[0];
   const char* filename = argv[1];
   const char* prefix = argv[3];
   const char* addon = (argv[4]) ? argv[4] : "";
 //printf("gSystem->pwd()=%s\n",gSystem->pwd());
-  GetCorrelations(foldername, filename, prefix, addon);
+  GetCorrelations(foldername, filename, prefix, addon, Dev_pL);
   GetCorrelationsBbarB(foldername, filename, prefix, addon);
   //TString foldername = filename;
   //foldername.ReplaceAll("AnalysisResults.root", "");
-  METoSEReweighting(foldername);
+  METoSEReweighting(foldername,addon);
 
   return 1;
 }
@@ -1537,7 +1556,7 @@ void mT_Scaled_Source_Prelim2019(){
     const unsigned NumRadSteps = 256;
 
     DLM_CleverMcLevyReso* CleverMcLevyReso = new DLM_CleverMcLevyReso [NumPartPairs];
-    #pragma omp parallel for
+    //#pragma omp parallel for
     for(unsigned uPair=0; uPair<NumPartPairs; uPair++){
 
         const double RadBinWidth = (RadMax-RadMin)/(NumRadSteps);
@@ -1651,18 +1670,59 @@ void mT_Scaled_Source_Prelim2019(){
     delete [] SourceScale;
 }
 
+void Plot_pL_Vars(char* argv[], const unsigned NumVar, double* Dev_pL){
+    TGraph gVars_pL;
+    gVars_pL.SetName("gVars_pL");
+    for(unsigned uVar=1; uVar<NumVar; uVar++){
+        gVars_pL.SetPoint(uVar-1,uVar,Dev_pL[uVar]*100.);
+    }
+    gVars_pL.SetMarkerColor(kBlack);
+    gVars_pL.SetMarkerSize(1);
+    gVars_pL.SetMarkerStyle(20);
+
+
+    TH1F* hAxis = new TH1F("hAxis", "hAxis", 128, 0, NumVar);
+    hAxis->SetStats(false);
+    hAxis->SetTitle("");
+    hAxis->GetXaxis()->SetTitle("Variation");
+    hAxis->GetXaxis()->SetTitleSize(0.06);
+    hAxis->GetXaxis()->SetLabelSize(0.06);
+    hAxis->GetXaxis()->CenterTitle();
+    hAxis->GetXaxis()->SetTitleOffset(1.3);
+    hAxis->GetXaxis()->SetLabelOffset(0.02);
+
+    hAxis->GetYaxis()->SetTitle("Rel. variation (%)");
+    hAxis->GetYaxis()->SetTitleSize(0.06);
+    hAxis->GetYaxis()->SetLabelSize(0.06);
+    hAxis->GetYaxis()->CenterTitle();
+    hAxis->GetYaxis()->SetTitleOffset(1.1);
+    //hAxis->GetXaxis()->SetNdivisions(506);
+    hAxis->GetYaxis()->SetRangeUser(-25,25);
+    //hAxis->GetYaxis()->SetRangeUser(0.90, 1.80);
+
+    TCanvas* cVar = new TCanvas("cVar", "cVar", 1);
+    cVar->cd(0); cVar->SetCanvasSize(1920/2, 1080/2); cVar->SetMargin(0.15,0.05,0.2,0.05);//lrbt
+    hAxis->Draw("axis");
+    gVars_pL.Draw("same,P");
+
+    TString FileName = argv[0];
+    FileName+="cVar_pL.png";
+    cVar->SaveAs(FileName.Data());
+
+    delete hAxis;
+    delete cVar;
+}
 
 void DimiExecuteCFmT(){
     char** ARGV = new char* [8];
     for(int i=0; i<8; i++) ARGV[i]=new char [512];
 
 //mT_Scaled_Source_Prelim2019();
-//return;
 
 //home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM/Systematics
-    strcpy(ARGV[0],"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM/");
-    strcpy(ARGV[1],"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM/AnalysisResults.root");
-    strcpy(ARGV[2],"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM/");
+    strcpy(ARGV[0],"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample12HM/");
+    strcpy(ARGV[1],"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample12HM/AnalysisResults.root");
+    strcpy(ARGV[2],"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample12HM/");
     strcpy(ARGV[3],"HM");
     strcpy(ARGV[4],"");
 
@@ -1688,9 +1748,21 @@ void DimiExecuteCFmT(){
     gSystem->cd(ARGV[0]);
 
     //ExecuteCFDream(5,ARGV);
+    const unsigned NumVar=45;
+    double* Dev_pL = new double[NumVar];
+    for(int iVar=0; iVar<NumVar; iVar++){
+        char buffer [8];
+        sprintf(buffer, "%i", iVar);
+        strcpy(ARGV[4],buffer);
+        //ExecuteCFDream(5,ARGV,Dev_pL[iVar]);
+        ExecuteCFmT_pL(5,ARGV);
+    }
+    //Plot_pL_Vars(ARGV,NumVar,Dev_pL);
+    delete [] Dev_pL;
+
     //ExecuteCFmT_pp(5,ARGV);
     //QA_for_pp_mT();
-    ExecuteCFmT_pL(5,ARGV);
+    //ExecuteCFmT_pL(5,ARGV);
 return;
     //strcpy(ARGV[0],"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pp_FitDiff_CompareToTotal/250319/HM/pL/NLO/");
     //pp_FitDiff_CompareToTotal(ARGV,"pp13TeV_HM_March19","Gauss","Norm");

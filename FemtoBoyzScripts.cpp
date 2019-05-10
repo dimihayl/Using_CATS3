@@ -21,6 +21,9 @@
 #include "TLine.h"
 #include "TPaveText.h"
 #include "TNtuple.h"
+#include "TRandom3.h"
+
+#include "DLM_HistoAnalysis.h"
 
 std::vector<int> fFillColors = {kGray+1, kRed-10, kBlue-9, kGreen-8, kMagenta-9, kOrange-9, kCyan-8, kYellow-7};
 std::vector<int> fColors     = {kBlack, kRed+1 , kBlue+2, kGreen+3, kMagenta+1, kOrange-1, kCyan+2, kYellow+2};
@@ -3212,7 +3215,7 @@ void Plot_pL_FAST(      const TString& WorkFolder,
 //the graph with the fit result in the same file is to be used for default, up and lower limit!
 
 
-void Plot_pL_FASTsyst(
+void Plot_pL_FASTsyst( const int& WhichBaseline
 
                       //const TString& DataFileName, const TString& DataHistoName,
                       //  const TString&
@@ -3234,23 +3237,30 @@ void Plot_pL_FASTsyst(
     int MODE = 0;
     double MinMomentum=0;
     double MaxMomentum=336;
-    int DefaultIter = 2349;
+    //int DefaultIterLO = 32400;
+    //int DefaultIterNLO = 93960;
+    int DefaultIterLO = 346274;
+    int DefaultIterNLO = 415529;
 
+    //we take 10HM not to redo further plots
     TString DataFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM/CFOutput_pL.root";
+    //TString DataFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample12HM/CFOutput_pL_0.root";
     TString DataHistoName = "hCk_ReweightedMeV_2";
     TFile* DataFile = new TFile(DataFileName,"read");
     TH1F* hData = (TH1F*)DataFile->Get(DataHistoName);
 
-    TString DataSystFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM/Systematics_pL.root";
-    TString DataSystHistoName = "SystErrRel";//"RelSysPLUnbinned"
+    TString DataSystFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample12HM/Systematics_pL.root";
+    TString DataSystHistoName = "hRelSyst";//"RelSysPLUnbinned" "hRelSyst" "SystErrRel"
     TFile* SystFile = new TFile(DataSystFileName,"read");
     TH1F* hSyst = (TH1F*)SystFile->Get(DataSystHistoName);
     TF1* fSyst = (TF1*)SystFile->Get(DataSystHistoName);
 //SystematicsAdd_100419_2 pm15
 //SystematicsAdd_120419 pm10
 //SystematicsAddMeson_230419
-    TString FitSystFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pL/SystematicsAddMeson_230419/";
-    TString FitSystFileName = FitSystFolder+"NTfile_112.root";
+//SystematicsAdd_310519
+//SystematicsAdd_010519
+    TString FitSystFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pL/Systematics_090519/";
+    TString FitSystFileName = FitSystFolder+"NTfile_0.root";
 
     TFile* ntFile = new TFile(FitSystFileName,"read");
     TNtuple* ntResult = (TNtuple*)ntFile->Get("ntResult");
@@ -3258,6 +3268,7 @@ void Plot_pL_FASTsyst(
 
     Float_t Iter;
     Float_t Config;
+    Float_t Data;
     Float_t SourceType;
     Float_t SourceScale;
     Float_t Potential;
@@ -3288,9 +3299,12 @@ void Plot_pL_FASTsyst(
     Float_t e_sor1;
     Float_t chi2;
     Float_t ndf;
+    Float_t chi2_312;
+    Float_t ndf_312;
 
     ntResult->SetBranchAddress("Iter",&Iter);
     ntResult->SetBranchAddress("Config",&Config);
+    ntResult->SetBranchAddress("Data",&Data);
     ntResult->SetBranchAddress("SourceType",&SourceType);
     ntResult->SetBranchAddress("SourceScale",&SourceScale);
     ntResult->SetBranchAddress("Potential",&Potential);
@@ -3321,6 +3335,8 @@ void Plot_pL_FASTsyst(
     ntResult->SetBranchAddress("e_sor1",&e_sor1);
     ntResult->SetBranchAddress("chi2",&chi2);
     ntResult->SetBranchAddress("ndf",&ndf);
+    ntResult->SetBranchAddress("chi2_312",&chi2_312);
+    ntResult->SetBranchAddress("ndf_312",&ndf_312);
 
     TGraph gLowerLO;
     gLowerLO.SetName("gLowerLO");
@@ -3372,14 +3388,62 @@ void Plot_pL_FASTsyst(
     double GlobalBestPval_LO = 0;
     double GlobalBestPval_NLO = 0;
 
-    //TString LegendSource_line1 = "Gaussian core with m_{T} scaling";
-    TString LegendSource_line1 = "Levy core with m_{T} scaling";
+    TString LegendSource_line1 = "Gaussian core with m_{T} scaling";
+    //TString LegendSource_line1 = "Levy core with m_{T} scaling";
     //TString LegendSource_line1 = "Gaussian source";
 
-    //TString LegendSource_line2 = "Constant baseline";
-    //TString LegendSource_line2 = "Linear baseline";
-    TString LegendSource_line2 = "Quadratic baseline";
-//printf("NumNtEntries=%u\n",NumNtEntries);
+    TH1F* hChi2NdfLO = new TH1F("hChi2NdfLO","hChi2NdfLO",1024,0,64);
+    TH1F* hChi2NdfNLO = new TH1F("hChi2NdfNLO","hChi2NdfNLO",1024,0,64);
+    TH1F* hNsigmaLO = new TH1F("hNsigmaLO","hNsigmaLO",1024,0,64);
+    TH1F* hNsigmaNLO = new TH1F("hNsigmaNLO","hNsigmaNLO",1024,0,64);
+
+    //bin-by-bin deviation in nSigma
+    //we use TH2F to save all variations
+    //than we take the mean and stdv to define upper and lower limit
+    const unsigned DevPlotNumBins = 47;
+    TH2F* hVarDeviationLO = new TH2F("hVarDeviationLO","hVarDeviationLO",DevPlotNumBins,0,hData->GetBinWidth(1)*DevPlotNumBins,1024,-40,40);
+    TH2F* hVarDeviationNLO = new TH2F("hVarDeviationNLO","hVarDeviationNLO",DevPlotNumBins,0,hData->GetBinWidth(1)*DevPlotNumBins,1024,-40,40);
+
+    //TH2F* hVarDevRatioNsigmaLO = new TH2F("hVarDevRatioNsigmaLO","hVarDevRatioNsigmaLO",DevPlotNumBins,0,hData->GetBinWidth(1)*DevPlotNumBins,128,0.85,1.15);
+    //TH2F* hVarDevRatioNsigmaNLO = new TH2F("hVarDevRatioNsigmaNLO","hVarDevRatioNsigmaNLO",DevPlotNumBins,0,hData->GetBinWidth(1)*DevPlotNumBins,128,0.85,1.15);
+
+    TH2F* hVarDevRatioLO = new TH2F("hVarDevRatioLO","hVarDevRatioLO",DevPlotNumBins,0,hData->GetBinWidth(1)*DevPlotNumBins,128,0.85,1.15);
+    TH2F* hVarDevRatioNLO = new TH2F("hVarDevRatioNLO","hVarDevRatioNLO",DevPlotNumBins,0,hData->GetBinWidth(1)*DevPlotNumBins,128,0.85,1.15);
+
+    TGraphErrors gVarDeviationLO_Stdv;
+    gVarDeviationLO_Stdv.SetName("gVarDeviationLO_Stdv");
+    gVarDeviationLO_Stdv.SetLineWidth(0);
+    gVarDeviationLO_Stdv.SetLineColor(kGreen+3);
+    gVarDeviationLO_Stdv.SetMarkerSize(0);
+    gVarDeviationLO_Stdv.SetMarkerStyle(20);
+    gVarDeviationLO_Stdv.SetMarkerColor(kGreen+3);
+    gVarDeviationLO_Stdv.SetFillColor(kGreen+3);
+
+    TGraphErrors gVarDeviationNLO_Stdv;
+    gVarDeviationNLO_Stdv.SetName("gVarDeviationNLO_Stdv");
+    gVarDeviationNLO_Stdv.SetLineWidth(0);
+    gVarDeviationNLO_Stdv.SetLineColor(kRed+1);
+    gVarDeviationNLO_Stdv.SetMarkerSize(0);
+    gVarDeviationNLO_Stdv.SetMarkerStyle(20);
+    gVarDeviationNLO_Stdv.SetMarkerColor(kRed+1);
+    gVarDeviationNLO_Stdv.SetFillColor(kRed+1);
+
+
+    TString LegendSource_line2;
+    if(WhichBaseline==0) LegendSource_line2 = "Constant baseline";
+    else if(WhichBaseline==11) LegendSource_line2 = "Linear baseline";
+    else if(WhichBaseline==12) LegendSource_line2 = "Quadratic baseline";
+
+    double DefaultChi2NdfLO=0;
+    double DefaultNsigmaLO=0;
+    double DefaultChi2NdfNLO=0;
+    double DefaultNsigmaNLO=0;
+
+    //for(unsigned uEntry=0; uEntry<NumNtEntries; uEntry++){
+    //    ntFile->cd();
+    //    ntResult->GetEntry(uEntry);
+    //}
+
     for(unsigned uEntry=0; uEntry<NumNtEntries; uEntry++){
         ntFile->cd();
         ntResult->GetEntry(uEntry);
@@ -3399,52 +3463,272 @@ void Plot_pL_FASTsyst(
             Id_LO = 1012;
             Id_NLO = 1013;
         }
+
 //printf("Iter=%i; CONFIG=%i; LO=%i; NLO=%i\n",ITER,CONFIG,Id_LO,Id_NLO);
         //! Conditions
 
         //if(CONFIG!=0&&CONFIG!=2) continue; //select Gauss+Reso and Gauss
-        //if(CONFIG!=0) continue; //select Gauss+Reso
+        if(CONFIG!=0) continue; //select Gauss+Reso
         //if(CONFIG!=1) continue; //select Levy+Reso
         //if(CONFIG!=2) continue; //select Gauss
+        if(round(Baseline)!=WhichBaseline) continue;
         //if(round(Baseline)!=0) continue; //select only norm
         //if(int(Baseline)!=11) continue; //select only pol1
-        if(int(Baseline)!=12) continue; //select only pol2
+        //if(int(Baseline)!=12) continue; //select only pol2
         //if(SourceScale>0) continue;
         //if(SourceScale<0.8&&SourceScale>0) continue;
 
+        if(Id_LO==Potential){
+            hChi2NdfLO->Fill(chi2_312/ndf_312);
+            hNsigmaLO->Fill(sqrt(2)*TMath::ErfcInverse(TMath::Prob(chi2_312,int(ndf_312))));
+            if(DefaultIterLO==int(Iter)){
+                DefaultChi2NdfLO = chi2_312/ndf_312;
+                DefaultNsigmaLO = sqrt(2)*TMath::ErfcInverse(TMath::Prob(chi2_312,int(ndf_312)));
+            }
+        }
+        else if(Id_NLO==Potential){
+            hChi2NdfNLO->Fill(chi2_312/ndf_312);
+            hNsigmaNLO->Fill(sqrt(2)*TMath::ErfcInverse(TMath::Prob(chi2_312,int(ndf_312))));
+            if(DefaultIterNLO==int(Iter)){
+                DefaultChi2NdfNLO = chi2_312/ndf_312;
+                DefaultNsigmaNLO = sqrt(2)*TMath::ErfcInverse(TMath::Prob(chi2_312,int(ndf_312)));
+            }
+        }
+        else{
+            printf("PROBLEM\n");
+        }
+    }
+
+    double MeanChi2NdfLO = hChi2NdfLO->GetMean();
+    double StdvChi2NdfLO = hChi2NdfLO->GetStdDev();
+    double LenChi2NdfLO;
+    double UniformStdvChi2NdfLO;
+    double MinChi2NdfLO=1e6;
+    double MaxChi2NdfLO=-1e6;
+
+    double MeanChi2NdfNLO = hChi2NdfNLO->GetMean();
+    double StdvChi2NdfNLO = hChi2NdfNLO->GetStdDev();
+    double LenChi2NdfNLO;
+    double UniformStdvChi2NdfNLO;
+    double MinChi2NdfNLO=1e6;
+    double MaxChi2NdfNLO=-1e6;
+
+    double MeanNsigmaLO = hNsigmaLO->GetMean();
+    double StdvNsigmaLO = hNsigmaLO->GetStdDev();
+    double LenNsigmaLO;
+    double UniformStdvNsigmaLO;
+    double MinNsigmaLO=1e6;
+    double MaxNsigmaLO=-1e6;
+
+    double MeanNsigmaNLO = hNsigmaNLO->GetMean();
+    double StdvNsigmaNLO = hNsigmaNLO->GetStdDev();
+    double LenNsigmaNLO;
+    double UniformStdvNsigmaNLO;
+    double MinNsigmaNLO=1e6;
+    double MaxNsigmaNLO=-1e6;
+
+    for(unsigned uBin=0; uBin<hChi2NdfLO->GetNbinsX(); uBin++){
+        if(hChi2NdfLO->GetBinContent(uBin+1)&&MinChi2NdfLO>hChi2NdfLO->GetBinCenter(uBin+1)){MinChi2NdfLO=hChi2NdfLO->GetBinCenter(uBin+1);}
+        if(hChi2NdfLO->GetBinContent(uBin+1)&&MaxChi2NdfLO<hChi2NdfLO->GetBinCenter(uBin+1)){MaxChi2NdfLO=hChi2NdfLO->GetBinCenter(uBin+1);}
+    }
+    LenChi2NdfLO = MaxChi2NdfLO-MinChi2NdfLO;
+    UniformStdvChi2NdfLO = LenChi2NdfLO/sqrt(12.);
+
+    for(unsigned uBin=0; uBin<hChi2NdfNLO->GetNbinsX(); uBin++){
+        if(hChi2NdfNLO->GetBinContent(uBin+1)&&MinChi2NdfNLO>hChi2NdfNLO->GetBinCenter(uBin+1)){MinChi2NdfNLO=hChi2NdfNLO->GetBinCenter(uBin+1);}
+        if(hChi2NdfNLO->GetBinContent(uBin+1)&&MaxChi2NdfNLO<hChi2NdfNLO->GetBinCenter(uBin+1)){MaxChi2NdfNLO=hChi2NdfNLO->GetBinCenter(uBin+1);}
+    }
+    LenChi2NdfNLO = MaxChi2NdfNLO-MinChi2NdfNLO;
+    UniformStdvChi2NdfNLO = LenChi2NdfNLO/sqrt(12.);
+
+    for(unsigned uBin=0; uBin<hNsigmaLO->GetNbinsX(); uBin++){
+        if(hNsigmaLO->GetBinContent(uBin+1)&&MinNsigmaLO>hNsigmaLO->GetBinCenter(uBin+1)){MinNsigmaLO=hNsigmaLO->GetBinCenter(uBin+1);}
+        if(hNsigmaLO->GetBinContent(uBin+1)&&MaxNsigmaLO<hNsigmaLO->GetBinCenter(uBin+1)){MaxNsigmaLO=hNsigmaLO->GetBinCenter(uBin+1);}
+    }
+    LenNsigmaLO = MaxNsigmaLO-MinNsigmaLO;
+    UniformStdvNsigmaLO = LenNsigmaLO/sqrt(12.);
+
+    for(unsigned uBin=0; uBin<hNsigmaNLO->GetNbinsX(); uBin++){
+        if(hNsigmaNLO->GetBinContent(uBin+1)&&MinNsigmaNLO>hNsigmaNLO->GetBinCenter(uBin+1)){MinNsigmaNLO=hNsigmaNLO->GetBinCenter(uBin+1);}
+        if(hNsigmaNLO->GetBinContent(uBin+1)&&MaxNsigmaNLO<hNsigmaNLO->GetBinCenter(uBin+1)){MaxNsigmaNLO=hNsigmaNLO->GetBinCenter(uBin+1);}
+    }
+    LenNsigmaNLO = MaxNsigmaNLO-MinNsigmaNLO;
+    UniformStdvNsigmaNLO = LenNsigmaNLO/sqrt(12.);
+
+    double BestNsigma_LO = sqrt(2)*TMath::ErfcInverse(GlobalBestPval_LO);
+    double BestNsigma_NLO = sqrt(2)*TMath::ErfcInverse(GlobalBestPval_NLO);
+
+    double LowCi_Chi2NdfLO;
+    double UpCi_Chi2NdfLO;
+    double Median_Chi2NdfLO = GetCentralInterval(*hChi2NdfLO,0.68,LowCi_Chi2NdfLO,UpCi_Chi2NdfLO,true);
+
+    double LowCi_Chi2NdfNLO;
+    double UpCi_Chi2NdfNLO;
+    double Median_Chi2NdfNLO = GetCentralInterval(*hChi2NdfNLO,0.68,LowCi_Chi2NdfNLO,UpCi_Chi2NdfNLO,true);
+
+    double LowCi_NsigmaLO;
+    double UpCi_NsigmaLO;
+    double Median_NsigmaLO = GetCentralInterval(*hNsigmaLO,0.68,LowCi_NsigmaLO,UpCi_NsigmaLO,true);
+
+    double LowCi_NsigmaNLO;
+    double UpCi_NsigmaNLO;
+    double Median_NsigmaNLO = GetCentralInterval(*hNsigmaNLO,0.68,LowCi_NsigmaNLO,UpCi_NsigmaNLO,true);
+
+    //THANK YOU ROOT, THANKS!!!
+    //so if we read the same TNtuple twice, the second iteration is SUPER slow (like c.a. x1000 times).
+    //to fix this: delete the TNtuple and open it again
+    delete ntResult;
+    ntResult = (TNtuple*)ntFile->Get("ntResult");
+
+    ntResult->SetBranchAddress("Iter",&Iter);
+    ntResult->SetBranchAddress("Config",&Config);
+    ntResult->SetBranchAddress("Data",&Data);
+    ntResult->SetBranchAddress("SourceType",&SourceType);
+    ntResult->SetBranchAddress("SourceScale",&SourceScale);
+    ntResult->SetBranchAddress("Potential",&Potential);
+    ntResult->SetBranchAddress("Baseline",&Baseline);
+    ntResult->SetBranchAddress("FemRan",&FemRan);
+    ntResult->SetBranchAddress("FitRan",&FitRan);
+    ntResult->SetBranchAddress("pFrac",&pFrac);
+    ntResult->SetBranchAddress("LamFrac",&LamFrac);
+    ntResult->SetBranchAddress("kcVar",&kcVar);
+    ntResult->SetBranchAddress("mTbin",&mTbin);
+    ntResult->SetBranchAddress("FemtoMin",&FemtoMin);
+    ntResult->SetBranchAddress("FemtoMax",&FemtoMax);
+    ntResult->SetBranchAddress("BlMin",&BlMin);
+    ntResult->SetBranchAddress("BlMax",&BlMax);
+    ntResult->SetBranchAddress("p_a",&p_a);
+    ntResult->SetBranchAddress("e_a",&e_a);
+    ntResult->SetBranchAddress("p_b",&p_b);
+    ntResult->SetBranchAddress("e_b",&e_b);
+    ntResult->SetBranchAddress("p_c",&p_c);
+    ntResult->SetBranchAddress("e_c",&e_c);
+    ntResult->SetBranchAddress("p_Cl",&p_Cl);
+    ntResult->SetBranchAddress("e_Cl",&e_Cl);
+    ntResult->SetBranchAddress("p_kc",&p_kc);
+    ntResult->SetBranchAddress("e_kc",&e_kc);
+    ntResult->SetBranchAddress("p_sor0",&p_sor0);
+    ntResult->SetBranchAddress("e_sor0",&e_sor0);
+    ntResult->SetBranchAddress("p_sor1",&p_sor1);
+    ntResult->SetBranchAddress("e_sor1",&e_sor1);
+    ntResult->SetBranchAddress("chi2",&chi2);
+    ntResult->SetBranchAddress("ndf",&ndf);
+    ntResult->SetBranchAddress("chi2_312",&chi2_312);//chi2<=312 MeV
+    ntResult->SetBranchAddress("ndf_312",&ndf_312);//number of data points up to 312 MeV
+
+//TRandom3 rangen(11);
+//printf("NumNtEntries=%u\n",NumNtEntries);
+    for(unsigned uEntry=0; uEntry<NumNtEntries; uEntry++){
+        //if(uEntry%100==0) printf("uEntry=%u\n",uEntry);
+//if(rangen.Uniform()>0.01) continue;
+        ntFile->cd();
+        ntResult->GetEntry(uEntry);
+
+        int ITER = int(Iter);
+        int CONFIG = int(Config);
+        int Id_LO;
+        int Id_NLO;
+        if(CONFIG<10){
+            Id_LO = 1;
+            Id_NLO = 11;
+        }
+        else if(CONFIG<100){
+            Id_LO = 0;
+            Id_NLO = 10;
+        }
+        else if(CONFIG<1000){
+            Id_LO = 1012;
+            Id_NLO = 1013;
+        }
+//printf("Iter=%i; CONFIG=%i; LO=%i; NLO=%i\n",ITER,CONFIG,Id_LO,Id_NLO);
+        //! Conditions
+//if(rangen.Uniform()>0.01&&ITER!=DefaultIterLO&&ITER!=DefaultIterNLO) continue;
+        //if(CONFIG!=0&&CONFIG!=2) continue; //select Gauss+Reso and Gauss
+        if(CONFIG!=0) continue; //select Gauss+Reso
+        //if(CONFIG!=1) continue; //select Levy+Reso
+        //if(CONFIG!=2) continue; //select Gauss
+        if(round(Baseline)!=WhichBaseline) continue;
+        //if(round(Baseline)!=0) continue; //select only norm
+        //if(int(Baseline)!=11) continue; //select only pol1
+        //if(int(Baseline)!=12) continue; //select only pol2
+        //if(SourceScale>0) continue;
+        //if(SourceScale<0.8&&SourceScale>0) continue;
+
+        if(Potential==Id_LO&&chi2_312/double(ndf_312)<LowCi_Chi2NdfLO&&chi2_312/double(ndf_312)>UpCi_Chi2NdfLO) continue;
+        if(Potential==Id_NLO&&chi2_312/double(ndf_312)<LowCi_Chi2NdfNLO&&chi2_312/double(ndf_312)>UpCi_Chi2NdfNLO) continue;
+        //if(Data!=0) continue;
+
         bool BestSoFarLO=false;
-        if(Potential==Id_LO&&(chi2/ndf)>WorstChi2NdfLO&&pFrac==0&&LamFrac==0){
-            WorstChi2NdfLO=chi2/ndf;
-        }
-        if(Potential==Id_LO&&(chi2/ndf)<BestChi2NdfLO&&pFrac==0&&LamFrac==0){
-            BestChi2NdfLO=chi2/ndf;
-            BestSoFarLO=true;
-        }
-        if(Potential==Id_LO&&TMath::Prob(chi2,ndf)>GlobalBestPval_LO){
-            GlobalBestPval_LO=TMath::Prob(chi2,ndf);
-//printf("GlobalBestPval_LO=%f\n",GlobalBestPval_LO);
-            //BestSoFarLO=true;
-        }
-
-
         bool BestSoFarNLO=false;
-        //select the best solution, demanding the default lambda parameters though
-        if(Potential==Id_NLO&&(chi2/ndf)>WorstChi2NdfNLO&&pFrac==0&&LamFrac==0){
-            WorstChi2NdfNLO=chi2/ndf;
-        }
-        if(Potential==Id_NLO&&(chi2/ndf)<BestChi2NdfNLO&&pFrac==0&&LamFrac==0){
-            BestChi2NdfNLO=chi2/ndf;
-            BestSoFarNLO=true;
-//printf("Hello %i\n",ITER);
-        }
-        if(Potential==Id_NLO&&TMath::Prob(chi2,ndf)>GlobalBestPval_NLO){
-            GlobalBestPval_NLO=TMath::Prob(chi2,ndf);
-            //BestSoFarNLO=true;
+
+        //we want to plot something that makes sense (i.e. is fixed to the data we plot)
+        if(Data==0){
+            if(Potential==Id_LO&&(chi2_312/ndf_312)>WorstChi2NdfLO&&pFrac==0&&LamFrac==0){
+                WorstChi2NdfLO=chi2_312/ndf_312;
+            }
+            if(Potential==Id_LO&&(chi2_312/ndf_312)<BestChi2NdfLO&&pFrac==0&&LamFrac==0){
+                BestChi2NdfLO=chi2_312/ndf_312;
+                BestSoFarLO=true;
+            }
+            if(Potential==Id_LO&&TMath::Prob(chi2_312,ndf_312)>GlobalBestPval_LO){
+                GlobalBestPval_LO=TMath::Prob(chi2_312,ndf_312);
+    //printf("GlobalBestPval_LO=%f\n",GlobalBestPval_LO);
+                //BestSoFarLO=true;
+            }
+
+            //select the best solution, demanding the default lambda parameters though
+            if(Potential==Id_NLO&&(chi2_312/ndf_312)>WorstChi2NdfNLO&&pFrac==0&&LamFrac==0){
+                WorstChi2NdfNLO=chi2_312/ndf_312;
+            }
+            if(Potential==Id_NLO&&(chi2_312/ndf_312)<BestChi2NdfNLO&&pFrac==0&&LamFrac==0){
+                BestChi2NdfNLO=chi2_312/ndf_312;
+                BestSoFarNLO=true;
+    //printf("Hello %i -> %i\n",ITER,int(Data));
+            }
+            if(Potential==Id_NLO&&TMath::Prob(chi2_312,ndf_312)>GlobalBestPval_NLO){
+                GlobalBestPval_NLO=TMath::Prob(chi2_312,ndf_312);
+                //BestSoFarNLO=true;
+            }
+
         }
 
         TFile* FileGraph = new TFile(TString::Format("%sConfig%i_Iter%i.root",FitSystFolder.Data(),CONFIG,ITER),"read");
+        TH1F* hDataVar = (TH1F*)FileGraph->Get("hCk_ReweightedMeV_2");
         TGraph* FitResult = (TGraph*)FileGraph->Get("FitResult_pL");
         TF1* FitBaseline = (TF1*)FileGraph->Get("fBaseline");
+
+        double CkMaxFit;
+        double kMaxFit;
+        FitResult->GetPoint(FitResult->GetN()-1,kMaxFit,CkMaxFit);
+
+        for(unsigned uBin=0; uBin<DevPlotNumBins; uBin++){
+            double kValue=hVarDeviationLO->GetXaxis()->GetBinCenter(uBin+1);
+            double dataValue = hDataVar->GetBinContent(uBin+1);
+            double fitValue = FitResult->Eval(kValue);
+            if(kValue>kMaxFit){
+                fitValue = CkMaxFit;
+            }
+            double dataError = hDataVar->GetBinError(uBin+1);
+            double Nsigma=(fitValue-dataValue)/(dataError);
+            if(Baseline==0&&kValue>480){
+                printf("\nkValue=%f\n",kValue);
+                printf("fitValue=%f\n",fitValue);
+                printf("dataValue=%f\n",dataValue);
+                printf("dataError=%f\n",dataError);
+                printf("Nsigma=%f\n",Nsigma);
+            }
+            double Ratio=dataValue/fitValue;
+
+            if(Potential==Id_LO){
+                hVarDeviationLO->Fill(kValue,Nsigma);
+                hVarDevRatioLO->Fill(kValue,Ratio);
+            }
+            if(Potential==Id_NLO){
+                hVarDeviationNLO->Fill(kValue,Nsigma);
+                hVarDevRatioNLO->Fill(kValue,Ratio);
+            }
+        }
+
         double xVal,xValLowUp;
         double yVal,yValLowUp;
         TGraph& gLower = Potential==Id_LO?gLowerLO:gLowerNLO;
@@ -3594,19 +3878,76 @@ void Plot_pL_FASTsyst(
         delete FileGraph;
     }
 
-    double BestNsigma_LO = sqrt(2)*TMath::ErfcInverse(GlobalBestPval_LO);
-    double BestNsigma_NLO = sqrt(2)*TMath::ErfcInverse(GlobalBestPval_NLO);
+    TH1D* hProjection;
+    for(unsigned uPoint=0; uPoint<DevPlotNumBins; uPoint++){
+        double kVal = hVarDeviationLO->GetXaxis()->GetBinCenter(uPoint+1);
+        hProjection = hVarDeviationLO->ProjectionY("hProjection", uPoint+1,uPoint+1);
+        gVarDeviationLO_Stdv.SetPoint(uPoint,kVal,hProjection->GetMean());
+        //if( (kVal>265&&kVal<295)||(uPoint==1||uPoint==2||uPoint==3||uPoint==6||uPoint==7||uPoint==8) )
+        //{gVarDeviationLO_Stdv.SetPointError(uPoint,0,20);}
+        //else if( (uPoint==4||uPoint==5) )
+        //{gVarDeviationLO_Stdv.SetPointError(uPoint,0,4);}
+        //else
+        {gVarDeviationLO_Stdv.SetPointError(uPoint,0,hProjection->GetStdDev());}
+        delete hProjection;
 
-    printf("BestNsigma_LO = %.2f\n",BestNsigma_LO);
-    printf("BestNsigma_NLO = %.2f\n",BestNsigma_NLO);
+        hProjection = hVarDeviationNLO->ProjectionY("hProjection", uPoint+1,uPoint+1);
 
-    TFile* fPlot = new TFile(FitSystFolder+"PLOT/fPlot.root","recreate");
+        gVarDeviationNLO_Stdv.SetPoint(uPoint,kVal,hProjection->GetMean());
+        //if( (kVal>265&&kVal<295)||(uPoint==1||uPoint==2||uPoint==3||uPoint==6||uPoint==7||uPoint==8) )
+        //{gVarDeviationNLO_Stdv.SetPointError(uPoint,0,20);}
+        //else if( (uPoint==4||uPoint==5) )
+        //{gVarDeviationNLO_Stdv.SetPointError(uPoint,0,4);}
+        //else
+        {gVarDeviationNLO_Stdv.SetPointError(uPoint,0,hProjection->GetStdDev());}
+        delete hProjection;
+    }
+
+
+    printf("BestNsigma_LO = %.2f (chi2ndf=%.2f)\n",BestNsigma_LO,BestChi2NdfLO);
+    printf("BestNsigma_NLO = %.2f (chi2ndf=%.2f)\n",BestNsigma_NLO,BestChi2NdfNLO);
+
+    printf("DefaultChi2NdfLO=%.2f (%.2f)\n",DefaultChi2NdfLO,DefaultNsigmaLO);
+    printf("DefaultChi2NdfNLO=%.2f (%.2f)\n",DefaultChi2NdfNLO,DefaultNsigmaNLO);
+
+    printf("MeanChi2NdfLO=%.2f (%.2f)\n",MeanChi2NdfLO,MeanNsigmaLO);
+    printf("MeanChi2NdfNLO=%.2f (%.2f)\n",MeanChi2NdfNLO,MeanNsigmaNLO);
+
+    printf("StdvChi2NdfLO=%.2f (%.2f)\n",StdvChi2NdfLO,StdvNsigmaLO);
+    printf("StdvChi2NdfNLO=%.2f (%.2f)\n",StdvChi2NdfNLO,StdvNsigmaNLO);
+
+    printf("UniformStdvChi2NdfLO=%.2f (%.2f)\n",UniformStdvChi2NdfLO,UniformStdvNsigmaLO);
+    printf("UniformStdvChi2NdfNLO=%.2f (%.2f)\n",UniformStdvChi2NdfNLO,UniformStdvNsigmaNLO);
+
+    printf("MinChi2NdfLO=%.2f (%.2f)\n",MinChi2NdfLO,MinNsigmaLO);
+    printf("MinChi2NdfNLO=%.2f (%.2f)\n",MinChi2NdfNLO,MinNsigmaNLO);
+
+    printf("MaxChi2NdfLO=%.2f (%.2f)\n",MaxChi2NdfLO,MaxNsigmaLO);
+    printf("MaxChi2NdfNLO=%.2f (%.2f)\n",MaxChi2NdfNLO,MaxNsigmaNLO);
+
+    printf("--- CENTRAL INTERVAL (68%%) ---\n");
+    printf(" Chi2NdfLO: %.2f, %.2f, %.2f\n",LowCi_Chi2NdfLO,Median_Chi2NdfLO,UpCi_Chi2NdfLO);
+    printf(" Chi2NdfNLO: %.2f, %.2f, %.2f\n",LowCi_Chi2NdfNLO,Median_Chi2NdfNLO,UpCi_Chi2NdfNLO);
+    printf(" NsigmaLO: %.2f, %.2f, %.2f\n",LowCi_NsigmaLO,Median_NsigmaLO,UpCi_NsigmaLO);
+    printf(" NsigmaNLO: %.2f, %.2f, %.2f\n",LowCi_NsigmaNLO,Median_NsigmaNLO,UpCi_NsigmaNLO);
+
+    TFile* fPlot = new TFile(FitSystFolder+"PLOT/fPlot_"+WhichBaseline+".root","recreate");
     gLowerLO.Write();
     gUpperLO.Write();
     gBestLO.Write();
     gLowerNLO.Write();
     gUpperNLO.Write();
     gBestNLO.Write();
+    hChi2NdfLO->Write();
+    hChi2NdfNLO->Write();
+    hNsigmaLO->Write();
+    hNsigmaNLO->Write();
+    hVarDeviationLO->Write();
+    gVarDeviationLO_Stdv.Write();
+    hVarDevRatioLO->Write();
+    hVarDeviationNLO->Write();
+    gVarDeviationNLO_Stdv.Write();
+    hVarDevRatioNLO->Write();
 
     gStyle->SetCanvasPreferGL(1);
     SetStyle();
@@ -3776,13 +4117,12 @@ void Plot_pL_FASTsyst(
     if(grFemto_LO&&MODE==0) {bBestLO.Draw("l same");}
     if(grFemto_NLO&&MODE==0) {bBestNLO.Draw("l same");}
 
+    Can_CF_pL->SaveAs(FitSystFolder+TString::Format("PLOT/Can_CF_pL_%i.pdf",WhichBaseline));
 
-
-    Can_CF_pL->SaveAs(FitSystFolder+"PLOT/Can_CF_pL.pdf");
-
-    delete DataFile;
-    delete SystFile;
-    delete ntFile;
+    delete hVarDeviationLO;
+    delete hVarDeviationNLO;
+    delete hVarDevRatioLO;
+    delete hVarDevRatioNLO;
     delete legend;
     delete hCk_Fake;
     delete Tgraph_syserror;
@@ -3791,7 +4131,14 @@ void Plot_pL_FASTsyst(
     delete grOuterBl_LO;
     delete grOuterBl_NLO;
     delete Can_CF_pL;
+    delete hChi2NdfLO;
+    delete hChi2NdfNLO;
+    delete hNsigmaLO;
+    delete hNsigmaNLO;
     delete fPlot;
+    delete DataFile;
+    delete SystFile;
+    delete ntFile;
 /*
     //const int NumConfigs = 2;
     //int WhichConfiguration[NumConfigs] = {0,2};
@@ -4280,8 +4627,9 @@ Data set 2: a=1.003e+00; b=-2.650e-06
     //mT_Plots("pp13TeV_HM_March19",false);
     //mT_Plots("pPb5TeV_CPR_Mar19",false);
 
-    Plot_pL_FASTsyst();
-
+    Plot_pL_FASTsyst(0);
+    Plot_pL_FASTsyst(11);
+    Plot_pL_FASTsyst(12);
 
 
     return 0;

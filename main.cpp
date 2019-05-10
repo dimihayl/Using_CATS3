@@ -7,7 +7,7 @@
 #include <iostream>
 #include <stdio.h>
 #include <string.h>
-#include <omp.h>
+//#include <omp.h>
 #include <complex>
 
 #include "CATS.h"
@@ -33,7 +33,9 @@
 #include "TRandom3.h"
 #include "TF1.h"
 #include "TNtuple.h"
-
+#include "TStyle.h"
+#include "TLegend.h"
+#include "TPaveText.h"
 
 using namespace std;
 
@@ -358,6 +360,86 @@ void plot_pSigma0(){
     CleanUpWfHisto(Kitty,ExternalWF);
 
     delete OutputFile;
+}
+/*
+void plot_pSigma0_Tom(){
+
+    const double SourceSize = 1.2;
+    const double SourceStability = 2.0;
+
+    const double kMin=0;
+    const double kMax=320;
+    const unsigned NumMomBins = 64;
+
+    TFile* OutputFile = new TFile(
+                TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/plot_pSigma0_Tom/OutputFile_%.2f_%.2f.root",
+                                SourceStability,SourceSize),"recreate");
+    CATS Kitty;
+    Kitty.SetMomBins(NumMomBins,kMin,kMax);
+
+    DLM_CleverLevy CleverLevy;
+    CleverLevy.InitStability(20,1,2);
+    CleverLevy.InitScale(35,0.25,2.0);
+    CleverLevy.InitRad(256,0,64);
+    CleverLevy.InitType(2);
+    Kitty.SetAnaSource(CatsSourceForwarder, &CleverLevy, 2);
+    Kitty.SetAnaSource(0,SourceSize);
+    Kitty.SetAnaSource(1,SourceStability);
+    Kitty.SetUseAnalyticSource(true);
+    Kitty.SetMomentumDependentSource(false);
+    Kitty.SetThetaDependentSource(false);
+    Kitty.SetExcludeFailedBins(false);
+
+    DLM_Histo<complex<double>>*** ExternalWF=NULL;
+    ExternalWF = Init_pS0_ESC08("/home/dmihaylov/CernBox/CATS_potentials/Tom/pSigma0/260419/",Kitty);
+    for(unsigned uCh=0; uCh<Kitty.GetNumChannels(); uCh++){
+        Kitty.SetExternalWaveFunction(uCh,0,ExternalWF[0][uCh][0],ExternalWF[1][uCh][0]);
+
+    }
+
+    Kitty.KillTheCat();
+    TGraph gKitty;
+    gKitty.SetName(TString::Format("gKitty"));
+    gKitty.Set(NumMomBins);
+    for(unsigned uBin=0; uBin<NumMomBins; uBin++){
+        printf("C(%.2f) = %.2f\n",Kitty.GetMomentum(uBin),Kitty.GetCorrFun(uBin));
+        gKitty.SetPoint(uBin,Kitty.GetMomentum(uBin),Kitty.GetCorrFun(uBin));
+    }
+    gKitty.Write();
+
+    CleanUpWfHisto(Kitty,ExternalWF);
+
+    delete OutputFile;
+}
+*/
+
+void TestQS(){
+
+    CATS Kitty;
+    CATSparameters* cPars;
+
+    const unsigned NumMomBins = 256;
+
+    cPars = new CATSparameters(CATSparameters::tSource, 1, true);
+    cPars->SetParameter(0, 0.5);
+    Kitty.SetAnaSource(GaussSource, *cPars);
+    Kitty.SetUseAnalyticSource(true);
+    Kitty.SetMomentumDependentSource(false);
+    Kitty.SetThetaDependentSource(false);
+    Kitty.SetExcludeFailedBins(false);
+    Kitty.SetMomBins(NumMomBins, 0, 512);
+    Kitty.SetQ1Q2(0);
+    Kitty.SetPdgId(2212, 2212);
+    Kitty.SetNumChannels(1);
+    Kitty.SetNumPW(0, 1);
+    Kitty.SetSpin(0, 1);
+    Kitty.SetChannelWeight(0,1);
+    Kitty.KillTheCat();
+
+    for(unsigned uBin=0; uBin<NumMomBins; uBin++){
+        printf("C(%.3f) = %.3f\n",Kitty.GetMomentum(uBin),Kitty.GetCorrFun(uBin));
+    }
+
 }
 
 void McLevyTest1(){
@@ -727,15 +809,15 @@ void TestSigma0(){
 
     Kitty.SetUseAnalyticSource(true);
     Kitty.SetAnaSource(GaussSource,cPars);
-    ExternalWF = Init_pS0_ESC08("//home/dmihaylov/CernBox/CATS_potentials/Tom/pSigma0/030419/",Kitty);
+    ExternalWF = Init_pS0_ESC08("/home/dmihaylov/CernBox/CATS_potentials/Tom/pSigma0/WithPhase/",Kitty);
     Kitty.SetExternalWaveFunction(0,0,ExternalWF[0][0][0],ExternalWF[1][0][0]);
     Kitty.SetExternalWaveFunction(1,0,ExternalWF[0][1][0],ExternalWF[1][1][0]);
 
     Kitty.SetMomentumDependentSource(false);
     Kitty.SetThetaDependentSource(false);
     Kitty.SetExcludeFailedBins(false);
-//Kitty.SetChannelWeight(0,0);
-//Kitty.SetChannelWeight(1,1);
+Kitty.SetChannelWeight(0,0.25);
+Kitty.SetChannelWeight(1,0.75);
     Kitty.KillTheCat();
 
     TFile* OutputFile = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/TestSigma0/OutputFile.root","recreate");
@@ -754,8 +836,8 @@ void TestSigma0(){
         gWF3S1.SetName(TString::Format("gWF3S1_%.0f",Kitty.GetMomentum(uBin)));
         int COUNTER=0;
         for(double RAD=0.05; RAD<15; RAD+=0.05){
-            gWF1S0.SetPoint(COUNTER,RAD,real(Kitty.EvalRadialWaveFunction(uBin,0,0,RAD,false)));
-            gWF3S1.SetPoint(COUNTER,RAD,real(Kitty.EvalRadialWaveFunction(uBin,1,0,RAD,false)));
+            gWF1S0.SetPoint(COUNTER,RAD,abs(Kitty.EvalRadialWaveFunction(uBin,0,0,RAD,false)));
+            gWF3S1.SetPoint(COUNTER,RAD,abs(Kitty.EvalRadialWaveFunction(uBin,1,0,RAD,false)));
             COUNTER++;
         }
         OutputFile->cd();
@@ -768,6 +850,865 @@ void TestSigma0(){
 
     delete OutputFile;
 
+}
+
+void TestRandBW(){
+
+    const unsigned NumIter = 100000;
+
+    TH1F* hBW_root = new TH1F("hBW_root","hBW_root",256,-8,8);
+    TH1F* hBW_dimi = new TH1F("hBW_dimi","hBW_dimi",256,-8,8);
+
+    TRandom3 RanRoot(11);
+    DLM_Random RanDimi(11);
+
+    double Mean = 0;
+    double Gamma = 2;
+
+    for(unsigned uIter=0; uIter<NumIter; uIter++){
+        hBW_root->Fill(RanRoot.BreitWigner(Mean,Gamma));
+        hBW_dimi->Fill(RanDimi.Cauchy(Mean,Gamma/sqrt(2)));
+    }
+    hBW_root->SetLineColor(kRed);
+    hBW_root->SetLineWidth(3);
+    hBW_root->Sumw2();
+
+    hBW_dimi->SetLineColor(kBlue);
+    hBW_dimi->SetLineWidth(2);
+    hBW_dimi->Sumw2();
+
+    TCanvas* cBW = new TCanvas("cBW", "cBW", 1);
+    cBW->cd(0); cBW->SetCanvasSize(960, 540); cBW->SetMargin(0.15,0.05,0.2,0.05);//lrbt
+
+    hBW_root->Draw();
+    hBW_dimi->Draw("same");
+
+    cBW->SaveAs("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/TestRandBW/cBW.png");
+
+    delete hBW_root;
+    delete hBW_dimi;
+    delete cBW;
+
+}
+
+void SourceSmearing(){
+
+    unsigned NumMassSmear = 2;
+    bool MassSmear[NumMassSmear] = {false,true};
+
+    //unsigned NumMomSmear = 5;
+    //double MomSmear[NumMomSmear] = {0,0.05,0.10,0.15,0.20};
+
+    //unsigned NumMomSmear = 3;
+    //double MomSmear[NumMomSmear] = {0,0.05,0.10};
+
+    unsigned NumMomSmear = 2;
+    double MomSmear[NumMomSmear] = {0,0.20};
+
+    unsigned NumIter = NumMassSmear*NumMomSmear;
+
+    DLM_CommonAnaFunctions AnaObject;
+
+    const unsigned NumMomBins = 50;
+    const double kMin = 0;
+    const double kMax = 250;
+
+    double GaussSourceSize_pp = 1.32;//1.35
+    double GaussSourceSize_pL = 1.22;//1.55
+    double GaussSourceSize_pXim = 1.09;//1.85
+    double GaussSourceSize_pOmegam = 1.01;//2.17
+
+    const unsigned NumSourceBins = 128;
+    const double rMin = 0.1;
+    const double rMax = 8.0;
+    const double rStep = (rMax-rMin)/double(NumSourceBins);
+
+    CATS AB_pp;
+    AB_pp.SetMomBins(NumMomBins,kMin,kMax);
+    AnaObject.SetUpCats_pp(AB_pp,"AV18","McGauss_Reso");
+    AB_pp.SetAnaSource(0,0.97);
+    AB_pp.SetEpsilonConv(1e-8);
+    AB_pp.SetEpsilonProp(1e-8);
+
+    CATS AB_pL;
+    AB_pL.SetMomBins(NumMomBins,kMin,kMax);
+    AnaObject.SetUpCats_pL(AB_pL,"NLO_Coupled_S","McGauss_Reso");
+    AB_pL.SetAnaSource(0,0.92);
+    AB_pL.SetEpsilonConv(1e-8);
+    AB_pL.SetEpsilonProp(1e-8);
+
+    CATS AB_pXim;
+    AB_pXim.SetMomBins(NumMomBins,kMin,kMax);
+    AnaObject.SetUpCats_pXim(AB_pXim,"pXim_HALQCD1","McGauss_Reso");
+    AB_pXim.SetAnaSource(0,0.79);
+    AB_pXim.SetEpsilonConv(1e-8);
+    AB_pXim.SetEpsilonProp(1e-8);
+
+    CATS AB_pOmegam;
+    AB_pOmegam.SetMomBins(NumMomBins,kMin,kMax);
+    AnaObject.SetUpCats_pOmegam(AB_pOmegam,"pOmega_Lattice","McGauss_Reso");
+    AB_pOmegam.SetAnaSource(0,0.73);
+    AB_pOmegam.SetEpsilonConv(1e-8);
+    AB_pOmegam.SetEpsilonProp(1e-8);
+
+    AB_pp.SetNotifications(CATS::nWarning);
+    AB_pp.SetMaxNumThreads(4);
+    AB_pL.SetNotifications(CATS::nWarning);
+    AB_pL.SetMaxNumThreads(4);
+    AB_pXim.SetNotifications(CATS::nWarning);
+    AB_pXim.SetMaxNumThreads(4);
+    AB_pOmegam.SetNotifications(CATS::nWarning);
+    AB_pOmegam.SetMaxNumThreads(4);
+
+    TGraph* gCk_pp = new TGraph[NumIter];
+    TGraph* gCk_pL = new TGraph[NumIter];
+    TGraph* gCk_pXim = new TGraph[NumIter];
+    TGraph* gCk_pOmegam = new TGraph[NumIter];
+
+    TGraph* gCkRatio_pp = new TGraph[NumIter];
+    TGraph* gCkRatio_pL = new TGraph[NumIter];
+    TGraph* gCkRatio_pXim = new TGraph[NumIter];
+    TGraph* gCkRatio_pOmegam = new TGraph[NumIter];
+
+    TGraph gpp_low;
+    gpp_low.SetName("gpp_low");
+    TGraph gpp_up;
+    gpp_up.SetName("gpp_up");
+
+    TGraph gpL_low;
+    gpL_low.SetName("gpL_low");
+    TGraph gpL_up;
+    gpL_up.SetName("gpL_up");
+
+    TGraph gpXim_low;
+    gpXim_low.SetName("gpXim_low");
+    TGraph gpXim_up;
+    gpXim_up.SetName("gpXim_up");
+
+    TGraph gpOmegam_low;
+    gpOmegam_low.SetName("gpOmegam_low");
+    TGraph gpOmegam_up;
+    gpOmegam_up.SetName("gpOmegam_up");
+
+    TGraph gSourceGaussReso_pp;
+    TGraph gSourceGaussReso_pL;
+    TGraph gSourceGaussReso_pXim;
+    TGraph gSourceGaussReso_pOmegam;
+
+    TGraph gSourceGauss_pp;
+    TGraph gSourceGauss_pL;
+    TGraph gSourceGauss_pXim;
+    TGraph gSourceGauss_pOmegam;
+
+    gSourceGaussReso_pp.SetName("gSourceGaussReso_pp");
+    gSourceGaussReso_pL.SetName("gSourceGaussReso_pL");
+    gSourceGaussReso_pXim.SetName("gSourceGaussReso_pXim");
+    gSourceGaussReso_pOmegam.SetName("gSourceGaussReso_pOmegam");
+
+    gSourceGauss_pp.SetName("gSourceGauss_pp");
+    gSourceGauss_pL.SetName("gSourceGauss_pL");
+    gSourceGauss_pXim.SetName("gSourceGauss_pXim");
+    gSourceGauss_pOmegam.SetName("gSourceGauss_pOmegam");
+
+    unsigned Counter=0;
+
+    //double MaxLow_pp=1;
+    //double MaxUp_pp=1;
+
+    //double MaxLow_pL=1;
+    //double MaxUp_pL=1;
+
+    //double MaxLow_pXim=1;
+    //double MaxUp_pXim=1;
+
+    //double MaxLow_pOmegam=1;
+    //double MaxUp_pOmegam=1;
+
+    double xVal,yVal,xVal2,yVal2;
+
+    for(unsigned uMassSmear=0; uMassSmear<NumMassSmear; uMassSmear++){
+        printf("uMassSmear = %u\n",uMassSmear);
+        for(unsigned uMomSmear=0; uMomSmear<NumMomSmear; uMomSmear++){
+            printf(" uMomSmear = %u\n",uMomSmear);
+
+            gCk_pp[Counter].SetName(TString::Format("gCk_pp_%u_%u",uMassSmear,uMomSmear));
+            gCk_pL[Counter].SetName(TString::Format("gCk_pL_%u_%u",uMassSmear,uMomSmear));
+            gCk_pXim[Counter].SetName(TString::Format("gCk_pXim_%u_%u",uMassSmear,uMomSmear));
+            gCk_pOmegam[Counter].SetName(TString::Format("gCk_pOmegam_%u_%u",uMassSmear,uMomSmear));
+
+            gCkRatio_pp[Counter].SetName(TString::Format("gCkRatio_pp_%u_%u",uMassSmear,uMomSmear));
+            gCkRatio_pL[Counter].SetName(TString::Format("gCkRatio_pL_%u_%u",uMassSmear,uMomSmear));
+            gCkRatio_pXim[Counter].SetName(TString::Format("gCkRatio_pXim_%u_%u",uMassSmear,uMomSmear));
+            gCkRatio_pOmegam[Counter].SetName(TString::Format("gCkRatio_pOmegam_%u_%u",uMassSmear,uMomSmear));
+
+            AnaObject.GetCleverMcLevyReso_pp()->SetUpReso(0,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic,MomSmear[uMomSmear],MassSmear[uMassSmear]);
+            AnaObject.GetCleverMcLevyReso_pp()->SetUpReso(1,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic,MomSmear[uMomSmear],MassSmear[uMassSmear]);
+
+            AnaObject.GetCleverMcLevyReso_pL()->SetUpReso(0,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic,MomSmear[uMomSmear],MassSmear[uMassSmear]);
+            AnaObject.GetCleverMcLevyReso_pL()->SetUpReso(1,0,1.-0.3562,1462.93,4.69,Mass_L,Mass_pic,MomSmear[uMomSmear],MassSmear[uMassSmear]);
+
+            AnaObject.GetCleverMcLevyReso_pXim()->SetUpReso(0,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic,MomSmear[uMomSmear],MassSmear[uMassSmear]);
+
+            AnaObject.GetCleverMcLevyReso_pOmegam()->SetUpReso(0,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic,MomSmear[uMomSmear],MassSmear[uMassSmear]);
+
+            AB_pp.KillTheCat(uMassSmear+uMomSmear?CATS::kSourceChanged:CATS::kAllChanged);
+            AB_pL.KillTheCat(uMassSmear+uMomSmear?CATS::kSourceChanged:CATS::kAllChanged);
+            AB_pXim.KillTheCat(uMassSmear+uMomSmear?CATS::kSourceChanged:CATS::kAllChanged);
+            AB_pOmegam.KillTheCat(uMassSmear+uMomSmear?CATS::kSourceChanged:CATS::kAllChanged);
+
+            for(unsigned uBin=0; uBin<AB_pp.GetNumMomBins(); uBin++){
+                gCk_pp[Counter].SetPoint(uBin,AB_pp.GetMomentum(uBin),AB_pp.GetCorrFun(uBin));
+                if(uMassSmear==0&&uMomSmear==0){
+                    gpp_low.SetPoint(uBin,AB_pp.GetMomentum(uBin),AB_pp.GetCorrFun(uBin));
+                    gpp_up.SetPoint(uBin,AB_pp.GetMomentum(uBin),AB_pp.GetCorrFun(uBin));
+                }
+                else{
+                    gpp_low.GetPoint(uBin,xVal,yVal);
+                    if(AB_pp.GetCorrFun(uBin)<yVal){gpp_low.SetPoint(uBin,AB_pp.GetMomentum(uBin),AB_pp.GetCorrFun(uBin));}
+                    gpp_up.GetPoint(uBin,xVal,yVal);
+                    if(AB_pp.GetCorrFun(uBin)>yVal){gpp_up.SetPoint(uBin,AB_pp.GetMomentum(uBin),AB_pp.GetCorrFun(uBin));}
+                }
+            }
+            for(unsigned uBin=0; uBin<AB_pL.GetNumMomBins(); uBin++){
+                gCk_pL[Counter].SetPoint(uBin,AB_pL.GetMomentum(uBin),AB_pL.GetCorrFun(uBin));
+                if(uMassSmear==0&&uMomSmear==0){
+                    gpL_low.SetPoint(uBin,AB_pL.GetMomentum(uBin),AB_pL.GetCorrFun(uBin));
+                    gpL_up.SetPoint(uBin,AB_pL.GetMomentum(uBin),AB_pL.GetCorrFun(uBin));
+                }
+                else{
+                    gpL_low.GetPoint(uBin,xVal,yVal);
+                    if(AB_pL.GetCorrFun(uBin)<yVal){gpL_low.SetPoint(uBin,AB_pL.GetMomentum(uBin),AB_pL.GetCorrFun(uBin));}
+                    gpL_up.GetPoint(uBin,xVal,yVal);
+                    if(AB_pL.GetCorrFun(uBin)>yVal){gpL_up.SetPoint(uBin,AB_pL.GetMomentum(uBin),AB_pL.GetCorrFun(uBin));}
+                }
+            }
+            for(unsigned uBin=0; uBin<AB_pXim.GetNumMomBins(); uBin++){
+                gCk_pXim[Counter].SetPoint(uBin,AB_pXim.GetMomentum(uBin),AB_pXim.GetCorrFun(uBin));
+                if(uMassSmear==0&&uMomSmear==0){
+                    gpXim_low.SetPoint(uBin,AB_pXim.GetMomentum(uBin),AB_pXim.GetCorrFun(uBin));
+                    gpXim_up.SetPoint(uBin,AB_pXim.GetMomentum(uBin),AB_pXim.GetCorrFun(uBin));
+                }
+                else{
+                    gpXim_low.GetPoint(uBin,xVal,yVal);
+                    if(AB_pXim.GetCorrFun(uBin)<yVal){gpXim_low.SetPoint(uBin,AB_pXim.GetMomentum(uBin),AB_pXim.GetCorrFun(uBin));}
+                    gpXim_up.GetPoint(uBin,xVal,yVal);
+                    if(AB_pXim.GetCorrFun(uBin)>yVal){gpXim_up.SetPoint(uBin,AB_pXim.GetMomentum(uBin),AB_pXim.GetCorrFun(uBin));}
+                }
+            }
+            for(unsigned uBin=0; uBin<AB_pOmegam.GetNumMomBins(); uBin++){
+                gCk_pOmegam[Counter].SetPoint(uBin,AB_pOmegam.GetMomentum(uBin),AB_pOmegam.GetCorrFun(uBin));
+                if(uMassSmear==0&&uMomSmear==0){
+                    gpOmegam_low.SetPoint(uBin,AB_pOmegam.GetMomentum(uBin),AB_pOmegam.GetCorrFun(uBin));
+                    gpOmegam_up.SetPoint(uBin,AB_pOmegam.GetMomentum(uBin),AB_pOmegam.GetCorrFun(uBin));
+                }
+                else{
+                    gpOmegam_low.GetPoint(uBin,xVal,yVal);
+                    if(AB_pOmegam.GetCorrFun(uBin)<yVal){gpOmegam_low.SetPoint(uBin,AB_pOmegam.GetMomentum(uBin),AB_pOmegam.GetCorrFun(uBin));}
+                    gpOmegam_up.GetPoint(uBin,xVal,yVal);
+                    if(AB_pOmegam.GetCorrFun(uBin)>yVal){gpOmegam_up.SetPoint(uBin,AB_pOmegam.GetMomentum(uBin),AB_pOmegam.GetCorrFun(uBin));}
+                }
+            }
+
+            for(unsigned uBin=0; uBin<AB_pp.GetNumMomBins(); uBin++){
+                gCk_pp[0].GetPoint(uBin,xVal,yVal);
+                gCk_pp[Counter].GetPoint(uBin,xVal2,yVal2);
+                gCkRatio_pp[Counter].SetPoint(uBin,AB_pp.GetMomentum(uBin),yVal2/yVal);
+            }
+            for(unsigned uBin=0; uBin<AB_pL.GetNumMomBins(); uBin++){
+                gCk_pL[0].GetPoint(uBin,xVal,yVal);
+                gCk_pL[Counter].GetPoint(uBin,xVal2,yVal2);
+                gCkRatio_pL[Counter].SetPoint(uBin,AB_pL.GetMomentum(uBin),yVal2/yVal);
+            }
+            for(unsigned uBin=0; uBin<AB_pXim.GetNumMomBins(); uBin++){
+                gCk_pXim[0].GetPoint(uBin,xVal,yVal);
+                gCk_pXim[Counter].GetPoint(uBin,xVal2,yVal2);
+                gCkRatio_pXim[Counter].SetPoint(uBin,AB_pXim.GetMomentum(uBin),yVal2/yVal);
+            }
+            for(unsigned uBin=0; uBin<AB_pOmegam.GetNumMomBins(); uBin++){
+                gCk_pOmegam[0].GetPoint(uBin,xVal,yVal);
+                gCk_pOmegam[Counter].GetPoint(uBin,xVal2,yVal2);
+                gCkRatio_pOmegam[Counter].SetPoint(uBin,AB_pOmegam.GetMomentum(uBin),yVal2/yVal);
+            }
+
+            Counter++;
+        }
+    }
+
+    for(unsigned uBin=0; uBin<AB_pp.GetNumMomBins(); uBin++){
+        gCk_pp[0].GetPoint(uBin,xVal,yVal);
+        gpp_low.GetPoint(uBin,xVal2,yVal2);
+        gpp_low.SetPoint(uBin,xVal,yVal2/yVal);
+
+        gpp_up.GetPoint(uBin,xVal2,yVal2);
+        gpp_up.SetPoint(uBin,xVal,yVal2/yVal);
+
+    }
+    for(unsigned uBin=0; uBin<AB_pL.GetNumMomBins(); uBin++){
+        gCk_pL[0].GetPoint(uBin,xVal,yVal);
+        gpL_low.GetPoint(uBin,xVal2,yVal2);
+        gpL_low.SetPoint(uBin,xVal,yVal2/yVal);
+
+        gpL_up.GetPoint(uBin,xVal2,yVal2);
+        gpL_up.SetPoint(uBin,xVal,yVal2/yVal);
+    }
+    for(unsigned uBin=0; uBin<AB_pXim.GetNumMomBins(); uBin++){
+        gCk_pXim[0].GetPoint(uBin,xVal,yVal);
+        gpXim_low.GetPoint(uBin,xVal2,yVal2);
+        gpXim_low.SetPoint(uBin,xVal,yVal2/yVal);
+
+        gpXim_up.GetPoint(uBin,xVal2,yVal2);
+        gpXim_up.SetPoint(uBin,xVal,yVal2/yVal);
+    }
+    for(unsigned uBin=0; uBin<AB_pOmegam.GetNumMomBins(); uBin++){
+        gCk_pOmegam[0].GetPoint(uBin,xVal,yVal);
+        gpOmegam_low.GetPoint(uBin,xVal2,yVal2);
+        gpOmegam_low.SetPoint(uBin,xVal,yVal2/yVal);
+
+        gpOmegam_up.GetPoint(uBin,xVal2,yVal2);
+        gpOmegam_up.SetPoint(uBin,xVal,yVal2/yVal);
+    }
+
+    TFile* fOutputFile = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/SourceSmearing/fOutputFile.root","recreate");
+    for(unsigned uIter=0; uIter<NumIter; uIter++){
+        gCk_pp[uIter].Write();
+    }
+    for(unsigned uIter=0; uIter<NumIter; uIter++){
+        gCkRatio_pp[uIter].Write();
+    }
+    for(unsigned uIter=0; uIter<NumIter; uIter++){
+        gCk_pL[uIter].Write();
+    }
+    for(unsigned uIter=0; uIter<NumIter; uIter++){
+        gCkRatio_pL[uIter].Write();
+    }
+    for(unsigned uIter=0; uIter<NumIter; uIter++){
+        gCk_pXim[uIter].Write();
+    }
+    for(unsigned uIter=0; uIter<NumIter; uIter++){
+        gCkRatio_pXim[uIter].Write();
+    }
+    for(unsigned uIter=0; uIter<NumIter; uIter++){
+        gCk_pOmegam[uIter].Write();
+    }
+    for(unsigned uIter=0; uIter<NumIter; uIter++){
+        gCkRatio_pOmegam[uIter].Write();
+    }
+
+    for(unsigned uRad=0; uRad<NumSourceBins; uRad++){
+        double PARS[4];
+        PARS[1] = rMin+double(uRad)*rStep;
+
+        PARS[3] = GaussSourceSize_pp;
+        gSourceGauss_pp.SetPoint(uRad,PARS[1],GaussSource(PARS));
+        gSourceGaussReso_pp.SetPoint(uRad,PARS[1],AB_pp.EvaluateTheSource(10,PARS[1],0));
+
+        PARS[3] = GaussSourceSize_pL;
+        gSourceGauss_pL.SetPoint(uRad,PARS[1],GaussSource(PARS));
+        gSourceGaussReso_pL.SetPoint(uRad,PARS[1],AB_pL.EvaluateTheSource(10,PARS[1],0));
+
+        PARS[3] = GaussSourceSize_pXim;
+        gSourceGauss_pXim.SetPoint(uRad,PARS[1],GaussSource(PARS));
+        gSourceGaussReso_pXim.SetPoint(uRad,PARS[1],AB_pXim.EvaluateTheSource(10,PARS[1],0));
+
+        PARS[3] = GaussSourceSize_pOmegam;
+        gSourceGauss_pOmegam.SetPoint(uRad,PARS[1],GaussSource(PARS));
+        gSourceGaussReso_pOmegam.SetPoint(uRad,PARS[1],AB_pOmegam.EvaluateTheSource(10,PARS[1],0));
+    }
+
+
+    TH1F* hAxis = new TH1F("hAxis", "hAxis", 256, kMin, kMax);
+    hAxis->SetStats(false);
+    hAxis->SetTitle("");
+    hAxis->GetXaxis()->SetTitle("k* (MeV/c)");
+    hAxis->GetXaxis()->SetTitleSize(0.06);
+    hAxis->GetXaxis()->SetLabelSize(0.06);
+    hAxis->GetXaxis()->CenterTitle();
+    hAxis->GetXaxis()->SetTitleOffset(1.3);
+    hAxis->GetXaxis()->SetLabelOffset(0.02);
+    hAxis->GetYaxis()->SetTitle("C_{Smear}(k*)/C_{Default}(k*)");
+    hAxis->GetYaxis()->SetTitleSize(0.06);
+    hAxis->GetYaxis()->SetLabelSize(0.06);
+    hAxis->GetYaxis()->CenterTitle();
+    hAxis->GetYaxis()->SetTitleOffset(1.00);
+    hAxis->GetYaxis()->SetRangeUser(0.975,1.025);
+    hAxis->GetYaxis()->SetNdivisions(404);
+
+    TCanvas* cRatio_pp = new TCanvas("cRatio_pp", "cRatio_pp", 1);
+    cRatio_pp->cd(0); cRatio_pp->SetCanvasSize(1920, 1080); cRatio_pp->SetMargin(0.15,0.05,0.2,0.05);//lrbt
+    cRatio_pp->SetGrid(true);
+    TLegend* lLegend_pp = new TLegend(0.5,0.75,0.95,0.95);//lbrt
+    lLegend_pp->SetName(TString::Format("lLegend"));
+    lLegend_pp->SetTextSize(0.045);
+    lLegend_pp->AddEntry(&gCkRatio_pp[NumMomSmear],"Effect of resonance width");
+    lLegend_pp->AddEntry(&gCkRatio_pp[NumMomSmear-1],"Momentum smearing of 20%");
+    TPaveText* PT_pp = new TPaveText(0.2,0.85,0.5,0.95, "blNDC");//lbrt
+    PT_pp->SetName("PT_pp");
+    PT_pp->SetBorderSize(1);
+    PT_pp->SetTextSize(0.045);
+    PT_pp->SetFillColor(kWhite);
+    PT_pp->SetTextFont(22);
+    PT_pp->AddText("p-p correlation");
+
+    hAxis->Draw("axis");
+    gCkRatio_pp[NumMomSmear].SetLineWidth(6);
+    gCkRatio_pp[NumMomSmear].SetLineColor(kBlue);
+    gCkRatio_pp[NumMomSmear-1].SetLineWidth(6);
+    gCkRatio_pp[NumMomSmear-1].SetLineColor(kRed);
+
+    gCkRatio_pp[NumMomSmear].Draw("same,c");//only mass smearing
+    gCkRatio_pp[NumMomSmear-1].Draw("same,c");//max momentum smear
+    lLegend_pp->Draw("same");
+    PT_pp->Draw("same");
+
+    gStyle->SetLineWidth(2.5);
+    cRatio_pp->SaveAs(TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/SourceSmearing/cRatio_pp.png"));
+
+	gStyle->SetLineWidth(1);
+	gCkRatio_pp[NumMomSmear].SetLineWidth(gCkRatio_pp[NumMomSmear].GetLineWidth()/2.5);
+    gCkRatio_pp[NumMomSmear-1].SetLineWidth(gCkRatio_pp[NumMomSmear-1].GetLineWidth()/2.5);
+    cRatio_pp->SaveAs(TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/SourceSmearing/cRatio_pp.pdf"));
+	gStyle->SetLineWidth(2.5);
+	gCkRatio_pp[NumMomSmear].SetLineWidth(gCkRatio_pp[NumMomSmear].GetLineWidth()*2.5);
+    gCkRatio_pp[NumMomSmear-1].SetLineWidth(gCkRatio_pp[NumMomSmear-1].GetLineWidth()*2.5);
+
+
+    TCanvas* cRatio_pL = new TCanvas("cRatio_pL", "cRatio_pL", 1);
+    cRatio_pL->cd(0); cRatio_pL->SetCanvasSize(1920, 1080); cRatio_pL->SetMargin(0.15,0.05,0.2,0.05);//lrbt
+    cRatio_pL->SetGrid(true);
+    TLegend* lLegend_pL = new TLegend(0.5,0.75,0.95,0.95);//lbrt
+    lLegend_pL->SetName(TString::Format("lLegend"));
+    lLegend_pL->SetTextSize(0.045);
+    lLegend_pL->AddEntry(&gCkRatio_pL[NumMomSmear],"Effect of resonance width");
+    lLegend_pL->AddEntry(&gCkRatio_pL[NumMomSmear-1],"Momentum smearing of 20%");
+    TPaveText* PT_pL = new TPaveText(0.2,0.85,0.5,0.95, "blNDC");//lbrt
+    PT_pL->SetName("PT_pL");
+    PT_pL->SetBorderSize(1);
+    PT_pL->SetTextSize(0.045);
+    PT_pL->SetFillColor(kWhite);
+    PT_pL->SetTextFont(22);
+    PT_pL->AddText("p-#Lambda correlation");
+
+    hAxis->Draw("axis");
+    gCkRatio_pL[NumMomSmear].SetLineWidth(6);
+    gCkRatio_pL[NumMomSmear].SetLineColor(kBlue);
+    gCkRatio_pL[NumMomSmear-1].SetLineWidth(6);
+    gCkRatio_pL[NumMomSmear-1].SetLineColor(kRed);
+
+    gCkRatio_pL[NumMomSmear].Draw("same,c");//only mass smearing
+    gCkRatio_pL[NumMomSmear-1].Draw("same,c");//max momentum smear
+    lLegend_pL->Draw("same");
+    PT_pL->Draw("same");
+
+    cRatio_pL->SaveAs(TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/SourceSmearing/cRatio_pL.png"));
+
+	gStyle->SetLineWidth(1);
+	gCkRatio_pL[NumMomSmear].SetLineWidth(gCkRatio_pL[NumMomSmear].GetLineWidth()/2.5);
+    gCkRatio_pL[NumMomSmear-1].SetLineWidth(gCkRatio_pL[NumMomSmear-1].GetLineWidth()/2.5);
+    cRatio_pL->SaveAs(TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/SourceSmearing/cRatio_pL.pdf"));
+	gStyle->SetLineWidth(2.5);
+	gCkRatio_pL[NumMomSmear].SetLineWidth(gCkRatio_pL[NumMomSmear].GetLineWidth()*2.5);
+    gCkRatio_pL[NumMomSmear-1].SetLineWidth(gCkRatio_pL[NumMomSmear-1].GetLineWidth()*2.5);
+
+
+    TCanvas* cRatio_pXim = new TCanvas("cRatio_pXim", "cRatio_pXim", 1);
+    cRatio_pXim->cd(0); cRatio_pXim->SetCanvasSize(1920, 1080); cRatio_pXim->SetMargin(0.15,0.05,0.2,0.05);//lrbt
+    cRatio_pXim->SetGrid(true);
+    TLegend* lLegend_pXim = new TLegend(0.5,0.75,0.95,0.95);//lbrt
+    lLegend_pXim->SetName(TString::Format("lLegend"));
+    lLegend_pXim->SetTextSize(0.045);
+    lLegend_pXim->AddEntry(&gCkRatio_pXim[NumMomSmear],"Effect of resonance width");
+    lLegend_pXim->AddEntry(&gCkRatio_pXim[NumMomSmear-1],"Momentum smearing of 20%");
+    TPaveText* PT_pXim = new TPaveText(0.2,0.85,0.5,0.95, "blNDC");//lbrt
+    PT_pXim->SetName("PT_pXim");
+    PT_pXim->SetBorderSize(1);
+    PT_pXim->SetTextSize(0.045);
+    PT_pXim->SetFillColor(kWhite);
+    PT_pXim->SetTextFont(22);
+    PT_pXim->AddText("p-#Xi^{#minus} correlation");
+
+    hAxis->Draw("axis");
+    gCkRatio_pXim[NumMomSmear].SetLineWidth(6);
+    gCkRatio_pXim[NumMomSmear].SetLineColor(kBlue);
+    gCkRatio_pXim[NumMomSmear-1].SetLineWidth(6);
+    gCkRatio_pXim[NumMomSmear-1].SetLineColor(kRed);
+
+    gCkRatio_pXim[NumMomSmear].Draw("same,c");//only mass smearing
+    gCkRatio_pXim[NumMomSmear-1].Draw("same,c");//max momentum smear
+    lLegend_pXim->Draw("same");
+    PT_pXim->Draw("same");
+
+    cRatio_pXim->SaveAs(TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/SourceSmearing/cRatio_pXim.png"));
+
+	gStyle->SetLineWidth(1);
+	gCkRatio_pXim[NumMomSmear].SetLineWidth(gCkRatio_pXim[NumMomSmear].GetLineWidth()/2.5);
+    gCkRatio_pXim[NumMomSmear-1].SetLineWidth(gCkRatio_pXim[NumMomSmear-1].GetLineWidth()/2.5);
+    cRatio_pXim->SaveAs(TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/SourceSmearing/cRatio_pXim.pdf"));
+	gStyle->SetLineWidth(2.5);
+	gCkRatio_pXim[NumMomSmear].SetLineWidth(gCkRatio_pXim[NumMomSmear].GetLineWidth()*2.5);
+    gCkRatio_pXim[NumMomSmear-1].SetLineWidth(gCkRatio_pXim[NumMomSmear-1].GetLineWidth()*2.5);
+
+
+    TCanvas* cRatio_pOmegam = new TCanvas("cRatio_pOmegam", "cRatio_pOmegam", 1);
+    cRatio_pOmegam->cd(0); cRatio_pOmegam->SetCanvasSize(1920, 1080); cRatio_pOmegam->SetMargin(0.15,0.05,0.2,0.05);//lrbt
+    cRatio_pOmegam->SetGrid(true);
+    TLegend* lLegend_pOmegam = new TLegend(0.5,0.75,0.95,0.95);//lbrt
+    lLegend_pOmegam->SetName(TString::Format("lLegend"));
+    lLegend_pOmegam->SetTextSize(0.045);
+    lLegend_pOmegam->AddEntry(&gCkRatio_pOmegam[NumMomSmear],"Effect of resonance width");
+    lLegend_pOmegam->AddEntry(&gCkRatio_pOmegam[NumMomSmear-1],"Momentum smearing of 20%");
+    TPaveText* PT_pOmegam = new TPaveText(0.2,0.85,0.5,0.95, "blNDC");//lbrt
+    PT_pOmegam->SetName("PT_pOmegam");
+    PT_pOmegam->SetBorderSize(1);
+    PT_pOmegam->SetTextSize(0.045);
+    PT_pOmegam->SetFillColor(kWhite);
+    PT_pOmegam->SetTextFont(22);
+    PT_pOmegam->AddText("p-#Omega^{#minus} correlation");
+
+    hAxis->Draw("axis");
+    gCkRatio_pOmegam[NumMomSmear].SetLineWidth(6);
+    gCkRatio_pOmegam[NumMomSmear].SetLineColor(kBlue);
+    gCkRatio_pOmegam[NumMomSmear-1].SetLineWidth(6);
+    gCkRatio_pOmegam[NumMomSmear-1].SetLineColor(kRed);
+
+    gCkRatio_pOmegam[NumMomSmear].Draw("same,c");//only mass smearing
+    gCkRatio_pOmegam[NumMomSmear-1].Draw("same,c");//max momentum smear
+    lLegend_pOmegam->Draw("same");
+    PT_pOmegam->Draw("same");
+
+    cRatio_pOmegam->SaveAs(TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/SourceSmearing/cRatio_pOmegam.png"));
+
+	gStyle->SetLineWidth(1);
+	gCkRatio_pOmegam[NumMomSmear].SetLineWidth(gCkRatio_pOmegam[NumMomSmear].GetLineWidth()/2.5);
+    gCkRatio_pOmegam[NumMomSmear-1].SetLineWidth(gCkRatio_pOmegam[NumMomSmear-1].GetLineWidth()/2.5);
+    cRatio_pOmegam->SaveAs(TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/SourceSmearing/cRatio_pOmegam.pdf"));
+	gStyle->SetLineWidth(2.5);
+	gCkRatio_pOmegam[NumMomSmear].SetLineWidth(gCkRatio_pOmegam[NumMomSmear].GetLineWidth()*2.5);
+    gCkRatio_pOmegam[NumMomSmear-1].SetLineWidth(gCkRatio_pOmegam[NumMomSmear-1].GetLineWidth()*2.5);
+
+
+    TH1F* hAxisSource = new TH1F("hAxisSource", "hAxisSource", 256, 0, 8);
+    hAxisSource->SetStats(false);
+    hAxisSource->SetTitle("");
+    hAxisSource->GetXaxis()->SetTitle("r (fm)");
+    hAxisSource->GetXaxis()->SetTitleSize(0.06);
+    hAxisSource->GetXaxis()->SetLabelSize(0.06);
+    hAxisSource->GetXaxis()->CenterTitle();
+    hAxisSource->GetXaxis()->SetTitleOffset(1.3);
+    hAxisSource->GetXaxis()->SetLabelOffset(0.02);
+    hAxisSource->GetYaxis()->SetTitle("S(r) (1/fm)");
+    hAxisSource->GetYaxis()->SetTitleSize(0.06);
+    hAxisSource->GetYaxis()->SetLabelSize(0.06);
+    hAxisSource->GetYaxis()->CenterTitle();
+    hAxisSource->GetYaxis()->SetTitleOffset(1.00);
+    hAxisSource->GetYaxis()->SetRangeUser(0.0,0.60);
+    //hAxisSource->GetYaxis()->SetNdivisions(404);
+
+    TCanvas* cSource_pp = new TCanvas("cSource_pp", "cSource_pp", 1);
+    cSource_pp->cd(0); cSource_pp->SetCanvasSize(1920, 1080); cSource_pp->SetMargin(0.15,0.05,0.2,0.05);//lrbt
+    cSource_pp->SetGrid(true);
+    TLegend* sLegend_pp = new TLegend(0.5,0.75,0.95,0.95);//lbrt
+    sLegend_pp->SetName(TString::Format("lLegend"));
+    sLegend_pp->SetTextSize(0.045);
+    sLegend_pp->AddEntry(&gSourceGauss_pp,"Gaussian source");
+    sLegend_pp->AddEntry(&gSourceGaussReso_pp,"Gaussian core + resonances");
+    TPaveText* PTs_pp = new TPaveText(0.2,0.85,0.5,0.95, "blNDC");//lbrt
+    PTs_pp->SetName("PTs_pp");
+    PTs_pp->SetBorderSize(1);
+    PTs_pp->SetTextSize(0.045);
+    PTs_pp->SetFillColor(kWhite);
+    PTs_pp->SetTextFont(22);
+    PTs_pp->AddText("p-p source");
+
+    hAxisSource->Draw("axis");
+    gSourceGauss_pp.SetLineWidth(6);
+    gSourceGauss_pp.SetLineColor(kBlue);
+    gSourceGaussReso_pp.SetLineWidth(6);
+    gSourceGaussReso_pp.SetLineColor(kRed);
+
+    gSourceGauss_pp.Draw("same,c");//only mass smearing
+    gSourceGaussReso_pp.Draw("same,c");//max momentum smear
+    sLegend_pp->Draw("same");
+    PTs_pp->Draw("same");
+
+    gStyle->SetLineWidth(2.5);
+    cSource_pp->SaveAs(TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/SourceSmearing/cSource_pp.png"));
+
+	gStyle->SetLineWidth(1);
+	gSourceGauss_pp.SetLineWidth(gSourceGauss_pp.GetLineWidth()/2.5);
+    gSourceGaussReso_pp.SetLineWidth(gSourceGaussReso_pp.GetLineWidth()/2.5);
+    cSource_pp->SaveAs(TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/SourceSmearing/cSource_pp.pdf"));
+	gStyle->SetLineWidth(2.5);
+	gSourceGauss_pp.SetLineWidth(gSourceGauss_pp.GetLineWidth()*2.5);
+    gSourceGaussReso_pp.SetLineWidth(gSourceGaussReso_pp.GetLineWidth()*2.5);
+
+
+    TCanvas* cSource_pL = new TCanvas("cSource_pL", "cSource_pL", 1);
+    cSource_pL->cd(0); cSource_pL->SetCanvasSize(1920, 1080); cSource_pL->SetMargin(0.15,0.05,0.2,0.05);//lrbt
+    cSource_pL->SetGrid(true);
+    TLegend* sLegend_pL = new TLegend(0.5,0.75,0.95,0.95);//lbrt
+    sLegend_pL->SetName(TString::Format("lLegend"));
+    sLegend_pL->SetTextSize(0.045);
+    sLegend_pL->AddEntry(&gSourceGauss_pL,"Gaussian source");
+    sLegend_pL->AddEntry(&gSourceGaussReso_pL,"Gaussian core + resonances");
+    TPaveText* PTs_pL = new TPaveText(0.2,0.85,0.5,0.95, "blNDC");//lbrt
+    PTs_pL->SetName("PTs_pL");
+    PTs_pL->SetBorderSize(1);
+    PTs_pL->SetTextSize(0.045);
+    PTs_pL->SetFillColor(kWhite);
+    PTs_pL->SetTextFont(22);
+    PTs_pL->AddText("p-#Lambda source");
+
+    hAxisSource->Draw("axis");
+    gSourceGauss_pL.SetLineWidth(6);
+    gSourceGauss_pL.SetLineColor(kBlue);
+    gSourceGaussReso_pL.SetLineWidth(6);
+    gSourceGaussReso_pL.SetLineColor(kRed);
+
+    gSourceGauss_pL.Draw("same,c");//only mass smearing
+    gSourceGaussReso_pL.Draw("same,c");//max momentum smear
+    sLegend_pL->Draw("same");
+    PTs_pL->Draw("same");
+
+    gStyle->SetLineWidth(2.5);
+    cSource_pL->SaveAs(TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/SourceSmearing/cSource_pL.png"));
+
+	gStyle->SetLineWidth(1);
+	gSourceGauss_pL.SetLineWidth(gSourceGauss_pL.GetLineWidth()/2.5);
+    gSourceGaussReso_pL.SetLineWidth(gSourceGaussReso_pL.GetLineWidth()/2.5);
+    cSource_pL->SaveAs(TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/SourceSmearing/cSource_pL.pdf"));
+	gStyle->SetLineWidth(2.5);
+	gSourceGauss_pL.SetLineWidth(gSourceGauss_pL.GetLineWidth()*2.5);
+    gSourceGaussReso_pL.SetLineWidth(gSourceGaussReso_pL.GetLineWidth()*2.5);
+
+
+    TCanvas* cSource_pXim = new TCanvas("cSource_pXim", "cSource_pXim", 1);
+    cSource_pXim->cd(0); cSource_pXim->SetCanvasSize(1920, 1080); cSource_pXim->SetMargin(0.15,0.05,0.2,0.05);//lrbt
+    cSource_pXim->SetGrid(true);
+    TLegend* sLegend_pXim = new TLegend(0.5,0.75,0.95,0.95);//lbrt
+    sLegend_pXim->SetName(TString::Format("lLegend"));
+    sLegend_pXim->SetTextSize(0.045);
+    sLegend_pXim->AddEntry(&gSourceGauss_pXim,"Gaussian source");
+    sLegend_pXim->AddEntry(&gSourceGaussReso_pXim,"Gaussian core + resonances");
+    TPaveText* PTs_pXim = new TPaveText(0.2,0.85,0.5,0.95, "blNDC");//lbrt
+    PTs_pXim->SetName("PTs_pXim");
+    PTs_pXim->SetBorderSize(1);
+    PTs_pXim->SetTextSize(0.045);
+    PTs_pXim->SetFillColor(kWhite);
+    PTs_pXim->SetTextFont(22);
+    PTs_pXim->AddText("p-#Xi^{#minus} source");
+
+    hAxisSource->Draw("axis");
+    gSourceGauss_pXim.SetLineWidth(6);
+    gSourceGauss_pXim.SetLineColor(kBlue);
+    gSourceGaussReso_pXim.SetLineWidth(6);
+    gSourceGaussReso_pXim.SetLineColor(kRed);
+
+    gSourceGauss_pXim.Draw("same,c");//only mass smearing
+    gSourceGaussReso_pXim.Draw("same,c");//max momentum smear
+    sLegend_pXim->Draw("same");
+    PTs_pXim->Draw("same");
+
+    gStyle->SetLineWidth(2.5);
+    cSource_pXim->SaveAs(TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/SourceSmearing/cSource_pXim.png"));
+
+	gStyle->SetLineWidth(1);
+	gSourceGauss_pXim.SetLineWidth(gSourceGauss_pXim.GetLineWidth()/2.5);
+    gSourceGaussReso_pXim.SetLineWidth(gSourceGaussReso_pXim.GetLineWidth()/2.5);
+    cSource_pXim->SaveAs(TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/SourceSmearing/cSource_pXim.pdf"));
+	gStyle->SetLineWidth(2.5);
+	gSourceGauss_pXim.SetLineWidth(gSourceGauss_pXim.GetLineWidth()*2.5);
+    gSourceGaussReso_pXim.SetLineWidth(gSourceGaussReso_pXim.GetLineWidth()*2.5);
+
+
+    TCanvas* cSource_pOmegam = new TCanvas("cSource_pOmegam", "cSource_pOmegam", 1);
+    cSource_pOmegam->cd(0); cSource_pOmegam->SetCanvasSize(1920, 1080); cSource_pOmegam->SetMargin(0.15,0.05,0.2,0.05);//lrbt
+    cSource_pOmegam->SetGrid(true);
+    TLegend* sLegend_pOmegam = new TLegend(0.5,0.75,0.95,0.95);//lbrt
+    sLegend_pOmegam->SetName(TString::Format("lLegend"));
+    sLegend_pOmegam->SetTextSize(0.045);
+    sLegend_pOmegam->AddEntry(&gSourceGauss_pOmegam,"Gaussian source");
+    sLegend_pOmegam->AddEntry(&gSourceGaussReso_pOmegam,"Gaussian core + resonances");
+    TPaveText* PTs_pOmegam = new TPaveText(0.2,0.85,0.5,0.95, "blNDC");//lbrt
+    PTs_pOmegam->SetName("PTs_pOmegam");
+    PTs_pOmegam->SetBorderSize(1);
+    PTs_pOmegam->SetTextSize(0.045);
+    PTs_pOmegam->SetFillColor(kWhite);
+    PTs_pOmegam->SetTextFont(22);
+    PTs_pOmegam->AddText("p-#Omega^{#minus} source");
+
+    hAxisSource->Draw("axis");
+    gSourceGauss_pOmegam.SetLineWidth(6);
+    gSourceGauss_pOmegam.SetLineColor(kBlue);
+    gSourceGaussReso_pOmegam.SetLineWidth(6);
+    gSourceGaussReso_pOmegam.SetLineColor(kRed);
+
+    gSourceGauss_pOmegam.Draw("same,c");//only mass smearing
+    gSourceGaussReso_pOmegam.Draw("same,c");//max momentum smear
+    sLegend_pOmegam->Draw("same");
+    PTs_pOmegam->Draw("same");
+
+    gStyle->SetLineWidth(2.5);
+    cSource_pOmegam->SaveAs(TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/SourceSmearing/cSource_pOmegam.png"));
+
+	gStyle->SetLineWidth(1);
+	gSourceGauss_pOmegam.SetLineWidth(gSourceGauss_pOmegam.GetLineWidth()/2.5);
+    gSourceGaussReso_pOmegam.SetLineWidth(gSourceGaussReso_pOmegam.GetLineWidth()/2.5);
+    cSource_pOmegam->SaveAs(TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/SourceSmearing/cSource_pOmegam.pdf"));
+	gStyle->SetLineWidth(2.5);
+	gSourceGauss_pOmegam.SetLineWidth(gSourceGauss_pOmegam.GetLineWidth()*2.5);
+    gSourceGaussReso_pOmegam.SetLineWidth(gSourceGaussReso_pOmegam.GetLineWidth()*2.5);
+
+
+    gpp_low.Write();
+    gpp_up.Write();
+
+    gpL_low.Write();
+    gpL_up.Write();
+
+    gpXim_low.Write();
+    gpXim_up.Write();
+
+    gpOmegam_low.Write();
+    gpOmegam_up.Write();
+
+    gSourceGauss_pp.Write();
+    gSourceGaussReso_pp.Write();
+
+    gSourceGauss_pL.Write();
+    gSourceGaussReso_pL.Write();
+
+    gSourceGauss_pXim.Write();
+    gSourceGaussReso_pXim.Write();
+
+    gSourceGauss_pOmegam.Write();
+    gSourceGaussReso_pOmegam.Write();
+
+    delete [] gCk_pp;
+    delete [] gCk_pL;
+    delete [] gCk_pXim;
+    delete [] gCk_pOmegam;
+
+    delete [] gCkRatio_pp;
+    delete [] gCkRatio_pL;
+    delete [] gCkRatio_pXim;
+    delete [] gCkRatio_pOmegam;
+
+    delete lLegend_pp;
+    delete PT_pp;
+    delete cRatio_pp;
+
+    delete lLegend_pL;
+    delete PT_pL;
+    delete cRatio_pL;
+
+    delete lLegend_pXim;
+    delete PT_pXim;
+    delete cRatio_pXim;
+
+    delete lLegend_pOmegam;
+    delete PT_pOmegam;
+    delete cRatio_pOmegam;
+
+    delete hAxis;
+
+    delete sLegend_pp;
+    delete sLegend_pL;
+    delete sLegend_pXim;
+    delete sLegend_pOmegam;
+    delete PTs_pp;
+    delete PTs_pL;
+    delete PTs_pXim;
+    delete PTs_pOmegam;
+    delete hAxisSource;
+
+    delete cSource_pp;
+    delete cSource_pL;
+    delete cSource_pXim;
+    delete cSource_pOmegam;
+
+    delete fOutputFile;
+}
+
+
+void Test_pOmega_Potentials(){
+
+    unsigned NumPots = 6;
+    int PotFlag[NumPots] = {11,12,13,121,122,123};
+
+    //unsigned NumPots = 3;
+    //int PotFlag[NumPots] = {121,122,123};
+
+    TGraph* gCk = new TGraph [NumPots];
+    TGraph* gCkSI = new TGraph [NumPots];
+    TGraph* gPot3S1 = new TGraph [NumPots];
+    TGraph* gPot5S2 = new TGraph [NumPots];
+
+    const double kMin = 0;
+    const double kMax = 280;
+    const unsigned NumMomBins = 56;
+
+    const double rMin = 0.01;
+    const double rMax = 1.6;
+    const unsigned NumRadBins = 128;
+    const double rStep = (rMax-rMin)/double(NumRadBins);
+
+    DLM_CommonAnaFunctions AnaObject;
+
+    for(unsigned uPot=0; uPot<NumPots; uPot++){
+        gCk[uPot].SetName(TString::Format("gCk_%i",PotFlag[uPot]));
+        gCkSI[uPot].SetName(TString::Format("gCkSI_%i",PotFlag[uPot]));
+        gPot3S1[uPot].SetName(TString::Format("gPot3S1_%i",PotFlag[uPot]));
+        gPot5S2[uPot].SetName(TString::Format("gPot5S2_%i",PotFlag[uPot]));
+        CATS AB_pOmegam;
+        AB_pOmegam.SetMomBins(NumMomBins,kMin,kMax);
+        AnaObject.SetUpCats_pOmegam(AB_pOmegam,TString::Format("pOmega_Lattice_%i",PotFlag[uPot]),"Gauss");
+        AB_pOmegam.SetAnaSource(0,2.5);
+        AB_pOmegam.SetEpsilonConv(1e-7);
+        AB_pOmegam.SetEpsilonProp(1e-7);
+        AB_pOmegam.SetShortRangePotential(0,0,0,1e5);
+        AB_pOmegam.SetShortRangePotential(0,0,1,2.0);
+        AB_pOmegam.SetShortRangePotential(0,0,2,0.000001);
+        AB_pOmegam.SetMaxNumThreads(4);
+        //AB_pOmegam.SetChannelWeight(0,0);
+        //AB_pOmegam.SetChannelWeight(1,1);
+        AB_pOmegam.KillTheCat();
+
+        for(unsigned uMomBin=0; uMomBin<NumMomBins; uMomBin++){
+            gCk[uPot].SetPoint(uMomBin,AB_pOmegam.GetMomentum(uMomBin),AB_pOmegam.GetCorrFun(uMomBin));
+        }
+        for(unsigned uRadBin=0; uRadBin<NumRadBins; uRadBin++){
+            double RADIUS = rMin+double(uRadBin)*rStep;
+            gPot3S1[uPot].SetPoint(uRadBin,RADIUS,AB_pOmegam.EvaluateThePotential(0,0,0,RADIUS));
+            gPot5S2[uPot].SetPoint(uRadBin,RADIUS,AB_pOmegam.EvaluateThePotential(1,0,0,RADIUS));
+        }
+
+        AB_pOmegam.SetQ1Q2(0);
+        AB_pOmegam.KillTheCat();
+        for(unsigned uMomBin=0; uMomBin<NumMomBins; uMomBin++){
+            gCkSI[uPot].SetPoint(uMomBin,AB_pOmegam.GetMomentum(uMomBin),AB_pOmegam.GetCorrFun(uMomBin));
+        }
+
+    }
+
+    TFile* fOutputFile = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/Test_pOmega_Potentials/fOutputFile.root", "recreate");
+    for(unsigned uPot=0; uPot<NumPots; uPot++){
+        gCk[uPot].Write();
+    }
+    for(unsigned uPot=0; uPot<NumPots; uPot++){
+        gCkSI[uPot].Write();
+    }
+    for(unsigned uPot=0; uPot<NumPots; uPot++){
+        gPot3S1[uPot].Write();
+    }
+    for(unsigned uPot=0; uPot<NumPots; uPot++){
+        gPot5S2[uPot].Write();
+    }
+
+    delete [] gCk;
+    delete [] gCkSI;
+    delete [] gPot3S1;
+    delete [] gPot5S2;
+    delete fOutputFile;
 }
 
 int main(int argc, char *argv[])
@@ -816,11 +1757,10 @@ printf("%.3f\n",lambdapars[3]*100.);
 printf("%.3f\n",lambdapars[4]*100.);
 */
 
-    PLAMBDA_1_MAIN(argc,ARGV);
+    //PLAMBDA_1_MAIN(argc,ARGV);
     //CALL_BERNIE_AND_VALE();
-    //FEMTOBOYZ_MAIN(argc,ARGV);
+    FEMTOBOYZ_MAIN(argc,ARGV);
     //GerhardMAIN(argc,ARGV);
-
 
     //TestCommonInit();
     //plot_pp();
@@ -829,6 +1769,10 @@ printf("%.3f\n",lambdapars[4]*100.);
     //McLevyTest1();
     //testCats();
     //TestSigma0();
+    //TestRandBW();
+    //SourceSmearing();
+    //TestQS();
+    //Test_pOmega_Potentials();
 
     //TestCATS3_NewExtWf("Usmani");
     //TestCATS3_NewExtWf("NLO");

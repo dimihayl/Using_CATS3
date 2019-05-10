@@ -15,6 +15,7 @@ const double Mass_pic = 139.57018;
 const double Mass_p = 938.272;
 const double Mass_L = 1115.683;
 const double Mass_Xim = 1321.7;
+const double MassOmega = 1672.45;
 
 
 class DLM_CommonAnaFunctions{
@@ -47,11 +48,19 @@ public:
     //  "NLO"
     //  "NLO_Coupled_S"
     //  "Usmani"
-    void SetUpCats_pL(CATS& Kitty, const TString& POT, const TString& SOURCE);
+    //no potential variations at the moment
+    //the source variation is at the moment only relevant for the McReso sources
+    //  SourceVar is considered 3 digit, the first two are for the momentum smearing, the second for the mass smearing
+    //   the first two:
+    //    0 = no smear; else the smearing in percent (up to 99%)
+    //   the second:
+    //    0 = no smear; 1 = smear according to the life-time
+    void SetUpCats_pL(CATS& Kitty, const TString& POT, const TString& SOURCE, const int& PotVar=0, const int& SourceVar=0);
     //POT:
     //  "pXim_Lattice" (the first version)
     //  "pXim_HALQCD1" (the second version, THE ONE TO USE)
     void SetUpCats_pXim(CATS& Kitty, const TString& POT, const TString& SOURCE);
+    void SetUpCats_pOmegam(CATS& Kitty, const TString& POT, const TString& SOURCE);
 
     DLM_Ck* SetUpLednicky_pL(const unsigned& NumMomBins, const double* MomBins,  const TString& POT);
 
@@ -82,7 +91,12 @@ public:
 
     TH2F* GetResolutionMatrix(const TString& DataSample,const TString&& System);
     TH2F* GetResidualMatrix(const TString&& FinalSystem, const TString& InitialSystem);
-    TH1F* GetAliceExpCorrFun(const TString& DataSample,const TString& System,const int& iReb, const bool& AddSyst=false,const int mTbin=-1);
+    TH1F* GetAliceExpCorrFun(const TString& DataSample,const TString& System,const TString& CutVar,const int& iReb, const bool& AddSyst=false,const int mTbin=-1);
+
+    DLM_CleverMcLevyReso* GetCleverMcLevyReso_pp();
+    DLM_CleverMcLevyReso* GetCleverMcLevyReso_pL();
+    DLM_CleverMcLevyReso* GetCleverMcLevyReso_pXim();
+    DLM_CleverMcLevyReso* GetCleverMcLevyReso_pOmegam();
 
 private:
     void Clean_CommonAnaFunctions();
