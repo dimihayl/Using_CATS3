@@ -30,8 +30,9 @@ DLM_CommonAnaFunctions::~DLM_CommonAnaFunctions(){
 }
 
 //POT:
-//  "AV18"
-void DLM_CommonAnaFunctions::SetUpCats_pp(CATS& Kitty, const TString& POT, const TString& SOURCE){
+//  "AV18", no pot vars so far
+//  no sor var so far
+void DLM_CommonAnaFunctions::SetUpCats_pp(CATS& Kitty, const TString& POT, const TString& SOURCE, const int& PotVar=0, const int& SourceVar=0){
 
     CATSparameters* cPars = NULL;
 
@@ -841,7 +842,7 @@ DLM_Ck* DLM_CommonAnaFunctions::SetUpLednicky_pL(const unsigned& NumMomBins, con
     return DlmCk;
 }
 
-void DLM_CommonAnaFunctions::SetUpBinning_pp(const TString& DataSample, unsigned& NumMomBins, double*& MomBins, double*& FitRegion){
+void DLM_CommonAnaFunctions::SetUpBinning_pp(const TString& DataSample, unsigned& NumMomBins, double*& MomBins, double*& FitRegion, const int& MomBinVar, const int& FitRegVar){
     if(DataSample=="pp13TeV_MB_Run2paper"){
         const double kMin=0;
         const double kStep=4;

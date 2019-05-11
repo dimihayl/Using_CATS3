@@ -24,6 +24,7 @@
 #include "TRandom3.h"
 
 #include "DLM_HistoAnalysis.h"
+#include "DLM_SubPads.h"
 
 std::vector<int> fFillColors = {kGray+1, kRed-10, kBlue-9, kGreen-8, kMagenta-9, kOrange-9, kCyan-8, kYellow-7};
 std::vector<int> fColors     = {kBlack, kRed+1 , kBlue+2, kGreen+3, kMagenta+1, kOrange-1, kCyan+2, kYellow+2};
@@ -331,6 +332,29 @@ void SetStyleHisto(TH1 *histo, int marker, int color)
     histo->GetYaxis()->SetTitleSize(0.05);
     histo->GetYaxis()->SetLabelOffset(0.01);
     histo->GetYaxis()->SetTitleOffset(1.25);
+    histo->SetMarkerSize(1.25);
+    if(marker>=0){
+        histo->SetLineWidth(2);
+        histo->SetMarkerStyle(fMarkers[marker]);
+    }
+    if(color>=0){
+        histo->SetMarkerColor(fColors[color]);
+        histo->SetLineColor(fColors[color]);
+    }
+}
+
+//pL HM
+void SetStyleHisto2(TH1 *histo, int marker, int color, double factor=1)
+{
+    histo->GetXaxis()->SetLabelSize(0.055*factor);
+    histo->GetXaxis()->SetTitleSize(0.06*factor);
+    histo->GetXaxis()->SetLabelOffset(0.01);
+    histo->GetXaxis()->SetTitleOffset(1.0);
+    histo->GetXaxis()->SetLabelFont(42);
+    histo->GetYaxis()->SetLabelSize(0.055*factor);
+    histo->GetYaxis()->SetTitleSize(0.06*factor);
+    histo->GetYaxis()->SetLabelOffset(0.01);
+    histo->GetYaxis()->SetTitleOffset(1.0/factor);
     histo->SetMarkerSize(1.25);
     if(marker>=0){
         histo->SetLineWidth(2);
@@ -3990,16 +4014,24 @@ void Plot_pL_FASTsyst( const int& WhichBaseline
     bBestNLO.SetLineWidth(4);
     bBestNLO.SetLineStyle(7);
 
-    TCanvas *Can_CF_pL = new TCanvas("pL","pL", 0,0,650,550);
-    Can_CF_pL->SetRightMargin(right);
-    Can_CF_pL->SetTopMargin(top);
+    DLM_SubPads DlmPad(720,720);
+    DlmPad.AddSubPad(0,1,0.33,1);
+    DlmPad.AddSubPad(0,1,0,0.33);
+    DlmPad.SetMargin(0,0.12,0.02,0.0,0.02);
+    DlmPad.SetMargin(1,0.12,0.02,0.09,0.0);
+    DlmPad.cd(0);
+
+    //TCanvas *Can_CF_pL = new TCanvas("pL","pL", 0,0,720,720);
+    //Can_CF_pL->SetRightMargin(right);
+    //Can_CF_pL->SetTopMargin(top);
 
     hData->SetTitle("; #it{k*} (MeV/#it{c}); #it{C}(#it{k*})");
     hData->GetXaxis()->SetRangeUser(0, 320);
     hData->GetXaxis()->SetNdivisions(505);
     hData->GetYaxis()->SetRangeUser(0.85, 2.3);
     hData->SetFillColor(fFillColors[0]);
-    SetStyleHisto(hData,2,0);
+    SetStyleHisto2(hData,2,0);
+    //hData->GetYaxis()->SetTitleOffset(1.0);
     hData->Draw();
 
     TGraphErrors *Tgraph_syserror = DrawSystematicError_FAST(hData, hSyst, fSyst, 3);
@@ -4024,10 +4056,10 @@ void Plot_pL_FASTsyst( const int& WhichBaseline
     //hData->Draw("pe same");
 
     unsigned NumRows=4;
-    TLegend *legend = new TLegend(0.49,0.76-0.04*NumRows,0.73,0.76);//lbrt
+    TLegend *legend = new TLegend(0.49,0.72-0.05*NumRows,0.73,0.72);//lbrt
     legend->SetBorderSize(0);
     legend->SetTextFont(42);
-    legend->SetTextSize(gStyle->GetTextSize()*0.70);
+    legend->SetTextSize(gStyle->GetTextSize()*0.90);
     TH1F* hCk_Fake;
     hCk_Fake = (TH1F*)hData->Clone("hCk_Fake");
     hCk_Fake->SetName("hCk_Fake");
@@ -4040,24 +4072,24 @@ void Plot_pL_FASTsyst( const int& WhichBaseline
     legend->AddEntry(grFemto_NLO,"Femtoscopic fit (#chiEFT NLO)","l");
     legend->Draw("same");
     TLatex BeamText;
-    BeamText.SetTextSize(gStyle->GetTextSize()*0.75);
+    BeamText.SetTextSize(gStyle->GetTextSize()*0.90);
     BeamText.SetNDC(kTRUE);
     //BeamText.DrawLatex(0.55, 0.875, "ALICE Preliminary");
     //if(WhichDataSet==0) BeamText.DrawLatex(0.55, 0.825, Form("pp #sqrt{#it{s}} = 13 TeV"));
     //else if(WhichDataSet==1) BeamText.DrawLatex(0.55, 0.825, Form("p#minusPb #sqrt{#it{s}_{NN}} = 5.02 TeV"));
     //else BeamText.DrawLatex(0.55, 0.825, Form("pp #sqrt{#it{s}} = 7 TeV"));
-    BeamText.DrawLatex(0.50, 0.925, "ALICE Preliminary");
+    BeamText.DrawLatex(0.50, 0.915, "ALICE Preliminary");
     //if(DataSample=="pp13TeV_MB_Run2paper") BeamText.DrawLatex(0.50, 0.86, "pp #sqrt{#it{s}} = 13 TeV");
     //else if(DataSample.Contains("pPb")&&DataSample.Contains("5TeV")) BeamText.DrawLatex(0.50, 0.86, "p#minusPb #sqrt{#it{s}_{NN}} = 5.02 TeV");
     //else if(DataSample=="pp13TeV_HM_March19") BeamText.DrawLatex(0.50, 0.86, "pp (HM) #sqrt{#it{s}} = 13 TeV");
     //else BeamText.DrawLatex(0.50, 0.86, "ALICE pp #sqrt{#it{s}} = 7 TeV");
-    BeamText.DrawLatex(0.50, 0.88, "pp (HM) #sqrt{#it{s}} = 13 TeV");
+    BeamText.DrawLatex(0.50, 0.860, "pp (HM) #sqrt{#it{s}} = 13 TeV");
 
     TLatex BeamTextSource;
-    BeamTextSource.SetTextSize(gStyle->GetTextSize()*0.70);
+    BeamTextSource.SetTextSize(gStyle->GetTextSize()*0.90);
     BeamTextSource.SetNDC(kTRUE);
-    BeamTextSource.DrawLatex(0.50, 0.835, LegendSource_line1);
-    BeamTextSource.DrawLatex(0.50, 0.79, LegendSource_line2);
+    BeamTextSource.DrawLatex(0.50, 0.805, LegendSource_line1);
+    BeamTextSource.DrawLatex(0.50, 0.750, LegendSource_line2);
 
 //INLET -------------------------------------------------------------------------------------------------------------------
 
@@ -4086,10 +4118,10 @@ void Plot_pL_FASTsyst( const int& WhichBaseline
     TGraph* gBestNLO_Inlet = (TGraph*)gBestNLO.Clone("gBestNLO_Inlet");
     gBestNLO_Inlet->SetLineWidth(gBestNLO.GetLineWidth()*0.67);
 
-    const double fXMinInlet=0.35;
-    const double fYMinInlet=0.25;
+    const double fXMinInlet=0.30;
+    const double fYMinInlet=0.12;
     const double fXMaxInlet=0.95;
-    const double fYMaxInlet=0.57;
+    const double fYMaxInlet=0.50;
     TPad *inset_pad = new TPad("insert", "insertPad", fXMinInlet, fYMinInlet,
                              fXMaxInlet, fYMaxInlet);
     inset_pad->SetTopMargin(0.01);
@@ -4117,7 +4149,27 @@ void Plot_pL_FASTsyst( const int& WhichBaseline
     if(grFemto_LO&&MODE==0) {bBestLO.Draw("l same");}
     if(grFemto_NLO&&MODE==0) {bBestNLO.Draw("l same");}
 
-    Can_CF_pL->SaveAs(FitSystFolder+TString::Format("PLOT/Can_CF_pL_%i.pdf",WhichBaseline));
+    DlmPad.cd(1);
+    TH1F* hAxis = new TH1F("hAxis", "hAxis", 12, 0, 324);
+    hAxis->SetStats(false);
+    hAxis->SetTitle("; #it{k*} (MeV/#it{c}); #it{n_{#sigma}}");
+
+    hAxis->GetYaxis()->SetRangeUser(-11.5, 11.5);
+    //hData->SetTitle("; #it{k*} (MeV/#it{c}); #it{C}(#it{k*})");
+    //hData->GetXaxis()->SetRangeUser(0, 320);
+    hAxis->GetXaxis()->SetNdivisions(505);
+    //hData->GetYaxis()->SetRangeUser(0.85, 2.3);
+    //hData->SetFillColor(fFillColors[0]);
+    SetStyleHisto2(hAxis,2,0,2);
+    //hData->GetYaxis()->SetTitleOffset(1.0);
+    hAxis->Draw("");
+
+    gVarDeviationLO_Stdv.SetFillColorAlpha(kGreen+3,0.75);
+    gVarDeviationLO_Stdv.Draw("3,same");
+    gVarDeviationNLO_Stdv.SetFillColorAlpha(kRed+1,0.75);
+    gVarDeviationNLO_Stdv.Draw("3,same");
+
+    DlmPad.GetCanvas()->SaveAs(FitSystFolder+TString::Format("PLOT/Can_CF_pL_%i.pdf",WhichBaseline));
 
     delete hVarDeviationLO;
     delete hVarDeviationNLO;
@@ -4130,7 +4182,7 @@ void Plot_pL_FASTsyst( const int& WhichBaseline
     delete grFemto_NLO;
     delete grOuterBl_LO;
     delete grOuterBl_NLO;
-    delete Can_CF_pL;
+    //delete Can_CF_pL;
     delete hChi2NdfLO;
     delete hChi2NdfNLO;
     delete hNsigmaLO;

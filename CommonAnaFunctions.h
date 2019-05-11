@@ -42,7 +42,7 @@ public:
     //"Levy_mT_Reso" (the MC version created for pLambda analysis)
     //POT:
     //  "AV18"
-    void SetUpCats_pp(CATS& Kitty, const TString& POT, const TString& SOURCE);
+    void SetUpCats_pp(CATS& Kitty, const TString& POT, const TString& SOURCE, const int& PotVar=0, const int& SourceVar=0);
     //POT:
     //  "LO"
     //  "NLO"
@@ -64,7 +64,7 @@ public:
 
     DLM_Ck* SetUpLednicky_pL(const unsigned& NumMomBins, const double* MomBins,  const TString& POT);
 
-    void SetUpBinning_pp(const TString& DataSample, unsigned& NumMomBins, double*& MomBins, double*& FitRegion);
+    void SetUpBinning_pp(const TString& DataSample, unsigned& NumMomBins, double*& MomBins, double*& FitRegion, const int& MomBinVar, const int& FitRegVar);
     void SetUpBinning_pL(const TString& DataSample, unsigned& NumMomBins, double*& MomBins, double*& FitRegion, const int& MomBinVar, const int& FitRegVar);
 
     //DataSamples: SystemEnergy_Trigger_Version
