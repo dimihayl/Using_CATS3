@@ -2,7 +2,7 @@
 #include "CommonAnaFunctions.h"
 #include "GentleDimi.h"
 #include "FemtoBoyzScripts.h"
-
+#include "pSigma.h"
 
 #include <iostream>
 #include <stdio.h>
@@ -1711,6 +1711,249 @@ void Test_pOmega_Potentials(){
     delete fOutputFile;
 }
 
+void Test_pp_Dwaves(){
+
+    const unsigned NumDataPts = 11;
+    const double DataPoints1S0[NumDataPts] = {32.68,54.74,55.09,48.51,38.78,25.01,15,6.99,0.23,-5.64,-10.86};//1S0
+    //const double DataPoints3S1_pn[NumDataPts] = {147.747,118.178,102.611,80.63,62.77,43.23,30.72,21.22,13.39,6.60,0.502};//3S1 for pn
+    const double DataPoints3P0[NumDataPts] = {0.134,1.582,3.729,8.575,11.47,9.45,4.74,-0.37,-5.43,-10.39,-15.30};//3P0
+    const double DataPoints3P1[NumDataPts] = {-0.081,-0.902,-2.060,-4.932,-8.317,-13.258,-17.434,-21.25,-24.77,-27.99,-30.89};//3P1
+    const double DataPoints3P2[NumDataPts] = {0.014,0.214,0.651,2.491,5.855,11.013,13.982,15.63,16.59,17.17,17.54};//3P2
+    const double DataPoints1D2[NumDataPts] = {0.001,0.043,0.165,0.696,1.711,3.790,5.606,7.058,8.27,9.42,10.69};//1D2
+    //const double DataPoints3F4[NumDataPts] = {0,0,0.001,0.02,0.108,0.478,1.032,1.678,2.325,2.89,3.3};//3F4
+    const double DataPtsT[NumDataPts] = {1,5,10,25,50,100,150,200,250,300,350};
+    double DataPtsK[NumDataPts];
+    for(unsigned uPts=0; uPts<NumDataPts; uPts++){
+        DataPtsK[uPts] = tLab_pCm(DataPtsT[uPts],Mass_p,Mass_p);
+    }
+
+    const unsigned NumFineBins = 50;
+    const double FineStep = 4;
+    const unsigned NumCoarseBins = 20;
+    const double CoarsStep = 16;
+    const unsigned NumMomBins = NumFineBins+NumCoarseBins;
+    double* MomBins = new double [NumMomBins+1];
+    MomBins[0] = 0;
+    for(unsigned uBin=1; uBin<=NumMomBins; uBin++){
+        if(uBin<=NumFineBins){
+            MomBins[uBin] = MomBins[uBin-1]+FineStep;
+        }
+        else{
+            MomBins[uBin] = MomBins[uBin-1]+CoarsStep;
+        }
+        //printf("%u = %f\n",uBin,MomBins[uBin]);
+    }
+
+    const TString SOURCE = "McGauss_Reso";
+
+    CATSparameters cPars(CATSparameters::tSource,1,true);
+    CATSparameters cPotPars1S0(CATSparameters::tPotential,8,true);
+    CATSparameters cPotPars3P0(CATSparameters::tPotential,8,true);
+    CATSparameters cPotPars3P1(CATSparameters::tPotential,8,true);
+    CATSparameters cPotPars3P2(CATSparameters::tPotential,8,true);
+    CATSparameters cPotPars1D2(CATSparameters::tPotential,8,true);
+
+    DLM_CleverMcLevyReso CleverMcLevyReso;
+
+    CATS Kitty;
+
+    Kitty.SetMomBins(NumMomBins,MomBins);
+    Kitty.SetEpsilonConv(1e-7);
+    Kitty.SetEpsilonProp(1e-7);
+
+    if(SOURCE=="Gauss"){
+        cPars.SetParameter(0,1.2);
+        Kitty.SetAnaSource(GaussSource, cPars);
+        Kitty.SetUseAnalyticSource(true);
+    }
+    else if(SOURCE=="McLevyNolan_Reso"){
+        CleverMcLevyReso.InitStability(21,1,2);
+        CleverMcLevyReso.InitScale(38,0.15,2.0);
+        CleverMcLevyReso.InitRad(257,0,64);
+        CleverMcLevyReso.InitType(2);
+        CleverMcLevyReso.InitReso(0,1);
+        CleverMcLevyReso.InitReso(1,1);
+        CleverMcLevyReso.SetUpReso(0,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic);
+        CleverMcLevyReso.SetUpReso(1,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic);
+        CleverMcLevyReso.InitNumMcIter(1000000);
+        Kitty.SetAnaSource(CatsSourceForwarder, &CleverMcLevyReso, 2);
+        Kitty.SetAnaSource(0,1.0);
+        Kitty.SetAnaSource(1,1.6);
+        Kitty.SetUseAnalyticSource(true);
+    }
+    else if(SOURCE=="McGauss_Reso"){
+        CleverMcLevyReso.InitStability(1,2-1e-6,2+1e-6);
+        CleverMcLevyReso.InitScale(38,0.15,2.0);
+        CleverMcLevyReso.InitRad(257,0,64);
+        CleverMcLevyReso.InitType(2);
+        CleverMcLevyReso.InitReso(0,1);
+        CleverMcLevyReso.InitReso(1,1);
+        CleverMcLevyReso.SetUpReso(0,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic);
+        CleverMcLevyReso.SetUpReso(1,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic);
+        CleverMcLevyReso.InitNumMcIter(1000000);
+        Kitty.SetAnaSource(CatsSourceForwarder, &CleverMcLevyReso, 2);
+        Kitty.SetAnaSource(0,0.995);
+        Kitty.SetAnaSource(1,2.0);
+        Kitty.SetUseAnalyticSource(true);
+    }
+    else{
+        printf("\033[1;31mERROR:\033[0m Non-existing source '%s'\n",SOURCE.Data());
+        return;
+    }
+
+
+    //#,#,POT_ID,POT_FLAG,t_tot,t1,t2,s,l,j
+    double PotPars1S0[8]={NN_AV18,v18_Coupled3P2,1,1,1,0,0,0};
+    double PotPars3P0[8]={NN_AV18,v18_Coupled3P2,1,1,1,1,1,0};
+    double PotPars3P1[8]={NN_AV18,v18_Coupled3P2,1,1,1,1,1,1};
+    double PotPars3P2[8]={NN_AV18,v18_SingleChannelMagic,1,1,1,1,1,2};
+    double PotPars1D2[8]={NN_AV18,v18_Coupled3P2,1,1,1,0,2,2};
+    cPotPars1S0.SetParameters(PotPars1S0);
+    cPotPars3P0.SetParameters(PotPars3P0);
+    cPotPars3P1.SetParameters(PotPars3P1);
+    cPotPars3P2.SetParameters(PotPars3P2);
+    cPotPars1D2.SetParameters(PotPars1D2);
+
+    Kitty.SetMomentumDependentSource(false);
+    Kitty.SetThetaDependentSource(false);
+    Kitty.SetExcludeFailedBins(false);
+
+    Kitty.SetQ1Q2(1);
+    Kitty.SetPdgId(2212, 2212);
+    Kitty.SetRedMass( 0.5*Mass_p );
+
+    Kitty.SetNumChannels(4);
+    Kitty.SetNumPW(0,3);
+    Kitty.SetNumPW(1,2);
+    Kitty.SetNumPW(2,2);
+    Kitty.SetNumPW(3,2);
+    Kitty.SetSpin(0,0);
+    Kitty.SetSpin(1,1);
+    Kitty.SetSpin(2,1);
+    Kitty.SetSpin(3,1);
+    Kitty.SetChannelWeight(0, 3./12.);
+    Kitty.SetChannelWeight(1, 1./12.);
+    Kitty.SetChannelWeight(2, 3./12.);
+    Kitty.SetChannelWeight(3, 5./12.);
+
+    Kitty.SetShortRangePotential(0,0,fDlmPot,cPotPars1S0);
+    Kitty.SetShortRangePotential(1,1,fDlmPot,cPotPars3P0);
+    Kitty.SetShortRangePotential(2,1,fDlmPot,cPotPars3P1);
+    Kitty.SetShortRangePotential(3,1,fDlmPot,cPotPars3P2);
+
+    TGraph gSP;
+    gSP.SetName("gSP");
+    TGraph gSPD;
+    gSPD.SetName("gSPD");
+    TGraph gSPvsSPD;
+    gSPvsSPD.SetName("gSPvsSPD");
+
+    TGraph gPS_1S0;
+    TGraph gPS_3P0;
+    TGraph gPS_3P1;
+    TGraph gPS_3P2;
+    TGraph gPS_1D2;
+    gPS_1S0.SetName("gPS_1S0");
+    gPS_3P0.SetName("gPS_3P0");
+    gPS_3P1.SetName("gPS_3P1");
+    gPS_3P2.SetName("gPS_3P2");
+    gPS_1D2.SetName("gPS_1D2");
+
+    TGraph gPSth_1S0;
+    TGraph gPSth_3P0;
+    TGraph gPSth_3P1;
+    TGraph gPSth_3P2;
+    TGraph gPSth_1D2;
+    gPSth_1S0.SetName("gPSth_1S0");
+    gPSth_3P0.SetName("gPSth_3P0");
+    gPSth_3P1.SetName("gPSth_3P1");
+    gPSth_3P2.SetName("gPSth_3P2");
+    gPSth_1D2.SetName("gPSth_1D2");
+
+    for(unsigned uPts=0; uPts<NumDataPts; uPts++){
+        gPSth_1S0.SetPoint(uPts,DataPtsK[uPts],DataPoints1S0[uPts]);
+        gPSth_3P0.SetPoint(uPts,DataPtsK[uPts],DataPoints3P0[uPts]);
+        gPSth_3P1.SetPoint(uPts,DataPtsK[uPts],DataPoints3P1[uPts]);
+        gPSth_3P2.SetPoint(uPts,DataPtsK[uPts],DataPoints3P2[uPts]);
+        gPSth_1D2.SetPoint(uPts,DataPtsK[uPts],DataPoints1D2[uPts]);
+    }
+
+
+    Kitty.KillTheCat();
+    for(unsigned uBin=0; uBin<NumMomBins; uBin++){
+        //printf("C(%.2f) = %.2f\n",Kitty.GetMomentum(uBin),Kitty.GetCorrFun(uBin));
+        gSP.SetPoint(uBin,Kitty.GetMomentum(uBin),Kitty.GetCorrFun(uBin));
+    }
+
+    Kitty.SetShortRangePotential(0,2,fDlmPot,cPotPars1D2);
+    Kitty.KillTheCat();
+    for(unsigned uBin=0; uBin<NumMomBins; uBin++){
+        //printf("C(%.2f) = %.2f\n",Kitty.GetMomentum(uBin),Kitty.GetCorrFun(uBin));
+        gSPD.SetPoint(uBin,Kitty.GetMomentum(uBin),Kitty.GetCorrFun(uBin));
+    }
+
+
+    TF1* fPhaseShift1S0 = new TF1("fPhaseShift1S0", "[2]*x*x*x*x+0.5*[1]*x*x-1./[0]", 2, 60);
+    TF1* fPhaseShift3P0 = new TF1("fPhaseShift3P0", "[2]*x*x*x*x+0.5*[1]*x*x-1./[0]", 2, 60);
+    TF1* fPhaseShift3P1 = new TF1("fPhaseShift3P1", "[2]*x*x*x*x+0.5*[1]*x*x-1./[0]", 2, 60);
+    TF1* fPhaseShift3P2 = new TF1("fPhaseShift3P2", "[2]*x*x*x*x+0.5*[1]*x*x-1./[0]", 2, 60);
+    TF1* fPhaseShift1D2 = new TF1("fPhaseShift1D2", "[2]*x*x*x*x+0.5*[1]*x*x-1./[0]", 2, 60);
+
+    for(unsigned uBin=0; uBin<NumMomBins; uBin++){
+        gPS_1S0.SetPoint(uBin,Kitty.GetMomentum(uBin),Kitty.GetPhaseShift(uBin,0,0)*180./3.1415);
+        gPS_3P0.SetPoint(uBin,Kitty.GetMomentum(uBin),Kitty.GetPhaseShift(uBin,1,1)*180./3.1415);
+        gPS_3P1.SetPoint(uBin,Kitty.GetMomentum(uBin),Kitty.GetPhaseShift(uBin,2,1)*180./3.1415);
+        gPS_3P2.SetPoint(uBin,Kitty.GetMomentum(uBin),Kitty.GetPhaseShift(uBin,3,1)*180./3.1415);
+        gPS_1D2.SetPoint(uBin,Kitty.GetMomentum(uBin),Kitty.GetPhaseShift(uBin,0,2)*180./3.1415);
+    }
+
+/*
+    for(unsigned iBin=0; iBin<NumFineSteps; iBin++){
+        hPhaseShift0->SetBinContent(iBin+1, NalaFine.GetMomentum(iBin)/tan(NalaFine.GetPhaseShift(iBin,0,0)));
+        //printf("k = %.2f; delta = %.3f; whatever/tan=%.3f\n",NalaFine.GetMomentum(iBin),NalaFine.GetPhaseShift(iBin,0,0)*180./3.14,
+        //       NalaFine.GetMomentum(iBin)/tan(NalaFine.GetPhaseShift(iBin,0,0)));
+        hPhaseShift0->SetBinError(iBin+1, hPhaseShift0->GetBinContent(iBin+1)*0.0001);
+    }
+
+    TF1* fPhaseShift0 = new TF1("fPhaseShift0", "[2]*x*x*x*x+0.5*[1]*x*x-1./[0]", kMinFine, kMaxFine);
+*/
+
+
+
+
+    double xVal_SP, yVal_SP;
+    double xVal_SPD, yVal_SPD;
+
+    for(unsigned uBin=0; uBin<NumMomBins; uBin++){
+        gSP.GetPoint(uBin,xVal_SP,yVal_SP);
+        gSPD.GetPoint(uBin,xVal_SPD,yVal_SPD);
+        gSPvsSPD.SetPoint(uBin,Kitty.GetMomentum(uBin),yVal_SPD/yVal_SP);
+    }
+
+    TFile* fOut = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/Test_pp_Dwaves/fOut.root","recreate");
+
+    gSP.Write();
+    gSPD.Write();
+    gSPvsSPD.Write();
+
+    gPSth_1S0.Write();
+    gPSth_3P0.Write();
+    gPSth_3P1.Write();
+    gPSth_3P2.Write();
+    gPSth_1D2.Write();
+
+    gPS_1S0.Write();
+    gPS_3P0.Write();
+    gPS_3P1.Write();
+    gPS_3P2.Write();
+    gPS_1D2.Write();
+
+
+    delete fOut;
+
+    delete [] MomBins;
+}
+
 int main(int argc, char *argv[])
 {
 
@@ -1759,8 +2002,9 @@ printf("%.3f\n",lambdapars[4]*100.);
 
     //PLAMBDA_1_MAIN(argc,ARGV);
     //CALL_BERNIE_AND_VALE();
-    FEMTOBOYZ_MAIN(argc,ARGV);
+    //FEMTOBOYZ_MAIN(argc,ARGV);
     //GerhardMAIN(argc,ARGV);
+    //Main_pSigma();
 
     //TestCommonInit();
     //plot_pp();
@@ -1773,6 +2017,7 @@ printf("%.3f\n",lambdapars[4]*100.);
     //SourceSmearing();
     //TestQS();
     //Test_pOmega_Potentials();
+    Test_pp_Dwaves();
 
     //TestCATS3_NewExtWf("Usmani");
     //TestCATS3_NewExtWf("NLO");

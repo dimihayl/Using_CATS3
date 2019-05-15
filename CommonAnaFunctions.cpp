@@ -32,7 +32,7 @@ DLM_CommonAnaFunctions::~DLM_CommonAnaFunctions(){
 //POT:
 //  "AV18", no pot vars so far
 //  no sor var so far
-void DLM_CommonAnaFunctions::SetUpCats_pp(CATS& Kitty, const TString& POT, const TString& SOURCE, const int& PotVar=0, const int& SourceVar=0){
+void DLM_CommonAnaFunctions::SetUpCats_pp(CATS& Kitty, const TString& POT, const TString& SOURCE, const int& PotVar, const int& SourceVar){
 
     CATSparameters* cPars = NULL;
 
@@ -131,7 +131,7 @@ void DLM_CommonAnaFunctions::SetUpCats_pp(CATS& Kitty, const TString& POT, const
         CleverMcLevyReso[0].SetUpReso(1,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic);
         CleverMcLevyReso[0].InitNumMcIter(1000000);
         Kitty.SetAnaSource(CatsSourceForwarder, &CleverMcLevyReso[0], 2);
-        Kitty.SetAnaSource(0,1.2);
+        Kitty.SetAnaSource(0,1.0);
         Kitty.SetAnaSource(1,1.6);
         Kitty.SetUseAnalyticSource(true);
     }
@@ -146,7 +146,7 @@ void DLM_CommonAnaFunctions::SetUpCats_pp(CATS& Kitty, const TString& POT, const
         CleverMcLevyReso[0].SetUpReso(1,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic);
         CleverMcLevyReso[0].InitNumMcIter(1000000);
         Kitty.SetAnaSource(CatsSourceForwarder, &CleverMcLevyReso[0], 2);
-        Kitty.SetAnaSource(0,1.2);
+        Kitty.SetAnaSource(0,1.0);
         Kitty.SetAnaSource(1,2.0);
         Kitty.SetUseAnalyticSource(true);
     }
@@ -313,7 +313,7 @@ void DLM_CommonAnaFunctions::SetUpCats_pL(CATS& Kitty, const TString& POT, const
         CleverMcLevyReso[1].SetUpReso(1,0,1.-0.3562,1462.93,4.69,Mass_L,Mass_pic);
         CleverMcLevyReso[1].InitNumMcIter(1000000);
         Kitty.SetAnaSource(CatsSourceForwarder, &CleverMcLevyReso[1], 2);
-        Kitty.SetAnaSource(0,1.2);
+        Kitty.SetAnaSource(0,1.0);
         Kitty.SetAnaSource(1,1.6);
         Kitty.SetUseAnalyticSource(true);
     }
@@ -328,7 +328,7 @@ void DLM_CommonAnaFunctions::SetUpCats_pL(CATS& Kitty, const TString& POT, const
         CleverMcLevyReso[1].SetUpReso(1,0,1.-0.3562,1462.93,4.69,Mass_L,Mass_pic);
         CleverMcLevyReso[1].InitNumMcIter(1000000);
         Kitty.SetAnaSource(CatsSourceForwarder, &CleverMcLevyReso[1], 2);
-        Kitty.SetAnaSource(0,1.2);
+        Kitty.SetAnaSource(0,1.0);
         Kitty.SetAnaSource(1,2.0);
         Kitty.SetUseAnalyticSource(true);
     }
@@ -523,7 +523,7 @@ void DLM_CommonAnaFunctions::SetUpCats_pXim(CATS& Kitty, const TString& POT, con
         CleverMcLevyReso[2].SetUpReso(0,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic);
         CleverMcLevyReso[2].InitNumMcIter(1000000);
         Kitty.SetAnaSource(CatsSourceForwarder, &CleverMcLevyReso[2], 2);
-        Kitty.SetAnaSource(0,1.2);
+        Kitty.SetAnaSource(0,1.0);
         Kitty.SetAnaSource(1,1.6);
         Kitty.SetUseAnalyticSource(true);
     }
@@ -536,7 +536,7 @@ void DLM_CommonAnaFunctions::SetUpCats_pXim(CATS& Kitty, const TString& POT, con
         CleverMcLevyReso[2].SetUpReso(0,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic);
         CleverMcLevyReso[2].InitNumMcIter(1000000);
         Kitty.SetAnaSource(CatsSourceForwarder, &CleverMcLevyReso[2], 2);
-        Kitty.SetAnaSource(0,1.2);
+        Kitty.SetAnaSource(0,1.0);
         Kitty.SetAnaSource(1,2.0);
         Kitty.SetUseAnalyticSource(true);
     }
@@ -702,7 +702,7 @@ void DLM_CommonAnaFunctions::SetUpCats_pOmegam(CATS& Kitty, const TString& POT, 
         CleverMcLevyReso[3].SetUpReso(0,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic);
         CleverMcLevyReso[3].InitNumMcIter(1000000);
         Kitty.SetAnaSource(CatsSourceForwarder, &CleverMcLevyReso[3], 2);
-        Kitty.SetAnaSource(0,1.2);
+        Kitty.SetAnaSource(0,1.0);
         Kitty.SetAnaSource(1,1.6);
         Kitty.SetUseAnalyticSource(true);
     }
@@ -715,7 +715,7 @@ void DLM_CommonAnaFunctions::SetUpCats_pOmegam(CATS& Kitty, const TString& POT, 
         CleverMcLevyReso[3].SetUpReso(0,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic);
         CleverMcLevyReso[3].InitNumMcIter(1000000);
         Kitty.SetAnaSource(CatsSourceForwarder, &CleverMcLevyReso[3], 2);
-        Kitty.SetAnaSource(0,1.2);
+        Kitty.SetAnaSource(0,1.0);
         Kitty.SetAnaSource(1,2.0);
         Kitty.SetUseAnalyticSource(true);
     }
@@ -843,79 +843,143 @@ DLM_Ck* DLM_CommonAnaFunctions::SetUpLednicky_pL(const unsigned& NumMomBins, con
 }
 
 void DLM_CommonAnaFunctions::SetUpBinning_pp(const TString& DataSample, unsigned& NumMomBins, double*& MomBins, double*& FitRegion, const int& MomBinVar, const int& FitRegVar){
+    double kMin;
+    double kMax;
+    double kStep;
     if(DataSample=="pp13TeV_MB_Run2paper"){
-        const double kMin=0;
-        const double kStep=4;
-        NumMomBins=94;//(i.e. max=376 MeV)
-        if(MomBins) delete [] MomBins;
-        MomBins = new double [NumMomBins+1];
-        MomBins[0] = kMin;
-        for(unsigned uBin=1; uBin<=NumMomBins; uBin++){
-            MomBins[uBin] = MomBins[uBin-1]+kStep;
+        if(MomBinVar==0){
+            kMin=0;
+            kStep=4;
+            kMax=376;//(i.e. max=376 MeV)
         }
-        if(FitRegion) delete [] FitRegion;
-        FitRegion = new double [4];
-        FitRegion[0] = MomBins[0];
-        FitRegion[1] = MomBins[NumMomBins];
-        FitRegion[2] = MomBins[NumMomBins]+kStep;
-        FitRegion[3] = MomBins[NumMomBins]+kStep*31.;//till 500
+        else if(MomBinVar==1){
+            kMin=0;
+            kStep=4;
+            kMax=352;
+        }
+        else if(MomBinVar==2){
+            kMin=0;
+            kStep=4;
+            kMax=400;
+        }
+        else{
+            printf("\033[1;31mERROR:\033[0m The MomBinVar '%i' does not exist\n",MomBinVar);
+            return;
+        }
     }
     else if(DataSample=="pp13TeV_HM_March19"){
-        const double kMin=4;
-        const double kStep=4;
-        NumMomBins=94;//(i.e. max=376 MeV)
-        if(MomBins) delete [] MomBins;
-        MomBins = new double [NumMomBins+1];
-        MomBins[0] = kMin;
-        for(unsigned uBin=1; uBin<=NumMomBins; uBin++){
-            MomBins[uBin] = MomBins[uBin-1]+kStep;
+        if(MomBinVar==0){
+            kMin=4;
+            kStep=4;
+            kMax=376;//(i.e. max=376 MeV)
         }
-        if(FitRegion) delete [] FitRegion;
-        FitRegion = new double [4];
-        FitRegion[0] = MomBins[0];
-        FitRegion[1] = MomBins[NumMomBins];
-        FitRegion[2] = MomBins[NumMomBins]+kStep;
-        FitRegion[3] = MomBins[NumMomBins]+kStep*31.;//till 500
+        else if(MomBinVar==1){
+            kMin=4;
+            kStep=4;
+            kMax=352;
+        }
+        else if(MomBinVar==2){
+            kMin=4;
+            kStep=4;
+            kMax=400;
+        }
+        else{
+            printf("\033[1;31mERROR:\033[0m The MomBinVar '%i' does not exist\n",MomBinVar);
+            return;
+        }
     }
     else if(DataSample=="pPb5TeV_Run2paper"){
-        const double kMin=4;
-        const double kStep=4;
-        NumMomBins=93;//(i.e. max=376 MeV)
-        if(MomBins) delete [] MomBins;
-        MomBins = new double [NumMomBins+1];
-        MomBins[0] = kMin;
-        for(unsigned uBin=1; uBin<=NumMomBins; uBin++){
-            MomBins[uBin] = MomBins[uBin-1]+kStep;
+        if(MomBinVar==0){
+            kMin=4;
+            kStep=4;
+            kMax=376;//(i.e. max=376 MeV)
         }
-        if(FitRegion) delete [] FitRegion;
-        FitRegion = new double [4];
-        FitRegion[0] = MomBins[0];
-        FitRegion[1] = MomBins[NumMomBins];
-        FitRegion[2] = MomBins[NumMomBins]+kStep;
-        FitRegion[3] = MomBins[NumMomBins]+kStep*31.;//till 500
+        else if(MomBinVar==1){
+            kMin=4;
+            kStep=4;
+            kMax=352;
+        }
+        else if(MomBinVar==2){
+            kMin=4;
+            kStep=4;
+            kMax=400;
+        }
+        else{
+            printf("\033[1;31mERROR:\033[0m The MomBinVar '%i' does not exist\n",MomBinVar);
+            return;
+        }
     }
     else if(DataSample=="pPb5TeV_CPR_Mar19"){
-        const double kMin=4;
-        const double kStep=4;
-        NumMomBins=93;//(i.e. max=376 MeV)
-        if(MomBins) delete [] MomBins;
-        MomBins = new double [NumMomBins+1];
-        MomBins[0] = kMin;
-        for(unsigned uBin=1; uBin<=NumMomBins; uBin++){
-            MomBins[uBin] = MomBins[uBin-1]+kStep;
+        if(MomBinVar==0){
+            kMin=4;
+            kStep=4;
+            kMax=376;//(i.e. max=376 MeV)
         }
-        if(FitRegion) delete [] FitRegion;
-        FitRegion = new double [4];
-        FitRegion[0] = MomBins[0];
-        FitRegion[1] = MomBins[NumMomBins];
-        FitRegion[2] = MomBins[NumMomBins]+kStep;
-        FitRegion[3] = MomBins[NumMomBins]+kStep*31.;//till 500
+        else if(MomBinVar==1){
+            kMin=4;
+            kStep=4;
+            kMax=352;
+        }
+        else if(MomBinVar==2){
+            kMin=4;
+            kStep=4;
+            kMax=400;
+        }
+        else{
+            printf("\033[1;31mERROR:\033[0m The MomBinVar '%i' does not exist\n",MomBinVar);
+            return;
+        }
     }
     else{
         printf("\033[1;31mERROR:\033[0m The data sample '%s' does not exist\n",DataSample.Data());
         NumMomBins=0;
         return;
     }
+    NumMomBins = floor((kMax-kMin)/(kStep));
+
+    if(MomBins) delete [] MomBins;
+    MomBins = new double [NumMomBins+1];
+    MomBins[0] = kMin;
+    for(unsigned uBin=1; uBin<=NumMomBins; uBin++){
+        MomBins[uBin] = MomBins[uBin-1]+kStep;
+    }
+    if(FitRegion) delete [] FitRegion;
+    FitRegion = new double [4];
+    FitRegion[0] = MomBins[0];
+    FitRegion[1] = MomBins[NumMomBins];
+    FitRegion[2] = MomBins[NumMomBins]+kStep;
+    FitRegion[3] = MomBins[NumMomBins]+kStep*31.;//till 500
+
+    //if(FitRegVar==0){
+    //    FitRegion[0] = MomBins[0];
+    //    FitRegion[1] = MomBins[NumMomBins];
+    //    FitRegion[2] = MomBins[NumMomBins];
+    //    FitRegion[3] = MomBins[NumMomBins];
+    //}
+    if(FitRegVar==0){
+        FitRegion[0] = MomBins[0];
+        FitRegion[1] = MomBins[NumMomBins];
+        FitRegion[2] = MomBins[NumMomBins];
+        FitRegion[3] = 576;
+    }
+    else if(FitRegVar==1){
+        FitRegion[0] = MomBins[0];
+        FitRegion[1] = MomBins[NumMomBins];
+        FitRegion[2] = MomBins[NumMomBins];
+        FitRegion[3] = 552;
+    }
+    else if(FitRegVar==2){
+        FitRegion[0] = MomBins[0];
+        FitRegion[1] = MomBins[NumMomBins];
+        FitRegion[2] = MomBins[NumMomBins];
+        FitRegion[3] = 600;
+    }
+    else{
+        printf("\033[1;31mERROR:\033[0m The FitRegVar '%i' does not exist\n",FitRegVar);
+        return;
+    }
+
+
 }
 void DLM_CommonAnaFunctions::SetUpBinning_pL(const TString& DataSample, unsigned& NumMomBins, double*& MomBins, double*& FitRegion,
                                              const int& MomBinVar, const int& FitRegVar){
@@ -1631,6 +1695,7 @@ TH1F* DLM_CommonAnaFunctions::GetAliceExpCorrFun(const TString& DataSample,const
         if(System=="pp"){
             if(mTbin==-1){
                 FileName = TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample12HM/CFOutput_pp%s.root",CutVar.Data());
+                if(CutVar=="_0") FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM/CFOutput_pp.root";
                 HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
             }
             else{

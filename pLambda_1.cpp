@@ -689,10 +689,12 @@ void Fit_pL(DLM_CommonAnaFunctions& AnalysisObject, const TString& OutputFolder,
     unsigned NDF_312=0;
     double xVal;
     double yVal;
+    unsigned hBin;
     for(unsigned uPoint=0; uPoint<FitResult_pL.GetN(); uPoint++){
         FitResult_pL.GetPoint(uPoint,xVal,yVal);
         if(xVal>312) break;
-        CHI2_312 += pow( (hData_pL->GetBinContent(uPoint+1)-yVal)/(hData_pL->GetBinError(uPoint+1)) ,2.);
+        hBin = hData_pL->FindBin(xVal);
+        CHI2_312 += pow( (hData_pL->GetBinContent(hBin)-yVal)/(hData_pL->GetBinError(hBin)) ,2.);
         NDF_312++;
     }
 
@@ -935,9 +937,10 @@ void Fit_pp(DLM_CommonAnaFunctions& AnalysisObject, const TString& OutputFolder,
     double* MomBins_pp = NULL;
     double* FitRegion_pp = NULL;
     unsigned NumMomBins_pp;
-    AnalysisObject.SetUpBinning_pp(DataSample,NumMomBins_pp,MomBins_pp,FitRegion_pp);
+    AnalysisObject.SetUpBinning_pp(DataSample,NumMomBins_pp,MomBins_pp,FitRegion_pp,VARIATIONS[0],VARIATIONS[1]);
 
     TH2F* hResolution_pp = AnalysisObject.GetResolutionMatrix(DataSample,"pp");
+    TH2F* hResidual_pp_pL = AnalysisObject.GetResidualMatrix("pp","pLambda");
     TH1F* hData_pp = AnalysisObject.GetAliceExpCorrFun(DataSample,"pp",DataVar,0,false,VARIATIONS[5]);
 
     double lam_pp[5];
@@ -965,164 +968,165 @@ void Fit_pp(DLM_CommonAnaFunctions& AnalysisObject, const TString& OutputFolder,
 
     CATS AB_pp;
     DLM_Ck* Ck_pp;
-//!
+    AB_pp.SetMomBins(NumMomBins_pp,MomBins_pp);
+    AnalysisObject.SetUpCats_pp(AB_pp,pp_Pot,SourceType);
+    if(SourceScale<0) AB_pp.SetAnaSource(0,1.0);
+    else AB_pp.SetAnaSource(0,SourceScale);
+    if(AB_pp.GetNumSourcePars()>1){
+        AB_pp.SetAnaSource(1,SourceStability);
+    }
+    //AB_pp.SetNotifications(CATS::nWarning);
+    Ck_pp = new DLM_Ck(AB_pp.GetNumSourcePars(),0,AB_pp);
+    Ck_pp->SetSourcePar(0,SourceStability);
+    if(AB_pp.GetNumSourcePars()>1){
+//printf("SourceStability=%f\n",SourceStability);
+        Ck_pp->SetSourcePar(1,SourceStability);
+    }
+    Ck_pp->Update();
 
     CATS AB_pL;
     DLM_Ck* Ck_pL;
     AB_pL.SetMomBins(NumMomBins_pp,MomBins_pp);
-    AnalysisObject.SetUpCats_pL(AB_pL,"NLO_Coupled_S",SourceType);
+    AnalysisObject.SetUpCats_pL(AB_pL,"NLO_Coupled_S","Gauss");
+    AB_pL.SetAnaSource(0,ResidualSourceSize);
     AB_pL.SetNotifications(CATS::nWarning);
-    AB_pL.KillTheCat();
+    //AB_pL.KillTheCat();
     Ck_pL = new DLM_Ck(AB_pL.GetNumSourcePars(),0,AB_pL);
-    Ck_pL->SetSourcePar(0,SourceScale);
+    Ck_pL->SetSourcePar(0,ResidualSourceSize);
     if(AB_pL.GetNumSourcePars()>1){
-        Ck_pL->SetSourcePar(0,SourceStability);
+        Ck_pL->SetSourcePar(1,SourceStability);
     }
+    Ck_pL->Update();
 
 //!
-    DLM_CkDecomposition CkDec_pp("pp",0,*Ck_pp,NULL);
-    DLM_CkDecomposition CkDec_pL("pLambda",4,*Ck_pL,NULL);
-/*
+    DLM_CkDecomposition CkDec_pp("pp",3,*Ck_pp,hResolution_pp);
+    DLM_CkDecomposition CkDec_pL("pLambda",2,*Ck_pL,NULL);
 
-    CkDec_pL.AddContribution(0,lam_pL[1],DLM_CkDecomposition::cFeedDown,&CkDec_pSigma0,hResidual_pL_pSigma0);
-    CkDec_pL.AddContribution(1,lam_pL[2],DLM_CkDecomposition::cFeedDown,&CkDec_pXim,hResidual_pL_pXim);
-    CkDec_pL.AddContribution(2,lam_pL[3],DLM_CkDecomposition::cFeedDown);
+    CkDec_pp.AddContribution(0,lam_pp[1],DLM_CkDecomposition::cFeedDown,&CkDec_pL,hResidual_pp_pL);
+    CkDec_pp.AddContribution(1,lam_pp[2],DLM_CkDecomposition::cFeedDown);
+    CkDec_pp.AddContribution(2,lam_pp[3],DLM_CkDecomposition::cFake);
+
+    CkDec_pL.AddContribution(2,lam_pL[1]+lam_pL[2]+lam_pL[3],DLM_CkDecomposition::cFeedDown);
     CkDec_pL.AddContribution(3,lam_pL[4],DLM_CkDecomposition::cFake);//0.03
 
-    //for Xim we simplify a bit and take ALL feed-down as flat
-    CkDec_pXim.AddContribution(0,lam_pXim[1]+lam_pXim[2]+lam_pXim[3],DLM_CkDecomposition::cFeedDown);
-    CkDec_pXim.AddContribution(1,lam_pXim[4],DLM_CkDecomposition::cFake);
-
     DLM_Fitter1* fitter = new DLM_Fitter1(1);
-    if(FittingMode_pL.Contains("Norm")||FittingMode_pL.Contains("Baseline")){
-        fitter->SetSystem(0,*hData_pL,1,CkDec_pL,
-                    FitRegion_pL[0],FitRegion_pL[1],FitRegion_pL[1],FitRegion_pL[1]);
+    if(FittingMode_pp.Contains("Norm")||FittingMode_pp.Contains("Baseline")){
+        fitter->SetSystem(0,*hData_pp,1,CkDec_pp,
+                    FitRegion_pp[0],FitRegion_pp[1],FitRegion_pp[1],FitRegion_pp[1]);
     }
-    else if(FittingMode_pL.Contains("Longbaseline")){
-        fitter->SetSystem(0,*hData_pL,1,CkDec_pL,
-                        FitRegion_pL[0],FitRegion_pL[1],FitRegion_pL[2],FitRegion_pL[3]);
+    else if(FittingMode_pp.Contains("Longbaseline")){
+        fitter->SetSystem(0,*hData_pp,1,CkDec_pp,
+                        FitRegion_pp[0],FitRegion_pp[1],FitRegion_pp[2],FitRegion_pp[3]);
     }
     else{
-        printf("\033[1;31mERROR:\033[0m Unknown fitting mode '%s'",FittingMode_pL.Data());
+        printf("\033[1;31mERROR:\033[0m Unknown fitting mode '%s'",FittingMode_pp.Data());
     }
 
-    if(FittingMode_pL.Contains("_prefit")){
+    if(FittingMode_pp.Contains("_prefit")){
         fitter->SetSeparateBL(0,true);
-        fitter->FixParameter("pLambda",DLM_Fitter1::p_Cl,-1);
+        fitter->FixParameter("pp",DLM_Fitter1::p_Cl,-1);
     }
     else{
         fitter->SetSeparateBL(0,false);
-        //fitter->FixParameter("pLambda",DLM_Fitter1::p_Cl,-1);
-        //fitter->SetParameter("pLambda",DLM_Fitter1::p_Cl,-1,-1,-0.95);
 
-        if(pL_Pot.Contains("Lednicky_")){
-            fitter->FixParameter("pLambda",DLM_Fitter1::p_Cl,1);
-        }
-        else{
-            //fitter->SetParameter("pLambda",DLM_Fitter1::p_Cl,1,0.9,1.1);
-            if(VARIATIONS[4]>0&&FittingMode_pL!="Norm") fitter->FixParameter("pLambda",DLM_Fitter1::p_kc,VARIATIONS[4]);
-            else fitter->SetParameter("pLambda",DLM_Fitter1::p_kc,2000,400,10000);
-            //fitter->SetParameter("pLambda",DLM_Fitter1::p_kc,2000,400,10000);
-        }
+        if(VARIATIONS[4]>0&&FittingMode_pp!="Norm") fitter->FixParameter("pp",DLM_Fitter1::p_kc,VARIATIONS[4]);
+        else fitter->SetParameter("pp",DLM_Fitter1::p_kc,2000,400,10000);
 
     }
 
-
-    printf("FittingMode_pL=%s\n",FittingMode_pL.Data());
+    printf("FittingMode_pp=%s\n",FittingMode_pp.Data());
 
     //!p_a
-    fitter->SetParameter("pLambda",DLM_Fitter1::p_a,1.0,0.7,1.3);
+    fitter->SetParameter("pp",DLM_Fitter1::p_a,1.0,0.7,1.3);
 
     //!p_b
-    if(FittingMode_pL.Contains("Baseline")||FittingMode_pL.Contains("Longbaseline"))
-        fitter->SetParameter("pLambda",DLM_Fitter1::p_b,0,-2e-3,2e-3);
+    if(FittingMode_pp.Contains("Baseline")||FittingMode_pp.Contains("Longbaseline"))
+        fitter->SetParameter("pp",DLM_Fitter1::p_b,0,-2e-3,2e-3);
     else
-        fitter->FixParameter("pLambda",DLM_Fitter1::p_b,0);
+        fitter->FixParameter("pp",DLM_Fitter1::p_b,0);
 
     //!p_c
-    if(FittingMode_pL.Contains("Baseline2")||FittingMode_pL.Contains("Longbaseline2"))
-        fitter->SetParameter("pLambda",DLM_Fitter1::p_c,0,-2e-4,2e-4);
+    if(FittingMode_pp.Contains("Baseline2")||FittingMode_pp.Contains("Longbaseline2"))
+        fitter->SetParameter("pp",DLM_Fitter1::p_c,0,-2e-4,2e-4);
     else
-        fitter->FixParameter("pLambda",DLM_Fitter1::p_c,0);
-
-
+        fitter->FixParameter("pp",DLM_Fitter1::p_c,0);
 
     //!p_sor0
     if(SourceType=="Gauss"){
-        if(SourceScale==0){fitter->FixParameter("pLambda",DLM_Fitter1::p_sor0,1.2);}
-        else if(SourceScale<0) {fitter->SetParameter("pLambda",DLM_Fitter1::p_sor0,1.2,0.5,2.0);}
-        else {fitter->FixParameter("pLambda",DLM_Fitter1::p_sor0,SourceScale);}
+        if(SourceScale==0){fitter->FixParameter("pp",DLM_Fitter1::p_sor0,1.2);}
+        else if(SourceScale<0) {fitter->SetParameter("pp",DLM_Fitter1::p_sor0,1.2,0.5,2.0);}
+        else {fitter->FixParameter("pp",DLM_Fitter1::p_sor0,SourceScale);}
     }
     else if(SourceType=="CleverLevy_Nolan"||SourceType=="CleverLevy_Single"||SourceType=="CleverLevy_Diff"){
-        fitter->SetParameter("pLambda",DLM_Fitter1::p_sor0,1.0,0.3,1.7);
-        fitter->SetParameter("pLambda",DLM_Fitter1::p_sor1,1.4,1.0,2.0);
+        fitter->SetParameter("pp",DLM_Fitter1::p_sor0,1.0,0.3,1.7);
+        fitter->SetParameter("pp",DLM_Fitter1::p_sor1,1.4,1.0,2.0);
     }
     else if(SourceType=="McLevyNolan_Reso"){
         if(DataSample=="pp13TeV_MB_Run2paper"){
-            if(SourceScale==0) {fitter->FixParameter("pLambda",DLM_Fitter1::p_sor0,0.71);}//at mT 1.44
-            else if(SourceScale==-1) {fitter->SetParameter("pLambda",DLM_Fitter1::p_sor0,0.71,0.71/2.,0.71*2.);}
-            else if(SourceScale==-11) {fitter->SetParameter("pLambda",DLM_Fitter1::p_sor0,0.71,0.71/2.,0.71*2.);}
-            else {fitter->FixParameter("pLambda",DLM_Fitter1::p_sor0,SourceScale);}
+            if(SourceScale==0) {fitter->FixParameter("pp",DLM_Fitter1::p_sor0,0.71);}//at mT 1.44
+            else if(SourceScale==-1) {fitter->SetParameter("pp",DLM_Fitter1::p_sor0,0.71,0.71/2.,0.71*2.);}
+            else if(SourceScale==-11) {fitter->SetParameter("pp",DLM_Fitter1::p_sor0,0.71,0.71/2.,0.71*2.);}
+            else {fitter->FixParameter("pp",DLM_Fitter1::p_sor0,SourceScale);}
 
-            if(SourceStability==0) {fitter->FixParameter("pLambda",DLM_Fitter1::p_sor1,1.5);}
-            else if(SourceStability==-1) {fitter->SetParameter("pLambda",DLM_Fitter1::p_sor1,1.5,1.5*0.90,1.5*1.10);}
-            else if(SourceStability==-11) {fitter->SetParameter("pLambda",DLM_Fitter1::p_sor1,1.5,1.0,2.0);}
-            else {fitter->FixParameter("pLambda",DLM_Fitter1::p_sor1,SourceStability);}
+            if(SourceStability==0) {fitter->FixParameter("pp",DLM_Fitter1::p_sor1,1.5);}
+            else if(SourceStability==-1) {fitter->SetParameter("pp",DLM_Fitter1::p_sor1,1.5,1.5*0.90,1.5*1.10);}
+            else if(SourceStability==-11) {fitter->SetParameter("pp",DLM_Fitter1::p_sor1,1.5,1.0,2.0);}
+            else {fitter->FixParameter("pp",DLM_Fitter1::p_sor1,SourceStability);}
         }
         else if(DataSample=="pPb5TeV_Run2paper"||DataSample=="pPb5TeV_CPR_Mar19"){
-            if(SourceScale==0) {fitter->FixParameter("pLambda",DLM_Fitter1::p_sor0,1.02);}//at mT 1.44
-            else if(SourceScale==-1) {fitter->SetParameter("pLambda",DLM_Fitter1::p_sor0,1.02,1.02*0.90,1.02*1.10);}
-            else if(SourceScale==-11) {fitter->SetParameter("pLambda",DLM_Fitter1::p_sor0,1.02,1.02/2.,1.02*2.);}
-            else {fitter->FixParameter("pLambda",DLM_Fitter1::p_sor0,SourceScale);}
+            if(SourceScale==0) {fitter->FixParameter("pp",DLM_Fitter1::p_sor0,1.02);}//at mT 1.44
+            else if(SourceScale==-1) {fitter->SetParameter("pp",DLM_Fitter1::p_sor0,1.02,1.02*0.90,1.02*1.10);}
+            else if(SourceScale==-11) {fitter->SetParameter("pp",DLM_Fitter1::p_sor0,1.02,1.02/2.,1.02*2.);}
+            else {fitter->FixParameter("pp",DLM_Fitter1::p_sor0,SourceScale);}
 
-            if(SourceStability==0) {fitter->FixParameter("pLambda",DLM_Fitter1::p_sor1,1.45);}
-            else if(SourceStability==-1) {fitter->SetParameter("pLambda",DLM_Fitter1::p_sor1,1.45,1.45*0.90,1.45*1.10);}
-            else if(SourceStability==-11) {fitter->SetParameter("pLambda",DLM_Fitter1::p_sor1,1.5,1.0,2.0);}
-            else {fitter->FixParameter("pLambda",DLM_Fitter1::p_sor1,SourceStability);}
+            if(SourceStability==0) {fitter->FixParameter("pp",DLM_Fitter1::p_sor1,1.45);}
+            else if(SourceStability==-1) {fitter->SetParameter("pp",DLM_Fitter1::p_sor1,1.45,1.45*0.90,1.45*1.10);}
+            else if(SourceStability==-11) {fitter->SetParameter("pp",DLM_Fitter1::p_sor1,1.5,1.0,2.0);}
+            else {fitter->FixParameter("pp",DLM_Fitter1::p_sor1,SourceStability);}
         }
         else if(DataSample=="pp13TeV_HM_March19"){
-            if(SourceScale==0) {fitter->FixParameter("pLambda",DLM_Fitter1::p_sor0,0.92);}//at mT 1.55
-            else if(SourceScale==-1) {fitter->SetParameter("pLambda",DLM_Fitter1::p_sor0,0.92,0.92*0.90,0.92*1.10);}
-            else if(SourceScale==-11) {fitter->SetParameter("pLambda",DLM_Fitter1::p_sor0,0.92,0.92/2.,0.92*2.);}
-            else {fitter->FixParameter("pLambda",DLM_Fitter1::p_sor0,SourceScale);}
+            if(SourceScale==0) {fitter->FixParameter("pp",DLM_Fitter1::p_sor0,0.92);}//at mT 1.55
+            else if(SourceScale==-1) {fitter->SetParameter("pp",DLM_Fitter1::p_sor0,0.92,0.92*0.90,0.92*1.10);}
+            else if(SourceScale==-11) {fitter->SetParameter("pp",DLM_Fitter1::p_sor0,0.92,0.92/2.,0.92*2.);}
+            else {fitter->FixParameter("pp",DLM_Fitter1::p_sor0,SourceScale);}
 
-            if(SourceStability==0) {fitter->FixParameter("pLambda",DLM_Fitter1::p_sor1,1.5);}
-            else if(SourceStability==-1) {fitter->SetParameter("pLambda",DLM_Fitter1::p_sor1,1.5,1.5*0.90,1.5*1.10);}
-            else if(SourceStability==-11) {fitter->SetParameter("pLambda",DLM_Fitter1::p_sor1,1.5,1.0,2.0);}
-            else {fitter->FixParameter("pLambda",DLM_Fitter1::p_sor1,SourceStability);}
+            if(SourceStability==0) {fitter->FixParameter("pp",DLM_Fitter1::p_sor1,1.5);}
+            else if(SourceStability==-1) {fitter->SetParameter("pp",DLM_Fitter1::p_sor1,1.5,1.5*0.90,1.5*1.10);}
+            else if(SourceStability==-11) {fitter->SetParameter("pp",DLM_Fitter1::p_sor1,1.5,1.0,2.0);}
+            else {fitter->FixParameter("pp",DLM_Fitter1::p_sor1,SourceStability);}
         }
         else printf("WHAT HAPPEND?\n");
     }
     else if(SourceType=="McGauss_Reso"){
         if(DataSample=="pp13TeV_MB_Run2paper"){
-            if(SourceScale==0) {fitter->FixParameter("pLambda",DLM_Fitter1::p_sor0,0.71);}//at mT 1.44
-            else if(SourceScale==-1) {fitter->SetParameter("pLambda",DLM_Fitter1::p_sor0,0.71,0.71*0.90,0.71*1.10);}
-            else if(SourceScale==-11) {fitter->SetParameter("pLambda",DLM_Fitter1::p_sor0,0.71,0.71/2.,0.71*2.);}
-            else {fitter->FixParameter("pLambda",DLM_Fitter1::p_sor0,SourceScale);}
-            fitter->FixParameter("pLambda",DLM_Fitter1::p_sor1,2.0);
+            if(SourceScale==0) {fitter->FixParameter("pp",DLM_Fitter1::p_sor0,0.71);}//at mT 1.44
+            else if(SourceScale==-1) {fitter->SetParameter("pp",DLM_Fitter1::p_sor0,0.71,0.71*0.90,0.71*1.10);}
+            else if(SourceScale==-11) {fitter->SetParameter("pp",DLM_Fitter1::p_sor0,0.71,0.71/2.,0.71*2.);}
+            else {fitter->FixParameter("pp",DLM_Fitter1::p_sor0,SourceScale);}
+            fitter->FixParameter("pp",DLM_Fitter1::p_sor1,2.0);
         }
         else if(DataSample=="pPb5TeV_Run2paper"||DataSample=="pPb5TeV_CPR_Mar19"){
-            if(SourceScale==0) {fitter->FixParameter("pLambda",DLM_Fitter1::p_sor0,0.95);}//at mT 1.52
-            else if(SourceScale==-1) {fitter->SetParameter("pLambda",DLM_Fitter1::p_sor0,0.95,0.95*0.90,0.95*1.10);}
-            else if(SourceScale==-11) {fitter->SetParameter("pLambda",DLM_Fitter1::p_sor0,0.95,0.95/2.,0.95*2.);}
-            else {fitter->FixParameter("pLambda",DLM_Fitter1::p_sor0,SourceScale);}
-            fitter->FixParameter("pLambda",DLM_Fitter1::p_sor1,2.0);
+            if(SourceScale==0) {fitter->FixParameter("pp",DLM_Fitter1::p_sor0,0.95);}//at mT 1.52
+            else if(SourceScale==-1) {fitter->SetParameter("pp",DLM_Fitter1::p_sor0,0.95,0.95*0.90,0.95*1.10);}
+            else if(SourceScale==-11) {fitter->SetParameter("pp",DLM_Fitter1::p_sor0,0.95,0.95/2.,0.95*2.);}
+            else {fitter->FixParameter("pp",DLM_Fitter1::p_sor0,SourceScale);}
+            fitter->FixParameter("pp",DLM_Fitter1::p_sor1,2.0);
         }
         else if(DataSample=="pp13TeV_HM_March19"){
-            //if(SourceScale==0) {fitter->FixParameter("pLambda",DLM_Fitter1::p_sor0,0.87);}//at mT 1.55
-            //else if(SourceScale==-1) {fitter->SetParameter("pLambda",DLM_Fitter1::p_sor0,0.87,0.87*0.90,0.87*1.10);}
-            //else if(SourceScale==-11) {fitter->SetParameter("pLambda",DLM_Fitter1::p_sor0,0.87,0.87/2.,0.87*2.);}
-            //else {fitter->FixParameter("pLambda",DLM_Fitter1::p_sor0,SourceScale);}
+            //if(SourceScale==0) {fitter->FixParameter("pp",DLM_Fitter1::p_sor0,0.87);}//at mT 1.55
+            //else if(SourceScale==-1) {fitter->SetParameter("pp",DLM_Fitter1::p_sor0,0.87,0.87*0.90,0.87*1.10);}
+            //else if(SourceScale==-11) {fitter->SetParameter("pp",DLM_Fitter1::p_sor0,0.87,0.87/2.,0.87*2.);}
+            //else {fitter->FixParameter("pp",DLM_Fitter1::p_sor0,SourceScale);}
 
             //these are the value shown at the PF previews
-            //if(SourceScale==0) {fitter->FixParameter("pLambda",DLM_Fitter1::p_sor0,0.918078);}//at mT 1.55
-            //else if(SourceScale==-1) {fitter->SetParameter("pLambda",DLM_Fitter1::p_sor0,0.918078,0.90218,0.933344);}
-            if(SourceScale==0) {fitter->FixParameter("pLambda",DLM_Fitter1::p_sor0,0.918);}//at mT 1.55
-            else if(SourceScale==-1) {fitter->SetParameter("pLambda",DLM_Fitter1::p_sor0,0.918,0.871,0.965);}//3 sigma
-            else if(SourceScale==-11) {fitter->SetParameter("pLambda",DLM_Fitter1::p_sor0,0.87,0.87/2.,0.87*2.);}
-            else {fitter->FixParameter("pLambda",DLM_Fitter1::p_sor0,SourceScale);}
+            //if(SourceScale==0) {fitter->FixParameter("pp",DLM_Fitter1::p_sor0,0.918078);}//at mT 1.55
+            //else if(SourceScale==-1) {fitter->SetParameter("pp",DLM_Fitter1::p_sor0,0.918078,0.90218,0.933344);}
+            if(SourceScale==0) {fitter->FixParameter("pp",DLM_Fitter1::p_sor0,0.918);}//at mT 1.55
+            else if(SourceScale==-1) {fitter->SetParameter("pp",DLM_Fitter1::p_sor0,0.918,0.871,0.965);}//3 sigma
+            else if(SourceScale==-11) {fitter->SetParameter("pp",DLM_Fitter1::p_sor0,0.87,0.87/2.,0.87*2.);}
+            else {fitter->FixParameter("pp",DLM_Fitter1::p_sor0,SourceScale);}
 
-            fitter->FixParameter("pLambda",DLM_Fitter1::p_sor1,2.0);
+            fitter->FixParameter("pp",DLM_Fitter1::p_sor1,2.0);
         }
         else printf("WHAT HAPPEND?\n");
     }
@@ -1130,36 +1134,40 @@ void Fit_pp(DLM_CommonAnaFunctions& AnalysisObject, const TString& OutputFolder,
         printf("\033[1;31mERROR:\033[0m '%s' does not exist",SourceType.Data());
     }
 
-    if(pL_Pot.Contains("Lednicky_")){
-        fitter->FixParameter("pLambda",DLM_Fitter1::p_pot0,Ck_pL->GetPotPar(0));
-        fitter->FixParameter("pLambda",DLM_Fitter1::p_pot1,Ck_pL->GetPotPar(1));
-        fitter->FixParameter("pLambda",DLM_Fitter1::p_pot2,Ck_pL->GetPotPar(2));
-        fitter->FixParameter("pLambda",DLM_Fitter1::p_pot3,Ck_pL->GetPotPar(3));
-        //fitter->SetFullCkForBaseline(0,true);
-        //fitter->FixParameter("pLambda",DLM_Fitter1::p_Cl,-1);
-    }
-
+    CkDec_pp.Update();
     CkDec_pL.Update();
-    CkDec_pSigma0.Update();
-    CkDec_pXim.Update();
     fitter->GoBabyGo(false);
-    TGraph FitResult_pL;
-    FitResult_pL.SetName(TString::Format("FitResult_pL"));
-    fitter->GetFitGraph(0, FitResult_pL);
+    TGraph FitResult_pp;
+    FitResult_pp.SetName(TString::Format("FitResult_pp"));
+    fitter->GetFitGraph(0, FitResult_pp);
     //TString Description = TString::Format("%s_%s_%s",pp_Pot[uPot_pp].Data(),pL_Pot[uPot_pL].Data(),pXim_Pot[uPot_pXim].Data());
     OutputFile->cd();
-    FitResult_pL.Write();
+    FitResult_pp.Write();
+
+    double CHI2_352=0;
+    unsigned NDF_352=0;
+    double xVal;
+    double yVal;
+    unsigned hBin;
+    for(unsigned uPoint=0; uPoint<FitResult_pp.GetN(); uPoint++){
+        FitResult_pp.GetPoint(uPoint,xVal,yVal);
+        if(xVal>352) break;
+        hBin = hData_pp->FindBin(xVal);
+        CHI2_352 += pow( (hData_pp->GetBinContent(hBin)-yVal)/(hData_pp->GetBinError(hBin)) ,2.);
+        NDF_352++;
+    }
 
     printf("χ2/ndf = %.2f/%i = %.2f\n",fitter->GetChi2(),fitter->GetNdf(),fitter->GetChi2Ndf());
-    printf("R(pΛ) = %.3f +/- %.3f\n",fitter->GetParameter("pLambda",DLM_Fitter1::p_sor0),fitter->GetParError("pLambda",DLM_Fitter1::p_sor0));
-    if(AB_pL.GetNumSourcePars()>1){
-        printf("α(pΛ) = %.3f +/- %.3f\n",fitter->GetParameter("pLambda",DLM_Fitter1::p_sor1),fitter->GetParError("pLambda",DLM_Fitter1::p_sor1));
+    printf("χ2/ndf (352) = %.2f/%i = %.2f\n",CHI2_352,NDF_352,CHI2_352/double(NDF_352));
+    printf("R(pΛ) = %.3f +/- %.3f\n",fitter->GetParameter("pp",DLM_Fitter1::p_sor0),fitter->GetParError("pp",DLM_Fitter1::p_sor0));
+    if(AB_pp.GetNumSourcePars()>1){
+        printf("α(pΛ) = %.3f +/- %.3f\n",fitter->GetParameter("pp",DLM_Fitter1::p_sor1),fitter->GetParError("pp",DLM_Fitter1::p_sor1));
     }
-    printf("a = %.2e +/- %.2e\n",fitter->GetParameter("pLambda",DLM_Fitter1::p_a),fitter->GetParError("pLambda",DLM_Fitter1::p_a));
-    printf("b = %.2e +/- %.2e\n",fitter->GetParameter("pLambda",DLM_Fitter1::p_b),fitter->GetParError("pLambda",DLM_Fitter1::p_b));
-    printf("c = %.2e +/- %.2e\n",fitter->GetParameter("pLambda",DLM_Fitter1::p_c),fitter->GetParError("pLambda",DLM_Fitter1::p_c));
-    printf("Cl = %.3f +/- %.3f\n",fitter->GetParameter("pLambda",DLM_Fitter1::p_Cl),fitter->GetParError("pLambda",DLM_Fitter1::p_Cl));
-    printf("kc = %.3f +/- %.3f\n",fitter->GetParameter("pLambda",DLM_Fitter1::p_kc),fitter->GetParError("pLambda",DLM_Fitter1::p_kc));
+    printf("a = %.2e +/- %.2e\n",fitter->GetParameter("pp",DLM_Fitter1::p_a),fitter->GetParError("pp",DLM_Fitter1::p_a));
+    printf("b = %.2e +/- %.2e\n",fitter->GetParameter("pp",DLM_Fitter1::p_b),fitter->GetParError("pp",DLM_Fitter1::p_b));
+    printf("c = %.2e +/- %.2e\n",fitter->GetParameter("pp",DLM_Fitter1::p_c),fitter->GetParError("pp",DLM_Fitter1::p_c));
+    printf("Cl = %.3f +/- %.3f\n",fitter->GetParameter("pp",DLM_Fitter1::p_Cl),fitter->GetParError("pp",DLM_Fitter1::p_Cl));
+    printf("kc = %.3f +/- %.3f\n",fitter->GetParameter("pp",DLM_Fitter1::p_kc),fitter->GetParError("pp",DLM_Fitter1::p_kc));
     printf("mT = %i\n",VARIATIONS[5]);
 
     TGraph gChi2Ndf;
@@ -1171,9 +1179,9 @@ void Fit_pp(DLM_CommonAnaFunctions& AnalysisObject, const TString& OutputFolder,
     gChi2Ndf.Write();
 
     TF1* fBaseline = new TF1("fBaseline","[0]+[1]*x+[2]*x*x",0,600);
-    fBaseline->FixParameter(0,fitter->GetParameter("pLambda",DLM_Fitter1::p_a));
-    fBaseline->FixParameter(1,fitter->GetParameter("pLambda",DLM_Fitter1::p_b));
-    fBaseline->FixParameter(2,fitter->GetParameter("pLambda",DLM_Fitter1::p_c));
+    fBaseline->FixParameter(0,fitter->GetParameter("pp",DLM_Fitter1::p_a));
+    fBaseline->FixParameter(1,fitter->GetParameter("pp",DLM_Fitter1::p_b));
+    fBaseline->FixParameter(2,fitter->GetParameter("pp",DLM_Fitter1::p_c));
     fBaseline->SetLineColor(kCyan+4);
     fBaseline->SetLineWidth(3);
     fBaseline->SetLineStyle(7);
@@ -1182,10 +1190,10 @@ void Fit_pp(DLM_CommonAnaFunctions& AnalysisObject, const TString& OutputFolder,
     TGraphErrors gScaleStability;
     gScaleStability.SetName("gScaleStability");
     gScaleStability.Set(1);
-    double SCALE = fitter->GetParameter("pLambda",DLM_Fitter1::p_sor0);
-    double dSCALE = fitter->GetParError("pLambda",DLM_Fitter1::p_sor0);
-    double STABILITY = AB_pL.GetNumSourcePars()>1?fitter->GetParameter("pLambda",DLM_Fitter1::p_sor1):2;
-    double dSTABILITY = AB_pL.GetNumSourcePars()>1?fitter->GetParError("pLambda",DLM_Fitter1::p_sor1):0;
+    double SCALE = fitter->GetParameter("pp",DLM_Fitter1::p_sor0);
+    double dSCALE = fitter->GetParError("pp",DLM_Fitter1::p_sor0);
+    double STABILITY = AB_pp.GetNumSourcePars()>1?fitter->GetParameter("pp",DLM_Fitter1::p_sor1):2;
+    double dSTABILITY = AB_pp.GetNumSourcePars()>1?fitter->GetParError("pp",DLM_Fitter1::p_sor1):0;
     gScaleStability.SetPoint(0,SCALE,STABILITY);
     gScaleStability.SetPointError(0,dSCALE,dSTABILITY);
     gScaleStability.SetMarkerStyle(20);
@@ -1197,7 +1205,6 @@ void Fit_pp(DLM_CommonAnaFunctions& AnalysisObject, const TString& OutputFolder,
     //                                                           DataSample.Data(),SourceDescription.Data(),
     //                                                           pL_Pot.Data(),FittingMode_pL.Data(),
     //                                                           VARIATIONS[0],VARIATIONS[1],VARIATIONS[2],VARIATIONS[3],VARIATIONS[4]),"recreate");
-
 
     TFile* NtFile = NULL;
     TNtuple* ntResult = NULL;
@@ -1236,12 +1243,12 @@ void Fit_pp(DLM_CommonAnaFunctions& AnalysisObject, const TString& OutputFolder,
             //printf("\033[1;31mERROR:\033[0m For whatever reason the ");
             ntResult = new TNtuple("ntResult", "ntResult",
             "Iter:Config:Data:SourceType:SourceScale:SourceStability:Potential:Baseline:FemRan:FitRan:pFrac:LamFrac:kcVar:mTbin:FemtoMin:FemtoMax:BlMin:BlMax:"
-            "p_a:e_a:p_b:e_b:p_c:e_c:p_Cl:e_Cl:p_kc:e_kc:p_sor0:e_sor0:p_sor1:e_sor1:chi2:ndf");
+            "p_a:e_a:p_b:e_b:p_c:e_c:p_Cl:e_Cl:p_kc:e_kc:p_sor0:e_sor0:p_sor1:e_sor1:chi2:ndf:chi2_352:ndf_352");
         }
     }
 
     if(NtFile&&ntResult){
-        Float_t buffer[34];
+        Float_t buffer[36];
         buffer[0] = UniqueID/1000;
         buffer[1] = UniqueID%1000;
         TString Temp = DataVar;
@@ -1254,38 +1261,18 @@ void Fit_pp(DLM_CommonAnaFunctions& AnalysisObject, const TString& OutputFolder,
         buffer[4] = SourceScale;
         buffer[5] = SourceStability;
 
-        if(pL_Pot=="LO") buffer[6] = 0;
-        if(pL_Pot=="NLO") buffer[6] = 10;
-        if(pL_Pot=="LO_Coupled_S") buffer[6] = 1;
-        if(pL_Pot=="NLO_Coupled_S") buffer[6] = 11;
-        if(pL_Pot=="NLO_sp") buffer[6] = 12;
-        if(pL_Pot=="Usmani") buffer[6] = 100;
-        if(pL_Pot=="Lednicky_ND") buffer[6] = 1001;
-        if(pL_Pot=="Lednicky_NF") buffer[6] = 1002;
-        if(pL_Pot=="Lednicky_NSC89") buffer[6] = 1003;
-        if(pL_Pot=="Lednicky_NSC97a") buffer[6] = 1004;
-        if(pL_Pot=="Lednicky_NSC97b") buffer[6] = 1005;
-        if(pL_Pot=="Lednicky_NSC97c") buffer[6] = 1006;
-        if(pL_Pot=="Lednicky_NSC97d") buffer[6] = 1007;
-        if(pL_Pot=="Lednicky_NSC97e") buffer[6] = 1008;
-        if(pL_Pot=="Lednicky_NSC97f") buffer[6] = 1009;
-        if(pL_Pot=="Lednicky_ESC08") buffer[6] = 1010;
-        if(pL_Pot=="Lednicky_XeftLO") buffer[6] = 1011;
-        if(pL_Pot=="Lednicky_XeftNLO") buffer[6] = 1012;
-        if(pL_Pot=="Lednicky_JulichA") buffer[6] = 1013;
-        if(pL_Pot=="Lednicky_JulichJ04") buffer[6] = 1014;
-        if(pL_Pot=="Lednicky_JulichJ04c") buffer[6] = 1015;
+        if(pp_Pot=="AV18") buffer[6] = 0;
 
-        if(FittingMode_pL=="Norm") buffer[7] = 0;
-        if(FittingMode_pL=="Baseline") buffer[7] = 1;
-        if(FittingMode_pL=="Baseline2") buffer[7] = 2;
-        if(FittingMode_pL=="Longbaseline") buffer[7] = 11;
-        if(FittingMode_pL=="Longbaseline2") buffer[7] = 12;
-        if(FittingMode_pL=="Norm_prefit") buffer[7] = 100;
-        if(FittingMode_pL=="Baseline_prefit") buffer[7] = 101;
-        if(FittingMode_pL=="Baseline2_prefit") buffer[7] = 102;
-        if(FittingMode_pL=="Longbaseline_prefit") buffer[7] = 111;
-        if(FittingMode_pL=="Longbaseline2_prefit") buffer[7] = 112;
+        if(FittingMode_pp=="Norm") buffer[7] = 0;
+        if(FittingMode_pp=="Baseline") buffer[7] = 1;
+        if(FittingMode_pp=="Baseline2") buffer[7] = 2;
+        if(FittingMode_pp=="Longbaseline") buffer[7] = 11;
+        if(FittingMode_pp=="Longbaseline2") buffer[7] = 12;
+        if(FittingMode_pp=="Norm_prefit") buffer[7] = 100;
+        if(FittingMode_pp=="Baseline_prefit") buffer[7] = 101;
+        if(FittingMode_pp=="Baseline2_prefit") buffer[7] = 102;
+        if(FittingMode_pp=="Longbaseline_prefit") buffer[7] = 111;
+        if(FittingMode_pp=="Longbaseline2_prefit") buffer[7] = 112;
 
         buffer[8] = VARIATIONS[0];
         buffer[9] = VARIATIONS[1];
@@ -1294,34 +1281,37 @@ void Fit_pp(DLM_CommonAnaFunctions& AnalysisObject, const TString& OutputFolder,
         buffer[12] = VARIATIONS[4];
         buffer[13] = VARIATIONS[5];
 
-        buffer[14] = FitRegion_pL[0];
-        buffer[15] = FitRegion_pL[1];
-        buffer[16] = FitRegion_pL[2];
-        buffer[17] = FitRegion_pL[3];
+        buffer[14] = FitRegion_pp[0];
+        buffer[15] = FitRegion_pp[1];
+        buffer[16] = FitRegion_pp[2];
+        buffer[17] = FitRegion_pp[3];
 
-        buffer[18] = fitter->GetParameter("pLambda",DLM_Fitter1::p_a);
-        buffer[19] = fitter->GetParError("pLambda",DLM_Fitter1::p_a);
+        buffer[18] = fitter->GetParameter("pp",DLM_Fitter1::p_a);
+        buffer[19] = fitter->GetParError("pp",DLM_Fitter1::p_a);
 
-        buffer[20] = fitter->GetParameter("pLambda",DLM_Fitter1::p_b);
-        buffer[21] = fitter->GetParError("pLambda",DLM_Fitter1::p_b);
+        buffer[20] = fitter->GetParameter("pp",DLM_Fitter1::p_b);
+        buffer[21] = fitter->GetParError("pp",DLM_Fitter1::p_b);
 
-        buffer[22] = fitter->GetParameter("pLambda",DLM_Fitter1::p_c);
-        buffer[23] = fitter->GetParError("pLambda",DLM_Fitter1::p_c);
+        buffer[22] = fitter->GetParameter("pp",DLM_Fitter1::p_c);
+        buffer[23] = fitter->GetParError("pp",DLM_Fitter1::p_c);
 
-        buffer[24] = fitter->GetParameter("pLambda",DLM_Fitter1::p_Cl);
-        buffer[25] = fitter->GetParError("pLambda",DLM_Fitter1::p_Cl);
+        buffer[24] = fitter->GetParameter("pp",DLM_Fitter1::p_Cl);
+        buffer[25] = fitter->GetParError("pp",DLM_Fitter1::p_Cl);
 
-        buffer[26] = fitter->GetParameter("pLambda",DLM_Fitter1::p_kc);
-        buffer[27] = fitter->GetParError("pLambda",DLM_Fitter1::p_kc);
+        buffer[26] = fitter->GetParameter("pp",DLM_Fitter1::p_kc);
+        buffer[27] = fitter->GetParError("pp",DLM_Fitter1::p_kc);
 
-        buffer[28] = fitter->GetParameter("pLambda",DLM_Fitter1::p_sor0);
-        buffer[29] = fitter->GetParError("pLambda",DLM_Fitter1::p_sor0);
+        buffer[28] = fitter->GetParameter("pp",DLM_Fitter1::p_sor0);
+        buffer[29] = fitter->GetParError("pp",DLM_Fitter1::p_sor0);
 
-        buffer[30] = fitter->GetParameter("pLambda",DLM_Fitter1::p_sor1);
-        buffer[31] = fitter->GetParError("pLambda",DLM_Fitter1::p_sor1);
+        buffer[30] = fitter->GetParameter("pp",DLM_Fitter1::p_sor1);
+        buffer[31] = fitter->GetParError("pp",DLM_Fitter1::p_sor1);
 
         buffer[32] = fitter->GetChi2();
         buffer[33] = fitter->GetNdf();
+
+        buffer[34] = CHI2_352;
+        buffer[35] = NDF_352;
 
         NtFile->cd();
         ntResult->Fill(buffer);
@@ -1329,23 +1319,21 @@ void Fit_pp(DLM_CommonAnaFunctions& AnalysisObject, const TString& OutputFolder,
     }
 
 
-    delete Ck_pXim;
+    delete Ck_pp;
     delete fitter;
 
     delete Ck_pL;
 
-    delete Ck_pSigma0;
-    delete [] MomBins_pL;
-    delete [] FitRegion_pL;
+    delete [] MomBins_pp;
+    delete [] FitRegion_pp;
     ////delete hDataClever_pL;
-    delete hResolution_pL;
-    delete hResidual_pL_pSigma0;
-    delete hResidual_pL_pXim;
-    delete hData_pL;
+    delete hResolution_pp;
+    delete hResidual_pp_pL;
+    delete hData_pp;
     delete OutputFile;
     if(ntResult){delete ntResult; ntResult=NULL;}
     if(NtFile){delete NtFile; NtFile=NULL;}
-*/
+
 }
 
 
@@ -2223,6 +2211,708 @@ void pL_SystematicsHM(const TString& OutputFolder, const int& WhichConfiguration
     delete [] MtVars;
 }
 
+
+//if OnlyFraction>1 => we have 1/OnlyFraction probability to accept an event
+//Mode==-1 => the default cut comb only (ignoring all first, last iter etc.)
+//Mode==0 => normal
+//Mode==1 => we only print the number of iter to be performed
+void pp_SystematicsHM(const TString& OutputFolder, const int& WhichConfiguration, const int& FirstIter, const int& LastIter, const unsigned& OnlyFraction,
+                      const int& RANDOMSEED, const int& Mode){
+
+    //const bool Perform_mT_Scan = true;
+
+    printf("Output: %s\n",OutputFolder.Data());
+    printf("Iter: %i -> %i\n",FirstIter,LastIter);
+    printf("Fraction: %i\n",OnlyFraction);
+    printf("Seed: %i\n",RANDOMSEED);
+    DLM_CommonAnaFunctions AnalysisObject;
+    int NumSourceVars;
+    int NumSourceScaleVars;
+    int NumSourceStabilityVars;
+    int NumPotVars;
+    int NumBaselineVars;
+    int NumFemtoRangeVars;
+    int NumFitRangeVars;
+    int NumProtonFracVars;
+    int NumLambdaFracVars;
+    int NumKcVars;
+    int NumMtVars;
+    int NumDataVars;//these are the cut variations
+
+    int DefSource;
+    int DefSourceScale;
+    int DefSourceStability;
+    int DefPot;
+    int DefBaseline;
+    int DefFemtoRange;
+    int DefFitRange;
+    int DefProtonFrac;
+    int DefLambdaFrac;
+    int DefKc;
+    int DefMt;
+    int DefData;
+
+    TString* Source;
+    double* SourceScale;
+    double* SourceStability;
+    TString* Potential;
+    TString* Baseline;
+    int* FemtoRangeVars;
+    int* FitRangeVars;
+    int* pFracVars;
+    int* LamFracVars;
+    double* kcVars;
+    int* MtVars;
+    TString* DataVars;
+    int VARIATIONS[6];
+    int TotNumIter=0;
+
+    switch(WhichConfiguration){
+        //this is the case where we only check for the Gauss+Reso and Gauss
+        case 0 :
+            NumSourceVars = 1;
+            NumSourceScaleVars = 1;
+            NumSourceStabilityVars = 1;
+            NumPotVars = 1;
+            NumBaselineVars = 5;
+            NumFemtoRangeVars = 3;
+            NumFitRangeVars = 3;
+            NumProtonFracVars = 3;
+            NumLambdaFracVars = 1;
+            NumKcVars = 3;
+            NumMtVars = 1;
+            NumDataVars = 45;
+            break;
+        //similar to 0, only that now we include Levy+Reso as an option
+        case 1 :
+            NumSourceVars = 1;
+            NumSourceScaleVars = 1;
+            NumSourceStabilityVars = 1;
+            NumPotVars = 1;
+            NumBaselineVars = 5;
+            NumFemtoRangeVars = 3;
+            NumFitRangeVars = 3;
+            NumProtonFracVars = 3;
+            NumLambdaFracVars = 1;
+            NumKcVars = 3;
+            NumMtVars = 1;
+            NumDataVars = 45;
+            break;
+        case 2 :
+            NumSourceVars = 1;
+            NumSourceScaleVars = 1;
+            NumSourceStabilityVars = 1;
+            NumPotVars = 1;
+            NumBaselineVars = 5;
+            NumFemtoRangeVars = 3;
+            NumFitRangeVars = 3;
+            NumProtonFracVars = 3;
+            NumLambdaFracVars = 1;
+            NumKcVars = 3;
+            NumMtVars = 1;
+            NumDataVars = 45;
+            break;
+        //this is the case where we only check for the Gauss+Reso and Gauss
+        //we fit with mT bins
+        case 20 :
+            NumSourceVars = 1;
+            NumSourceScaleVars = 1;
+            NumSourceStabilityVars = 1;
+            NumPotVars = 1;
+            NumBaselineVars = 5;
+            NumFemtoRangeVars = 3;
+            NumFitRangeVars = 3;
+            NumProtonFracVars = 3;
+            NumLambdaFracVars = 1;
+            NumKcVars = 3;
+            NumMtVars = 8;
+            NumDataVars = 45;
+            break;
+        case 22 :
+            NumSourceVars = 1;
+            NumSourceScaleVars = 1;
+            NumSourceStabilityVars = 1;
+            NumPotVars = 1;
+            NumBaselineVars = 5;
+            NumFemtoRangeVars = 3;
+            NumFitRangeVars = 3;
+            NumProtonFracVars = 3;
+            NumLambdaFracVars = 1;
+            NumKcVars = 3;
+            NumMtVars = 8;
+            NumDataVars = 45;
+            break;
+        //this is the case where we only check for the Gauss+Reso and Gauss, default data
+        case 10 :
+            NumSourceVars = 1;
+            NumSourceScaleVars = 1;
+            NumSourceStabilityVars = 1;
+            NumPotVars = 1;
+            NumBaselineVars = 5;
+            NumFemtoRangeVars = 3;
+            NumFitRangeVars = 3;
+            NumProtonFracVars = 3;
+            NumLambdaFracVars = 1;
+            NumKcVars = 3;
+            NumMtVars = 1;
+            NumDataVars = 1;
+            break;
+        //similar to 0, only that now we include Levy+Reso as an option
+        case 11 :
+            NumSourceVars = 1;
+            NumSourceScaleVars = 1;
+            NumSourceStabilityVars = 1;
+            NumPotVars = 1;
+            NumBaselineVars = 5;
+            NumFemtoRangeVars = 3;
+            NumFitRangeVars = 3;
+            NumProtonFracVars = 3;
+            NumLambdaFracVars = 1;
+            NumKcVars = 3;
+            NumMtVars = 1;
+            NumDataVars = 1;
+            break;
+        case 12:
+            NumSourceVars = 1;
+            NumSourceScaleVars = 1;
+            NumSourceStabilityVars = 1;
+            NumPotVars = 1;
+            NumBaselineVars = 5;
+            NumFemtoRangeVars = 3;
+            NumFitRangeVars = 3;
+            NumProtonFracVars = 3;
+            NumLambdaFracVars = 1;
+            NumKcVars = 3;
+            NumMtVars = 1;
+            NumDataVars = 1;
+            break;
+        default : return;
+    }
+
+
+    Source = new TString [NumSourceVars];
+    SourceScale = new double [NumSourceScaleVars];
+    SourceStability = new double [NumSourceStabilityVars];
+    Potential = new TString [NumPotVars];
+    Baseline = new TString [NumBaselineVars];
+    FemtoRangeVars = new int [NumFemtoRangeVars];
+    FitRangeVars = new int [NumFitRangeVars];
+    pFracVars = new int [NumProtonFracVars];
+    LamFracVars = new int [NumLambdaFracVars];
+    kcVars = new double [NumLambdaFracVars];
+    MtVars = new int [NumMtVars];
+    DataVars = new TString [NumDataVars];
+
+    int** DEFAULT_VAR = new int* [NumSourceVars];
+    for(int iSource=0; iSource<NumSourceVars; iSource++){
+        DEFAULT_VAR[iSource]=new int [NumPotVars];
+        for(int iPot=0; iPot<NumPotVars; iPot++)DEFAULT_VAR[iSource][iPot]=-1;
+    }
+
+    //TFile* NTfile = NULL;
+    //TNtuple* ntResult = NULL;
+
+    if(WhichConfiguration==0){
+        Source[0] = "McGauss_Reso";
+        DefSource = 0;
+        SourceScale[0] = -11;
+        DefSourceScale = 0;
+        SourceStability[0] = 2.0;//dummy
+        DefSourceStability = 0;
+        Potential[0] = "AV18";
+        DefPot = 0;
+        Baseline[0] = "Norm";
+        Baseline[1] = "Baseline";
+        Baseline[2] = "Baseline2";
+        Baseline[3] = "Longbaseline";
+        Baseline[4] = "Longbaseline2";
+        DefBaseline = 0;
+
+        FemtoRangeVars[0] = 0;//default
+        FemtoRangeVars[1] = 1;//down
+        FemtoRangeVars[2] = 2;//up
+        DefFemtoRange = 0;
+
+        FitRangeVars[0] = 0;//default
+        FitRangeVars[1] = 1;//down
+        FitRangeVars[2] = 2;//up
+        DefFitRange = 0;
+
+        pFracVars[0] = 0;//default
+        pFracVars[1] = 1;
+        pFracVars[2] = 2;
+        DefProtonFrac = 0;
+
+        LamFracVars[0] = 0;//default
+
+        DefLambdaFrac = 0;
+
+        kcVars[0] = 500;
+        kcVars[1] = 750;
+        kcVars[2] = 1000;
+        DefKc = 0;
+
+        MtVars[0] = -1;
+        DefMt = 0;
+
+        for(int iData=0; iData<NumDataVars; iData++){
+            DataVars[iData] = TString::Format("_%i",iData);
+        }
+        DefData = 0;
+    }
+    else if(WhichConfiguration==1){
+        Source[0] = "McLevyNolan_Reso";
+        DefSource = 0;
+        SourceScale[0] = -11;
+        DefSourceScale = 0;
+        SourceStability[0] = -11;
+        DefSourceStability = 0;
+        Potential[0] = "AV18";
+        DefPot = 0;
+        Baseline[0] = "Norm";
+        Baseline[1] = "Baseline";
+        Baseline[2] = "Baseline2";
+        Baseline[3] = "Longbaseline";
+        Baseline[4] = "Longbaseline2";
+        DefBaseline = 0;
+
+        FemtoRangeVars[0] = 0;//default
+        FemtoRangeVars[1] = 1;//down
+        FemtoRangeVars[2] = 2;//up
+        DefFemtoRange = 0;
+
+        FitRangeVars[0] = 0;//default
+        FitRangeVars[1] = 1;//down
+        FitRangeVars[2] = 2;//up
+        DefFitRange = 0;
+
+        pFracVars[0] = 0;//default
+        pFracVars[1] = 1;
+        pFracVars[2] = 2;
+        DefProtonFrac = 0;
+
+        LamFracVars[0] = 0;//default
+
+        DefLambdaFrac = 0;
+
+        kcVars[0] = 500;
+        kcVars[1] = 750;
+        kcVars[2] = 1000;
+        DefKc = 0;
+
+        MtVars[0] = -1;
+        DefMt = 0;
+        DataVars[0] = "";
+        DefData = 0;
+    }
+    //pure gauss
+    else if(WhichConfiguration==2){
+        Source[0] = "Gauss";
+        DefSource = 0;
+        SourceScale[0] = -11;
+        DefSourceScale = 0;
+        SourceStability[0] = 2.0;//dummy
+        DefSourceStability = 0;
+        Potential[0] = "AV18";
+        DefPot = 0;
+        Baseline[0] = "Norm";
+        Baseline[1] = "Baseline";
+        Baseline[2] = "Baseline2";
+        Baseline[3] = "Longbaseline";
+        Baseline[4] = "Longbaseline2";
+        DefBaseline = 0;
+
+        FemtoRangeVars[0] = 0;//default
+        FemtoRangeVars[1] = 1;//down
+        FemtoRangeVars[2] = 2;//up
+        DefFemtoRange = 0;
+
+        FitRangeVars[0] = 0;//default
+        FitRangeVars[1] = 1;//down
+        FitRangeVars[2] = 2;//up
+        DefFitRange = 0;
+
+        pFracVars[0] = 0;//default
+        pFracVars[1] = 1;
+        pFracVars[2] = 2;
+        DefProtonFrac = 0;
+
+        LamFracVars[0] = 0;//default
+
+        DefLambdaFrac = 0;
+
+        kcVars[0] = 500;
+        kcVars[1] = 750;
+        kcVars[2] = 1000;
+
+        DefKc = 0;
+
+        MtVars[0] = -1;
+        DefMt = 0;
+        DataVars[0] = "";
+        DefData = 0;
+
+    }
+    else if(WhichConfiguration==20||WhichConfiguration==22){
+        if(WhichConfiguration==20) Source[0] = "McGauss_Reso";
+        else Source[0] = "Gauss";
+
+        DefSource = 0;
+        SourceScale[0] = -11;//free fit
+        DefSourceScale = 0;
+        SourceStability[0] = 2.0;//dummy
+        DefSourceStability = 0;
+        Potential[0] = "AV18";
+        DefPot = 0;
+        Baseline[0] = "Norm";
+        Baseline[1] = "Baseline";
+        Baseline[2] = "Baseline2";
+        Baseline[3] = "Longbaseline";
+        Baseline[4] = "Longbaseline2";
+        DefBaseline = 0;
+
+        FemtoRangeVars[0] = 0;//default
+        FemtoRangeVars[1] = 1;//down
+        FemtoRangeVars[2] = 2;//up
+        DefFemtoRange = 0;
+
+        FitRangeVars[0] = 0;//default
+        FitRangeVars[1] = 1;//down
+        FitRangeVars[2] = 2;//up
+        DefFitRange = 0;
+
+        pFracVars[0] = 0;//default
+        pFracVars[1] = 1;
+        pFracVars[2] = 2;
+        DefProtonFrac = 0;
+
+        LamFracVars[0] = 0;//default
+
+        DefLambdaFrac = 0;
+
+        kcVars[0] = 500;
+        kcVars[1] = 750;
+        kcVars[2] = 1000;
+        DefKc = 0;
+
+        MtVars[0] = -1;
+        MtVars[1] = 0;
+        MtVars[2] = 1;
+        MtVars[3] = 2;
+        MtVars[4] = 3;
+        MtVars[5] = 4;
+        MtVars[6] = 5;
+        MtVars[7] = 6;
+        DefMt = 0;
+        for(int iData=0; iData<NumDataVars; iData++){
+            DataVars[iData] = TString::Format("_%i",iData);
+        }
+        DefData = 0;
+    }
+    else if(WhichConfiguration==10){
+        Source[0] = "McGauss_Reso";
+        DefSource = 0;
+        SourceScale[0] = -11;
+        DefSourceScale = 0;
+        SourceStability[0] = 2.0;//dummy
+        DefSourceStability = 0;
+        Potential[0] = "AV18";
+        DefPot = 0;
+        Baseline[0] = "Norm";
+        Baseline[1] = "Baseline";
+        Baseline[2] = "Baseline2";
+        Baseline[3] = "Longbaseline";
+        Baseline[4] = "Longbaseline2";
+        DefBaseline = 0;
+
+        FemtoRangeVars[0] = 0;//default
+        FemtoRangeVars[1] = 1;//down
+        FemtoRangeVars[2] = 2;//up
+        DefFemtoRange = 0;
+
+        FitRangeVars[0] = 0;//default
+        FitRangeVars[1] = 1;//down
+        FitRangeVars[2] = 2;//up
+        DefFitRange = 0;
+
+        pFracVars[0] = 0;//default
+        pFracVars[1] = 1;
+        pFracVars[2] = 2;
+        DefProtonFrac = 0;
+
+        LamFracVars[0] = 0;//default
+
+        DefLambdaFrac = 0;
+
+        kcVars[0] = 500;
+        kcVars[1] = 750;
+        kcVars[2] = 1000;
+        DefKc = 0;
+
+        MtVars[0] = -1;
+        DefMt = 0;
+
+        DataVars[0] = TString::Format("_%i",0);
+        DefData = 0;
+    }
+    else if(WhichConfiguration==11){
+        Source[0] = "McLevyNolan_Reso";
+        DefSource = 0;
+        SourceScale[0] = -11;
+        DefSourceScale = 0;
+        SourceStability[0] = -11;
+        DefSourceStability = 0;
+        Potential[0] = "AV18";
+        DefPot = 0;
+        Baseline[0] = "Norm";
+        Baseline[1] = "Baseline";
+        Baseline[2] = "Baseline2";
+        Baseline[3] = "Longbaseline";
+        Baseline[4] = "Longbaseline2";
+        DefBaseline = 0;
+
+        FemtoRangeVars[0] = 0;//default
+        FemtoRangeVars[1] = 1;//down
+        FemtoRangeVars[2] = 2;//up
+        DefFemtoRange = 0;
+
+        FitRangeVars[0] = 0;//default
+        FitRangeVars[1] = 1;//down
+        FitRangeVars[2] = 2;//up
+        DefFitRange = 0;
+
+        pFracVars[0] = 0;//default
+        pFracVars[1] = 1;
+        pFracVars[2] = 2;
+        DefProtonFrac = 0;
+
+        LamFracVars[0] = 0;//default
+
+        DefLambdaFrac = 0;
+
+        kcVars[0] = 500;
+        kcVars[1] = 750;
+        kcVars[2] = 1000;
+        DefKc = 0;
+
+        MtVars[0] = -1;
+        DefMt = 0;
+        DataVars[0] = TString::Format("_%i",0);
+        DefData = 0;
+    }
+    //pure gauss
+    else if(WhichConfiguration==12){
+        Source[0] = "Gauss";
+        DefSource = 0;
+        SourceScale[0] = -11;
+        DefSourceScale = 0;
+        SourceStability[0] = 2.0;//dummy
+        DefSourceStability = 0;
+        Potential[0] = "AV18";
+        DefPot = 0;
+        Baseline[0] = "Norm";
+        Baseline[1] = "Baseline";
+        Baseline[2] = "Baseline2";
+        Baseline[3] = "Longbaseline";
+        Baseline[4] = "Longbaseline2";
+        DefBaseline = 0;
+
+        FemtoRangeVars[0] = 0;//default
+        FemtoRangeVars[1] = 1;//down
+        FemtoRangeVars[2] = 2;//up
+        DefFemtoRange = 0;
+
+        FitRangeVars[0] = 0;//default
+        FitRangeVars[1] = 1;//down
+        FitRangeVars[2] = 2;//up
+        DefFitRange = 0;
+
+        pFracVars[0] = 0;//default
+        pFracVars[1] = 1;
+        pFracVars[2] = 2;
+        DefProtonFrac = 0;
+
+        LamFracVars[0] = 0;//default
+
+        DefLambdaFrac = 0;
+
+        kcVars[0] = 500;
+        kcVars[1] = 750;
+        kcVars[2] = 1000;
+
+        DefKc = 0;
+
+        MtVars[0] = -1;
+        DefMt = 0;
+        DataVars[0] = TString::Format("_%i",0);
+        DefData = 0;
+    }
+    else{
+        printf("????????????\n");
+    }
+
+    //if(!JustNumIter){
+    //    gROOT->cd();
+    //    ntResult = new TNtuple("ntResult", "ntResult",
+    //        "SourceType:SourceScale:SourceStability:Potential:Baseline:"
+    //        "p_a:e_a:p_b:e_b:p_c:e_c:p_Cl:e_Cl:p_kc:e_kc:p_sor0:e_sor0:p_sor1:e_sor1:chi2:ndf");
+    //}
+
+    TRandom3 RanGen(RANDOMSEED);
+
+    TString ntFileName = TString::Format("%sNTfile_%i.root",OutputFolder.Data(),WhichConfiguration);
+
+
+    int IterationCounter = 0;
+    int ComputedIterations = 0;
+    for(int iSource=0; iSource<NumSourceVars; iSource++){
+    for(int iSourceScal=0; iSourceScal<NumSourceScaleVars; iSourceScal++){
+    for(int iSourceStab=0; iSourceStab<NumSourceStabilityVars; iSourceStab++){
+    for(int iPot=0; iPot<NumPotVars; iPot++){
+    for(int iBl=0; iBl<NumBaselineVars; iBl++){
+    for(int iFemRan=0; iFemRan<NumFemtoRangeVars; iFemRan++){
+    for(int iFitRan=0; iFitRan<NumFitRangeVars; iFitRan++){
+    for(int ipFrac=0; ipFrac<NumProtonFracVars; ipFrac++){
+    for(int iLamFrac=0; iLamFrac<NumLambdaFracVars; iLamFrac++){
+    for(int ikc=0; ikc<NumKcVars; ikc++){
+    for(int iMt=0; iMt<NumMtVars; iMt++){
+    for(int iData=0; iData<NumDataVars; iData++){
+        if((Baseline[iBl]=="Norm"||Baseline[iBl].Contains("Baseline"))&&ikc) {continue;}//this variation is only relevant in case of a Longbaseline
+        if((Baseline[iBl]=="Norm"||Baseline[iBl].Contains("Baseline"))&&iFitRan) {continue;}//this variation is only relevant in case of a Longbaseline
+        double UNI = RanGen.Uniform();
+        //if(IterationCounter>=FirstIter&&IterationCounter<=LastIter){
+        //    printf(" UNI=%.3f vs %.3f\n",UNI,1./double(OnlyFraction));
+        //    printf(" IterationCounter=%i vs %i\n",IterationCounter,ComputedIterations);
+        //}
+        bool DefaultVar=true;
+        if(iSourceScal!=DefSourceScale||iSourceStab!=DefSourceStability||iBl!=DefBaseline||
+                    iFemRan!=DefFemtoRange||iFitRan!=DefFitRange||
+                    ipFrac!=DefProtonFrac||iLamFrac!=DefLambdaFrac||ikc!=DefKc||iData!=DefData){DefaultVar=false;}
+//printf("VAR %i = %i\n",IterationCounter,int(DefaultVar));
+        if(DefaultVar) {DEFAULT_VAR[iSource][iPot] = IterationCounter; UNI=-1;}//we always compute the default variations (for all potentials) and for all baselines
+        if(Mode==-1){
+            if(DefaultVar){
+                IterationCounter++;
+                DEFAULT_VAR[iSource][iPot] = IterationCounter;
+                continue;
+            }
+            else{
+                continue;
+            }
+        }
+        else if(Mode==1){
+            if(DefaultVar){
+                DEFAULT_VAR[iSource][iPot] = IterationCounter;
+                IterationCounter++;
+                continue;
+            }
+            else{
+                IterationCounter++;
+                continue;
+            }
+        }
+        else{
+            if(Mode!=-1&&(IterationCounter<FirstIter||IterationCounter>LastIter)) {IterationCounter++; continue;}
+            unsigned EffectiveFraction = OnlyFraction;
+            if((Baseline[iBl]=="Norm"||Baseline[iBl].Contains("Baseline"))){
+                EffectiveFraction /= NumFemtoRangeVars;
+                if(!Potential[iPot].Contains("Lednicky_")) EffectiveFraction /= NumFitRangeVars;
+                if(EffectiveFraction<0||EffectiveFraction>OnlyFraction) EffectiveFraction=1;
+            }
+            //this is here in order to make sure we take more Norm events (now they are much less due to some conditions above)
+            if(EffectiveFraction>1&&UNI>1./double(EffectiveFraction)) {IterationCounter++; continue;}
+        }
+
+
+        //TString IterationName = TString::Format("%spLam_%s_%s_Sca%.2f_Sta%.2f_%s_%s_",
+        //                                        OutputFolder.Data(),"pp13TeV_HM_March19",Source[iSource].Data(),
+        //                                        SourceScale[iSourceScal],SourceStability[iSourceStab],Potential[iPot],Baseline[iBl],
+        //                                        );
+
+        //[0] = femto range
+        //[1] = fit range
+        //[2] = fractions for p
+        //[3] = fractions for L
+        VARIATIONS[0] = FemtoRangeVars[iFemRan];
+        VARIATIONS[1] = FitRangeVars[iFitRan];
+        VARIATIONS[2] = pFracVars[ipFrac];
+        VARIATIONS[3] = LamFracVars[iLamFrac];
+        VARIATIONS[4] = kcVars[ikc];
+        VARIATIONS[5] = MtVars[iMt];
+
+        TString SourceDescription = Source[iSource];
+        if(SourceScale[iSourceScal]<0) {SourceDescription+="ScaFree";}
+        else if(SourceScale[iSourceScal]==0) {SourceDescription+="ScaDefault";}
+        else {SourceDescription+=TString::Format("Sca%.2f",SourceScale[iSourceScal]);}
+        if(SourceStability[iSourceStab]<0||SourceStability[iSourceStab]>2) {SourceDescription+="StaFree";}
+        else if(SourceStability[iSourceStab]==0) {SourceDescription+="StaDefault";}
+        else {SourceDescription+=TString::Format("Sta%.2f",SourceStability[iSourceStab]);}
+        /*
+        TString FileName = TString::Format("Iter%i_%s_%s_%s_%s_%i_%i_%i_%i_%i.root",IterationCounter,
+                                                               "pp13TeV_HM_March19",SourceDescription.Data(),
+                                                               Potential[iPot].Data(),Baseline[iBl].Data(),
+                                                               VARIATIONS[0],VARIATIONS[1],VARIATIONS[2],VARIATIONS[3],VARIATIONS[4]);
+        */
+        TString FileName = TString::Format("Config%i_Iter%i.root",WhichConfiguration,IterationCounter);
+        TFile* CheckIfFile = new TFile(OutputFolder+FileName,"READ");
+        //! we ignore iterations for which we already have an input file!
+        //! => delete the folder in case you want to overwrite
+        if(CheckIfFile&&CheckIfFile->IsOpen()){IterationCounter++; continue;}
+        delete CheckIfFile;
+        CheckIfFile = NULL;
+
+        Fit_pp(AnalysisObject, OutputFolder, FileName,"pp13TeV_HM_March19",DataVars[iData],Source[iSource],SourceScale[iSourceScal],SourceStability[iSourceStab],
+               Potential[iPot],Baseline[iBl],VARIATIONS,IterationCounter*1000+WhichConfiguration,ntFileName,"ntResult");
+
+        IterationCounter++;
+        ComputedIterations++;
+    }
+    }
+    }
+    }
+    }
+    }
+    }
+    }
+    }
+    }
+    }
+    }
+
+    printf("This set up had a total of %i iterations.\n",IterationCounter);
+
+     for(int iSource=0; iSource<NumSourceVars; iSource++){
+        for(int iPot=0; iPot<NumPotVars; iPot++){
+            printf(" The default variation (%i,%i) is %i.\n",iSource,iPot,DEFAULT_VAR[iSource][iPot]);
+        }
+     }
+
+
+    printf(" The function call evaluated %i iterations.\n",ComputedIterations);
+
+    //if(NTfile){
+    //    NTfile->cd();
+    //    ntResult->Write();
+    //}
+
+
+    //if(ntResult) delete ntResult;
+    //if(NTfile) delete NTfile;
+
+    delete [] Source;
+    delete [] SourceScale;
+    delete [] SourceStability;
+    delete [] Potential;
+    delete [] Baseline;
+    delete [] FemtoRangeVars;
+    delete [] FitRangeVars;
+    delete [] pFracVars;
+    delete [] LamFracVars;
+    delete [] kcVars;
+    delete [] MtVars;
+}
+
+
 void Plot_mT_Scale(const TString OutputFolder, const TString ntFileName, const TString mtFileName, const TString pp_FileName,
                    const TString Title){
 
@@ -2796,6 +3486,14 @@ int PLAMBDA_1_MAIN(int argc, char *argv[]){
 //SystematicsAdd_100419_2
 //const TString& OutputFolder, const int& WhichConfiguration, const int& FirstIter, const int& LastIter, const unsigned& OnlyFraction,
                       //const int& RANDOMSEED, const bool& JustNumIter
+
+    pp_SystematicsHM("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pp/SystematicsDef_130519/",
+                     atoi(argv[1]),atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),atoi(argv[5]),atoi(argv[6]));
+    //pp_SystematicsHM("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pp/SystematicsAdd_300419/",
+    //                 atoi(argv[1])+2,atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),atoi(argv[5]),atoi(argv[6]));
+    //pp_SystematicsHM("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pp/SystematicsAdd_300419/",
+    //                 atoi(argv[1])+1,atoi(argv[2])*3,(atoi(argv[3])+1)*3-1,atoi(argv[4])*3,atoi(argv[5]),atoi(argv[6]));
+
     //pL_SystematicsHM("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pL/Systematics_090519/",
     //                 atoi(argv[1]),atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),atoi(argv[5]),atoi(argv[6]));
     //pL_SystematicsHM("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pL/SystematicsAdd_300419/",
@@ -2806,12 +3504,12 @@ int PLAMBDA_1_MAIN(int argc, char *argv[]){
     //pL_SystematicsHM("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pL/SystematicsAdd_070419/",
     //                 0,0,4,1,1,0);
 
-    Plot_mT_Scale(  "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pL/Systematics_080519/PLOT/",
-                    "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pL/Systematics_080519/NTfile_20.root",
-                    "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM/CFOutputALL_mT_pL_HM.root",
-                    "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pL/Systematics_080519/PLOT/mTRad_pp_GaussReso.root",
-                    //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pp_FitDiff_CompareToTotal/010419/HM/Output_pp13TeV_HM_March19_McGauss_Reso_Norm.root",
-                    "mT scaling for p#minusp and p#minus#Lambda");
+    //Plot_mT_Scale(  "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pL/Systematics_080519/PLOT/",
+    //                "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pL/Systematics_080519/NTfile_20.root",
+    //                "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM/CFOutputALL_mT_pL_HM.root",
+    //                "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pL/Systematics_080519/PLOT/mTRad_pp_GaussReso.root",
+    //                //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pp_FitDiff_CompareToTotal/010419/HM/Output_pp13TeV_HM_March19_McGauss_Reso_Norm.root",
+    //                "mT scaling for p#minusp and p#minus#Lambda");
 
     //ComputeDataSystematics();
 

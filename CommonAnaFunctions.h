@@ -64,7 +64,7 @@ public:
 
     DLM_Ck* SetUpLednicky_pL(const unsigned& NumMomBins, const double* MomBins,  const TString& POT);
 
-    void SetUpBinning_pp(const TString& DataSample, unsigned& NumMomBins, double*& MomBins, double*& FitRegion, const int& MomBinVar, const int& FitRegVar);
+    void SetUpBinning_pp(const TString& DataSample, unsigned& NumMomBins, double*& MomBins, double*& FitRegion, const int& MomBinVar=0, const int& FitRegVar=0);
     void SetUpBinning_pL(const TString& DataSample, unsigned& NumMomBins, double*& MomBins, double*& FitRegion, const int& MomBinVar, const int& FitRegVar);
 
     //DataSamples: SystemEnergy_Trigger_Version

@@ -4395,7 +4395,694 @@ void Plot_pL_FASTsyst( const int& WhichBaseline
 */
 }
 
+void Plot_pp_FASTsyst( const int& WhichBaseline ){
 
+//MODE = 0 -> the coupled fit
+//MODE = 1 -> the one without coupled
+    int MODE = 0;
+    double MinMomentum=0;
+    double MaxMomentum=336;
+    unsigned DefaultIterAV18=0;
+
+    //we take 10HM not to redo further plots
+    TString DataFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM/CFOutput_pp.root";
+    //TString DataFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample12HM/CFOutput_pp_0.root";
+    TString DataHistoName = "hCk_ReweightedMeV_0";
+    TFile* DataFile = new TFile(DataFileName,"read");
+    TH1F* hData = (TH1F*)DataFile->Get(DataHistoName);
+
+    TString DataSystFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample12HM/Systematics_pp.root";
+    TString DataSystHistoName = "hRelSyst";//"RelSysPLUnbinned" "hRelSyst" "SystErrRel"
+    TFile* SystFile = new TFile(DataSystFileName,"read");
+    TH1F* hSyst = (TH1F*)SystFile->Get(DataSystHistoName);
+    TF1* fSyst = (TF1*)SystFile->Get(DataSystHistoName);
+//SystematicsAdd_100419_2 pm15
+//SystematicsAdd_120419 pm10
+//SystematicsAddMeson_230419
+//SystematicsAdd_310519
+//SystematicsAdd_010519
+    TString FitSystFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pp/SystematicsDef_130519/";
+    TString FitSystFileName = FitSystFolder+"NTfile_0.root";
+
+    TFile* ntFile = new TFile(FitSystFileName,"read");
+    TNtuple* ntResult = (TNtuple*)ntFile->Get("ntResult");
+    unsigned NumNtEntries = ntResult->GetEntries();
+
+    Float_t Iter;
+    Float_t Config;
+    Float_t Data;
+    Float_t SourceType;
+    Float_t SourceScale;
+    Float_t Potential;
+    Float_t Baseline;
+    Float_t FemRan;
+    Float_t FitRan;
+    Float_t pFrac;
+    Float_t LamFrac;
+    Float_t kcVar;
+    Float_t mTbin;
+    Float_t FemtoMin;
+    Float_t FemtoMax;
+    Float_t BlMin;
+    Float_t BlMax;
+    Float_t p_a;
+    Float_t e_a;
+    Float_t p_b;
+    Float_t e_b;
+    Float_t p_c;
+    Float_t e_c;
+    Float_t p_Cl;
+    Float_t e_Cl;
+    Float_t p_kc;
+    Float_t e_kc;
+    Float_t p_sor0;
+    Float_t e_sor0;
+    Float_t p_sor1;
+    Float_t e_sor1;
+    Float_t chi2;
+    Float_t ndf;
+    Float_t chi2_352;
+    Float_t ndf_352;
+
+    ntResult->SetBranchAddress("Iter",&Iter);
+    ntResult->SetBranchAddress("Config",&Config);
+    ntResult->SetBranchAddress("Data",&Data);
+    ntResult->SetBranchAddress("SourceType",&SourceType);
+    ntResult->SetBranchAddress("SourceScale",&SourceScale);
+    ntResult->SetBranchAddress("Potential",&Potential);
+    ntResult->SetBranchAddress("Baseline",&Baseline);
+    ntResult->SetBranchAddress("FemRan",&FemRan);
+    ntResult->SetBranchAddress("FitRan",&FitRan);
+    ntResult->SetBranchAddress("pFrac",&pFrac);
+    ntResult->SetBranchAddress("LamFrac",&LamFrac);
+    ntResult->SetBranchAddress("kcVar",&kcVar);
+    ntResult->SetBranchAddress("mTbin",&mTbin);
+    ntResult->SetBranchAddress("FemtoMin",&FemtoMin);
+    ntResult->SetBranchAddress("FemtoMax",&FemtoMax);
+    ntResult->SetBranchAddress("BlMin",&BlMin);
+    ntResult->SetBranchAddress("BlMax",&BlMax);
+    ntResult->SetBranchAddress("p_a",&p_a);
+    ntResult->SetBranchAddress("e_a",&e_a);
+    ntResult->SetBranchAddress("p_b",&p_b);
+    ntResult->SetBranchAddress("e_b",&e_b);
+    ntResult->SetBranchAddress("p_c",&p_c);
+    ntResult->SetBranchAddress("e_c",&e_c);
+    ntResult->SetBranchAddress("p_Cl",&p_Cl);
+    ntResult->SetBranchAddress("e_Cl",&e_Cl);
+    ntResult->SetBranchAddress("p_kc",&p_kc);
+    ntResult->SetBranchAddress("e_kc",&e_kc);
+    ntResult->SetBranchAddress("p_sor0",&p_sor0);
+    ntResult->SetBranchAddress("e_sor0",&e_sor0);
+    ntResult->SetBranchAddress("p_sor1",&p_sor1);
+    ntResult->SetBranchAddress("e_sor1",&e_sor1);
+    ntResult->SetBranchAddress("chi2",&chi2);
+    ntResult->SetBranchAddress("ndf",&ndf);
+    ntResult->SetBranchAddress("chi2_352",&chi2_352);
+    ntResult->SetBranchAddress("ndf_352",&ndf_352);
+
+    TGraph gLowerAV18;
+    gLowerAV18.SetName("gLowerAV18");
+    TGraph gUpperAV18;
+    gUpperAV18.SetName("gUpperAV18");
+    TGraph gBestAV18;
+    gBestAV18.SetName("gBestAV18");
+
+    //baseline
+    TGraph bOuterLowerAV18;
+    bOuterLowerAV18.SetName("bOuterLowerAV18");
+    TGraph bOuterUpperAV18;
+    bOuterUpperAV18.SetName("bOuterUpperAV18");
+    TGraph bOuterBestAV18;
+    bOuterBestAV18.SetName("bOuterBestAV18");
+    TGraph bLowerAV18;
+    bLowerAV18.SetName("bLowerAV18");
+    TGraph bUpperAV18;
+    bUpperAV18.SetName("bUpperAV18");
+    TGraph bBestAV18;
+    bBestAV18.SetName("bBestAV18");
+
+    double BestChi2NdfAV18 = 1e6;
+    double WorstChi2NdfAV18 = 0;
+    unsigned NumAcceptedEntries = 0;
+
+    double GlobalBestPval_AV18 = 0;
+
+
+
+    TH1F* hChi2NdfAV18 = new TH1F("hChi2NdfAV18","hChi2NdfAV18",1024,0,64);
+    TH1F* hNsigmaAV18 = new TH1F("hNsigmaAV18","hNsigmaAV18",1024,0,64);
+
+    //bin-by-bin deviation in nSigma
+    //we use TH2F to save all variations
+    //than we take the mean and stdv to define upper and lower limit
+    const unsigned DevPlotNumBins = 150;
+    TH2F* hVarDeviationAV18 = new TH2F("hVarDeviationAV18","hVarDeviationAV18",DevPlotNumBins,0,hData->GetBinWidth(1)*DevPlotNumBins,1024,-40,40);
+    TH2F* hVarDevRatioAV18 = new TH2F("hVarDevRatioAV18","hVarDevRatioAV18",DevPlotNumBins,0,hData->GetBinWidth(1)*DevPlotNumBins,128,0.85,1.15);
+
+    TGraphErrors gVarDeviationAV18_Stdv;
+    gVarDeviationAV18_Stdv.SetName("gVarDeviationAV18_Stdv");
+    gVarDeviationAV18_Stdv.SetLineWidth(0);
+    gVarDeviationAV18_Stdv.SetLineColor(kBlue+2);
+    gVarDeviationAV18_Stdv.SetMarkerSize(0);
+    gVarDeviationAV18_Stdv.SetMarkerStyle(20);
+    gVarDeviationAV18_Stdv.SetMarkerColor(kBlue+2);
+    gVarDeviationAV18_Stdv.SetFillColor(kBlue+2);
+
+
+    double DefaultChi2NdfAV18=0;
+    double DefaultNsigmaAV18=0;
+
+    for(unsigned uEntry=0; uEntry<NumNtEntries; uEntry++){
+        ntFile->cd();
+        ntResult->GetEntry(uEntry);
+        int ITER = int(Iter);
+        int CONFIG = int(Config);
+        int Id_AV18;
+        if(CONFIG<10){
+            Id_AV18 = 0;
+        }
+        else if(CONFIG<20){
+            Id_AV18 = 0;
+        }
+
+//printf("Iter=%i; CONFIG=%i; LO=%i; NLO=%i\n",ITER,CONFIG,Id_LO,Id_NLO);
+        //! Conditions
+
+        //if(CONFIG!=0&&CONFIG!=2) continue; //select Gauss+Reso and Gauss
+        if(CONFIG!=0) continue; //select Gauss+Reso
+        //if(CONFIG!=1) continue; //select Levy+Reso
+        //if(CONFIG!=2) continue; //select Gauss
+        if(round(Baseline)!=WhichBaseline) continue;
+        //if(round(Baseline)!=0) continue; //select only norm
+        //if(int(Baseline)!=11) continue; //select only pol1
+        //if(int(Baseline)!=12) continue; //select only pol2
+        //if(SourceScale>0) continue;
+        //if(SourceScale<0.8&&SourceScale>0) continue;
+
+        if(Id_AV18==Potential){
+            hChi2NdfAV18->Fill(chi2_352/ndf_352);
+            double nSigma = sqrt(2)*TMath::ErfcInverse(TMath::Prob(chi2_352,int(ndf_352)));
+            if(nSigma==0) nSigma = 100;
+            hNsigmaAV18->Fill(nSigma);
+            if(DefaultIterAV18==int(Iter)){
+                DefaultChi2NdfAV18 = chi2_352/ndf_352;
+                DefaultNsigmaAV18 = sqrt(2)*TMath::ErfcInverse(TMath::Prob(chi2_352,int(ndf_352)));
+            }
+        }
+        else{
+            printf("PROBLEM\n");
+        }
+    }
+
+    double MeanChi2NdfAV18 = hChi2NdfAV18->GetMean();
+    double StdvChi2NdfAV18 = hChi2NdfAV18->GetStdDev();
+    double LenChi2NdfAV18;
+    double UniformStdvChi2NdfAV18;
+    double MinChi2NdfAV18=1e6;
+    double MaxChi2NdfAV18=-1e6;
+
+    double MeanNsigmaAV18 = hNsigmaAV18->GetMean();
+    double StdvNsigmaAV18 = hNsigmaAV18->GetStdDev();
+    double LenNsigmaAV18;
+    double UniformStdvNsigmaAV18;
+    double MinNsigmaAV18=1e6;
+    double MaxNsigmaAV18=-1e6;
+
+
+    for(unsigned uBin=0; uBin<hChi2NdfAV18->GetNbinsX(); uBin++){
+        if(hChi2NdfAV18->GetBinContent(uBin+1)&&MinChi2NdfAV18>hChi2NdfAV18->GetBinCenter(uBin+1)){MinChi2NdfAV18=hChi2NdfAV18->GetBinCenter(uBin+1);}
+        if(hChi2NdfAV18->GetBinContent(uBin+1)&&MaxChi2NdfAV18<hChi2NdfAV18->GetBinCenter(uBin+1)){MaxChi2NdfAV18=hChi2NdfAV18->GetBinCenter(uBin+1);}
+    }
+    LenChi2NdfAV18 = MaxChi2NdfAV18-MinChi2NdfAV18;
+    UniformStdvChi2NdfAV18 = LenChi2NdfAV18/sqrt(12.);
+
+    for(unsigned uBin=0; uBin<hNsigmaAV18->GetNbinsX(); uBin++){
+        if(hNsigmaAV18->GetBinContent(uBin+1)&&MinNsigmaAV18>hNsigmaAV18->GetBinCenter(uBin+1)){MinNsigmaAV18=hNsigmaAV18->GetBinCenter(uBin+1);}
+        if(hNsigmaAV18->GetBinContent(uBin+1)&&MaxNsigmaAV18<hNsigmaAV18->GetBinCenter(uBin+1)){MaxNsigmaAV18=hNsigmaAV18->GetBinCenter(uBin+1);}
+    }
+    LenNsigmaAV18 = MaxNsigmaAV18-MinNsigmaAV18;
+    UniformStdvNsigmaAV18 = LenNsigmaAV18/sqrt(12.);
+
+
+    double BestNsigma_AV18 = sqrt(2)*TMath::ErfcInverse(GlobalBestPval_AV18);
+
+    double LowCi_Chi2NdfAV18;
+    double UpCi_Chi2NdfAV18;
+    double Median_Chi2NdfAV18 = GetCentralInterval(*hChi2NdfAV18,0.68,LowCi_Chi2NdfAV18,UpCi_Chi2NdfAV18,true);
+
+    double LowCi_NsigmaAV18;
+    double UpCi_NsigmaAV18;
+    double Median_NsigmaAV18 = GetCentralInterval(*hNsigmaAV18,0.68,LowCi_NsigmaAV18,UpCi_NsigmaAV18,true);
+
+    //THANK YOU ROOT, THANKS!!!
+    //so if we read the same TNtuple twice, the second iteration is SUPER slow (like c.a. x1000 times).
+    //to fix this: delete the TNtuple and open it again
+    delete ntResult;
+    ntResult = (TNtuple*)ntFile->Get("ntResult");
+
+    ntResult->SetBranchAddress("Iter",&Iter);
+    ntResult->SetBranchAddress("Config",&Config);
+    ntResult->SetBranchAddress("Data",&Data);
+    ntResult->SetBranchAddress("SourceType",&SourceType);
+    ntResult->SetBranchAddress("SourceScale",&SourceScale);
+    ntResult->SetBranchAddress("Potential",&Potential);
+    ntResult->SetBranchAddress("Baseline",&Baseline);
+    ntResult->SetBranchAddress("FemRan",&FemRan);
+    ntResult->SetBranchAddress("FitRan",&FitRan);
+    ntResult->SetBranchAddress("pFrac",&pFrac);
+    ntResult->SetBranchAddress("LamFrac",&LamFrac);
+    ntResult->SetBranchAddress("kcVar",&kcVar);
+    ntResult->SetBranchAddress("mTbin",&mTbin);
+    ntResult->SetBranchAddress("FemtoMin",&FemtoMin);
+    ntResult->SetBranchAddress("FemtoMax",&FemtoMax);
+    ntResult->SetBranchAddress("BlMin",&BlMin);
+    ntResult->SetBranchAddress("BlMax",&BlMax);
+    ntResult->SetBranchAddress("p_a",&p_a);
+    ntResult->SetBranchAddress("e_a",&e_a);
+    ntResult->SetBranchAddress("p_b",&p_b);
+    ntResult->SetBranchAddress("e_b",&e_b);
+    ntResult->SetBranchAddress("p_c",&p_c);
+    ntResult->SetBranchAddress("e_c",&e_c);
+    ntResult->SetBranchAddress("p_Cl",&p_Cl);
+    ntResult->SetBranchAddress("e_Cl",&e_Cl);
+    ntResult->SetBranchAddress("p_kc",&p_kc);
+    ntResult->SetBranchAddress("e_kc",&e_kc);
+    ntResult->SetBranchAddress("p_sor0",&p_sor0);
+    ntResult->SetBranchAddress("e_sor0",&e_sor0);
+    ntResult->SetBranchAddress("p_sor1",&p_sor1);
+    ntResult->SetBranchAddress("e_sor1",&e_sor1);
+    ntResult->SetBranchAddress("chi2",&chi2);
+    ntResult->SetBranchAddress("ndf",&ndf);
+    ntResult->SetBranchAddress("chi2_352",&chi2_352);//chi2<=312 MeV
+    ntResult->SetBranchAddress("ndf_352",&ndf_352);//number of data points up to 312 MeV
+
+//TRandom3 rangen(11);
+//printf("NumNtEntries=%u\n",NumNtEntries);
+    for(unsigned uEntry=0; uEntry<NumNtEntries; uEntry++){
+        //if(uEntry%100==0) printf("uEntry=%u\n",uEntry);
+//if(rangen.Uniform()>0.01) continue;
+        ntFile->cd();
+        ntResult->GetEntry(uEntry);
+
+        int ITER = int(Iter);
+        int CONFIG = int(Config);
+        int Id_AV18;
+        if(CONFIG<10){
+            Id_AV18 = 0;
+        }
+        else if(CONFIG<20){
+            Id_AV18 = 0;
+        }
+//printf("Iter=%i; CONFIG=%i; LO=%i; NLO=%i\n",ITER,CONFIG,Id_LO,Id_NLO);
+        //! Conditions
+//if(rangen.Uniform()>0.01&&ITER!=DefaultIterLO&&ITER!=DefaultIterNLO) continue;
+        //if(CONFIG!=0&&CONFIG!=2) continue; //select Gauss+Reso and Gauss
+        if(CONFIG!=0) continue; //select Gauss+Reso
+        //if(CONFIG!=1) continue; //select Levy+Reso
+        //if(CONFIG!=2) continue; //select Gauss
+        if(round(Baseline)!=WhichBaseline) continue;
+        //if(round(Baseline)!=0) continue; //select only norm
+        //if(int(Baseline)!=11) continue; //select only pol1
+        //if(int(Baseline)!=12) continue; //select only pol2
+        //if(SourceScale>0) continue;
+        //if(SourceScale<0.8&&SourceScale>0) continue;
+
+        if(Potential==Id_AV18&&chi2_352/double(ndf_352)<LowCi_Chi2NdfAV18&&chi2_352/double(ndf_352)>UpCi_Chi2NdfAV18) continue;
+        //if(Data!=0) continue;
+
+        bool BestSoFarAV18=false;
+
+        //we want to plot something that makes sense (i.e. is fixed to the data we plot)
+        if(Data==0){
+            if(Potential==Id_AV18&&(chi2_352/ndf_352)>WorstChi2NdfAV18&&pFrac==0&&LamFrac==0){
+                WorstChi2NdfAV18=chi2_352/ndf_352;
+            }
+            if(Potential==Id_AV18&&(chi2_352/ndf_352)<BestChi2NdfAV18&&pFrac==0&&LamFrac==0){
+                BestChi2NdfAV18=chi2_352/ndf_352;
+                BestSoFarAV18=true;
+            }
+            if(Potential==Id_AV18&&TMath::Prob(chi2_352,ndf_352)>GlobalBestPval_AV18){
+                GlobalBestPval_AV18=TMath::Prob(chi2_352,ndf_352);
+    //printf("GlobalBestPval_AV18=%f\n",GlobalBestPval_AV18);
+                //BestSoFarAV18=true;
+            }
+
+        }
+
+        TFile* FileGraph = new TFile(TString::Format("%sConfig%i_Iter%i.root",FitSystFolder.Data(),CONFIG,ITER),"read");
+        TH1F* hDataVar = (TH1F*)FileGraph->Get("hCk_ReweightedMeV_0");
+        TGraph* FitResult = (TGraph*)FileGraph->Get("FitResult_pp");
+        TF1* FitBaseline = (TF1*)FileGraph->Get("fBaseline");
+
+        double CkMaxFit;
+        double kMaxFit;
+        FitResult->GetPoint(FitResult->GetN()-1,kMaxFit,CkMaxFit);
+
+        for(unsigned uBin=0; uBin<DevPlotNumBins; uBin++){
+            double kValue=hVarDeviationAV18->GetXaxis()->GetBinCenter(uBin+1);
+            double dataValue = hDataVar->GetBinContent(uBin+1);
+            double fitValue = FitResult->Eval(kValue);
+            if(kValue>kMaxFit){
+                fitValue = CkMaxFit;
+            }
+            double dataError = hDataVar->GetBinError(uBin+1);
+            double Nsigma=(fitValue-dataValue)/(dataError);
+            double Ratio=dataValue/fitValue;
+
+            if(Potential==Id_AV18){
+                hVarDeviationAV18->Fill(kValue,Nsigma);
+                hVarDevRatioAV18->Fill(kValue,Ratio);
+            }
+        }
+
+        double xVal,xValLowUp;
+        double yVal,yValLowUp;
+        TGraph& gLower = gLowerAV18;
+        TGraph& gUpper = gUpperAV18;
+
+        //TGraph& gDefault = Potential==1?gDefaultLO:gDefaultNLO;
+        for(int iPoint=0; iPoint<FitResult->GetN(); iPoint++){
+            FitResult->GetPoint(iPoint,xVal,yVal);
+            if(gLower.GetN()<iPoint+1){
+                gLower.SetPoint(iPoint,xVal,yVal);
+            }
+            else{
+                gLower.GetPoint(iPoint,yValLowUp,yValLowUp);
+                if(yVal<yValLowUp){
+                    gLower.SetPoint(iPoint,xVal,yVal);
+                }
+            }
+            if(gUpper.GetN()<iPoint+1){
+                gUpper.SetPoint(iPoint,xVal,yVal);
+            }
+            else{
+                gUpper.GetPoint(iPoint,yValLowUp,yValLowUp);
+                if(yVal>yValLowUp){
+                    gUpper.SetPoint(iPoint,xVal,yVal);
+                }
+            }
+            //if(ITER==DefaultIter){
+            //    gDefault.SetPoint(iPoint,xVal,yVal);
+            //}
+            if(BestSoFarAV18){
+                gBestAV18.SetPoint(iPoint,xVal,yVal);
+            }
+        }
+
+        int CounterBlAV18=0;
+        for(int iPoint=0; iPoint<hData->GetNbinsX(); iPoint++){
+            xVal = hData->GetBinCenter(iPoint+1);
+            yVal = FitBaseline->Eval(xVal);
+            if(Potential==Id_AV18&&BlMin<=xVal&&xVal<=BlMax){
+                if(bOuterLowerAV18.GetN()<CounterBlAV18+1){
+                    bOuterLowerAV18.SetPoint(CounterBlAV18,xVal,yVal);
+                }
+                else{
+                    bOuterLowerAV18.GetPoint(iPoint,xValLowUp,yValLowUp);
+                    if(yVal<yValLowUp){
+                        bOuterLowerAV18.SetPoint(CounterBlAV18,xVal,yVal);
+                    }
+                }
+                if(bOuterUpperAV18.GetN()<CounterBlAV18+1){
+                    bOuterUpperAV18.SetPoint(CounterBlAV18,xVal,yVal);
+                }
+                else{
+                    bOuterUpperAV18.GetPoint(iPoint,xValLowUp,yValLowUp);
+                    if(yVal>yValLowUp){
+                        bOuterUpperAV18.SetPoint(CounterBlAV18,xVal,yVal);
+                    }
+                }
+                if(BestSoFarAV18){
+                    bOuterBestAV18.SetPoint(CounterBlAV18,xVal,yVal);
+                }
+                CounterBlAV18++;
+            }
+        }
+
+        CounterBlAV18=0;
+        for(int iPoint=0; iPoint<hData->GetNbinsX(); iPoint++){
+            xVal = hData->GetBinCenter(iPoint+1);
+            yVal = FitBaseline->Eval(xVal);
+            if(Potential==Id_AV18){
+                if(bLowerAV18.GetN()<CounterBlAV18+1){
+                    bLowerAV18.SetPoint(CounterBlAV18,xVal,yVal);
+                }
+                else{
+                    bLowerAV18.GetPoint(iPoint,xValLowUp,yValLowUp);
+                    if(yVal<yValLowUp){
+                        bLowerAV18.SetPoint(CounterBlAV18,xVal,yVal);
+                    }
+                }
+                if(bUpperAV18.GetN()<CounterBlAV18+1){
+                    bUpperAV18.SetPoint(CounterBlAV18,xVal,yVal);
+                }
+                else{
+                    bUpperAV18.GetPoint(iPoint,xValLowUp,yValLowUp);
+                    if(yVal>yValLowUp){
+                        bUpperAV18.SetPoint(CounterBlAV18,xVal,yVal);
+                    }
+                }
+                if(BestSoFarAV18){
+                    bBestAV18.SetPoint(CounterBlAV18,xVal,yVal);
+                }
+                CounterBlAV18++;
+            }
+        }
+        NumAcceptedEntries++;
+        delete FileGraph;
+
+    }
+
+    TH1D* hProjection;
+    for(unsigned uPoint=0; uPoint<DevPlotNumBins; uPoint++){
+        double kVal = hVarDeviationAV18->GetXaxis()->GetBinCenter(uPoint+1);
+        hProjection = hVarDeviationAV18->ProjectionY("hProjection", uPoint+1,uPoint+1);
+        gVarDeviationAV18_Stdv.SetPoint(uPoint,kVal,hProjection->GetMean());
+        //if( (kVal>265&&kVal<295)||(uPoint==1||uPoint==2||uPoint==3||uPoint==6||uPoint==7||uPoint==8) )
+        //{gVarDeviationAV18_Stdv.SetPointError(uPoint,0,20);}
+        //else if( (uPoint==4||uPoint==5) )
+        //{gVarDeviationAV18_Stdv.SetPointError(uPoint,0,4);}
+        //else
+        {gVarDeviationAV18_Stdv.SetPointError(uPoint,0,hProjection->GetStdDev());}
+        delete hProjection;
+    }
+
+    printf("BestNsigma_AV18 = %.2f (chi2ndf=%.2f)\n",BestNsigma_AV18,BestChi2NdfAV18);
+
+    printf("DefaultChi2NdfAV18=%.2f (%.2f)\n",DefaultChi2NdfAV18,DefaultNsigmaAV18);
+
+    printf("MeanChi2NdfAV18=%.2f (%.2f)\n",MeanChi2NdfAV18,MeanNsigmaAV18);
+
+    printf("StdvChi2NdfAV18=%.2f (%.2f)\n",StdvChi2NdfAV18,StdvNsigmaAV18);
+
+    printf("UniformStdvChi2NdfAV18=%.2f (%.2f)\n",UniformStdvChi2NdfAV18,UniformStdvNsigmaAV18);
+
+    printf("MinChi2NdfAV18=%.2f (%.2f)\n",MinChi2NdfAV18,MinNsigmaAV18);
+
+    printf("MaxChi2NdfAV18=%.2f (%.2f)\n",MaxChi2NdfAV18,MaxNsigmaAV18);
+
+    printf("--- CENTRAL INTERVAL (68%%) ---\n");
+    printf(" Chi2NdfAV18: %.2f, %.2f, %.2f\n",LowCi_Chi2NdfAV18,Median_Chi2NdfAV18,UpCi_Chi2NdfAV18);
+    printf(" NsigmaAV18: %.2f, %.2f, %.2f\n",LowCi_NsigmaAV18,Median_NsigmaAV18,UpCi_NsigmaAV18);
+
+    TFile* fPlot = new TFile(FitSystFolder+"PLOT/fPlot_"+WhichBaseline+".root","recreate");
+    gLowerAV18.Write();
+    gUpperAV18.Write();
+    gBestAV18.Write();
+    hChi2NdfAV18->Write();
+    hNsigmaAV18->Write();
+    hVarDeviationAV18->Write();
+    gVarDeviationAV18_Stdv.Write();
+    hVarDevRatioAV18->Write();
+
+    gStyle->SetCanvasPreferGL(1);
+    SetStyle();
+    const float right = 0.025;
+    const float top = 0.025;
+
+    TGraphErrors *grFemto_AV18;
+    grFemto_AV18 = FemtoModelFitBandsSimple(&gLowerAV18, &gUpperAV18);
+    grFemto_AV18->SetFillColorAlpha(fColors[2],0.3);
+    grFemto_AV18->SetLineColor(fColors[2]);
+    grFemto_AV18->SetLineWidth(5);
+    TGraphErrors *grOuterBl_AV18;
+    grOuterBl_AV18 = FemtoModelFitBandsSimple(&bOuterLowerAV18, &bOuterUpperAV18);
+    grOuterBl_AV18->SetFillColorAlpha(fColors[2],0.3);
+    grOuterBl_AV18->SetLineColor(fColors[2]);
+    grOuterBl_AV18->SetLineWidth(5);
+    gBestAV18.SetLineColor(fColors[2]);
+    gBestAV18.SetLineWidth(5);
+    bOuterBestAV18.SetLineColor(fColors[2]);
+    bOuterBestAV18.SetLineWidth(5);
+    bBestAV18.SetLineColor(fColors[2]);
+    bBestAV18.SetLineWidth(4);
+    bBestAV18.SetLineStyle(2);
+
+
+    DLM_SubPads DlmPad(720,720);
+    DlmPad.AddSubPad(0,1,0.33,1);
+    DlmPad.AddSubPad(0,1,0,0.33);
+    DlmPad.SetMargin(0,0.12,0.02,0.0,0.02);
+    DlmPad.SetMargin(1,0.12,0.02,0.09,0.0);
+    DlmPad.cd(0);
+
+    //TCanvas *Can_CF_pL = new TCanvas("pL","pL", 0,0,720,720);
+    //Can_CF_pL->SetRightMargin(right);
+    //Can_CF_pL->SetTopMargin(top);
+
+    hData->SetTitle("; #it{k*} (MeV/#it{c}); #it{C}(#it{k*})");
+    hData->GetXaxis()->SetRangeUser(0, 350);
+    hData->GetXaxis()->SetNdivisions(505);
+    hData->GetYaxis()->SetRangeUser(0.8, 3.5);
+    hData->SetFillColor(fFillColors[0]);
+    SetStyleHisto2(hData,2,0);
+    //hData->GetYaxis()->SetTitleOffset(1.0);
+    hData->Draw();
+
+    TGraphErrors *Tgraph_syserror = DrawSystematicError_FAST(hData, hSyst, fSyst, 3);
+    Tgraph_syserror->SetLineColor(kWhite);
+
+    //baselineLL->Draw("same");
+
+    if(grFemto_AV18) {grFemto_AV18->Draw("3 same");}
+    if(grOuterBl_AV18&&MODE==1) {grOuterBl_AV18->Draw("3 same");}
+    if(grFemto_AV18) gBestAV18.Draw("l same");
+    if(grFemto_AV18&&MODE==1) {bOuterBestAV18.Draw("l same");}
+    if(grFemto_AV18&&MODE==0) {bBestAV18.Draw("l same");}
+    hData->Draw("same");
+
+    Tgraph_syserror->SetFillColorAlpha(kBlack, 0.4);
+    Tgraph_syserror->Draw("2 same");
+    //hData->Draw("pe same");
+
+    //TString LegendSource_line1 = "Gaussian core with m_{T} scaling";
+    //TString LegendSource_line1 = "Levy core with m_{T} scaling";
+    //TString LegendSource_line1 = "Gaussian source";
+    TString LegendSource_line1 = TString::Format("Gaussian core - fit");
+    TString LegendSource_line2;
+    if(WhichBaseline==0) LegendSource_line2 =  TString::Format("Constant baseline - n#sigma#in(%.1f,%.1f)",LowCi_NsigmaAV18,UpCi_NsigmaAV18);
+    else if(WhichBaseline%10==1) LegendSource_line2 =  TString::Format("Linear baseline - n#sigma#in(%.1f,%.1f)",LowCi_NsigmaAV18,UpCi_NsigmaAV18);
+    else if(WhichBaseline%10==2) LegendSource_line2 =  TString::Format("Quadratic baseline - n#sigma#in(%.1f,%.1f)",LowCi_NsigmaAV18,UpCi_NsigmaAV18);
+
+    unsigned NumRows=4;
+    TLegend *legend = new TLegend(0.49,0.72-0.05*NumRows,0.73,0.72);//lbrt
+    legend->SetBorderSize(0);
+    legend->SetTextFont(42);
+    legend->SetTextSize(gStyle->GetTextSize()*0.90);
+    TH1F* hCk_Fake;
+    hCk_Fake = (TH1F*)hData->Clone("hCk_Fake");
+    hCk_Fake->SetName("hCk_Fake");
+    hCk_Fake->SetLineColor(hCk_Fake->GetFillColor());
+
+    legend->AddEntry(hCk_Fake, "p#minusp #oplus #bar{p}#minus#bar{p} pairs", "fpe");
+//  legend->AddEntry(hist_CF_LL_ALAL_exp[2], "with Syst. uncertainties", "");
+    //legend->AddEntry(baselineLL,"Baseline","l");
+    legend->AddEntry(grFemto_AV18,"Femtoscopic fit (AV18)","l");
+    legend->Draw("same");
+    TLatex BeamText;
+    BeamText.SetTextSize(gStyle->GetTextSize()*0.90);
+    BeamText.SetNDC(kTRUE);
+    //BeamText.DrawLatex(0.55, 0.875, "ALICE Preliminary");
+    //if(WhichDataSet==0) BeamText.DrawLatex(0.55, 0.825, Form("pp #sqrt{#it{s}} = 13 TeV"));
+    //else if(WhichDataSet==1) BeamText.DrawLatex(0.55, 0.825, Form("p#minusPb #sqrt{#it{s}_{NN}} = 5.02 TeV"));
+    //else BeamText.DrawLatex(0.55, 0.825, Form("pp #sqrt{#it{s}} = 7 TeV"));
+    BeamText.DrawLatex(0.50, 0.915, "ALICE Preliminary");
+    //if(DataSample=="pp13TeV_MB_Run2paper") BeamText.DrawLatex(0.50, 0.86, "pp #sqrt{#it{s}} = 13 TeV");
+    //else if(DataSample.Contains("pPb")&&DataSample.Contains("5TeV")) BeamText.DrawLatex(0.50, 0.86, "p#minusPb #sqrt{#it{s}_{NN}} = 5.02 TeV");
+    //else if(DataSample=="pp13TeV_HM_March19") BeamText.DrawLatex(0.50, 0.86, "pp (HM) #sqrt{#it{s}} = 13 TeV");
+    //else BeamText.DrawLatex(0.50, 0.86, "ALICE pp #sqrt{#it{s}} = 7 TeV");
+    BeamText.DrawLatex(0.50, 0.860, "pp (HM) #sqrt{#it{s}} = 13 TeV");
+
+    TLatex BeamTextSource;
+    BeamTextSource.SetTextSize(gStyle->GetTextSize()*0.90);
+    BeamTextSource.SetNDC(kTRUE);
+    BeamTextSource.DrawLatex(0.50, 0.805, LegendSource_line1);
+    BeamTextSource.DrawLatex(0.50, 0.750, LegendSource_line2);
+
+//INLET -------------------------------------------------------------------------------------------------------------------
+
+    TH1F* DataHisto_Inlet = (TH1F*)hData->Clone("DataHisto_Inlet");
+    DataHisto_Inlet->SetMarkerSize(hData->GetMarkerSize()*0.67);
+    DataHisto_Inlet->SetLineWidth(hData->GetLineWidth()*0.67);
+    DataHisto_Inlet->GetXaxis()->SetTitleSize(hData->GetXaxis()->GetTitleSize()*1.75);
+    DataHisto_Inlet->GetXaxis()->SetLabelSize(hData->GetXaxis()->GetLabelSize()*1.75);
+    DataHisto_Inlet->GetXaxis()->SetRangeUser(75, MODE==1?600:600);
+    DataHisto_Inlet->GetXaxis()->SetNdivisions(505);
+
+    DataHisto_Inlet->GetYaxis()->SetTitleSize(hData->GetYaxis()->GetTitleSize()*1.75);
+    DataHisto_Inlet->GetYaxis()->SetLabelSize(hData->GetYaxis()->GetLabelSize()*1.75);
+    DataHisto_Inlet->GetYaxis()->SetTitleOffset(hData->GetYaxis()->GetTitleOffset()*0.67);
+    DataHisto_Inlet->GetYaxis()->SetRangeUser(0.94, 1.06);
+
+    TGraph* grFemto_AV18_Inlet = (TGraph*)grFemto_AV18->Clone("grFemto_AV18_Inlet");
+    grFemto_AV18_Inlet->SetLineWidth(grFemto_AV18->GetLineWidth()*0.67);
+
+    TGraph* gBestAV18_Inlet = (TGraph*)gBestAV18.Clone("gBestAV18_Inlet");
+    gBestAV18_Inlet->SetLineWidth(gBestAV18.GetLineWidth()*0.67);
+
+    const double fXMinInlet=0.30;
+    const double fYMinInlet=0.12;
+    const double fXMaxInlet=0.95;
+    const double fYMaxInlet=0.50;
+    TPad *inset_pad = new TPad("insert", "insertPad", fXMinInlet, fYMinInlet,
+                             fXMaxInlet, fYMaxInlet);
+    inset_pad->SetTopMargin(0.01);
+    inset_pad->SetRightMargin(0.05);
+    inset_pad->SetBottomMargin(0.28);
+    inset_pad->SetLeftMargin(0.28);
+    inset_pad->SetFillStyle(4000);
+    inset_pad->Draw();
+    inset_pad->cd();
+    DataHisto_Inlet->Draw();
+    //if(grFemto_AV18) grFemto_AV18_Inlet->Draw("3 same");
+    //if(grFemto_NAV18) grFemto_NAV18_Inlet->Draw("3 same");
+    //if(grFemto_AV18) gBestAV18_Inlet->Draw("l same");
+    //if(grFemto_NAV18) gBestNAV18_Inlet->Draw("l same");
+    if(grFemto_AV18) {grFemto_AV18->Draw("3 same");}
+    if(grOuterBl_AV18&&MODE==1) {grOuterBl_AV18->Draw("3 same");}
+    if(grFemto_AV18) gBestAV18.Draw("l same");
+    if(grFemto_AV18&&MODE==1) {bOuterBestAV18.Draw("l same");}
+    DataHisto_Inlet->Draw("same");
+    Tgraph_syserror->Draw("2 same");
+    if(grFemto_AV18&&MODE==0) {bBestAV18.Draw("l same");}
+
+    DlmPad.cd(1);
+    TH1F* hAxis = new TH1F("hAxis", "hAxis", 35, 0, 350);
+    hAxis->SetStats(false);
+    hAxis->SetTitle("; #it{k*} (MeV/#it{c}); #it{n_{#sigma}}");
+    hAxis->GetXaxis()->SetRangeUser(0, 350);
+    hAxis->GetYaxis()->SetRangeUser(-7.5, 7.5);
+    //hData->SetTitle("; #it{k*} (MeV/#it{c}); #it{C}(#it{k*})");
+    //hData->GetXaxis()->SetRangeUser(0, 320);
+    hAxis->GetXaxis()->SetNdivisions(505);
+    //hData->GetYaxis()->SetRangeUser(0.85, 2.3);
+    //hData->SetFillColor(fFillColors[0]);
+    SetStyleHisto2(hAxis,2,0,2);
+    //hData->GetYaxis()->SetTitleOffset(1.0);
+    hAxis->Draw("");
+
+    gVarDeviationAV18_Stdv.SetFillColorAlpha(kBlue+2,0.75);
+    gVarDeviationAV18_Stdv.Draw("3,same");
+
+    DlmPad.GetCanvas()->SaveAs(FitSystFolder+TString::Format("PLOT/Can_CF_pL_%i.pdf",WhichBaseline));
+
+    delete hVarDeviationAV18;
+    delete hVarDevRatioAV18;
+    delete legend;
+    delete hCk_Fake;
+    delete Tgraph_syserror;
+    delete grFemto_AV18;
+    delete grOuterBl_AV18;
+    //delete Can_CF_pL;
+    delete hChi2NdfAV18;
+    delete hNsigmaAV18;
+    delete fPlot;
+    delete DataFile;
+    delete SystFile;
+    delete ntFile;
+
+
+}
 
 void mT_Plots(const TString& DataSample, const bool& LevySource){
 
@@ -4679,10 +5366,15 @@ Data set 2: a=1.003e+00; b=-2.650e-06
     //mT_Plots("pp13TeV_HM_March19",false);
     //mT_Plots("pPb5TeV_CPR_Mar19",false);
 
-    Plot_pL_FASTsyst(0);
-    Plot_pL_FASTsyst(11);
-    Plot_pL_FASTsyst(12);
+    //Plot_pL_FASTsyst(0);
+    //Plot_pL_FASTsyst(11);
+    //Plot_pL_FASTsyst(12);
 
+    Plot_pp_FASTsyst(0);
+    Plot_pp_FASTsyst(1);
+    Plot_pp_FASTsyst(2);
+    Plot_pp_FASTsyst(11);
+    Plot_pp_FASTsyst(12);
 
     return 0;
 }
