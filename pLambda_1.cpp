@@ -13,6 +13,8 @@
 #include "TF1.h"
 #include "TNtuple.h"
 #include "TRandom3.h"
+#include "TLatex.h"
+#include "TStyle.h"
 
 #include "CATS.h"
 #include "DLM_CkDecomposition.h"
@@ -969,6 +971,7 @@ void Fit_pp(DLM_CommonAnaFunctions& AnalysisObject, const TString& OutputFolder,
     CATS AB_pp;
     DLM_Ck* Ck_pp;
     AB_pp.SetMomBins(NumMomBins_pp,MomBins_pp);
+AB_pp.SetNotifications(CATS::nWarning);
     AnalysisObject.SetUpCats_pp(AB_pp,pp_Pot,SourceType);
     if(SourceScale<0) AB_pp.SetAnaSource(0,1.0);
     else AB_pp.SetAnaSource(0,SourceScale);
@@ -2502,7 +2505,10 @@ void pp_SystematicsHM(const TString& OutputFolder, const int& WhichConfiguration
 
         MtVars[0] = -1;
         DefMt = 0;
-        DataVars[0] = "";
+
+         for(int iData=0; iData<NumDataVars; iData++){
+            DataVars[iData] = TString::Format("_%i",iData);
+        }
         DefData = 0;
     }
     //pure gauss
@@ -2549,7 +2555,10 @@ void pp_SystematicsHM(const TString& OutputFolder, const int& WhichConfiguration
 
         MtVars[0] = -1;
         DefMt = 0;
-        DataVars[0] = "";
+
+        for(int iData=0; iData<NumDataVars; iData++){
+            DataVars[iData] = TString::Format("_%i",iData);
+        }
         DefData = 0;
 
     }
@@ -2914,7 +2923,7 @@ void pp_SystematicsHM(const TString& OutputFolder, const int& WhichConfiguration
 
 
 void Plot_mT_Scale(const TString OutputFolder, const TString ntFileName, const TString mtFileName, const TString pp_FileName,
-                   const TString Title){
+                   const TString Descr1, const TString Descr2){
 
     TFile* mtFile = new TFile(mtFileName,"read");
     TGraphErrors* AveragemT = (TGraphErrors*)mtFile->Get("AveragemT");
@@ -3219,31 +3228,45 @@ printf("DimiStatEff_pL_NLO.GetNbins()=%u\n",DimiStatEff_pL_NLO.GetNbins());
     TH1F* hAxis = new TH1F("hAxis", "hAxis", 128, 0.9, 2.7);
     hAxis->SetStats(false);
     hAxis->SetTitle("");
-    hAxis->GetXaxis()->SetTitle("<m_{T}> (GeV/#it{c}^{2})");
+    hAxis->GetXaxis()->SetTitle("<#it{m}_{T}> (GeV/#it{c}^{2})");
     hAxis->GetXaxis()->SetTitleSize(0.06);
     hAxis->GetXaxis()->SetLabelSize(0.06);
-    hAxis->GetXaxis()->CenterTitle();
+    //hAxis->GetXaxis()->CenterTitle();
     hAxis->GetXaxis()->SetTitleOffset(1.3);
     hAxis->GetXaxis()->SetLabelOffset(0.02);
 
     //if(LevySource) hAxis->GetYaxis()->SetTitle("Levy core (fm)");
     //else hAxis->GetYaxis()->SetTitle("Gaussian core (fm)");
-    //hAxis->GetYaxis()->SetTitle("Gaussian core (fm)");
-    hAxis->GetYaxis()->SetTitle("r_{core} (fm)");
-    //hAxis->GetYaxis()->SetTitle("r_{0} (fm)");
+    TString FileDescr;
+    if(Descr1.Contains("core")){
+        hAxis->GetYaxis()->SetTitle("r_{core} (fm)");
+        hAxis->GetYaxis()->SetRangeUser(0.55, 1.35);
+        FileDescr = "GaussReso";
+    }
+    else{
+        hAxis->GetYaxis()->SetTitle("r_{0} (fm)");
+        hAxis->GetYaxis()->SetRangeUser(0.90, 1.80);
+        FileDescr = "Gauss";
+    }
+    //
     hAxis->GetYaxis()->SetTitleSize(0.06);
     hAxis->GetYaxis()->SetLabelSize(0.06);
-    hAxis->GetYaxis()->CenterTitle();
+    //hAxis->GetYaxis()->CenterTitle();
     hAxis->GetYaxis()->SetTitleOffset(0.90);
 
     //hAxis->GetXaxis()->SetNdivisions(506);
 
-    hAxis->GetYaxis()->SetRangeUser(0.55, 1.35);
-    //hAxis->GetYaxis()->SetRangeUser(0.90, 1.80);
 
-    TLegend* lLegend = new TLegend(0.65,0.65,0.95,0.95);//lbrt
+    //
+
+    //TLegend* lLegend = new TLegend(0.45,0.85,0.95,0.95);//lbrt
+    //lLegend->SetName(TString::Format("lLegend"));
+    //lLegend->SetTextSize(0.04);
+    //lLegend->SetNColumns(3);
+    TLegend* lLegend = new TLegend(0.67,0.48,0.90,0.71);//lbrt
     lLegend->SetName(TString::Format("lLegend"));
-    lLegend->SetTextSize(0.045);
+    lLegend->SetTextSize(0.04);
+    lLegend->SetBorderSize(0);
     if(mTStat_pp)lLegend->AddEntry(mTStat_pp,"p#minusp (AV18)");
     lLegend->AddEntry(&mTSyst_pL_LO,"p#minus#Lambda (LO)");
     lLegend->AddEntry(&mTSyst_pL_NLO,"p#minus#Lambda (NLO)");
@@ -3261,6 +3284,39 @@ printf("DimiStatEff_pL_NLO.GetNbins()=%u\n",DimiStatEff_pL_NLO.GetNbins());
     if(mTStat_pp) mTStat_pp->Draw("e,same");
     lLegend->Draw("same");
 
+    //TLatex BeamText;
+    //BeamText.SetTextSize(gStyle->GetTextSize()*0.90);
+    //BeamText.SetTextFont(42);
+    //BeamText.SetNDC(kTRUE);
+    //BeamText.DrawLatex(0.68, 0.76, "ALICE Preliminary");
+    //BeamText.DrawLatex(0.68, 0.71, "high-mult. (0-0.072% INEL) pp #sqrt{#it{s}} = 13 TeV");
+
+    TLatex BeamText;
+    BeamText.SetTextSize(0.04);
+    BeamText.SetTextFont(42);
+    BeamText.SetNDC(kTRUE);
+    BeamText.DrawLatex(0.677, 0.90, "ALICE Preliminary");
+    TLatex BeamText1;
+    BeamText1.SetTextSize(0.04);
+    BeamText1.SetTextFont(42);
+    BeamText1.SetNDC(kTRUE);
+    BeamText1.DrawLatex(0.677, 0.85, "high-mult. (0-0.072% INEL)");
+    BeamText1.DrawLatex(0.677, 0.81, "pp #sqrt{#it{s}} = 13 TeV");
+
+    TLatex BeamText2;
+    BeamText2.SetTextSize(0.035);
+    BeamText2.SetTextFont(42);
+    BeamText2.SetNDC(kTRUE);
+    if(Descr2!=""){
+        BeamText2.DrawLatex(0.677, 0.76, Descr1);
+        BeamText2.DrawLatex(0.677, 0.72, Descr2);
+    }
+    else{
+        BeamText2.DrawLatex(0.677, 0.74, Descr1);
+    }
+
+
+
     fOut->cd();
     mTSyst_pL_LO.Write();
     mTSyst_pL_NLO.Write();
@@ -3270,7 +3326,7 @@ printf("DimiStatEff_pL_NLO.GetNbins()=%u\n",DimiStatEff_pL_NLO.GetNbins());
     if(mTStat_pp) mTStat_pp->Write();
     gStatRatio_pL_NLO.Write();
     cmT->Write();
-    cmT->SaveAs(OutputFolder+"cmT.pdf");
+    cmT->SaveAs(OutputFolder+"cmT_"+FileDescr+".pdf");
 
 
     const double AvgMt_pL = 1.55;
@@ -3487,8 +3543,8 @@ int PLAMBDA_1_MAIN(int argc, char *argv[]){
 //const TString& OutputFolder, const int& WhichConfiguration, const int& FirstIter, const int& LastIter, const unsigned& OnlyFraction,
                       //const int& RANDOMSEED, const bool& JustNumIter
 
-    pp_SystematicsHM("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pp/SystematicsDef_130519/",
-                     atoi(argv[1]),atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),atoi(argv[5]),atoi(argv[6]));
+    //pp_SystematicsHM("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pp/Systematics_220519/",
+    //                 atoi(argv[1]),atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),atoi(argv[5]),atoi(argv[6]));
     //pp_SystematicsHM("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pp/SystematicsAdd_300419/",
     //                 atoi(argv[1])+2,atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),atoi(argv[5]),atoi(argv[6]));
     //pp_SystematicsHM("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pp/SystematicsAdd_300419/",
@@ -3504,12 +3560,16 @@ int PLAMBDA_1_MAIN(int argc, char *argv[]){
     //pL_SystematicsHM("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pL/SystematicsAdd_070419/",
     //                 0,0,4,1,1,0);
 
-    //Plot_mT_Scale(  "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pL/Systematics_080519/PLOT/",
-    //                "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pL/Systematics_080519/NTfile_20.root",
-    //                "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM/CFOutputALL_mT_pL_HM.root",
-    //                "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pL/Systematics_080519/PLOT/mTRad_pp_GaussReso.root",
-    //                //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pp_FitDiff_CompareToTotal/010419/HM/Output_pp13TeV_HM_March19_McGauss_Reso_Norm.root",
-    //                "mT scaling for p#minusp and p#minus#Lambda");
+    Plot_mT_Scale(  "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pL/Systematics_080519/PLOT/",
+                    "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pL/Systematics_080519/NTfile_20.root",
+                    "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM/CFOutputALL_mT_pL_HM.root",
+                    "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pL/Systematics_080519/PLOT/mTRad_pp_GaussReso.root",
+                    "Gaussian core","with resonances");
+    Plot_mT_Scale(  "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pL/Systematics_080519/PLOT/",
+                    "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pL/Systematics_080519/NTfile_22.root",
+                    "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM/CFOutputALL_mT_pL_HM.root",
+                    "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pL/Systematics_080519/PLOT/mTRad_pp_Gauss.root",
+                    "Gaussian source","");
 
     //ComputeDataSystematics();
 

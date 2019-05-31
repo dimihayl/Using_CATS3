@@ -40,6 +40,7 @@ void DLM_CommonAnaFunctions::SetUpCats_pp(CATS& Kitty, const TString& POT, const
     CATSparameters* cPotPars3P0 = NULL;
     CATSparameters* cPotPars3P1 = NULL;
     CATSparameters* cPotPars3P2 = NULL;
+    CATSparameters* cPotPars1D2 = NULL;
 
     if(SOURCE=="Gauss"){
         cPars = new CATSparameters(CATSparameters::tSource,1,true);
@@ -121,15 +122,24 @@ void DLM_CommonAnaFunctions::SetUpCats_pp(CATS& Kitty, const TString& POT, const
         Kitty.SetUseAnalyticSource(true);
     }
     else if(SOURCE=="McLevyNolan_Reso"){
+//printf("I am setting up stability\n");
         CleverMcLevyReso[0].InitStability(21,1,2);
+//printf("I am setting up scale\n");
         CleverMcLevyReso[0].InitScale(38,0.15,2.0);
+//printf("I am setting up rad\n");
         CleverMcLevyReso[0].InitRad(257,0,64);
+//printf("I am setting up type\n");
         CleverMcLevyReso[0].InitType(2);
+//printf("I am setting up reso 0\n");
         CleverMcLevyReso[0].InitReso(0,1);
+//printf("I am setting up reso 1\n");
         CleverMcLevyReso[0].InitReso(1,1);
+//printf("I am setting up RESO 0\n");
         CleverMcLevyReso[0].SetUpReso(0,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic);
+//printf("I am setting up RESO 1\n");
         CleverMcLevyReso[0].SetUpReso(1,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic);
-        CleverMcLevyReso[0].InitNumMcIter(1000000);
+//printf("I am setting up Iter\n");
+        CleverMcLevyReso[0].InitNumMcIter(200000);
         Kitty.SetAnaSource(CatsSourceForwarder, &CleverMcLevyReso[0], 2);
         Kitty.SetAnaSource(0,1.0);
         Kitty.SetAnaSource(1,1.6);
@@ -173,10 +183,12 @@ void DLM_CommonAnaFunctions::SetUpCats_pp(CATS& Kitty, const TString& POT, const
         double PotPars3P0[8]={NN_AV18,v18_Coupled3P2,1,1,1,1,1,0};
         double PotPars3P1[8]={NN_AV18,v18_Coupled3P2,1,1,1,1,1,1};
         double PotPars3P2[8]={NN_AV18,v18_Coupled3P2,1,1,1,1,1,2};
+        double PotPars1D2[8]={NN_AV18,v18_Coupled3P2,1,1,1,0,2,2};
         cPotPars1S0 = new CATSparameters(CATSparameters::tPotential,8,true); cPotPars1S0->SetParameters(PotPars1S0);
         cPotPars3P0 = new CATSparameters(CATSparameters::tPotential,8,true); cPotPars3P0->SetParameters(PotPars3P0);
         cPotPars3P1 = new CATSparameters(CATSparameters::tPotential,8,true); cPotPars3P1->SetParameters(PotPars3P1);
         cPotPars3P2 = new CATSparameters(CATSparameters::tPotential,8,true); cPotPars3P2->SetParameters(PotPars3P2);
+        cPotPars1D2 = new CATSparameters(CATSparameters::tPotential,8,true); cPotPars1D2->SetParameters(PotPars1D2);
     }
     else{
         printf("\033[1;31mERROR:\033[0m Non-existing pp potential '%s'\n",POT.Data());
@@ -191,7 +203,7 @@ void DLM_CommonAnaFunctions::SetUpCats_pp(CATS& Kitty, const TString& POT, const
     Kitty.SetRedMass( 0.5*Mass_p );
 
     Kitty.SetNumChannels(4);
-    Kitty.SetNumPW(0,2);
+    Kitty.SetNumPW(0,3);
     Kitty.SetNumPW(1,2);
     Kitty.SetNumPW(2,2);
     Kitty.SetNumPW(3,2);
@@ -205,14 +217,17 @@ void DLM_CommonAnaFunctions::SetUpCats_pp(CATS& Kitty, const TString& POT, const
     Kitty.SetChannelWeight(3, 5./12.);
 
     if(cPotPars1S0) Kitty.SetShortRangePotential(0,0,fDlmPot,*cPotPars1S0);
+    if(cPotPars1D2) Kitty.SetShortRangePotential(0,2,fDlmPot,*cPotPars1D2);
     if(cPotPars3P0) Kitty.SetShortRangePotential(1,1,fDlmPot,*cPotPars3P0);
     if(cPotPars3P1) Kitty.SetShortRangePotential(2,1,fDlmPot,*cPotPars3P1);
     if(cPotPars3P2) Kitty.SetShortRangePotential(3,1,fDlmPot,*cPotPars3P2);
+
 
     CLEAN_SetUpCats_pp: ;
     if(cPars){delete cPars; cPars=NULL;}
     //if(CleverLevy){delete CleverLevy; CleverLevy=NULL;}
     if(cPotPars1S0){delete cPotPars1S0; cPotPars1S0=NULL;}
+    if(cPotPars1D2){delete cPotPars1D2; cPotPars1D2=NULL;}
     if(cPotPars3P0){delete cPotPars3P0; cPotPars3P0=NULL;}
     if(cPotPars3P1){delete cPotPars3P1; cPotPars3P1=NULL;}
     if(cPotPars3P2){delete cPotPars3P2; cPotPars3P2=NULL;}
@@ -311,7 +326,7 @@ void DLM_CommonAnaFunctions::SetUpCats_pL(CATS& Kitty, const TString& POT, const
 //double MomSmear = SourceVar/100;
         CleverMcLevyReso[1].SetUpReso(0,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic);
         CleverMcLevyReso[1].SetUpReso(1,0,1.-0.3562,1462.93,4.69,Mass_L,Mass_pic);
-        CleverMcLevyReso[1].InitNumMcIter(1000000);
+        CleverMcLevyReso[1].InitNumMcIter(200000);
         Kitty.SetAnaSource(CatsSourceForwarder, &CleverMcLevyReso[1], 2);
         Kitty.SetAnaSource(0,1.0);
         Kitty.SetAnaSource(1,1.6);
@@ -521,7 +536,7 @@ void DLM_CommonAnaFunctions::SetUpCats_pXim(CATS& Kitty, const TString& POT, con
         CleverMcLevyReso[2].InitType(2);
         CleverMcLevyReso[2].InitReso(0,1);
         CleverMcLevyReso[2].SetUpReso(0,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic);
-        CleverMcLevyReso[2].InitNumMcIter(1000000);
+        CleverMcLevyReso[2].InitNumMcIter(200000);
         Kitty.SetAnaSource(CatsSourceForwarder, &CleverMcLevyReso[2], 2);
         Kitty.SetAnaSource(0,1.0);
         Kitty.SetAnaSource(1,1.6);
@@ -700,7 +715,7 @@ void DLM_CommonAnaFunctions::SetUpCats_pOmegam(CATS& Kitty, const TString& POT, 
         CleverMcLevyReso[3].InitType(2);
         CleverMcLevyReso[3].InitReso(0,1);
         CleverMcLevyReso[3].SetUpReso(0,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic);
-        CleverMcLevyReso[3].InitNumMcIter(1000000);
+        CleverMcLevyReso[3].InitNumMcIter(200000);
         Kitty.SetAnaSource(CatsSourceForwarder, &CleverMcLevyReso[3], 2);
         Kitty.SetAnaSource(0,1.0);
         Kitty.SetAnaSource(1,1.6);

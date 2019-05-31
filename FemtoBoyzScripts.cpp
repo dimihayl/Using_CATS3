@@ -3163,7 +3163,7 @@ void Plot_pL_FAST(      const TString& WorkFolder,
     BeamText.DrawLatex(0.50, 0.91, "ALICE Preliminary");
     if(DataSample=="pp13TeV_MB_Run2paper") BeamText.DrawLatex(0.50, 0.86, "pp #sqrt{#it{s}} = 13 TeV");
     else if(DataSample.Contains("pPb")&&DataSample.Contains("5TeV")) BeamText.DrawLatex(0.50, 0.86, "p#minusPb #sqrt{#it{s}_{NN}} = 5.02 TeV");
-    else if(DataSample=="pp13TeV_HM_March19") BeamText.DrawLatex(0.50, 0.86, "pp (HM) #sqrt{#it{s}} = 13 TeV");
+    else if(DataSample=="pp13TeV_HM_March19") BeamText.DrawLatex(0.50, 0.86, "high-mult. (0-0.072% INEL) pp #sqrt{#it{s}} = 13 TeV");
     else BeamText.DrawLatex(0.50, 0.86, "ALICE pp #sqrt{#it{s}} = 7 TeV");
 
     TLatex BeamTextSource;
@@ -3412,8 +3412,8 @@ void Plot_pL_FASTsyst( const int& WhichBaseline
     double GlobalBestPval_LO = 0;
     double GlobalBestPval_NLO = 0;
 
-    TString LegendSource_line1 = "Gaussian core with m_{T} scaling";
-    //TString LegendSource_line1 = "Levy core with m_{T} scaling";
+    TString LegendSource_line1 = "Gaussian core with #it{m}_{T} scaling";
+    //TString LegendSource_line1 = "Levy core with #it{m}_{T} scaling";
     //TString LegendSource_line1 = "Gaussian source";
 
     TH1F* hChi2NdfLO = new TH1F("hChi2NdfLO","hChi2NdfLO",1024,0,64);
@@ -4056,7 +4056,7 @@ void Plot_pL_FASTsyst( const int& WhichBaseline
     //hData->Draw("pe same");
 
     unsigned NumRows=4;
-    TLegend *legend = new TLegend(0.49,0.72-0.05*NumRows,0.73,0.72);//lbrt
+    TLegend *legend = new TLegend(0.41,0.72-0.05*NumRows,0.73,0.72);//lbrt
     legend->SetBorderSize(0);
     legend->SetTextFont(42);
     legend->SetTextSize(gStyle->GetTextSize()*0.90);
@@ -4078,18 +4078,18 @@ void Plot_pL_FASTsyst( const int& WhichBaseline
     //if(WhichDataSet==0) BeamText.DrawLatex(0.55, 0.825, Form("pp #sqrt{#it{s}} = 13 TeV"));
     //else if(WhichDataSet==1) BeamText.DrawLatex(0.55, 0.825, Form("p#minusPb #sqrt{#it{s}_{NN}} = 5.02 TeV"));
     //else BeamText.DrawLatex(0.55, 0.825, Form("pp #sqrt{#it{s}} = 7 TeV"));
-    BeamText.DrawLatex(0.50, 0.915, "ALICE Preliminary");
+    BeamText.DrawLatex(0.42, 0.915, "ALICE Preliminary");
     //if(DataSample=="pp13TeV_MB_Run2paper") BeamText.DrawLatex(0.50, 0.86, "pp #sqrt{#it{s}} = 13 TeV");
     //else if(DataSample.Contains("pPb")&&DataSample.Contains("5TeV")) BeamText.DrawLatex(0.50, 0.86, "p#minusPb #sqrt{#it{s}_{NN}} = 5.02 TeV");
-    //else if(DataSample=="pp13TeV_HM_March19") BeamText.DrawLatex(0.50, 0.86, "pp (HM) #sqrt{#it{s}} = 13 TeV");
+    //else if(DataSample=="pp13TeV_HM_March19") BeamText.DrawLatex(0.50, 0.86, "high-mult. (0-0.072% INEL) pp #sqrt{#it{s}} = 13 TeV");
     //else BeamText.DrawLatex(0.50, 0.86, "ALICE pp #sqrt{#it{s}} = 7 TeV");
-    BeamText.DrawLatex(0.50, 0.860, "pp (HM) #sqrt{#it{s}} = 13 TeV");
+    BeamText.DrawLatex(0.42, 0.860, "high-mult. (0-0.072% INEL) pp #sqrt{#it{s}} = 13 TeV");
 
     TLatex BeamTextSource;
     BeamTextSource.SetTextSize(gStyle->GetTextSize()*0.90);
     BeamTextSource.SetNDC(kTRUE);
-    BeamTextSource.DrawLatex(0.50, 0.805, LegendSource_line1);
-    BeamTextSource.DrawLatex(0.50, 0.750, LegendSource_line2);
+    BeamTextSource.DrawLatex(0.42, 0.805, LegendSource_line1);
+    BeamTextSource.DrawLatex(0.42, 0.750, LegendSource_line2);
 
 //INLET -------------------------------------------------------------------------------------------------------------------
 
@@ -4324,7 +4324,7 @@ void Plot_pL_FASTsyst( const int& WhichBaseline
     BeamText.DrawLatex(0.50, 0.91, "ALICE Preliminary");
     if(DataSample=="pp13TeV_MB_Run2paper") BeamText.DrawLatex(0.50, 0.86, "pp #sqrt{#it{s}} = 13 TeV");
     else if(DataSample.Contains("pPb")&&DataSample.Contains("5TeV")) BeamText.DrawLatex(0.50, 0.86, "p#minusPb #sqrt{#it{s}_{NN}} = 5.02 TeV");
-    else if(DataSample=="pp13TeV_HM_March19") BeamText.DrawLatex(0.50, 0.86, "pp (HM) #sqrt{#it{s}} = 13 TeV");
+    else if(DataSample=="pp13TeV_HM_March19") BeamText.DrawLatex(0.50, 0.86, "high-mult. (0-0.072% INEL) pp #sqrt{#it{s}} = 13 TeV");
     else BeamText.DrawLatex(0.50, 0.86, "ALICE pp #sqrt{#it{s}} = 7 TeV");
 
     TLatex BeamTextSource;
@@ -4421,8 +4421,8 @@ void Plot_pp_FASTsyst( const int& WhichBaseline ){
 //SystematicsAddMeson_230419
 //SystematicsAdd_310519
 //SystematicsAdd_010519
-    TString FitSystFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pp/SystematicsDef_130519/";
-    TString FitSystFileName = FitSystFolder+"NTfile_0.root";
+    TString FitSystFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pp/Systematics_220519/";
+    TString FitSystFileName = FitSystFolder+"NTfile_1.root";
 
     TFile* ntFile = new TFile(FitSystFileName,"read");
     TNtuple* ntResult = (TNtuple*)ntFile->Get("ntResult");
@@ -4569,7 +4569,7 @@ void Plot_pp_FASTsyst( const int& WhichBaseline ){
         //! Conditions
 
         //if(CONFIG!=0&&CONFIG!=2) continue; //select Gauss+Reso and Gauss
-        if(CONFIG!=0) continue; //select Gauss+Reso
+        //if(CONFIG!=0) continue; //select Gauss+Reso
         //if(CONFIG!=1) continue; //select Levy+Reso
         //if(CONFIG!=2) continue; //select Gauss
         if(round(Baseline)!=WhichBaseline) continue;
@@ -4697,7 +4697,7 @@ void Plot_pp_FASTsyst( const int& WhichBaseline ){
         //! Conditions
 //if(rangen.Uniform()>0.01&&ITER!=DefaultIterLO&&ITER!=DefaultIterNLO) continue;
         //if(CONFIG!=0&&CONFIG!=2) continue; //select Gauss+Reso and Gauss
-        if(CONFIG!=0) continue; //select Gauss+Reso
+        //if(CONFIG!=0) continue; //select Gauss+Reso
         //if(CONFIG!=1) continue; //select Levy+Reso
         //if(CONFIG!=2) continue; //select Gauss
         if(round(Baseline)!=WhichBaseline) continue;
@@ -4711,7 +4711,6 @@ void Plot_pp_FASTsyst( const int& WhichBaseline ){
         //if(Data!=0) continue;
 
         bool BestSoFarAV18=false;
-
         //we want to plot something that makes sense (i.e. is fixed to the data we plot)
         if(Data==0){
             if(Potential==Id_AV18&&(chi2_352/ndf_352)>WorstChi2NdfAV18&&pFrac==0&&LamFrac==0){
@@ -4726,7 +4725,6 @@ void Plot_pp_FASTsyst( const int& WhichBaseline ){
     //printf("GlobalBestPval_AV18=%f\n",GlobalBestPval_AV18);
                 //BestSoFarAV18=true;
             }
-
         }
 
         TFile* FileGraph = new TFile(TString::Format("%sConfig%i_Iter%i.root",FitSystFolder.Data(),CONFIG,ITER),"read");
@@ -4949,6 +4947,7 @@ void Plot_pp_FASTsyst( const int& WhichBaseline ){
     if(grFemto_AV18) gBestAV18.Draw("l same");
     if(grFemto_AV18&&MODE==1) {bOuterBestAV18.Draw("l same");}
     if(grFemto_AV18&&MODE==0) {bBestAV18.Draw("l same");}
+
     hData->Draw("same");
 
     Tgraph_syserror->SetFillColorAlpha(kBlack, 0.4);
@@ -4958,7 +4957,8 @@ void Plot_pp_FASTsyst( const int& WhichBaseline ){
     //TString LegendSource_line1 = "Gaussian core with m_{T} scaling";
     //TString LegendSource_line1 = "Levy core with m_{T} scaling";
     //TString LegendSource_line1 = "Gaussian source";
-    TString LegendSource_line1 = TString::Format("Gaussian core - fit");
+    //TString LegendSource_line1 = TString::Format("Gaussian core - fit");
+    TString LegendSource_line1 = TString::Format("Levy core - fit");
     TString LegendSource_line2;
     if(WhichBaseline==0) LegendSource_line2 =  TString::Format("Constant baseline - n#sigma#in(%.1f,%.1f)",LowCi_NsigmaAV18,UpCi_NsigmaAV18);
     else if(WhichBaseline%10==1) LegendSource_line2 =  TString::Format("Linear baseline - n#sigma#in(%.1f,%.1f)",LowCi_NsigmaAV18,UpCi_NsigmaAV18);
@@ -4989,9 +4989,9 @@ void Plot_pp_FASTsyst( const int& WhichBaseline ){
     BeamText.DrawLatex(0.50, 0.915, "ALICE Preliminary");
     //if(DataSample=="pp13TeV_MB_Run2paper") BeamText.DrawLatex(0.50, 0.86, "pp #sqrt{#it{s}} = 13 TeV");
     //else if(DataSample.Contains("pPb")&&DataSample.Contains("5TeV")) BeamText.DrawLatex(0.50, 0.86, "p#minusPb #sqrt{#it{s}_{NN}} = 5.02 TeV");
-    //else if(DataSample=="pp13TeV_HM_March19") BeamText.DrawLatex(0.50, 0.86, "pp (HM) #sqrt{#it{s}} = 13 TeV");
+    //else if(DataSample=="pp13TeV_HM_March19") BeamText.DrawLatex(0.50, 0.86, "high-mult. (0-0.072% INEL) pp #sqrt{#it{s}} = 13 TeV");
     //else BeamText.DrawLatex(0.50, 0.86, "ALICE pp #sqrt{#it{s}} = 7 TeV");
-    BeamText.DrawLatex(0.50, 0.860, "pp (HM) #sqrt{#it{s}} = 13 TeV");
+    BeamText.DrawLatex(0.50, 0.860, "high-mult. (0-0.072% INEL) pp #sqrt{#it{s}} = 13 TeV");
 
     TLatex BeamTextSource;
     BeamTextSource.SetTextSize(gStyle->GetTextSize()*0.90);
@@ -5185,7 +5185,7 @@ void mT_Plots(const TString& DataSample, const bool& LevySource){
     TH1F* hAxis = new TH1F("hAxis", "hAxis", 128, 0.7, 2.6);
     hAxis->SetStats(false);
     hAxis->SetTitle("");
-    hAxis->GetXaxis()->SetTitle("<m_{T}> (GeV/#it{c}^{2})");
+    hAxis->GetXaxis()->SetTitle("<#it{m}_{T}> (GeV/#it{c}^{2})");
     hAxis->GetXaxis()->SetTitleSize(0.06);
     hAxis->GetXaxis()->SetLabelSize(0.06);
     hAxis->GetXaxis()->CenterTitle();
@@ -5366,15 +5366,15 @@ Data set 2: a=1.003e+00; b=-2.650e-06
     //mT_Plots("pp13TeV_HM_March19",false);
     //mT_Plots("pPb5TeV_CPR_Mar19",false);
 
-    //Plot_pL_FASTsyst(0);
-    //Plot_pL_FASTsyst(11);
-    //Plot_pL_FASTsyst(12);
+    Plot_pL_FASTsyst(0);
+    Plot_pL_FASTsyst(11);
+    Plot_pL_FASTsyst(12);
 
-    Plot_pp_FASTsyst(0);
-    Plot_pp_FASTsyst(1);
-    Plot_pp_FASTsyst(2);
-    Plot_pp_FASTsyst(11);
-    Plot_pp_FASTsyst(12);
+    //Plot_pp_FASTsyst(0);
+    //Plot_pp_FASTsyst(1);
+    //Plot_pp_FASTsyst(2);
+    //Plot_pp_FASTsyst(11);
+    //Plot_pp_FASTsyst(12);
 
     return 0;
 }

@@ -1002,7 +1002,7 @@ void FitEposSource_pp(const TString& System, const TString& SubSample){
     hRad->GetXaxis()->SetLabelOffset(0.02);
     hRad->GetXaxis()->SetTitleSize(0.075);
     hRad->GetYaxis()->SetLabelSize(0.065);
-    hRad->GetYaxis()->SetTitle("4#pi r^{2}S(r) (1/fm)");
+    hRad->GetYaxis()->SetTitle("4#pir^{2}S(r) (1/fm)");
     hRad->GetYaxis()->CenterTitle();
     hRad->GetYaxis()->SetTitleOffset(0.8);
     hRad->GetYaxis()->SetTitleSize(0.075);
@@ -1644,7 +1644,7 @@ printf("hRad[1]->Integral(1,hRad[1]->GetNbinsX())=%f (%f)\n",hRad[1]->Integral(1
         hRad[iSeMe]->GetXaxis()->SetLabelOffset(0.02);
         hRad[iSeMe]->GetXaxis()->SetTitleSize(0.075);
         hRad[iSeMe]->GetYaxis()->SetLabelSize(0.065);
-        hRad[iSeMe]->GetYaxis()->SetTitle("4#pi r^{2}S(r) (1/fm)");
+        hRad[iSeMe]->GetYaxis()->SetTitle("4#pir^{2}S(r) (1/fm)");
         hRad[iSeMe]->GetYaxis()->CenterTitle();
         hRad[iSeMe]->GetYaxis()->SetTitleOffset(0.8);
         hRad[iSeMe]->GetYaxis()->SetTitleSize(0.075);
@@ -1930,7 +1930,7 @@ printf("hRad[1]->Integral(1,hRad[1]->GetNbinsX())=%f (%f)\n",hRad[1]->Integral(1
         hSingleParticle[iType]->GetXaxis()->SetLabelOffset(0.02);
         hSingleParticle[iType]->GetXaxis()->SetTitleSize(0.075);
         hSingleParticle[iType]->GetYaxis()->SetLabelSize(0.065);
-        hSingleParticle[iType]->GetYaxis()->SetTitle("4#pi r^{2}S(r) (1/fm)");
+        hSingleParticle[iType]->GetYaxis()->SetTitle("4#pir^{2}S(r) (1/fm)");
         hSingleParticle[iType]->GetYaxis()->CenterTitle();
         hSingleParticle[iType]->GetYaxis()->SetTitleOffset(0.8);
         hSingleParticle[iType]->GetYaxis()->SetTitleSize(0.075);

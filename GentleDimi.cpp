@@ -1608,7 +1608,7 @@ void mT_Scaled_Source_Prelim2019(){
     hAxisRad->GetXaxis()->SetLabelOffset(0.02);
     hAxisRad->GetXaxis()->SetTitleSize(0.075);
     hAxisRad->GetYaxis()->SetLabelSize(0.065);
-    hAxisRad->GetYaxis()->SetTitle("S(r) (fm^{-1})");
+    hAxisRad->GetYaxis()->SetTitle("4#pir^{2}S(r) (fm^{-1})");
     hAxisRad->GetYaxis()->CenterTitle();
     hAxisRad->GetYaxis()->SetTitleOffset(1.00);
     hAxisRad->GetYaxis()->SetTitleSize(0.075);

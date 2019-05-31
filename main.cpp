@@ -1395,7 +1395,7 @@ void SourceSmearing(){
     hAxisSource->GetXaxis()->CenterTitle();
     hAxisSource->GetXaxis()->SetTitleOffset(1.3);
     hAxisSource->GetXaxis()->SetLabelOffset(0.02);
-    hAxisSource->GetYaxis()->SetTitle("S(r) (1/fm)");
+    hAxisSource->GetYaxis()->SetTitle("4#pir^{2}S(r) (1/fm)");
     hAxisSource->GetYaxis()->SetTitleSize(0.06);
     hAxisSource->GetYaxis()->SetLabelSize(0.06);
     hAxisSource->GetYaxis()->CenterTitle();
@@ -1954,6 +1954,285 @@ void Test_pp_Dwaves(){
     delete [] MomBins;
 }
 
+void Test_pSigma0(){
+
+    const unsigned NumMomBins = 70;
+    const double kMin = 0;
+    const double kMax = 350;
+    DLM_Histo<complex<double>>*** ExternalWF=NULL;
+    CATS Kitty;
+    Kitty.SetMomBins(NumMomBins,kMin,kMax);
+
+    CATSparameters cPars(CATSparameters::tSource,1,true);
+    cPars.SetParameter(0,1.0);
+
+    Kitty.SetUseAnalyticSource(true);
+    Kitty.SetAnaSource(GaussSource,cPars);
+    ExternalWF = Init_pS0_ESC16("/home/dmihaylov/CernBox/CATS_potentials/Tom/pSigma0/DimiValeNorm170519/",Kitty);
+    Kitty.SetExternalWaveFunction(0,0,ExternalWF[0][0][0],ExternalWF[1][0][0]);
+    Kitty.SetExternalWaveFunction(1,0,ExternalWF[0][1][0],ExternalWF[1][1][0]);
+
+    Kitty.SetMomentumDependentSource(false);
+    Kitty.SetThetaDependentSource(false);
+    Kitty.SetExcludeFailedBins(false);
+    Kitty.SetChannelWeight(0,0.25);
+    Kitty.SetChannelWeight(1,0.75);
+    Kitty.KillTheCat();
+
+    TFile* OutputFile = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/Test_pSigma0/OutputFile.root","recreate");
+
+    TGraph gKitty;
+    gKitty.Set(Kitty.GetNumMomBins());
+    gKitty.SetName("gKitty");
+
+    for(unsigned uBin=0; uBin<Kitty.GetNumMomBins(); uBin++){
+        printf("C(%.2f) = %.3f\n",Kitty.GetMomentum(uBin),Kitty.GetCorrFun(uBin));
+        gKitty.SetPoint(uBin,Kitty.GetMomentum(uBin),Kitty.GetCorrFun(uBin));
+
+        TGraph gWF1S0;
+        gWF1S0.SetName(TString::Format("gWF1S0_%.0f",Kitty.GetMomentum(uBin)));
+        TGraph gWF3S1;
+        gWF3S1.SetName(TString::Format("gWF3S1_%.0f",Kitty.GetMomentum(uBin)));
+        int COUNTER=0;
+        for(double RAD=0.05; RAD<20; RAD+=0.05){
+            gWF1S0.SetPoint(COUNTER,RAD,abs(Kitty.EvalRadialWaveFunction(uBin,0,0,RAD,false)));
+            gWF3S1.SetPoint(COUNTER,RAD,abs(Kitty.EvalRadialWaveFunction(uBin,1,0,RAD,false)));
+            COUNTER++;
+        }
+        OutputFile->cd();
+        gWF1S0.Write();
+        gWF3S1.Write();
+    }
+
+    TGraph gKitty1S0;
+    gKitty1S0.Set(Kitty.GetNumMomBins());
+    gKitty1S0.SetName("gKitty1S0");
+    Kitty.SetChannelWeight(0,1.0);
+    Kitty.SetChannelWeight(1,0.0);
+    Kitty.KillTheCat();
+    for(unsigned uBin=0; uBin<Kitty.GetNumMomBins(); uBin++){
+        gKitty1S0.SetPoint(uBin,Kitty.GetMomentum(uBin),Kitty.GetCorrFun(uBin));
+    }
+
+    TGraph gKitty3S1;
+    gKitty3S1.Set(Kitty.GetNumMomBins());
+    gKitty3S1.SetName("gKitty3S1");
+    Kitty.SetChannelWeight(0,0.0);
+    Kitty.SetChannelWeight(1,1.0);
+    Kitty.KillTheCat();
+    for(unsigned uBin=0; uBin<Kitty.GetNumMomBins(); uBin++){
+        gKitty3S1.SetPoint(uBin,Kitty.GetMomentum(uBin),Kitty.GetCorrFun(uBin));
+    }
+
+    OutputFile->cd();
+    gKitty.Write();
+    gKitty1S0.Write();
+    gKitty3S1.Write();
+
+    delete OutputFile;
+}
+
+void TestVALE_pLambda(){
+
+    DLM_CommonAnaFunctions DCAF;
+    CATS TestCat;
+    TestCat.SetMomBins(60,0,300);
+    DCAF.SetUpCats_pL(TestCat,"LO","Gauss",0,0);
+
+//return;
+  unsigned NumMomBins = 60;
+  double kMin = 0;
+  double kMax = 300;
+  const double MassProton = 938.272;
+  const double MassLambda = 1115.683;
+  double redmasspLambda = (MassProton*MassLambda)/(MassProton+MassLambda);
+
+  const TString OutputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Temp/TVPL.root";
+
+  const TString POT = "LO";
+
+  CATSparameters* cPars = NULL;
+  CATSparameters* pPars = NULL;
+
+  CATSparameters* cPotPars1S0 = NULL;
+  CATSparameters* cPotPars3S1 = NULL;
+
+  DLM_Histo<complex<double>>*** ExternalWF=NULL;
+  unsigned NumChannels=0;
+
+
+  double* RadBins;
+  unsigned NumRadBins;
+  const double MaxMomentum=300;
+
+  complex<double> WaveFun[NumChannels];
+
+
+
+
+  double rmin = 0.05;
+  double rmax = 15;
+  unsigned count = 200;
+  double step = (rmax-rmin)/double(count);
+  //labeling: WF I,S
+
+   TGraph** grWFpL = new TGraph* [2];
+   grWFpL[0] = new TGraph [NumMomBins];
+   grWFpL[1] = new TGraph [NumMomBins];
+
+  CATS pLambda;
+
+  double SourceParameters[1]={1.};
+  CATSparameters sParameters(CATSparameters::tSource,1,true);
+  sParameters.SetParameters(SourceParameters);
+  pLambda.SetAnaSource(GaussSource, sParameters);
+  pLambda.SetUseAnalyticSource(true);
+
+    pLambda.SetMomBins(NumMomBins,kMin,kMax);
+
+    pLambda.SetMomentumDependentSource(false);
+    pLambda.SetThetaDependentSource(false);
+    pLambda.SetExcludeFailedBins(false);
+
+
+  if(POT=="LO"){
+    std::cout<<"In LO 1\n"<<std::endl;
+        ExternalWF = Init_pL_Haidenbauer("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/Haidenbauer/pLambdaLO_600/",
+                                  pLambda, 0, 600);
+          NumChannels=2;
+    std::cout<<"In LO 2\n"<<std::endl;
+      }
+      else if(POT=="LO_Coupled_S"){
+
+     ExternalWF =  Init_pL_Haidenbauer("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/Haidenbauer/pLambdaLO_Coupling/",
+                                  pLambda, 1, 600);
+          NumChannels=4;
+      }
+      else if(POT=="NLO"){
+
+
+     ExternalWF =  Init_pL_Haidenbauer("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/Haidenbauer/pLambdaNLO/",
+                                  pLambda, 10, 600);
+          NumChannels=2;
+      }
+      //s and p waves
+      else if(POT=="NLO_sp"){
+     ExternalWF =  Init_pL_Haidenbauer("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/Haidenbauer/pLambdaNLO/",
+                                  pLambda, 12, 600);
+          NumChannels=4;
+      }
+      else if(POT=="NLO_Coupled_S"){
+
+     ExternalWF =   Init_pL_Haidenbauer("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/Haidenbauer/pLambdaNLO_Coupling/",
+                                  pLambda, 11, 600);
+          NumChannels=4;
+      }
+      else if(POT=="Usmani"){
+
+          //#,#,POT_ID,POT_FLAG,t_tot,t1,t2,s,l,j
+          double PotPars1S0[8]={pL_UsmaniOli,0,0,0,0,0,0,0};
+          double PotPars3S1[8]={pL_UsmaniOli,0,0,0,0,1,0,1};
+          cPotPars1S0 = new CATSparameters(CATSparameters::tPotential,8,true); cPotPars1S0->SetParameters(PotPars1S0);
+          cPotPars3S1 = new CATSparameters(CATSparameters::tPotential,8,true); cPotPars3S1->SetParameters(PotPars3S1);
+          NumChannels=2;
+      }
+
+      //p-Omega system
+      pLambda.SetQ1Q2(0);
+      pLambda.SetPdgId(2212,3122);
+      pLambda.SetRedMass(redmasspLambda);
+      pLambda.SetNumChannels(NumChannels);
+      pLambda.SetChannelWeight(0,0.25);
+      pLambda.SetChannelWeight(1,0.75);
+      pLambda.SetNumPW(0,1);
+      pLambda.SetNumPW(1,1);
+      pLambda.SetSpin(0, 0);
+      pLambda.SetSpin(1, 1);
+    pLambda.SetExternalWaveFunction(0,0,ExternalWF[0][0][0],ExternalWF[1][0][0]);
+    pLambda.SetExternalWaveFunction(1,0,ExternalWF[0][1][0],ExternalWF[1][1][0]);
+    pLambda.KillTheCat();
+
+          //DCAF.SetUpCats_pL(pLambda,"LO","Gauss",0,0);
+
+      TFile* outFilepLambda = new TFile(OutputFileName,"recreate");
+      std::cout<<"In LO 4\n"<<std::endl;
+      double Momentum;
+      double Radius;
+
+
+    for(unsigned uCh=0; uCh<NumChannels; uCh++){
+    std::cout<<"In LO 5\n"<<std::endl;
+
+      for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+        Momentum = pLambda.GetMomentum(uMom);
+    std::cout<<"In LO 6\n"<<std::endl;
+        grWFpL[uCh][uMom].SetName(TString::Format("WF_%.0f",Momentum));
+        grWFpL[uCh][uMom].SetTitle(TString::Format("k^*=%.0f [Mev/c], channel=%c",Momentum,uCh));
+        grWFpL[uCh][uMom].GetHistogram()->GetYaxis()->SetTitle("W.F. ");
+        grWFpL[uCh][uMom].GetHistogram()->GetXaxis()->SetTitle("r (fm)");
+        grWFpL[uCh][uMom].Set(count);
+    std::cout<<"In LO 7\n"<<std::endl;
+    //     if(!ExternalWF){
+    //         pLambda.SetNumPW(uCh,1);
+    //         pLambda.SetSpin(uCh, uCh%2==0?0:1);
+    //         pLambda.SetChannelWeight(uCh, uCh%2==0?0.25:0.75);
+    //
+    //     if(cPotPars1S0&&uCh==0)pLambda.SetShortRangePotential(uCh,0,fDlmPot,*cPotPars1S0);
+    //     else if(cPotPars3S1&&uCh==1) pLambda.SetShortRangePotential(uCh,0,fDlmPot,*cPotPars3S1);
+    //     printf("1) Running pLambda:\n");
+    //     pLambda.KillTheCat();
+    //
+    //     for (unsigned i = 0; i < count; i++) {
+    //       Radius = rmin+step*double(i);
+    //
+    //       WaveFun[uCh] = pLambda.EvalRadialWaveFunction(uMom,uCh,0,Radius,true);
+    //       grWFpL[uCh][uMom].SetPoint(i,Radius,real(WaveFun[uCh]));
+    //
+    //
+    //   }
+    // }
+    //   else
+    if(ExternalWF){
+            //for(unsigned uMomBin=0; uMomBin<Kitty.GetNumMomBins(); uMomBin++){
+                //Kitty.UseExternalWaveFunction(uMomBin,uCh,0,WaveFunctionU[uMomBin][uCh][0], NumRadBins, RadBins, PhaseShifts[uMomBin][uCh][0]);
+//printf("Look at that view (%u)!\n",uCh);
+    std::cout<<"In LO 8\n"<<std::endl;
+//    void SetExternalWaveFunction(const unsigned& usCh, const unsigned& usPW, DLM_Histo<complex<double>>& histWF, DLM_Histo<complex<double>>& histPS);
+                //pLambda.SetExternalWaveFunction(uCh,0,ExternalWF[0][uCh][0],ExternalWF[1][uCh][0]);
+
+    std::cout<<"In LO 9\n"<<std::endl;
+                printf("1) Running pLambda:\n");
+
+                //pLambda.KillTheCat();
+
+                for (unsigned i = 0; i < count; i++) {
+                  Radius = rmin+step*double(i);
+    std::cout<<"In LO 10\n"<<std::endl;
+                  WaveFun[uCh] = pLambda.EvalRadialWaveFunction(uMom,uCh,0,Radius,true);
+                      std::cout<<"In LO 11\n"<<std::endl;
+                  grWFpL[uCh][uMom].SetPoint(i,Radius,real(WaveFun[uCh]));
+                  std::cout<<"In LO 12\n"<<std::endl;
+
+              }
+              CleanUpWfHisto(pLambda,ExternalWF);
+
+            }
+    outFilepLambda->cd();
+
+    grWFpL[uCh]->Write();
+    }
+
+
+  }
+
+    delete outFilepLambda;
+    for(unsigned uc=0;uc<NumChannels;uc++){
+      delete [] grWFpL[uc];
+    }
+    delete [] grWFpL;
+
+}
+
 int main(int argc, char *argv[])
 {
 
@@ -2000,7 +2279,7 @@ printf("%.3f\n",lambdapars[3]*100.);
 printf("%.3f\n",lambdapars[4]*100.);
 */
 
-    //PLAMBDA_1_MAIN(argc,ARGV);
+    PLAMBDA_1_MAIN(argc,ARGV);
     //CALL_BERNIE_AND_VALE();
     //FEMTOBOYZ_MAIN(argc,ARGV);
     //GerhardMAIN(argc,ARGV);
@@ -2017,11 +2296,15 @@ printf("%.3f\n",lambdapars[4]*100.);
     //SourceSmearing();
     //TestQS();
     //Test_pOmega_Potentials();
-    Test_pp_Dwaves();
+    //Test_pp_Dwaves();
+    //Test_pSigma0();
 
     //TestCATS3_NewExtWf("Usmani");
     //TestCATS3_NewExtWf("NLO");
     //TestCATS3_NewExtWf("NLO_Coupled_S");
+
+    //TestVALE_pLambda();
+
     for(int iARG=1; iARG<argc; iARG++){
         delete [] ARGV[iARG];
     }
