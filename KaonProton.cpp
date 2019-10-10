@@ -1,3 +1,5 @@
+#include <stdlib.h>
+
 #include "KaonProton.h"
 
 #include "CATS.h"
@@ -11,14 +13,17 @@
 
 #include "DLM_SubPads.h"
 
+#include "TNtuple.h"
 #include "TString.h"
 #include "TGraph.h"
 #include "TFile.h"
 #include "TH1F.h"
+#include "TF1.h"
 #include "TCanvas.h"
 #include "TLegend.h"
 #include "TPaveText.h"
 #include "TStyle.h"
+#include "TRandom3.h"
 
 //without the coulomb interaction!
 void AnitKaonProton_PhaseShiftsAndWaveFunctions(){
@@ -916,7 +921,7 @@ void TestHaideJuly2018(){
 void TestHaideSiddharta(const double& RADIUS){
     //1.03 - 1.14 - 1.25
     //1.07 - 1.19 - 1.31
-
+/*
     const unsigned NumModels = 7;
     const bool Gamow = true;
     TGraph* grCk = new TGraph [NumModels];
@@ -1019,13 +1024,13 @@ void TestHaideSiddharta(const double& RADIUS){
     double* xVal = new double [6];
     double* yVal = new double [6];
     double yValTot;
-    /*
-    for(unsigned uBin=0; uBin<uNumBins; uBin++){
-        grCk[0].GetPoint(uBin,xVal1,yVal1);
-        grCk[1].GetPoint(uBin,xVal2,yVal2);
-        gTest1.SetPoint(uBin,xVal1,(yVal1+yVal2));
-    }
-    */
+
+    //for(unsigned uBin=0; uBin<uNumBins; uBin++){
+    //    grCk[0].GetPoint(uBin,xVal1,yVal1);
+    //    grCk[1].GetPoint(uBin,xVal2,yVal2);
+    //    gTest1.SetPoint(uBin,xVal1,(yVal1+yVal2));
+    //}
+
     for(unsigned uBin=0; uBin<uNumBins; uBin++){
         yValTot = 0;
         for(unsigned uType=0; uType<6; uType++){
@@ -1073,6 +1078,7 @@ void TestHaideSiddharta(const double& RADIUS){
     delete [] grCkSmeared;
     delete ResolutionFile;
     delete fout;
+*/
 }
 
 void GamowCheck(){
@@ -1328,17 +1334,781 @@ void GamowCheck2(){
 */
 }
 
+void Toy_pKplus(){
+    const unsigned NumMomBins = 150;
+    const double kMin = 0;
+    const double kMax = 300;
+    const double Mass_p = 938.272;
+    const double Mass_KaonCh = 493.677;
+    const TString OutputDir = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/KaonProton/Toy_pKplus/";
+    CATSparameters cPars(CATSparameters::tSource,1,true);
+    cPars.SetParameter(0,1.2);
+
+    CATS KittyCoulomb;
+    KittyCoulomb.SetMomBins(NumMomBins,kMin,kMax);
+    KittyCoulomb.SetAnaSource(GaussSource, cPars);
+    KittyCoulomb.SetUseAnalyticSource(true);
+    KittyCoulomb.SetMomentumDependentSource(false);
+    KittyCoulomb.SetThetaDependentSource(false);
+    //should you include in the result any bins, where the Schroedinger solver failed
+    KittyCoulomb.SetExcludeFailedBins(false);
+    KittyCoulomb.SetQ1Q2(1);
+    KittyCoulomb.SetPdgId(2212, 321);
+    KittyCoulomb.SetRedMass( (Mass_p*Mass_KaonCh)/(Mass_p+Mass_KaonCh) );
+    KittyCoulomb.SetNumChannels(1);
+    KittyCoulomb.SetNumPW(0,1);
+    KittyCoulomb.SetSpin(0,0);
+    KittyCoulomb.SetChannelWeight(0,1.);
+    KittyCoulomb.SetMaxNumThreads(4);
+    KittyCoulomb.KillTheCat();
+
+
+    CATS KittyToyI;
+    KittyToyI.SetMomBins(NumMomBins,kMin,kMax);
+    KittyToyI.SetAnaSource(GaussSource, cPars);
+    KittyToyI.SetUseAnalyticSource(true);
+    KittyToyI.SetMomentumDependentSource(false);
+    KittyToyI.SetThetaDependentSource(false);
+    //should you include in the result any bins, where the Schroedinger solver failed
+    KittyToyI.SetExcludeFailedBins(false);
+    KittyToyI.SetQ1Q2(1);
+    KittyToyI.SetPdgId(2212, 321);
+    KittyToyI.SetRedMass( (Mass_p*Mass_KaonCh)/(Mass_p+Mass_KaonCh) );
+    KittyToyI.SetNumChannels(1);
+    KittyToyI.SetNumPW(0,1);
+    //KittyToyI.SetNumPW(1,1);
+    KittyToyI.SetSpin(0,0);
+    //KittyToyI.SetSpin(1,0);
+    KittyToyI.SetChannelWeight(0,1.);
+    //KittyToyI.SetChannelWeight(1,1./2.);
+
+    double* SOL_POT_I0 = FindPotentialPars("/home/dmihaylov/Temp/pKplus_1M.root",0.057,0.373,0);
+    CATSparameters POT_PARS_I0(CATSparameters::tPotential,4,true);
+    POT_PARS_I0.SetParameters(&SOL_POT_I0[2]);
+
+    //double* SOL_POT_I1 = FindPotentialPars("/home/dmihaylov/Temp/pKplus_1M.root",-0.316,0.373,0);
+    //double* SOL_POT_I1 = FindPotentialPars("/home/dmihaylov/Temp/pKplus_1M.root",-0.304,0.261,0);
+    double* SOL_POT_I1 = FindPotentialPars("/home/dmihaylov/Temp/pKplus_1M.root",-0.310,0.373,0);
+    CATSparameters POT_PARS_I1(CATSparameters::tPotential,4,true);
+    POT_PARS_I1.SetParameters(&SOL_POT_I1[2]);
+
+    KittyToyI.SetShortRangePotential(0,0,DoubleGaussSum,POT_PARS_I1);
+    //KittyToyI.SetShortRangePotential(1,0,DoubleGaussSum,POT_PARS_I0);
+    KittyToyI.SetMaxNumThreads(4);
+    KittyToyI.SetEpsilonConv(1e-8);
+    KittyToyI.SetEpsilonProp(1e-8);
+    KittyToyI.KillTheCat();
+
+    CATS KittyToyI_SI;
+    KittyToyI_SI.SetMomBins(NumMomBins,kMin,kMax);
+    KittyToyI_SI.SetAnaSource(GaussSource, cPars);
+    KittyToyI_SI.SetUseAnalyticSource(true);
+    KittyToyI_SI.SetMomentumDependentSource(false);
+    KittyToyI_SI.SetThetaDependentSource(false);
+    //should you include in the result any bins, where the Schroedinger solver failed
+    KittyToyI_SI.SetExcludeFailedBins(false);
+    KittyToyI_SI.SetQ1Q2(0);
+    KittyToyI_SI.SetPdgId(2212, 321);
+    KittyToyI_SI.SetRedMass( (Mass_p*Mass_KaonCh)/(Mass_p+Mass_KaonCh) );
+    KittyToyI_SI.SetNumChannels(1);
+    KittyToyI_SI.SetNumPW(0,1);
+    //KittyToyI_SI.SetNumPW(1,1);
+    KittyToyI_SI.SetSpin(0,0);
+    //KittyToyI_SI.SetSpin(1,0);
+    KittyToyI_SI.SetChannelWeight(0,1.);
+    //KittyToyI_SI.SetChannelWeight(1,1./2.);
+
+    KittyToyI_SI.SetShortRangePotential(0,0,DoubleGaussSum,POT_PARS_I1);
+    //KittyToyI_SI.SetShortRangePotential(1,0,DoubleGaussSum,POT_PARS_I0);
+    KittyToyI_SI.SetMaxNumThreads(4);
+    KittyToyI_SI.SetEpsilonConv(1e-8);
+    KittyToyI_SI.SetEpsilonProp(1e-8);
+    KittyToyI_SI.KillTheCat();
+
+    DLM_Histo<complex<double>>*** ExternalWF_0=NULL;
+    CATS KittyHaide;
+    KittyHaide.SetMomBins(30,5,305);
+    KittyHaide.SetUseAnalyticSource(true);
+    KittyHaide.SetAnaSource(GaussSource,cPars);
+    ExternalWF_0 = InitHaidenbauerKaonPlus("/home/dmihaylov/CernBox/CATS_potentials/Haidenbauer/KaonPlus_SIonly/",KittyHaide,0);
+    KittyHaide.SetExternalWaveFunction(0,0,ExternalWF_0[0][0][0],ExternalWF_0[1][0][0]);
+    KittyHaide.KillTheCat();
+
+    DLM_Histo<complex<double>>*** ExternalWF_1=NULL;
+    CATS KittyHaideGamow;
+    KittyHaideGamow.SetMomBins(30,5,305);
+    KittyHaideGamow.SetUseAnalyticSource(true);
+    KittyHaideGamow.SetAnaSource(GaussSource,cPars);
+    ExternalWF_1 = InitHaidenbauerKaonPlus("/home/dmihaylov/CernBox/CATS_potentials/Haidenbauer/KaonPlus10MeV/",KittyHaideGamow,1);
+    KittyHaideGamow.SetExternalWaveFunction(0,0,ExternalWF_1[0][0][0],ExternalWF_1[1][0][0]);
+    KittyHaideGamow.KillTheCat();
+
+    TGraph grCoulomb;
+    grCoulomb.SetName("grCoulomb");
+    grCoulomb.Set(NumMomBins);
+    for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+        grCoulomb.SetPoint(uMom,KittyCoulomb.GetMomentum(uMom),KittyCoulomb.GetCorrFun(uMom));
+    }
+
+    TGraph grToyI;
+    grToyI.SetName("grToyI");
+    grToyI.Set(NumMomBins);
+    for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+        grToyI.SetPoint(uMom,KittyToyI.GetMomentum(uMom),KittyToyI.GetCorrFun(uMom));
+    }
+
+    TGraph grToyI_SI;
+    grToyI_SI.SetName("grToyI_SI");
+    grToyI_SI.Set(NumMomBins);
+    for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+        grToyI_SI.SetPoint(uMom,KittyToyI_SI.GetMomentum(uMom),KittyToyI_SI.GetCorrFun(uMom));
+    }
+
+    TGraph grHaideGamow;
+    grHaideGamow.SetName("grHaideGamow");
+    grHaideGamow.Set(30);
+    for(unsigned uMom=0; uMom<30; uMom++){
+        grHaideGamow.SetPoint(uMom,KittyHaideGamow.GetMomentum(uMom),KittyHaideGamow.GetCorrFun(uMom));
+    }
+
+    TGraph grHaide;
+    grHaide.SetName("grHaide");
+    grHaide.Set(30);
+    for(unsigned uMom=0; uMom<30; uMom++){
+        grHaide.SetPoint(uMom,KittyHaide.GetMomentum(uMom),KittyHaide.GetCorrFun(uMom));
+    }
+
+    TFile fOutput(OutputDir+"fOutput.root","recreate");
+    grCoulomb.Write();
+    grToyI.Write();
+    grToyI_SI.Write();
+    grHaideGamow.Write();
+    grHaide.Write();
+
+    delete [] SOL_POT_I0;
+    delete [] SOL_POT_I1;
+}
+
+void Toy_pKplus_2(){
+    const unsigned NumMomBins = 31;
+    const double kMin = 0;
+    const double kMax = 310;
+    const double Mass_p = 938.272;
+    const double Mass_KaonCh = 493.677;
+
+    const double min_f0 = -0.390;
+    const double max_f0 = -0.210;
+    const unsigned NumSteps = 19;
+    const double f0_step = (max_f0-min_f0)/double(NumSteps-1);
+
+    const TString OutputDir = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/KaonProton/Toy_pKplus/";
+    CATSparameters cPars(CATSparameters::tSource,1,true);
+    cPars.SetParameter(0,1.2);
+
+    DLM_Histo<complex<double>>*** ExternalWF_0=NULL;
+    CATS KittyHaide;
+    KittyHaide.SetMomBins(30,5,305);
+    KittyHaide.SetUseAnalyticSource(true);
+    KittyHaide.SetAnaSource(GaussSource,cPars);
+    ExternalWF_0 = InitHaidenbauerKaonPlus("/home/dmihaylov/CernBox/CATS_potentials/Haidenbauer/KaonPlus_SIonly/",KittyHaide,0);
+    KittyHaide.SetExternalWaveFunction(0,0,ExternalWF_0[0][0][0],ExternalWF_0[1][0][0]);
+    KittyHaide.KillTheCat();
+
+    DLM_Histo<complex<double>>*** ExternalWF_1=NULL;
+    CATS KittyHaideGamow;
+    KittyHaideGamow.SetMomBins(30,5,305);
+    KittyHaideGamow.SetUseAnalyticSource(true);
+    KittyHaideGamow.SetAnaSource(GaussSource,cPars);
+    ExternalWF_1 = InitHaidenbauerKaonPlus("/home/dmihaylov/CernBox/CATS_potentials/Haidenbauer/KaonPlus10MeV/",KittyHaideGamow,1);
+    KittyHaideGamow.SetExternalWaveFunction(0,0,ExternalWF_1[0][0][0],ExternalWF_1[1][0][0]);
+    KittyHaideGamow.KillTheCat();
+
+    TGraph grHaideGamow;
+    grHaideGamow.SetName("grHaideGamow");
+    grHaideGamow.Set(30);
+    for(unsigned uMom=0; uMom<30; uMom++){
+        grHaideGamow.SetPoint(uMom,KittyHaideGamow.GetMomentum(uMom),KittyHaideGamow.GetCorrFun(uMom));
+    }
+
+    TGraph grHaide;
+    grHaide.SetName("grHaide");
+    grHaide.Set(30);
+    for(unsigned uMom=0; uMom<30; uMom++){
+        grHaide.SetPoint(uMom,KittyHaide.GetMomentum(uMom),KittyHaide.GetCorrFun(uMom));
+    }
+
+    CATS KittyToyI;
+    KittyToyI.SetMomBins(NumMomBins,kMin,kMax);
+    KittyToyI.SetAnaSource(GaussSource, cPars);
+    KittyToyI.SetUseAnalyticSource(true);
+    KittyToyI.SetMomentumDependentSource(false);
+    KittyToyI.SetThetaDependentSource(false);
+    //should you include in the result any bins, where the Schroedinger solver failed
+    KittyToyI.SetExcludeFailedBins(false);
+    KittyToyI.SetQ1Q2(1);
+    KittyToyI.SetPdgId(2212, 321);
+    KittyToyI.SetRedMass( (Mass_p*Mass_KaonCh)/(Mass_p+Mass_KaonCh) );
+    KittyToyI.SetNumChannels(1);
+    KittyToyI.SetNumPW(0,1);
+    KittyToyI.SetSpin(0,0);
+    KittyToyI.SetChannelWeight(0,1.);
+
+    CATS KittyToyI_SI;
+    KittyToyI_SI.SetMomBins(NumMomBins,kMin,kMax);
+    KittyToyI_SI.SetAnaSource(GaussSource, cPars);
+    KittyToyI_SI.SetUseAnalyticSource(true);
+    KittyToyI_SI.SetMomentumDependentSource(false);
+    KittyToyI_SI.SetThetaDependentSource(false);
+    //should you include in the result any bins, where the Schroedinger solver failed
+    KittyToyI_SI.SetExcludeFailedBins(false);
+    KittyToyI_SI.SetQ1Q2(0);
+    KittyToyI_SI.SetPdgId(2212, 321);
+    KittyToyI_SI.SetRedMass( (Mass_p*Mass_KaonCh)/(Mass_p+Mass_KaonCh) );
+    KittyToyI_SI.SetNumChannels(1);
+    KittyToyI_SI.SetNumPW(0,1);
+    KittyToyI_SI.SetSpin(0,0);
+    KittyToyI_SI.SetChannelWeight(0,1.);
+
+    TGraph* grToyI = new TGraph[NumSteps];
+    TGraph* grToyI_SI = new TGraph[NumSteps];
+
+    for(unsigned uStep=0; uStep<NumSteps; uStep++){
+        double* SOL_POT_I1 = FindPotentialPars("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/KaonProton/ScatParsFromRandPotential/Test/N11000.root",min_f0+f0_step*double(uStep),0.373,0);
+        printf("%.3f, %.3f: V0=%.1f, mu0=%.3f, V1=%.1f, mu1=%.3f\n",
+               SOL_POT_I1[0],SOL_POT_I1[1],SOL_POT_I1[2],SOL_POT_I1[3],SOL_POT_I1[4],SOL_POT_I1[5]);
+        CATSparameters POT_PARS_I1(CATSparameters::tPotential,4,true);
+        POT_PARS_I1.SetParameters(&SOL_POT_I1[2]);
+
+        KittyToyI.SetShortRangePotential(0,0,DoubleGaussSum,POT_PARS_I1);
+        KittyToyI.SetMaxNumThreads(4);
+        KittyToyI.SetEpsilonConv(1e-8);
+        KittyToyI.SetEpsilonProp(1e-8);
+        KittyToyI.SetNotifications(CATS::nError);
+        KittyToyI.KillTheCat();
+
+        KittyToyI_SI.SetShortRangePotential(0,0,DoubleGaussSum,POT_PARS_I1);
+        KittyToyI_SI.SetMaxNumThreads(4);
+        KittyToyI_SI.SetEpsilonConv(1e-8);
+        KittyToyI_SI.SetEpsilonProp(1e-8);
+        KittyToyI_SI.SetNotifications(CATS::nError);
+        KittyToyI_SI.KillTheCat();
+
+        grToyI[uStep].SetName(TString::Format("grToyI_%.2f_%.2f",SOL_POT_I1[0],SOL_POT_I1[1]));
+        grToyI[uStep].Set(NumMomBins);
+        for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+            grToyI[uStep].SetPoint(uMom,KittyToyI.GetMomentum(uMom),KittyToyI.GetCorrFun(uMom));
+        }
+
+        grToyI_SI[uStep].SetName(TString::Format("grToyI_SI_%.2f_%.2f",SOL_POT_I1[0],SOL_POT_I1[1]));
+        grToyI_SI[uStep].Set(NumMomBins);
+        for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+            grToyI_SI[uStep].SetPoint(uMom,KittyToyI_SI.GetMomentum(uMom),KittyToyI_SI.GetCorrFun(uMom));
+        }
+
+        delete [] SOL_POT_I1;
+    }
+
+    TFile fOutput(OutputDir+"fOutput2.root","recreate");
+    grHaideGamow.Write();
+    grHaide.Write();
+    for(unsigned uStep=0; uStep<NumSteps; uStep++){
+        grToyI[uStep].Write();
+        grToyI_SI[uStep].Write();
+    }
+
+}
+
+//femto convention
+double* FindPotentialPars(const TString& InputFileName, const double& ScatLen, const double& EffRan, const unsigned WhichSol){
+    TFile fInput(InputFileName,"read");
+    TNtuple* ntuple=NULL;
+    ntuple = (TNtuple*)fInput.Get("Table");
+    if(!ntuple){
+        printf("Problem with the ntuple!\n");
+        abort();
+    }
+    unsigned NumNtEntries = ntuple->GetEntries();
+    Float_t par_V0;
+    Float_t par_V1;
+    Float_t par_V2;
+    Float_t par_mu0;
+    Float_t par_mu1;
+    Float_t par_mu2;
+    Float_t par_f0Inv;
+    Float_t par_d0;
+
+    const Float_t DevLimit = 0.02;
+    Float_t* Deviation = new Float_t[NumNtEntries];
+    Float_t* Solution_V0 = new Float_t[NumNtEntries];
+    Float_t* Solution_V1 = new Float_t[NumNtEntries];
+    Float_t* Solution_V2 = new Float_t[NumNtEntries];
+    Float_t* Solution_mu0 = new Float_t[NumNtEntries];
+    Float_t* Solution_mu1 = new Float_t[NumNtEntries];
+    Float_t* Solution_mu2 = new Float_t[NumNtEntries];
+    Float_t* Solution_f0Inv = new Float_t[NumNtEntries];
+    Float_t* Solution_d0 = new Float_t[NumNtEntries];
+
+    ntuple->SetBranchAddress("V0",&par_V0);
+    ntuple->SetBranchAddress("V1",&par_V1);
+    ntuple->SetBranchAddress("V2",&par_V2);
+    ntuple->SetBranchAddress("mu0",&par_mu0);
+    ntuple->SetBranchAddress("mu1",&par_mu1);
+    ntuple->SetBranchAddress("mu2",&par_mu2);
+    ntuple->SetBranchAddress("f0Inv",&par_f0Inv);
+    ntuple->SetBranchAddress("d0",&par_d0);
+
+    unsigned PossibleSolutions = 0;
+
+    for(unsigned uEntry=0; uEntry<NumNtEntries; uEntry++){
+        ntuple->GetEntry(uEntry);
+        //we put twice the weight to the scattering length
+        Float_t Delta_f0 = (ScatLen-1./par_f0Inv);
+        Float_t Delta_d0 = (EffRan-par_d0);
+        Deviation[PossibleSolutions] = sqrt(4*Delta_f0*Delta_f0+Delta_d0*Delta_d0);
+        if(Deviation[PossibleSolutions]>DevLimit) continue;
+        Solution_V0[PossibleSolutions] = par_V0;
+        Solution_V1[PossibleSolutions] = par_V1;
+        Solution_V2[PossibleSolutions] = par_V2;
+        Solution_mu0[PossibleSolutions] = par_mu0;
+        Solution_mu1[PossibleSolutions] = par_mu1;
+        Solution_mu2[PossibleSolutions] = par_mu2;
+        Solution_f0Inv[PossibleSolutions] = par_f0Inv;
+        Solution_d0[PossibleSolutions] = par_d0;
+        PossibleSolutions++;
+    }
+
+    DLM_Sort < Float_t, unsigned > SortTool;
+    SortTool.SetData(Deviation,PossibleSolutions);
+    SortTool.MergeSort();
+    SortTool.GetSortedData(Deviation,Deviation);
+
+    Float_t* Temp;
+    Temp = new Float_t[PossibleSolutions];
+
+    for(unsigned uSol=0; uSol<PossibleSolutions; uSol++){
+        Temp[uSol] = Solution_V0[SortTool.GetKey()[uSol]];
+    }
+    for(unsigned uEl=0; uEl<PossibleSolutions; uEl++){
+        Solution_V0[uEl] = Temp[uEl];
+    }
+
+    for(unsigned uSol=0; uSol<PossibleSolutions; uSol++){
+        Temp[uSol] = Solution_V1[SortTool.GetKey()[uSol]];
+    }
+    for(unsigned uEl=0; uEl<PossibleSolutions; uEl++){
+        Solution_V1[uEl] = Temp[uEl];
+    }
+
+    for(unsigned uSol=0; uSol<PossibleSolutions; uSol++){
+        Temp[uSol] = Solution_V2[SortTool.GetKey()[uSol]];
+    }
+    for(unsigned uEl=0; uEl<PossibleSolutions; uEl++){
+        Solution_V2[uEl] = Temp[uEl];
+    }
+
+    for(unsigned uSol=0; uSol<PossibleSolutions; uSol++){
+        Temp[uSol] = Solution_mu0[SortTool.GetKey()[uSol]];
+    }
+    for(unsigned uEl=0; uEl<PossibleSolutions; uEl++){
+        Solution_mu0[uEl] = Temp[uEl];
+    }
+
+    for(unsigned uSol=0; uSol<PossibleSolutions; uSol++){
+        Temp[uSol] = Solution_mu1[SortTool.GetKey()[uSol]];
+    }
+    for(unsigned uEl=0; uEl<PossibleSolutions; uEl++){
+        Solution_mu1[uEl] = Temp[uEl];
+    }
+
+    for(unsigned uSol=0; uSol<PossibleSolutions; uSol++){
+        Temp[uSol] = Solution_mu2[SortTool.GetKey()[uSol]];
+    }
+    for(unsigned uEl=0; uEl<PossibleSolutions; uEl++){
+        Solution_mu2[uEl] = Temp[uEl];
+    }
+
+    for(unsigned uSol=0; uSol<PossibleSolutions; uSol++){
+        Temp[uSol] = Solution_f0Inv[SortTool.GetKey()[uSol]];
+    }
+    for(unsigned uEl=0; uEl<PossibleSolutions; uEl++){
+        Solution_f0Inv[uEl] = Temp[uEl];
+    }
+
+    for(unsigned uSol=0; uSol<PossibleSolutions; uSol++){
+        Temp[uSol] = Solution_d0[SortTool.GetKey()[uSol]];
+    }
+    for(unsigned uEl=0; uEl<PossibleSolutions; uEl++){
+        Solution_d0[uEl] = Temp[uEl];
+    }
+
+    delete [] Temp;
+
+
+//    for(unsigned uSol=0; uSol<PossibleSolutions; uSol++){
+//        printf("%u: %f f0=%.3f; d0=%.3f; V0=%.2f; mu0=%.4f; V1=%.2f; mu1=%.4f\n",uSol,Deviation[uSol],
+//               1./Solution_f0Inv[uSol],Solution_d0[uSol],Solution_V0[uSol],Solution_mu0[uSol],Solution_V1[uSol],Solution_mu1[uSol]);
+//    }
+
+    double* SOLUTION = NULL;
+    if(PossibleSolutions){
+        SOLUTION=new double [8];
+        SOLUTION[0]=1./Solution_f0Inv[WhichSol];
+        SOLUTION[1]=Solution_d0[WhichSol];
+        SOLUTION[2]=Solution_V0[WhichSol];
+        SOLUTION[3]=Solution_mu0[WhichSol];
+        SOLUTION[4]=Solution_V1[WhichSol];
+        SOLUTION[5]=Solution_mu1[WhichSol];
+        SOLUTION[6]=Solution_V2[WhichSol];
+        SOLUTION[7]=Solution_mu2[WhichSol];
+    }
+
+
+    delete [] Deviation;
+    delete [] Solution_V0;
+    delete [] Solution_V1;
+    delete [] Solution_V2;
+    delete [] Solution_mu0;
+    delete [] Solution_mu1;
+    delete [] Solution_mu2;
+    delete [] Solution_f0Inv;
+    delete [] Solution_d0;
+
+    return SOLUTION;
+}
+
+void ScatParsFromRandPotential(const TString OutputFolder,
+                               const unsigned RandomSeed, const unsigned& NumIter,
+                               const double& V0_min, const double& V0_max,
+                               const double& mu0_min, const double& mu0_max,
+                               const double& V1_min, const double& V1_max,
+                               const double& mu1_min, const double& mu1_max,
+                               const double& V2_min, const double& V2_max,
+                               const double& mu2_min, const double& mu2_max){
+
+
+
+    const double Mass_p = 938.272;
+    const double Mass_KaonCh = 493.677;
+
+    DLM_Timer TIMER;
+    TIMER.Start();
+
+    TFile* OutputFile = new TFile(OutputFolder+TString::Format("N%u_RS%u_Table.root",NumIter,RandomSeed),"RECREATE");
+    TNtuple* Table = new TNtuple("Table","Table","V0:mu0:V1:mu1:V2:mu2:f0Inv:d0");
+
+    TRandom3 RanGen(RandomSeed);
+    double Ampl0,Ampl1,Ampl2,mu0,mu1,mu2;
+
+    //Kitty.KillTheCat();
+
+    CATSparameters POT_PARS_I1(CATSparameters::tPotential,6,true);
+    CATSparameters cPars(CATSparameters::tSource,1,true);
+    cPars.SetParameter(0,1.2);
+    //!Femto sign convention
+
+    CATS Kitty;
+    const double kFrom = 4;
+    const double kTo = 68;
+    const unsigned kNumStep = 32;
+    const double kStep = (kTo-kFrom)/(kNumStep-1);
+    //double SorPars[4] = {0,0,0,2};
+
+    Kitty.SetUseAnalyticSource(true);
+    Kitty.SetAnaSource(GaussSource, cPars);
+    Kitty.SetMaxRad(100);
+    Kitty.SetMaxRho(50);
+    Kitty.SetEpsilonProp(2e-9);
+    Kitty.SetEpsilonConv(1e-8);
+    Kitty.SetExcludeFailedBins(false);
+    Kitty.SetMomBins(kNumStep,kFrom,kTo);
+    Kitty.SetNumChannels(1);
+    Kitty.SetNumPW(0,1);
+    Kitty.SetSpin(0,0);
+    Kitty.SetChannelWeight(0, 1);
+    Kitty.SetQ1Q2(0);
+    Kitty.SetPdgId(2212, 321);
+    Kitty.SetRedMass( (Mass_p*Mass_KaonCh)/(Mass_p+Mass_KaonCh) );
+    //Kitty.SetMaxNumThreads(4);
+    Kitty.KillTheCat();
+    Kitty.SetNotifications(CATS::nSilent);
+
+    printf("Ready to iterate!\n");
+
+    const double rMin = 0;
+    const double rMax = 4;
+    const int rSteps = 256;
+
+    for(unsigned uIter=0; uIter<NumIter; uIter++){
+
+        TH1F* hPhaseShift0 = new TH1F(TString::Format("hPhaseShift0_%u",uIter), TString::Format("hPhaseShift0_%u",uIter), kNumStep, kFrom-0.5*kStep, kTo+0.5*kStep);
+        TF1* fPhaseShift0 = new TF1(TString::Format("fPhaseShift0%u",uIter), "0.5*[1]/197.327*x*x+[0]*197.327", kFrom, kTo);
+        TH1F* hPotential = new TH1F(TString::Format("hPotential_%u",uIter), TString::Format("hPotential_%u",uIter), rSteps, rMin, rMax);
+
+        if(V0_min<=V0_max){
+            Ampl0 = RanGen.Uniform(V0_min,V0_max);
+            if(mu0_min<=mu0_max){
+                mu0 = RanGen.Uniform(mu0_min,mu0_max);
+            }
+            else{
+                mu0 = 1;
+            }
+        }
+        else{
+            Ampl0=0;
+            mu0=1;
+        }
+
+        if(V1_min<=V1_max){
+            Ampl1 = RanGen.Uniform(V1_min,V1_max);
+            if(mu1_min<=mu1_max){
+                mu1 = RanGen.Uniform(mu1_min,mu1_max);
+            }
+            else{
+                mu1 = 1;
+            }
+        }
+        else{
+            Ampl1=0;
+            mu1=1;
+        }
+
+        if(V2_min<=V2_max){
+            Ampl2 = RanGen.Uniform(V2_min,V2_max);
+            if(mu2_min<=mu2_max){
+                mu2 = RanGen.Uniform(mu2_min,mu2_max);
+            }
+            else{
+                mu2 = 1;
+            }
+        }
+        else{
+            Ampl2=0;
+            mu2=1;
+        }
+
+        POT_PARS_I1.SetParameter(0,Ampl0);
+        POT_PARS_I1.SetParameter(1,mu0);
+        POT_PARS_I1.SetParameter(2,Ampl1);
+        POT_PARS_I1.SetParameter(3,mu1);
+        POT_PARS_I1.SetParameter(4,Ampl2);
+        POT_PARS_I1.SetParameter(5,mu2);
+        Kitty.SetShortRangePotential(0,0,GaussExpSum,POT_PARS_I1);
+        //
+        Kitty.ComputeTheRadialWaveFunction();
+
+        for(unsigned uBin=0; uBin<kNumStep; uBin++){
+            hPhaseShift0->SetBinContent(uBin+1,Kitty.GetMomentum(uBin)/tan(Kitty.GetPhaseShift(uBin,0,0)));
+            hPhaseShift0->SetBinError(uBin+1, hPhaseShift0->GetBinContent(uBin+1)*0.0001);
+        }
+        for(unsigned uBin=0; uBin<rSteps; uBin++){
+            hPotential->SetBinContent(uBin+1,Kitty.EvaluateThePotential(0,0,(kTo+kFrom)*0.5,hPotential->GetBinCenter(uBin+1)));
+        }
+        fPhaseShift0->SetParameter(0,0);
+        fPhaseShift0->SetParLimits(0,-1000,1000);
+        fPhaseShift0->SetParameter(1,0);
+        fPhaseShift0->SetParLimits(1,-1000,1000);
+        hPhaseShift0->Fit(fPhaseShift0, "Q, S, N, R, M");
+        printf("%.1f*exp(-r^2/%.2f)",Ampl0,mu0);
+        if(Ampl1>0) printf("+%.1f*exp(-r^2/%.2f)",Ampl1,mu1);
+        else printf("-%.1f*exp(-r^2/%.2f)",-Ampl1,mu1);
+        if(Ampl2>0) printf("+%.1f*exp(-r^2/%.2f)",Ampl2,mu2);
+        else printf("-%.1f*exp(-r^2/%.2f)",-Ampl2,mu2);
+        printf("\n 1/f0 = %.2f",fPhaseShift0->GetParameter(0));
+        printf(" d0 = %.2f\n",fPhaseShift0->GetParameter(1));
+        Float_t CONTAINER[8];
+        CONTAINER[0] = Ampl0;
+        CONTAINER[1] = mu0;
+        CONTAINER[2] = Ampl1;
+        CONTAINER[3] = mu1;
+        CONTAINER[4] = Ampl2;
+        CONTAINER[5] = mu2;
+        CONTAINER[6] = fPhaseShift0->GetParameter(0);
+        CONTAINER[7] = fPhaseShift0->GetParameter(1);
+        Table->Fill(CONTAINER);
+
+        //hPhaseShift0->Write();
+        //fPhaseShift0->Write();
+        //hPotential->Write();
+
+        delete hPhaseShift0;
+        delete fPhaseShift0;
+        delete hPotential;
+
+        long long ExecTime = TIMER.Stop();
+        //break after 2 h 15 mins
+        if(double(ExecTime)*1e-6/60.>30) break;
+    }
+    Table->Write();
+
+
+
+    delete Table;
+    delete OutputFile;
+    //Table->Draw("d0:f0Inv>>h2(128,-1000,1000,96,-1000,1000)","","colz")
+}
+
+void TestKyoto2019(const double& RADIUS){
+    const unsigned NumChannels = 6;
+
+    CATSparameters cPars(CATSparameters::tSource,1,true);
+    cPars.SetParameter(0,RADIUS);
+
+    CATS KittyTemp;
+    //KittyTemp.SetMomBins(150,1,301);
+    DLM_Histo<complex<double>>*** BINNING=Init_pKminus_Kyoto2019("/home/dmihaylov/CernBox/CATS_potentials/Tetsuo/Kyoto2019/",KittyTemp,0);
+    unsigned NumMomBins = BINNING[0][0][0].GetNbins(0);
+    double* MomBins = BINNING[0][0][0].GetBinRange(0);
+    double* MomBinsCenter = BINNING[0][0][0].GetBinCenters(0);
+    printf("NumMomBins=%u\n",NumMomBins);
+    for(unsigned uMomBin=0; uMomBin<NumMomBins; uMomBin++){
+        printf("%u: %3.f %.3f %.3f\n",uMomBin,MomBins[uMomBin],MomBinsCenter[uMomBin],MomBins[uMomBin+1]);
+    }
+
+    CATS KittyStrong;
+    KittyStrong.SetMomBins(NumMomBins,MomBins,MomBinsCenter);
+    KittyStrong.SetAnaSource(GaussSource, cPars);
+    KittyStrong.SetUseAnalyticSource(true);
+    DLM_Histo<complex<double>>*** ExternalWF_Strong=Init_pKminus_Kyoto2019("/home/dmihaylov/CernBox/CATS_potentials/Tetsuo/Kyoto2019/",KittyStrong,0);
+    //printf("NumMomBins=%u\n",ExternalWF_Strong[0][0][0].GetNbins());
+    for(unsigned uCh=0; uCh<NumChannels; uCh++){
+        KittyStrong.SetExternalWaveFunction(uCh,0,ExternalWF_Strong[0][uCh][0],ExternalWF_Strong[1][uCh][0]);
+    }
+    KittyStrong.KillTheCat();
+
+    CATS KittyGamow;
+    KittyGamow.SetMomBins(NumMomBins,MomBins,MomBinsCenter);
+    KittyGamow.SetAnaSource(GaussSource, cPars);
+    KittyGamow.SetUseAnalyticSource(true);
+    DLM_Histo<complex<double>>*** ExternalWF_Gamow=Init_pKminus_Kyoto2019("/home/dmihaylov/CernBox/CATS_potentials/Tetsuo/Kyoto2019/",KittyGamow,0);
+    for(unsigned uCh=0; uCh<NumChannels; uCh++){
+        KittyGamow.SetExternalWaveFunction(uCh,0,ExternalWF_Gamow[0][uCh][0],ExternalWF_Gamow[1][uCh][0]);
+    }
+    KittyGamow.SetQ1Q2(-1);
+    KittyGamow.SetGamow(true);
+    KittyGamow.KillTheCat();
+
+    CATS KittyFull;
+    KittyFull.SetMomBins(NumMomBins,MomBins,MomBinsCenter);
+    KittyFull.SetAnaSource(GaussSource, cPars);
+    KittyFull.SetUseAnalyticSource(true);
+    DLM_Histo<complex<double>>*** ExternalWF_Full=Init_pKminus_Kyoto2019("/home/dmihaylov/CernBox/CATS_potentials/Tetsuo/Kyoto2019/",KittyFull,1);
+    for(unsigned uCh=0; uCh<NumChannels; uCh++){
+        KittyFull.SetExternalWaveFunction(uCh,0,ExternalWF_Full[0][uCh][0],ExternalWF_Full[1][uCh][0]);
+    }
+    KittyFull.KillTheCat();
+
+    TGraph* gStrong = new TGraph [NumChannels+1];
+    TGraph* gGamow = new TGraph [NumChannels+1];
+    TGraph* gFull = new TGraph [NumChannels+1];
+    TH1F** hWfStrong = new TH1F* [NumChannels+1];
+    TH1F** hWfFull = new TH1F* [NumChannels+1];
+    for(unsigned uCh=0; uCh<=NumChannels; uCh++){
+        hWfStrong[uCh] = new TH1F(TString::Format("hWfStrong_%u",uCh),TString::Format("hWfStrong_%u",uCh),16384,0,128);
+        hWfFull[uCh] = new TH1F(TString::Format("hWfFull_%u",uCh),TString::Format("hWfFull_%u",uCh),16384,0,128);
+    }
+
+    for(unsigned uBin=0; uBin<NumMomBins; uBin++){
+        gStrong[NumChannels].SetPoint(uBin,KittyStrong.GetMomentum(uBin),KittyStrong.GetCorrFun(uBin));
+        gGamow[NumChannels].SetPoint(uBin,KittyGamow.GetMomentum(uBin),KittyGamow.GetCorrFun(uBin));
+        gFull[NumChannels].SetPoint(uBin,KittyFull.GetMomentum(uBin),KittyFull.GetCorrFun(uBin));
+    }
+
+    KittyStrong.SetNotifications(CATS::nError);
+    KittyGamow.SetNotifications(CATS::nError);
+    KittyFull.SetNotifications(CATS::nError);
+
+    for(unsigned uCh=0; uCh<NumChannels; uCh++){
+        for(unsigned uCh2=0; uCh2<NumChannels; uCh2++){
+            KittyStrong.SetChannelWeight(uCh2,0);
+            KittyGamow.SetChannelWeight(uCh2,0);
+            KittyFull.SetChannelWeight(uCh2,0);
+        }
+        KittyStrong.SetChannelWeight(uCh,1);
+        KittyGamow.SetChannelWeight(uCh,1);
+        KittyFull.SetChannelWeight(uCh,1);
+        KittyStrong.KillTheCat();
+        KittyGamow.KillTheCat();
+        KittyFull.KillTheCat();
+        for(unsigned uBin=0; uBin<NumMomBins; uBin++){
+            gStrong[uCh].SetPoint(uBin,KittyStrong.GetMomentum(uBin),KittyStrong.GetCorrFun(uBin));
+            gGamow[uCh].SetPoint(uBin,KittyGamow.GetMomentum(uBin),KittyGamow.GetCorrFun(uBin));
+            gFull[uCh].SetPoint(uBin,KittyFull.GetMomentum(uBin),KittyFull.GetCorrFun(uBin));
+        }
+        for(unsigned uBin=1; uBin<=hWfStrong[uCh]->GetNbinsX(); uBin++){
+            hWfStrong[uCh]->SetBinContent(uBin,std::abs(KittyStrong.EvalRadialWaveFunction(40,uCh,0,hWfStrong[uCh]->GetBinCenter(uBin),true)));
+            hWfFull[uCh]->SetBinContent(uBin,std::abs(KittyFull.EvalRadialWaveFunction(40,uCh,0,hWfFull[uCh]->GetBinCenter(uBin),true)));
+        }
+    }
+
+    TFile fOutput(TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/TestKyoto2019/fOutput_%.2f.root",
+                                  RADIUS),"recreate");
+
+    for(unsigned uCh=0; uCh<=NumChannels; uCh++){
+        TString AddOn;
+        if(uCh<NumChannels) AddOn = TString::Format("%u",uCh);
+        else AddOn = "ALLw1";
+        gStrong[uCh].SetName(TString::Format("gStrong_%s",AddOn.Data()));
+        gGamow[uCh].SetName(TString::Format("gGamow_%s",AddOn.Data()));
+        gFull[uCh].SetName(TString::Format("gFull_%s",AddOn.Data()));
+        gStrong[uCh].Write();
+        gGamow[uCh].Write();
+        gFull[uCh].Write();
+        hWfStrong[uCh]->Write();
+        hWfFull[uCh]->Write();
+    }
+
+    FILE * CkFile;
+    CkFile = fopen (TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/TestKyoto2019/CkProtonKaon.txt"),"w");
+    fprintf (CkFile, "%10s%10s%10s%10s\n","k* (MeV)","C_S(k*)","C_G(k*)","C_C(k*)");
+    double kVal_S,CkVal_S;
+	double kVal_G,CkVal_G;
+	double kVal_C,CkVal_C;
+	for(unsigned uBin=0; uBin<NumMomBins; uBin++){
+		gStrong->GetPoint(uBin,kVal_S,CkVal_S);
+		gGamow->GetPoint(uBin,kVal_G,CkVal_G);
+		gFull->GetPoint(uBin,kVal_C,CkVal_C);
+		fprintf (CkFile, "%10.1f%10.3f%10.3f%10.3f\n",kVal_S,CkVal_S,CkVal_G,CkVal_C);
+	}
+	fclose(CkFile);
+
+    delete [] gStrong;
+    delete [] gGamow;
+    delete [] gFull;
+    for(unsigned uCh=0; uCh<=NumChannels; uCh++){
+        delete hWfStrong[uCh];
+        delete hWfFull[uCh];
+    }
+    delete [] hWfStrong;
+    delete [] hWfFull;
+    delete [] MomBins;
+}
+
 int KAONPROTON_MAIN(int argc, char *argv[]){
+
+    TestKyoto2019(1.2);
+    for(double rad=1; rad<=7.5; rad+=0.5){
+        //TestKyoto2019(rad);
+    }
+
+    //Toy_pKplus();
+    //Toy_pKplus_2();
+    //ScatParsFromRandPotential(argv[1],atoi(argv[2]),atoi(argv[3]),atof(argv[4]),atof(argv[5]),
+    //                          atof(argv[6]),atof(argv[7]),atof(argv[8]),atof(argv[9]),atof(argv[10]),atof(argv[11]),
+    //                          atof(argv[12]),atof(argv[13]),atof(argv[14]),atof(argv[15]));
+    //ScatParsFromRandPotential("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/KaonProton/ScatParsFromRandPotential/Test/",
+    //                          1,10,0,2500,0,1,0,2500,0,1);
+
+    //FindPotentialPars("/home/dmihaylov/Temp/pKplus_1M.root",-0.316,0.373);
 
     //AnitKaonProton_PhaseShiftsAndWaveFunctions();
     //KminProton_ImagWF();
     //TestHaideJuly2018();
-    TestHaideSiddharta(1.072);
-    TestHaideSiddharta(1.125);
-    TestHaideSiddharta(1.201);
-    TestHaideSiddharta(1.173);
-    TestHaideSiddharta(1.182);
-    TestHaideSiddharta(1.195);
+    //TestHaideSiddharta(1.072);
+    //TestHaideSiddharta(1.125);
+    //TestHaideSiddharta(1.201);
+    //TestHaideSiddharta(1.173);
+    //TestHaideSiddharta(1.182);
+    //TestHaideSiddharta(1.195);
     //GamowCheck();
     //GamowCheck2();
     return 0;

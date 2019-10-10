@@ -161,19 +161,23 @@ void GetCorrelations(const char* foldername, const char* filename, const char* p
 
   CF_pp->SetPairs(pp, ApAp);
   CF_pp->GetCorrelations();
-  CF_pp->WriteOutput(Form("%sCFOutput_pp_%s.root", foldername, addon));
+  if(strcmp(addon,"")==0) CF_pp->WriteOutput(Form("%sCFOutput_pp.root", foldername));
+  else CF_pp->WriteOutput(Form("%sCFOutput_pp_%s.root", foldername, addon));
 
   CF_pL->SetPairs(pL, ApAL);
   CF_pL->GetCorrelations();
-  CF_pL->WriteOutput(Form("%sCFOutput_pL_%s.root", foldername, addon));
+  if(strcmp(addon,"")==0) CF_pL->WriteOutput(Form("%sCFOutput_pL.root", foldername));
+  else CF_pL->WriteOutput(Form("%sCFOutput_pL_%s.root", foldername, addon));
 
   CF_LL->SetPairs(LL, ALAL);
   CF_LL->GetCorrelations();
-  CF_LL->WriteOutput(Form("%sCFOutput_LL_%s.root", foldername, addon));
+  if(strcmp(addon,"")==0) CF_LL->WriteOutput(Form("%sCFOutput_LL.root", foldername));
+  else CF_LL->WriteOutput(Form("%sCFOutput_LL_%s.root", foldername, addon));
 
   CF_pXi->SetPairs(pXi, ApAXi);
   CF_pXi->GetCorrelations();
-  CF_pXi->WriteOutput(Form("%sCFOutput_pXi_%s.root", foldername, addon));
+  if(strcmp(addon,"")==0) CF_pXi->WriteOutput(Form("%sCFOutput_pXi.root", foldername));
+  else CF_pXi->WriteOutput(Form("%sCFOutput_pXi_%s.root", foldername, addon));
 }
 
 void GetCorrelationsBbarB(const char* foldername, const char* filename, const char* prefix,
@@ -292,22 +296,26 @@ void GetCorrelationsBbarB(const char* foldername, const char* filename, const ch
   std::cout << "Get CF \n";
   CF_pAp_App->GetCorrelations();
   std::cout << "Write Output \n";
-  CF_pAp_App->WriteOutput(Form("%sCFOutput_pAp_App_%s.root", foldername, addon));
+  if(strcmp(addon,"")==0) CF_pAp_App->WriteOutput(Form("%sCFOutput_pAp_App.root", foldername));
+  else CF_pAp_App->WriteOutput(Form("%sCFOutput_pAp_App_%s.root", foldername, addon));
 
   std::cout << "pL CF \n";
   CF_pAL_ApL->SetPairs(pAL, ApL);
   CF_pAL_ApL->GetCorrelations();
-  CF_pAL_ApL->WriteOutput(Form("%sCFOutput_pAL_ApL_%s.root", foldername, addon));
+  if(strcmp(addon,"")==0) CF_pAL_ApL->WriteOutput(Form("%sCFOutput_pAL_ApL.root", foldername));
+  else CF_pAL_ApL->WriteOutput(Form("%sCFOutput_pAL_ApL_%s.root", foldername, addon));
 
   std::cout << "LL CF \n";
   CF_ALL_LAL->SetPairs(LAL, nullptr);
   CF_ALL_LAL->GetCorrelations();
-  CF_ALL_LAL->WriteOutput(Form("%sCFOutput_LAL_ALL_%s.root", foldername, addon));
+  if(strcmp(addon,"")==0) CF_ALL_LAL->WriteOutput(Form("%sCFOutput_LAL_ALL.root", foldername));
+  else CF_ALL_LAL->WriteOutput(Form("%sCFOutput_LAL_ALL_%s.root", foldername, addon));
 
   std::cout << "pXi CF \n";
   CF_pAXi_ApXi->SetPairs(pAXi, ApXi);
   CF_pAXi_ApXi->GetCorrelations();
-  CF_pAXi_ApXi->WriteOutput(Form("%sCFOutput_pAXi_ApXi_%s.root", foldername, addon));
+  if(strcmp(addon,"")==0) CF_pAXi_ApXi->WriteOutput(Form("%sCFOutput_pAXi_ApXi.root", foldername));
+  else CF_pAXi_ApXi->WriteOutput(Form("%sCFOutput_pAXi_ApXi_%s.root", foldername, addon));
 }
 
 void GetQADistributions(const char* PairName, DreamDist* PairOrg,
@@ -577,11 +585,15 @@ int ExecuteCFmT_pp(int argc, char* argv[]) {
   //                              TString(filename)=="/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample9/AnalysisResults.root"?{ 0.9 ,1.1,1.25,1.5,4.5 }:
   //                                  {0,1,2,3,4,5};
     std::vector<float> mTppBins;
-    if(TString(filename)=="/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM/AnalysisResults.root"){
-        mTppBins = { 0.9 ,1.07,1.13,1.19,1.25,1.37,1.55,1.97,4.5 };
+    if(TString(filename)=="/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM/AnalysisResults.root"||
+       TString(filename)=="/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM_ver2/AnalysisResults.root"){
+        //mTppBins = { 0.9 ,1.07,1.13,1.19,1.25,1.37,1.55,1.97,4.5 };
+        mTppBins = { 1.02,1.14,1.199,1.26,1.38,1.56,1.86,4.5 };
+        //mTppBins = { 1.02,1.14,1.2,1.26,1.38,1.56,1.86,4.5 };
     }
     else if(TString(filename)=="/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample11HM/AnalysisResults.root"){
         mTppBins = { 0.9 ,1.07,1.13,1.19,1.25,1.37,1.55,1.97,4.5 };
+        //mTppBins = { 1.02,1.14,1.2,1.26,1.38,1.56,1.86,4.5 };
     }
     else if(TString(filename)=="/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample9/AnalysisResults.root"){
         mTppBins = { 0.9 ,1.1,1.25,1.5,4.5 };
@@ -632,7 +644,8 @@ int ExecuteCFmT_pL(int argc, char* argv[]) {
   mTpLDists = DreamFile->GetmTPairDistributions(0, 2, 1, 3);
 
     std::vector<float> mTpLBins;
-    if(TString(filename)=="/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample12HM/AnalysisResults.root"){
+    if(TString(filename)=="/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample12HM/AnalysisResults.root"||
+       TString(filename)=="/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample13HM/AnalysisResults.root"){
         //mTpLBins = { 1.08, 1.26, 1.32, 1.44, 1.68, 4.5 };
         mTpLBins = { 1.08, 1.26, 1.32, 1.44, 1.65, 1.9, 4.5 };
     }
@@ -1720,9 +1733,15 @@ void DimiExecuteCFmT(){
 //mT_Scaled_Source_Prelim2019();
 
 //home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM/Systematics
-    strcpy(ARGV[0],"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample12HM/");
-    strcpy(ARGV[1],"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample12HM/AnalysisResults.root");
-    strcpy(ARGV[2],"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample12HM/");
+    //strcpy(ARGV[0],"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample13HM/");
+    //strcpy(ARGV[1],"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample13HM/AnalysisResults.root");
+    //strcpy(ARGV[2],"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample13HM/");
+    //strcpy(ARGV[3],"PL");
+    //strcpy(ARGV[4],"");
+
+    strcpy(ARGV[0],"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM_ver2/");
+    strcpy(ARGV[1],"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM_ver2/AnalysisResults.root");
+    strcpy(ARGV[2],"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM_ver2/");
     strcpy(ARGV[3],"HM");
     strcpy(ARGV[4],"");
 
@@ -1747,20 +1766,21 @@ void DimiExecuteCFmT(){
 
     gSystem->cd(ARGV[0]);
 
-    //ExecuteCFDream(5,ARGV);
-    const unsigned NumVar=45;
+
+    const unsigned NumVar=45;//45
     double* Dev_pL = new double[NumVar];
+    //ExecuteCFDream(5,ARGV,Dev_pL[0]);
     for(int iVar=0; iVar<NumVar; iVar++){
         char buffer [8];
-        sprintf(buffer, "%i", iVar);
-        strcpy(ARGV[4],buffer);
+        //sprintf(buffer, "%i", iVar);
+        //strcpy(ARGV[4],buffer);
         //ExecuteCFDream(5,ARGV,Dev_pL[iVar]);
-        ExecuteCFmT_pL(5,ARGV);
+        //ExecuteCFmT_pL(5,ARGV);
     }
     //Plot_pL_Vars(ARGV,NumVar,Dev_pL);
     delete [] Dev_pL;
 
-    //ExecuteCFmT_pp(5,ARGV);
+    ExecuteCFmT_pp(5,ARGV);
     //QA_for_pp_mT();
     //ExecuteCFmT_pL(5,ARGV);
 return;

@@ -20,12 +20,16 @@ add_executable(${PROJECT_NAME} ${PROJECT_DESTINATION}/main.cpp
 #${PROJECT_DESTINATION}/CATS3_Scripts1.cpp 
 ${PROJECT_DESTINATION}/ForBernie.cpp 
 ${PROJECT_DESTINATION}/ForGerhard.cpp 
-#${PROJECT_DESTINATION}/KaonProton.cpp  
+${PROJECT_DESTINATION}/KaonProton.cpp  
 ${PROJECT_DESTINATION}/pLambda_1.cpp  
 ${PROJECT_DESTINATION}/CommonAnaFunctions.cpp
 ${PROJECT_DESTINATION}/GentleDimi.cpp
 ${PROJECT_DESTINATION}/FemtoBoyzScripts.cpp
+${PROJECT_DESTINATION}/GenBod.cpp
+${PROJECT_DESTINATION}/MixedEvents.cpp
 ${PROJECT_DESTINATION}/pSigma.cpp
+${PROJECT_DESTINATION}/SourceStudies.cpp
+#${PROJECT_DESTINATION}/ppbar.cpp
 #ADD BELOW ANY OTHER .CPP FILES THAT YOU WOULD LIKE TO COMPILE (FULL PATH)
 )
 # DO NOT CHANGE THE REST #
@@ -49,7 +53,8 @@ string(REGEX REPLACE "\n$" "" CATS_INCLUDE "${CATS_INCLUDE}")
 string(REGEX REPLACE "\n$" "" CATS_LIBS "${CATS_LIBS}")
 
 #string(APPEND CFLAGS " -O2 -std=c++11 -lgomp -pthread -fopenmp  ")
-string(APPEND CFLAGS " -O2 -std=c++11 -pthread ")
+set(CFLAGS " -O2 -std=c++11 -pthread ${CFLAGS}")
+#string(APPEND CFLAGS " -O2 -std=c++11 -pthread ")
 
 find_package(OpenMP)
 if (OPENMP_FOUND)

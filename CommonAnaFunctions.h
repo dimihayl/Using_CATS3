@@ -1,6 +1,8 @@
 #ifndef COMMONANAFUNCTIONS_H
 #define COMMONANAFUNCTIONS_H
 
+#include "DLM_Histo.h"
+
 class TString;
 class TH1F;
 class TH2F;
@@ -8,6 +10,7 @@ class CATS;
 class DLM_CleverLevy;
 class DLM_CleverMcLevyReso;
 class DLM_Ck;
+
 //class MS_GaussExp_mT_Simple;
 
 const double Mass_pi0 = 134.9766;
@@ -59,8 +62,8 @@ public:
     //POT:
     //  "pXim_Lattice" (the first version)
     //  "pXim_HALQCD1" (the second version, THE ONE TO USE)
-    void SetUpCats_pXim(CATS& Kitty, const TString& POT, const TString& SOURCE);
-    void SetUpCats_pOmegam(CATS& Kitty, const TString& POT, const TString& SOURCE);
+    void SetUpCats_pXim(CATS& Kitty, const TString& POT, const TString& SOURCE, const int& PotVar=0, const int& SourceVar=0);
+    void SetUpCats_pOmegam(CATS& Kitty, const TString& POT, const TString& SOURCE, const int& PotVar=0, const int& SourceVar=0);
 
     DLM_Ck* SetUpLednicky_pL(const unsigned& NumMomBins, const double* MomBins,  const TString& POT);
 
@@ -105,6 +108,9 @@ private:
     DLM_CleverMcLevyReso* CleverMcLevyReso;
     const unsigned NumCleverLevyObjects;
 };
+
+DLM_Histo<double>* ConvertThetaAngleHisto(const TString& FileName, const TString& HistoName, const double kMin, const double kMax);
+
 
 /*
 class DLM_Analyzer{

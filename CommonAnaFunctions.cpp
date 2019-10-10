@@ -2,11 +2,13 @@
 #include "CommonAnaFunctions.h"
 #include "CATS.h"
 #include "CATStools.h"
+#include "CATSconstants.h"
 #include "DLM_Source.h"
 #include "DLM_CkModels.h"
 #include "DLM_CkDecomposition.h"
 #include "DLM_Potentials.h"
 #include "DLM_WfModel.h"
+
 
 #include "TString.h"
 #include "TH2F.h"
@@ -42,10 +44,19 @@ void DLM_CommonAnaFunctions::SetUpCats_pp(CATS& Kitty, const TString& POT, const
     CATSparameters* cPotPars3P2 = NULL;
     CATSparameters* cPotPars1D2 = NULL;
 
+    Kitty.SetThetaDependentSource(false);
+
     if(SOURCE=="Gauss"){
         cPars = new CATSparameters(CATSparameters::tSource,1,true);
         cPars->SetParameter(0,1.2);
         Kitty.SetAnaSource(GaussSource, *cPars);
+        Kitty.SetUseAnalyticSource(true);
+    }
+    else if(SOURCE=="GaussTheta"){
+        cPars = new CATSparameters(CATSparameters::tSource,1,true);
+        cPars->SetParameter(0,1.2);
+        Kitty.SetAnaSource(GaussSourceTheta, *cPars);
+        Kitty.SetThetaDependentSource(true);
         Kitty.SetUseAnalyticSource(true);
     }
     else if(SOURCE=="Cauchy"){
@@ -135,10 +146,22 @@ void DLM_CommonAnaFunctions::SetUpCats_pp(CATS& Kitty, const TString& POT, const
 //printf("I am setting up reso 1\n");
         CleverMcLevyReso[0].InitReso(1,1);
 //printf("I am setting up RESO 0\n");
-        CleverMcLevyReso[0].SetUpReso(0,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic);
-//printf("I am setting up RESO 1\n");
-        CleverMcLevyReso[0].SetUpReso(1,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic);
-//printf("I am setting up Iter\n");
+        if(SourceVar==0){
+            CleverMcLevyReso[0].SetUpReso(0,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic,false,false,DLM_CleverMcLevyReso::rdtBackwards);//rdtBackwards,rdtRandom
+            CleverMcLevyReso[0].SetUpReso(1,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic,false,false,DLM_CleverMcLevyReso::rdtBackwards);
+        }
+        else{
+            CleverMcLevyReso[0].SetUpReso(0,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic,false,false,DLM_CleverMcLevyReso::rdtRandom);//rdtBackwards,rdtRandom
+            CleverMcLevyReso[0].SetUpReso(1,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic,false,false,DLM_CleverMcLevyReso::rdtRandom);
+        }
+
+        if(SourceVar==2){
+            DLM_Histo<double>* HISTO = ConvertThetaAngleHisto("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/AngleStudy_1/DimiPhi_pp.root","h_rkAngle_Mom2",400,700);
+            //DLM_Histo<double>* HISTO = ConvertThetaAngleHisto(
+            //"/home/dmihaylov/Dudek_Ubuntu/MyApps/SomeTests/RandomCos/fCOS_180.root","hTheta2D",400,700);
+            CleverMcLevyReso[0].SetUpResoEmission(0,0,HISTO);
+            CleverMcLevyReso[0].SetUpResoEmission(1,0,HISTO);
+        }
         CleverMcLevyReso[0].InitNumMcIter(200000);
         Kitty.SetAnaSource(CatsSourceForwarder, &CleverMcLevyReso[0], 2);
         Kitty.SetAnaSource(0,1.0);
@@ -148,12 +171,28 @@ void DLM_CommonAnaFunctions::SetUpCats_pp(CATS& Kitty, const TString& POT, const
     else if(SOURCE=="McGauss_Reso"){
         CleverMcLevyReso[0].InitStability(1,2-1e-6,2+1e-6);
         CleverMcLevyReso[0].InitScale(38,0.15,2.0);
-        CleverMcLevyReso[0].InitRad(257,0,64);
+        CleverMcLevyReso[0].InitRad(257*2,0,64);
         CleverMcLevyReso[0].InitType(2);
         CleverMcLevyReso[0].InitReso(0,1);
         CleverMcLevyReso[0].InitReso(1,1);
-        CleverMcLevyReso[0].SetUpReso(0,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic);
-        CleverMcLevyReso[0].SetUpReso(1,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic);
+        if(SourceVar==0){
+            CleverMcLevyReso[0].SetUpReso(0,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic,false,false,DLM_CleverMcLevyReso::rdtBackwards);//rdtBackwards,rdtRandom
+            CleverMcLevyReso[0].SetUpReso(1,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic,false,false,DLM_CleverMcLevyReso::rdtBackwards);
+        }
+        else{
+            CleverMcLevyReso[0].SetUpReso(0,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic,false,false,DLM_CleverMcLevyReso::rdtRandom);//rdtBackwards,rdtRandom
+            CleverMcLevyReso[0].SetUpReso(1,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic,false,false,DLM_CleverMcLevyReso::rdtRandom);
+        }
+
+        if(SourceVar==2){
+            DLM_Histo<double>* HISTO = ConvertThetaAngleHisto(
+            "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/AngleStudy_1/EPOS_HM_4PI/pp/DimiPhi_pp.root","h_rkAngle_Mom2",400,600);
+            //DLM_Histo<double>* HISTO = ConvertThetaAngleHisto(
+            //"/home/dmihaylov/Dudek_Ubuntu/MyApps/SomeTests/RandomCos/fCOS_Flat.root","hTheta2D",400,700);
+            CleverMcLevyReso[0].SetUpResoEmission(0,0,HISTO);
+            CleverMcLevyReso[0].SetUpResoEmission(1,0,HISTO);
+        }
+
         CleverMcLevyReso[0].InitNumMcIter(1000000);
         Kitty.SetAnaSource(CatsSourceForwarder, &CleverMcLevyReso[0], 2);
         Kitty.SetAnaSource(0,1.0);
@@ -161,8 +200,34 @@ void DLM_CommonAnaFunctions::SetUpCats_pp(CATS& Kitty, const TString& POT, const
         Kitty.SetUseAnalyticSource(true);
     }
     else if(SOURCE=="EPOS"){
-        printf("\033[1;33mWARNING:\033[0m The CommonAnaFunction is still under construction (EPOS)\n");
-        goto CLEAN_SetUpCats_pp;
+        //printf("\033[1;33mWARNING:\033[0m The CommonAnaFunction is still under construction (EPOS)\n");
+        Kitty.SetUseAnalyticSource(false);
+        //AB_pp.SetInputFileName("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/Scratch9_OSCAR1997_AllLrzProtonFiles.f19");
+        Kitty.SetInputFileName("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp91/pp_nist0_030219.f19");
+        //AB_pp.SetInputFileName(THERMALFILE.Data());
+        Kitty.SetMaxPairsToRead(64e6);
+        Kitty.SetMaxPairsPerBin(16000/2);
+        Kitty.SetMixingDepth(8);
+        Kitty.SetThetaDependentSource(false);
+        Kitty.SetTransportRenorm(1);
+        Kitty.SetTauCorrection(false);
+        //goto CLEAN_SetUpCats_pp;
+    }
+    else if(SOURCE=="EPOStheta"){
+        //printf("\033[1;33mWARNING:\033[0m The CommonAnaFunction is still under construction (EPOS)\n");
+        Kitty.SetUseAnalyticSource(false);
+        //AB_pp.SetInputFileName("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/Scratch9_OSCAR1997_AllLrzProtonFiles.f19");
+        Kitty.SetInputFileName("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp91/pp_nist0_030219.f19");
+        //AB_pp.SetInputFileName(THERMALFILE.Data());
+        Kitty.SetMaxPairsToRead(64e6);
+        Kitty.SetMaxPairsPerBin(16000/2);
+        Kitty.SetMixingDepth(8);
+        Kitty.SetThetaDependentSource(true);
+        Kitty.SetTransportRenorm(1);
+        Kitty.SetGridEpsilon(1./8192);
+        Kitty.SetGridMaxDepth(8);
+        Kitty.SetTauCorrection(false);
+        //goto CLEAN_SetUpCats_pp;
     }
     else if(SOURCE=="EPOSrescaled"){
         printf("\033[1;33mWARNING:\033[0m The CommonAnaFunction is still under construction (EPOSrescaled)\n");
@@ -195,7 +260,7 @@ void DLM_CommonAnaFunctions::SetUpCats_pp(CATS& Kitty, const TString& POT, const
         goto CLEAN_SetUpCats_pp;
     }
     Kitty.SetMomentumDependentSource(false);
-    Kitty.SetThetaDependentSource(false);
+    //Kitty.SetThetaDependentSource(false);
     Kitty.SetExcludeFailedBins(false);
 
     Kitty.SetQ1Q2(1);
@@ -239,6 +304,10 @@ void DLM_CommonAnaFunctions::SetUpCats_pp(CATS& Kitty, const TString& POT, const
 //  "NLO"
 //  "NLO_Coupled_S"
 //  "Usmani"
+//SourceVar:
+//  0 = back-to-back
+//  1 = flat theta
+//  2 = EPOS theta
 void DLM_CommonAnaFunctions::SetUpCats_pL(CATS& Kitty, const TString& POT, const TString& SOURCE, const int& PotVar, const int& SourceVar){
     CATSparameters* cPars = NULL;
     CATSparameters* pPars = NULL;
@@ -249,10 +318,19 @@ void DLM_CommonAnaFunctions::SetUpCats_pL(CATS& Kitty, const TString& POT, const
     DLM_Histo<complex<double>>*** ExternalWF=NULL;
     unsigned NumChannels=0;
 
+    Kitty.SetThetaDependentSource(false);
+
     if(SOURCE=="Gauss"){
         cPars = new CATSparameters(CATSparameters::tSource,1,true);
         cPars->SetParameter(0,1.2);
         Kitty.SetAnaSource(GaussSource, *cPars);
+        Kitty.SetUseAnalyticSource(true);
+    }
+    else if(SOURCE=="GaussTheta"){
+        cPars = new CATSparameters(CATSparameters::tSource,1,true);
+        cPars->SetParameter(0,1.2);
+        Kitty.SetAnaSource(GaussSourceTheta, *cPars);
+        Kitty.SetThetaDependentSource(true);
         Kitty.SetUseAnalyticSource(true);
     }
     else if(SOURCE=="Cauchy"){
@@ -324,8 +402,20 @@ void DLM_CommonAnaFunctions::SetUpCats_pL(CATS& Kitty, const TString& POT, const
         CleverMcLevyReso[1].InitReso(1,1);
 //bool MassSmear = SourceVar%10;
 //double MomSmear = SourceVar/100;
-        CleverMcLevyReso[1].SetUpReso(0,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic);
-        CleverMcLevyReso[1].SetUpReso(1,0,1.-0.3562,1462.93,4.69,Mass_L,Mass_pic);
+        if(SourceVar==0){
+            CleverMcLevyReso[1].SetUpReso(0,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic,false,false,DLM_CleverMcLevyReso::rdtBackwards);//rdtBackwards,rdtRandom
+            CleverMcLevyReso[1].SetUpReso(1,0,1.-0.3562,1462.93,4.69,Mass_L,Mass_pic,false,false,DLM_CleverMcLevyReso::rdtBackwards);
+        }
+        else{
+            CleverMcLevyReso[1].SetUpReso(0,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic,false,false,DLM_CleverMcLevyReso::rdtRandom);//rdtBackwards,rdtRandom
+            CleverMcLevyReso[1].SetUpReso(1,0,1.-0.3562,1462.93,4.69,Mass_L,Mass_pic,false,false,DLM_CleverMcLevyReso::rdtRandom);
+        }
+
+        if(SourceVar==2){
+            DLM_Histo<double>* HISTO = ConvertThetaAngleHisto("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/AngleStudy_1/DimiPhi_pp.root","h_rkAngle_Mom2",400,700);
+            CleverMcLevyReso[1].SetUpResoEmission(0,0,HISTO);
+            CleverMcLevyReso[1].SetUpResoEmission(1,0,HISTO);
+        }
         CleverMcLevyReso[1].InitNumMcIter(200000);
         Kitty.SetAnaSource(CatsSourceForwarder, &CleverMcLevyReso[1], 2);
         Kitty.SetAnaSource(0,1.0);
@@ -335,13 +425,54 @@ void DLM_CommonAnaFunctions::SetUpCats_pL(CATS& Kitty, const TString& POT, const
     else if(SOURCE=="McGauss_Reso"){
         CleverMcLevyReso[1].InitStability(1,2-1e-6,2+1e-6);
         CleverMcLevyReso[1].InitScale(35,0.25,2.0);
-        CleverMcLevyReso[1].InitRad(256,0,64);
+        CleverMcLevyReso[1].InitRad(257*2,0,64);
         CleverMcLevyReso[1].InitType(2);
-        CleverMcLevyReso[1].InitReso(0,1);
-        CleverMcLevyReso[1].InitReso(1,1);
-        CleverMcLevyReso[1].SetUpReso(0,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic);
-        CleverMcLevyReso[1].SetUpReso(1,0,1.-0.3562,1462.93,4.69,Mass_L,Mass_pic);
-        CleverMcLevyReso[1].InitNumMcIter(1000000);
+        if(SourceVar==0){
+            CleverMcLevyReso[1].InitReso(0,1);
+            CleverMcLevyReso[1].InitReso(1,1);
+            CleverMcLevyReso[1].SetUpReso(0,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic,false,false,DLM_CleverMcLevyReso::rdtBackwards);//rdtBackwards,rdtRandom
+            CleverMcLevyReso[1].SetUpReso(1,0,1.-0.3562,1462.93,4.69,Mass_L,Mass_pic,false,false,DLM_CleverMcLevyReso::rdtBackwards);
+        }
+        else if(SourceVar==1){
+            CleverMcLevyReso[1].InitReso(0,1);
+            CleverMcLevyReso[1].InitReso(1,1);
+            CleverMcLevyReso[1].SetUpReso(0,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic,false,false,DLM_CleverMcLevyReso::rdtRandom);//rdtBackwards,rdtRandom
+            CleverMcLevyReso[1].SetUpReso(1,0,1.-0.3562,1462.93,4.69,Mass_L,Mass_pic,false,false,DLM_CleverMcLevyReso::rdtRandom);
+        }
+        if(SourceVar==2){
+            CleverMcLevyReso[1].InitReso(0,1);
+            CleverMcLevyReso[1].InitReso(1,1);
+            CleverMcLevyReso[1].SetUpReso(0,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic,false,false,DLM_CleverMcLevyReso::rdtRandom);//rdtBackwards,rdtRandom
+            CleverMcLevyReso[1].SetUpReso(1,0,1.-0.3562,1462.93,4.69,Mass_L,Mass_pic,false,false,DLM_CleverMcLevyReso::rdtRandom);
+
+            DLM_Histo<double>* HISTO_p = ConvertThetaAngleHisto("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/AngleStudy_1/EPOS_HM_4PI/pp/DimiPhi_pp.root","h_rkAngle_Mom2",400,600);
+            DLM_Histo<double>* HISTO_L = ConvertThetaAngleHisto("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/AngleStudy_1/EPOS_HM_4PI/pp/DimiPhi_pp.root","h_rkAngle_Mom2",270,470);
+
+            CleverMcLevyReso[1].SetUpResoEmission(0,0,HISTO_p);
+            CleverMcLevyReso[1].SetUpResoEmission(1,0,HISTO_L);
+        }
+        //improved reso
+        else if(SourceVar==3){
+            CleverMcLevyReso[1].InitReso(0,2);
+            CleverMcLevyReso[1].InitReso(1,2);
+            CleverMcLevyReso[1].SetUpReso(0,0,0.4368,1231.98,1.67,Mass_p,Mass_pic,false,false,DLM_CleverMcLevyReso::rdtRandom);
+            CleverMcLevyReso[1].SetUpReso(0,1,0.2054,1636.98,1.62,Mass_p,Mass_pic,false,false,DLM_CleverMcLevyReso::rdtRandom);
+            CleverMcLevyReso[1].SetUpReso(1,0,0.4864,1384.54,5.34,Mass_L,Mass_pic,false,false,DLM_CleverMcLevyReso::rdtRandom);
+            CleverMcLevyReso[1].SetUpReso(1,1,0.1573,1705.26,2.70,Mass_L,Mass_pic,false,false,DLM_CleverMcLevyReso::rdtRandom);
+
+            DLM_Histo<double>* HISTO_p_0 = ConvertThetaAngleHisto("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/AngleStudy_1/EPOS_HM_4PI/pp/DimiPhi_pp.root","h_rkAngle_Mom2",200,400);
+            DLM_Histo<double>* HISTO_p_1 = ConvertThetaAngleHisto("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/AngleStudy_1/EPOS_HM_4PI/pp/DimiPhi_pp.root","h_rkAngle_Mom2",880,1000);
+            DLM_Histo<double>* HISTO_L_0 = ConvertThetaAngleHisto("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/AngleStudy_1/EPOS_HM_4PI/pp/DimiPhi_pp.root","h_rkAngle_Mom2",160,360);
+            DLM_Histo<double>* HISTO_L_1 = ConvertThetaAngleHisto("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/AngleStudy_1/EPOS_HM_4PI/pp/DimiPhi_pp.root","h_rkAngle_Mom2",620,820);
+
+            CleverMcLevyReso[1].SetUpResoEmission(0,0,HISTO_p_0);
+            CleverMcLevyReso[1].SetUpResoEmission(0,1,HISTO_p_1);
+            CleverMcLevyReso[1].SetUpResoEmission(1,0,HISTO_L_0);
+            CleverMcLevyReso[1].SetUpResoEmission(1,1,HISTO_L_1);
+        }
+
+        CleverMcLevyReso[1].InitNumMcIter(SourceVar==3?100000:1000000);
+
         Kitty.SetAnaSource(CatsSourceForwarder, &CleverMcLevyReso[1], 2);
         Kitty.SetAnaSource(0,1.0);
         Kitty.SetAnaSource(1,2.0);
@@ -404,7 +535,7 @@ void DLM_CommonAnaFunctions::SetUpCats_pL(CATS& Kitty, const TString& POT, const
     }
 
     Kitty.SetMomentumDependentSource(false);
-    Kitty.SetThetaDependentSource(false);
+    //Kitty.SetThetaDependentSource(false);
     Kitty.SetExcludeFailedBins(false);
 
     Kitty.SetQ1Q2(0);
@@ -454,7 +585,7 @@ void DLM_CommonAnaFunctions::SetUpCats_pL(CATS& Kitty, const TString& POT, const
 //POT:
 //  "pXim_Lattice" (the first version)
 //  "pXim_HALQCD1" (the second version)
-void DLM_CommonAnaFunctions::SetUpCats_pXim(CATS& Kitty, const TString& POT, const TString& SOURCE){
+void DLM_CommonAnaFunctions::SetUpCats_pXim(CATS& Kitty, const TString& POT, const TString& SOURCE, const int& PotVar, const int& SourceVar){
     CATSparameters* cPars = NULL;
     CATSparameters* pPars = NULL;
 
@@ -536,6 +667,17 @@ void DLM_CommonAnaFunctions::SetUpCats_pXim(CATS& Kitty, const TString& POT, con
         CleverMcLevyReso[2].InitType(2);
         CleverMcLevyReso[2].InitReso(0,1);
         CleverMcLevyReso[2].SetUpReso(0,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic);
+        if(SourceVar==0){
+            CleverMcLevyReso[2].SetUpReso(0,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic,false,false,DLM_CleverMcLevyReso::rdtBackwards);//rdtBackwards,rdtRandom
+        }
+        else{
+            CleverMcLevyReso[2].SetUpReso(0,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic,false,false,DLM_CleverMcLevyReso::rdtRandom);//rdtBackwards,rdtRandom
+        }
+        if(SourceVar==2){
+            DLM_Histo<double>* HISTO = ConvertThetaAngleHisto("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/AngleStudy_1/DimiPhi_pp.root","h_rkAngle_Mom2",400,700);
+            CleverMcLevyReso[2].SetUpResoEmission(0,0,HISTO);
+        }
+
         CleverMcLevyReso[2].InitNumMcIter(200000);
         Kitty.SetAnaSource(CatsSourceForwarder, &CleverMcLevyReso[2], 2);
         Kitty.SetAnaSource(0,1.0);
@@ -548,7 +690,20 @@ void DLM_CommonAnaFunctions::SetUpCats_pXim(CATS& Kitty, const TString& POT, con
         CleverMcLevyReso[2].InitRad(257,0,64);
         CleverMcLevyReso[2].InitType(2);
         CleverMcLevyReso[2].InitReso(0,1);
-        CleverMcLevyReso[2].SetUpReso(0,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic);
+        CleverMcLevyReso[2].InitReso(1,1);
+        if(SourceVar==0){
+            CleverMcLevyReso[2].SetUpReso(0,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic,false,false,DLM_CleverMcLevyReso::rdtBackwards);//rdtBackwards,rdtRandom
+            CleverMcLevyReso[2].SetUpReso(1,0,0.0001,1361.52,1.65,Mass_p,Mass_pic,false,false,DLM_CleverMcLevyReso::rdtBackwards);//rdtBackwards,rdtRandom
+        }
+        else{
+            CleverMcLevyReso[2].SetUpReso(0,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic,false,false,DLM_CleverMcLevyReso::rdtRandom);//rdtBackwards,rdtRandom
+            CleverMcLevyReso[2].SetUpReso(1,0,0.0001,1361.52,1.65,Mass_p,Mass_pic,false,false,DLM_CleverMcLevyReso::rdtRandom);//rdtBackwards,rdtRandom
+        }
+        if(SourceVar==2){
+            DLM_Histo<double>* HISTO = ConvertThetaAngleHisto("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/AngleStudy_1/DimiPhi_pp.root","h_rkAngle_Mom2",400,700);
+            CleverMcLevyReso[2].SetUpResoEmission(0,0,HISTO);
+            CleverMcLevyReso[2].SetUpResoEmission(1,0,HISTO);
+        }
         CleverMcLevyReso[2].InitNumMcIter(1000000);
         Kitty.SetAnaSource(CatsSourceForwarder, &CleverMcLevyReso[2], 2);
         Kitty.SetAnaSource(0,1.0);
@@ -635,7 +790,7 @@ void DLM_CommonAnaFunctions::SetUpCats_pXim(CATS& Kitty, const TString& POT, con
     if(cPotParsI1S1){delete cPotParsI1S1; cPotParsI1S1=NULL;}
 }
 
-void DLM_CommonAnaFunctions::SetUpCats_pOmegam(CATS& Kitty, const TString& POT, const TString& SOURCE){
+void DLM_CommonAnaFunctions::SetUpCats_pOmegam(CATS& Kitty, const TString& POT, const TString& SOURCE, const int& PotVar, const int& SourceVar){
     CATSparameters* cPars = NULL;
     CATSparameters* pPars = NULL;
 
@@ -714,7 +869,16 @@ void DLM_CommonAnaFunctions::SetUpCats_pOmegam(CATS& Kitty, const TString& POT, 
         CleverMcLevyReso[3].InitRad(257,0,64);
         CleverMcLevyReso[3].InitType(2);
         CleverMcLevyReso[3].InitReso(0,1);
-        CleverMcLevyReso[3].SetUpReso(0,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic);
+        if(SourceVar==0){
+            CleverMcLevyReso[3].SetUpReso(0,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic,false,false,DLM_CleverMcLevyReso::rdtBackwards);//rdtBackwards,rdtRandom
+        }
+        else{
+            CleverMcLevyReso[3].SetUpReso(0,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic,false,false,DLM_CleverMcLevyReso::rdtRandom);//rdtBackwards,rdtRandom
+        }
+        if(SourceVar==2){
+            DLM_Histo<double>* HISTO = ConvertThetaAngleHisto("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/AngleStudy_1/DimiPhi_pp.root","h_rkAngle_Mom2",400,700);
+            CleverMcLevyReso[3].SetUpResoEmission(0,0,HISTO);
+        }
         CleverMcLevyReso[3].InitNumMcIter(200000);
         Kitty.SetAnaSource(CatsSourceForwarder, &CleverMcLevyReso[3], 2);
         Kitty.SetAnaSource(0,1.0);
@@ -724,10 +888,25 @@ void DLM_CommonAnaFunctions::SetUpCats_pOmegam(CATS& Kitty, const TString& POT, 
     else if(SOURCE=="McGauss_Reso"){
         CleverMcLevyReso[3].InitStability(1,2-1e-6,2+1e-6);
         CleverMcLevyReso[3].InitScale(38,0.15,2.0);
-        CleverMcLevyReso[3].InitRad(257,0,64);
+        CleverMcLevyReso[3].InitRad(257*2,0,64);
         CleverMcLevyReso[3].InitType(2);
         CleverMcLevyReso[3].InitReso(0,1);
-        CleverMcLevyReso[3].SetUpReso(0,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic);
+        CleverMcLevyReso[3].InitReso(1,1);
+        if(SourceVar==0){
+            CleverMcLevyReso[3].SetUpReso(0,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic,false,false,DLM_CleverMcLevyReso::rdtBackwards);//rdtBackwards,rdtRandom
+            CleverMcLevyReso[3].SetUpReso(1,0,0.0001,1361.52,1.65,Mass_p,Mass_pic,false,false,DLM_CleverMcLevyReso::rdtBackwards);
+        }
+        else{
+            CleverMcLevyReso[3].SetUpReso(0,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic,false,false,DLM_CleverMcLevyReso::rdtRandom);//rdtBackwards,rdtRandom
+            CleverMcLevyReso[3].SetUpReso(1,0,0.0001,1361.52,1.65,Mass_p,Mass_pic,false,false,DLM_CleverMcLevyReso::rdtRandom);
+        }
+
+        if(SourceVar==2){
+            DLM_Histo<double>* HISTO = ConvertThetaAngleHisto("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/AngleStudy_1/DimiPhi_pp.root","h_rkAngle_Mom2",400,700);
+            CleverMcLevyReso[3].SetUpResoEmission(0,0,HISTO);
+            CleverMcLevyReso[3].SetUpResoEmission(1,0,HISTO);
+        }
+
         CleverMcLevyReso[3].InitNumMcIter(1000000);
         Kitty.SetAnaSource(CatsSourceForwarder, &CleverMcLevyReso[3], 2);
         Kitty.SetAnaSource(0,1.0);
@@ -1616,7 +1795,7 @@ TH2F* DLM_CommonAnaFunctions::GetResolutionMatrix(const TString& DataSample,cons
     //and we need to play with the name a little bit, else we are fucked!
     TFile* FileROOT = new TFile(FileName, "read");
     TH2F* histo = (TH2F*)FileROOT->Get(HistoName);
-    if(!histo){printf("\033[1;31mERROR:\033[0m The histo '%s' does not exist\n",HistoName.Data());return NULL;}
+    if(!histo){printf("\033[1;31mERROR:\033[0m The histo '%s' if file '%s' does not exist\n",HistoName.Data(),FileName.Data());return NULL;}
     TString Name = histo->GetName();
     gROOT->cd();
     TH2F *histoCopy = (TH2F*)histo->Clone("histoCopy");
@@ -1647,7 +1826,7 @@ TH2F* DLM_CommonAnaFunctions::GetResidualMatrix(const TString&& FinalSystem, con
     }
     TFile* FileROOT = new TFile(FileName, "read");
     TH2F* histo = (TH2F*)FileROOT->Get(HistoName);
-    if(!histo){printf("\033[1;31mERROR:\033[0m The histo '%s' does not exist\n",HistoName.Data());return NULL;}
+    if(!histo){printf("\033[1;31mERROR:\033[0m The histo '%s' if file '%s' does not exist\n",HistoName.Data(),FileName.Data());return NULL;}
     TString Name = histo->GetName();
     gROOT->cd();
     TH2F *histoCopy = (TH2F*)histo->Clone("histoCopy");
@@ -1709,9 +1888,18 @@ TH1F* DLM_CommonAnaFunctions::GetAliceExpCorrFun(const TString& DataSample,const
     else if(DataSample=="pp13TeV_HM_March19"){
         if(System=="pp"){
             if(mTbin==-1){
+                //buggy for all but _0
                 FileName = TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample12HM/CFOutput_pp%s.root",CutVar.Data());
-                if(CutVar=="_0") FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM/CFOutput_pp.root";
+                if(CutVar=="_0") FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM_ver2/CFOutput_pp.root";
                 HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
+            }
+            else if(mTbin>=0&&mTbin<7){
+                FileName = TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample12HM/CFOutputALL_mT_pp_HM%s.root",CutVar.Data());
+                //ugly solution to make sure that the default fit combination is the correlation we have showed at the preliminaries preview
+                if(CutVar=="_0") FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM_ver2/CFOutputALL_mT_pp_HM.root";
+                HistoName = TString::Format("hCkTotNormWeightMeV_mTBin_%i",mTbin);
+                SystFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample12HM/Systematics_pp.root";
+                SystHistName = "SystErrRel";
             }
             else{
                 printf("\033[1;31mERROR:\033[0m The mT bin #%i is not defined for %s (%s)\n",mTbin,DataSample.Data(),System.Data());
@@ -1850,7 +2038,7 @@ TH1F* DLM_CommonAnaFunctions::GetAliceExpCorrFun(const TString& DataSample,const
     TFile* FileROOT = new TFile(FileName, "read");
     if(!FileROOT){printf("\033[1;31mERROR:\033[0m The file '%s' does not exist\n",FileName.Data());return NULL;}
     TH1F* histo = (TH1F*)FileROOT->Get(HistoName);
-    if(!histo){printf("\033[1;31mERROR:\033[0m The histo '%s' does not exist\n",HistoName.Data());return NULL;}
+    if(!histo){printf("\033[1;31mERROR:\033[0m The histo '%s' if file '%s' does not exist\n",HistoName.Data(),FileName.Data());return NULL;}
     TString Name = histo->GetName();
     gROOT->cd();
     TH1F *histoCopy = (TH1F*)histo->Clone("histoCopy");
@@ -1899,6 +2087,66 @@ DLM_CleverMcLevyReso* DLM_CommonAnaFunctions::GetCleverMcLevyReso_pXim(){
 DLM_CleverMcLevyReso* DLM_CommonAnaFunctions::GetCleverMcLevyReso_pOmegam(){
     return &CleverMcLevyReso[3];
 }
+
+
+DLM_Histo<double>* ConvertThetaAngleHisto(const TString& FileName, const TString& HistoName, const double kMin, const double kMax){
+    TFile* InputFile = new TFile(FileName, "read");
+    TH2F* InputHisto = NULL;
+    if(InputFile){
+        InputHisto = (TH2F*)InputFile->Get(HistoName);
+    }
+    TH1D* Projection=NULL;
+    if(InputHisto){
+        Projection = InputHisto->ProjectionX("ConvertThetaAngleHisto",InputHisto->GetYaxis()->FindBin(kMin),InputHisto->GetYaxis()->FindBin(kMax));
+    }
+
+    const unsigned NumBins = Projection->GetNbinsX();
+    Projection->Scale(1./Projection->Integral(1,NumBins));
+
+    DLM_Histo<double> CummDistr;
+    CummDistr.SetUp(1);
+//printf("NumBins=%u; %f --> %f\n",NumBins,Projection->GetBinLowEdge(1),Projection->GetXaxis()->GetBinUpEdge(NumBins));
+//usleep(4e6);
+//printf("Calling SetUp\n");
+    CummDistr.SetUp(0,NumBins,Projection->GetBinLowEdge(1),Projection->GetXaxis()->GetBinUpEdge(NumBins));
+//printf("Ended SetUp\n");
+//usleep(4e6);
+//printf("Initialize...\n");
+    CummDistr.Initialize();
+//printf("Ended...\n");
+    CummDistr.SetBinContent(unsigned(0),Projection->GetBinContent(1));
+    for(unsigned uBin=1; uBin<NumBins; uBin++){
+        CummDistr.SetBinContent(uBin,CummDistr.GetBinContent(uBin-1)+Projection->GetBinContent(uBin+1));
+    }
+
+    double* MomBins = new double [NumBins+1];
+    MomBins[0] = 0;
+    //MomBins[1] = CummDistr.GetBinContent(unsigned(0));
+    //MomBins[NumBins] = 1;
+    for(unsigned uBin=1; uBin<=NumBins; uBin++){
+        MomBins[uBin] = (CummDistr.GetBinContent(uBin)+CummDistr.GetBinContent(uBin-1))*0.5;
+        if(MomBins[uBin]<=MomBins[uBin-1]) MomBins[uBin] = MomBins[uBin-1]+1e-6;
+        //printf("MomBins[%u] = %e\n",uBin,MomBins[uBin]);
+    }
+//usleep(2e6);
+    DLM_Histo<double>* Result = new DLM_Histo<double>();
+    Result->SetUp(1);
+    Result->SetUp(0,NumBins,MomBins);
+    Result->Initialize();
+//printf("Result->Initialize\n");
+//usleep(2e6);
+    for(unsigned uBin=0; uBin<NumBins; uBin++){
+        if(!Projection) break;
+        Result->SetBinCenter(0,uBin,CummDistr.GetBinContent(uBin));//cum. value
+        Result->SetBinContent(uBin,CummDistr.GetBinCenter(0,uBin));//momentum value
+        //printf("%u: x=%.4f; y=%.4f;\n",uBin,CummDistr.GetBinContent(uBin),CummDistr.GetBinCenter(0,uBin));
+    }
+
+    delete [] MomBins;
+    delete InputFile;
+    return Result;
+}
+
 
 /*
 void DLM_CommonAnaFunctions::Clean_CommonAnaFunctions(){

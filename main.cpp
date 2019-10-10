@@ -3,6 +3,10 @@
 #include "GentleDimi.h"
 #include "FemtoBoyzScripts.h"
 #include "pSigma.h"
+#include "GenBod.h"
+#include "MixedEvents.h"
+#include "SourceStudies.h"
+#include "KaonProton.h"
 
 #include <iostream>
 #include <stdio.h>
@@ -11,11 +15,14 @@
 #include <complex>
 
 #include "CATS.h"
+#include "CATSconstants.h"
 #include "CATStools.h"
 #include "DLM_Potentials.h"
 #include "DLM_Source.h"
+#include "DLM_Fitters.h"
 #include "DLM_CppTools.h"
 #include "DLM_CkDecomposition.h"
+#include "CommonAnaFunctions.h"
 #include "DLM_Random.h"
 #include "DLM_Bessel.h"
 #include "DLM_Integration.h"
@@ -36,6 +43,9 @@
 #include "TStyle.h"
 #include "TLegend.h"
 #include "TPaveText.h"
+
+
+#include "ppbar.h"
 
 using namespace std;
 
@@ -244,7 +254,7 @@ void plot_pp(){
 
 void plot_pL(){
 
-    const double SourceSize = 1.3;
+    const double SourceSize = 1.2;
     const unsigned NumStabilitySteps = 1;
     const double StabMin = 2.0;
     const double StabMax = 2.0;
@@ -252,10 +262,10 @@ void plot_pL(){
 
     const double kMin=0;
     const double kFine=200;
-    const unsigned NumFineBins = 20;
+    const unsigned NumFineBins = 40;
     const double kFineStep = (kFine-kMin)/double(NumFineBins);
     const double kMax=340;
-    const unsigned NumCoarseBins = 14;
+    const unsigned NumCoarseBins = 28;
     const double kCoarseStep = (kMax-kFine)/double(NumCoarseBins);
     const unsigned NumMomBins=NumFineBins+NumCoarseBins;
     double* MomBins = new double[NumMomBins];
@@ -266,7 +276,7 @@ void plot_pL(){
         MomBins[uBin] = MomBins[uBin-1]+kCoarseStep;;
     }
 
-    TFile* OutputFile = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/plot_pL/OutputFile.root","recreate");
+    TFile* OutputFile = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/plot_pL/NLO.root","recreate");
 
     for(unsigned uStab=0; uStab<NumStabilitySteps; uStab++){
 
@@ -277,7 +287,7 @@ void plot_pL(){
         CATS KittyNLO;
         KittyNLO.SetMaxNumThreads(1);
         KittyNLO.SetMomBins(NumMomBins,MomBins);
-        AnalysisObject.SetUpCats_pL(KittyNLO,"NLO_Coupled_S","Gauss");
+        AnalysisObject.SetUpCats_pL(KittyNLO,"NLO","Gauss");//NLO_Coupled_S
         KittyNLO.SetAnaSource(0,SourceSize);
         KittyNLO.SetAnaSource(1,Stability);
         KittyNLO.SetEpsilonProp(1e-8);
@@ -2233,6 +2243,297 @@ void TestVALE_pLambda(){
 
 }
 
+
+void PlotResonanceAngles(const double& CoreRadius, const double& ResoFreePath){
+    const double ThetaMin=0;
+    const double ThetaMax=360;
+    const unsigned NumThetaSteps = 361;
+    const double ThetaStepSize = (ThetaMax-ThetaMin)/double(NumThetaSteps);
+
+    double Theta;
+    double Alpha;
+    double DeltaRadius;
+    double Radius;
+    double PathModification;
+
+    TGraph g_Theta_PathModif;
+    g_Theta_PathModif.SetName("g_Theta_PathModif");
+    g_Theta_PathModif.Set(NumThetaSteps);
+    TGraph g_Theta_Radius;
+    g_Theta_Radius.SetName("g_Theta_Radius");
+    g_Theta_Radius.Set(NumThetaSteps);
+    TGraph g_Theta_DeltaRadius;
+    g_Theta_DeltaRadius.SetName("g_Theta_DeltaRadius");
+    g_Theta_DeltaRadius.Set(NumThetaSteps);
+    TGraph g_Theta_Alpha;
+    g_Theta_Alpha.SetName("g_Theta_Alpha");
+    g_Theta_Alpha.Set(NumThetaSteps);
+
+    for(unsigned uTheta=0; uTheta<NumThetaSteps; uTheta++){
+        Theta = ThetaMin + double(uTheta)*ThetaStepSize;
+        //Alpha = 0.5*atan(ResoFreePath*sin(Theta*DegToRad)/(CoreRadius+ResoFreePath*cos(Theta*DegToRad)))*RadToDeg+90.;
+        //DeltaRadius = ResoFreePath*(sin(Theta*DegToRad)/tan(Alpha*DegToRad)-cos(Theta*DegToRad));
+        ////DeltaRadius = (sin(Theta*DegToRad-Alpha*DegToRad)/sin(Alpha*DegToRad));
+        //Radius = CoreRadius + DeltaRadius;
+        //PathModification = DeltaRadius/ResoFreePath;
+
+        //g_Theta_PathModif.SetPoint(uTheta,Theta,PathModification==PathModification?PathModification:0);
+        //g_Theta_Radius.SetPoint(uTheta,Theta,Radius==Radius?Radius:0);
+        //g_Theta_DeltaRadius.SetPoint(uTheta,Theta,DeltaRadius==DeltaRadius?DeltaRadius:0);
+        //g_Theta_Alpha.SetPoint(uTheta,Theta,Alpha==Alpha?Alpha:0);
+
+
+        Radius = sqrt(CoreRadius*CoreRadius+ResoFreePath*ResoFreePath-2.*CoreRadius*ResoFreePath*cos(Theta*DegToRad));
+        PathModification = Radius/(CoreRadius+ResoFreePath);
+        g_Theta_Radius.SetPoint(uTheta,Theta,Radius==Radius?Radius:0);
+        g_Theta_PathModif.SetPoint(uTheta,Theta,PathModification==PathModification?PathModification:0);
+    }
+
+    TFile* fOut = new TFile(TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/TestThetaSource/fAngle_rc%.2f_s%.2f.root",CoreRadius,ResoFreePath),"recreate");
+
+    g_Theta_PathModif.Write();
+    g_Theta_Radius.Write();
+    //g_Theta_DeltaRadius.Write();
+    //g_Theta_Alpha.Write();
+
+    delete fOut;
+}
+
+void TestThetaSource(){
+
+    const unsigned NumMomBins = 20;
+    const double kMin = 0;
+    const double kMax = 200;
+
+    DLM_CommonAnaFunctions AnaObject;
+
+    CATS AB_pp_G;
+    AB_pp_G.SetMomBins(NumMomBins,kMin,kMax);//Gauss
+    AnaObject.SetUpCats_pp(AB_pp_G,"AV18","McGauss_Reso");
+    //AB_pp_G.SetAnaSource(0,1.2);
+
+    CATS AB_pp_GT;
+    AB_pp_GT.SetMomBins(NumMomBins,kMin,kMax);//GaussTheta
+    AnaObject.SetUpCats_pp(AB_pp_GT,"AV18","GaussTheta");
+    //AB_pp_GT.SetAnaSource(0,1.2);
+
+    AB_pp_G.SetMaxNumThreads(1);
+    AB_pp_G.KillTheCat();
+    AB_pp_GT.SetMaxNumThreads(1);
+    AB_pp_GT.KillTheCat();
+
+    TFile* fOut = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/TestThetaSource/fOut.root","recreate");
+
+    TGraph gKitty_G;
+    TGraph gKitty_GT;
+    gKitty_G.SetName(TString::Format("gKitty_G"));
+    gKitty_G.Set(NumMomBins);
+    gKitty_GT.SetName(TString::Format("gKitty_GT"));
+    gKitty_GT.Set(NumMomBins);
+    for(unsigned uBin=0; uBin<NumMomBins; uBin++){
+        printf("C(%.2f) = %.3f vs %.3f\n",AB_pp_G.GetMomentum(uBin),AB_pp_G.GetCorrFun(uBin),AB_pp_GT.GetCorrFun(uBin));
+        gKitty_G.SetPoint(uBin,AB_pp_G.GetMomentum(uBin),AB_pp_G.GetCorrFun(uBin));
+        gKitty_GT.SetPoint(uBin,AB_pp_GT.GetMomentum(uBin),AB_pp_GT.GetCorrFun(uBin));
+
+    }
+    gKitty_G.Write();
+    gKitty_GT.Write();
+
+
+    delete fOut;
+}
+
+void MickeyMouseEffectOnSourceBasedOnTheta(){
+    const double Core_pXi_Back = 0.80;
+    const double Core_pXi_Epos = 0.88;
+    const double Core_pXi_Rand = 1.06;
+
+    const double Core_pOmega_Back = 0.73;
+    const double Core_pOmega_Epos = 0.82;
+    const double Core_pOmega_Rand = 0.96;
+
+    //const double Core_pXi_Back = 1.0;
+    //const double Core_pXi_Epos = 1.0;
+    //const double Core_pXi_Rand = 1.0;
+
+    //const double Core_pOmega_Back = 0.80;
+    //const double Core_pOmega_Epos = 0.80;
+    //const double Core_pOmega_Rand = 0.80;
+
+    const double LambdaPar_pXi = 0.53;
+    const double LambdaPar_pOmega = 0.62;
+
+    const double kMin = 0;
+    const double kMax = 300;
+
+    const unsigned NumMomBins = 30;
+
+    DLM_CommonAnaFunctions AO_pXi_Back;
+    CATS Kitty_pXi_Back;
+    Kitty_pXi_Back.SetMaxNumThreads(1);
+    Kitty_pXi_Back.SetMomBins(NumMomBins,kMin,kMax);//pXim_HALQCD1
+    AO_pXi_Back.SetUpCats_pXim(Kitty_pXi_Back,"pXim_HALQCD1","McGauss_Reso",0,0);//McGauss_Reso
+    //AO_pXi_Back.SetUpCats_pp(Kitty_pXi_Back,"AV18","McGauss_Reso",0,0);
+    Kitty_pXi_Back.SetAnaSource(0,Core_pXi_Back);
+    Kitty_pXi_Back.KillTheCat();
+
+    DLM_CommonAnaFunctions AO_pXi_Rand;
+    CATS Kitty_pXi_Rand;
+    Kitty_pXi_Rand.SetMaxNumThreads(1);
+    Kitty_pXi_Rand.SetMomBins(NumMomBins,kMin,kMax);
+    AO_pXi_Rand.SetUpCats_pXim(Kitty_pXi_Rand,"pXim_HALQCD1","McGauss_Reso",0,1);
+    //AO_pXi_Rand.SetUpCats_pp(Kitty_pXi_Rand,"AV18","McGauss_Reso",0,2);
+    Kitty_pXi_Rand.SetAnaSource(0,Core_pXi_Rand);
+    Kitty_pXi_Rand.KillTheCat();
+
+    DLM_CommonAnaFunctions AO_pXi_Epos;
+    CATS Kitty_pXi_Epos;
+    Kitty_pXi_Epos.SetMaxNumThreads(1);
+    Kitty_pXi_Epos.SetMomBins(NumMomBins,kMin,kMax);
+    AO_pXi_Epos.SetUpCats_pXim(Kitty_pXi_Epos,"pXim_HALQCD1","McGauss_Reso",0,2);//McGauss_Reso
+    //AO_pXi_Epos.SetUpCats_pp(Kitty_pXi_Epos,"AV18","McGauss_Reso",0,0);
+    Kitty_pXi_Epos.SetAnaSource(0,Core_pXi_Epos);
+    Kitty_pXi_Epos.KillTheCat();
+
+    DLM_CommonAnaFunctions AO_pOmega_Back;
+    CATS Kitty_pOmega_Back;
+    Kitty_pOmega_Back.SetMaxNumThreads(1);
+    Kitty_pOmega_Back.SetMomBins(NumMomBins,kMin,kMax);
+    AO_pOmega_Back.SetUpCats_pOmegam(Kitty_pOmega_Back,"pOmega_Lattice","McGauss_Reso",0,0);
+    Kitty_pOmega_Back.SetAnaSource(0,Core_pOmega_Back);
+    Kitty_pOmega_Back.KillTheCat();
+
+    DLM_CommonAnaFunctions AO_pOmega_Rand;
+    CATS Kitty_pOmega_Rand;
+    Kitty_pOmega_Rand.SetMaxNumThreads(1);
+    Kitty_pOmega_Rand.SetMomBins(NumMomBins,kMin,kMax);
+    AO_pOmega_Rand.SetUpCats_pOmegam(Kitty_pOmega_Rand,"pOmega_Lattice","McGauss_Reso",0,1);
+    Kitty_pOmega_Rand.SetAnaSource(0,Core_pOmega_Rand);
+    Kitty_pOmega_Rand.KillTheCat();
+
+    DLM_CommonAnaFunctions AO_pOmega_Epos;
+    CATS Kitty_pOmega_Epos;
+    Kitty_pOmega_Epos.SetMaxNumThreads(1);
+    Kitty_pOmega_Epos.SetMomBins(NumMomBins,kMin,kMax);
+    AO_pOmega_Epos.SetUpCats_pOmegam(Kitty_pOmega_Epos,"pOmega_Lattice","McGauss_Reso",0,2);
+    Kitty_pOmega_Epos.SetAnaSource(0,Core_pOmega_Epos);
+    Kitty_pOmega_Epos.KillTheCat();
+
+    TFile* fOut = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MickeyMouseEffectOnSourceBasedOnTheta/fOut.root","recreate");
+
+    TGraph gKitty_pXi_Back;
+    TGraph gKitty_pXi_Epos;
+    TGraph gKitty_pXi_Rand;
+    TGraph gKitty_pOmega_Back;
+    TGraph gKitty_pOmega_Epos;
+    TGraph gKitty_pOmega_Rand;
+    gKitty_pXi_Back.SetName(TString::Format("gKitty_pXi_Back"));
+    gKitty_pXi_Epos.SetName(TString::Format("gKitty_pXi_Epos"));
+    gKitty_pXi_Rand.SetName(TString::Format("gKitty_pXi_Rand"));
+    gKitty_pOmega_Back.SetName(TString::Format("gKitty_pOmega_Back"));
+    gKitty_pOmega_Epos.SetName(TString::Format("gKitty_pOmega_Epos"));
+    gKitty_pOmega_Rand.SetName(TString::Format("gKitty_pOmega_Rand"));
+
+    gKitty_pXi_Back.Set(NumMomBins);
+    gKitty_pXi_Epos.Set(NumMomBins);
+    gKitty_pXi_Rand.Set(NumMomBins);
+    gKitty_pOmega_Back.Set(NumMomBins);
+    gKitty_pOmega_Epos.Set(NumMomBins);
+    gKitty_pOmega_Rand.Set(NumMomBins);
+
+    for(unsigned uBin=0; uBin<NumMomBins; uBin++){
+        //printf("C(%.2f) = %.3f vs %.3f\n",AB_pp_G.GetMomentum(uBin),AB_pp_G.GetCorrFun(uBin),AB_pp_GT.GetCorrFun(uBin));
+        gKitty_pXi_Back.SetPoint(uBin,Kitty_pXi_Back.GetMomentum(uBin),LambdaPar_pXi*Kitty_pXi_Back.GetCorrFun(uBin)+1.-LambdaPar_pXi);
+        gKitty_pXi_Epos.SetPoint(uBin,Kitty_pXi_Epos.GetMomentum(uBin),LambdaPar_pXi*Kitty_pXi_Epos.GetCorrFun(uBin)+1.-LambdaPar_pXi);
+        gKitty_pXi_Rand.SetPoint(uBin,Kitty_pXi_Rand.GetMomentum(uBin),LambdaPar_pXi*Kitty_pXi_Rand.GetCorrFun(uBin)+1.-LambdaPar_pXi);
+        gKitty_pOmega_Back.SetPoint(uBin,Kitty_pOmega_Back.GetMomentum(uBin),LambdaPar_pOmega*Kitty_pOmega_Back.GetCorrFun(uBin)+1.-LambdaPar_pOmega);
+        gKitty_pOmega_Epos.SetPoint(uBin,Kitty_pOmega_Epos.GetMomentum(uBin),LambdaPar_pOmega*Kitty_pOmega_Epos.GetCorrFun(uBin)+1.-LambdaPar_pOmega);
+        gKitty_pOmega_Rand.SetPoint(uBin,Kitty_pOmega_Rand.GetMomentum(uBin),LambdaPar_pOmega*Kitty_pOmega_Rand.GetCorrFun(uBin)+1.-LambdaPar_pOmega);
+    }
+
+    TGraph gSource_pXi_Back;
+    TGraph gSource_pXi_Epos;
+    TGraph gSource_pXi_Rand;
+    TGraph gSource_pOmega_Back;
+    TGraph gSource_pOmega_Epos;
+    TGraph gSource_pOmega_Rand;
+    gSource_pXi_Back.SetName(TString::Format("gSource_pXi_Back"));
+    gSource_pXi_Epos.SetName(TString::Format("gSource_pXi_Epos"));
+    gSource_pXi_Rand.SetName(TString::Format("gSource_pXi_Rand"));
+    gSource_pOmega_Back.SetName(TString::Format("gSource_pOmega_Back"));
+    gSource_pOmega_Epos.SetName(TString::Format("gSource_pOmega_Epos"));
+    gSource_pOmega_Rand.SetName(TString::Format("gSource_pOmega_Rand"));
+    const unsigned NumRadBins = 128;
+    const double rMin = 0.1;
+    const double rMax = 10;
+    const double rStep = (rMax-rMin)/double(NumRadBins-1);
+    //EvaluateTheSource
+    for(unsigned uRad=0; uRad<NumRadBins; uRad++){
+        double RAD = rMin+double(uRad)*rStep;
+        gSource_pXi_Back.SetPoint(uRad,RAD,Kitty_pXi_Back.EvaluateTheSource(0,RAD,0));
+        gSource_pXi_Epos.SetPoint(uRad,RAD,Kitty_pXi_Epos.EvaluateTheSource(0,RAD,0));
+        gSource_pXi_Rand.SetPoint(uRad,RAD,Kitty_pXi_Rand.EvaluateTheSource(0,RAD,0));
+        gSource_pOmega_Back.SetPoint(uRad,RAD,Kitty_pOmega_Back.EvaluateTheSource(0,RAD,0));
+        gSource_pOmega_Epos.SetPoint(uRad,RAD,Kitty_pOmega_Epos.EvaluateTheSource(0,RAD,0));
+        gSource_pOmega_Rand.SetPoint(uRad,RAD,Kitty_pOmega_Rand.EvaluateTheSource(0,RAD,0));
+    }
+
+    gKitty_pXi_Back.Write();
+    gKitty_pXi_Epos.Write();
+    gKitty_pXi_Rand.Write();
+    gKitty_pOmega_Back.Write();
+    gKitty_pOmega_Epos.Write();
+    gKitty_pOmega_Rand.Write();
+    gSource_pXi_Back.Write();
+    gSource_pXi_Epos.Write();
+    gSource_pXi_Rand.Write();
+    gSource_pOmega_Back.Write();
+    gSource_pOmega_Epos.Write();
+    gSource_pOmega_Rand.Write();
+
+    delete fOut;
+}
+
+
+void GenerateFakeProtonLambda(){
+
+    const double SourceSize = 1.5;
+    const double LambdaPar = 0.6;
+    const double Norm = 1.05;
+
+    const unsigned NumMomBins = 80;
+    const double kMin = 0;
+    const double kMax = 320;
+
+    DLM_CommonAnaFunctions AnalysisObject;
+
+    CATS Kitty;
+    Kitty.SetMomBins(NumMomBins,kMin,kMax);
+    AnalysisObject.SetUpCats_pL(Kitty,"Usmani","Gauss");
+    Kitty.SetAnaSource(0,SourceSize);
+    Kitty.KillTheCat();
+
+    TH1F* hDummyProtonLambda = new TH1F("hDummyProtonLambda","hDummyProtonLambda",NumMomBins,kMin,kMax);
+
+    TRandom3 rangen(8);
+
+    for(unsigned uBin=0; uBin<NumMomBins; uBin++){
+        double CkVal = Kitty.GetCorrFun(uBin);
+        double Momentum = Kitty.GetMomentum(uBin);
+        double CkErr = 0.0001*pow(400.-Momentum,1.1);
+        hDummyProtonLambda->SetBinContent(uBin+1,Norm*(rangen.Gaus(CkVal,CkErr)*LambdaPar+1.-LambdaPar));
+        hDummyProtonLambda->SetBinError(uBin+1,CkErr);
+    }
+
+    TFile OutFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CATS_TUTORIAL_2019/Files/DummyProtonLambda2.root","recreate");
+
+    hDummyProtonLambda->Write();
+
+    delete hDummyProtonLambda;
+}
+
+
+
 int main(int argc, char *argv[])
 {
 
@@ -2253,11 +2554,30 @@ int main(int argc, char *argv[])
         strcpy(ARGV[iARG],argv[iARG]);
     }
 
+
+    //! FOR THE CATS TUTORIAL 2019
+    //GenerateFakeProtonLambda();
+
+//double* lampar = new double[1000];
+//DLM_CommonAnaFunctions FUCK;
+//FUCK.SetUpLambdaPars_pL("pp13TeV_HM_March19",0,0,lampar);
+//printf("primary %f\n",lampar[0]);
+//printf("pSigma0->pL %f\n",lampar[1]);
+//printf("pXim->pL %f\n",lampar[2]);
+//printf("flat %f\n",lampar[3]);
+//printf("misid %f\n",lampar[4]);
+
+//CATS CAT;
+//Init_pantip_Haidenbauer("/home/dmihaylov/CernBox/CATS_potentials/Haidenbauer/p_antip/WithCoulomb/", CAT, 1);
+//return 0;
+
     //TestHaide_pL_pWaves();
 
     //TestTomPotential();
 
     //ExecuteCFmT(argc,ARGV);
+    //TestSetSameParInFit(); return 0;
+
 
     //DimiExecuteCFmT();
     //TestTomWF1();
@@ -2279,11 +2599,35 @@ printf("%.3f\n",lambdapars[3]*100.);
 printf("%.3f\n",lambdapars[4]*100.);
 */
 
-    PLAMBDA_1_MAIN(argc,ARGV);
+    //PLAMBDA_1_MAIN(argc,ARGV);
     //CALL_BERNIE_AND_VALE();
     //FEMTOBOYZ_MAIN(argc,ARGV);
+    //GENBOD(argc,ARGV);
     //GerhardMAIN(argc,ARGV);
     //Main_pSigma();
+    MIXEDEVENTS(argc,ARGV);
+    //SOURCESTUDIES(argc,ARGV);
+    //KAONPROTON_MAIN(argc,ARGV);
+/*
+void ScatParsFromRandPotential(const TString OutputFolder,
+                               const unsigned RandomSeed, const unsigned& NumIter,
+                               const double& V0_min, const double& V0_max,
+                               const double& mu0_min, const double& mu0_max,
+                               const double& V1_min, const double& V1_max,
+                               const double& mu1_min, const double& mu1_max,
+                               const double& V2_min, const double& V2_max,
+                               const double& mu2_min, const double& mu2_max)
+*/
+//!Looking at Fig,. 1 I realized that also NCS97f yields a nice description of the cups in p-Lambda. The nice thing is that Haidenbauer has the potentials at hand, and thus super easy can compute the relative wave functions in the same format as for chiEFT
+
+    //TestThetaSource();
+    //PlotResonanceAngles(1.0,0.5);
+    //PlotResonanceAngles(1.0,1.0);
+    //PlotResonanceAngles(1.0,2.0);
+    //PlotResonanceAngles(1.0,4.0);
+    //PlotResonanceAngles(1.0,8.0);
+
+    //MickeyMouseEffectOnSourceBasedOnTheta();
 
     //TestCommonInit();
     //plot_pp();
