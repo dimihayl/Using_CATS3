@@ -1683,6 +1683,302 @@ void mT_Scaled_Source_Prelim2019(){
     delete [] SourceScale;
 }
 
+//for pp,pL,LL and the corresponding baryon-antibaryon pairs
+void mT_Scaled_Source_ValeOct2019(){
+
+    //file with the mT scaling
+    const TString InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pL/Systematics_080519/PLOT/PRELIM/mTRad_pp_GaussReso.root";
+    const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/mT_Scaled_Source_ValeOct2019/";
+    const TString mT_GraphName = "mTRadiusStat";
+
+    const unsigned NumPartPairs = 6;
+    TString* PairName = new TString [NumPartPairs];
+    enum PrevNext { pp, pL, LL, pAp, pAL, LAL };
+    PairName[0] = "pp";
+    PairName[1] = "pL";
+    PairName[2] = "LL";
+    PairName[3] = "pAp";
+    PairName[4] = "pAL";
+    PairName[5] = "LAL";
+
+    TFile* fInput = new TFile(InputFileName,"read");
+    TGraph* Radius_pp = (TGraph*)fInput->Get(mT_GraphName);
+
+    double* Pair_Avg_mT = new double[NumPartPairs];
+    double* Part0_Mass = new double[NumPartPairs];
+    double* Part0_MassReso = new double[NumPartPairs];
+    double* Part0_TauReso = new double[NumPartPairs];
+    double* Part0_FracPrim = new double[NumPartPairs];
+    double* Part1_Mass = new double[NumPartPairs];
+    double* Part1_MassReso = new double[NumPartPairs];
+    double* Part1_TauReso = new double[NumPartPairs];
+    double* Part1_FracPrim = new double[NumPartPairs];
+
+//VALUE FOR pp HM 13 TEV
+    Pair_Avg_mT[pp] = 1.35;
+    Part0_Mass[pp] = 938.272;
+    Part0_MassReso[pp] = 1361.52;
+    Part0_TauReso[pp] = 1.65;
+    Part0_FracPrim[pp] = 0.3578;
+    Part1_Mass[pp] = 938.272;
+    Part1_MassReso[pp] = 1361.52;
+    Part1_TauReso[pp] = 1.65;
+    Part1_FracPrim[pp] = 0.3578;
+
+    Pair_Avg_mT[pL] = 1.55;
+    Part0_Mass[pL] = 938.272;
+    Part0_MassReso[pL] = 1361.52;
+    Part0_TauReso[pL] = 1.65;
+    Part0_FracPrim[pL] = 0.3578;
+    Part1_Mass[pL] = 1115.683;
+    Part1_MassReso[pL] = 1462.93;
+    Part1_TauReso[pL] = 4.69;
+    Part1_FracPrim[pL] = 0.3562;
+
+    Pair_Avg_mT[LL] = 1.75;
+    Part0_Mass[LL] = 1115.683;
+    Part0_MassReso[LL] = 1462.93;
+    Part0_TauReso[LL] = 4.69;
+    Part0_FracPrim[LL] = 0.3562;
+    Part1_Mass[LL] = 1115.683;
+    Part1_MassReso[LL] = 1462.93;
+    Part1_TauReso[LL] = 4.69;
+    Part1_FracPrim[LL] = 0.3562;
+
+    Pair_Avg_mT[pAp] = 1.45;
+    Part0_Mass[pAp] = 938.272;
+    Part0_MassReso[pAp] = 1361.52;
+    Part0_TauReso[pAp] = 1.65;
+    Part0_FracPrim[pAp] = 0.3578;
+    Part1_Mass[pAp] = 938.272;
+    Part1_MassReso[pAp] = 1361.52;
+    Part1_TauReso[pAp] = 1.65;
+    Part1_FracPrim[pAp] = 0.3578;
+
+    Pair_Avg_mT[pAL] = 1.62;
+    Part0_Mass[pAL] = 938.272;
+    Part0_MassReso[pAL] = 1361.52;
+    Part0_TauReso[pAL] = 1.65;
+    Part0_FracPrim[pAL] = 0.3578;
+    Part1_Mass[pAL] = 1115.683;
+    Part1_MassReso[pAL] = 1462.93;
+    Part1_TauReso[pAL] = 4.69;
+    Part1_FracPrim[pAL] = 0.3562;
+
+    Pair_Avg_mT[LAL] = 1.86;
+    Part0_Mass[LAL] = 1115.683;
+    Part0_MassReso[LAL] = 1462.93;
+    Part0_TauReso[LAL] = 4.69;
+    Part0_FracPrim[LAL] = 0.3562;
+    Part1_Mass[LAL] = 1115.683;
+    Part1_MassReso[LAL] = 1462.93;
+    Part1_TauReso[LAL] = 4.69;
+    Part1_FracPrim[LAL] = 0.3562;
+
+    TString* PairRootName = new TString [NumPartPairs];
+    PairRootName[pp] = TString::Format("p#minusp <m_{T}>=%.2f MeV",Pair_Avg_mT[pp]);
+    PairRootName[pL] = TString::Format("p#minus#Lambda <m_{T}>=%.2f MeV",Pair_Avg_mT[pL]);
+    PairRootName[LL] = TString::Format("#Lambda#minus#Lambda <m_{T}>=%.2f MeV",Pair_Avg_mT[LL]);
+    PairRootName[pAp] = TString::Format("p#minus#bar{p} <m_{T}>=%.2f MeV",Pair_Avg_mT[pAp]);
+    PairRootName[pAL] = TString::Format("p#minus#bar{#Lambda} <m_{T}>=%.2f MeV",Pair_Avg_mT[pAL]);
+    PairRootName[LAL] = TString::Format("#Lambda#minus#bar{#Lambda} <m_{T}>=%.2f MeV",Pair_Avg_mT[LAL]);
+
+    double* SourceScale = new double[NumPartPairs];
+    for(unsigned uPair=0; uPair<NumPartPairs; uPair++){
+        SourceScale[uPair] = Radius_pp->Eval(Pair_Avg_mT[uPair]);
+        printf("SourceScale[%u] = %.2f\n",uPair,SourceScale[uPair]);
+    }
+
+    TGraph gDummyFit;
+    gDummyFit.SetName("gDummyFit");
+    gDummyFit.SetLineStyle(5);
+    gDummyFit.SetLineWidth(5);
+    gDummyFit.SetLineColor(kGray+1);
+    TGraph* gRad = new TGraph[NumPartPairs];
+    TH1F** hRad = new TH1F*[NumPartPairs];
+    const double RadMin=0;
+    const double RadMax=32;
+    const unsigned NumRadSteps = 256;
+
+    int COLORS[NumPartPairs] = {kBlue,kRed+1,kYellow+3,kBlue,kRed+1,kYellow+3};
+
+    //fitted between 0 and 8 fermi
+    TF1** fit_Gauss = new TF1* [NumPartPairs];
+    for(unsigned uPair=0; uPair<NumPartPairs; uPair++){
+        fit_Gauss[uPair] = new TF1(TString::Format("fit_Gauss_%s",PairName[uPair].Data()),GaussSourceTF1,0,8,1);
+        hRad[uPair] = new TH1F(TString::Format("hRad_%s",PairName[uPair].Data()),TString::Format("hRad_%s",PairName[uPair].Data()),
+                               NumRadSteps,RadMin,RadMax);
+        fit_Gauss[uPair]->SetParameter(0,1.5);
+        fit_Gauss[uPair]->SetParLimits(0,0.5,3.0);
+
+        fit_Gauss[uPair]->SetLineColor(COLORS[uPair]);
+        fit_Gauss[uPair]->SetLineStyle(5);
+        fit_Gauss[uPair]->SetLineWidth(6);
+    }
+
+    DLM_CleverMcLevyReso* CleverMcLevyReso = new DLM_CleverMcLevyReso [NumPartPairs];
+    //#pragma omp parallel for
+    for(unsigned uPair=0; uPair<NumPartPairs; uPair++){
+
+        const double RadBinWidth = (RadMax-RadMin)/(NumRadSteps);
+        CleverMcLevyReso[uPair].InitStability(1,2-1e-6,2+1e-6);
+        CleverMcLevyReso[uPair].InitScale(35,0.25,2.0);
+        CleverMcLevyReso[uPair].InitRad(NumRadSteps,RadMin,RadMax);
+        CleverMcLevyReso[uPair].InitType(2);
+        CleverMcLevyReso[uPair].InitReso(0,1);
+        CleverMcLevyReso[uPair].InitReso(1,1);
+        CleverMcLevyReso[uPair].SetUpReso(0,0,1.-Part0_FracPrim[uPair],Part0_MassReso[uPair],Part0_TauReso[uPair],Part0_Mass[uPair],139.57);
+        CleverMcLevyReso[uPair].SetUpReso(1,0,1.-Part1_FracPrim[uPair],Part1_MassReso[uPair],Part1_TauReso[uPair],Part1_Mass[uPair],139.57);
+        CleverMcLevyReso[uPair].InitNumMcIter(2000000);
+
+        #pragma critical
+        {
+        gRad[uPair].SetName("hRad_"+PairName[uPair]);
+        gRad[uPair].Set(NumRadSteps);
+        }
+
+        double EvalValue;
+        unsigned Counter=0;
+        double PARS[5];
+        PARS[3]=SourceScale[uPair];
+        PARS[4]=2;
+        for(double dRad=RadBinWidth*0.5; dRad<RadMax; dRad+=RadBinWidth){
+            PARS[1]=dRad;
+            EvalValue = CleverMcLevyReso[uPair].Eval(PARS);
+            //EvalValue = CleverMcLevyReso[uPair].Eval(0,dRad,0);
+            #pragma critical
+            {
+            gRad[uPair].SetPoint(Counter,dRad,EvalValue);
+            hRad[uPair]->SetBinContent(Counter+1,EvalValue);
+            hRad[uPair]->SetBinError(Counter+1,EvalValue*0.002+0.002);
+            }
+            Counter++;
+        }
+        hRad[uPair]->Fit(fit_Gauss[uPair],"S, N, R, M");
+    }
+
+    TFile* fOutput = new TFile(OutputFolder+"fOutput.root","recreate");
+    for(unsigned uPair=0; uPair<NumPartPairs; uPair++){
+        gRad[uPair].Write();
+    }
+
+    TH1F* hAxisRad = new TH1F("hAxisRad", "hAxisRad", NumRadSteps,RadMin,RadMax);
+    hAxisRad->SetStats(false);
+    hAxisRad->SetTitle("");
+    hAxisRad->GetXaxis()->SetLabelSize(0.065);
+    hAxisRad->GetXaxis()->SetTitle("r (fm)");
+    hAxisRad->GetXaxis()->CenterTitle();
+    hAxisRad->GetXaxis()->SetTitleOffset(1.2);
+    hAxisRad->GetXaxis()->SetLabelOffset(0.02);
+    hAxisRad->GetXaxis()->SetTitleSize(0.075);
+    hAxisRad->GetYaxis()->SetLabelSize(0.065);
+    hAxisRad->GetYaxis()->SetTitle("4#pir^{2}S(r) (fm^{-1})");
+    hAxisRad->GetYaxis()->CenterTitle();
+    hAxisRad->GetYaxis()->SetTitleOffset(1.00);
+    hAxisRad->GetYaxis()->SetTitleSize(0.075);
+
+    hAxisRad->GetYaxis()->SetRangeUser(0, 0.4);
+    //hAxisRad->GetXaxis()->SetNdivisions(506);
+    hAxisRad->GetXaxis()->SetRangeUser(0, 9.5);
+
+    TCanvas* cSource_bb = new TCanvas("cSource_bb", "cSource_bb", 1);
+    cSource_bb->cd(0); cSource_bb->SetCanvasSize(1920, 1080); cSource_bb->SetMargin(0.15,0.05,0.2,0.05);//lrbt
+    hAxisRad->Draw();
+
+    TPaveText* PT1 = new TPaveText(0.4,0.9,0.975,0.975, "blNDC");//lbrt
+    PT1->SetName("PT1");
+    PT1->SetBorderSize(1);
+    PT1->SetTextSize(0.04);
+    PT1->SetFillColor(kWhite);
+    PT1->SetTextFont(22);
+    PT1->AddText("Source using Gaussian core, based on <m_{T}>, plus resonances");
+
+    TLegend* lInfo_bb = new TLegend(0.50,0.6,0.975,0.9);//lbrt
+    lInfo_bb->SetName(TString::Format("lInfo_bb"));
+    lInfo_bb->SetTextSize(0.04);
+    for(unsigned uPair=0; uPair<NumPartPairs/2; uPair++){
+        gRad[uPair].SetLineColor(COLORS[uPair]);
+        gRad[uPair].SetMarkerColor(COLORS[uPair]);
+        gRad[uPair].SetMarkerSize(0);
+        gRad[uPair].SetLineWidth(6);
+        lInfo_bb->AddEntry(&gRad[uPair],TString::Format("%s (R_{G,eff} = %.2f fm)",PairRootName[uPair].Data(),fit_Gauss[uPair]->GetParameter(0)));
+        gRad[uPair].Draw("C,same");
+        fit_Gauss[uPair]->Draw("same");
+    }
+    lInfo_bb->AddEntry(&gDummyFit,"Effective Gauss (fit)");
+    lInfo_bb->Draw("same");
+    PT1->Draw("same");
+
+    cSource_bb->Write();
+    cSource_bb->SaveAs(OutputFolder+"cSource_bb.png");
+
+////////////////////
+    TCanvas* cSource_bAb = new TCanvas("cSource_bAb", "cSource_bAb", 1);
+    cSource_bAb->cd(0); cSource_bAb->SetCanvasSize(1920, 1080); cSource_bAb->SetMargin(0.15,0.05,0.2,0.05);//lrbt
+    hAxisRad->Draw();
+
+    TLegend* lInfo_bAb = new TLegend(0.50,0.6,0.975,0.9);//lbrt
+    lInfo_bAb->SetName(TString::Format("lInfo_bAb"));
+    lInfo_bAb->SetTextSize(0.04);
+    for(unsigned uPair=NumPartPairs/2; uPair<NumPartPairs; uPair++){
+        gRad[uPair].SetLineColor(COLORS[uPair]);
+        gRad[uPair].SetMarkerColor(COLORS[uPair]);
+        gRad[uPair].SetMarkerSize(0);
+        gRad[uPair].SetLineWidth(6);
+        lInfo_bAb->AddEntry(&gRad[uPair],TString::Format("%s (R_{G,eff} = %.2f fm)",PairRootName[uPair].Data(),fit_Gauss[uPair]->GetParameter(0)));
+        gRad[uPair].Draw("C,same");
+        fit_Gauss[uPair]->Draw("same");
+    }
+    lInfo_bAb->AddEntry(&gDummyFit,"Effective Gauss (fit)");
+    lInfo_bAb->Draw("same");
+    PT1->Draw("same");
+
+    cSource_bAb->Write();
+    cSource_bAb->SaveAs(OutputFolder+"cSource_bAb.png");
+
+    gDummyFit.SetLineWidth(gDummyFit.GetLineWidth()/2);
+    for(unsigned uPair=0; uPair<NumPartPairs; uPair++){
+        gRad[uPair].SetLineWidth(gRad[uPair].GetLineWidth()/2);
+        fit_Gauss[uPair]->SetLineWidth(fit_Gauss[uPair]->GetLineWidth()/2);
+    }
+    cSource_bb->SaveAs(OutputFolder+"cSource_bb.pdf");
+    cSource_bAb->SaveAs(OutputFolder+"cSource_bAb.pdf");
+    gDummyFit.SetLineWidth(gDummyFit.GetLineWidth()*2);
+    for(unsigned uPair=0; uPair<NumPartPairs; uPair++){
+        gRad[uPair].SetLineWidth(gRad[uPair].GetLineWidth()*2);
+        fit_Gauss[uPair]->SetLineWidth(fit_Gauss[uPair]->GetLineWidth()*2);
+    }
+
+    delete [] PairName;
+    delete [] PairRootName;
+    delete [] Pair_Avg_mT;
+    delete [] Part0_Mass;
+    delete [] Part0_MassReso;
+    delete [] Part0_TauReso;
+    delete [] Part0_FracPrim;
+    delete [] Part1_Mass;
+    delete [] Part1_MassReso;
+    delete [] Part1_TauReso;
+    delete [] Part1_FracPrim;
+    delete [] gRad;
+    delete hAxisRad;
+    delete PT1;
+    delete lInfo_bb;
+    delete lInfo_bAb;
+    for(unsigned uPair=0; uPair<NumPartPairs; uPair++){
+        delete hRad[uPair];
+        delete fit_Gauss[uPair];
+    }
+    delete [] hRad;
+    delete [] fit_Gauss;
+    delete cSource_bb;
+    delete cSource_bAb;
+    delete fOutput;
+    delete fInput;
+    delete [] CleverMcLevyReso;
+    delete [] SourceScale;
+}
+
 void Plot_pL_Vars(char* argv[], const unsigned NumVar, double* Dev_pL){
     TGraph gVars_pL;
     gVars_pL.SetName("gVars_pL");
@@ -1729,7 +2025,7 @@ void Plot_pL_Vars(char* argv[], const unsigned NumVar, double* Dev_pL){
 void DimiExecuteCFmT(){
     char** ARGV = new char* [8];
     for(int i=0; i<8; i++) ARGV[i]=new char [512];
-
+mT_Scaled_Source_ValeOct2019();
 //mT_Scaled_Source_Prelim2019();
 
 //home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM/Systematics
@@ -1780,7 +2076,7 @@ void DimiExecuteCFmT(){
     //Plot_pL_Vars(ARGV,NumVar,Dev_pL);
     delete [] Dev_pL;
 
-    ExecuteCFmT_pp(5,ARGV);
+    //ExecuteCFmT_pp(5,ARGV);
     //QA_for_pp_mT();
     //ExecuteCFmT_pL(5,ARGV);
 return;

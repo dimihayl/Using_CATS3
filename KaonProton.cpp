@@ -2051,10 +2051,10 @@ void TestKyoto2019(const double& RADIUS){
         gGamow[uCh].SetName(TString::Format("gGamow_%s",AddOn.Data()));
         gFull[uCh].SetName(TString::Format("gFull_%s",AddOn.Data()));
         gStrong[uCh].Write();
-        gGamow[uCh].Write();
+        //gGamow[uCh].Write();
         gFull[uCh].Write();
-        hWfStrong[uCh]->Write();
-        hWfFull[uCh]->Write();
+        //hWfStrong[uCh]->Write();
+        //hWfFull[uCh]->Write();
     }
 
     FILE * CkFile;
@@ -2085,9 +2085,9 @@ void TestKyoto2019(const double& RADIUS){
 
 int KAONPROTON_MAIN(int argc, char *argv[]){
 
-    TestKyoto2019(1.2);
+    //TestKyoto2019(1.2);
     for(double rad=1; rad<=7.5; rad+=0.5){
-        //TestKyoto2019(rad);
+        TestKyoto2019(rad);
     }
 
     //Toy_pKplus();

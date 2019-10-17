@@ -9,6 +9,7 @@
 #include "DLM_CkDecomposition.h"
 #include "DLM_Fitters.h"
 
+
 #include "math.h"
 #include <iostream>
 #include <stdio.h>
@@ -30,6 +31,8 @@
 #include "TROOT.h"
 #include "TPaveText.h"
 #include "TVector3.h"
+#include "TGenPhaseSpace.h"
+#include "TLorentzVector.h"
 
 //#include "DLM_CkDecomposition.h"
 //#include "DLM_CkModels.h"
@@ -2733,6 +2736,8 @@ if(fabs(KittyParticle.GetPseudoRap())>0.8) continue;//!
 }
 
 
+//the original version, where we assume that the coordinate systems (CS) is fixed from one primordial protons
+//there is no separation between primordial-reso and reso-reso case
 void ReferenceSampleStudy_1(const TString& TranModDescr, const TString& DataSetDescr){
     const double kMin = DataSetDescr=="pp"?0:DataSetDescr=="pLambda"?0:DataSetDescr=="pXim"?0:0;
     const double kMax = DataSetDescr=="pp"?4000:DataSetDescr=="pLambda"?4000:DataSetDescr=="pXim"?4000:4000;
@@ -2751,8 +2756,8 @@ void ReferenceSampleStudy_1(const TString& TranModDescr, const TString& DataSetD
     //const TString InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp200/pp200_pXim_PRIM_4PI.f19";
     //const TString InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp200/pp200_pOmega_PRIM_4PI.f19";
     //const TString InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp200/pp200_pReso_PRIM_4PI.f19";
-    //const TString InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp80/pp80_pReso_PRIM_4PI.f19";
-    const TString InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp80/pp80_LamReso_PRIM_4PI.f19";
+    const TString InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp80/pp80_pReso_PRIM_4PI.f19";
+    //const TString InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp80/pp80_LamReso_PRIM_4PI.f19";
 
     const unsigned NumBlankHeaderLines=3;
     const unsigned MaxPairsToRead = 200e6;
@@ -2767,6 +2772,10 @@ void ReferenceSampleStudy_1(const TString& TranModDescr, const TString& DataSetD
     }
     else if(DataSetDescr=="LamReso"){
         pdgID[0] = 2130;
+        pdgID[1] = 0;
+    }
+    else if(DataSetDescr=="pResoReso"||DataSetDescr=="LamResoReso"){
+        pdgID[0] = 0;
         pdgID[1] = 0;
     }
 
@@ -2807,6 +2816,8 @@ void ReferenceSampleStudy_1(const TString& TranModDescr, const TString& DataSetD
     //this is needed in order to investigate the assumption of the resonance source, where r* and k* are taken as parallel
     //As no EPOS files with resonances were available, this is best applied to the case of a primordial source, since all primordial
     //particles should have similar kinematics.
+    ////if we are in the double reso case (both PID==0), than we decay one of the resonances into a proton+pi or Lam+pi and use the daughter to
+    ////fix the coordinate system. Than we look at angle between the two particles in THAT system
     TH2F* h_rkAngle_Mom2 = new TH2F("h_rkAngle_Mom2","h_rkAngle_Mom2",64,0,Pi,64,0,1024);
     //the angle between the momenta of the two primordial particles
     TH2F* h_kkAngle_Mom2 = new TH2F("h_kkAngle_Mom2","h_kkAngle_Mom2",64,0,Pi,64,0,1024);
@@ -3059,6 +3070,680 @@ void ReferenceSampleStudy_1(const TString& TranModDescr, const TString& DataSetD
     delete fOut;
 }
 
+//New version of ReferenceSampleStudy_1, where we now decay all resonances and take the daughters to fix the coordinate system
+void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetDescr){
+    const double kMin = DataSetDescr=="pp"?0:DataSetDescr=="pLambda"?0:DataSetDescr=="pXim"?0:0;
+    const double kMax = DataSetDescr=="pp"?4000:DataSetDescr=="pLambda"?4000:DataSetDescr=="pXim"?4000:4000;
+    const double kMinZoom = DataSetDescr=="pp"?0:DataSetDescr=="pLambda"?0:DataSetDescr=="pXim"?0:0;
+    const double kMaxZoom = DataSetDescr=="pp"?0.6:DataSetDescr=="pLambda"?0.6:DataSetDescr=="pXim"?0.6:0.6;
+    //const double kNormMin = 0.400;
+    //const double kNormMax = 0.600;
+    //const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/ReferenceSampleStudy_1/";
+    const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/AngleStudy_2/VER5/";
+    const unsigned NumMomBins = DataSetDescr=="pp"?400:DataSetDescr=="pLambda"?200:DataSetDescr=="pXim"?200:200;
+    const TString OutFileBaseName = OutputFolder+TranModDescr+"_"+DataSetDescr;
+    //const TString InputFileName = DataSetDescr=="pp"?TransportFile_pp_Alice:DataSetDescr=="pLambda"?TransportFile_pL_Alice:
+    //    DataSetDescr=="pXim"?TString("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/Scratch9_OSCAR1997_100KiLrz_pXim.f19"):"";
+    //const TString InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/LambdaProtonPotentials/CRAB/CRAB_DLM2/ThermalSpectrum10_pp2/thermalTest2_PRS=1.30_PTS=1.30.f19";
+    //const TString InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp91/pp_nist0_prim_030219.f19";
+    //const TString InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp200/pp200_pXim_PRIM_4PI.f19";
+    //const TString InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp200/pp200_pOmega_PRIM_4PI.f19";
+    //const TString InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp200/pp200_pReso_PRIM_4PI_VER4.f19";
+    const TString InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp200/pp200_pReso_4PI_VER5.f19";
+    //AvgResoMass = 1.354190 for VER2, around 1.38 for the first version. Basically VER2 has inly ior==0 reso
+    //const TString InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp80/pp80_pReso_PRIM_4PI_VER2.f19";
+    //const TString InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp80/pp80_LamReso_PRIM_4PI.f19";
+
+    const unsigned NumBlankHeaderLines=3;
+    const unsigned MaxPairsToRead = 200e6;
+    const unsigned HighMultLimit = 128;
+    const double SmearPhi = (45.)*DegToRad;
+    int pdgID[2] = {DataSetDescr=="LambdaLambda"?3122:2212,
+    DataSetDescr=="pp"?2212:DataSetDescr=="pLambda"?3122:DataSetDescr=="LambdaLambda"?3122:DataSetDescr=="pXim"?3312:DataSetDescr=="pOmega"?3334:0};
+    int Original_pdgID[2];
+    //masses of the decay products (daughters)
+    double DaughterMassP1[2];
+    double DaughterMassP2[2];
+
+    //p-p correlation
+    if(DataSetDescr=="p_p"){
+        pdgID[0] = 1120;
+        pdgID[1] = 1120;
+        Original_pdgID[0] = 1120;
+        Original_pdgID[1] = 1120;
+
+        DaughterMassP1[0] = -1;
+        DaughterMassP1[1] = -1;
+
+        DaughterMassP2[0] = -1;
+        DaughterMassP2[1] = -1;
+    }
+    else if(DataSetDescr=="p_pReso"){
+        pdgID[0] = 1120;
+        pdgID[1] = 0;
+        Original_pdgID[0] = 1120;
+        Original_pdgID[1] = 1120;
+
+        DaughterMassP1[0] = -1;
+        DaughterMassP1[1] = -1;
+
+        DaughterMassP2[0] = Mass_p*0.001;
+        DaughterMassP2[1] = Mass_pic*0.001;
+    }
+    else if(DataSetDescr=="pReso_pReso"){
+        pdgID[0] = 0;
+        pdgID[1] = 0;
+        Original_pdgID[0] = 1120;
+        Original_pdgID[1] = 1120;
+
+        DaughterMassP1[0] = Mass_p*0.001;
+        DaughterMassP1[1] = Mass_pic*0.001;
+
+        DaughterMassP2[0] = Mass_p*0.001;
+        DaughterMassP2[1] = Mass_pic*0.001;
+    }
+    //p-Lambda correlation
+//! WRONG PIDs?
+    else if(DataSetDescr=="p_LamReso"){
+        pdgID[0] = 1120;
+        pdgID[1] = 0;
+
+        DaughterMassP1[0] = -1;
+        DaughterMassP1[1] = -1;
+
+        DaughterMassP2[0] = Mass_L*0.001;
+        DaughterMassP2[1] = Mass_pic*0.001;
+    }
+    else if(DataSetDescr=="pReso_Lam"){
+        pdgID[0] = 0;
+        pdgID[1] = 2130;
+
+        DaughterMassP1[0] = Mass_p*0.001;
+        DaughterMassP1[1] = Mass_pic*0.001;
+
+        DaughterMassP2[0] = -1;
+        DaughterMassP2[1] = -1;
+    }
+    else if(DataSetDescr=="pReso_LamReso"){
+        pdgID[0] = 0;
+        pdgID[1] = 0;
+
+        DaughterMassP1[0] = Mass_p*0.001;
+        DaughterMassP1[1] = Mass_pic*0.001;
+
+        DaughterMassP2[0] = Mass_L*0.001;
+        DaughterMassP2[1] = Mass_pic*0.001;
+    }
+
+    unsigned NumTotalPairs=0;
+    unsigned TotNumEvents=0;
+    unsigned RejectedHighMultEvents=0;
+
+    //angle between (r,k) of the primordials, as a function of k* of the daughters (in CM of the daughters), THE MOST USEFUL I WOULD SAY
+    TH2F* h_rkAngle_k_Reso = new TH2F("h_rkAngle_k_Reso","h_rkAngle_k_Reso",64,0,Pi,64,0,1024);
+    //angle between (r,k) of the primordials, as a function of k* of the daughters in the rest frame of one of the primordials
+    TH2F* h_rkAngle_Mom2 = new TH2F("h_rkAngle_Mom2","h_rkAngle_Mom2",64,0,Pi,64,0,1024);
+    //angle between (r,k) of the primordials, as a function of k between them (p_res) of the daughters in the rest frame of one of the primordials
+    TH2F* h_rkAngle_MomReso2 = new TH2F("h_rkAngle_MomReso2","h_rkAngle_MomReso2",64,0,Pi,64,0,1024);
+
+    TH2F* h_rkAngle_MomResoA = new TH2F("h_rkAngle_MomResoA","h_rkAngle_MomResoA",64,0,Pi,64,0,1024);
+    TH2F* h_rkAngle_MomResoB = new TH2F("h_rkAngle_MomResoB","h_rkAngle_MomResoB",64,0,Pi,64,0,1024);
+
+    //angle between (r*,k*) of the daughters, as a function of k* of the daughters (in CM of the daughters)
+    TH2F* h_rkAngle_k_Daughters = new TH2F("h_rkAngle_k_Daughters","h_rkAngle_k_Daughters",64,0,Pi,64,0,1024);
+    //angle between (r,k) of the primordials, as a function of k of the primordials (in CM of the primordial)
+    TH2F* h_rkAngle_k_Prim = new TH2F("h_rkAngle_k_Prim","h_rkAngle_k_Prim",64,0,Pi,64,0,1024);
+
+    //actually decays the resonances into proton pion or Lambda pion and saves the angles for all initial primordial particles,
+    //which after the decay resulted in a pair with k* < FixedValue (say 100 MeV or so to do femto)
+    TH1F* h_rkAngle_Reso = new TH1F("h_rkAngle_Reso","h_rkAngle_Reso",64,0,Pi);
+
+    TH1F* h_MomDist_P1 = new TH1F("h_MomDist_P1","h_MomDist_P1",64,0,4000);
+    TH1F* h_MomDist_P2 = new TH1F("h_MomDist_P2","h_MomDist_P2",64,0,4000);
+    TH2F* h_MomDist_P1P2 = new TH2F("h_MomDist_P1P2","h_MomDist_P1P2",64,0,4000,64,0,4000);
+
+    TH1F* h_TauDist_P1 = new TH1F("h_TauDist_P1","h_TauDist_P1",64,0,4);
+    TH1F* h_TauDist_P2 = new TH1F("h_TauDist_P2","h_TauDist_P2",64,0,4);
+    TH2F* h_TauDist_P1P2 = new TH2F("h_TauDist_P1P2","h_TauDist_P1P2",64,0,4,64,0,4);
+
+    CatsParticle KittyParticle;
+    CatsEvent* KittyEvent = new CatsEvent(pdgID[0],pdgID[1]);
+    CatsEvent* KittyFilteredEvent = new CatsEvent(pdgID[0],pdgID[1]);
+
+    FILE *InFile;
+    InFile = fopen(InputFileName, "r");
+    if(!InFile){
+        printf("          \033[1;31mERROR:\033[0m The file\033[0m %s cannot be opened!\n", InputFileName.Data());
+        return;
+    }
+    fseek ( InFile , 0 , SEEK_END );
+    long EndPos;
+    EndPos = ftell (InFile);
+    fseek ( InFile , 0 , SEEK_SET );
+    long CurPos;
+    char* cdummy = new char [512];
+    for(unsigned short us=0; us<NumBlankHeaderLines; us++){
+        if(!fgets(cdummy, 511, InFile)){
+            printf("Issue!\n");
+            continue;
+        }
+    }
+    if(feof(InFile)){
+        printf("\033[1;31m          ERROR:\033[0m Trying to read past end of file %s\n", InputFileName.Data());
+        printf("         No particle pairs were loaded :(\n");
+        return;
+    }
+
+    float pFile;
+    //percentage of the required number of pairs found in the file. Unless the file has some special
+    //internal structure and the events are saved randomly, the should also be a very accurate
+    //estimate of the max ETA
+    float pMaxPairsToRead;
+    double Time;
+    int pTotal;
+    int pTotalOld;
+    float ProgressLoad;
+    DLM_Timer dlmTimer;
+    bool ProgressBar=false;
+
+    int EventNumber;
+    int NumPartInEvent;
+    double ImpPar;
+    double fDummy;
+    TRandom3 rangen(11);
+
+    //GenBod generators, one per particle
+    //TGenPhaseSpace* eventRan = new TGenPhaseSpace();
+    TGenPhaseSpace* eventRan1=NULL;
+    TGenPhaseSpace* eventRan2=NULL;
+    //parents
+    TLorentzVector TLV_P1;
+    TLorentzVector TLV_P2;
+
+
+    TLorentzVector TLV_Daughter1;
+    TLorentzVector TLV_Daughter2;
+    TLorentzVector* TLVP_Daughter1;
+    TLorentzVector* TLVP_Daughter2;
+
+    //set up the decay channels of each particle
+    if(DaughterMassP1[0]>=0) eventRan1 = new TGenPhaseSpace();
+    if(DaughterMassP2[0]>=0) eventRan2 = new TGenPhaseSpace();
+
+    //
+    while(!feof(InFile)){
+        if(NumTotalPairs>=MaxPairsToRead) break;
+        if(!fscanf(InFile,"%i %i %lf %lf",&EventNumber,&NumPartInEvent,&ImpPar,&fDummy)){
+            printf("Some fscanf issue!\n");
+            continue;
+        }
+        TotNumEvents++;
+        if(NumPartInEvent>int(HighMultLimit)) {RejectedHighMultEvents++;}
+        //!---Iteration over all particles in this event---
+        for(int iPart=0; iPart<NumPartInEvent; iPart++){
+            KittyParticle.ReadFromOscarFile(InFile);
+            if(DataSetDescr.Contains("Reso")&&KittyParticle.GetPid()!=Original_pdgID[0]&&KittyParticle.GetPid()!=Original_pdgID[1]&&KittyParticle.GetMass()<DaughterMassP1[0]+DaughterMassP1[1])
+            {
+                //printf("mass = %f\n",KittyParticle.GetMass());
+                //printf("pid = %i\n",KittyParticle.GetPid());
+//!set all masses to the avg
+KittyParticle.SetMass(1.36);
+            }
+            if(DataSetDescr.Contains("Reso")&&KittyParticle.GetPid()!=Original_pdgID[0]&&KittyParticle.GetPid()!=Original_pdgID[1])KittyParticle.SetPid(0);
+
+//printf("pdgID=%i\n",KittyParticle.GetPid());
+            //printf("KittyParticle = %f (%.3f,%.3f,%.3f)\n",KittyParticle.GetP(),KittyParticle.GetPx(),KittyParticle.GetPy(),KittyParticle.GetPz());
+
+            //continue;
+            //ALICE ACCEPTANCE
+            //if(KittyParticle.GetP()<0.4) continue;
+            //if(fabs(KittyParticle.GetPseudoRap())>0.8) continue;//!
+
+            //sometimes one might go beyond the limit of the file
+            if(ftell(InFile)>=EndPos)continue;
+            if(NumPartInEvent>int(HighMultLimit)) continue;
+
+            if(KittyParticle.GetE()==0){
+                printf("WARNING! Possible bad input-file, there are particles with zero energy!\n");
+                continue;
+            }
+
+            if(KittyParticle.GetPid()!=pdgID[0] && KittyParticle.GetPid()!=pdgID[1])
+                continue; //don't save this particle if it is of the wrong type
+
+            //exclude particle with weird momenta
+            if(KittyParticle.GetP()>100){
+                continue;
+            }
+/*
+            //cut out entries at very large rapidity
+            if(fabs(KittyParticle.GetPseudoRap())>6){
+                continue;
+            }
+            //cut out pairs that are very far away from the collision point
+            if(fabs(KittyParticle.GetR())>16){
+                continue;
+            }
+*/
+            KittyEvent->AddParticle(KittyParticle);
+        }//for(int iPart=0; iPart<NumPartInEvent; iPart++)
+
+
+        for(unsigned uPart=0; uPart<KittyEvent->GetNumParticles1(); uPart++){
+            //if(KittyEvent[uMeth][uMix]->GetParticleType1(uPart).GetP()<0.4) continue;
+            //if(fabs(KittyEvent[uMeth][uMix]->GetParticleType1(uPart).GetPseudoRap())>0.8) continue;
+            KittyFilteredEvent->AddParticle(KittyEvent->GetParticleType1(uPart));
+        }
+        for(unsigned uPart=0; uPart<KittyEvent->GetNumParticles2(); uPart++){
+            //avoid double counting for identical particles
+            if(KittyEvent->GetSameType()) break;
+//printf("HELLO\n");
+            //if(KittyEvent[uMeth][uMix]->GetParticleType2(uPart).GetP()<0.4) continue;
+            //if(fabs(KittyEvent[uMeth][uMix]->GetParticleType2(uPart).GetPseudoRap())>0.8) continue;
+            KittyFilteredEvent->AddParticle(KittyEvent->GetParticleType2(uPart));
+        }
+        KittyFilteredEvent->ComputeParticlePairs(false,false);
+
+        NumTotalPairs+=KittyFilteredEvent->GetNumPairs();
+
+        for(unsigned uPair=0; uPair<KittyFilteredEvent->GetNumPairs(); uPair++){
+            int pid0 = KittyFilteredEvent->GetParticlePair(uPair).GetParticle(0).GetPid();
+            int pid1 = KittyFilteredEvent->GetParticlePair(uPair).GetParticle(1).GetPid();
+            //make sure we have particles of the desired PID
+            if((pdgID[0]!=pid0||pdgID[1]!=pid1) && (pdgID[0]!=pid1||pdgID[1]!=pid0)) continue;
+
+            CatsParticle ParticleOriginal1 = KittyFilteredEvent->GetParticlePair(uPair).GetParticle(0);
+            CatsParticle ParticleOriginal2 = KittyFilteredEvent->GetParticlePair(uPair).GetParticle(1);
+
+            CatsParticle Particle1 = ParticleOriginal1;
+            CatsParticle Particle2 = ParticleOriginal2;
+
+            h_MomDist_P1->Fill(Particle1.GetP()*1000.);
+            h_MomDist_P2->Fill(Particle2.GetP()*1000.);
+            h_MomDist_P1P2->Fill(Particle1.GetP()*1000.,Particle2.GetP()*1000.);
+
+            h_TauDist_P1->Fill(Particle1.GetT());
+            h_TauDist_P2->Fill(Particle2.GetT());
+            h_TauDist_P1P2->Fill(Particle1.GetT(),Particle2.GetT());
+
+            CatsParticle Part1Part2;
+            Part1Part2 = Particle1+Particle2;
+
+        //printf("\nParticle1 = %f (%.3f,%.3f,%.3f)\n",Particle1.GetP(),Particle1.GetPx(),Particle1.GetPy(),Particle1.GetPz());
+        //printf("Particle2 = %f (%.3f,%.3f,%.3f)\n",Particle2.GetP(),Particle2.GetPx(),Particle2.GetPy(),Particle2.GetPz());
+
+            //the angle (r,k) before any boosts (so in LAB)
+            TVector3 vecR;
+            TVector3 vecK;
+            vecR.SetXYZ(Particle1.GetX()-Particle2.GetX(),Particle1.GetY()-Particle2.GetY(),Particle1.GetZ()-Particle2.GetZ());
+            vecK.SetXYZ(Particle2.GetPx()-Particle1.GetPx(),Particle2.GetPy()-Particle1.GetPy(),Particle2.GetPz()-Particle1.GetPz());
+            double Angle_Lab = vecR.Angle(vecK);
+            if(Angle_Lab<0) Angle_Lab += Pi;
+            if(Angle_Lab>Pi) Angle_Lab -= Pi;
+
+            //the angle between the two primary pairs:
+            // in the CM of the daughters
+            double Angle_CmDaughters;
+            // in the CM of the parents
+            double Angle_CmParents;
+            // in the rest frame of parent number 1
+            double Angle_Parent1;
+            // in the rest frame of parent number 2
+            double Angle_Parent2;
+            // in the rest frame of daughter number 1
+            double Angle_Daughter1;
+            // in the rest frame of daughter number 2
+            double Angle_Daughter2;
+
+            //the same as before, but now the angle is between the two daughters
+            double AngleD_CmDaughters;
+            // in the CM of the parents
+            double AngleD_CmParents;
+            // in the rest frame of parent number 1
+            double AngleD_Parent1;
+            // in the rest frame of parent number 2
+            double AngleD_Parent2;
+            // in the rest frame of daughter number 1
+            double AngleD_Daughter1;
+            // in the rest frame of daughter number 2
+            double AngleD_Daughter2;
+
+
+
+
+            TVector3 vP1;
+            vP1.SetXYZ(Particle1.GetPx(),Particle1.GetPy(),Particle1.GetPz());
+            TVector3 vP2;
+            vP2.SetXYZ(Particle2.GetPx(),Particle2.GetPy(),Particle2.GetPz());
+            double Angle_P1P2 = vP1.Angle(vP2);
+            //h_kkAngle_Mom2->Fill(Angle_P1P2,(vP1-vP2).Mag()*1000.);
+
+            TLV_P1.SetPxPyPzE(Particle1.GetPx(),Particle1.GetPy(),Particle1.GetPz(),Particle1.GetE());
+            TLV_P2.SetPxPyPzE(Particle2.GetPx(),Particle2.GetPy(),Particle2.GetPz(),Particle2.GetE());
+/*
+            if(DaughterMassP1[0]>=0){
+                eventRan->SetDecay(TLV_P1, 2, DaughterMassP1);
+                eventRan->Generate();
+                TLVP_Daughter1 = eventRan->GetDecay(0);
+            }
+            else{
+                TLVP_Daughter1 = &TLV_P1;
+            }
+            TLV_Daughter1 = *TLVP_Daughter1;
+
+            if(DaughterMassP2[0]>=0){
+                eventRan->SetDecay(TLV_P2, 2, DaughterMassP2);
+                eventRan->Generate();
+                TLVP_Daughter2 = eventRan->GetDecay(0);
+            }
+            else{
+                TLVP_Daughter2 = &TLV_P2;
+            }
+            TLV_Daughter2 = *TLVP_Daughter2;
+*/
+
+            if(eventRan1) eventRan1->SetDecay(TLV_P1, 2, DaughterMassP1);
+            if(eventRan2) eventRan2->SetDecay(TLV_P2, 2, DaughterMassP2);
+
+            //if(eventRan1) printf("1\n");
+            //if(eventRan2) printf("2\n");
+
+            //the resonances are decayed here
+            if(eventRan1) eventRan1->Generate();
+            if(eventRan2) eventRan2->Generate();
+
+            if(TLV_P1.M()<=DaughterMassP1[0]+DaughterMassP1[2]){
+                //printf("TLV_P1.M()=%f\n",TLV_P1.M());
+                //abort();
+            }
+            if(TLV_P2.M()<=DaughterMassP2[0]+DaughterMassP2[2]){
+                //printf("TLV_P2.M()=%f\n",TLV_P2.M());
+                //abort();
+            }
+
+            //get the daughters
+            if(eventRan1) TLVP_Daughter1 = eventRan1->GetDecay(0);
+            else TLVP_Daughter1 = &TLV_P1;
+            if(eventRan2) TLVP_Daughter2 = eventRan2->GetDecay(0);
+            else TLVP_Daughter2 = &TLV_P2;
+
+            TLV_Daughter1 = *TLVP_Daughter1;
+            TLV_Daughter2 = *TLVP_Daughter2;
+
+            //TLV_Daughter1.Print();
+            //TLV_Daughter2.Print();
+
+            CatsParticle DaughterOriginal1;
+            CatsParticle DaughterOriginal2;
+            DaughterOriginal1.Set(Particle1.GetT(),Particle1.GetX(),Particle1.GetY(),Particle1.GetZ(),TLV_Daughter1.E(),TLV_Daughter1.Px(),TLV_Daughter1.Py(),TLV_Daughter1.Pz());
+            DaughterOriginal2.Set(Particle2.GetT(),Particle2.GetX(),Particle2.GetY(),Particle2.GetZ(),TLV_Daughter2.E(),TLV_Daughter2.Px(),TLV_Daughter2.Py(),TLV_Daughter2.Pz());
+            CatsParticle Daughter1 = DaughterOriginal1;
+            CatsParticle Daughter2 = DaughterOriginal2;
+
+            TLorentzVector TVL_Daughters = TLV_Daughter1 + TLV_Daughter2;
+
+            //!THE NEW STUFF
+            //boost into the rest frame of the daughters
+            CatsLorentzVector BoostVector;
+            BoostVector.Set(0,0,0,0,TVL_Daughters.E(),TVL_Daughters.Px(),TVL_Daughters.Py(),TVL_Daughters.Pz());
+            //printf("BV = (%.3f,%.3f,%.3f)\n",BoostVector.GetPx(),BoostVector.GetPy(),BoostVector.GetPz());
+            Particle1.Boost(BoostVector);
+            Particle2.Boost(BoostVector);
+            Daughter1.Boost(BoostVector);
+            Daughter2.Boost(BoostVector);
+        //printf("\np1 = %f (%.3f,%.3f,%.3f)\n",Particle1.GetP(),Particle1.GetPx(),Particle1.GetPy(),Particle1.GetPz());
+        //printf("p2 = %f (%.3f,%.3f,%.3f)\n",Particle2.GetP(),Particle2.GetPx(),Particle2.GetPy(),Particle2.GetPz());
+        //printf("d1 = %f (%.3f,%.3f,%.3f)\n",Daughter1.GetP(),Daughter1.GetPx(),Daughter1.GetPy(),Daughter1.GetPz());
+        //printf("d2 = %f (%.3f,%.3f,%.3f)\n",Daughter2.GetP(),Daughter2.GetPx(),Daughter2.GetPy(),Daughter2.GetPz());
+            vecR.SetXYZ(Particle1.GetX()-Particle2.GetX(),Particle1.GetY()-Particle2.GetY(),Particle1.GetZ()-Particle2.GetZ());
+            vecK.SetXYZ(Particle2.GetPx()-Particle1.GetPx(),Particle2.GetPy()-Particle1.GetPy(),Particle2.GetPz()-Particle1.GetPz());
+            TVector3 vecR_Daughters;
+            vecR_Daughters.SetXYZ(Daughter1.GetX()-Daughter2.GetX(),Daughter1.GetY()-Daughter2.GetY(),Daughter1.GetZ()-Daughter2.GetZ());
+            TVector3 vecK_Daughters;
+            vecK_Daughters.SetXYZ(Daughter2.GetPx()-Daughter1.GetPx(),Daughter2.GetPy()-Daughter1.GetPy(),Daughter2.GetPz()-Daughter1.GetPz());
+            Angle_CmDaughters = vecR.Angle(vecK);
+            if(Angle_CmDaughters<0) Angle_CmDaughters += Pi;
+            if(Angle_CmDaughters>Pi) Angle_CmDaughters -= Pi;
+
+            AngleDaughters = vecR_Daughters.Angle(vecK_Daughters);
+            if(AngleDaughters<0) AngleDaughters += Pi;
+            if(AngleDaughters>Pi) AngleDaughters -= Pi;
+
+            double relK = vecK.Mag()*1000.;
+            double relK_Daughters = vecK_Daughters.Mag()*1000.;
+
+        //printf("p1 = %f (%.3f,%.3f,%.3f)\n",Particle1.GetP(),Particle1.GetPx(),Particle1.GetPy(),Particle1.GetPz());
+        //printf("p2 = %f (%.3f,%.3f,%.3f)\n",Particle2.GetP(),Particle2.GetPx(),Particle2.GetPy(),Particle2.GetPz());
+        //printf("Angle = %f\n",Angle*RadToDeg);
+        //printf("relK_Daughters = %f\n",relK_Daughters);
+
+            //angle between (r,k) of the primordials, as a function of k* of the daughters
+            h_rkAngle_k_Reso->Fill(Angle,relK_Daughters);
+            h_rkAngle_k_Daughters->Fill(AngleDaughters,relK_Daughters);
+            if(relK_Daughters<200) h_rkAngle_Reso->Fill(Angle);
+            if(Angle>13.14){
+                printf("----------------\n");
+                printf(" Angle = %f\n\n",Angle);
+                printf(" relK_Daughters = %f\n\n",relK_Daughters);
+                printf(" p1 = %f (%.3f,%.3f,%.3f)\n",Particle1.GetP(),Particle1.GetPx(),Particle1.GetPy(),Particle1.GetPz());
+                printf(" p2 = %f (%.3f,%.3f,%.3f)\n",Particle2.GetP(),Particle2.GetPx(),Particle2.GetPy(),Particle2.GetPz());
+                printf(" o1 = %f (%.3f,%.3f,%.3f)\n",ParticleOriginal1.GetP(),ParticleOriginal1.GetPx(),ParticleOriginal1.GetPy(),ParticleOriginal1.GetPz());
+                printf(" o2 = %f (%.3f,%.3f,%.3f)\n",ParticleOriginal2.GetP(),ParticleOriginal2.GetPx(),ParticleOriginal2.GetPy(),ParticleOriginal2.GetPz());
+                printf(" d1 = %f (%.3f,%.3f,%.3f)\n",Daughter1.GetP(),Daughter1.GetPx(),Daughter1.GetPy(),Daughter1.GetPz());
+                printf(" d2 = %f (%.3f,%.3f,%.3f)\n",Daughter2.GetP(),Daughter2.GetPx(),Daughter2.GetPy(),Daughter2.GetPz());
+            }
+
+
+            //! get in the CM of the primordials for a change
+            Particle1 = ParticleOriginal1;
+            Particle2 = ParticleOriginal2;
+            Daughter1 = DaughterOriginal1;
+            Daughter2 = DaughterOriginal2;
+        //printf(" Particle1 = %f (%.3f,%.3f,%.3f)\n",Particle1.GetP(),Particle1.GetPx(),Particle1.GetPy(),Particle1.GetPz());
+        //printf(" Particle2 = %f (%.3f,%.3f,%.3f)\n",Particle2.GetP(),Particle2.GetPx(),Particle2.GetPy(),Particle2.GetPz());
+            BoostVector.Set(0,0,0,0,Part1Part2.GetE(),Part1Part2.GetPx(),Part1Part2.GetPy(),Part1Part2.GetPz());
+            Particle1.Boost(BoostVector);
+            Particle2.Boost(BoostVector);
+            Daughter1.Boost(BoostVector);
+            Daughter2.Boost(BoostVector);
+            h_rkAngle_k_Prim->Fill(Angle,relK);
+
+            //!the old stuff for PRIM-RESO
+            //BoostVector.Set(0,0,0,0,BoostVector.GetE(),-BoostVector.GetPx(),-BoostVector.GetPy(),-BoostVector.GetPz());
+            Particle1 = ParticleOriginal1;
+            Particle2 = ParticleOriginal2;
+            Daughter1 = DaughterOriginal1;
+            Daughter2 = DaughterOriginal2;
+        //printf("\np1 = %f (%.3f,%.3f,%.3f)\n",Particle1.GetP(),Particle1.GetPx(),Particle1.GetPy(),Particle1.GetPz());
+        //printf("p2 = %f (%.3f,%.3f,%.3f)\n",Particle2.GetP(),Particle2.GetPx(),Particle2.GetPy(),Particle2.GetPz());
+        //printf("d1 = %f (%.3f,%.3f,%.3f)\n",Daughter1.GetP(),Daughter1.GetPx(),Daughter1.GetPy(),Daughter1.GetPz());
+        //printf("d2 = %f (%.3f,%.3f,%.3f)\n",Daughter2.GetP(),Daughter2.GetPx(),Daughter2.GetPy(),Daughter2.GetPz());
+            if(DataSetDescr=="p_p"){
+                BoostVector.Set(0,0,0,0,0,0,0,0);
+            }
+            else if(DataSetDescr=="p_pReso"){
+                BoostVector.Set(0,0,0,0,Particle1.GetE(),Particle1.GetPx(),Particle1.GetPy(),Particle1.GetPz());
+            }
+            else if(DataSetDescr=="pReso_pReso"){
+                BoostVector.Set(0,0,0,0,Daughter1.GetE(),Daughter1.GetPx(),Daughter1.GetPy(),Daughter1.GetPz());
+                //BoostVector.Set(0,0,0,0,TVL_Daughters.E(),TVL_Daughters.Px(),TVL_Daughters.Py(),TVL_Daughters.Pz());
+            }
+            //p-Lambda correlation
+            else if(DataSetDescr=="p_LamReso"){
+                BoostVector.Set(0,0,0,0,Particle1.GetE(),Particle1.GetPx(),Particle1.GetPy(),Particle1.GetPz());
+            }
+            else if(DataSetDescr=="pReso_Lam"){
+                BoostVector.Set(0,0,0,0,Particle2.GetE(),Particle2.GetPx(),Particle2.GetPy(),Particle2.GetPz());
+            }
+            else if(DataSetDescr=="pReso_LamReso"){
+                BoostVector.Set(0,0,0,0,Daughter1.GetE(),Daughter1.GetPx(),Daughter1.GetPy(),Daughter1.GetPz());
+            }
+            Particle1.Boost(BoostVector);
+            Particle2.Boost(BoostVector);
+            Daughter1.Boost(BoostVector);
+            Daughter2.Boost(BoostVector);
+        //printf("PRIM-RESO:\n");
+        //printf(" Particle1 = %f (%.3f,%.3f,%.3f)\n",Particle1.GetP(),Particle1.GetPx(),Particle1.GetPy(),Particle1.GetPz());
+        //printf(" Particle2 = %f (%.3f,%.3f,%.3f)\n",Particle2.GetP(),Particle2.GetPx(),Particle2.GetPy(),Particle2.GetPz());
+            vecR.SetXYZ(Particle1.GetX()-Particle2.GetX(),Particle1.GetY()-Particle2.GetY(),Particle1.GetZ()-Particle2.GetZ());
+            vecK.SetXYZ(Particle2.GetPx()-Particle1.GetPx(),Particle2.GetPy()-Particle1.GetPy(),Particle2.GetPz()-Particle1.GetPz());
+            vecK_Daughters.SetXYZ(Daughter2.GetPx()-Daughter1.GetPx(),Daughter2.GetPy()-Daughter1.GetPy(),Daughter2.GetPz()-Daughter1.GetPz());
+            Angle = vecR.Angle(vecK);
+            if(Angle<0) Angle += Pi;
+            if(Angle>Pi) Angle -= Pi;
+            relK = vecK.Mag()*1000.;
+            relK_Daughters = vecK_Daughters.Mag()*1000.;
+            //angle between (r,k) of the primordials, as a function of k* of the daughters in the rest frame of one of the primordials
+            h_rkAngle_Mom2->Fill(Angle,relK_Daughters);
+            //angle between (r,k) of the primordials, as a function of k between them (p_res) of the daughters in the rest frame of one of the primordials
+            //if(Angle<3.1)
+            h_rkAngle_MomReso2->Fill(Angle,relK);
+//if(Angle<0.001){
+if(Angle>13.1415){
+printf("\np1 = %f(%.3f,%.3f,%.3f) r %f(%.3f,%.3f,%.3f)\n",Particle1.GetP(),Particle1.GetPx(),Particle1.GetPy(),Particle1.GetPz(),
+       Particle1.GetR(),Particle1.GetX(),Particle1.GetY(),Particle1.GetZ());
+printf("p2 = %f(%.3f,%.3f,%.3f) r %f(%.3f,%.3f,%.3f)\n",Particle2.GetP(),Particle2.GetPx(),Particle2.GetPy(),Particle2.GetPz(),
+       Particle2.GetR(),Particle2.GetX(),Particle2.GetY(),Particle2.GetZ());
+printf("d1 = %f(%.3f,%.3f,%.3f) r %f(%.3f,%.3f,%.3f)\n",Daughter1.GetP(),Daughter1.GetPx(),Daughter1.GetPy(),Daughter1.GetPz(),
+       Daughter1.GetR(),Daughter1.GetX(),Daughter1.GetY(),Daughter1.GetZ());
+printf("d2 = %f(%.3f,%.3f,%.3f) r %f(%.3f,%.3f,%.3f)\n",Daughter2.GetP(),Daughter2.GetPx(),Daughter2.GetPy(),Daughter2.GetPz(),
+       Daughter2.GetR(),Daughter2.GetX(),Daughter2.GetY(),Daughter2.GetZ());
+
+
+TVector3 UnitPart1;
+double MAG1 = ParticleOriginal1.GetP();
+UnitPart1.SetXYZ(ParticleOriginal1.GetPx()/MAG1,ParticleOriginal1.GetPy()/MAG1,ParticleOriginal1.GetPz()/MAG1);
+TVector3 UnitPart2;
+double MAG2 = ParticleOriginal2.GetP();
+UnitPart2.SetXYZ(ParticleOriginal2.GetPx()/MAG2,ParticleOriginal2.GetPy()/MAG2,ParticleOriginal2.GetPz()/MAG2);
+
+printf("IN LAB:\np1 = (%.3f,%.3f,%.3f)\n",UnitPart1.X(),UnitPart1.Y(),UnitPart1.Z());
+printf("p2 = (%.3f,%.3f,%.3f)\n",UnitPart2.X(),UnitPart2.Y(),UnitPart2.Z());
+TVector3 vecOriginalR;
+vecOriginalR.SetXYZ(ParticleOriginal1.GetX()-ParticleOriginal2.GetX(),ParticleOriginal1.GetY()-ParticleOriginal2.GetY(),ParticleOriginal1.GetZ()-ParticleOriginal2.GetZ());
+printf("deltaR = %.3f\n",vecOriginalR.Mag());
+}
+
+            //!Go to the rest frame of ONE of the daughters (1st) and plot the angle between the other guy (p_res) and r
+            Particle1 = ParticleOriginal1;
+            Particle2 = ParticleOriginal2;
+            Daughter1 = DaughterOriginal1;
+            Daughter2 = DaughterOriginal2;
+            //printf(" Particle1 = %f (%.3f,%.3f,%.3f)\n",Particle1.GetP(),Particle1.GetPx(),Particle1.GetPy(),Particle1.GetPz());
+            //printf(" Particle2 = %f (%.3f,%.3f,%.3f)\n",Particle2.GetP(),Particle2.GetPx(),Particle2.GetPy(),Particle2.GetPz());
+            BoostVector.Set(0,0,0,0,Particle1.GetE(),Particle1.GetPx(),Particle1.GetPy(),Particle1.GetPz());
+            Particle1.Boost(BoostVector);
+            Particle2.Boost(BoostVector);
+            Daughter1.Boost(BoostVector);
+            Daughter2.Boost(BoostVector);
+        //printf("1st daughter:\n");
+        //printf(" Particle1 = %f (%.3f,%.3f,%.3f)\n",Particle1.GetP(),Particle1.GetPx(),Particle1.GetPy(),Particle1.GetPz());
+        //printf(" Particle2 = %f (%.3f,%.3f,%.3f)\n",Particle2.GetP(),Particle2.GetPx(),Particle2.GetPy(),Particle2.GetPz());
+            vecR.SetXYZ(Particle1.GetX()-Particle2.GetX(),Particle1.GetY()-Particle2.GetY(),Particle1.GetZ()-Particle2.GetZ());
+            vecK.SetXYZ(Particle2.GetPx()-Particle1.GetPx(),Particle2.GetPy()-Particle1.GetPy(),Particle2.GetPz()-Particle1.GetPz());
+            Angle = vecR.Angle(vecK);
+            if(Angle<0) Angle += Pi;
+            if(Angle>Pi) Angle -= Pi;
+            relK = vecK.Mag()*1000.;
+            h_rkAngle_MomResoA->Fill(Angle,relK);
+            //printf("A: A=%.3f; k=%.0f\n",Angle,relK);
+
+            //!Go to the rest frame of ONE of the daughters (2nd) and plot the angle between the other guy (p_res) and r
+            Particle1 = ParticleOriginal1;
+            Particle2 = ParticleOriginal2;
+            Daughter1 = DaughterOriginal1;
+            Daughter2 = DaughterOriginal2;
+            BoostVector.Set(0,0,0,0,Particle2.GetE(),Particle2.GetPx(),Particle2.GetPy(),Particle2.GetPz());
+            Particle1.Boost(BoostVector);
+            Particle2.Boost(BoostVector);
+            Daughter1.Boost(BoostVector);
+            Daughter2.Boost(BoostVector);
+        //printf("2nd daughter:\n");
+        //printf(" Particle1 = %f (%.3f,%.3f,%.3f)\n",Particle1.GetP(),Particle1.GetPx(),Particle1.GetPy(),Particle1.GetPz());
+        //printf(" Particle2 = %f (%.3f,%.3f,%.3f)\n",Particle2.GetP(),Particle2.GetPx(),Particle2.GetPy(),Particle2.GetPz());
+            vecR.SetXYZ(Particle1.GetX()-Particle2.GetX(),Particle1.GetY()-Particle2.GetY(),Particle1.GetZ()-Particle2.GetZ());
+            vecK.SetXYZ(Particle2.GetPx()-Particle1.GetPx(),Particle2.GetPy()-Particle1.GetPy(),Particle2.GetPz()-Particle1.GetPz());
+            Angle = vecR.Angle(vecK);
+            if(Angle<0) Angle += Pi;
+            if(Angle>Pi) Angle -= Pi;
+            relK = vecK.Mag()*1000.;
+            h_rkAngle_MomResoB->Fill(Angle,relK);
+            //printf("B: A=%.3f; k=%.0f\n",Angle,relK);
+
+        }
+
+
+        KittyEvent->Reset();
+        KittyFilteredEvent->Reset();
+
+        CurPos = ftell (InFile);
+        pMaxPairsToRead = double(NumTotalPairs)/double(MaxPairsToRead);//
+        pFile = double(CurPos)/double(EndPos);//what fraction of the file has been read
+        ProgressLoad = pMaxPairsToRead>pFile?pMaxPairsToRead:pFile;
+
+        pTotal = int(ProgressLoad*100);
+        if(pTotal!=pTotalOld){
+            Time = double(dlmTimer.Stop())/1000000.;
+            Time = round((1./ProgressLoad-1.)*Time);
+            ShowTime((long long)(Time), cdummy, 2, true, 5);
+            printf("\r\033[K          Progress %3d%%, ETA %s",pTotal,cdummy);
+            ProgressBar = true;
+            cout << flush;
+            pTotalOld = pTotal;
+        }
+
+    }//while(!feof(InFile))
+
+    if(ProgressBar){
+        printf("\r\033[K");
+    }
+
+    TFile* fOut = new TFile(OutFileBaseName+".root","recreate");
+
+    //h_rkAngle_Mom2->GetXaxis()->SetTitle("Angle (rad)");
+    //h_rkAngle_Mom2->GetYaxis()->SetTitle("p_{res} (MeV)");
+
+    //h_rkAngle_Mom2->Write();
+    //h_kkAngle_Mom2->Write();
+
+    h_rkAngle_k_Reso->Write();
+    h_rkAngle_Reso->Write();
+    h_rkAngle_k_Daughters->Write();
+    h_rkAngle_k_Prim->Write();
+    h_rkAngle_Mom2->Write();
+    h_rkAngle_MomReso2->Write();
+    h_rkAngle_MomResoA->Write();
+    h_rkAngle_MomResoB->Write();
+    h_MomDist_P1->Write();
+    h_MomDist_P2->Write();
+    h_MomDist_P1P2->Write();
+    h_TauDist_P1->Write();
+    h_TauDist_P2->Write();
+    h_TauDist_P1P2->Write();
+
+    delete KittyEvent;
+    delete KittyFilteredEvent;
+    delete h_rkAngle_k_Daughters;
+    delete h_rkAngle_k_Prim;
+    delete h_rkAngle_MomReso2;
+    delete h_rkAngle_MomResoA;
+    delete h_rkAngle_MomResoB;
+    delete h_rkAngle_Mom2;
+    delete h_MomDist_P1;
+    delete h_MomDist_P2;
+    delete h_MomDist_P1P2;
+    delete h_TauDist_P1;
+    delete h_TauDist_P2;
+    delete h_TauDist_P1P2;
+    //delete h_kkAngle_Mom2;
+    //delete eventRan;
+    delete eventRan1;
+    delete eventRan2;
+    delete h_rkAngle_Reso;
+    delete h_rkAngle_k_Reso;
+    delete fOut;
+}
+
 //we produce some particle at an angle theta
 //they fly
 void TestVectorOrientation(){
@@ -3069,7 +3754,12 @@ void TestVectorOrientation(){
 int MIXEDEVENTS(int narg, char** ARGS){
     //DifferentTechniquesTest1("DimiPhi","pp");
     //DifferentTechniquesTest1("DimiPhi","pLambda");
-    ReferenceSampleStudy_1("DimiPhi","LamReso");
+    //ReferenceSampleStudy_1("DimiPhi","pOmega");
+    //ReferenceSampleStudy_1("DimiPhi","pReso");
+    //ReferenceSampleStudy_2("DimiPhi","p_p");
+    ReferenceSampleStudy_2("DimiPhi","p_pReso");
+    //ReferenceSampleStudy_2("DimiPhi","pReso_pReso");
+    //ReferenceSampleStudy_2("DimiPhi","p_p");
     //CompareReferenceSamples("pp");
     //CompareSameMixedEventToBoltzmann();
     //RatioBetweenLevy();
