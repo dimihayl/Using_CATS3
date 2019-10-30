@@ -2532,7 +2532,139 @@ void GenerateFakeProtonLambda(){
     delete hDummyProtonLambda;
 }
 
+void pp_in_txtfile(){
 
+    const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pp_in_txtfile/";
+    const double RadiusSize = 1.2;
+    const double WF_Mom = 100;
+
+    const double kMin = 0;
+    const double kMax = 300;
+    const unsigned NumMomBins = 150;
+
+    const double rMin = 0;
+    const double rMax = 16;
+    const unsigned NumRadBins = 320;
+
+    DLM_CommonAnaFunctions AnalysisObject;
+
+    CATS Kitty_SI;
+    Kitty_SI.SetMaxNumThreads(4);
+    Kitty_SI.SetMomBins(NumMomBins,kMin,kMax);
+    AnalysisObject.SetUpCats_pp(Kitty_SI,"AV18","Gauss");
+    Kitty_SI.SetAnaSource(0,1.2);
+    Kitty_SI.SetEpsilonProp(2e-8);
+    Kitty_SI.SetQ1Q2(0);
+    Kitty_SI.KillTheCat();
+
+    CATS Kitty_Full;
+    Kitty_Full.SetMaxNumThreads(4);
+    Kitty_Full.SetMomBins(NumMomBins,kMin,kMax);
+    AnalysisObject.SetUpCats_pp(Kitty_Full,"AV18","Gauss");
+    Kitty_Full.SetAnaSource(0,1.2);
+    Kitty_Full.SetEpsilonProp(2e-8);
+    Kitty_Full.KillTheCat();
+
+    TH1F* hV_AV18 = new TH1F("hV_AV18","hV_AV18",NumRadBins,rMin,rMax);
+    TH1F* hV_C = new TH1F("hV_C","hV_C",NumRadBins,rMin,rMax);
+    TH1F* hWF_AV18_1S0 = new TH1F("hWF_AV18_1S0","hWF_AV18_1S0",NumRadBins,rMin,rMax);
+    TH1F* hWF_Full_1S0 = new TH1F("hWF_Full_1S0","hWF_Full_1S0",NumRadBins,rMin,rMax);
+    TH1F* hWFu_AV18_1S0 = new TH1F("hWFu_AV18_1S0","hWFu_AV18_1S0",NumRadBins,rMin,rMax);
+    TH1F* hWFu_Full_1S0 = new TH1F("hWFu_Full_1S0","hWFu_Full_1S0",NumRadBins,rMin,rMax);
+    TH1F* hWF_AV18 = new TH1F("hWF_AV18","hWF_AV18",NumRadBins,rMin,rMax);
+    TH1F* hWF_Full = new TH1F("hWF_Full","hWF_Full",NumRadBins,rMin,rMax);
+    TH1F* hCk_AV18 = new TH1F("hCk_AV18","hCk_AV18",NumMomBins,kMin,kMax);
+    TH1F* hCk_Full = new TH1F("hCk_Full","hCk_Full",NumMomBins,kMin,kMax);
+
+    //AV18 potential
+    //Coulomb potential
+    //Wave function at 30 MeV
+    FILE * ppFilePotentials;
+    ppFilePotentials = fopen (TString::Format("%sppFilePotentials.txt",OutputFolder.Data()),"w");
+    fprintf (ppFilePotentials, "%16s","r (fm)");
+    fprintf (ppFilePotentials, "%16s","V_AV18(r)");
+    fprintf (ppFilePotentials, "%16s","V_C(r)");
+    fprintf (ppFilePotentials, "%16s","Re_u1S0_AV18(r)");
+    fprintf (ppFilePotentials, "%16s","Re_u1S0_Tot(r)");
+    fprintf (ppFilePotentials, "%17s","Re_ψ1S0_AV18(r)");
+    fprintf (ppFilePotentials, "%17s","Re_ψ1S0_Tot(r)");
+    fprintf (ppFilePotentials, "%17s","|ψ|^2_AV18(r)");
+    fprintf (ppFilePotentials, "%17s","|ψ|^2_Tot(r)");
+    fprintf (ppFilePotentials,"\n");
+    for(unsigned uRad=0; uRad<NumRadBins; uRad++){
+        double RAD = hV_AV18->GetBinCenter(uRad+1);
+        double V_AV18 = Kitty_SI.EvaluateThePotential(0,0,WF_Mom,RAD);
+        double V_C = Kitty_Full.EvaluateCoulombPotential(RAD);
+        hV_AV18->SetBinContent(uRad+1,V_AV18);
+        hV_C->SetBinContent(uRad+1,V_C);
+        unsigned WhichMomBin = Kitty_SI.GetMomBin(WF_Mom);
+        double WF_AV18_1S0 = real(Kitty_SI.EvalRadialWaveFunction(WhichMomBin,0,0,RAD,true));
+        double WF_Full_1S0 = real(Kitty_Full.EvalRadialWaveFunction(WhichMomBin,0,0,RAD,true));
+        double WFu_AV18_1S0 = real(Kitty_SI.EvalRadialWaveFunction(WhichMomBin,0,0,RAD,false));
+        double WFu_Full_1S0 = real(Kitty_Full.EvalRadialWaveFunction(WhichMomBin,0,0,RAD,false));
+        double WF_AV18 = Kitty_SI.EvalWaveFun2(WhichMomBin,RAD,0);
+        double WF_Full = Kitty_Full.EvalWaveFun2(WhichMomBin,RAD,0);
+        hWF_AV18_1S0->SetBinContent(uRad+1,WF_AV18_1S0);
+        hWF_Full_1S0->SetBinContent(uRad+1,WF_Full_1S0);
+        hWFu_AV18_1S0->SetBinContent(uRad+1,WFu_AV18_1S0);
+        hWFu_Full_1S0->SetBinContent(uRad+1,WFu_Full_1S0);
+        hWF_AV18->SetBinContent(uRad+1,WF_AV18);
+        hWF_Full->SetBinContent(uRad+1,WF_Full);
+        fprintf (ppFilePotentials, "%16.4e",RAD);
+        fprintf (ppFilePotentials, "%16.4e",V_AV18);
+        fprintf (ppFilePotentials, "%16.4e",V_C);
+        fprintf (ppFilePotentials, "%16.4e",WFu_AV18_1S0);
+        fprintf (ppFilePotentials, "%16.4e",WFu_Full_1S0);
+        fprintf (ppFilePotentials, "%16.4e",WF_AV18_1S0);
+        fprintf (ppFilePotentials, "%16.4e",WF_Full_1S0);
+        fprintf (ppFilePotentials, "%16.4e",WF_AV18);
+        fprintf (ppFilePotentials, "%16.4e",WF_Full);
+        fprintf (ppFilePotentials,"\n");
+    }
+
+    FILE * ppFileWF;
+    ppFileWF = fopen (TString::Format("%sppFileWF.txt",OutputFolder.Data()),"w");
+    fprintf (ppFileWF, "%16s","k (MeV)");
+    fprintf (ppFileWF, "%16s","Ck_AV18");
+    fprintf (ppFileWF, "%16s","Ck_Full");
+    fprintf (ppFileWF,"\n");
+    //Ck (full)
+    for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+        double MOM = Kitty_Full.GetMomentum(uMom);
+        double Ck_AV18 = Kitty_SI.GetCorrFun(uMom);
+        double Ck_Full = Kitty_Full.GetCorrFun(uMom);
+        fprintf (ppFileWF, "%16.4e",MOM);
+        fprintf (ppFileWF, "%16.4e",Ck_AV18);
+        fprintf (ppFileWF, "%16.4e",Ck_Full);
+        fprintf (ppFileWF,"\n");
+        hCk_AV18->SetBinContent(uMom+1,Ck_AV18);
+        hCk_Full->SetBinContent(uMom+1,Ck_Full);
+    }
+
+    TFile* fOutput = new TFile(OutputFolder+"fOutput_pp.root","recreate");
+    hV_AV18->Write();
+    hV_C->Write();
+    hWFu_AV18_1S0->Write();
+    hWFu_Full_1S0->Write();
+    hWF_AV18_1S0->Write();
+    hWF_Full_1S0->Write();
+    hWF_AV18->Write();
+    hWF_Full->Write();
+    hCk_AV18->Write();
+    hCk_Full->Write();
+
+    delete hV_AV18;
+    delete hV_C;
+    delete hWFu_AV18_1S0;
+    delete hWFu_Full_1S0;
+    delete hWF_AV18_1S0;
+    delete hWF_Full_1S0;
+    delete hWF_AV18;
+    delete hWF_Full;
+    delete hCk_AV18;
+    delete hCk_Full;
+    delete fOutput;
+}
 
 int main(int argc, char *argv[])
 {
@@ -2554,6 +2686,7 @@ int main(int argc, char *argv[])
         strcpy(ARGV[iARG],argv[iARG]);
     }
 
+    //pp_in_txtfile();
 
     //! FOR THE CATS TUTORIAL 2019
     //GenerateFakeProtonLambda();

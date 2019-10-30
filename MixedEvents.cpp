@@ -33,6 +33,7 @@
 #include "TVector3.h"
 #include "TGenPhaseSpace.h"
 #include "TLorentzVector.h"
+#include "TNtuple.h"
 
 //#include "DLM_CkDecomposition.h"
 //#include "DLM_CkModels.h"
@@ -2888,7 +2889,72 @@ void ReferenceSampleStudy_1(const TString& TranModDescr, const TString& DataSetD
         //!---Iteration over all particles in this event---
         for(int iPart=0; iPart<NumPartInEvent; iPart++){
             KittyParticle.ReadFromOscarFile(InFile);
+            int ParticlePID = KittyParticle.GetPid();
             if(DataSetDescr.Contains("Reso")&&KittyParticle.GetPid()!=pdgID[0])KittyParticle.SetPid(0);
+
+            switch(ParticlePID){
+                //PDG
+                case 32224 : KittyParticle.SetWidth(0.35); break;//Delta 1600
+                case 32214 : KittyParticle.SetWidth(0.35); break;
+                case 32114 : KittyParticle.SetWidth(0.35); break;
+                case 2226 : KittyParticle.SetWidth(0.33); break;//Delta 1905
+                case 2126 : KittyParticle.SetWidth(0.33); break;
+                case 1216 : KittyParticle.SetWidth(0.33); break;
+                case 12112 : KittyParticle.SetWidth(0.30); break;//N 1440
+                case 12212 : KittyParticle.SetWidth(0.30); break;
+                case 12224 : KittyParticle.SetWidth(0.30); break;//Delta 1700
+                case 12214 : KittyParticle.SetWidth(0.30); break;
+                case 12114 : KittyParticle.SetWidth(0.30); break;
+                case 22222 : KittyParticle.SetWidth(0.25); break;//Delta 1910
+                case 22122 : KittyParticle.SetWidth(0.25); break;
+                case 21212 : KittyParticle.SetWidth(0.25); break;
+                case 31214 : KittyParticle.SetWidth(0.20); break;//N 1440
+                case 32124 : KittyParticle.SetWidth(0.20); break;
+                case 32112 : KittyParticle.SetWidth(0.165); break;//N 1650
+                case 32212 : KittyParticle.SetWidth(0.165); break;
+                case 22212 : KittyParticle.SetWidth(0.15); break;//N 1535
+                case 22112 : KittyParticle.SetWidth(0.15); break;
+                case 2116 : KittyParticle.SetWidth(0.15); break;//N 1675
+                case 2216 : KittyParticle.SetWidth(0.15); break;
+                case 2222 : KittyParticle.SetWidth(0.145); break;//Delta 1620
+                case 2122 : KittyParticle.SetWidth(0.145); break;
+                case 1212 : KittyParticle.SetWidth(0.145); break;
+                case 12116 : KittyParticle.SetWidth(0.13); break;//N 1680
+                case 12216 : KittyParticle.SetWidth(0.13); break;
+                case 2224 : KittyParticle.SetWidth(0.118); break;//Delta 1230
+                case 2214 : KittyParticle.SetWidth(0.118); break;
+                case 2114 : KittyParticle.SetWidth(0.118); break;
+                case 1214 : KittyParticle.SetWidth(0.115); break;//N 1520
+                case 2124 : KittyParticle.SetWidth(0.115); break;
+                case 42212 : KittyParticle.SetWidth(0.10); break;//N 1710
+                case 42112 : KittyParticle.SetWidth(0.10); break;
+                case 21214 : KittyParticle.SetWidth(0.10); break;//N 1700
+                case 22124 : KittyParticle.SetWidth(0.10); break;
+                //EPOS
+                case 1111 : KittyParticle.SetWidth(0.118); break;//Delta 1230
+                case 1121 : KittyParticle.SetWidth(0.118); break;
+                case 1221 : KittyParticle.SetWidth(0.118); break;
+                case 1122 : KittyParticle.SetWidth(0.20); break;//N 1440
+                case 1222 : KittyParticle.SetWidth(0.20); break;
+                case 1123 : KittyParticle.SetWidth(0.15); break;//N 1530 -> 1535
+                case 1223 : KittyParticle.SetWidth(0.15); break;
+                case 1112 : KittyParticle.SetWidth(0.145); break;//Delta 1620
+                case 1124 : KittyParticle.SetWidth(0.145); break;
+                case 1224 : KittyParticle.SetWidth(0.145); break;
+                case 1125 : KittyParticle.SetWidth(0.15); break;//N 1665 -> 1675
+                case 1225 : KittyParticle.SetWidth(0.15); break;
+                case 1113 : KittyParticle.SetWidth(0.30); break;//Delta 1700
+                case 1126 : KittyParticle.SetWidth(0.30); break;
+                case 1226 : KittyParticle.SetWidth(0.30); break;
+                case 1127 : KittyParticle.SetWidth(0.10); break;//N 1710
+                case 1227 : KittyParticle.SetWidth(0.10); break;
+                case 1114 : KittyParticle.SetWidth(0.25); break;//Delta 1925 -> 1910
+                case 1128 : KittyParticle.SetWidth(0.25); break;
+                case 1228 : KittyParticle.SetWidth(0.25); break;
+                default : KittyParticle.SetWidth(0); break;
+            }
+
+
             //continue;
             //ALICE ACCEPTANCE
             //if(KittyParticle.GetP()<0.4) continue;
@@ -3070,8 +3136,123 @@ void ReferenceSampleStudy_1(const TString& TranModDescr, const TString& DataSetD
     delete fOut;
 }
 
+
+
+void ResoInfo(const int& ResoPid, int& ParentPid, double& Width){
+
+            switch(ResoPid){
+                //PDG
+                case 32224 : Width = 0.35; ParentPid = 2212; break;//Delta 1600
+                case 32214 : Width = 0.35; ParentPid = 2212; break;
+                case 32114 : Width = 0.35; ParentPid = 2212; break;
+                case 2226 : Width = 0.33; ParentPid = 2212; break;//Delta 1905
+                case 2126 : Width = 0.33; ParentPid = 2212; break;
+                case 1216 : Width = 0.33; ParentPid = 2212; break;
+                case 12112 : Width = 0.30; ParentPid = 2212; break;//N 1440
+                case 12212 : Width = 0.30; ParentPid = 2212; break;
+                case 12224 : Width = 0.30; ParentPid = 2212; break;//Delta 1700
+                case 12214 : Width = 0.30; ParentPid = 2212; break;
+                case 12114 : Width = 0.30; ParentPid = 2212; break;
+                case 22222 : Width = 0.25; ParentPid = 2212; break;//Delta 1910
+                case 22122 : Width = 0.25; ParentPid = 2212; break;
+                case 21212 : Width = 0.25; ParentPid = 2212; break;
+                case 31214 : Width = 0.20; ParentPid = 2212; break;//N 1440
+                case 32124 : Width = 0.20; ParentPid = 2212; break;
+                case 32112 : Width = 0.165; ParentPid = 2212; break;//N 1650
+                case 32212 : Width = 0.165; ParentPid = 2212; break;
+                case 22212 : Width = 0.15; ParentPid = 2212; break;//N 1535
+                case 22112 : Width = 0.15; ParentPid = 2212; break;
+                case 2116 : Width = 0.15; ParentPid = 2212; break;//N 1675
+                case 2216 : Width = 0.15; ParentPid = 2212; break;
+                case 2222 : Width = 0.145; ParentPid = 2212; break;//Delta 1620
+                case 2122 : Width = 0.145; ParentPid = 2212; break;
+                case 1212 : Width = 0.145; ParentPid = 2212; break;
+                case 12116 : Width = 0.13; ParentPid = 2212; break;//N 1680
+                case 12216 : Width = 0.13; ParentPid = 2212; break;
+                case 2224 : Width = 0.118; ParentPid = 2212; break;//Delta 1230
+                case 2214 : Width = 0.118; ParentPid = 2212; break;
+                case 2114 : Width = 0.118; ParentPid = 2212; break;
+                case 1214 : Width = 0.115; ParentPid = 2212; break;//N 1520
+                case 2124 : Width = 0.115; ParentPid = 2212; break;
+                case 42212 : Width = 0.10; ParentPid = 2212; break;//N 1710
+                case 42112 : Width = 0.10; ParentPid = 2212; break;
+                case 21214 : Width = 0.10; ParentPid = 2212; break;//N 1700
+                case 22124 : Width = 0.10; ParentPid = 2212; break;
+                //for lambda
+                case 3224 : Width = 0.0358; ParentPid = 3122; break;//S*+
+                case 3214 : Width = 0.036; ParentPid = 3122; break;//S*0
+                case 3114 : Width = 0.0394; ParentPid = 3122; break;//S*-
+                case 13124 : Width = 0.06; ParentPid = 3122; break;//Lambda 1690
+                case 13222 : Width = 0.1; ParentPid = 3122; break;//S+(1660)
+                case 13212 : Width = 0.1; ParentPid = 3122; break;//S0(1660)
+                case 13112 : Width = 0.1; ParentPid = 3122; break;//S-(1660)
+                case 13224 : Width = 0.06; ParentPid = 3122; break;//S+(1670)
+                case 13214 : Width = 0.06; ParentPid = 3122; break;//S0(1670)
+                case 13114 : Width = 0.06; ParentPid = 3122; break;//S-(1670)
+                case 3216 : Width = 0.12; ParentPid = 3122; break;//S+(1775)
+                case 3226 : Width = 0.12; ParentPid = 3122; break;//S0(1775)
+                case 3116 : Width = 0.12; ParentPid = 3122; break;//S-(1775)
+                case 33122 : Width = 0.035; ParentPid = 3122; break;//Lambda 1670
+                case 13226 : Width = 0.12; ParentPid = 3122; break;//S+(1915)
+                case 13216 : Width = 0.12; ParentPid = 3122; break;//S0(1915)
+                case 13116 : Width = 0.12; ParentPid = 3122; break;//S-(1915)
+                case 13324 : Width = 0.024; ParentPid = 3122; break;//Xi0 1820
+                case 13314 : Width = 0.024; ParentPid = 3122; break;//Xi- 1820
+                case 3126 : Width = 0.08; ParentPid = 3122; break;//Lambda 1820
+                case 23222 : Width = 0.09; ParentPid = 3122; break;//S+(1750)
+                case 23212 : Width = 0.09; ParentPid = 3122; break;//S0(1750)
+                case 23112 : Width = 0.09; ParentPid = 3122; break;//S-(1750)
+                //case 42212 : Width = 0.1; break;//N+ 1710
+                //case 42112 : Width = 0.1; break;//N0 1710
+                //case 32124 : Width = 0.2; break;//N+ 1720
+                //case 31214 : Width = 0.2; break;//N0 1720
+                //case 32212 : Width = 0.165; break;//N+ 1650
+                //case 32112 : Width = 0.165; break;//N0 1650
+
+                //EPOS
+                case 1111 : Width = 0.118; ParentPid = 1120; break;//Delta 1230
+                case 1121 : Width = 0.118; ParentPid = 1120; break;
+                case 1221 : Width = 0.118; ParentPid = 1120; break;
+                case 1122 : Width = 0.20; ParentPid = 1120; break;//N 1440
+                case 1222 : Width = 0.20; ParentPid = 1120; break;
+                case 1123 : Width = 0.15; ParentPid = 1120; break;//N 1530 -> 1535
+                case 1223 : Width = 0.15; ParentPid = 1120; break;
+                case 1112 : Width = 0.145; ParentPid = 1120; break;//Delta 1620
+                case 1124 : Width = 0.145; ParentPid = 1120; break;
+                case 1224 : Width = 0.145; ParentPid = 1120; break;
+                case 1125 : Width = 0.15; ParentPid = 1120; break;//N 1665 -> 1675
+                case 1225 : Width = 0.15; ParentPid = 1120; break;
+                case 1113 : Width = 0.30; ParentPid = 1120; break;//Delta 1700
+                case 1126 : Width = 0.30; ParentPid = 1120; break;
+                case 1226 : Width = 0.30; ParentPid = 1120; break;
+                case 1127 : Width = 0.10; ParentPid = 1120; break;//N 1710
+                case 1227 : Width = 0.10; ParentPid = 1120; break;
+                case 1114 : Width = 0.25; ParentPid = 1120; break;//Delta 1925 -> 1910
+                case 1128 : Width = 0.25; ParentPid = 1120; break;
+                case 1228 : Width = 0.25; ParentPid = 1120; break;
+                //for lambda
+                case 1131 : Width = 0.036; ParentPid = 2130; break;//S1385
+                case 1231 : Width = 0.036; ParentPid = 2130; break;
+                case 2231 : Width = 0.039; ParentPid = 2130; break;
+                case 1132 : Width = 0.08; ParentPid = 2130; break;//S1665 (avg of 1660 and 1670)
+                case 1236 : Width = 0.08; ParentPid = 2130; break;
+                case 2232 : Width = 0.08; ParentPid = 2130; break;
+                case 1133 : Width = 0.12; ParentPid = 2130; break;//S1775
+                case 1237 : Width = 0.12; ParentPid = 2130; break;
+                case 2233 : Width = 0.12; ParentPid = 2130; break;
+                case 1134 : Width = 0.12; ParentPid = 2130; break;
+                case 1239 : Width = 0.12; ParentPid = 2130; break;
+                case 2234 : Width = 0.12; ParentPid = 2130; break;
+                default : Width = 0; ParentPid=0; break;
+            }
+}
+
+
 //New version of ReferenceSampleStudy_1, where we now decay all resonances and take the daughters to fix the coordinate system
 void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetDescr){
+    //if true, it decays the parents multiple times, and the solution which results in the smallest k* of the daughters is considered
+    //the idea: enhance the statistics for the region we care about.
+    const bool PickBestDecay = false;
     const double kMin = DataSetDescr=="pp"?0:DataSetDescr=="pLambda"?0:DataSetDescr=="pXim"?0:0;
     const double kMax = DataSetDescr=="pp"?4000:DataSetDescr=="pLambda"?4000:DataSetDescr=="pXim"?4000:4000;
     const double kMinZoom = DataSetDescr=="pp"?0:DataSetDescr=="pLambda"?0:DataSetDescr=="pXim"?0:0;
@@ -3079,7 +3260,7 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
     //const double kNormMin = 0.400;
     //const double kNormMax = 0.600;
     //const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/ReferenceSampleStudy_1/";
-    const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/AngleStudy_2/VER5/";
+    const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/AngleStudy_3/";
     const unsigned NumMomBins = DataSetDescr=="pp"?400:DataSetDescr=="pLambda"?200:DataSetDescr=="pXim"?200:200;
     const TString OutFileBaseName = OutputFolder+TranModDescr+"_"+DataSetDescr;
     //const TString InputFileName = DataSetDescr=="pp"?TransportFile_pp_Alice:DataSetDescr=="pLambda"?TransportFile_pL_Alice:
@@ -3089,71 +3270,98 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
     //const TString InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp200/pp200_pXim_PRIM_4PI.f19";
     //const TString InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp200/pp200_pOmega_PRIM_4PI.f19";
     //const TString InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp200/pp200_pReso_PRIM_4PI_VER4.f19";
-    const TString InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp200/pp200_pReso_4PI_VER5.f19";
+    //const TString InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp200/pp200_pReso_4PI_VER5.f19";
+    //const TString InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp200/pp200_pReso_Oct2019_4PI.f19";
+    const TString InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp200/pp200_pResoLamReso_Oct2019_4PI_ReducedWeights.f19";
+
     //AvgResoMass = 1.354190 for VER2, around 1.38 for the first version. Basically VER2 has inly ior==0 reso
     //const TString InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp80/pp80_pReso_PRIM_4PI_VER2.f19";
     //const TString InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp80/pp80_LamReso_PRIM_4PI.f19";
 
     const unsigned NumBlankHeaderLines=3;
-    const unsigned MaxPairsToRead = 200e6;
+    const unsigned MaxPairsToRead = 2000e6;
     const unsigned HighMultLimit = 128;
     const double SmearPhi = (45.)*DegToRad;
     int pdgID[2] = {DataSetDescr=="LambdaLambda"?3122:2212,
     DataSetDescr=="pp"?2212:DataSetDescr=="pLambda"?3122:DataSetDescr=="LambdaLambda"?3122:DataSetDescr=="pXim"?3312:DataSetDescr=="pOmega"?3334:0};
+    int Original_eposID[2];
     int Original_pdgID[2];
     //masses of the decay products (daughters)
     double DaughterMassP1[2];
     double DaughterMassP2[2];
+    double ResoMass[2];
 
     //p-p correlation
     if(DataSetDescr=="p_p"){
-        pdgID[0] = 1120;
-        pdgID[1] = 1120;
-        Original_pdgID[0] = 1120;
-        Original_pdgID[1] = 1120;
+        pdgID[0] = 2212;
+        pdgID[1] = 2212;
+        Original_eposID[0] = 1120;
+        Original_eposID[1] = 1120;
+        Original_pdgID[0] = 2212;
+        Original_pdgID[1] = 2212;
 
         DaughterMassP1[0] = -1;
         DaughterMassP1[1] = -1;
 
         DaughterMassP2[0] = -1;
         DaughterMassP2[1] = -1;
+
+        ResoMass[0] = -1;
+        ResoMass[1] = -1;
     }
     else if(DataSetDescr=="p_pReso"){
-        pdgID[0] = 1120;
+        pdgID[0] = 2212;
         pdgID[1] = 0;
-        Original_pdgID[0] = 1120;
-        Original_pdgID[1] = 1120;
+        Original_eposID[0] = 1120;
+        Original_eposID[1] = 1120;
+        Original_pdgID[0] = 2212;
+        Original_pdgID[1] = 2212;
 
         DaughterMassP1[0] = -1;
         DaughterMassP1[1] = -1;
 
         DaughterMassP2[0] = Mass_p*0.001;
         DaughterMassP2[1] = Mass_pic*0.001;
+
+        ResoMass[0] = -1;
+        ResoMass[1] = 1.36;
     }
     else if(DataSetDescr=="pReso_pReso"){
         pdgID[0] = 0;
         pdgID[1] = 0;
-        Original_pdgID[0] = 1120;
-        Original_pdgID[1] = 1120;
+        Original_eposID[0] = 1120;
+        Original_eposID[1] = 1120;
+        Original_pdgID[0] = 2212;
+        Original_pdgID[1] = 2212;
 
         DaughterMassP1[0] = Mass_p*0.001;
         DaughterMassP1[1] = Mass_pic*0.001;
 
         DaughterMassP2[0] = Mass_p*0.001;
         DaughterMassP2[1] = Mass_pic*0.001;
+
+        ResoMass[0] = 1.36;
+        ResoMass[1] = 1.36;
     }
     //p-Lambda correlation
-//! WRONG PIDs?
     else if(DataSetDescr=="p_LamReso"){
-        pdgID[0] = 1120;
-        pdgID[1] = 0;
+        pdgID[0] = 2212;
+        pdgID[1] = 1;
+        Original_eposID[0] = 1120;
+        Original_eposID[1] = 2130;
+        Original_pdgID[0] = 2212;
+        Original_pdgID[1] = 3122;
 
         DaughterMassP1[0] = -1;
         DaughterMassP1[1] = -1;
 
         DaughterMassP2[0] = Mass_L*0.001;
         DaughterMassP2[1] = Mass_pic*0.001;
+
+        ResoMass[0] = -1;
+        ResoMass[1] = 1.46;
     }
+//! WRONG PIDs?
     else if(DataSetDescr=="pReso_Lam"){
         pdgID[0] = 0;
         pdgID[1] = 2130;
@@ -3163,22 +3371,48 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
 
         DaughterMassP2[0] = -1;
         DaughterMassP2[1] = -1;
+
+        ResoMass[0] = 1.36;
+        ResoMass[1] = -1;
+
+        pdgID[0] = 0;
+        pdgID[1] = 3122;
+        Original_eposID[0] = 1120;
+        Original_eposID[1] = 2130;
+        Original_pdgID[0] = 2212;
+        Original_pdgID[1] = 3122;
+
+        DaughterMassP1[0] = Mass_p*0.001;
+        DaughterMassP1[1] = Mass_pic*0.001;
+
+        DaughterMassP2[0] = -1;
+        DaughterMassP2[1] = -1;
+
+        ResoMass[0] = 1.46;
+        ResoMass[1] = -1;
     }
     else if(DataSetDescr=="pReso_LamReso"){
         pdgID[0] = 0;
-        pdgID[1] = 0;
+        pdgID[1] = 1;
+        Original_eposID[0] = 1120;
+        Original_eposID[1] = 2130;
+        Original_pdgID[0] = 2212;
+        Original_pdgID[1] = 3122;
 
         DaughterMassP1[0] = Mass_p*0.001;
         DaughterMassP1[1] = Mass_pic*0.001;
 
         DaughterMassP2[0] = Mass_L*0.001;
         DaughterMassP2[1] = Mass_pic*0.001;
+
+        ResoMass[0] = 1.36;
+        ResoMass[1] = 1.46;
     }
 
     unsigned NumTotalPairs=0;
     unsigned TotNumEvents=0;
     unsigned RejectedHighMultEvents=0;
-
+/*
     //angle between (r,k) of the primordials, as a function of k* of the daughters (in CM of the daughters), THE MOST USEFUL I WOULD SAY
     TH2F* h_rkAngle_k_Reso = new TH2F("h_rkAngle_k_Reso","h_rkAngle_k_Reso",64,0,Pi,64,0,1024);
     //angle between (r,k) of the primordials, as a function of k* of the daughters in the rest frame of one of the primordials
@@ -3197,6 +3431,38 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
     //actually decays the resonances into proton pion or Lambda pion and saves the angles for all initial primordial particles,
     //which after the decay resulted in a pair with k* < FixedValue (say 100 MeV or so to do femto)
     TH1F* h_rkAngle_Reso = new TH1F("h_rkAngle_Reso","h_rkAngle_Reso",64,0,Pi);
+*/
+    //angle between the parents in the CM of the daughters (function of k*)
+    TH2F* h_AP_D = new TH2F("h_AP_D","h_AP_D",64,0,Pi,64,0,1024*1);
+    TH2F* h_AP_D_Large_AP_P1 = new TH2F("h_AP_D_Large_AP_P1","h_AP_D_Large_AP_P1",64,0,Pi,64,0,1024*1);
+    TH2F* h_AP_D_Large_AP_P2 = new TH2F("h_AP_D_Large_AP_P2","h_AP_D_Large_AP_P2",64,0,Pi,64,0,1024*1);
+    TH2F* h_AP_D_LargeAngles = new TH2F("h_AP_D_LargeAngles","h_AP_D_LargeAngles",64,0,Pi,64,0,1024*1);
+    TH1F* h1_AP_D = new TH1F("h1_AP_D","h1_AP_D",256,0,Pi);
+    //angle between the daughters in the CM of the daughters (function of k*)
+    TH2F* h_AD_D = new TH2F("h_AD_D","h_AD_D",64,0,Pi,64,0,1024*1);
+
+    //angle between the parents in the rest frame of the first daughter (function of p_res)
+    TH2F* h_AP_D1 = new TH2F("h_AP_D1","h_AP_D1",64,0,Pi,64,0,1024*1);
+    //angle between the daughters in the rest frame of the first daughter (function of p_res)
+    TH2F* h_AD_D1 = new TH2F("h_AD_D1","h_AD_D1",64,0,Pi,64,0,1024*1);
+
+    //angle between the parents in the rest frame of the second daughter (function of p_res)
+    TH2F* h_AP_D2 = new TH2F("h_AP_D2","h_AP_D2",64,0,Pi,64,0,1024*1);
+    //angle between the daughters in the rest frame of the second daughter (function of p_res)
+    TH2F* h_AD_D2 = new TH2F("h_AD_D2","h_AD_D2",64,0,Pi,64,0,1024*1);
+
+    //angle between the parents in the rest frame of the first parent (function of p_res)
+    TH2F* h_AP_P1 = new TH2F("h_AP_P1","h_AP_P1",64,0,Pi,64,0,1024*1);
+    TH2F* h_AP_P1_AR_P1P2 = new TH2F("h_AP_P1_AR_P1P2","h_AP_P1_AR_P1P2",64,0,Pi,64,0,Pi);
+    TH2F* h_AP_P1_dR_P1P2 = new TH2F("h_AP_P1_dR_P1P2","h_AP_P1_dR_P1P2",64,0,Pi,64,0,64);
+    TH2F* h_AP_P1_LargeAngles = new TH2F("h_AP_P1_LargeAngles","h_AP_P1_LargeAngles",64,0,Pi,64,0,1024*1);
+    //angle between the daughters in the rest frame of the first parent (function of p_res)
+    TH2F* h_AD_P1 = new TH2F("h_AD_P1","h_AD_P1",64,0,Pi,64,0,1024*1);
+
+    //angle between the parents in the rest frame of the second parent (function of p_res)
+    TH2F* h_AP_P2 = new TH2F("h_AP_P2","h_AP_P2",64,0,Pi,64,0,1024*1);
+    //angle between the daughters in the rest frame of the second parent (function of p_res)
+    TH2F* h_AD_P2 = new TH2F("h_AD_P2","h_AD_P2",64,0,Pi,64,0,1024*1);
 
     TH1F* h_MomDist_P1 = new TH1F("h_MomDist_P1","h_MomDist_P1",64,0,4000);
     TH1F* h_MomDist_P2 = new TH1F("h_MomDist_P2","h_MomDist_P2",64,0,4000);
@@ -3205,6 +3471,26 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
     TH1F* h_TauDist_P1 = new TH1F("h_TauDist_P1","h_TauDist_P1",64,0,4);
     TH1F* h_TauDist_P2 = new TH1F("h_TauDist_P2","h_TauDist_P2",64,0,4);
     TH2F* h_TauDist_P1P2 = new TH2F("h_TauDist_P1P2","h_TauDist_P1P2",64,0,4,64,0,4);
+
+    //the angle distribution between the parents in the LAB
+    TH1F* h_AP_LAB = new TH1F("h_AP_LAB","h_AP_LAB",256,0,Pi);
+    TH2F* h_AP_LAB_AR_LAB = new TH2F("h_AP_LAB_AR_LAB","h_AP_LAB_AR_LAB",64*16,0,Pi,64*16,0,Pi);
+    TH2F* h_AP_LAB_AR_LAB_Large_AP_P1 = new TH2F("h_AP_LAB_AR_LAB_Large_AP_P1","h_AP_LAB_AR_LAB_Large_AP_P1",64*16,0,Pi,64*16,0,Pi);
+    TH2F* h_AP_LAB_dR_LAB = new TH2F("h_AP_LAB_dR_LAB","h_AP_LAB_dR_LAB",64,0,Pi,64,0,64);
+
+    TH1F* h_AngleRCP1_D = new TH1F("h_AngleRCP1_D","h_AngleRCP1_D",256,0,Pi);
+    TH1F* h_AngleRCP2_D = new TH1F("h_AngleRCP2_D","h_AngleRCP2_D",256,0,Pi);
+    TH1F* h_AngleP1P2_D = new TH1F("h_AngleP1P2_D","h_AngleP1P2_D",256,0,Pi);
+
+    TH2F* h_AngleRCP1_RCP2_D = new TH2F("h_AngleRCP1_RCP2_D","h_AngleRCP1_RCP2_D",64,0,Pi,64,0,Pi);
+    TH2F* h_AngleRCP1_P1P2_D = new TH2F("h_AngleRCP1_P1P2_D","h_AngleRCP1_P1P2_D",64,0,Pi,64,0,Pi);
+    TH2F* h_AngleRCP2_P1P2_D   = new TH2F("h_AngleRCP2_P1P2_D","h_AngleRCP2_P1P2_D",64,0,Pi,64,0,Pi);
+
+    TFile* fOut = new TFile(OutFileBaseName+".root","recreate");
+    //TFile* fOut = new TFile(OutFileBaseName+"_REPICK.root","recreate");
+    TNtuple* InfoTuple = new TNtuple("InfoTuple","InfoTuple","k_D:P1:P2:M1:M2:Tau1:Tau2:AngleRcP1:AngleRcP2:AngleP1P2");
+    TNtuple* InfoTuple_ClosePairs = new TNtuple("InfoTuple_ClosePairs","InfoTuple_ClosePairs","k_D:P1:P2:M1:M2:Tau1:Tau2:AngleRcP1:AngleRcP2:AngleP1P2");
+    const double ClosePairLimit = 500;
 
     CatsParticle KittyParticle;
     CatsEvent* KittyEvent = new CatsEvent(pdgID[0],pdgID[1]);
@@ -3282,14 +3568,50 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
         //!---Iteration over all particles in this event---
         for(int iPart=0; iPart<NumPartInEvent; iPart++){
             KittyParticle.ReadFromOscarFile(InFile);
-            if(DataSetDescr.Contains("Reso")&&KittyParticle.GetPid()!=Original_pdgID[0]&&KittyParticle.GetPid()!=Original_pdgID[1]&&KittyParticle.GetMass()<DaughterMassP1[0]+DaughterMassP1[1])
-            {
+            //if(DataSetDescr.Contains("Reso")&&KittyParticle.GetPid()!=Original_pdgID[0]&&KittyParticle.GetPid()!=Original_pdgID[1]&&KittyParticle.GetMass()<DaughterMassP1[0]+DaughterMassP1[1])
+            //{
                 //printf("mass = %f\n",KittyParticle.GetMass());
                 //printf("pid = %i\n",KittyParticle.GetPid());
 //!set all masses to the avg
-KittyParticle.SetMass(1.36);
-            }
-            if(DataSetDescr.Contains("Reso")&&KittyParticle.GetPid()!=Original_pdgID[0]&&KittyParticle.GetPid()!=Original_pdgID[1])KittyParticle.SetPid(0);
+//KittyParticle.SetMass(1.36);
+//            }
+    int ParticlePID = KittyParticle.GetPid();
+    double ResoWidth;
+    int ParentPID;
+    ResoInfo(ParticlePID,ParentPID,ResoWidth);
+
+    if(ParticlePID==Original_pdgID[0]||ParticlePID==Original_eposID[0]) {KittyParticle.SetWidth(0);KittyParticle.SetPid(Original_pdgID[0]);}
+    else if(ParticlePID==Original_pdgID[1]||ParticlePID==Original_eposID[1]) {KittyParticle.SetWidth(0);KittyParticle.SetPid(Original_pdgID[1]);}
+    //if it is a reso
+    else if(ParentPID&&ResoWidth){
+        KittyParticle.SetWidth(ResoWidth);
+        if(ParentPID==Original_pdgID[0]||ParentPID==Original_eposID[0]) KittyParticle.SetPid(0);
+        else if(ParentPID==Original_pdgID[1]||ParentPID==Original_eposID[1]) KittyParticle.SetPid(1);
+        //unknown particle
+        else continue;
+    }
+    //unknown particle
+    else continue;
+
+//printf("----\n");
+//printf(" id = %i\n",KittyParticle.GetPid());
+//printf(" width = %f\n",KittyParticle.GetWidth());
+
+
+
+//if(DataSetDescr.Contains("Reso")&&KittyParticle.GetPid()!=Original_pdgID[0]&&KittyParticle.GetPid()!=Original_pdgID[1]
+//   &&KittyParticle.GetPid()!=Original_eposID[0]&&KittyParticle.GetPid()!=Original_eposID[1])KittyParticle.SetPid(0);
+//else if(KittyParticle.GetPid()==Original_eposID[0])KittyParticle.SetPid(Original_pdgID[0]);
+//else if(KittyParticle.GetPid()==Original_eposID[1])KittyParticle.SetPid(Original_pdgID[1]);
+
+
+
+
+//if(DataSetDescr.Contains("Reso")&&KittyParticle.GetPid()!=1120&&
+//   KittyParticle.GetPid()!=1114&&KittyParticle.GetPid()!=1128&&KittyParticle.GetPid()!=1228&&KittyParticle.GetPid()!=1127&&KittyParticle.GetPid()!=1227)continue;
+//if(DataSetDescr.Contains("Reso")&&KittyParticle.GetPid()!=1120) KittyParticle.SetPid(0);
+
+
 
 //printf("pdgID=%i\n",KittyParticle.GetPid());
             //printf("KittyParticle = %f (%.3f,%.3f,%.3f)\n",KittyParticle.GetP(),KittyParticle.GetPx(),KittyParticle.GetPy(),KittyParticle.GetPz());
@@ -3347,13 +3669,31 @@ KittyParticle.SetMass(1.36);
         NumTotalPairs+=KittyFilteredEvent->GetNumPairs();
 
         for(unsigned uPair=0; uPair<KittyFilteredEvent->GetNumPairs(); uPair++){
-            int pid0 = KittyFilteredEvent->GetParticlePair(uPair).GetParticle(0).GetPid();
-            int pid1 = KittyFilteredEvent->GetParticlePair(uPair).GetParticle(1).GetPid();
+            int pid1 = KittyFilteredEvent->GetParticlePair(uPair).GetParticle(0).GetPid();
+            int pid2 = KittyFilteredEvent->GetParticlePair(uPair).GetParticle(1).GetPid();
             //make sure we have particles of the desired PID
-            if((pdgID[0]!=pid0||pdgID[1]!=pid1) && (pdgID[0]!=pid1||pdgID[1]!=pid0)) continue;
+            if((pdgID[0]!=pid1||pdgID[1]!=pid2) && (pdgID[0]!=pid2||pdgID[1]!=pid1)) continue;
 
             CatsParticle ParticleOriginal1 = KittyFilteredEvent->GetParticlePair(uPair).GetParticle(0);
             CatsParticle ParticleOriginal2 = KittyFilteredEvent->GetParticlePair(uPair).GetParticle(1);
+
+//printf("ParticleOriginal1.GetWidth()=%f(%f)\n",ParticleOriginal1.GetWidth(),KittyFilteredEvent->GetParticlePair(uPair).GetParticle(0).GetWidth());
+//printf("ParticleOriginal2.GetWidth()=%f(%f)\n",ParticleOriginal2.GetWidth(),KittyFilteredEvent->GetParticlePair(uPair).GetParticle(1).GetWidth());
+
+            //correct the mass
+            if(pid1<10&&ParticleOriginal1.GetMass()<DaughterMassP1[0]+DaughterMassP1[1]){
+                ParticleOriginal1.SetMass(ResoMass[0]);
+                ParticleOriginal1.Set(ParticleOriginal1.GetT(),ParticleOriginal1.GetX(),ParticleOriginal1.GetY(),ParticleOriginal1.GetZ(),
+                                      sqrt(ResoMass[0]*ResoMass[0]+ParticleOriginal1.GetP2()),
+                                      ParticleOriginal1.GetPx(),ParticleOriginal1.GetPy(),ParticleOriginal1.GetPz());
+            }
+            if(pid2<10&&ParticleOriginal2.GetMass()<DaughterMassP2[0]+DaughterMassP2[1]){
+                ParticleOriginal2.SetMass(ResoMass[1]);
+                ParticleOriginal2.Set(ParticleOriginal2.GetT(),ParticleOriginal2.GetX(),ParticleOriginal2.GetY(),ParticleOriginal2.GetZ(),
+                                      sqrt(ResoMass[1]*ResoMass[1]+ParticleOriginal2.GetP2()),
+                                      ParticleOriginal2.GetPx(),ParticleOriginal2.GetPy(),ParticleOriginal2.GetPz());
+            }
+
 
             CatsParticle Particle1 = ParticleOriginal1;
             CatsParticle Particle2 = ParticleOriginal2;
@@ -3368,6 +3708,7 @@ KittyParticle.SetMass(1.36);
 
             CatsParticle Part1Part2;
             Part1Part2 = Particle1+Particle2;
+            CatsLorentzVector RelPart1Part2 = Particle2-Particle1;
 
         //printf("\nParticle1 = %f (%.3f,%.3f,%.3f)\n",Particle1.GetP(),Particle1.GetPx(),Particle1.GetPy(),Particle1.GetPz());
         //printf("Particle2 = %f (%.3f,%.3f,%.3f)\n",Particle2.GetP(),Particle2.GetPx(),Particle2.GetPy(),Particle2.GetPz());
@@ -3375,13 +3716,18 @@ KittyParticle.SetMass(1.36);
             //the angle (r,k) before any boosts (so in LAB)
             TVector3 vecR;
             TVector3 vecK;
+            TVector3 vecP1;
+            TVector3 vecP2;
+            TVector3 vecRP1;
+            TVector3 vecRP2;
             vecR.SetXYZ(Particle1.GetX()-Particle2.GetX(),Particle1.GetY()-Particle2.GetY(),Particle1.GetZ()-Particle2.GetZ());
             vecK.SetXYZ(Particle2.GetPx()-Particle1.GetPx(),Particle2.GetPy()-Particle1.GetPy(),Particle2.GetPz()-Particle1.GetPz());
             double Angle_Lab = vecR.Angle(vecK);
             if(Angle_Lab<0) Angle_Lab += Pi;
             if(Angle_Lab>Pi) Angle_Lab -= Pi;
 
-            //the angle between the two primary pairs:
+
+            //the angle between the two primary particles:
             // in the CM of the daughters
             double Angle_CmDaughters;
             // in the CM of the parents
@@ -3408,8 +3754,42 @@ KittyParticle.SetMass(1.36);
             // in the rest frame of daughter number 2
             double AngleD_Daughter2;
 
+            //the relative momenta between the two primary particles
+            // in the CM of the daughters
+            double RelMom_CmDaughters;
+            // in the CM of the parents
+            double RelMom_CmParents;
+            // in the rest frame of parent number 1
+            double RelMom_Parent1;
+            // in the rest frame of parent number 2
+            double RelMom_Parent2;
+            // in the rest frame of daughter number 1
+            double RelMom_Daughter1;
+            // in the rest frame of daughter number 2
+            double RelMom_Daughter2;
 
+            //the same as before, but now the relative momenta is between the two daughters
+            double RelMomD_CmDaughters;
+            // in the CM of the parents
+            double RelMomD_CmParents;
+            // in the rest frame of parent number 1
+            double RelMomD_Parent1;
+            // in the rest frame of parent number 2
+            double RelMomD_Parent2;
+            // in the rest frame of daughter number 1
+            double RelMomD_Daughter1;
+            // in the rest frame of daughter number 2
+            double RelMomD_Daughter2;
 
+            //the angle between r_core and the momentum of parent 1 in CM of the daughters
+            double AngleRCP1_CmDaughters;
+            //the angle between r_core and the momentum of parent 2 in CM of the daughters
+            double AngleRCP2_CmDaughters;
+            //the angle between the momenta of the parents in CM of the daughters
+            double AngleP1P2_CmDaughters;
+
+            double MomP1_CmDaughters;
+            double MomP2_CmDaughters;
 
             TVector3 vP1;
             vP1.SetXYZ(Particle1.GetPx(),Particle1.GetPy(),Particle1.GetPz());
@@ -3417,6 +3797,12 @@ KittyParticle.SetMass(1.36);
             vP2.SetXYZ(Particle2.GetPx(),Particle2.GetPy(),Particle2.GetPz());
             double Angle_P1P2 = vP1.Angle(vP2);
             //h_kkAngle_Mom2->Fill(Angle_P1P2,(vP1-vP2).Mag()*1000.);
+            TVector3 vPosP1;
+            vPosP1.SetXYZ(Particle1.GetX(),Particle1.GetY(),Particle1.GetZ());
+            TVector3 vPosP2;
+            vPosP2.SetXYZ(Particle2.GetX(),Particle2.GetY(),Particle2.GetZ());
+            double AngleR_P1P2 = vPosP1.Angle(vPosP2);
+            double RelR_P1P2 = (vPosP2-vPosP1).Mag();//r_core
 
             TLV_P1.SetPxPyPzE(Particle1.GetPx(),Particle1.GetPy(),Particle1.GetPz(),Particle1.GetE());
             TLV_P2.SetPxPyPzE(Particle2.GetPx(),Particle2.GetPy(),Particle2.GetPz(),Particle2.GetE());
@@ -3448,31 +3834,82 @@ KittyParticle.SetMass(1.36);
             //if(eventRan1) printf("1\n");
             //if(eventRan2) printf("2\n");
 
-            //the resonances are decayed here
-            if(eventRan1) eventRan1->Generate();
-            if(eventRan2) eventRan2->Generate();
+            const unsigned NumRepicks = PickBestDecay?16:1;
+            TLorentzVector* Sol_D1 = new TLorentzVector [NumRepicks];
+            TLorentzVector* Sol_D2 = new TLorentzVector [NumRepicks];
+            unsigned RepickCounter = 0;
+            unsigned BestSol = 0;
+            double BestRelMom = 1e6;
 
-            if(TLV_P1.M()<=DaughterMassP1[0]+DaughterMassP1[2]){
+            //if(PickBestDecay){
+                for(unsigned uRepick=0; uRepick<NumRepicks; uRepick++){
+                    //the resonances are decayed here
+                    if(eventRan1) eventRan1->Generate();
+                    if(eventRan2) eventRan2->Generate();
+
+                    //get the daughters
+                    if(eventRan1) TLVP_Daughter1 = eventRan1->GetDecay(0);
+                    else TLVP_Daughter1 = &TLV_P1;
+                    if(eventRan2) TLVP_Daughter2 = eventRan2->GetDecay(0);
+                    else TLVP_Daughter2 = &TLV_P2;
+
+                    Sol_D1[RepickCounter] = *TLVP_Daughter1;
+                    Sol_D2[RepickCounter] = *TLVP_Daughter2;
+
+                    TLorentzVector D1D2_diff = Sol_D1[RepickCounter]-Sol_D2[RepickCounter];
+
+                    if(D1D2_diff.P()<BestRelMom){
+                        BestRelMom = D1D2_diff.P();
+                        BestSol = RepickCounter;
+                    }
+
+                    RepickCounter++;
+                }
+            //}
+
+            TLV_Daughter1 = Sol_D1[BestSol];
+            TLV_Daughter2 = Sol_D2[BestSol];
+
+            delete [] Sol_D1;
+            delete [] Sol_D2;
+
+///////////////////////////////////////////////////////////////////////////
+            ////the resonances are decayed here
+            //if(eventRan1) eventRan1->Generate();
+            //if(eventRan2) eventRan2->Generate();
+
+            if(TLV_P1.M()<=DaughterMassP1[0]+DaughterMassP1[1]){
                 //printf("TLV_P1.M()=%f\n",TLV_P1.M());
                 //abort();
+printf("TROUBLE EXPECTED...\n");
+printf("TLV_P1.M()=%f\n",TLV_P1.M());
             }
-            if(TLV_P2.M()<=DaughterMassP2[0]+DaughterMassP2[2]){
+            if(TLV_P2.M()<=DaughterMassP2[0]+DaughterMassP2[1]){
                 //printf("TLV_P2.M()=%f\n",TLV_P2.M());
                 //abort();
+printf("TROUBLE EXPECTED...\n");
+printf("TLV_P2.M()=%f\n",TLV_P2.M());
             }
 
-            //get the daughters
-            if(eventRan1) TLVP_Daughter1 = eventRan1->GetDecay(0);
-            else TLVP_Daughter1 = &TLV_P1;
-            if(eventRan2) TLVP_Daughter2 = eventRan2->GetDecay(0);
-            else TLVP_Daughter2 = &TLV_P2;
+            ////get the daughters
+            //if(eventRan1) TLVP_Daughter1 = eventRan1->GetDecay(0);
+            //else TLVP_Daughter1 = &TLV_P1;
+            //if(eventRan2) TLVP_Daughter2 = eventRan2->GetDecay(0);
+            //else TLVP_Daughter2 = &TLV_P2;
 
-            TLV_Daughter1 = *TLVP_Daughter1;
-            TLV_Daughter2 = *TLVP_Daughter2;
+            //TLV_Daughter1 = *TLVP_Daughter1;
+            //TLV_Daughter2 = *TLVP_Daughter2;
+//////////////////////////////////////////////////////////////////////////
+
 
             //TLV_Daughter1.Print();
             //TLV_Daughter2.Print();
-
+if(TLV_Daughter2.Px()!=TLV_Daughter2.Px()){
+printf("TROUBLE INCOMING!\n");
+printf("eventRan1=%p\n",eventRan1);
+printf("eventRan2=%p\n",eventRan2);
+printf("TLV_P2.M()=%f\n",TLV_P2.M());
+}
             CatsParticle DaughterOriginal1;
             CatsParticle DaughterOriginal2;
             DaughterOriginal1.Set(Particle1.GetT(),Particle1.GetX(),Particle1.GetY(),Particle1.GetZ(),TLV_Daughter1.E(),TLV_Daughter1.Px(),TLV_Daughter1.Py(),TLV_Daughter1.Pz());
@@ -3501,37 +3938,61 @@ KittyParticle.SetMass(1.36);
             vecR_Daughters.SetXYZ(Daughter1.GetX()-Daughter2.GetX(),Daughter1.GetY()-Daughter2.GetY(),Daughter1.GetZ()-Daughter2.GetZ());
             TVector3 vecK_Daughters;
             vecK_Daughters.SetXYZ(Daughter2.GetPx()-Daughter1.GetPx(),Daughter2.GetPy()-Daughter1.GetPy(),Daughter2.GetPz()-Daughter1.GetPz());
+            vecRP1.SetXYZ(Particle1.GetX(),Particle1.GetY(),Particle1.GetZ());
+            vecRP2.SetXYZ(Particle2.GetX(),Particle2.GetY(),Particle2.GetZ());
+            vecP1.SetXYZ(Particle1.GetPx(),Particle1.GetPy(),Particle1.GetPz());
+            vecP2.SetXYZ(Particle2.GetPx(),Particle2.GetPy(),Particle2.GetPz());
             Angle_CmDaughters = vecR.Angle(vecK);
             if(Angle_CmDaughters<0) Angle_CmDaughters += Pi;
             if(Angle_CmDaughters>Pi) Angle_CmDaughters -= Pi;
 
-            AngleDaughters = vecR_Daughters.Angle(vecK_Daughters);
-            if(AngleDaughters<0) AngleDaughters += Pi;
-            if(AngleDaughters>Pi) AngleDaughters -= Pi;
+            AngleD_CmDaughters = vecR_Daughters.Angle(vecK_Daughters);
+            if(AngleD_CmDaughters<0) AngleD_CmDaughters += Pi;
+            if(AngleD_CmDaughters>Pi) AngleD_CmDaughters -= Pi;
 
-            double relK = vecK.Mag()*1000.;
-            double relK_Daughters = vecK_Daughters.Mag()*1000.;
+            RelMom_CmDaughters = vecK.Mag()*1000.;
+            RelMomD_CmDaughters = vecK_Daughters.Mag()*1000.;
+
+            AngleRCP1_CmDaughters = vecR.Angle(vecP1);
+            AngleRCP2_CmDaughters = vecR.Angle(vecP2);
+            AngleP1P2_CmDaughters = vecP1.Angle(vecP2);
+
+double D_COS = (vecR.X()*vecP1.X()+vecR.Y()*vecP1.Y()+vecR.Z()*vecP1.Z())/(vecR.Mag()*vecP1.Mag());
+double R_COS = cos(AngleRCP1_CmDaughters);
+double D_A = acos(D_COS);
+double R_A = AngleRCP1_CmDaughters;
+if(D_A*RadToDeg>180){
+printf("\n");
+printf("Dimi: A=%.3f; C=%.3f\n",D_A*RadToDeg,D_COS);
+printf("Root: A=%.3f; C=%.3f\n",R_A*RadToDeg,R_COS);
+}
+
+
+
+
+            MomP1_CmDaughters = vecP1.Mag();
+            MomP2_CmDaughters = vecP2.Mag();
 
         //printf("p1 = %f (%.3f,%.3f,%.3f)\n",Particle1.GetP(),Particle1.GetPx(),Particle1.GetPy(),Particle1.GetPz());
         //printf("p2 = %f (%.3f,%.3f,%.3f)\n",Particle2.GetP(),Particle2.GetPx(),Particle2.GetPy(),Particle2.GetPz());
         //printf("Angle = %f\n",Angle*RadToDeg);
-        //printf("relK_Daughters = %f\n",relK_Daughters);
+        //printf("RelMomD_CmDaughters = %f\n",RelMomD_CmDaughters);
 
             //angle between (r,k) of the primordials, as a function of k* of the daughters
-            h_rkAngle_k_Reso->Fill(Angle,relK_Daughters);
-            h_rkAngle_k_Daughters->Fill(AngleDaughters,relK_Daughters);
-            if(relK_Daughters<200) h_rkAngle_Reso->Fill(Angle);
-            if(Angle>13.14){
-                printf("----------------\n");
-                printf(" Angle = %f\n\n",Angle);
-                printf(" relK_Daughters = %f\n\n",relK_Daughters);
-                printf(" p1 = %f (%.3f,%.3f,%.3f)\n",Particle1.GetP(),Particle1.GetPx(),Particle1.GetPy(),Particle1.GetPz());
-                printf(" p2 = %f (%.3f,%.3f,%.3f)\n",Particle2.GetP(),Particle2.GetPx(),Particle2.GetPy(),Particle2.GetPz());
-                printf(" o1 = %f (%.3f,%.3f,%.3f)\n",ParticleOriginal1.GetP(),ParticleOriginal1.GetPx(),ParticleOriginal1.GetPy(),ParticleOriginal1.GetPz());
-                printf(" o2 = %f (%.3f,%.3f,%.3f)\n",ParticleOriginal2.GetP(),ParticleOriginal2.GetPx(),ParticleOriginal2.GetPy(),ParticleOriginal2.GetPz());
-                printf(" d1 = %f (%.3f,%.3f,%.3f)\n",Daughter1.GetP(),Daughter1.GetPx(),Daughter1.GetPy(),Daughter1.GetPz());
-                printf(" d2 = %f (%.3f,%.3f,%.3f)\n",Daughter2.GetP(),Daughter2.GetPx(),Daughter2.GetPy(),Daughter2.GetPz());
-            }
+            //h_rkAngle_k_Reso->Fill(Angle,RelMomD_CmDaughters);
+            //h_rkAngle_k_Daughters->Fill(AngleDaughters,RelMomD_CmDaughters);
+            //if(RelMomD_CmDaughters<200) h_rkAngle_Reso->Fill(Angle);
+            //if(Angle>13.14){
+            //    printf("----------------\n");
+            //    printf(" Angle = %f\n\n",Angle);
+            //    printf(" RelMomD_CmDaughters = %f\n\n",RelMomD_CmDaughters);
+            //    printf(" p1 = %f (%.3f,%.3f,%.3f)\n",Particle1.GetP(),Particle1.GetPx(),Particle1.GetPy(),Particle1.GetPz());
+            //    printf(" p2 = %f (%.3f,%.3f,%.3f)\n",Particle2.GetP(),Particle2.GetPx(),Particle2.GetPy(),Particle2.GetPz());
+            //    printf(" o1 = %f (%.3f,%.3f,%.3f)\n",ParticleOriginal1.GetP(),ParticleOriginal1.GetPx(),ParticleOriginal1.GetPy(),ParticleOriginal1.GetPz());
+            //    printf(" o2 = %f (%.3f,%.3f,%.3f)\n",ParticleOriginal2.GetP(),ParticleOriginal2.GetPx(),ParticleOriginal2.GetPy(),ParticleOriginal2.GetPz());
+            //    printf(" d1 = %f (%.3f,%.3f,%.3f)\n",Daughter1.GetP(),Daughter1.GetPx(),Daughter1.GetPy(),Daughter1.GetPz());
+            //    printf(" d2 = %f (%.3f,%.3f,%.3f)\n",Daughter2.GetP(),Daughter2.GetPx(),Daughter2.GetPy(),Daughter2.GetPz());
+            //}
 
 
             //! get in the CM of the primordials for a change
@@ -3546,8 +4007,130 @@ KittyParticle.SetMass(1.36);
             Particle2.Boost(BoostVector);
             Daughter1.Boost(BoostVector);
             Daughter2.Boost(BoostVector);
-            h_rkAngle_k_Prim->Fill(Angle,relK);
 
+            vecR.SetXYZ(Particle1.GetX()-Particle2.GetX(),Particle1.GetY()-Particle2.GetY(),Particle1.GetZ()-Particle2.GetZ());
+            vecK.SetXYZ(Particle2.GetPx()-Particle1.GetPx(),Particle2.GetPy()-Particle1.GetPy(),Particle2.GetPz()-Particle1.GetPz());
+            vecR_Daughters.SetXYZ(Daughter1.GetX()-Daughter2.GetX(),Daughter1.GetY()-Daughter2.GetY(),Daughter1.GetZ()-Daughter2.GetZ());
+            vecK_Daughters.SetXYZ(Daughter2.GetPx()-Daughter1.GetPx(),Daughter2.GetPy()-Daughter1.GetPy(),Daughter2.GetPz()-Daughter1.GetPz());
+            Angle_CmParents = vecR.Angle(vecK);
+            if(Angle_CmParents<0) Angle_CmParents += Pi;
+            if(Angle_CmParents>Pi) Angle_CmParents -= Pi;
+
+            AngleD_CmParents = vecR_Daughters.Angle(vecK_Daughters);
+            if(AngleD_CmParents<0) AngleD_CmParents += Pi;
+            if(AngleD_CmParents>Pi) AngleD_CmParents -= Pi;
+
+            RelMom_CmParents = vecK.Mag()*1000.;
+            RelMomD_CmParents = vecK_Daughters.Mag()*1000.;
+
+            //h_rkAngle_k_Prim->Fill(Angle_CmParents,RelMom_CmParents);
+
+
+            //!Go to the rest frame of ONE of the daughters (1st) and plot the angle between the other guy (p_res) and r
+            Particle1 = ParticleOriginal1;
+            Particle2 = ParticleOriginal2;
+            Daughter1 = DaughterOriginal1;
+            Daughter2 = DaughterOriginal2;
+            //printf(" Particle1 = %f (%.3f,%.3f,%.3f)\n",Particle1.GetP(),Particle1.GetPx(),Particle1.GetPy(),Particle1.GetPz());
+            //printf(" Particle2 = %f (%.3f,%.3f,%.3f)\n",Particle2.GetP(),Particle2.GetPx(),Particle2.GetPy(),Particle2.GetPz());
+            BoostVector.Set(0,0,0,0,Daughter1.GetE(),Daughter1.GetPx(),Daughter1.GetPy(),Daughter1.GetPz());
+            Particle1.Boost(BoostVector);
+            Particle2.Boost(BoostVector);
+            Daughter1.Boost(BoostVector);
+            Daughter2.Boost(BoostVector);
+        //printf("1st daughter:\n");
+        //printf(" Particle1 = %f (%.3f,%.3f,%.3f)\n",Particle1.GetP(),Particle1.GetPx(),Particle1.GetPy(),Particle1.GetPz());
+        //printf(" Particle2 = %f (%.3f,%.3f,%.3f)\n",Particle2.GetP(),Particle2.GetPx(),Particle2.GetPy(),Particle2.GetPz());
+            vecR.SetXYZ(Particle1.GetX()-Particle2.GetX(),Particle1.GetY()-Particle2.GetY(),Particle1.GetZ()-Particle2.GetZ());
+            vecK.SetXYZ(Particle2.GetPx()-Particle1.GetPx(),Particle2.GetPy()-Particle1.GetPy(),Particle2.GetPz()-Particle1.GetPz());
+            vecR_Daughters.SetXYZ(Daughter1.GetX()-Daughter2.GetX(),Daughter1.GetY()-Daughter2.GetY(),Daughter1.GetZ()-Daughter2.GetZ());
+            vecK_Daughters.SetXYZ(Daughter2.GetPx()-Daughter1.GetPx(),Daughter2.GetPy()-Daughter1.GetPy(),Daughter2.GetPz()-Daughter1.GetPz());
+            Angle_Daughter1 = vecR.Angle(vecK);
+            if(Angle_Daughter1<0) Angle_Daughter1 += Pi;
+            if(Angle_Daughter1>Pi) Angle_Daughter1 -= Pi;
+            RelMom_Daughter1 = vecK.Mag()*1000.;
+            RelMomD_Daughter1 = vecK_Daughters.Mag()*1000.;
+            //h_rkAngle_MomResoA->Fill(Angle_Daughter1,RelMom_Daughter1);
+            //printf("A: A=%.3f; k=%.0f\n",Angle_Daughter1,RelMom_Daughter1);
+
+            //!Go to the rest frame of ONE of the daughters (2nd) and plot the angle between the other guy (p_res) and r
+            Particle1 = ParticleOriginal1;
+            Particle2 = ParticleOriginal2;
+            Daughter1 = DaughterOriginal1;
+            Daughter2 = DaughterOriginal2;
+            BoostVector.Set(0,0,0,0,Daughter2.GetE(),Daughter2.GetPx(),Daughter2.GetPy(),Daughter2.GetPz());
+            Particle1.Boost(BoostVector);
+            Particle2.Boost(BoostVector);
+            Daughter1.Boost(BoostVector);
+            Daughter2.Boost(BoostVector);
+        //printf("2nd daughter:\n");
+        //printf(" Particle1 = %f (%.3f,%.3f,%.3f)\n",Particle1.GetP(),Particle1.GetPx(),Particle1.GetPy(),Particle1.GetPz());
+        //printf(" Particle2 = %f (%.3f,%.3f,%.3f)\n",Particle2.GetP(),Particle2.GetPx(),Particle2.GetPy(),Particle2.GetPz());
+            vecR.SetXYZ(Particle1.GetX()-Particle2.GetX(),Particle1.GetY()-Particle2.GetY(),Particle1.GetZ()-Particle2.GetZ());
+            vecK.SetXYZ(Particle2.GetPx()-Particle1.GetPx(),Particle2.GetPy()-Particle1.GetPy(),Particle2.GetPz()-Particle1.GetPz());
+            vecR_Daughters.SetXYZ(Daughter1.GetX()-Daughter2.GetX(),Daughter1.GetY()-Daughter2.GetY(),Daughter1.GetZ()-Daughter2.GetZ());
+            vecK_Daughters.SetXYZ(Daughter2.GetPx()-Daughter1.GetPx(),Daughter2.GetPy()-Daughter1.GetPy(),Daughter2.GetPz()-Daughter1.GetPz());
+            Angle_Daughter2 = vecR.Angle(vecK);
+            if(Angle_Daughter2<0) Angle_Daughter2 += Pi;
+            if(Angle_Daughter2>Pi) Angle_Daughter2 -= Pi;
+            RelMom_Daughter2 = vecK.Mag()*1000.;
+            RelMomD_Daughter2 = vecK_Daughters.Mag()*1000.;
+            //h_rkAngle_MomResoB->Fill(Angle_Daughter2,RelMom_Daughter2);
+            //printf("B: A=%.3f; k=%.0f\n",Angle_Daughter2,RelMom_Daughter2);
+
+            //!Go to the rest frame of ONE of the parents (1st) and plot the angle between the other guy and r
+            Particle1 = ParticleOriginal1;
+            Particle2 = ParticleOriginal2;
+            Daughter1 = DaughterOriginal1;
+            Daughter2 = DaughterOriginal2;
+            //printf(" Particle1 = %f (%.3f,%.3f,%.3f)\n",Particle1.GetP(),Particle1.GetPx(),Particle1.GetPy(),Particle1.GetPz());
+            //printf(" Particle2 = %f (%.3f,%.3f,%.3f)\n",Particle2.GetP(),Particle2.GetPx(),Particle2.GetPy(),Particle2.GetPz());
+            BoostVector.Set(0,0,0,0,Particle1.GetE(),Particle1.GetPx(),Particle1.GetPy(),Particle1.GetPz());
+            Particle1.Boost(BoostVector);
+            Particle2.Boost(BoostVector);
+            Daughter1.Boost(BoostVector);
+            Daughter2.Boost(BoostVector);
+        //printf("1st daughter:\n");
+        //printf(" Particle1 = %f (%.3f,%.3f,%.3f)\n",Particle1.GetP(),Particle1.GetPx(),Particle1.GetPy(),Particle1.GetPz());
+        //printf(" Particle2 = %f (%.3f,%.3f,%.3f)\n",Particle2.GetP(),Particle2.GetPx(),Particle2.GetPy(),Particle2.GetPz());
+            vecR.SetXYZ(Particle1.GetX()-Particle2.GetX(),Particle1.GetY()-Particle2.GetY(),Particle1.GetZ()-Particle2.GetZ());
+            vecK.SetXYZ(Particle2.GetPx()-Particle1.GetPx(),Particle2.GetPy()-Particle1.GetPy(),Particle2.GetPz()-Particle1.GetPz());
+            vecR_Daughters.SetXYZ(Daughter1.GetX()-Daughter2.GetX(),Daughter1.GetY()-Daughter2.GetY(),Daughter1.GetZ()-Daughter2.GetZ());
+            vecK_Daughters.SetXYZ(Daughter2.GetPx()-Daughter1.GetPx(),Daughter2.GetPy()-Daughter1.GetPy(),Daughter2.GetPz()-Daughter1.GetPz());
+            Angle_Parent1 = vecR.Angle(vecK);
+            if(Angle_Parent1<0) Angle_Parent1 += Pi;
+            if(Angle_Parent1>Pi) Angle_Parent1 -= Pi;
+            RelMom_Parent1 = vecK.Mag()*1000.;
+            RelMomD_Parent1 = vecK_Daughters.Mag()*1000.;
+            //h_rkAngle_MomResoA->Fill(Angle_Parent1,RelMom_Parent1);
+            //printf("A: A=%.3f; k=%.0f\n",Angle_Parent1,RelMom_Parent1);
+
+            //!Go to the rest frame of ONE of the parents (2nd) and plot the angle between the other guy and r
+            Particle1 = ParticleOriginal1;
+            Particle2 = ParticleOriginal2;
+            Daughter1 = DaughterOriginal1;
+            Daughter2 = DaughterOriginal2;
+            BoostVector.Set(0,0,0,0,Particle2.GetE(),Particle2.GetPx(),Particle2.GetPy(),Particle2.GetPz());
+            Particle1.Boost(BoostVector);
+            Particle2.Boost(BoostVector);
+            Daughter1.Boost(BoostVector);
+            Daughter2.Boost(BoostVector);
+        //printf("2nd daughter:\n");
+        //printf(" Particle1 = %f (%.3f,%.3f,%.3f)\n",Particle1.GetP(),Particle1.GetPx(),Particle1.GetPy(),Particle1.GetPz());
+        //printf(" Particle2 = %f (%.3f,%.3f,%.3f)\n",Particle2.GetP(),Particle2.GetPx(),Particle2.GetPy(),Particle2.GetPz());
+            vecR.SetXYZ(Particle1.GetX()-Particle2.GetX(),Particle1.GetY()-Particle2.GetY(),Particle1.GetZ()-Particle2.GetZ());
+            vecK.SetXYZ(Particle2.GetPx()-Particle1.GetPx(),Particle2.GetPy()-Particle1.GetPy(),Particle2.GetPz()-Particle1.GetPz());
+            vecR_Daughters.SetXYZ(Daughter1.GetX()-Daughter2.GetX(),Daughter1.GetY()-Daughter2.GetY(),Daughter1.GetZ()-Daughter2.GetZ());
+            vecK_Daughters.SetXYZ(Daughter2.GetPx()-Daughter1.GetPx(),Daughter2.GetPy()-Daughter1.GetPy(),Daughter2.GetPz()-Daughter1.GetPz());
+            Angle_Parent2 = vecR.Angle(vecK);
+            if(Angle_Parent2<0) Angle_Parent2 += Pi;
+            if(Angle_Parent2>Pi) Angle_Parent2 -= Pi;
+            RelMom_Parent2 = vecK.Mag()*1000.;
+            RelMomD_Parent2 = vecK_Daughters.Mag()*1000.;
+            //h_rkAngle_MomResoB->Fill(Angle_Parent2,RelMom_Parent2);
+            //printf("B: A=%.3f; k=%.0f\n",Angle_Parent2,RelMom_Parent2);
+
+/*
             //!the old stuff for PRIM-RESO
             //BoostVector.Set(0,0,0,0,BoostVector.GetE(),-BoostVector.GetPx(),-BoostVector.GetPy(),-BoostVector.GetPz());
             Particle1 = ParticleOriginal1;
@@ -3623,53 +4206,106 @@ TVector3 vecOriginalR;
 vecOriginalR.SetXYZ(ParticleOriginal1.GetX()-ParticleOriginal2.GetX(),ParticleOriginal1.GetY()-ParticleOriginal2.GetY(),ParticleOriginal1.GetZ()-ParticleOriginal2.GetZ());
 printf("deltaR = %.3f\n",vecOriginalR.Mag());
 }
+*/
 
-            //!Go to the rest frame of ONE of the daughters (1st) and plot the angle between the other guy (p_res) and r
-            Particle1 = ParticleOriginal1;
-            Particle2 = ParticleOriginal2;
-            Daughter1 = DaughterOriginal1;
-            Daughter2 = DaughterOriginal2;
-            //printf(" Particle1 = %f (%.3f,%.3f,%.3f)\n",Particle1.GetP(),Particle1.GetPx(),Particle1.GetPy(),Particle1.GetPz());
-            //printf(" Particle2 = %f (%.3f,%.3f,%.3f)\n",Particle2.GetP(),Particle2.GetPx(),Particle2.GetPy(),Particle2.GetPz());
-            BoostVector.Set(0,0,0,0,Particle1.GetE(),Particle1.GetPx(),Particle1.GetPy(),Particle1.GetPz());
-            Particle1.Boost(BoostVector);
-            Particle2.Boost(BoostVector);
-            Daughter1.Boost(BoostVector);
-            Daughter2.Boost(BoostVector);
-        //printf("1st daughter:\n");
-        //printf(" Particle1 = %f (%.3f,%.3f,%.3f)\n",Particle1.GetP(),Particle1.GetPx(),Particle1.GetPy(),Particle1.GetPz());
-        //printf(" Particle2 = %f (%.3f,%.3f,%.3f)\n",Particle2.GetP(),Particle2.GetPx(),Particle2.GetPy(),Particle2.GetPz());
-            vecR.SetXYZ(Particle1.GetX()-Particle2.GetX(),Particle1.GetY()-Particle2.GetY(),Particle1.GetZ()-Particle2.GetZ());
-            vecK.SetXYZ(Particle2.GetPx()-Particle1.GetPx(),Particle2.GetPy()-Particle1.GetPy(),Particle2.GetPz()-Particle1.GetPz());
-            Angle = vecR.Angle(vecK);
-            if(Angle<0) Angle += Pi;
-            if(Angle>Pi) Angle -= Pi;
-            relK = vecK.Mag()*1000.;
-            h_rkAngle_MomResoA->Fill(Angle,relK);
-            //printf("A: A=%.3f; k=%.0f\n",Angle,relK);
+            if(Angle_Parent1>13.14159){
+                printf("Back to back pairs:\n");
+printf("p1 = %f(%.3f,%.3f) r %f(%.3f,%.3f)\n",ParticleOriginal1.GetP(),ParticleOriginal1.GetPtheta(),ParticleOriginal1.GetPphi(),
+       ParticleOriginal1.GetR(),ParticleOriginal1.GetTheta(),ParticleOriginal1.GetPhi());
+printf("p2 = %f(%.3f,%.3f) r %f(%.3f,%.3f)\n",ParticleOriginal2.GetP(),ParticleOriginal2.GetPtheta(),ParticleOriginal2.GetPphi(),
+       ParticleOriginal2.GetR(),ParticleOriginal2.GetTheta(),ParticleOriginal2.GetPhi());
+                printf(" delta_P_Parents = %.3f\n",RelPart1Part2.GetP());
+                printf(" delta_Pt_Parents = %.3f\n",RelPart1Part2.GetPt());
 
-            //!Go to the rest frame of ONE of the daughters (2nd) and plot the angle between the other guy (p_res) and r
-            Particle1 = ParticleOriginal1;
-            Particle2 = ParticleOriginal2;
-            Daughter1 = DaughterOriginal1;
-            Daughter2 = DaughterOriginal2;
-            BoostVector.Set(0,0,0,0,Particle2.GetE(),Particle2.GetPx(),Particle2.GetPy(),Particle2.GetPz());
-            Particle1.Boost(BoostVector);
-            Particle2.Boost(BoostVector);
-            Daughter1.Boost(BoostVector);
-            Daughter2.Boost(BoostVector);
-        //printf("2nd daughter:\n");
-        //printf(" Particle1 = %f (%.3f,%.3f,%.3f)\n",Particle1.GetP(),Particle1.GetPx(),Particle1.GetPy(),Particle1.GetPz());
-        //printf(" Particle2 = %f (%.3f,%.3f,%.3f)\n",Particle2.GetP(),Particle2.GetPx(),Particle2.GetPy(),Particle2.GetPz());
-            vecR.SetXYZ(Particle1.GetX()-Particle2.GetX(),Particle1.GetY()-Particle2.GetY(),Particle1.GetZ()-Particle2.GetZ());
-            vecK.SetXYZ(Particle2.GetPx()-Particle1.GetPx(),Particle2.GetPy()-Particle1.GetPy(),Particle2.GetPz()-Particle1.GetPz());
-            Angle = vecR.Angle(vecK);
-            if(Angle<0) Angle += Pi;
-            if(Angle>Pi) Angle -= Pi;
-            relK = vecK.Mag()*1000.;
-            h_rkAngle_MomResoB->Fill(Angle,relK);
-            //printf("B: A=%.3f; k=%.0f\n",Angle,relK);
+            }
 
+
+           // if(Angle_P1P2<0.02&&AngleR_P1P2<0.02)
+            h_AP_D->Fill(Angle_CmDaughters,RelMomD_CmDaughters);
+            if(Angle_P1P2>1.57&&AngleR_P1P2>1.57)
+            h_AP_D_LargeAngles->Fill(Angle_CmDaughters,RelMomD_CmDaughters);
+            if(RelMomD_CmDaughters<200) h1_AP_D->Fill(Angle_CmDaughters);
+            if(Angle_Parent1>3.138) h_AP_D_Large_AP_P1->Fill(Angle_CmDaughters,RelMomD_CmDaughters);
+            if(Angle_Parent2>3.138) h_AP_D_Large_AP_P2->Fill(Angle_CmDaughters,RelMomD_CmDaughters);
+            h_AD_D->Fill(AngleD_CmDaughters,RelMomD_CmDaughters);
+
+            h_AP_D1->Fill(Angle_Daughter1,RelMomD_Daughter1);
+            h_AD_D1->Fill(AngleD_Daughter1,RelMomD_Daughter1);
+
+            h_AP_D2->Fill(Angle_Daughter2,RelMomD_Daughter2);
+            h_AD_D2->Fill(AngleD_Daughter2,RelMomD_Daughter2);
+
+            //if(RelPart1Part2.GetP()>20&&RelPart1Part2.GetPt()<0.5)
+            //if(Angle_P1P2<0.02&&AngleR_P1P2<0.02)
+            h_AP_P1->Fill(Angle_Parent1,RelMomD_Parent1);
+            if(Angle_P1P2>1.57&&AngleR_P1P2>1.57)
+            h_AP_P1_LargeAngles->Fill(Angle_Parent1,RelMomD_Parent1);
+            h_AP_P1_AR_P1P2->Fill(Angle_Parent1,AngleR_P1P2);
+            h_AP_P1_dR_P1P2->Fill(Angle_Parent1,RelR_P1P2);
+
+            h_AD_P1->Fill(AngleD_Parent1,RelMomD_Parent1);
+
+            h_AP_P2->Fill(Angle_Parent2,RelMomD_Parent2);
+            h_AD_P2->Fill(AngleD_Parent2,RelMomD_Parent2);
+
+
+
+            //if(Angle_Parent1>3.1&&RelMomD_Parent1<500)
+            h_AP_LAB->Fill(Angle_P1P2);
+            h_AP_LAB_AR_LAB->Fill(Angle_P1P2,AngleR_P1P2);
+            if(Angle_Parent1>3.1&&RelMomD_Parent1<1000)
+            h_AP_LAB_AR_LAB_Large_AP_P1->Fill(Angle_P1P2,AngleR_P1P2);
+            //if(Angle_Parent1>3.1&&RelMomD_Parent1<1000)
+            h_AP_LAB_dR_LAB->Fill(Angle_P1P2,RelR_P1P2);
+
+            h_AngleRCP1_D->Fill(AngleRCP1_CmDaughters);
+            h_AngleRCP2_D->Fill(AngleRCP2_CmDaughters);
+            h_AngleP1P2_D->Fill(AngleP1P2_CmDaughters);
+            h_AngleRCP1_RCP2_D->Fill(AngleRCP1_CmDaughters,AngleRCP2_CmDaughters);
+            h_AngleRCP1_P1P2_D->Fill(AngleRCP1_CmDaughters,AngleP1P2_CmDaughters);
+            h_AngleRCP2_P1P2_D->Fill(AngleRCP2_CmDaughters,AngleP1P2_CmDaughters);
+
+            if(Angle_Parent1>3.1415&&Angle_P1P2>3.0&&AngleR_P1P2>3.0){
+                //printf("SUPER-BACK-TO-BACK:\n");
+                //printf( "Parents k* = %.1f\n",RelMom_CmParents);
+                //printf( "Daughters k* = %.1f\n",RelMomD_CmDaughters);
+            }
+            Float_t CONTAINER[10];
+            CONTAINER[0] = RelMomD_CmDaughters;
+            CONTAINER[1] = MomP1_CmDaughters*1000.;
+            CONTAINER[2] = MomP2_CmDaughters*1000.;
+            CONTAINER[3] = ParticleOriginal1.GetMass()*1000.;
+            CONTAINER[4] = ParticleOriginal2.GetMass()*1000.;
+            CONTAINER[5] = ParticleOriginal1.GetWidth()?NuToFm/(ParticleOriginal1.GetWidth()*1000.):0;//in fm
+            CONTAINER[6] = ParticleOriginal2.GetWidth()?NuToFm/(ParticleOriginal2.GetWidth()*1000.):0;//in fm
+//printf("ParticleOriginal1.GetWidth()=%f\n",ParticleOriginal1.GetWidth());
+//printf("ParticleOriginal2.GetWidth()=%f\n",ParticleOriginal2.GetWidth());
+            CONTAINER[7] = AngleRCP1_CmDaughters;
+            CONTAINER[8] = AngleRCP2_CmDaughters;
+            CONTAINER[9] = AngleP1P2_CmDaughters;
+//! THE FIRST PARTICLE IS A PROTON IN CASE OF pReso
+//printf("%.3f %.3f %.3f %.3f\n",CONTAINER[0],CONTAINER[1],CONTAINER[2],CONTAINER[3]);
+//printf("pid1=%i\n",pid1);
+//printf("pid2=%i\n",pid2);
+
+
+if(RelMomD_CmDaughters!=RelMomD_CmDaughters || AngleRCP1_CmDaughters!=AngleRCP1_CmDaughters ||
+   AngleRCP2_CmDaughters!=AngleRCP2_CmDaughters || AngleP1P2_CmDaughters!=AngleP1P2_CmDaughters){
+printf("\nRelMomD_CmDaughters=%f\n",RelMomD_CmDaughters);
+printf("AngleRCP1_CmDaughters=%f\n",AngleRCP1_CmDaughters);
+printf("AngleRCP2_CmDaughters=%f\n",AngleRCP2_CmDaughters);
+printf("AngleP1P2_CmDaughters=%f\n",AngleP1P2_CmDaughters);
+printf("p1 = %f(%.3f,%.3f) r %f(%.3f,%.3f)\n",ParticleOriginal1.GetP(),ParticleOriginal1.GetPtheta(),ParticleOriginal1.GetPphi(),
+       ParticleOriginal1.GetR(),ParticleOriginal1.GetTheta(),ParticleOriginal1.GetPhi());
+printf("p2 = %f(%.3f,%.3f) r %f(%.3f,%.3f)\n",ParticleOriginal2.GetP(),ParticleOriginal2.GetPtheta(),ParticleOriginal2.GetPphi(),
+       ParticleOriginal2.GetR(),ParticleOriginal2.GetTheta(),ParticleOriginal2.GetPhi());
+printf("d1 = %f(%.3f,%.3f) r %f(%.3f,%.3f)\n",DaughterOriginal1.GetP(),DaughterOriginal1.GetPtheta(),DaughterOriginal1.GetPphi(),
+       DaughterOriginal1.GetR(),DaughterOriginal1.GetTheta(),DaughterOriginal1.GetPhi());
+printf("d2 = %f(%.3f,%.3f) r %f(%.3f,%.3f)\n",DaughterOriginal2.GetP(),DaughterOriginal2.GetPtheta(),DaughterOriginal2.GetPphi(),
+       DaughterOriginal2.GetR(),DaughterOriginal2.GetTheta(),DaughterOriginal2.GetPhi());
+}
+            //InfoTuple->Fill(CONTAINER);
+            if(RelMomD_CmDaughters<ClosePairLimit) InfoTuple_ClosePairs->Fill(CONTAINER);
         }
 
 
@@ -3698,7 +4334,7 @@ printf("deltaR = %.3f\n",vecOriginalR.Mag());
         printf("\r\033[K");
     }
 
-    TFile* fOut = new TFile(OutFileBaseName+".root","recreate");
+
 
     //h_rkAngle_Mom2->GetXaxis()->SetTitle("Angle (rad)");
     //h_rkAngle_Mom2->GetYaxis()->SetTitle("p_{res} (MeV)");
@@ -3706,41 +4342,101 @@ printf("deltaR = %.3f\n",vecOriginalR.Mag());
     //h_rkAngle_Mom2->Write();
     //h_kkAngle_Mom2->Write();
 
-    h_rkAngle_k_Reso->Write();
-    h_rkAngle_Reso->Write();
-    h_rkAngle_k_Daughters->Write();
-    h_rkAngle_k_Prim->Write();
-    h_rkAngle_Mom2->Write();
-    h_rkAngle_MomReso2->Write();
-    h_rkAngle_MomResoA->Write();
-    h_rkAngle_MomResoB->Write();
+    //h_rkAngle_k_Reso->Write();
+    //h_rkAngle_Reso->Write();
+    //h_rkAngle_k_Daughters->Write();
+    //h_rkAngle_k_Prim->Write();
+    //h_rkAngle_Mom2->Write();
+    //h_rkAngle_MomReso2->Write();
+    //h_rkAngle_MomResoA->Write();
+    //h_rkAngle_MomResoB->Write();
+    h_AP_D->Write();
+    h_AP_D_Large_AP_P1->Write();
+    h_AP_D_Large_AP_P2->Write();
+    h_AP_D_LargeAngles->Write();
+    h1_AP_D->Write();
+    h_AD_D->Write();
+    h_AP_D1->Write();
+    h_AD_D1->Write();
+    h_AP_D2->Write();
+    h_AD_D2->Write();
+    h_AP_P1->Write();
+    h_AP_P1_AR_P1P2->Write();
+    h_AP_P1_dR_P1P2->Write();
+    h_AP_P1_LargeAngles->Write();
+    h_AD_P1->Write();
+    h_AP_P2->Write();
+    h_AD_P2->Write();
     h_MomDist_P1->Write();
     h_MomDist_P2->Write();
     h_MomDist_P1P2->Write();
     h_TauDist_P1->Write();
     h_TauDist_P2->Write();
     h_TauDist_P1P2->Write();
+    h_AP_LAB->Write();
+    h_AP_LAB_AR_LAB->Write();
+    h_AP_LAB_AR_LAB_Large_AP_P1->Write();
+    h_AP_LAB_dR_LAB->Write();
+    h_AngleRCP1_D->Write();
+    h_AngleRCP2_D->Write();
+    h_AngleP1P2_D->Write();
+    h_AngleRCP1_RCP2_D->Write();
+    h_AngleRCP1_P1P2_D->Write();
+    h_AngleRCP2_P1P2_D->Write();
+    //InfoTuple->Write();
+    InfoTuple_ClosePairs->Write();
 
     delete KittyEvent;
     delete KittyFilteredEvent;
-    delete h_rkAngle_k_Daughters;
-    delete h_rkAngle_k_Prim;
-    delete h_rkAngle_MomReso2;
-    delete h_rkAngle_MomResoA;
-    delete h_rkAngle_MomResoB;
-    delete h_rkAngle_Mom2;
+
+    delete h_AP_D;
+    delete h_AP_D_Large_AP_P1;
+    delete h_AP_D_Large_AP_P2;
+    delete h_AP_D_LargeAngles;
+    delete h1_AP_D;
+    delete h_AD_D;
+    delete h_AP_D1;
+    delete h_AD_D1;
+    delete h_AP_D2;
+    delete h_AD_D2;
+    delete h_AP_P1;
+    delete h_AP_P1_LargeAngles;
+    delete h_AD_P1;
+    delete h_AP_P2;
+    delete h_AD_P2;
+
+    //delete h_rkAngle_k_Daughters;
+    //delete h_rkAngle_k_Prim;
+    //delete h_rkAngle_MomReso2;
+    //delete h_rkAngle_MomResoA;
+    //delete h_rkAngle_MomResoB;
+    //delete h_rkAngle_Mom2;
     delete h_MomDist_P1;
     delete h_MomDist_P2;
     delete h_MomDist_P1P2;
     delete h_TauDist_P1;
     delete h_TauDist_P2;
     delete h_TauDist_P1P2;
+    delete h_AP_LAB;
+    delete h_AP_P1_AR_P1P2;
+    delete h_AP_P1_dR_P1P2;
+    delete h_AP_LAB_AR_LAB;
+    delete h_AP_LAB_AR_LAB_Large_AP_P1;
+    delete h_AP_LAB_dR_LAB;
+    delete h_AngleRCP1_D;
+    delete h_AngleRCP2_D;
+    delete h_AngleP1P2_D;
+    delete h_AngleRCP1_RCP2_D;
+    delete h_AngleRCP1_P1P2_D;
+    delete h_AngleRCP2_P1P2_D;
+    delete InfoTuple;
+    delete InfoTuple_ClosePairs;
     //delete h_kkAngle_Mom2;
     //delete eventRan;
     delete eventRan1;
     delete eventRan2;
-    delete h_rkAngle_Reso;
-    delete h_rkAngle_k_Reso;
+    //delete h_rkAngle_Reso;
+    //delete h_rkAngle_k_Reso;
     delete fOut;
 }
 
@@ -3757,8 +4453,11 @@ int MIXEDEVENTS(int narg, char** ARGS){
     //ReferenceSampleStudy_1("DimiPhi","pOmega");
     //ReferenceSampleStudy_1("DimiPhi","pReso");
     //ReferenceSampleStudy_2("DimiPhi","p_p");
-    ReferenceSampleStudy_2("DimiPhi","p_pReso");
-    //ReferenceSampleStudy_2("DimiPhi","pReso_pReso");
+    //ReferenceSampleStudy_2("DimiPhi","p_pReso");
+    ReferenceSampleStudy_2("DimiPhi","pReso_pReso");
+    //ReferenceSampleStudy_2("DimiPhi","p_LamReso");
+    //ReferenceSampleStudy_2("DimiPhi","pReso_Lam");
+    //ReferenceSampleStudy_2("DimiPhi","pReso_LamReso");
     //ReferenceSampleStudy_2("DimiPhi","p_p");
     //CompareReferenceSamples("pp");
     //CompareSameMixedEventToBoltzmann();
