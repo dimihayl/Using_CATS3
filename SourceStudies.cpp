@@ -6,6 +6,7 @@
 #include "DLM_Source.h"
 #include "DLM_Potentials.h"
 #include "DLM_Histo.h"
+#include "DLM_Random.h"
 
 #include "TFile.h"
 #include "TGraph.h"
@@ -16,6 +17,7 @@
 #include "TH2F.h"
 #include "TF1.h"
 #include "TMath.h"
+#include "TNtuple.h"
 
 //for the source paper, we compare C(k) and S(r) of pp and pL based on
 //Gaussian and Gaussian+Reso sources
@@ -794,7 +796,380 @@ void TestDifferentAngularDistributions(const double& SourceSize){
     delete fCommonOut;
 }
 
+//TYPE 0 only Gauss
+//TYPE 1 is back-to-back
+//TYPE 2 is with the proper angular disto
+void TestEposDistos(const double& SourceSize){
 
+    const double k_CutOff = 200;
+    const TString OutputDir = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/SourceStudies/TestEposDistos/";
+
+    TFile* fCommonOut = new TFile(
+    TString::Format("%sfCommonOut_%.2f.root",OutputDir.Data(),SourceSize),
+    "recreate");
+    const unsigned NumTypes = 3;
+    TH1F* hPP_RAD = new TH1F("hPP_RAD","hPP_RAD",NumTypes,-0.5,5.5);
+    TH1F* hPL_RAD = new TH1F("hPL_RAD","hPL_RAD",NumTypes,-0.5,5.5);
+
+    for(int TYPE=0; TYPE<NumTypes; TYPE++){
+        const unsigned NumMomBins = 75;
+        const double kMin = 0;
+        const double kMax = 300;
+
+        const double Mass_pi0 = 134.9766;
+        const double Mass_pic = 139.57018;
+        const double Mass_p = 938.272;
+        const double Mass_L = 1115.683;
+
+        double ppPotPars1S0[8]={NN_AV18,v18_Coupled3P2,1,1,1,0,0,0};
+        double ppPotPars3P0[8]={NN_AV18,v18_Coupled3P2,1,1,1,1,1,0};
+        double ppPotPars3P1[8]={NN_AV18,v18_Coupled3P2,1,1,1,1,1,1};
+        double ppPotPars3P2[8]={NN_AV18,v18_Coupled3P2,1,1,1,1,1,2};
+        CATSparameters cPotPars1S0_pp(CATSparameters::tPotential,8,true);cPotPars1S0_pp.SetParameters(ppPotPars1S0);
+        CATSparameters cPotPars3P0_pp(CATSparameters::tPotential,8,true);cPotPars3P0_pp.SetParameters(ppPotPars3P0);
+        CATSparameters cPotPars3P1_pp(CATSparameters::tPotential,8,true);cPotPars3P1_pp.SetParameters(ppPotPars3P1);
+        CATSparameters cPotPars3P2_pp(CATSparameters::tPotential,8,true);cPotPars3P2_pp.SetParameters(ppPotPars3P2);
+        //CATSparameters cSorPars_pp(CATSparameters::tSource,2,true);cSorPars_pp.SetParameter(0,1);cSorPars_pp.SetParameter(1,2);
+
+        double pL_PotPars1S0[8]={pL_UsmaniOli,0,0,0,0,0,0,0};
+        double pL_PotPars3S1[8]={pL_UsmaniOli,0,0,0,0,1,0,1};
+        //CATSparameters cSorPars_pL(CATSparameters::tSource,2,true);cSorPars_pL.SetParameter(0,1);cSorPars_pL.SetParameter(1,2);
+        CATSparameters cPotPars1S0_pL(CATSparameters::tPotential,8,true);cPotPars1S0_pL.SetParameters(pL_PotPars1S0);
+        CATSparameters cPotPars3S1_pL(CATSparameters::tPotential,8,true);cPotPars3S1_pL.SetParameters(pL_PotPars3S1);
+
+
+        DLM_CleverMcLevyResoTM CleverSource_pp;
+        CleverSource_pp.InitStability(1,2-1e-6,2+1e-6);
+        CleverSource_pp.InitScale(38,0.15,2.0);
+        CleverSource_pp.InitRad(257,0,64);
+        CleverSource_pp.InitType(2);
+
+        DLM_CleverMcLevyResoTM CleverSource_pL;
+        CleverSource_pL.InitStability(1,2-1e-6,2+1e-6);
+        CleverSource_pL.InitScale(38,0.15,2.0);
+        CleverSource_pL.InitRad(257,0,64);
+        CleverSource_pL.InitType(2);
+
+        DLM_Histo<double>* HISTO_P_AVG;
+        DLM_Histo<double>* HISTO_L_AVG;
+
+        DLM_Random RanGen(11);
+        double RanVal1;
+        double RanVal2;
+        double RanVal3;
+
+        Float_t k_D;
+        Float_t fP1;
+        Float_t fP2;
+        Float_t fM1;
+        Float_t fM2;
+        Float_t Tau1;
+        Float_t Tau2;
+        Float_t AngleRcP1;
+        Float_t AngleRcP2;
+        Float_t AngleP1P2;
+
+        if(TYPE==0){
+            CleverSource_pp.SetUpReso(0,0.6422);
+            CleverSource_pp.SetUpReso(1,0.6422);
+            CleverSource_pL.SetUpReso(0,0.6438);
+            CleverSource_pL.SetUpReso(1,0.6438);
+        }
+        else if(TYPE==1){
+            CleverSource_pp.SetUpReso(0,0.6422);
+            CleverSource_pp.SetUpReso(1,0.6422);
+            CleverSource_pL.SetUpReso(0,0.6438);
+            CleverSource_pL.SetUpReso(1,0.6438);
+            const unsigned NumIter = 100;
+            for(unsigned uEntry=0; uEntry<NumIter; uEntry++){
+                CleverSource_pp.AddBGT_PR(490./1362.*1.65,1.);
+                CleverSource_pp.AddBGT_RP(490./1362.*1.65,-1.);
+                CleverSource_pp.AddBGT_RR(490./1362.*1.65,-1.,490./1362.*1.65,1.,-1.);
+
+                CleverSource_pL.AddBGT_PR(360./1462.*4.69,1.);
+                CleverSource_pL.AddBGT_RP(490./1362.*1.65,-1.);
+                CleverSource_pL.AddBGT_RR(490./1362.*1.65,-1.,360./1462.*4.69,1.,-1.);
+                //CleverSource_pp.AddBGT_RP(490,1);
+            }
+        }
+        else if(TYPE==2){
+            CleverSource_pp.SetUpReso(0,0.6422);
+            CleverSource_pp.SetUpReso(1,0.6422);
+
+            TFile* F_EposDisto_p_pReso = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/AngleStudy_3/EposDisto_p_pReso.root");
+            TNtuple* T_EposDisto_p_pReso = (TNtuple*)F_EposDisto_p_pReso->Get("InfoTuple_ClosePairs");
+            unsigned N_EposDisto_p_pReso = T_EposDisto_p_pReso->GetEntries();
+            T_EposDisto_p_pReso->SetBranchAddress("k_D",&k_D);
+            T_EposDisto_p_pReso->SetBranchAddress("P1",&fP1);
+            T_EposDisto_p_pReso->SetBranchAddress("P2",&fP2);
+            T_EposDisto_p_pReso->SetBranchAddress("M1",&fM1);
+            T_EposDisto_p_pReso->SetBranchAddress("M2",&fM2);
+            T_EposDisto_p_pReso->SetBranchAddress("Tau1",&Tau1);
+            T_EposDisto_p_pReso->SetBranchAddress("Tau2",&Tau2);
+            T_EposDisto_p_pReso->SetBranchAddress("AngleRcP1",&AngleRcP1);
+            T_EposDisto_p_pReso->SetBranchAddress("AngleRcP2",&AngleRcP2);
+            T_EposDisto_p_pReso->SetBranchAddress("AngleP1P2",&AngleP1P2);
+            for(unsigned uEntry=0; uEntry<N_EposDisto_p_pReso; uEntry++){
+                T_EposDisto_p_pReso->GetEntry(uEntry);
+Tau1 = 0;
+Tau2 = 1.65;
+                if(k_D>k_CutOff) continue;
+                RanVal1 = RanGen.Exponential(fM2/(fP2*Tau2));
+                CleverSource_pp.AddBGT_PR(RanVal1,-cos(AngleRcP2));
+                CleverSource_pp.AddBGT_RP(RanVal1,cos(AngleRcP2));
+            }
+            delete F_EposDisto_p_pReso;
+
+            TFile* F_EposDisto_pReso_pReso = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/AngleStudy_3/EposDisto_pReso_pReso.root");
+            TNtuple* T_EposDisto_pReso_pReso = (TNtuple*)F_EposDisto_pReso_pReso->Get("InfoTuple_ClosePairs");
+            unsigned N_EposDisto_pReso_pReso = T_EposDisto_pReso_pReso->GetEntries();
+            T_EposDisto_pReso_pReso->SetBranchAddress("k_D",&k_D);
+            T_EposDisto_pReso_pReso->SetBranchAddress("P1",&fP1);
+            T_EposDisto_pReso_pReso->SetBranchAddress("P2",&fP2);
+            T_EposDisto_pReso_pReso->SetBranchAddress("M1",&fM1);
+            T_EposDisto_pReso_pReso->SetBranchAddress("M2",&fM2);
+            T_EposDisto_pReso_pReso->SetBranchAddress("Tau1",&Tau1);
+            T_EposDisto_pReso_pReso->SetBranchAddress("Tau2",&Tau2);
+            T_EposDisto_pReso_pReso->SetBranchAddress("AngleRcP1",&AngleRcP1);
+            T_EposDisto_pReso_pReso->SetBranchAddress("AngleRcP2",&AngleRcP2);
+            T_EposDisto_pReso_pReso->SetBranchAddress("AngleP1P2",&AngleP1P2);
+            for(unsigned uEntry=0; uEntry<N_EposDisto_pReso_pReso; uEntry++){
+                T_EposDisto_pReso_pReso->GetEntry(uEntry);
+Tau1 = 1.65;
+Tau2 = 1.65;
+                if(k_D>k_CutOff) continue;
+                RanVal1 = RanGen.Exponential(fM1/(fP1*Tau1));
+                RanVal2 = RanGen.Exponential(fM2/(fP2*Tau2));
+                CleverSource_pp.AddBGT_RR(RanVal1,cos(AngleRcP1),RanVal2,cos(AngleRcP2),cos(AngleP1P2));
+            }
+            delete F_EposDisto_pReso_pReso;
+
+            CleverSource_pL.SetUpReso(0,0.6438);
+            CleverSource_pL.SetUpReso(1,0.6438);
+
+            TFile* F_EposDisto_p_LamReso = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/AngleStudy_3/EposDisto_p_LamReso.root");
+            TNtuple* T_EposDisto_p_LamReso = (TNtuple*)F_EposDisto_p_LamReso->Get("InfoTuple_ClosePairs");
+            unsigned N_EposDisto_p_LamReso = T_EposDisto_p_LamReso->GetEntries();
+            T_EposDisto_p_LamReso->SetBranchAddress("k_D",&k_D);
+            T_EposDisto_p_LamReso->SetBranchAddress("P1",&fP1);
+            T_EposDisto_p_LamReso->SetBranchAddress("P2",&fP2);
+            T_EposDisto_p_LamReso->SetBranchAddress("M1",&fM1);
+            T_EposDisto_p_LamReso->SetBranchAddress("M2",&fM2);
+            T_EposDisto_p_LamReso->SetBranchAddress("Tau1",&Tau1);
+            T_EposDisto_p_LamReso->SetBranchAddress("Tau2",&Tau2);
+            T_EposDisto_p_LamReso->SetBranchAddress("AngleRcP1",&AngleRcP1);
+            T_EposDisto_p_LamReso->SetBranchAddress("AngleRcP2",&AngleRcP2);
+            T_EposDisto_p_LamReso->SetBranchAddress("AngleP1P2",&AngleP1P2);
+            for(unsigned uEntry=0; uEntry<N_EposDisto_p_LamReso; uEntry++){
+                T_EposDisto_p_LamReso->GetEntry(uEntry);
+Tau1 = 0;
+Tau2 = 4.69;
+                if(k_D>k_CutOff) continue;
+                RanVal2 = RanGen.Exponential(fM2/(fP2*Tau2));
+                CleverSource_pL.AddBGT_PR(RanVal2,cos(AngleRcP2));
+            }
+            delete F_EposDisto_p_LamReso;
+
+            TFile* F_EposDisto_pReso_Lam = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/AngleStudy_3/EposDisto_pReso_Lam.root");
+            TNtuple* T_EposDisto_pReso_Lam = (TNtuple*)F_EposDisto_pReso_Lam->Get("InfoTuple_ClosePairs");
+            unsigned N_EposDisto_pReso_Lam = T_EposDisto_pReso_Lam->GetEntries();
+            T_EposDisto_pReso_Lam->SetBranchAddress("k_D",&k_D);
+            T_EposDisto_pReso_Lam->SetBranchAddress("P1",&fP1);
+            T_EposDisto_pReso_Lam->SetBranchAddress("P2",&fP2);
+            T_EposDisto_pReso_Lam->SetBranchAddress("M1",&fM1);
+            T_EposDisto_pReso_Lam->SetBranchAddress("M2",&fM2);
+            T_EposDisto_pReso_Lam->SetBranchAddress("Tau1",&Tau1);
+            T_EposDisto_pReso_Lam->SetBranchAddress("Tau2",&Tau2);
+            T_EposDisto_pReso_Lam->SetBranchAddress("AngleRcP1",&AngleRcP1);
+            T_EposDisto_pReso_Lam->SetBranchAddress("AngleRcP2",&AngleRcP2);
+            T_EposDisto_pReso_Lam->SetBranchAddress("AngleP1P2",&AngleP1P2);
+            for(unsigned uEntry=0; uEntry<N_EposDisto_pReso_Lam; uEntry++){
+                T_EposDisto_pReso_Lam->GetEntry(uEntry);
+Tau1 = 1.65;
+Tau2 = 0;
+                if(k_D>k_CutOff) continue;
+                RanVal1 = RanGen.Exponential(fM1/(fP1*Tau1));
+                CleverSource_pL.AddBGT_RP(RanVal1,cos(AngleRcP1));
+            }
+            delete F_EposDisto_pReso_Lam;
+
+            TFile* F_EposDisto_pReso_LamReso = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/AngleStudy_3/EposDisto_pReso_LamReso.root");
+            TNtuple* T_EposDisto_pReso_LamReso = (TNtuple*)F_EposDisto_pReso_LamReso->Get("InfoTuple_ClosePairs");
+            unsigned N_EposDisto_pReso_LamReso = T_EposDisto_pReso_LamReso->GetEntries();
+            T_EposDisto_pReso_LamReso->SetBranchAddress("k_D",&k_D);
+            T_EposDisto_pReso_LamReso->SetBranchAddress("P1",&fP1);
+            T_EposDisto_pReso_LamReso->SetBranchAddress("P2",&fP2);
+            T_EposDisto_pReso_LamReso->SetBranchAddress("M1",&fM1);
+            T_EposDisto_pReso_LamReso->SetBranchAddress("M2",&fM2);
+            T_EposDisto_pReso_LamReso->SetBranchAddress("Tau1",&Tau1);
+            T_EposDisto_pReso_LamReso->SetBranchAddress("Tau2",&Tau2);
+            T_EposDisto_pReso_LamReso->SetBranchAddress("AngleRcP1",&AngleRcP1);
+            T_EposDisto_pReso_LamReso->SetBranchAddress("AngleRcP2",&AngleRcP2);
+            T_EposDisto_pReso_LamReso->SetBranchAddress("AngleP1P2",&AngleP1P2);
+            for(unsigned uEntry=0; uEntry<N_EposDisto_pReso_LamReso; uEntry++){
+                T_EposDisto_pReso_LamReso->GetEntry(uEntry);
+Tau1 = 1.65;
+Tau2 = 4.69;
+                if(k_D>k_CutOff) continue;
+                RanVal1 = RanGen.Exponential(fM1/(fP1*Tau1));
+                RanVal2 = RanGen.Exponential(fM2/(fP2*Tau2));
+                CleverSource_pL.AddBGT_RR(RanVal1,cos(AngleRcP1),RanVal2,cos(AngleRcP2),cos(AngleP1P2));
+            }
+            delete F_EposDisto_pReso_LamReso;
+        }
+        else{
+            abort();
+        }
+
+        CleverSource_pp.InitNumMcIter(262144);
+        CleverSource_pL.InitNumMcIter(262144);
+
+        CATS Kitty_pp;
+        Kitty_pp.SetMomBins(NumMomBins,kMin,kMax);
+        Kitty_pp.SetAnaSource(CatsSourceForwarder, &CleverSource_pp, 2);
+        Kitty_pp.SetAnaSource(0,SourceSize);
+        Kitty_pp.SetAnaSource(1,2.0);
+        Kitty_pp.SetUseAnalyticSource(true);
+        Kitty_pp.SetMomentumDependentSource(false);
+        Kitty_pp.SetThetaDependentSource(false);
+        Kitty_pp.SetExcludeFailedBins(false);
+        Kitty_pp.SetQ1Q2(1);
+        Kitty_pp.SetPdgId(2212, 2212);
+        Kitty_pp.SetRedMass( 0.5*Mass_p );
+        Kitty_pp.SetNumChannels(4);
+        Kitty_pp.SetNumPW(0,1);
+        Kitty_pp.SetNumPW(1,2);
+        Kitty_pp.SetNumPW(2,2);
+        Kitty_pp.SetNumPW(3,2);
+        Kitty_pp.SetSpin(0,0);
+        Kitty_pp.SetSpin(1,1);
+        Kitty_pp.SetSpin(2,1);
+        Kitty_pp.SetSpin(3,1);
+        Kitty_pp.SetChannelWeight(0, 3./12.);
+        Kitty_pp.SetChannelWeight(1, 1./12.);
+        Kitty_pp.SetChannelWeight(2, 3./12.);
+        Kitty_pp.SetChannelWeight(3, 5./12.);
+        Kitty_pp.SetShortRangePotential(0,0,fDlmPot,cPotPars1S0_pp);
+        Kitty_pp.SetShortRangePotential(1,1,fDlmPot,cPotPars3P0_pp);
+        Kitty_pp.SetShortRangePotential(2,1,fDlmPot,cPotPars3P1_pp);
+        Kitty_pp.SetShortRangePotential(3,1,fDlmPot,cPotPars3P2_pp);
+        //Kitty_pp.SetEpsilonConv(5e-8);
+        //Kitty_pp.SetEpsilonProp(5e-8);
+        Kitty_pp.SetMaxNumThreads(4);
+        Kitty_pp.KillTheCat();
+
+        CATS Kitty_pL;
+        Kitty_pL.SetMomBins(NumMomBins,kMin,kMax);
+        Kitty_pL.SetAnaSource(CatsSourceForwarder, &CleverSource_pL, 2);
+        Kitty_pL.SetAnaSource(0,SourceSize);
+        Kitty_pL.SetAnaSource(1,2.0);
+        Kitty_pL.SetUseAnalyticSource(true);
+        Kitty_pL.SetMomentumDependentSource(false);
+        Kitty_pL.SetThetaDependentSource(false);
+        Kitty_pL.SetExcludeFailedBins(false);
+        Kitty_pL.SetQ1Q2(0);
+        Kitty_pL.SetPdgId(2212, 3122);
+        Kitty_pL.SetRedMass( (Mass_p*Mass_L)/(Mass_p+Mass_L) );
+        Kitty_pL.SetNumChannels(2);
+        Kitty_pL.SetNumPW(0,1);
+        Kitty_pL.SetNumPW(1,1);
+        Kitty_pL.SetSpin(0,0);
+        Kitty_pL.SetSpin(1,1);
+        Kitty_pL.SetChannelWeight(0, 1./4.);
+        Kitty_pL.SetChannelWeight(1, 3./4.);
+        Kitty_pL.SetShortRangePotential(0,0,fDlmPot,cPotPars1S0_pL);
+        Kitty_pL.SetShortRangePotential(1,0,fDlmPot,cPotPars3S1_pL);
+        //Kitty_pL.SetEpsilonConv(5e-8);
+        //Kitty_pL.SetEpsilonProp(5e-8);
+        Kitty_pL.SetMaxNumThreads(4);
+        Kitty_pL.KillTheCat();
+
+        TFile* OutputFile = new TFile(
+        TString::Format("%sTDAD_%.2f_%i.root",OutputDir.Data(),SourceSize,TYPE)
+                         ,"recreate");
+
+        TH1F* hPP_Source;
+        TF1* fPP_Gauss;
+        TH1F* hPL_Source;
+        TF1* fPL_Gauss;
+
+        const double rMin = 0;
+        const double rMax = 8;
+        const unsigned rNumBins = 128;
+        const double RELERR = 0.002;
+        const double ABSERR = 0.002;
+        double RAD;
+        double SVAL;
+        hPP_Source = new TH1F("hPP_Source","hPP_Source",rNumBins,rMin,rMax);
+        hPL_Source = new TH1F("hPL_Source","hPL_Source",rNumBins,rMin,rMax);
+        for(unsigned uRad=0; uRad<rNumBins; uRad++){
+            RAD = hPP_Source->GetBinCenter(uRad+1);
+            SVAL = Kitty_pp.EvaluateTheSource(10,RAD,0);
+            hPP_Source->SetBinContent(uRad+1,SVAL);
+            hPP_Source->SetBinError(uRad+1,RELERR*SVAL+ABSERR);
+
+            RAD = hPL_Source->GetBinCenter(uRad+1);
+            SVAL = Kitty_pL.EvaluateTheSource(10,RAD,0);
+            hPL_Source->SetBinContent(uRad+1,SVAL);
+            hPL_Source->SetBinError(uRad+1,RELERR*SVAL+ABSERR);
+        }
+
+        fPP_Gauss = new TF1(TString::Format("fPP_Gauss"),GaussSourceTF1,rMin,rMax,1);
+        fPP_Gauss->SetParameter(0,1.0);
+        fPP_Gauss->SetParLimits(0,0.5,2.0);
+
+        fPL_Gauss = new TF1(TString::Format("fPL_Gauss"),GaussSourceTF1,rMin,rMax,1);
+        fPL_Gauss->SetParameter(0,1.0);
+        fPL_Gauss->SetParLimits(0,0.5,2.0);
+
+        hPP_Source->Fit(fPP_Gauss,"S, N, R, M");
+        hPL_Source->Fit(fPL_Gauss,"S, N, R, M");
+
+        hPP_RAD->SetBinContent(TYPE+1,fPP_Gauss->GetParameter(0));
+        hPP_RAD->SetBinError(TYPE+1,fPP_Gauss->GetParError(0));
+
+        hPL_RAD->SetBinContent(TYPE+1,fPL_Gauss->GetParameter(0));
+        hPL_RAD->SetBinError(TYPE+1,fPL_Gauss->GetParError(0));
+
+
+
+        TGraph gPP;
+        gPP.SetName("gPP");
+        gPP.Set(NumMomBins);
+
+        TGraph gPL;
+        gPL.SetName("gPL");
+        gPL.Set(NumMomBins);
+
+        for(unsigned uBin=0; uBin<NumMomBins; uBin++){
+            gPP.SetPoint(uBin,Kitty_pp.GetMomentum(uBin),Kitty_pp.GetCorrFun(uBin));
+            gPL.SetPoint(uBin,Kitty_pL.GetMomentum(uBin),Kitty_pL.GetCorrFun(uBin));
+        }
+        gPP.Write();
+        gPL.Write();
+
+        hPP_Source->Write();
+        fPP_Gauss->Write();
+
+        hPL_Source->Write();
+        fPL_Gauss->Write();
+
+        delete hPP_Source;
+        delete fPP_Gauss;
+        delete hPL_Source;
+        delete fPL_Gauss;
+        delete OutputFile;
+    }
+
+    fCommonOut->cd();
+    hPP_RAD->Write();
+    hPL_RAD->Write();
+
+    delete hPP_RAD;
+    delete hPL_RAD;
+    delete fCommonOut;
+
+}
 
 //for the McLevyNolan_Reso
 //void CreateSourceLookUp(const TString& System, const ){
@@ -806,10 +1181,11 @@ int SOURCESTUDIES(int narg, char** ARGS){
     //ConvertThetaAngleHisto("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/AngleStudy_1/DimiPhi_pp.root","h_rkAngle_Mom2",400,600);
     //AverageResoApprox_pp();
     //AverageResoApprox_pL();
-    TestDifferentAngularDistributions(0.8);
-    TestDifferentAngularDistributions(1.0);
-    TestDifferentAngularDistributions(1.2);
+    //TestDifferentAngularDistributions(0.8);
+    //TestDifferentAngularDistributions(1.0);
+    //TestDifferentAngularDistributions(1.2);
 
+    TestEposDistos(1.0);
 
     return 0;
 }

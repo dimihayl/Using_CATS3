@@ -2557,6 +2557,20 @@ void pp_in_txtfile(){
     Kitty_SI.SetQ1Q2(0);
     Kitty_SI.KillTheCat();
 
+    CATS Kitty_C;
+    Kitty_C.SetMaxNumThreads(4);
+    Kitty_C.SetMomBins(NumMomBins,kMin,kMax);
+    AnalysisObject.SetUpCats_pp(Kitty_C,"AV18","Gauss");
+    Kitty_C.SetAnaSource(0,1.2);
+    Kitty_C.SetEpsilonProp(2e-8);
+    Kitty_C.SetQ1Q2(1);
+    Kitty_C.RemoveShortRangePotential(0,0);
+    Kitty_C.RemoveShortRangePotential(0,2);
+    Kitty_C.RemoveShortRangePotential(1,0);
+    Kitty_C.RemoveShortRangePotential(1,1);
+    Kitty_C.RemoveShortRangePotential(1,2);
+    Kitty_C.KillTheCat();
+
     CATS Kitty_Full;
     Kitty_Full.SetMaxNumThreads(4);
     Kitty_Full.SetMomBins(NumMomBins,kMin,kMax);
@@ -2567,13 +2581,18 @@ void pp_in_txtfile(){
 
     TH1F* hV_AV18 = new TH1F("hV_AV18","hV_AV18",NumRadBins,rMin,rMax);
     TH1F* hV_C = new TH1F("hV_C","hV_C",NumRadBins,rMin,rMax);
+    TH1F* hV_Tot = new TH1F("hV_Tot","hV_Tot",NumRadBins,rMin,rMax);
     TH1F* hWF_AV18_1S0 = new TH1F("hWF_AV18_1S0","hWF_AV18_1S0",NumRadBins,rMin,rMax);
+    TH1F* hWF_C_1S0 = new TH1F("hWF_C_1S0","hWF_C_1S0",NumRadBins,rMin,rMax);
     TH1F* hWF_Full_1S0 = new TH1F("hWF_Full_1S0","hWF_Full_1S0",NumRadBins,rMin,rMax);
     TH1F* hWFu_AV18_1S0 = new TH1F("hWFu_AV18_1S0","hWFu_AV18_1S0",NumRadBins,rMin,rMax);
+    TH1F* hWFu_C_1S0 = new TH1F("hWFu_C_1S0","hWFu_C_1S0",NumRadBins,rMin,rMax);
     TH1F* hWFu_Full_1S0 = new TH1F("hWFu_Full_1S0","hWFu_Full_1S0",NumRadBins,rMin,rMax);
     TH1F* hWF_AV18 = new TH1F("hWF_AV18","hWF_AV18",NumRadBins,rMin,rMax);
+    TH1F* hWF_C = new TH1F("hWF_C","hWF_C",NumRadBins,rMin,rMax);
     TH1F* hWF_Full = new TH1F("hWF_Full","hWF_Full",NumRadBins,rMin,rMax);
     TH1F* hCk_AV18 = new TH1F("hCk_AV18","hCk_AV18",NumMomBins,kMin,kMax);
+    TH1F* hCk_C = new TH1F("hCk_C","hCk_C",NumMomBins,kMin,kMax);
     TH1F* hCk_Full = new TH1F("hCk_Full","hCk_Full",NumMomBins,kMin,kMax);
 
     //AV18 potential
@@ -2584,87 +2603,326 @@ void pp_in_txtfile(){
     fprintf (ppFilePotentials, "%16s","r (fm)");
     fprintf (ppFilePotentials, "%16s","V_AV18(r)");
     fprintf (ppFilePotentials, "%16s","V_C(r)");
+    fprintf (ppFilePotentials, "%16s","V_Tot(r)");
     fprintf (ppFilePotentials, "%16s","Re_u1S0_AV18(r)");
+    fprintf (ppFilePotentials, "%16s","Re_u1S0_C(r)");
     fprintf (ppFilePotentials, "%16s","Re_u1S0_Tot(r)");
     fprintf (ppFilePotentials, "%17s","Re_ψ1S0_AV18(r)");
+    fprintf (ppFilePotentials, "%17s","Re_ψ1S0_C(r)");
     fprintf (ppFilePotentials, "%17s","Re_ψ1S0_Tot(r)");
     fprintf (ppFilePotentials, "%17s","|ψ|^2_AV18(r)");
+    fprintf (ppFilePotentials, "%17s","|ψ|^2_C(r)");
     fprintf (ppFilePotentials, "%17s","|ψ|^2_Tot(r)");
     fprintf (ppFilePotentials,"\n");
     for(unsigned uRad=0; uRad<NumRadBins; uRad++){
         double RAD = hV_AV18->GetBinCenter(uRad+1);
         double V_AV18 = Kitty_SI.EvaluateThePotential(0,0,WF_Mom,RAD);
         double V_C = Kitty_Full.EvaluateCoulombPotential(RAD);
+        double V_Tot = V_AV18+V_C;
         hV_AV18->SetBinContent(uRad+1,V_AV18);
         hV_C->SetBinContent(uRad+1,V_C);
+        hV_Tot->SetBinContent(uRad+1,V_Tot);
         unsigned WhichMomBin = Kitty_SI.GetMomBin(WF_Mom);
         double WF_AV18_1S0 = real(Kitty_SI.EvalRadialWaveFunction(WhichMomBin,0,0,RAD,true));
+        double WF_C_1S0 = real(Kitty_C.EvalRadialWaveFunction(WhichMomBin,0,0,RAD,true));
         double WF_Full_1S0 = real(Kitty_Full.EvalRadialWaveFunction(WhichMomBin,0,0,RAD,true));
         double WFu_AV18_1S0 = real(Kitty_SI.EvalRadialWaveFunction(WhichMomBin,0,0,RAD,false));
+        double WFu_C_1S0 = real(Kitty_C.EvalRadialWaveFunction(WhichMomBin,0,0,RAD,false));
         double WFu_Full_1S0 = real(Kitty_Full.EvalRadialWaveFunction(WhichMomBin,0,0,RAD,false));
         double WF_AV18 = Kitty_SI.EvalWaveFun2(WhichMomBin,RAD,0);
+        double WF_C = Kitty_C.EvalWaveFun2(WhichMomBin,RAD,0);
         double WF_Full = Kitty_Full.EvalWaveFun2(WhichMomBin,RAD,0);
         hWF_AV18_1S0->SetBinContent(uRad+1,WF_AV18_1S0);
+        hWF_C_1S0->SetBinContent(uRad+1,WF_C_1S0);
         hWF_Full_1S0->SetBinContent(uRad+1,WF_Full_1S0);
         hWFu_AV18_1S0->SetBinContent(uRad+1,WFu_AV18_1S0);
+        hWFu_C_1S0->SetBinContent(uRad+1,WFu_C_1S0);
         hWFu_Full_1S0->SetBinContent(uRad+1,WFu_Full_1S0);
         hWF_AV18->SetBinContent(uRad+1,WF_AV18);
+        hWF_C->SetBinContent(uRad+1,WF_C);
         hWF_Full->SetBinContent(uRad+1,WF_Full);
         fprintf (ppFilePotentials, "%16.4e",RAD);
         fprintf (ppFilePotentials, "%16.4e",V_AV18);
         fprintf (ppFilePotentials, "%16.4e",V_C);
+        fprintf (ppFilePotentials, "%16.4e",V_Tot);
         fprintf (ppFilePotentials, "%16.4e",WFu_AV18_1S0);
+        fprintf (ppFilePotentials, "%16.4e",WFu_C_1S0);
         fprintf (ppFilePotentials, "%16.4e",WFu_Full_1S0);
         fprintf (ppFilePotentials, "%16.4e",WF_AV18_1S0);
+        fprintf (ppFilePotentials, "%16.4e",WF_C_1S0);
         fprintf (ppFilePotentials, "%16.4e",WF_Full_1S0);
         fprintf (ppFilePotentials, "%16.4e",WF_AV18);
+        fprintf (ppFilePotentials, "%16.4e",WF_C);
         fprintf (ppFilePotentials, "%16.4e",WF_Full);
         fprintf (ppFilePotentials,"\n");
     }
 
-    FILE * ppFileWF;
-    ppFileWF = fopen (TString::Format("%sppFileWF.txt",OutputFolder.Data()),"w");
-    fprintf (ppFileWF, "%16s","k (MeV)");
-    fprintf (ppFileWF, "%16s","Ck_AV18");
-    fprintf (ppFileWF, "%16s","Ck_Full");
-    fprintf (ppFileWF,"\n");
+    FILE * ppFileCk;
+    ppFileCk = fopen (TString::Format("%sppFileCk.txt",OutputFolder.Data()),"w");
+    fprintf (ppFileCk, "%16s","k (MeV)");
+    fprintf (ppFileCk, "%16s","Ck_AV18");
+    fprintf (ppFileCk, "%16s","Ck_C");
+    fprintf (ppFileCk, "%16s","Ck_Full");
+    fprintf (ppFileCk,"\n");
     //Ck (full)
     for(unsigned uMom=0; uMom<NumMomBins; uMom++){
         double MOM = Kitty_Full.GetMomentum(uMom);
         double Ck_AV18 = Kitty_SI.GetCorrFun(uMom);
+        double Ck_C = Kitty_C.GetCorrFun(uMom);
         double Ck_Full = Kitty_Full.GetCorrFun(uMom);
-        fprintf (ppFileWF, "%16.4e",MOM);
-        fprintf (ppFileWF, "%16.4e",Ck_AV18);
-        fprintf (ppFileWF, "%16.4e",Ck_Full);
-        fprintf (ppFileWF,"\n");
+        fprintf (ppFileCk, "%16.4e",MOM);
+        fprintf (ppFileCk, "%16.4e",Ck_AV18);
+        fprintf (ppFileCk, "%16.4e",Ck_C);
+        fprintf (ppFileCk, "%16.4e",Ck_Full);
+        fprintf (ppFileCk,"\n");
         hCk_AV18->SetBinContent(uMom+1,Ck_AV18);
+        hCk_C->SetBinContent(uMom+1,Ck_C);
         hCk_Full->SetBinContent(uMom+1,Ck_Full);
     }
 
     TFile* fOutput = new TFile(OutputFolder+"fOutput_pp.root","recreate");
     hV_AV18->Write();
     hV_C->Write();
+    hV_Tot->Write();
     hWFu_AV18_1S0->Write();
+    hWFu_C_1S0->Write();
     hWFu_Full_1S0->Write();
     hWF_AV18_1S0->Write();
+    hWF_C_1S0->Write();
     hWF_Full_1S0->Write();
     hWF_AV18->Write();
+    hWF_C->Write();
     hWF_Full->Write();
     hCk_AV18->Write();
+    hCk_C->Write();
     hCk_Full->Write();
 
     delete hV_AV18;
     delete hV_C;
+    delete hV_Tot;
     delete hWFu_AV18_1S0;
+    delete hWFu_C_1S0;
     delete hWFu_Full_1S0;
     delete hWF_AV18_1S0;
+    delete hWF_C_1S0;
     delete hWF_Full_1S0;
     delete hWF_AV18;
+    delete hWF_C;
     delete hWF_Full;
     delete hCk_AV18;
+    delete hCk_C;
     delete hCk_Full;
     delete fOutput;
 }
+
+void pp_pLambda_pXi_Ratios(){
+    const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pp_pLambda_pXi_Ratios/";
+    const TString AnaResultFile = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM/AnalysisResults.root";
+    const unsigned NumMomBinsFine = 80;
+    const double kMinFine = 0;
+    const double kMaxFine = 320;
+    const double kStepFine = (kMaxFine-kMinFine)/(NumMomBinsFine);
+    const unsigned NumMomBinsCoarse = 8;
+    const double kMaxCoarse = 400;
+    const double kStepCoarse = (kMaxCoarse-kMaxFine)/(NumMomBinsCoarse);
+    const unsigned NumMomBins = NumMomBinsFine + NumMomBinsCoarse;
+    const unsigned NumSyst = 3;
+    enum Systems { pp, pL, pXim };
+    TString SysName[NumSyst];
+    SysName[0] = "pp";
+    SysName[1] = "pL";
+    SysName[2] = "pXim";
+
+    double* MomBins = new double [NumMomBins+1];
+    MomBins[0] = kMinFine;
+    for(unsigned uBin=1; uBin<=NumMomBins; uBin++){
+        if(uBin<=NumMomBinsFine){
+            MomBins[uBin] = MomBins[uBin-1]+kStepFine;
+        }
+        else{
+            MomBins[uBin] = MomBins[uBin-1]+kStepCoarse;
+        }
+        //printf("MomBins[%u]=%.1f\n",uBin,MomBins[uBin]);
+    }
+
+    DLM_CommonAnaFunctions AnaObject;
+
+    CATS Kitty[NumSyst];
+
+    Kitty[pp].SetMomBins(NumMomBins,MomBins);
+    AnaObject.SetUpCats_pp(Kitty[pp],"AV18","Gauss");
+    Kitty[pp].SetAnaSource(0,1.2);
+    Kitty[pp].SetMaxNumThreads(4);
+
+    Kitty[pL].SetMomBins(NumMomBins,MomBins);
+    AnaObject.SetUpCats_pL(Kitty[pL],"NLO_Coupled_S","Gauss");//NLO_Coupled_S
+    Kitty[pL].SetAnaSource(0,1.4);
+    Kitty[pL].SetMaxNumThreads(4);
+
+    Kitty[pXim].SetMomBins(NumMomBins,MomBins);
+    AnaObject.SetUpCats_pXim(Kitty[pXim],"pXim_HALQCD1","Gauss");
+    Kitty[pXim].SetAnaSource(0,1.0);
+    Kitty[pXim].SetMaxNumThreads(4);
+
+    Kitty[pp].KillTheCat();
+    Kitty[pL].KillTheCat();
+    Kitty[pXim].KillTheCat();
+
+
+    TGraph graph[NumSyst];
+    for(unsigned uSys=0; uSys<NumSyst; uSys++){
+        graph[uSys].SetName("graph_"+SysName[uSys]);
+        graph[uSys].Set(NumMomBins);
+        for(unsigned uBin=0; uBin<NumMomBins; uBin++){
+            graph[uSys].SetPoint(uBin,Kitty[uSys].GetMomentum(uBin),Kitty[uSys].GetCorrFun(uBin));
+        }
+    }
+
+    const unsigned NumRatioPlots = NumSyst*(NumSyst-1)/2;
+    TGraph graphRatio[NumRatioPlots];
+    double CkVal1,CkVal2,MomVal1,MomVal2;
+    unsigned uRat=0;
+    for(unsigned uSys1=0; uSys1<NumSyst; uSys1++){
+        for(unsigned uSys2=uSys1+1; uSys2<NumSyst; uSys2++){
+            graphRatio[uRat].SetName("graphRatio_"+SysName[uSys1]+"_"+SysName[uSys2]);
+            graphRatio[uRat].Set(NumMomBins);
+            for(unsigned uBin=0; uBin<NumMomBins; uBin++){
+                graph[uSys1].GetPoint(uBin,MomVal1,CkVal1);
+                graph[uSys2].GetPoint(uBin,MomVal2,CkVal2);
+                graphRatio[uRat].SetPoint(uBin,MomVal1,CkVal1/CkVal2);
+                if(MomVal1!=MomVal2){
+                    printf("TROUBLE!!!!!\n");
+                }
+            }
+            uRat++;
+        }
+    }
+
+
+
+    //exp data
+    char prefix[16];
+    char addon[16];
+    strcpy(prefix,"HM");
+    strcpy(addon,"");
+
+    TFile fInput(AnaResultFile,"read");
+    TDirectoryFile *dirResults=(TDirectoryFile*)(fInput.FindObjectAny(Form("%sResults%s", prefix, addon)));
+    TList *Results;
+    dirResults->GetObject(Form("%sResults%s", prefix, addon),Results);
+
+    TList* tmpFolder1;
+    TList* tmpFolder2;
+    const unsigned NumSpecies = 3;
+    TString SpeciesDescr[NumSpecies];
+    SpeciesDescr[0] = "p";
+    SpeciesDescr[1] = "Lam";
+    SpeciesDescr[2] = "Xim";
+    const unsigned NumCkCombo = NumSpecies*(NumSpecies+1)/2;
+    TString ComboDescr[NumCkCombo];
+    TH1F** histSE = new TH1F* [NumSpecies];
+    TH1F** histME = new TH1F* [NumSpecies];
+    TH1F** histCk = new TH1F* [NumSpecies];
+    const unsigned NumCkRatios = NumCkCombo*(NumCkCombo-1)/2;
+    TH1F** histCkRatio = new TH1F* [NumCkRatios];
+    unsigned uCombo=0;
+    TFile fOutput(OutputFolder+"fOutput.root","recreate");
+    for(unsigned uSpec1=0; uSpec1<NumSpecies; uSpec1++){
+        for(unsigned uSpec2=uSpec1; uSpec2<NumSpecies; uSpec2++){
+            //printf("\n%u %u\n",uSpec1,uSpec2);
+            tmpFolder1=(TList*)Results->FindObject(TString::Format("Particle%u_Particle%u",uSpec1*2,uSpec2*2));
+            //printf(" tmpFolder1=%p\n",tmpFolder1);
+            TH1F* tmpSE1 = NULL; tmpSE1 = (TH1F*)tmpFolder1->FindObject(TString::Format("SEDist_Particle%u_Particle%u",uSpec1*2,uSpec2*2));
+            //printf(" tmpSE1=%p\n",tmpSE1);
+            //printf(" tmpSE1->GetNbinsX()=%i\n",tmpSE1->GetNbinsX());
+            histSE[uCombo] = new TH1F(TString::Format("histSE_Particle%u_Particle%u",uSpec1*2,uSpec2*2),TString::Format("histSE_Particle%u_Particle%u",uSpec1*2,uSpec2*2),
+                                      tmpSE1->GetNbinsX(),tmpSE1->GetBinLowEdge(1),tmpSE1->GetXaxis()->GetBinUpEdge(tmpSE1->GetNbinsX()));
+            for(unsigned uBin=0; uBin<=tmpSE1->GetNbinsX()+1; uBin++){
+                histSE[uCombo]->SetBinContent(uBin,tmpSE1->GetBinContent(uBin));
+                histSE[uCombo]->SetBinError(uBin,tmpSE1->GetBinError(uBin));
+            }
+            //histSE[uCombo] = (TH1F*)tmpSE1->Clone(TString::Format("histSE_Particle%u_Particle%u",uSpec1*2,uSpec2*2));
+            //printf("Done\n");
+            TH1F* tmpME1 = NULL; tmpME1 = (TH1F*)tmpFolder1->FindObject(TString::Format("MEDist_Particle%u_Particle%u",uSpec1*2,uSpec2*2));
+            //printf(" tmpME1=%p\n",tmpME1);
+            histME[uCombo] = new TH1F(TString::Format("histME_Particle%u_Particle%u",uSpec1*2,uSpec2*2),TString::Format("histME_Particle%u_Particle%u",uSpec1*2,uSpec2*2),
+                                      tmpME1->GetNbinsX(),tmpME1->GetBinLowEdge(1),tmpME1->GetXaxis()->GetBinUpEdge(tmpME1->GetNbinsX()));
+            for(unsigned uBin=0; uBin<=tmpME1->GetNbinsX()+1; uBin++){
+                histME[uCombo]->SetBinContent(uBin,tmpME1->GetBinContent(uBin));
+                histME[uCombo]->SetBinError(uBin,tmpME1->GetBinError(uBin));
+            }
+            //histME[uCombo] = (TH1F*)tmpME1->Clone(TString::Format("histME_Particle%u_Particle%u",uSpec1*2,uSpec2*2));
+            tmpFolder2=(TList*)Results->FindObject(TString::Format("Particle%u_Particle%u",uSpec1*2+1,uSpec2*2+1));
+            //printf(" tmpFolder2=%p\n",tmpFolder2);
+            TH1F* tmpSE2 = NULL; tmpSE2 = (TH1F*)tmpFolder2->FindObject(TString::Format("SEDist_Particle%u_Particle%u",uSpec1*2+1,uSpec2*2+1));
+            //printf(" tmpSE2=%p\n",tmpSE2);
+            TH1F* tmpME2 = NULL; tmpME2 = (TH1F*)tmpFolder2->FindObject(TString::Format("MEDist_Particle%u_Particle%u",uSpec1*2+1,uSpec2*2+1));
+            //printf(" tmpME2=%p\n",tmpME2);
+            histSE[uCombo]->Add(tmpSE2);
+            histME[uCombo]->Add(tmpME2);
+            histME[uCombo]->Scale(histSE[uCombo]->Integral(0,histSE[uCombo]->GetNbinsX()+1)/histME[uCombo]->Integral(0,histME[uCombo]->GetNbinsX()+1));
+            //printf("hSE = %e\n",histSE[uCombo]->Integral(0,histSE[uCombo]->GetNbinsX()+1));
+            //printf("hME = %e\n",histME[uCombo]->Integral(0,histME[uCombo]->GetNbinsX()+1));
+            histCk[uCombo] = new TH1F(TString::Format("histCk_Particle%u_Particle%u",uSpec1*2,uSpec2*2),TString::Format("histCk_Particle%u_Particle%u",uSpec1*2,uSpec2*2),
+                                      histSE[uCombo]->GetNbinsX(),histSE[uCombo]->GetBinLowEdge(1),histSE[uCombo]->GetXaxis()->GetBinUpEdge(histSE[uCombo]->GetNbinsX()));
+            for(unsigned uBin=0; uBin<=histSE[uCombo]->GetNbinsX()+1; uBin++){
+                histCk[uCombo]->SetBinContent(uBin,histSE[uCombo]->GetBinContent(uBin));
+                histCk[uCombo]->SetBinError(uBin,histSE[uCombo]->GetBinError(uBin));
+            }
+            //histCk[uCombo] = (TH1F*)histSE[uCombo]->Clone(TString::Format("histCk_Particle%u_Particle%u",uSpec1*2,uSpec2*2));
+            histCk[uCombo]->Divide(histME[uCombo]);
+            ComboDescr[uCombo] = SpeciesDescr[uSpec1]+SpeciesDescr[uSpec2];
+            uCombo++;
+        }
+    }
+printf("Hello\n");
+    unsigned uRatio=0;
+    for(unsigned uCombo1=0; uCombo1<NumCkCombo; uCombo1++){
+        for(unsigned uCombo2=uCombo1+1; uCombo2<NumCkCombo; uCombo2++){
+            histCkRatio[uRatio] = new TH1F("histRatio_"+ComboDescr[uCombo1]+"_"+ComboDescr[uCombo2],"histRatio_"+ComboDescr[uCombo1]+"_"+ComboDescr[uCombo2],
+                                      histCk[uCombo1]->GetNbinsX(),histCk[uCombo1]->GetBinLowEdge(1),histCk[uCombo1]->GetXaxis()->GetBinUpEdge(histCk[uCombo1]->GetNbinsX()));
+            for(unsigned uBin=0; uBin<=histCk[uCombo1]->GetNbinsX()+1; uBin++){
+                histCkRatio[uRatio]->SetBinContent(uBin,histCk[uCombo1]->GetBinContent(uBin));
+                histCkRatio[uRatio]->SetBinError(uBin,histCk[uCombo1]->GetBinError(uBin));
+            }
+            //histCkRatio[uRatio] = (TH1F*)histCk[uCombo1]->Clone("histRatio_"+ComboDescr[uCombo1]+"_"+ComboDescr[uCombo2]);
+            histCkRatio[uRatio]->Divide(histCk[uCombo2]);
+            uRatio++;
+        }
+    }
+printf("Hello 0\n");
+
+    for(unsigned uSys=0; uSys<NumSyst; uSys++){
+        graph[uSys].Write();
+    }
+printf("Hello 1\n");
+    for(uRat=0; uRat<NumRatioPlots; uRat++){
+        graphRatio[uRat].Write();
+    }
+printf("Hello 2\n");
+    for(uCombo=0; uCombo<NumCkCombo; uCombo++){
+        histSE[uCombo]->Write();
+        histME[uCombo]->Write();
+        histCk[uCombo]->Write();
+    }
+printf("Hello 3\n");
+    for(uRatio=0; uRatio<NumCkRatios; uRatio++){
+        histCkRatio[uRatio]->Write();
+    }
+printf("Hello 4\n");
+
+    delete [] MomBins;
+    for(uCombo=0; uCombo<NumCkCombo; uCombo++){
+        delete histCk[uCombo];
+    }
+    delete [] histCk;
+
+    for(uRatio=0; uRatio<NumCkRatios; uRatio++){
+        delete histCkRatio[uRatio];
+    }
+    delete [] histCkRatio;
+}
+
 
 int main(int argc, char *argv[])
 {
@@ -2686,7 +2944,9 @@ int main(int argc, char *argv[])
         strcpy(ARGV[iARG],argv[iARG]);
     }
 
-    //pp_in_txtfile();
+    pp_in_txtfile();
+    //pp_pLambda_pXi_Ratios();
+
 
     //! FOR THE CATS TUTORIAL 2019
     //GenerateFakeProtonLambda();
@@ -2738,7 +2998,7 @@ printf("%.3f\n",lambdapars[4]*100.);
     //GENBOD(argc,ARGV);
     //GerhardMAIN(argc,ARGV);
     //Main_pSigma();
-    MIXEDEVENTS(argc,ARGV);
+    //MIXEDEVENTS(argc,ARGV);
     //SOURCESTUDIES(argc,ARGV);
     //KAONPROTON_MAIN(argc,ARGV);
 /*

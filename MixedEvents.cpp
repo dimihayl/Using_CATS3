@@ -3490,7 +3490,7 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
     //TFile* fOut = new TFile(OutFileBaseName+"_REPICK.root","recreate");
     TNtuple* InfoTuple = new TNtuple("InfoTuple","InfoTuple","k_D:P1:P2:M1:M2:Tau1:Tau2:AngleRcP1:AngleRcP2:AngleP1P2");
     TNtuple* InfoTuple_ClosePairs = new TNtuple("InfoTuple_ClosePairs","InfoTuple_ClosePairs","k_D:P1:P2:M1:M2:Tau1:Tau2:AngleRcP1:AngleRcP2:AngleP1P2");
-    const double ClosePairLimit = 500;
+    const double ClosePairLimit = 300;
 
     CatsParticle KittyParticle;
     CatsEvent* KittyEvent = new CatsEvent(pdgID[0],pdgID[1]);
@@ -3932,8 +3932,8 @@ printf("TLV_P2.M()=%f\n",TLV_P2.M());
         //printf("p2 = %f (%.3f,%.3f,%.3f)\n",Particle2.GetP(),Particle2.GetPx(),Particle2.GetPy(),Particle2.GetPz());
         //printf("d1 = %f (%.3f,%.3f,%.3f)\n",Daughter1.GetP(),Daughter1.GetPx(),Daughter1.GetPy(),Daughter1.GetPz());
         //printf("d2 = %f (%.3f,%.3f,%.3f)\n",Daughter2.GetP(),Daughter2.GetPx(),Daughter2.GetPy(),Daughter2.GetPz());
-            vecR.SetXYZ(Particle1.GetX()-Particle2.GetX(),Particle1.GetY()-Particle2.GetY(),Particle1.GetZ()-Particle2.GetZ());
-            vecK.SetXYZ(Particle2.GetPx()-Particle1.GetPx(),Particle2.GetPy()-Particle1.GetPy(),Particle2.GetPz()-Particle1.GetPz());
+            vecR.SetXYZ(Particle2.GetX()-Particle1.GetX(),Particle2.GetY()-Particle1.GetY(),Particle2.GetZ()-Particle1.GetZ());//r_core
+            vecK.SetXYZ(Particle2.GetPx()-Particle1.GetPx(),Particle2.GetPy()-Particle1.GetPy(),Particle2.GetPz()-Particle1.GetPz());//k* of the parents
             TVector3 vecR_Daughters;
             vecR_Daughters.SetXYZ(Daughter1.GetX()-Daughter2.GetX(),Daughter1.GetY()-Daughter2.GetY(),Daughter1.GetZ()-Daughter2.GetZ());
             TVector3 vecK_Daughters;
@@ -3953,19 +3953,35 @@ printf("TLV_P2.M()=%f\n",TLV_P2.M());
             RelMom_CmDaughters = vecK.Mag()*1000.;
             RelMomD_CmDaughters = vecK_Daughters.Mag()*1000.;
 
+            //if the core is defined as r_c = rp2 - rp1, than the the sign convention is as noted on the tablet
             AngleRCP1_CmDaughters = vecR.Angle(vecP1);
+            //if(vecR.Dot(vecP1)<0)AngleRCP1_CmDaughters=-AngleRCP1_CmDaughters;
             AngleRCP2_CmDaughters = vecR.Angle(vecP2);
+            //if(vecR.Dot(vecP2)<0)AngleRCP2_CmDaughters=-AngleRCP2_CmDaughters;
             AngleP1P2_CmDaughters = vecP1.Angle(vecP2);
+            //if(vecP1.Dot(vecP2)<0)AngleP1P2_CmDaughters=-AngleP1P2_CmDaughters;
 
-double D_COS = (vecR.X()*vecP1.X()+vecR.Y()*vecP1.Y()+vecR.Z()*vecP1.Z())/(vecR.Mag()*vecP1.Mag());
-double R_COS = cos(AngleRCP1_CmDaughters);
-double D_A = acos(D_COS);
-double R_A = AngleRCP1_CmDaughters;
-if(D_A*RadToDeg>180){
-printf("\n");
-printf("Dimi: A=%.3f; C=%.3f\n",D_A*RadToDeg,D_COS);
-printf("Root: A=%.3f; C=%.3f\n",R_A*RadToDeg,R_COS);
-}
+            TVector3 R_CORE = vecRP2-vecRP1;
+            TVector3 BGT1; BGT1.SetXYZ(Particle1.GetPx()/1.400*1.5,Particle1.GetPy()/1.400*1.5,Particle1.GetPz()/1.400*1.5);
+            TVector3 BGT2; BGT2.SetXYZ(Particle2.GetPx()/1.400*1.5,Particle2.GetPy()/1.400*1.5,Particle2.GetPz()/1.400*1.5);
+            TVector3 R_EFF = R_CORE - BGT1 + BGT2;
+            //if(RelMomD_CmDaughters<200){
+            //printf("\n");
+            //printf("K* = %f\n",RelMomD_CmDaughters);
+            //printf("R_CORE = %f\n",R_CORE.Mag());
+            //printf("R_EFF = %f\n",R_EFF.Mag());
+            //}
+
+
+//double D_COS = (vecR.X()*vecP1.X()+vecR.Y()*vecP1.Y()+vecR.Z()*vecP1.Z())/(vecR.Mag()*vecP1.Mag());
+//double R_COS = cos(AngleRCP1_CmDaughters);
+//double D_A = acos(D_COS);
+//double R_A = AngleRCP1_CmDaughters;
+//if(D_A*RadToDeg>180){
+//printf("\n");
+//printf("Dimi: A=%.3f; C=%.3f\n",D_A*RadToDeg,D_COS);
+//printf("Root: A=%.3f; C=%.3f\n",R_A*RadToDeg,R_COS);
+//}
 
 
 
@@ -4283,6 +4299,24 @@ printf("p2 = %f(%.3f,%.3f) r %f(%.3f,%.3f)\n",ParticleOriginal2.GetP(),ParticleO
             CONTAINER[7] = AngleRCP1_CmDaughters;
             CONTAINER[8] = AngleRCP2_CmDaughters;
             CONTAINER[9] = AngleP1P2_CmDaughters;
+
+
+const double r_core = R_CORE.Mag();
+const double bgt1 = MomP1_CmDaughters/1.4*1.5;
+const double bgt2 = MomP2_CmDaughters/1.4*1.5;
+const double cosR1 = cos(AngleRCP1_CmDaughters);
+const double cosR2 = cos(AngleRCP2_CmDaughters);
+const double cos12 = cos(AngleP1P2_CmDaughters);
+//if(RelMomD_CmDaughters<200){
+//printf("The output from the container:\n");
+//printf(" k* = %f\n",RelMomD_CmDaughters);
+//printf(" r_core = %f\n",r_core);
+//printf(" r^2_eff = %f\n",r_core*r_core+bgt1*bgt1+bgt2*bgt2-2.*r_core*bgt1*cosR1+2.*r_core*bgt2*cosR2-2.*bgt1*bgt2*cos12);
+//printf(" r_eff = %f\n",sqrt(r_core*r_core+bgt1*bgt1+bgt2*bgt2-2.*r_core*bgt1*cosR1+2.*r_core*bgt2*cosR2-2.*bgt1*bgt2*cos12));
+//}
+if(r_core*r_core+bgt1*bgt1+bgt2*bgt2-2.*r_core*bgt1*cosR1+2.*r_core*bgt2*cosR2-2.*bgt1*bgt2*cos12<0){
+    printf("PROBLEM\n");
+}
 //! THE FIRST PARTICLE IS A PROTON IN CASE OF pReso
 //printf("%.3f %.3f %.3f %.3f\n",CONTAINER[0],CONTAINER[1],CONTAINER[2],CONTAINER[3]);
 //printf("pid1=%i\n",pid1);
@@ -4291,7 +4325,7 @@ printf("p2 = %f(%.3f,%.3f) r %f(%.3f,%.3f)\n",ParticleOriginal2.GetP(),ParticleO
 
 if(RelMomD_CmDaughters!=RelMomD_CmDaughters || AngleRCP1_CmDaughters!=AngleRCP1_CmDaughters ||
    AngleRCP2_CmDaughters!=AngleRCP2_CmDaughters || AngleP1P2_CmDaughters!=AngleP1P2_CmDaughters){
-printf("\nRelMomD_CmDaughters=%f\n",RelMomD_CmDaughters);
+printf("\nRelMom_CmDaughters=%f\n",RelMomD_CmDaughters);
 printf("AngleRCP1_CmDaughters=%f\n",AngleRCP1_CmDaughters);
 printf("AngleRCP2_CmDaughters=%f\n",AngleRCP2_CmDaughters);
 printf("AngleP1P2_CmDaughters=%f\n",AngleP1P2_CmDaughters);
@@ -4453,11 +4487,11 @@ int MIXEDEVENTS(int narg, char** ARGS){
     //ReferenceSampleStudy_1("DimiPhi","pOmega");
     //ReferenceSampleStudy_1("DimiPhi","pReso");
     //ReferenceSampleStudy_2("DimiPhi","p_p");
-    //ReferenceSampleStudy_2("DimiPhi","p_pReso");
-    ReferenceSampleStudy_2("DimiPhi","pReso_pReso");
-    //ReferenceSampleStudy_2("DimiPhi","p_LamReso");
-    //ReferenceSampleStudy_2("DimiPhi","pReso_Lam");
-    //ReferenceSampleStudy_2("DimiPhi","pReso_LamReso");
+    ReferenceSampleStudy_2("EposDisto","p_pReso");
+    ReferenceSampleStudy_2("EposDisto","pReso_pReso");
+    ReferenceSampleStudy_2("EposDisto","p_LamReso");
+    ReferenceSampleStudy_2("EposDisto","pReso_Lam");
+    ReferenceSampleStudy_2("EposDisto","pReso_LamReso");
     //ReferenceSampleStudy_2("DimiPhi","p_p");
     //CompareReferenceSamples("pp");
     //CompareSameMixedEventToBoltzmann();
