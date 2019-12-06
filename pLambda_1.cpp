@@ -471,7 +471,6 @@ void Fit_pL(DLM_CommonAnaFunctions& AnalysisObject, const TString& OutputFolder,
 
     //printf("VARIATIONS[2]=%i\n",VARIATIONS[2]);
 
-
     //the residuals that are not fitted, are assumed to all have a Gaussian source of some size;
     double ResidualSourceSize=0;
     if(DataSample=="pp13TeV_MB_Run2paper") ResidualSourceSize=1.1;
@@ -776,6 +775,9 @@ void Fit_pL(DLM_CommonAnaFunctions& AnalysisObject, const TString& OutputFolder,
     //TString Description = TString::Format("%s_%s_%s",pp_Pot[uPot_pL].Data(),pL_Pot[uPot_pL].Data(),pXim_Pot[uPot_pXim].Data());
     OutputFile->cd();
     FitBaseline_pL.Write();
+
+    fitter->GetUnfoldedCk(0,7,OutputFolder+"Unfold_"+OutFileName);
+    OutputFile->cd();
 
     double CHI2_312=0;
     unsigned NDF_312=0;
@@ -3288,8 +3290,8 @@ void pp_SystematicsHM(const TString& OutputFolder, const int& WhichConfiguration
 
     }
     else if(WhichConfiguration==20||WhichConfiguration==21||WhichConfiguration==22){
-        if(WhichConfiguration==20) Source[0] = "McGauss_Reso";
-        else if(WhichConfiguration==21) Source[0] = "McLevyNolan_Reso";
+        if(WhichConfiguration==20) Source[0] = "McGauss_ResoTM";
+        else if(WhichConfiguration==21) Source[0] = "McLevyNolan_ResoTM";
         else Source[0] = "Gauss";
 
         DefSource = 0;
@@ -5642,11 +5644,13 @@ printf("PLAMBDA_1_MAIN\n");
     //                 atoi(argv[1])+2,atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),atoi(argv[5]),atoi(argv[6]));
     //pp_SystematicsHM("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pp/SystematicsAdd_300419/",
     //                 atoi(argv[1])+1,atoi(argv[2])*3,(atoi(argv[3])+1)*3-1,atoi(argv[4])*3,atoi(argv[5]),atoi(argv[6]));
+    //pp_SystematicsHM("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pp/Test/",
+    //                 atoi(argv[1]),atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),atoi(argv[5]),atoi(argv[6]));
 //return 0;
 //run for 30 and 32
     //pL_SystematicsHM("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pL/Systematics_020919/",
     //                 30,0,19845,200,1,0);
-    pL_SystematicsHM("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pL/Systematics_1mtbin_IMPROVED_RESO/",
+    pL_SystematicsHM("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pL/Test/",
                      atoi(argv[1]),atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),atoi(argv[5]),atoi(argv[6]));
     //pL_SystematicsHM("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pL/SystematicsAdd_300419/",
     //                 atoi(argv[1])+2,atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),atoi(argv[5]),atoi(argv[6]));

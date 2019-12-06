@@ -8,13 +8,14 @@
 #include "DLM_CkDecomposition.h"
 #include "DLM_Potentials.h"
 #include "DLM_WfModel.h"
-
+#include "DLM_Random.h"
 
 #include "TString.h"
 #include "TH2F.h"
 #include "TFile.h"
 #include "TROOT.h"
 #include "TGraph.h"
+#include "TNtuple.h"
 
 DLM_CommonAnaFunctions::DLM_CommonAnaFunctions():NumCleverLevyObjects(4){
     //Simple_Reso = NULL;
@@ -23,12 +24,16 @@ DLM_CommonAnaFunctions::DLM_CommonAnaFunctions():NumCleverLevyObjects(4){
     CleverLevy = new DLM_CleverLevy [NumCleverLevyObjects];
     CleverMcLevyReso = NULL;
     CleverMcLevyReso = new DLM_CleverMcLevyReso [NumCleverLevyObjects];
+    CleverMcLevyResoTM = NULL;
+    CleverMcLevyResoTM = new DLM_CleverMcLevyResoTM [NumCleverLevyObjects];
+
 }
 
 DLM_CommonAnaFunctions::~DLM_CommonAnaFunctions(){
     //if(Simple_Reso){delete[]Simple_Reso;Simple_Reso=NULL;}
     if(CleverLevy){delete[]CleverLevy;CleverLevy=NULL;}
     if(CleverMcLevyReso){delete[]CleverMcLevyReso;CleverMcLevyReso=NULL;}
+    if(CleverMcLevyResoTM){delete[]CleverMcLevyResoTM;CleverMcLevyResoTM=NULL;}
 }
 
 //POT:
@@ -133,19 +138,12 @@ void DLM_CommonAnaFunctions::SetUpCats_pp(CATS& Kitty, const TString& POT, const
         Kitty.SetUseAnalyticSource(true);
     }
     else if(SOURCE=="McLevyNolan_Reso"){
-//printf("I am setting up stability\n");
         CleverMcLevyReso[0].InitStability(21,1,2);
-//printf("I am setting up scale\n");
         CleverMcLevyReso[0].InitScale(38,0.15,2.0);
-//printf("I am setting up rad\n");
         CleverMcLevyReso[0].InitRad(257,0,64);
-//printf("I am setting up type\n");
         CleverMcLevyReso[0].InitType(2);
-//printf("I am setting up reso 0\n");
         CleverMcLevyReso[0].InitReso(0,1);
-//printf("I am setting up reso 1\n");
         CleverMcLevyReso[0].InitReso(1,1);
-//printf("I am setting up RESO 0\n");
         if(SourceVar==0){
             CleverMcLevyReso[0].SetUpReso(0,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic,false,false,DLM_CleverMcLevyReso::rdtBackwards);//rdtBackwards,rdtRandom
             CleverMcLevyReso[0].SetUpReso(1,0,1.-0.3578,1361.52,1.65,Mass_p,Mass_pic,false,false,DLM_CleverMcLevyReso::rdtBackwards);
@@ -163,6 +161,7 @@ void DLM_CommonAnaFunctions::SetUpCats_pp(CATS& Kitty, const TString& POT, const
             CleverMcLevyReso[0].SetUpResoEmission(1,0,HISTO);
         }
         CleverMcLevyReso[0].InitNumMcIter(200000);
+
         Kitty.SetAnaSource(CatsSourceForwarder, &CleverMcLevyReso[0], 2);
         Kitty.SetAnaSource(0,1.0);
         Kitty.SetAnaSource(1,1.6);
@@ -195,6 +194,105 @@ void DLM_CommonAnaFunctions::SetUpCats_pp(CATS& Kitty, const TString& POT, const
 
         CleverMcLevyReso[0].InitNumMcIter(1000000);
         Kitty.SetAnaSource(CatsSourceForwarder, &CleverMcLevyReso[0], 2);
+        Kitty.SetAnaSource(0,1.0);
+        Kitty.SetAnaSource(1,2.0);
+        Kitty.SetUseAnalyticSource(true);
+    }
+    //SourceVar last digit is 0-9 the type
+    //(SourceVar/10)*10 is the cutoff value (e.g. 192 is cutoff value of 190 and type 2)
+    else if(SOURCE=="McGauss_ResoTM"){
+        CleverMcLevyResoTM[0].InitStability(1,2-1e-6,2+1e-6);
+        CleverMcLevyResoTM[0].InitScale(38,0.15,2.0);
+        CleverMcLevyResoTM[0].InitRad(257*2,0,64);
+        CleverMcLevyResoTM[0].InitType(2);
+        CleverMcLevyResoTM[0].SetUpReso(0,0.6422);
+        CleverMcLevyResoTM[0].SetUpReso(1,0.6422);
+        //pure Gauss
+        if(SourceVar%100==0){
+
+        }
+        //back-to-back
+        else if(SourceVar%100==1){
+            CleverMcLevyResoTM[0].AddBGT_PR(490./1362.*1.65,1.);
+            CleverMcLevyResoTM[0].AddBGT_RP(490./1362.*1.65,-1.);
+            CleverMcLevyResoTM[0].AddBGT_RR(490./1362.*1.65,-1.,490./1362.*1.65,1.,-1.);
+        }
+        //EPOS, 2 is with fixed mass, 3 is with EPOS mass
+        else{
+            const double k_CutOff = int(int(SourceVar)/10)*10.;
+            Float_t k_D;
+            Float_t fP1;
+            Float_t fP2;
+            Float_t fM1;
+            Float_t fM2;
+            Float_t Tau1;
+            Float_t Tau2;
+            Float_t AngleRcP1;
+            Float_t AngleRcP2;
+            Float_t AngleP1P2;
+            DLM_Random RanGen(11);
+            double RanVal1;
+            double RanVal2;
+            double RanVal3;
+
+            TFile* F_EposDisto_p_pReso = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/AngleStudy_3/EposDisto_p_pReso.root");
+            TNtuple* T_EposDisto_p_pReso = (TNtuple*)F_EposDisto_p_pReso->Get("InfoTuple_ClosePairs");
+            unsigned N_EposDisto_p_pReso = T_EposDisto_p_pReso->GetEntries();
+            T_EposDisto_p_pReso->SetBranchAddress("k_D",&k_D);
+            T_EposDisto_p_pReso->SetBranchAddress("P1",&fP1);
+            T_EposDisto_p_pReso->SetBranchAddress("P2",&fP2);
+            T_EposDisto_p_pReso->SetBranchAddress("M1",&fM1);
+            T_EposDisto_p_pReso->SetBranchAddress("M2",&fM2);
+            T_EposDisto_p_pReso->SetBranchAddress("Tau1",&Tau1);
+            T_EposDisto_p_pReso->SetBranchAddress("Tau2",&Tau2);
+            T_EposDisto_p_pReso->SetBranchAddress("AngleRcP1",&AngleRcP1);
+            T_EposDisto_p_pReso->SetBranchAddress("AngleRcP2",&AngleRcP2);
+            T_EposDisto_p_pReso->SetBranchAddress("AngleP1P2",&AngleP1P2);
+            for(unsigned uEntry=0; uEntry<N_EposDisto_p_pReso; uEntry++){
+                T_EposDisto_p_pReso->GetEntry(uEntry);
+                Tau1 = 0;
+                Tau2 = 1.65;
+                if(SourceVar%100==2){
+                    fM2 = 1362;
+                }
+                if(k_D>k_CutOff) continue;
+                RanVal1 = RanGen.Exponential(fM2/(fP2*Tau2));
+                CleverMcLevyResoTM[0].AddBGT_PR(RanVal1,-cos(AngleRcP2));
+                CleverMcLevyResoTM[0].AddBGT_RP(RanVal1,cos(AngleRcP2));
+            }
+            delete F_EposDisto_p_pReso;
+
+            TFile* F_EposDisto_pReso_pReso = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/AngleStudy_3/EposDisto_pReso_pReso.root");
+            TNtuple* T_EposDisto_pReso_pReso = (TNtuple*)F_EposDisto_pReso_pReso->Get("InfoTuple_ClosePairs");
+            unsigned N_EposDisto_pReso_pReso = T_EposDisto_pReso_pReso->GetEntries();
+            T_EposDisto_pReso_pReso->SetBranchAddress("k_D",&k_D);
+            T_EposDisto_pReso_pReso->SetBranchAddress("P1",&fP1);
+            T_EposDisto_pReso_pReso->SetBranchAddress("P2",&fP2);
+            T_EposDisto_pReso_pReso->SetBranchAddress("M1",&fM1);
+            T_EposDisto_pReso_pReso->SetBranchAddress("M2",&fM2);
+            T_EposDisto_pReso_pReso->SetBranchAddress("Tau1",&Tau1);
+            T_EposDisto_pReso_pReso->SetBranchAddress("Tau2",&Tau2);
+            T_EposDisto_pReso_pReso->SetBranchAddress("AngleRcP1",&AngleRcP1);
+            T_EposDisto_pReso_pReso->SetBranchAddress("AngleRcP2",&AngleRcP2);
+            T_EposDisto_pReso_pReso->SetBranchAddress("AngleP1P2",&AngleP1P2);
+            for(unsigned uEntry=0; uEntry<N_EposDisto_pReso_pReso; uEntry++){
+                T_EposDisto_pReso_pReso->GetEntry(uEntry);
+                Tau1 = 1.65;
+                Tau2 = 1.65;
+                if(SourceVar%100==2){
+                    fM1 = 1362;
+                    fM2 = 1362;
+                }
+                if(k_D>k_CutOff) continue;
+                RanVal1 = RanGen.Exponential(fM1/(fP1*Tau1));
+                RanVal2 = RanGen.Exponential(fM2/(fP2*Tau2));
+                CleverMcLevyResoTM[0].AddBGT_RR(RanVal1,cos(AngleRcP1),RanVal2,cos(AngleRcP2),cos(AngleP1P2));
+            }
+            delete F_EposDisto_pReso_pReso;
+        }
+
+        CleverMcLevyResoTM[0].InitNumMcIter(1000000);
+        Kitty.SetAnaSource(CatsSourceForwarder, &CleverMcLevyResoTM[0], 2);
         Kitty.SetAnaSource(0,1.0);
         Kitty.SetAnaSource(1,2.0);
         Kitty.SetUseAnalyticSource(true);
@@ -255,6 +353,76 @@ void DLM_CommonAnaFunctions::SetUpCats_pp(CATS& Kitty, const TString& POT, const
         cPotPars3P2 = new CATSparameters(CATSparameters::tPotential,8,true); cPotPars3P2->SetParameters(PotPars3P2);
         cPotPars1D2 = new CATSparameters(CATSparameters::tPotential,8,true); cPotPars1D2->SetParameters(PotPars1D2);
     }
+    else if(POT=="ReidV8"){
+        //#,#,POT_ID,POT_FLAG,t_tot,t1,t2,s,l,j
+        double PotPars1S0[8]={NN_ReidV8,v18_Coupled3P2,1,1,1,0,0,0};
+        double PotPars3P0[8]={NN_ReidV8,v18_Coupled3P2,1,1,1,1,1,0};
+        double PotPars3P1[8]={NN_ReidV8,v18_Coupled3P2,1,1,1,1,1,1};
+        double PotPars3P2[8]={NN_ReidV8,v18_Coupled3P2,1,1,1,1,1,2};
+        double PotPars1D2[8]={NN_ReidV8,v18_Coupled3P2,1,1,1,0,2,2};
+        cPotPars1S0 = new CATSparameters(CATSparameters::tPotential,8,true); cPotPars1S0->SetParameters(PotPars1S0);
+        cPotPars3P0 = new CATSparameters(CATSparameters::tPotential,8,true); cPotPars3P0->SetParameters(PotPars3P0);
+        cPotPars3P1 = new CATSparameters(CATSparameters::tPotential,8,true); cPotPars3P1->SetParameters(PotPars3P1);
+        cPotPars3P2 = new CATSparameters(CATSparameters::tPotential,8,true); cPotPars3P2->SetParameters(PotPars3P2);
+        cPotPars1D2 = new CATSparameters(CATSparameters::tPotential,8,true); cPotPars1D2->SetParameters(PotPars1D2);
+    }
+    else if(POT=="ReidSC"){
+        //#,#,POT_ID,POT_FLAG,t_tot,t1,t2,s,l,j
+        double PotPars1S0[8]={pp_ReidSC,0,1,1,1,0,0,0};
+        double PotPars3P0[8]={pp_ReidSC,0,1,1,1,1,1,0};
+        double PotPars3P1[8]={pp_ReidSC,0,1,1,1,1,1,1};
+        double PotPars3P2[8]={pp_ReidSC,0,1,1,1,1,1,2};
+        cPotPars1S0 = new CATSparameters(CATSparameters::tPotential,8,true); cPotPars1S0->SetParameters(PotPars1S0);
+        cPotPars3P0 = new CATSparameters(CATSparameters::tPotential,8,true); cPotPars3P0->SetParameters(PotPars3P0);
+        cPotPars3P1 = new CATSparameters(CATSparameters::tPotential,8,true); cPotPars3P1->SetParameters(PotPars3P1);
+        cPotPars3P2 = new CATSparameters(CATSparameters::tPotential,8,true); cPotPars3P2->SetParameters(PotPars3P2);
+    }
+    else if(POT=="Norfolk"){
+//printf("SetUpNorfolk...\n");
+        SetUpNorfolk("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/NorfolkPotential/OriginalCode/Fine/");
+//printf("SetUpNorfolk!\n");
+        cPotPars1S0 = new CATSparameters(CATSparameters::tPotential,3,true);
+        cPotPars3P0 = new CATSparameters(CATSparameters::tPotential,3,true);
+        cPotPars3P1 = new CATSparameters(CATSparameters::tPotential,3,true);
+        cPotPars3P2 = new CATSparameters(CATSparameters::tPotential,3,true);
+        cPotPars1D2 = new CATSparameters(CATSparameters::tPotential,3,true);
+
+        cPotPars1S0->SetParameter(0,PotVar/10);//lpot
+        cPotPars3P0->SetParameter(0,PotVar/10);//lpot
+        cPotPars3P1->SetParameter(0,PotVar/10);//lpot
+        cPotPars3P2->SetParameter(0,PotVar/10);//lpot
+        cPotPars1D2->SetParameter(0,PotVar/10);//lpot
+
+        //lemp
+        if(PotVar%10==1){
+            cPotPars1S0->SetParameter(1,100);
+            cPotPars3P0->SetParameter(1,100);
+            cPotPars3P1->SetParameter(1,100);
+            cPotPars3P2->SetParameter(1,100);
+            cPotPars1D2->SetParameter(1,100);
+        }
+        else if(PotVar%10==2){
+            cPotPars1S0->SetParameter(1,101);
+            cPotPars3P0->SetParameter(1,101);
+            cPotPars3P1->SetParameter(1,101);
+            cPotPars3P2->SetParameter(1,101);
+            cPotPars1D2->SetParameter(1,101);
+        }
+        else{
+            cPotPars1S0->SetParameter(1,-1);
+            cPotPars3P0->SetParameter(1,-1);
+            cPotPars3P1->SetParameter(1,-1);
+            cPotPars3P2->SetParameter(1,-1);
+            cPotPars1D2->SetParameter(1,-1);
+        }
+
+        cPotPars1S0->SetParameter(2,100);
+        cPotPars3P0->SetParameter(2,310);
+        cPotPars3P1->SetParameter(2,311);
+        cPotPars3P2->SetParameter(2,312);
+        cPotPars1D2->SetParameter(2,122);
+    }
+
     else{
         printf("\033[1;31mERROR:\033[0m Non-existing pp potential '%s'\n",POT.Data());
         goto CLEAN_SetUpCats_pp;
@@ -281,12 +449,20 @@ void DLM_CommonAnaFunctions::SetUpCats_pp(CATS& Kitty, const TString& POT, const
     Kitty.SetChannelWeight(2, 3./12.);
     Kitty.SetChannelWeight(3, 5./12.);
 
-    if(cPotPars1S0) Kitty.SetShortRangePotential(0,0,fDlmPot,*cPotPars1S0);
-    if(cPotPars1D2) Kitty.SetShortRangePotential(0,2,fDlmPot,*cPotPars1D2);
-    if(cPotPars3P0) Kitty.SetShortRangePotential(1,1,fDlmPot,*cPotPars3P0);
-    if(cPotPars3P1) Kitty.SetShortRangePotential(2,1,fDlmPot,*cPotPars3P1);
-    if(cPotPars3P2) Kitty.SetShortRangePotential(3,1,fDlmPot,*cPotPars3P2);
-
+    if(POT=="Norfolk"){
+        if(cPotPars1S0) Kitty.SetShortRangePotential(0,0,pp_Norfolk,*cPotPars1S0);
+        if(cPotPars1D2) Kitty.SetShortRangePotential(0,2,pp_Norfolk,*cPotPars1D2);
+        if(cPotPars3P0) Kitty.SetShortRangePotential(1,1,pp_Norfolk,*cPotPars3P0);
+        if(cPotPars3P1) Kitty.SetShortRangePotential(2,1,pp_Norfolk,*cPotPars3P1);
+        if(cPotPars3P2) Kitty.SetShortRangePotential(3,1,pp_Norfolk,*cPotPars3P2);
+    }
+    else{
+        if(cPotPars1S0) Kitty.SetShortRangePotential(0,0,fDlmPot,*cPotPars1S0);
+        if(cPotPars1D2) Kitty.SetShortRangePotential(0,2,fDlmPot,*cPotPars1D2);
+        if(cPotPars3P0) Kitty.SetShortRangePotential(1,1,fDlmPot,*cPotPars3P0);
+        if(cPotPars3P1) Kitty.SetShortRangePotential(2,1,fDlmPot,*cPotPars3P1);
+        if(cPotPars3P2) Kitty.SetShortRangePotential(3,1,fDlmPot,*cPotPars3P2);
+    }
 
     CLEAN_SetUpCats_pp: ;
     if(cPars){delete cPars; cPars=NULL;}
@@ -474,6 +650,130 @@ void DLM_CommonAnaFunctions::SetUpCats_pL(CATS& Kitty, const TString& POT, const
         CleverMcLevyReso[1].InitNumMcIter(SourceVar==3?100000:1000000);
 
         Kitty.SetAnaSource(CatsSourceForwarder, &CleverMcLevyReso[1], 2);
+        Kitty.SetAnaSource(0,1.0);
+        Kitty.SetAnaSource(1,2.0);
+        Kitty.SetUseAnalyticSource(true);
+    }
+    //SourceVar last digit is 0-9 the type
+    //(SourceVar/10)*10 is the cutoff value (e.g. 192 is cutoff value of 190 and type 2)
+    else if(SOURCE=="McGauss_ResoTM"){
+        CleverMcLevyResoTM[1].InitStability(1,2-1e-6,2+1e-6);
+        CleverMcLevyResoTM[1].InitScale(38,0.15,2.0);
+        CleverMcLevyResoTM[1].InitRad(257*2,0,64);
+        CleverMcLevyResoTM[1].InitType(2);
+        CleverMcLevyResoTM[1].SetUpReso(0,0.6422);
+        CleverMcLevyResoTM[1].SetUpReso(1,0.6438);
+        //pure Gauss
+        if(SourceVar%100==0){
+
+        }
+        //back-to-back
+        else if(SourceVar%100==1){
+            CleverMcLevyResoTM[1].AddBGT_PR(360./1462.*4.69,1.);
+            CleverMcLevyResoTM[1].AddBGT_RP(490./1362.*1.65,-1.);
+            CleverMcLevyResoTM[1].AddBGT_RR(490./1362.*1.65,-1.,360./1462.*4.69,1.,-1.);
+        }
+        //EPOS, 2 is with fixed mass, 3 is with EPOS mass
+        else{
+            const double k_CutOff = int(int(SourceVar)/10)*10.;
+            Float_t k_D;
+            Float_t fP1;
+            Float_t fP2;
+            Float_t fM1;
+            Float_t fM2;
+            Float_t Tau1;
+            Float_t Tau2;
+            Float_t AngleRcP1;
+            Float_t AngleRcP2;
+            Float_t AngleP1P2;
+            DLM_Random RanGen(11);
+            double RanVal1;
+            double RanVal2;
+            double RanVal3;
+
+            TFile* F_EposDisto_p_LamReso = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/AngleStudy_3/EposDisto_p_LamReso.root");
+            TNtuple* T_EposDisto_p_LamReso = (TNtuple*)F_EposDisto_p_LamReso->Get("InfoTuple_ClosePairs");
+            unsigned N_EposDisto_p_LamReso = T_EposDisto_p_LamReso->GetEntries();
+            T_EposDisto_p_LamReso->SetBranchAddress("k_D",&k_D);
+            T_EposDisto_p_LamReso->SetBranchAddress("P1",&fP1);
+            T_EposDisto_p_LamReso->SetBranchAddress("P2",&fP2);
+            T_EposDisto_p_LamReso->SetBranchAddress("M1",&fM1);
+            T_EposDisto_p_LamReso->SetBranchAddress("M2",&fM2);
+            T_EposDisto_p_LamReso->SetBranchAddress("Tau1",&Tau1);
+            T_EposDisto_p_LamReso->SetBranchAddress("Tau2",&Tau2);
+            T_EposDisto_p_LamReso->SetBranchAddress("AngleRcP1",&AngleRcP1);
+            T_EposDisto_p_LamReso->SetBranchAddress("AngleRcP2",&AngleRcP2);
+            T_EposDisto_p_LamReso->SetBranchAddress("AngleP1P2",&AngleP1P2);
+            for(unsigned uEntry=0; uEntry<N_EposDisto_p_LamReso; uEntry++){
+                T_EposDisto_p_LamReso->GetEntry(uEntry);
+                Tau1 = 0;
+                Tau2 = 4.69;
+                if(SourceVar%100==2){
+                    fM2 = 1462;
+                }
+                if(k_D>k_CutOff) continue;
+                RanVal2 = RanGen.Exponential(fM2/(fP2*Tau2));
+                CleverMcLevyResoTM[1].AddBGT_PR(RanVal2,cos(AngleRcP2));
+            }
+            delete F_EposDisto_p_LamReso;
+
+            TFile* F_EposDisto_pReso_Lam = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/AngleStudy_3/EposDisto_pReso_Lam.root");
+            TNtuple* T_EposDisto_pReso_Lam = (TNtuple*)F_EposDisto_pReso_Lam->Get("InfoTuple_ClosePairs");
+            unsigned N_EposDisto_pReso_Lam = T_EposDisto_pReso_Lam->GetEntries();
+            T_EposDisto_pReso_Lam->SetBranchAddress("k_D",&k_D);
+            T_EposDisto_pReso_Lam->SetBranchAddress("P1",&fP1);
+            T_EposDisto_pReso_Lam->SetBranchAddress("P2",&fP2);
+            T_EposDisto_pReso_Lam->SetBranchAddress("M1",&fM1);
+            T_EposDisto_pReso_Lam->SetBranchAddress("M2",&fM2);
+            T_EposDisto_pReso_Lam->SetBranchAddress("Tau1",&Tau1);
+            T_EposDisto_pReso_Lam->SetBranchAddress("Tau2",&Tau2);
+            T_EposDisto_pReso_Lam->SetBranchAddress("AngleRcP1",&AngleRcP1);
+            T_EposDisto_pReso_Lam->SetBranchAddress("AngleRcP2",&AngleRcP2);
+            T_EposDisto_pReso_Lam->SetBranchAddress("AngleP1P2",&AngleP1P2);
+            for(unsigned uEntry=0; uEntry<N_EposDisto_pReso_Lam; uEntry++){
+                T_EposDisto_pReso_Lam->GetEntry(uEntry);
+                Tau1 = 1.65;
+                Tau2 = 0;
+                if(SourceVar%100==2){
+                    fM1 = 1362;
+                }
+                if(k_D>k_CutOff) continue;
+                RanVal1 = RanGen.Exponential(fM1/(fP1*Tau1));
+                CleverMcLevyResoTM[1].AddBGT_RP(RanVal1,cos(AngleRcP1));
+            }
+            delete F_EposDisto_pReso_Lam;
+
+            TFile* F_EposDisto_pReso_LamReso = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/AngleStudy_3/EposDisto_pReso_LamReso.root");
+            TNtuple* T_EposDisto_pReso_LamReso = (TNtuple*)F_EposDisto_pReso_LamReso->Get("InfoTuple_ClosePairs");
+            unsigned N_EposDisto_pReso_LamReso = T_EposDisto_pReso_LamReso->GetEntries();
+            T_EposDisto_pReso_LamReso->SetBranchAddress("k_D",&k_D);
+            T_EposDisto_pReso_LamReso->SetBranchAddress("P1",&fP1);
+            T_EposDisto_pReso_LamReso->SetBranchAddress("P2",&fP2);
+            T_EposDisto_pReso_LamReso->SetBranchAddress("M1",&fM1);
+            T_EposDisto_pReso_LamReso->SetBranchAddress("M2",&fM2);
+            T_EposDisto_pReso_LamReso->SetBranchAddress("Tau1",&Tau1);
+            T_EposDisto_pReso_LamReso->SetBranchAddress("Tau2",&Tau2);
+            T_EposDisto_pReso_LamReso->SetBranchAddress("AngleRcP1",&AngleRcP1);
+            T_EposDisto_pReso_LamReso->SetBranchAddress("AngleRcP2",&AngleRcP2);
+            T_EposDisto_pReso_LamReso->SetBranchAddress("AngleP1P2",&AngleP1P2);
+            for(unsigned uEntry=0; uEntry<N_EposDisto_pReso_LamReso; uEntry++){
+                T_EposDisto_pReso_LamReso->GetEntry(uEntry);
+                Tau1 = 1.65;
+                Tau2 = 4.69;
+                if(SourceVar%100==2){
+                    fM1 = 1362;
+                    fM2 = 1462;
+                }
+                if(k_D>k_CutOff) continue;
+                RanVal1 = RanGen.Exponential(fM1/(fP1*Tau1));
+                RanVal2 = RanGen.Exponential(fM2/(fP2*Tau2));
+                CleverMcLevyResoTM[1].AddBGT_RR(RanVal1,cos(AngleRcP1),RanVal2,cos(AngleRcP2),cos(AngleP1P2));
+            }
+            delete F_EposDisto_pReso_LamReso;
+        }
+
+        CleverMcLevyResoTM[1].InitNumMcIter(1000000);
+        Kitty.SetAnaSource(CatsSourceForwarder, &CleverMcLevyResoTM[1], 2);
         Kitty.SetAnaSource(0,1.0);
         Kitty.SetAnaSource(1,2.0);
         Kitty.SetUseAnalyticSource(true);
@@ -710,6 +1010,73 @@ void DLM_CommonAnaFunctions::SetUpCats_pXim(CATS& Kitty, const TString& POT, con
         Kitty.SetAnaSource(1,2.0);
         Kitty.SetUseAnalyticSource(true);
     }
+    //SourceVar last digit is 0-9 the type
+    //(SourceVar/10)*10 is the cutoff value (e.g. 192 is cutoff value of 190 and type 2)
+    else if(SOURCE=="McGauss_ResoTM"){
+        CleverMcLevyResoTM[2].InitStability(1,2-1e-6,2+1e-6);
+        CleverMcLevyResoTM[2].InitScale(38,0.15,2.0);
+        CleverMcLevyResoTM[2].InitRad(257*2,0,64);
+        CleverMcLevyResoTM[2].InitType(2);
+        CleverMcLevyResoTM[2].SetUpReso(0,0.6422);
+        //pure Gauss
+        if(SourceVar%100==0){
+
+        }
+        //back-to-back
+        else if(SourceVar%100==1){
+            CleverMcLevyResoTM[2].AddBGT_RP(490./1362.*1.65,-1.);
+        }
+        //EPOS, 2 is with fixed mass, 3 is with EPOS mass
+        else{
+            const double k_CutOff = int(int(SourceVar)/10)*10.;
+            Float_t k_D;
+            Float_t fP1;
+            Float_t fP2;
+            Float_t fM1;
+            Float_t fM2;
+            Float_t Tau1;
+            Float_t Tau2;
+            Float_t AngleRcP1;
+            Float_t AngleRcP2;
+            Float_t AngleP1P2;
+            DLM_Random RanGen(11);
+            double RanVal1;
+            double RanVal2;
+            double RanVal3;
+
+            TFile* F_EposDisto_pReso_Xim = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/AngleStudy_3/EposDisto_pReso_Xim.root");
+            TNtuple* T_EposDisto_pReso_Xim = (TNtuple*)F_EposDisto_pReso_Xim->Get("InfoTuple_ClosePairs");
+            unsigned N_EposDisto_pReso_Xim = T_EposDisto_pReso_Xim->GetEntries();
+            T_EposDisto_pReso_Xim->SetBranchAddress("k_D",&k_D);
+            T_EposDisto_pReso_Xim->SetBranchAddress("P1",&fP1);
+            T_EposDisto_pReso_Xim->SetBranchAddress("P2",&fP2);
+            T_EposDisto_pReso_Xim->SetBranchAddress("M1",&fM1);
+            T_EposDisto_pReso_Xim->SetBranchAddress("M2",&fM2);
+            T_EposDisto_pReso_Xim->SetBranchAddress("Tau1",&Tau1);
+            T_EposDisto_pReso_Xim->SetBranchAddress("Tau2",&Tau2);
+            T_EposDisto_pReso_Xim->SetBranchAddress("AngleRcP1",&AngleRcP1);
+            T_EposDisto_pReso_Xim->SetBranchAddress("AngleRcP2",&AngleRcP2);
+            T_EposDisto_pReso_Xim->SetBranchAddress("AngleP1P2",&AngleP1P2);
+            for(unsigned uEntry=0; uEntry<N_EposDisto_pReso_Xim; uEntry++){
+                T_EposDisto_pReso_Xim->GetEntry(uEntry);
+                Tau1 = 1.65;
+                Tau2 = 0;
+                if(SourceVar%100==2){
+                    fM1 = 1362;
+                }
+                if(k_D>k_CutOff) continue;
+                RanVal1 = RanGen.Exponential(fM1/(fP1*Tau1));
+                CleverMcLevyResoTM[2].AddBGT_RP(RanVal1,cos(AngleRcP1));
+            }
+            delete F_EposDisto_pReso_Xim;
+        }
+
+        CleverMcLevyResoTM[2].InitNumMcIter(1000000);
+        Kitty.SetAnaSource(CatsSourceForwarder, &CleverMcLevyResoTM[2], 2);
+        Kitty.SetAnaSource(0,1.0);
+        Kitty.SetAnaSource(1,2.0);
+        Kitty.SetUseAnalyticSource(true);
+    }
     else if(SOURCE=="EPOS"){
         printf("\033[1;33mWARNING:\033[0m The CommonAnaFunction is still under construction (EPOS)\n");
         goto CLEAN_SetUpCats_pXim;
@@ -909,6 +1276,73 @@ void DLM_CommonAnaFunctions::SetUpCats_pOmegam(CATS& Kitty, const TString& POT, 
 
         CleverMcLevyReso[3].InitNumMcIter(1000000);
         Kitty.SetAnaSource(CatsSourceForwarder, &CleverMcLevyReso[3], 2);
+        Kitty.SetAnaSource(0,1.0);
+        Kitty.SetAnaSource(1,2.0);
+        Kitty.SetUseAnalyticSource(true);
+    }
+    //SourceVar last digit is 0-9 the type
+    //(SourceVar/10)*10 is the cutoff value (e.g. 192 is cutoff value of 190 and type 2)
+    else if(SOURCE=="McGauss_ResoTM"){
+        CleverMcLevyResoTM[3].InitStability(1,2-1e-6,2+1e-6);
+        CleverMcLevyResoTM[3].InitScale(38,0.15,2.0);
+        CleverMcLevyResoTM[3].InitRad(257*2,0,64);
+        CleverMcLevyResoTM[3].InitType(2);
+        CleverMcLevyResoTM[3].SetUpReso(0,0.6422);
+        //pure Gauss
+        if(SourceVar%100==0){
+
+        }
+        //back-to-back
+        else if(SourceVar%100==1){
+            CleverMcLevyResoTM[3].AddBGT_RP(490./1362.*1.65,-1.);
+        }
+        //EPOS, 2 is with fixed mass, 3 is with EPOS mass
+        else{
+            const double k_CutOff = int(int(SourceVar)/10)*10.;
+            Float_t k_D;
+            Float_t fP1;
+            Float_t fP2;
+            Float_t fM1;
+            Float_t fM2;
+            Float_t Tau1;
+            Float_t Tau2;
+            Float_t AngleRcP1;
+            Float_t AngleRcP2;
+            Float_t AngleP1P2;
+            DLM_Random RanGen(11);
+            double RanVal1;
+            double RanVal2;
+            double RanVal3;
+
+            TFile* F_EposDisto_pReso_Omega = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/AngleStudy_3/EposDisto_pReso_Omega.root");
+            TNtuple* T_EposDisto_pReso_Omega = (TNtuple*)F_EposDisto_pReso_Omega->Get("InfoTuple_ClosePairs");
+            unsigned N_EposDisto_pReso_Omega = T_EposDisto_pReso_Omega->GetEntries();
+            T_EposDisto_pReso_Omega->SetBranchAddress("k_D",&k_D);
+            T_EposDisto_pReso_Omega->SetBranchAddress("P1",&fP1);
+            T_EposDisto_pReso_Omega->SetBranchAddress("P2",&fP2);
+            T_EposDisto_pReso_Omega->SetBranchAddress("M1",&fM1);
+            T_EposDisto_pReso_Omega->SetBranchAddress("M2",&fM2);
+            T_EposDisto_pReso_Omega->SetBranchAddress("Tau1",&Tau1);
+            T_EposDisto_pReso_Omega->SetBranchAddress("Tau2",&Tau2);
+            T_EposDisto_pReso_Omega->SetBranchAddress("AngleRcP1",&AngleRcP1);
+            T_EposDisto_pReso_Omega->SetBranchAddress("AngleRcP2",&AngleRcP2);
+            T_EposDisto_pReso_Omega->SetBranchAddress("AngleP1P2",&AngleP1P2);
+            for(unsigned uEntry=0; uEntry<N_EposDisto_pReso_Omega; uEntry++){
+                T_EposDisto_pReso_Omega->GetEntry(uEntry);
+                Tau1 = 1.65;
+                Tau2 = 0;
+                if(SourceVar%100==2){
+                    fM1 = 1362;
+                }
+                if(k_D>k_CutOff) continue;
+                RanVal1 = RanGen.Exponential(fM1/(fP1*Tau1));
+                CleverMcLevyResoTM[3].AddBGT_RP(RanVal1,cos(AngleRcP1));
+            }
+            delete F_EposDisto_pReso_Omega;
+        }
+
+        CleverMcLevyResoTM[3].InitNumMcIter(1000000);
+        Kitty.SetAnaSource(CatsSourceForwarder, &CleverMcLevyResoTM[3], 2);
         Kitty.SetAnaSource(0,1.0);
         Kitty.SetAnaSource(1,2.0);
         Kitty.SetUseAnalyticSource(true);
@@ -2146,7 +2580,6 @@ DLM_Histo<double>* ConvertThetaAngleHisto(const TString& FileName, const TString
     delete InputFile;
     return Result;
 }
-
 
 /*
 void DLM_CommonAnaFunctions::Clean_CommonAnaFunctions(){

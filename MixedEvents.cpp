@@ -3272,7 +3272,12 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
     //const TString InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp200/pp200_pReso_PRIM_4PI_VER4.f19";
     //const TString InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp200/pp200_pReso_4PI_VER5.f19";
     //const TString InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp200/pp200_pReso_Oct2019_4PI.f19";
-    const TString InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp200/pp200_pResoLamReso_Oct2019_4PI_ReducedWeights.f19";
+
+    TString InputFileName;
+    if(DataSetDescr.Contains("Xim")||DataSetDescr.Contains("Omega"))
+        InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp200/pp200_pResoXimOmega_Oct2019_4PI_ReducedWeights.f19";
+    else
+        InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp200/pp200_pResoLamReso_Oct2019_4PI_ReducedWeights.f19";
 
     //AvgResoMass = 1.354190 for VER2, around 1.38 for the first version. Basically VER2 has inly ior==0 reso
     //const TString InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp80/pp80_pReso_PRIM_4PI_VER2.f19";
@@ -3388,7 +3393,7 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
         DaughterMassP2[0] = -1;
         DaughterMassP2[1] = -1;
 
-        ResoMass[0] = 1.46;
+        ResoMass[0] = 1.36;//was wrong set to 1.46
         ResoMass[1] = -1;
     }
     else if(DataSetDescr=="pReso_LamReso"){
@@ -3408,7 +3413,64 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
         ResoMass[0] = 1.36;
         ResoMass[1] = 1.46;
     }
+    else if(DataSetDescr=="pReso_Xim"){
+        pdgID[0] = 0;
+        pdgID[1] = 2330;
 
+        DaughterMassP1[0] = Mass_p*0.001;
+        DaughterMassP1[1] = Mass_pic*0.001;
+
+        DaughterMassP2[0] = -1;
+        DaughterMassP2[1] = -1;
+
+        ResoMass[0] = 1.36;
+        ResoMass[1] = -1;
+
+        pdgID[0] = 0;
+        pdgID[1] = 3312;
+        Original_eposID[0] = 1120;
+        Original_eposID[1] = 2330;
+        Original_pdgID[0] = 2212;
+        Original_pdgID[1] = 3312;
+
+        DaughterMassP1[0] = Mass_p*0.001;
+        DaughterMassP1[1] = Mass_pic*0.001;
+
+        DaughterMassP2[0] = -1;
+        DaughterMassP2[1] = -1;
+
+        ResoMass[0] = 1.36;
+        ResoMass[1] = -1;
+    }
+    else if(DataSetDescr=="pReso_Omega"){
+        pdgID[0] = 0;
+        pdgID[1] = 3331;
+
+        DaughterMassP1[0] = Mass_p*0.001;
+        DaughterMassP1[1] = Mass_pic*0.001;
+
+        DaughterMassP2[0] = -1;
+        DaughterMassP2[1] = -1;
+
+        ResoMass[0] = 1.36;
+        ResoMass[1] = -1;
+
+        pdgID[0] = 0;
+        pdgID[1] = 3334;
+        Original_eposID[0] = 1120;
+        Original_eposID[1] = 3331;
+        Original_pdgID[0] = 2212;
+        Original_pdgID[1] = 3334;
+
+        DaughterMassP1[0] = Mass_p*0.001;
+        DaughterMassP1[1] = Mass_pic*0.001;
+
+        DaughterMassP2[0] = -1;
+        DaughterMassP2[1] = -1;
+
+        ResoMass[0] = 1.36;
+        ResoMass[1] = -1;
+    }
     unsigned NumTotalPairs=0;
     unsigned TotNumEvents=0;
     unsigned RejectedHighMultEvents=0;
@@ -3588,10 +3650,10 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
         if(ParentPID==Original_pdgID[0]||ParentPID==Original_eposID[0]) KittyParticle.SetPid(0);
         else if(ParentPID==Original_pdgID[1]||ParentPID==Original_eposID[1]) KittyParticle.SetPid(1);
         //unknown particle
-        else continue;
+        else {continue;}
     }
     //unknown particle
-    else continue;
+    else {continue;}
 
 //printf("----\n");
 //printf(" id = %i\n",KittyParticle.GetPid());
@@ -4487,11 +4549,13 @@ int MIXEDEVENTS(int narg, char** ARGS){
     //ReferenceSampleStudy_1("DimiPhi","pOmega");
     //ReferenceSampleStudy_1("DimiPhi","pReso");
     //ReferenceSampleStudy_2("DimiPhi","p_p");
-    ReferenceSampleStudy_2("EposDisto","p_pReso");
-    ReferenceSampleStudy_2("EposDisto","pReso_pReso");
-    ReferenceSampleStudy_2("EposDisto","p_LamReso");
+    //ReferenceSampleStudy_2("EposDisto","p_pReso");
+    //ReferenceSampleStudy_2("EposDisto","pReso_pReso");
+    //ReferenceSampleStudy_2("EposDisto","p_LamReso");
     ReferenceSampleStudy_2("EposDisto","pReso_Lam");
-    ReferenceSampleStudy_2("EposDisto","pReso_LamReso");
+    //ReferenceSampleStudy_2("EposDisto","pReso_LamReso");
+    ReferenceSampleStudy_2("EposDisto","pReso_Xim");
+    ReferenceSampleStudy_2("EposDisto","pReso_Omega");
     //ReferenceSampleStudy_2("DimiPhi","p_p");
     //CompareReferenceSamples("pp");
     //CompareSameMixedEventToBoltzmann();

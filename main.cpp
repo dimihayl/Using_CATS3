@@ -7,6 +7,7 @@
 #include "MixedEvents.h"
 #include "SourceStudies.h"
 #include "KaonProton.h"
+#include "OtherTasks.h"
 
 #include <iostream>
 #include <stdio.h>
@@ -31,6 +32,7 @@
 #include "pLambda_1.h"
 #include "ForBernie.h"
 #include "ForGerhard.h"
+#include "UnfoldRoot.h"
 
 #include "TGraph.h"
 #include "TFile.h"
@@ -2347,10 +2349,22 @@ void MickeyMouseEffectOnSourceBasedOnTheta(){
     const double Core_pXi_Back = 0.80;
     const double Core_pXi_Epos = 0.88;
     const double Core_pXi_Rand = 1.06;
+    const double Core_pXi_TM_Back = 0.80;
+    const double Core_pXi_TM_Epos = 0.98;
 
     const double Core_pOmega_Back = 0.73;
     const double Core_pOmega_Epos = 0.82;
     const double Core_pOmega_Rand = 0.96;
+    const double Core_pOmega_TM_Back = 0.73;
+    const double Core_pOmega_TM_Epos = 0.921;//0.89
+
+    const double Core_pp_Back = 0.73;
+    const double Core_pp_Epos = 0.82;
+    const double Core_pp_Rand = 0.96;
+    const double Core_pp_TM_Back = 0.73;
+    //const double Core_pp_TM_Epos = 0.921;
+    const double Core_pp_TM_Epos = 1.2;
+    const double Core_pL_TM_Epos = 1.2;
 
     //const double Core_pXi_Back = 1.0;
     //const double Core_pXi_Epos = 1.0;
@@ -2360,8 +2374,11 @@ void MickeyMouseEffectOnSourceBasedOnTheta(){
     //const double Core_pOmega_Epos = 0.80;
     //const double Core_pOmega_Rand = 0.80;
 
+
     const double LambdaPar_pXi = 0.53;
     const double LambdaPar_pOmega = 0.62;
+    const double LambdaPar_pp = 0.72;
+    const double LambdaPar_pL = 0.5;
 
     const double kMin = 0;
     const double kMax = 300;
@@ -2395,6 +2412,24 @@ void MickeyMouseEffectOnSourceBasedOnTheta(){
     Kitty_pXi_Epos.SetAnaSource(0,Core_pXi_Epos);
     Kitty_pXi_Epos.KillTheCat();
 
+    DLM_CommonAnaFunctions AO_pXi_TM_Back;
+    CATS Kitty_pXi_TM_Back;
+    Kitty_pXi_TM_Back.SetMaxNumThreads(1);
+    Kitty_pXi_TM_Back.SetMomBins(NumMomBins,kMin,kMax);//pXim_HALQCD1
+    AO_pXi_TM_Back.SetUpCats_pXim(Kitty_pXi_TM_Back,"pXim_HALQCD1","McGauss_ResoTM",0,1);//McGauss_Reso
+    //AO_pXi_TM_Back.SetUpCats_pp(Kitty_pXi_TM_Back,"AV18","McGauss_Reso",0,0);
+    Kitty_pXi_TM_Back.SetAnaSource(0,Core_pXi_TM_Back);
+    Kitty_pXi_TM_Back.KillTheCat();
+
+    DLM_CommonAnaFunctions AO_pXi_TM_Epos;
+    CATS Kitty_pXi_TM_Epos;
+    Kitty_pXi_TM_Epos.SetMaxNumThreads(1);
+    Kitty_pXi_TM_Epos.SetMomBins(NumMomBins,kMin,kMax);
+    AO_pXi_TM_Epos.SetUpCats_pXim(Kitty_pXi_TM_Epos,"pXim_HALQCD1","McGauss_ResoTM",0,202);//McGauss_Reso
+    //AO_pXi_TM_Epos.SetUpCats_pp(Kitty_pXi_TM_Epos,"AV18","McGauss_Reso",0,0);
+    Kitty_pXi_TM_Epos.SetAnaSource(0,Core_pXi_TM_Epos);
+    Kitty_pXi_TM_Epos.KillTheCat();
+
     DLM_CommonAnaFunctions AO_pOmega_Back;
     CATS Kitty_pOmega_Back;
     Kitty_pOmega_Back.SetMaxNumThreads(1);
@@ -2419,78 +2454,437 @@ void MickeyMouseEffectOnSourceBasedOnTheta(){
     Kitty_pOmega_Epos.SetAnaSource(0,Core_pOmega_Epos);
     Kitty_pOmega_Epos.KillTheCat();
 
-    TFile* fOut = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MickeyMouseEffectOnSourceBasedOnTheta/fOut.root","recreate");
+    DLM_CommonAnaFunctions AO_pOmega_TM_Back;
+    CATS Kitty_pOmega_TM_Back;
+    Kitty_pOmega_TM_Back.SetMaxNumThreads(1);
+    Kitty_pOmega_TM_Back.SetMomBins(NumMomBins,kMin,kMax);
+    AO_pOmega_TM_Back.SetUpCats_pOmegam(Kitty_pOmega_TM_Back,"pOmega_Lattice","McGauss_ResoTM",0,1);
+    Kitty_pOmega_TM_Back.SetAnaSource(0,Core_pOmega_TM_Back);
+    Kitty_pOmega_TM_Back.KillTheCat();
+
+    DLM_CommonAnaFunctions AO_pOmega_TM_Epos;
+    CATS Kitty_pOmega_TM_Epos;
+    Kitty_pOmega_TM_Epos.SetMaxNumThreads(1);
+    Kitty_pOmega_TM_Epos.SetMomBins(NumMomBins,kMin,kMax);
+    AO_pOmega_TM_Epos.SetUpCats_pOmegam(Kitty_pOmega_TM_Epos,"pOmega_Lattice","McGauss_ResoTM",0,202);
+    Kitty_pOmega_TM_Epos.SetAnaSource(0,Core_pOmega_TM_Epos);
+    Kitty_pOmega_TM_Epos.SetAnaSource(1,2);
+    Kitty_pOmega_TM_Epos.KillTheCat();
+
+    DLM_CommonAnaFunctions AO_pp_Back;
+    CATS Kitty_pp_Back;
+    Kitty_pp_Back.SetMaxNumThreads(1);
+    Kitty_pp_Back.SetMomBins(NumMomBins,kMin,kMax);
+    AO_pp_Back.SetUpCats_pp(Kitty_pp_Back,"AV18","McGauss_Reso",0,0);
+    Kitty_pp_Back.SetAnaSource(0,Core_pp_Back);
+    Kitty_pp_Back.KillTheCat();
+
+    DLM_CommonAnaFunctions AO_pp_Rand;
+    CATS Kitty_pp_Rand;
+    Kitty_pp_Rand.SetMaxNumThreads(1);
+    Kitty_pp_Rand.SetMomBins(NumMomBins,kMin,kMax);
+    AO_pp_Rand.SetUpCats_pp(Kitty_pp_Rand,"AV18","McGauss_Reso",0,1);
+    Kitty_pp_Rand.SetAnaSource(0,Core_pp_Rand);
+    Kitty_pp_Rand.KillTheCat();
+
+    DLM_CommonAnaFunctions AO_pp_Epos;
+    CATS Kitty_pp_Epos;
+    Kitty_pp_Epos.SetMaxNumThreads(1);
+    Kitty_pp_Epos.SetMomBins(NumMomBins,kMin,kMax);
+    AO_pp_Epos.SetUpCats_pp(Kitty_pp_Epos,"AV18","McGauss_Reso",0,2);
+    Kitty_pp_Epos.SetAnaSource(0,Core_pp_Epos);
+    Kitty_pp_Epos.KillTheCat();
+
+    DLM_CommonAnaFunctions AO_pp_TM_Back;
+    CATS Kitty_pp_TM_Back;
+    Kitty_pp_TM_Back.SetMaxNumThreads(1);
+    Kitty_pp_TM_Back.SetMomBins(NumMomBins,kMin,kMax);
+    AO_pp_TM_Back.SetUpCats_pp(Kitty_pp_TM_Back,"AV18","McGauss_ResoTM",0,1);
+    Kitty_pp_TM_Back.SetAnaSource(0,Core_pp_TM_Back);
+    Kitty_pp_TM_Back.KillTheCat();
+
+    DLM_CommonAnaFunctions AO_pp_TM_Epos;
+    CATS Kitty_pp_TM_Epos;
+    Kitty_pp_TM_Epos.SetMaxNumThreads(1);
+    Kitty_pp_TM_Epos.SetMomBins(NumMomBins,kMin,kMax);
+    AO_pp_TM_Epos.SetUpCats_pp(Kitty_pp_TM_Epos,"AV18","McGauss_ResoTM",0,202);
+    Kitty_pp_TM_Epos.SetAnaSource(0,Core_pp_TM_Epos);
+    Kitty_pp_TM_Epos.SetAnaSource(1,2);
+    Kitty_pp_TM_Epos.KillTheCat();
+
+    DLM_CommonAnaFunctions AO_pL_TM_Epos;
+    CATS Kitty_pL_TM_Epos;
+    Kitty_pL_TM_Epos.SetMaxNumThreads(1);
+    Kitty_pL_TM_Epos.SetMomBins(NumMomBins,kMin,kMax);
+    AO_pL_TM_Epos.SetUpCats_pL(Kitty_pL_TM_Epos,"Usmani","McGauss_ResoTM",0,202);
+    Kitty_pL_TM_Epos.SetAnaSource(0,Core_pL_TM_Epos);
+    Kitty_pL_TM_Epos.SetAnaSource(1,2);
+    Kitty_pL_TM_Epos.KillTheCat();
+
+    TFile* fOut = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MickeyMouseEffectOnSourceBasedOnTheta/fOut_TM.root","recreate");
 
     TGraph gKitty_pXi_Back;
     TGraph gKitty_pXi_Epos;
     TGraph gKitty_pXi_Rand;
-    TGraph gKitty_pOmega_Back;
-    TGraph gKitty_pOmega_Epos;
-    TGraph gKitty_pOmega_Rand;
+    TGraph gKitty_pXi_TM_Back;
+    TGraph gKitty_pXi_TM_Epos;
     gKitty_pXi_Back.SetName(TString::Format("gKitty_pXi_Back"));
     gKitty_pXi_Epos.SetName(TString::Format("gKitty_pXi_Epos"));
     gKitty_pXi_Rand.SetName(TString::Format("gKitty_pXi_Rand"));
-    gKitty_pOmega_Back.SetName(TString::Format("gKitty_pOmega_Back"));
-    gKitty_pOmega_Epos.SetName(TString::Format("gKitty_pOmega_Epos"));
-    gKitty_pOmega_Rand.SetName(TString::Format("gKitty_pOmega_Rand"));
-
+    gKitty_pXi_TM_Back.SetName(TString::Format("gKitty_pXi_TM_Back"));
+    gKitty_pXi_TM_Epos.SetName(TString::Format("gKitty_pXi_TM_Epos"));
     gKitty_pXi_Back.Set(NumMomBins);
     gKitty_pXi_Epos.Set(NumMomBins);
     gKitty_pXi_Rand.Set(NumMomBins);
+    gKitty_pXi_TM_Back.Set(NumMomBins);
+    gKitty_pXi_TM_Epos.Set(NumMomBins);
+
+    TGraph gKitty_pOmega_Back;
+    TGraph gKitty_pOmega_Epos;
+    TGraph gKitty_pOmega_Rand;
+    TGraph gKitty_pOmega_TM_Back;
+    TGraph gKitty_pOmega_TM_Epos;
+    gKitty_pOmega_Back.SetName(TString::Format("gKitty_pOmega_Back"));
+    gKitty_pOmega_Epos.SetName(TString::Format("gKitty_pOmega_Epos"));
+    gKitty_pOmega_Rand.SetName(TString::Format("gKitty_pOmega_Rand"));
+    gKitty_pOmega_TM_Back.SetName(TString::Format("gKitty_pOmega_TM_Back"));
+    gKitty_pOmega_TM_Epos.SetName(TString::Format("gKitty_pOmega_TM_Epos"));
     gKitty_pOmega_Back.Set(NumMomBins);
     gKitty_pOmega_Epos.Set(NumMomBins);
     gKitty_pOmega_Rand.Set(NumMomBins);
+    gKitty_pOmega_TM_Back.Set(NumMomBins);
+    gKitty_pOmega_TM_Epos.Set(NumMomBins);
+
+    TGraph gKitty_pp_Back;
+    TGraph gKitty_pp_Epos;
+    TGraph gKitty_pp_Rand;
+    TGraph gKitty_pp_TM_Back;
+    TGraph gKitty_pp_TM_Epos;
+    TGraph gKitty_pL_TM_Epos;
+    gKitty_pp_Back.SetName(TString::Format("gKitty_pp_Back"));
+    gKitty_pp_Epos.SetName(TString::Format("gKitty_pp_Epos"));
+    gKitty_pp_Rand.SetName(TString::Format("gKitty_pp_Rand"));
+    gKitty_pp_TM_Back.SetName(TString::Format("gKitty_pp_TM_Back"));
+    gKitty_pp_TM_Epos.SetName(TString::Format("gKitty_pp_TM_Epos"));
+    gKitty_pL_TM_Epos.SetName(TString::Format("gKitty_pL_TM_Epos"));
+    gKitty_pp_Back.Set(NumMomBins);
+    gKitty_pp_Epos.Set(NumMomBins);
+    gKitty_pp_Rand.Set(NumMomBins);
+    gKitty_pp_TM_Back.Set(NumMomBins);
+    gKitty_pp_TM_Epos.Set(NumMomBins);
+    gKitty_pL_TM_Epos.Set(NumMomBins);
 
     for(unsigned uBin=0; uBin<NumMomBins; uBin++){
         //printf("C(%.2f) = %.3f vs %.3f\n",AB_pp_G.GetMomentum(uBin),AB_pp_G.GetCorrFun(uBin),AB_pp_GT.GetCorrFun(uBin));
         gKitty_pXi_Back.SetPoint(uBin,Kitty_pXi_Back.GetMomentum(uBin),LambdaPar_pXi*Kitty_pXi_Back.GetCorrFun(uBin)+1.-LambdaPar_pXi);
         gKitty_pXi_Epos.SetPoint(uBin,Kitty_pXi_Epos.GetMomentum(uBin),LambdaPar_pXi*Kitty_pXi_Epos.GetCorrFun(uBin)+1.-LambdaPar_pXi);
         gKitty_pXi_Rand.SetPoint(uBin,Kitty_pXi_Rand.GetMomentum(uBin),LambdaPar_pXi*Kitty_pXi_Rand.GetCorrFun(uBin)+1.-LambdaPar_pXi);
+        gKitty_pXi_TM_Back.SetPoint(uBin,Kitty_pXi_TM_Back.GetMomentum(uBin),LambdaPar_pXi*Kitty_pXi_TM_Back.GetCorrFun(uBin)+1.-LambdaPar_pXi);
+        gKitty_pXi_TM_Epos.SetPoint(uBin,Kitty_pXi_TM_Epos.GetMomentum(uBin),LambdaPar_pXi*Kitty_pXi_TM_Epos.GetCorrFun(uBin)+1.-LambdaPar_pXi);
         gKitty_pOmega_Back.SetPoint(uBin,Kitty_pOmega_Back.GetMomentum(uBin),LambdaPar_pOmega*Kitty_pOmega_Back.GetCorrFun(uBin)+1.-LambdaPar_pOmega);
         gKitty_pOmega_Epos.SetPoint(uBin,Kitty_pOmega_Epos.GetMomentum(uBin),LambdaPar_pOmega*Kitty_pOmega_Epos.GetCorrFun(uBin)+1.-LambdaPar_pOmega);
         gKitty_pOmega_Rand.SetPoint(uBin,Kitty_pOmega_Rand.GetMomentum(uBin),LambdaPar_pOmega*Kitty_pOmega_Rand.GetCorrFun(uBin)+1.-LambdaPar_pOmega);
+        gKitty_pOmega_TM_Back.SetPoint(uBin,Kitty_pOmega_TM_Back.GetMomentum(uBin),LambdaPar_pOmega*Kitty_pOmega_TM_Back.GetCorrFun(uBin)+1.-LambdaPar_pOmega);
+        gKitty_pOmega_TM_Epos.SetPoint(uBin,Kitty_pOmega_TM_Epos.GetMomentum(uBin),LambdaPar_pOmega*Kitty_pOmega_TM_Epos.GetCorrFun(uBin)+1.-LambdaPar_pOmega);
+        gKitty_pp_Back.SetPoint(uBin,Kitty_pp_Back.GetMomentum(uBin),LambdaPar_pp*Kitty_pp_Back.GetCorrFun(uBin)+1.-LambdaPar_pp);
+        gKitty_pp_Epos.SetPoint(uBin,Kitty_pp_Epos.GetMomentum(uBin),LambdaPar_pp*Kitty_pp_Epos.GetCorrFun(uBin)+1.-LambdaPar_pp);
+        gKitty_pp_Rand.SetPoint(uBin,Kitty_pp_Rand.GetMomentum(uBin),LambdaPar_pp*Kitty_pp_Rand.GetCorrFun(uBin)+1.-LambdaPar_pp);
+        gKitty_pp_TM_Back.SetPoint(uBin,Kitty_pp_TM_Back.GetMomentum(uBin),LambdaPar_pp*Kitty_pp_TM_Back.GetCorrFun(uBin)+1.-LambdaPar_pp);
+        gKitty_pp_TM_Epos.SetPoint(uBin,Kitty_pp_TM_Epos.GetMomentum(uBin),LambdaPar_pp*Kitty_pp_TM_Epos.GetCorrFun(uBin)+1.-LambdaPar_pp);
+        gKitty_pL_TM_Epos.SetPoint(uBin,Kitty_pL_TM_Epos.GetMomentum(uBin),LambdaPar_pL*Kitty_pL_TM_Epos.GetCorrFun(uBin)+1.-LambdaPar_pL);
     }
 
     TGraph gSource_pXi_Back;
     TGraph gSource_pXi_Epos;
     TGraph gSource_pXi_Rand;
-    TGraph gSource_pOmega_Back;
-    TGraph gSource_pOmega_Epos;
-    TGraph gSource_pOmega_Rand;
+    TGraph gSource_pXi_TM_Back;
+    TGraph gSource_pXi_TM_Epos;
     gSource_pXi_Back.SetName(TString::Format("gSource_pXi_Back"));
     gSource_pXi_Epos.SetName(TString::Format("gSource_pXi_Epos"));
     gSource_pXi_Rand.SetName(TString::Format("gSource_pXi_Rand"));
+    gSource_pXi_TM_Back.SetName(TString::Format("gSource_pXi_TM_Back"));
+    gSource_pXi_TM_Epos.SetName(TString::Format("gSource_pXi_TM_Epos"));
+
+    TGraph gSource_pOmega_Back;
+    TGraph gSource_pOmega_Epos;
+    TGraph gSource_pOmega_Rand;
+    TGraph gSource_pOmega_TM_Back;
+    TGraph gSource_pOmega_TM_Epos;
     gSource_pOmega_Back.SetName(TString::Format("gSource_pOmega_Back"));
     gSource_pOmega_Epos.SetName(TString::Format("gSource_pOmega_Epos"));
     gSource_pOmega_Rand.SetName(TString::Format("gSource_pOmega_Rand"));
-    const unsigned NumRadBins = 128;
-    const double rMin = 0.1;
-    const double rMax = 10;
-    const double rStep = (rMax-rMin)/double(NumRadBins-1);
+    gSource_pOmega_TM_Back.SetName(TString::Format("gSource_pOmega_TM_Back"));
+    gSource_pOmega_TM_Epos.SetName(TString::Format("gSource_pOmega_TM_Epos"));
+
+    const unsigned NumRadBins = 256;
+    const double rMin = 0;
+    const double rMax = 6;
+    TH1F* hSource_pXi_Back = new TH1F("hSource_pXi_Back","hSource_pXi_Back",NumRadBins,rMin,rMax);
+    TH1F* hSource_pXi_Epos = new TH1F("hSource_pXi_Epos","hSource_pXi_Epos",NumRadBins,rMin,rMax);
+    TH1F* hSource_pXi_Rand = new TH1F("hSource_pXi_Rand","hSource_pXi_Rand",NumRadBins,rMin,rMax);
+    TH1F* hSource_pXi_TM_Back = new TH1F("hSource_pXi_TM_Back","hSource_pXi_TM_Back",NumRadBins,rMin,rMax);
+    TH1F* hSource_pXi_TM_Epos = new TH1F("hSource_pXi_TM_Epos","hSource_pXi_TM_Epos",NumRadBins,rMin,rMax);
+
+    TH1F* hSource_pOmega_Back = new TH1F("hSource_pOmega_Back","hSource_pOmega_Back",NumRadBins,rMin,rMax);
+    TH1F* hSource_pOmega_Epos = new TH1F("hSource_pOmega_Epos","hSource_pOmega_Epos",NumRadBins,rMin,rMax);
+    TH1F* hSource_pOmega_Rand = new TH1F("hSource_pOmega_Rand","hSource_pOmega_Rand",NumRadBins,rMin,rMax);
+    TH1F* hSource_pOmega_TM_Back = new TH1F("hSource_pOmega_TM_Back","hSource_pOmega_TM_Back",NumRadBins,rMin,rMax);
+    TH1F* hSource_pOmega_TM_Epos = new TH1F("hSource_pOmega_TM_Epos","hSource_pOmega_TM_Epos",NumRadBins,rMin,rMax);
+
+    TH1F* hSource_pp_Back = new TH1F("hSource_pp_Back","hSource_pp_Back",NumRadBins,rMin,rMax);
+    TH1F* hSource_pp_Epos = new TH1F("hSource_pp_Epos","hSource_pp_Epos",NumRadBins,rMin,rMax);
+    TH1F* hSource_pp_Rand = new TH1F("hSource_pp_Rand","hSource_pp_Rand",NumRadBins,rMin,rMax);
+    TH1F* hSource_pp_TM_Back = new TH1F("hSource_pp_TM_Back","hSource_pp_TM_Back",NumRadBins,rMin,rMax);
+    TH1F* hSource_pp_TM_Epos = new TH1F("hSource_pp_TM_Epos","hSource_pp_TM_Epos",NumRadBins,rMin,rMax);
+
+    TH1F* hSource_pL_TM_Epos = new TH1F("hSource_pL_TM_Epos","hSource_pL_TM_Epos",NumRadBins,rMin,rMax);
+
+    //const unsigned NumRadBins = 128;
+    //const double rMin = 0.1;
+    //const double rMax = 10;
+    //const double rStep = (rMax-rMin)/double(NumRadBins-1);
     //EvaluateTheSource
     for(unsigned uRad=0; uRad<NumRadBins; uRad++){
-        double RAD = rMin+double(uRad)*rStep;
+        //double RAD = rMin+double(uRad)*rStep;
+        double RAD = hSource_pXi_Back->GetBinCenter(uRad+1);
         gSource_pXi_Back.SetPoint(uRad,RAD,Kitty_pXi_Back.EvaluateTheSource(0,RAD,0));
         gSource_pXi_Epos.SetPoint(uRad,RAD,Kitty_pXi_Epos.EvaluateTheSource(0,RAD,0));
         gSource_pXi_Rand.SetPoint(uRad,RAD,Kitty_pXi_Rand.EvaluateTheSource(0,RAD,0));
+        gSource_pXi_TM_Back.SetPoint(uRad,RAD,Kitty_pXi_TM_Back.EvaluateTheSource(0,RAD,0));
+        gSource_pXi_TM_Epos.SetPoint(uRad,RAD,Kitty_pXi_TM_Epos.EvaluateTheSource(0,RAD,0));
         gSource_pOmega_Back.SetPoint(uRad,RAD,Kitty_pOmega_Back.EvaluateTheSource(0,RAD,0));
         gSource_pOmega_Epos.SetPoint(uRad,RAD,Kitty_pOmega_Epos.EvaluateTheSource(0,RAD,0));
         gSource_pOmega_Rand.SetPoint(uRad,RAD,Kitty_pOmega_Rand.EvaluateTheSource(0,RAD,0));
+        gSource_pOmega_TM_Back.SetPoint(uRad,RAD,Kitty_pOmega_TM_Back.EvaluateTheSource(0,RAD,0));
+        gSource_pOmega_TM_Epos.SetPoint(uRad,RAD,Kitty_pOmega_TM_Epos.EvaluateTheSource(0,RAD,0));
+
+        hSource_pXi_Back->SetBinContent(uRad+1,Kitty_pXi_Back.EvaluateTheSource(0,RAD,0));
+        hSource_pXi_Epos->SetBinContent(uRad+1,Kitty_pXi_Epos.EvaluateTheSource(0,RAD,0));
+        hSource_pXi_Rand->SetBinContent(uRad+1,Kitty_pXi_Rand.EvaluateTheSource(0,RAD,0));
+        hSource_pXi_TM_Back->SetBinContent(uRad+1,Kitty_pXi_TM_Back.EvaluateTheSource(0,RAD,0));
+        hSource_pXi_TM_Epos->SetBinContent(uRad+1,Kitty_pXi_TM_Epos.EvaluateTheSource(0,RAD,0));
+
+        hSource_pOmega_Back->SetBinContent(uRad+1,Kitty_pOmega_Back.EvaluateTheSource(0,RAD,0));
+        hSource_pOmega_Epos->SetBinContent(uRad+1,Kitty_pOmega_Epos.EvaluateTheSource(0,RAD,0));
+        hSource_pOmega_Rand->SetBinContent(uRad+1,Kitty_pOmega_Rand.EvaluateTheSource(0,RAD,0));
+        hSource_pOmega_TM_Back->SetBinContent(uRad+1,Kitty_pOmega_TM_Back.EvaluateTheSource(0,RAD,0));
+        hSource_pOmega_TM_Epos->SetBinContent(uRad+1,Kitty_pOmega_TM_Epos.EvaluateTheSource(0,RAD,0));
+
+        hSource_pp_Back->SetBinContent(uRad+1,Kitty_pp_Back.EvaluateTheSource(0,RAD,0));
+        hSource_pp_Epos->SetBinContent(uRad+1,Kitty_pp_Epos.EvaluateTheSource(0,RAD,0));
+        hSource_pp_Rand->SetBinContent(uRad+1,Kitty_pp_Rand.EvaluateTheSource(0,RAD,0));
+        hSource_pp_TM_Back->SetBinContent(uRad+1,Kitty_pp_TM_Back.EvaluateTheSource(0,RAD,0));
+        hSource_pp_TM_Epos->SetBinContent(uRad+1,Kitty_pp_TM_Epos.EvaluateTheSource(0,RAD,0));
+
+        hSource_pL_TM_Epos->SetBinContent(uRad+1,Kitty_pL_TM_Epos.EvaluateTheSource(0,RAD,0));
+
+        hSource_pXi_Back->SetBinError(uRad+1,hSource_pXi_Back->GetBinContent(uRad+1)*0.001+0.001);
+        hSource_pXi_Epos->SetBinError(uRad+1,hSource_pXi_Epos->GetBinContent(uRad+1)*0.001+0.001);
+        hSource_pXi_Rand->SetBinError(uRad+1,hSource_pXi_Rand->GetBinContent(uRad+1)*0.001+0.001);
+        hSource_pXi_TM_Back->SetBinError(uRad+1,hSource_pXi_TM_Back->GetBinContent(uRad+1)*0.001+0.001);
+        hSource_pXi_TM_Epos->SetBinError(uRad+1,hSource_pXi_TM_Epos->GetBinContent(uRad+1)*0.001+0.001);
+
+        hSource_pOmega_Back->SetBinError(uRad+1,hSource_pOmega_Back->GetBinContent(uRad+1)*0.001+0.001);
+        hSource_pOmega_Epos->SetBinError(uRad+1,hSource_pOmega_Epos->GetBinContent(uRad+1)*0.001+0.001);
+        hSource_pOmega_Rand->SetBinError(uRad+1,hSource_pOmega_Rand->GetBinContent(uRad+1)*0.001+0.001);
+        hSource_pOmega_TM_Back->SetBinError(uRad+1,hSource_pOmega_TM_Back->GetBinContent(uRad+1)*0.001+0.001);
+        hSource_pOmega_TM_Epos->SetBinError(uRad+1,hSource_pOmega_TM_Epos->GetBinContent(uRad+1)*0.001+0.001);
+
+        hSource_pp_Back->SetBinError(uRad+1,hSource_pp_Back->GetBinContent(uRad+1)*0.001+0.001);
+        hSource_pp_Epos->SetBinError(uRad+1,hSource_pp_Epos->GetBinContent(uRad+1)*0.001+0.001);
+        hSource_pp_Rand->SetBinError(uRad+1,hSource_pp_Rand->GetBinContent(uRad+1)*0.001+0.001);
+        hSource_pp_TM_Back->SetBinError(uRad+1,hSource_pp_TM_Back->GetBinContent(uRad+1)*0.001+0.001);
+        hSource_pp_TM_Epos->SetBinError(uRad+1,hSource_pp_TM_Epos->GetBinContent(uRad+1)*0.001+0.001);
+
+        hSource_pL_TM_Epos->SetBinError(uRad+1,hSource_pL_TM_Epos->GetBinContent(uRad+1)*0.001+0.001);
     }
+
+    TF1* fSource_pXi_Back = new TF1(TString::Format("fSource_pXi_Back"),GaussSourceTF1,rMin,rMax,1);
+    fSource_pXi_Back->SetParameter(0,1.0);
+    fSource_pXi_Back->SetParLimits(0,0.5,2.0);
+    hSource_pXi_Back->Fit(fSource_pXi_Back,"Q, S, N, R, M");
+
+    TF1* fSource_pXi_Epos = new TF1(TString::Format("fSource_pXi_Epos"),GaussSourceTF1,rMin,rMax,1);
+    fSource_pXi_Epos->SetParameter(0,1.0);
+    fSource_pXi_Epos->SetParLimits(0,0.5,2.0);
+    hSource_pXi_Epos->Fit(fSource_pXi_Epos,"Q, S, N, R, M");
+
+    TF1* fSource_pXi_Rand = new TF1(TString::Format("fSource_pXi_Rand"),GaussSourceTF1,rMin,rMax,1);
+    fSource_pXi_Rand->SetParameter(0,1.0);
+    fSource_pXi_Rand->SetParLimits(0,0.5,2.0);
+    hSource_pXi_Rand->Fit(fSource_pXi_Rand,"Q, S, N, R, M");
+
+    TF1* fSource_pXi_TM_Back = new TF1(TString::Format("fSource_pXi_TM_Back"),GaussSourceTF1,rMin,rMax,1);
+    fSource_pXi_TM_Back->SetParameter(0,1.0);
+    fSource_pXi_TM_Back->SetParLimits(0,0.5,2.0);
+    hSource_pXi_TM_Back->Fit(fSource_pXi_TM_Back,"Q, S, N, R, M");
+
+    TF1* fSource_pXi_TM_Epos = new TF1(TString::Format("fSource_pXi_TM_Epos"),GaussSourceTF1,rMin,rMax,1);
+    fSource_pXi_TM_Epos->SetParameter(0,1.0);
+    fSource_pXi_TM_Epos->SetParLimits(0,0.5,2.0);
+    hSource_pXi_TM_Epos->Fit(fSource_pXi_TM_Epos,"Q, S, N, R, M");
+
+
+    TF1* fSource_pOmega_Back = new TF1(TString::Format("fSource_pOmega_Back"),GaussSourceTF1,rMin,rMax,1);
+    fSource_pOmega_Back->SetParameter(0,1.0);
+    fSource_pOmega_Back->SetParLimits(0,0.5,2.0);
+    hSource_pOmega_Back->Fit(fSource_pOmega_Back,"Q, S, N, R, M");
+
+    TF1* fSource_pOmega_Epos = new TF1(TString::Format("fSource_pOmega_Epos"),GaussSourceTF1,rMin,rMax,1);
+    fSource_pOmega_Epos->SetParameter(0,1.0);
+    fSource_pOmega_Epos->SetParLimits(0,0.5,2.0);
+    hSource_pOmega_Epos->Fit(fSource_pOmega_Epos,"Q, S, N, R, M");
+
+    TF1* fSource_pOmega_Rand = new TF1(TString::Format("fSource_pOmega_Rand"),GaussSourceTF1,rMin,rMax,1);
+    fSource_pOmega_Rand->SetParameter(0,1.0);
+    fSource_pOmega_Rand->SetParLimits(0,0.5,2.0);
+    hSource_pOmega_Rand->Fit(fSource_pOmega_Rand,"Q, S, N, R, M");
+
+    TF1* fSource_pOmega_TM_Back = new TF1(TString::Format("fSource_pOmega_TM_Back"),GaussSourceTF1,rMin,rMax,1);
+    fSource_pOmega_TM_Back->SetParameter(0,1.0);
+    fSource_pOmega_TM_Back->SetParLimits(0,0.5,2.0);
+    hSource_pOmega_TM_Back->Fit(fSource_pOmega_TM_Back,"Q, S, N, R, M");
+
+    TF1* fSource_pOmega_TM_Epos = new TF1(TString::Format("fSource_pOmega_TM_Epos"),GaussSourceTF1,rMin,rMax,1);
+    fSource_pOmega_TM_Epos->SetParameter(0,1.0);
+    fSource_pOmega_TM_Epos->SetParLimits(0,0.5,2.0);
+    hSource_pOmega_TM_Epos->Fit(fSource_pOmega_TM_Epos,"Q, S, N, R, M");
+
+
+    TF1* fSource_pp_Back = new TF1(TString::Format("fSource_pp_Back"),GaussSourceTF1,rMin,rMax,1);
+    fSource_pp_Back->SetParameter(0,1.0);
+    fSource_pp_Back->SetParLimits(0,0.5,2.0);
+    hSource_pp_Back->Fit(fSource_pp_Back,"Q, S, N, R, M");
+
+    TF1* fSource_pp_Epos = new TF1(TString::Format("fSource_pp_Epos"),GaussSourceTF1,rMin,rMax,1);
+    fSource_pp_Epos->SetParameter(0,1.0);
+    fSource_pp_Epos->SetParLimits(0,0.5,2.0);
+    hSource_pp_Epos->Fit(fSource_pp_Epos,"Q, S, N, R, M");
+
+    TF1* fSource_pp_Rand = new TF1(TString::Format("fSource_pp_Rand"),GaussSourceTF1,rMin,rMax,1);
+    fSource_pp_Rand->SetParameter(0,1.0);
+    fSource_pp_Rand->SetParLimits(0,0.5,2.0);
+    hSource_pp_Rand->Fit(fSource_pp_Rand,"Q, S, N, R, M");
+
+    TF1* fSource_pp_TM_Back = new TF1(TString::Format("fSource_pp_TM_Back"),GaussSourceTF1,rMin,rMax,1);
+    fSource_pp_TM_Back->SetParameter(0,1.0);
+    fSource_pp_TM_Back->SetParLimits(0,0.5,2.0);
+    hSource_pp_TM_Back->Fit(fSource_pp_TM_Back,"Q, S, N, R, M");
+
+    TF1* fSource_pp_TM_Epos = new TF1(TString::Format("fSource_pp_TM_Epos"),GaussSourceTF1,rMin,rMax,1);
+    fSource_pp_TM_Epos->SetParameter(0,1.0);
+    fSource_pp_TM_Epos->SetParLimits(0,0.5,2.0);
+    hSource_pp_TM_Epos->Fit(fSource_pp_TM_Epos,"Q, S, N, R, M");
+
+    TF1* fSource_pL_TM_Epos = new TF1(TString::Format("fSource_pL_TM_Epos"),GaussSourceTF1,rMin,rMax,1);
+    fSource_pL_TM_Epos->SetParameter(0,1.0);
+    fSource_pL_TM_Epos->SetParLimits(0,0.5,2.0);
+    hSource_pL_TM_Epos->Fit(fSource_pL_TM_Epos,"Q, S, N, R, M");
+
+    printf("Core vs effective sources:\n");
+    printf(" pp (Back): %.3f --> %.3f fm\n",Core_pp_Back,fSource_pp_Back->GetParameter(0));
+    printf(" pp (Epos): %.3f --> %.3f fm\n",Core_pp_TM_Epos,fSource_pp_TM_Epos->GetParameter(0));
+    printf(" pΛ (Epos): %.3f --> %.3f fm\n",Core_pL_TM_Epos,fSource_pL_TM_Epos->GetParameter(0));
+    printf(" pΞ (Back): %.3f --> %.3f fm\n",Core_pXi_Back,fSource_pXi_Back->GetParameter(0));
+    printf(" pΞ (Epos): %.3f --> %.3f fm\n",Core_pXi_TM_Epos,fSource_pXi_TM_Epos->GetParameter(0));
+    printf(" pΩ (Back): %.3f --> %.3f fm\n",Core_pOmega_Back,fSource_pOmega_Back->GetParameter(0));
+    printf(" pΩ (Epos): %.3f --> %.3f fm\n",Core_pOmega_TM_Epos,fSource_pOmega_TM_Epos->GetParameter(0));
+
 
     gKitty_pXi_Back.Write();
     gKitty_pXi_Epos.Write();
     gKitty_pXi_Rand.Write();
+    gKitty_pXi_TM_Back.Write();
+    gKitty_pXi_TM_Epos.Write();
     gKitty_pOmega_Back.Write();
     gKitty_pOmega_Epos.Write();
     gKitty_pOmega_Rand.Write();
+    gKitty_pOmega_TM_Back.Write();
+    gKitty_pOmega_TM_Epos.Write();
+    gKitty_pp_Back.Write();
+    gKitty_pp_Epos.Write();
+    gKitty_pp_Rand.Write();
+    gKitty_pp_TM_Back.Write();
+    gKitty_pp_TM_Epos.Write();
+    gKitty_pL_TM_Epos.Write();
+
     gSource_pXi_Back.Write();
     gSource_pXi_Epos.Write();
     gSource_pXi_Rand.Write();
+    gSource_pXi_TM_Back.Write();
+    gSource_pXi_TM_Epos.Write();
     gSource_pOmega_Back.Write();
     gSource_pOmega_Epos.Write();
     gSource_pOmega_Rand.Write();
+    gSource_pOmega_TM_Back.Write();
+    gSource_pOmega_TM_Epos.Write();
 
+    hSource_pXi_Back->Write();
+    hSource_pXi_Epos->Write();
+    hSource_pXi_Rand->Write();
+    hSource_pXi_TM_Back->Write();
+    hSource_pXi_TM_Epos->Write();
+    hSource_pOmega_Back->Write();
+    hSource_pOmega_Epos->Write();
+    hSource_pOmega_Rand->Write();
+    hSource_pOmega_TM_Back->Write();
+    hSource_pOmega_TM_Epos->Write();
+    hSource_pp_Back->Write();
+    hSource_pp_Epos->Write();
+    hSource_pp_Rand->Write();
+    hSource_pp_TM_Back->Write();
+    hSource_pp_TM_Epos->Write();
+    hSource_pL_TM_Epos->Write();
+
+    fSource_pXi_Back->Write();
+    fSource_pXi_Epos->Write();
+    fSource_pXi_Rand->Write();
+    fSource_pXi_TM_Back->Write();
+    fSource_pXi_TM_Epos->Write();
+    fSource_pOmega_Back->Write();
+    fSource_pOmega_Epos->Write();
+    fSource_pOmega_Rand->Write();
+    fSource_pOmega_TM_Back->Write();
+    fSource_pOmega_TM_Epos->Write();
+    fSource_pp_Back->Write();
+    fSource_pp_Epos->Write();
+    fSource_pp_Rand->Write();
+    fSource_pp_TM_Back->Write();
+    fSource_pp_TM_Epos->Write();
+    fSource_pL_TM_Epos->Write();
+
+    delete hSource_pXi_Back;
+    delete hSource_pXi_Epos;
+    delete hSource_pXi_Rand;
+    delete hSource_pXi_TM_Back;
+    delete hSource_pXi_TM_Epos;
+    delete hSource_pOmega_Back;
+    delete hSource_pOmega_Epos;
+    delete hSource_pOmega_Rand;
+    delete hSource_pOmega_TM_Back;
+    delete hSource_pOmega_TM_Epos;
+    delete hSource_pp_Back;
+    delete hSource_pp_Epos;
+    delete hSource_pp_Rand;
+    delete hSource_pp_TM_Back;
+    delete hSource_pp_TM_Epos;
+    delete hSource_pL_TM_Epos;
+    delete fSource_pXi_Back;
+    delete fSource_pXi_Epos;
+    delete fSource_pXi_Rand;
+    delete fSource_pXi_TM_Back;
+    delete fSource_pXi_TM_Epos;
+    delete fSource_pOmega_Back;
+    delete fSource_pOmega_Epos;
+    delete fSource_pOmega_Rand;
+    delete fSource_pOmega_TM_Back;
+    delete fSource_pOmega_TM_Epos;
+    delete fSource_pp_Back;
+    delete fSource_pp_Epos;
+    delete fSource_pp_Rand;
+    delete fSource_pp_TM_Back;
+    delete fSource_pp_TM_Epos;
+    delete fSource_pL_TM_Epos;
     delete fOut;
 }
 
@@ -2823,33 +3217,59 @@ void pp_pLambda_pXi_Ratios(){
     TH1F** histSE = new TH1F* [NumSpecies];
     TH1F** histME = new TH1F* [NumSpecies];
     TH1F** histCk = new TH1F* [NumSpecies];
+
+    TH1F** histSE_PP = new TH1F* [NumSpecies];
+    TH1F** histME_PP = new TH1F* [NumSpecies];
+    TH1F** histCk_PP = new TH1F* [NumSpecies];
+
+    TH1F** histSE_APAP = new TH1F* [NumSpecies];
+    TH1F** histME_APAP = new TH1F* [NumSpecies];
+    TH1F** histCk_APAP = new TH1F* [NumSpecies];
+
     const unsigned NumCkRatios = NumCkCombo*(NumCkCombo-1)/2;
     TH1F** histCkRatio = new TH1F* [NumCkRatios];
     unsigned uCombo=0;
     TFile fOutput(OutputFolder+"fOutput.root","recreate");
     for(unsigned uSpec1=0; uSpec1<NumSpecies; uSpec1++){
         for(unsigned uSpec2=uSpec1; uSpec2<NumSpecies; uSpec2++){
+            fInput.cd();
             //printf("\n%u %u\n",uSpec1,uSpec2);
             tmpFolder1=(TList*)Results->FindObject(TString::Format("Particle%u_Particle%u",uSpec1*2,uSpec2*2));
             //printf(" tmpFolder1=%p\n",tmpFolder1);
             TH1F* tmpSE1 = NULL; tmpSE1 = (TH1F*)tmpFolder1->FindObject(TString::Format("SEDist_Particle%u_Particle%u",uSpec1*2,uSpec2*2));
             //printf(" tmpSE1=%p\n",tmpSE1);
             //printf(" tmpSE1->GetNbinsX()=%i\n",tmpSE1->GetNbinsX());
+            fOutput.cd();
             histSE[uCombo] = new TH1F(TString::Format("histSE_Particle%u_Particle%u",uSpec1*2,uSpec2*2),TString::Format("histSE_Particle%u_Particle%u",uSpec1*2,uSpec2*2),
                                       tmpSE1->GetNbinsX(),tmpSE1->GetBinLowEdge(1),tmpSE1->GetXaxis()->GetBinUpEdge(tmpSE1->GetNbinsX()));
+//            histSE_PP[uCombo] = new TH1F(TString::Format("histSE_PP_%u_%u",uSpec1*2,uSpec2*2),TString::Format("histSE_PP_%u_%u",uSpec1*2,uSpec2*2),
+//                                      tmpSE1->GetNbinsX(),tmpSE1->GetBinLowEdge(1),tmpSE1->GetXaxis()->GetBinUpEdge(tmpSE1->GetNbinsX()));
+            fInput.cd();
+//            histSE_APAP[uCombo] = new TH1F(TString::Format("histSE_APAP_Particle%u_Particle%u",uSpec1*2,uSpec2*2),TString::Format("histSE_APAP_Particle%u_Particle%u",uSpec1*2,uSpec2*2),
+//                                      tmpSE1->GetNbinsX(),tmpSE1->GetBinLowEdge(1),tmpSE1->GetXaxis()->GetBinUpEdge(tmpSE1->GetNbinsX()));
             for(unsigned uBin=0; uBin<=tmpSE1->GetNbinsX()+1; uBin++){
                 histSE[uCombo]->SetBinContent(uBin,tmpSE1->GetBinContent(uBin));
                 histSE[uCombo]->SetBinError(uBin,tmpSE1->GetBinError(uBin));
+//                histSE_PP[uCombo]->SetBinContent(uBin,tmpSE1->GetBinContent(uBin));
+//                histSE_PP[uCombo]->SetBinError(uBin,tmpSE1->GetBinError(uBin));
             }
             //histSE[uCombo] = (TH1F*)tmpSE1->Clone(TString::Format("histSE_Particle%u_Particle%u",uSpec1*2,uSpec2*2));
             //printf("Done\n");
             TH1F* tmpME1 = NULL; tmpME1 = (TH1F*)tmpFolder1->FindObject(TString::Format("MEDist_Particle%u_Particle%u",uSpec1*2,uSpec2*2));
             //printf(" tmpME1=%p\n",tmpME1);
+            fOutput.cd();
             histME[uCombo] = new TH1F(TString::Format("histME_Particle%u_Particle%u",uSpec1*2,uSpec2*2),TString::Format("histME_Particle%u_Particle%u",uSpec1*2,uSpec2*2),
                                       tmpME1->GetNbinsX(),tmpME1->GetBinLowEdge(1),tmpME1->GetXaxis()->GetBinUpEdge(tmpME1->GetNbinsX()));
+//            histME_PP[uCombo] = new TH1F(TString::Format("histME_PP_Particle%u_Particle%u",uSpec1*2,uSpec2*2),TString::Format("histME_PP_Particle%u_Particle%u",uSpec1*2,uSpec2*2),
+//                                      tmpME1->GetNbinsX(),tmpME1->GetBinLowEdge(1),tmpME1->GetXaxis()->GetBinUpEdge(tmpME1->GetNbinsX()));
+//            histME_APAP[uCombo] = new TH1F(TString::Format("histME_APAP_Particle%u_Particle%u",uSpec1*2,uSpec2*2),TString::Format("histME_APAP_Particle%u_Particle%u",uSpec1*2,uSpec2*2),
+//                                      tmpME1->GetNbinsX(),tmpME1->GetBinLowEdge(1),tmpME1->GetXaxis()->GetBinUpEdge(tmpME1->GetNbinsX()));
+            fInput.cd();
             for(unsigned uBin=0; uBin<=tmpME1->GetNbinsX()+1; uBin++){
                 histME[uCombo]->SetBinContent(uBin,tmpME1->GetBinContent(uBin));
                 histME[uCombo]->SetBinError(uBin,tmpME1->GetBinError(uBin));
+//                histME_PP[uCombo]->SetBinContent(uBin,tmpME1->GetBinContent(uBin));
+//                histME_PP[uCombo]->SetBinError(uBin,tmpME1->GetBinError(uBin));
             }
             //histME[uCombo] = (TH1F*)tmpME1->Clone(TString::Format("histME_Particle%u_Particle%u",uSpec1*2,uSpec2*2));
             tmpFolder2=(TList*)Results->FindObject(TString::Format("Particle%u_Particle%u",uSpec1*2+1,uSpec2*2+1));
@@ -2861,22 +3281,47 @@ void pp_pLambda_pXi_Ratios(){
             histSE[uCombo]->Add(tmpSE2);
             histME[uCombo]->Add(tmpME2);
             histME[uCombo]->Scale(histSE[uCombo]->Integral(0,histSE[uCombo]->GetNbinsX()+1)/histME[uCombo]->Integral(0,histME[uCombo]->GetNbinsX()+1));
+
+            for(unsigned uBin=0; uBin<=tmpSE2->GetNbinsX()+1; uBin++){
+//                histSE_APAP[uCombo]->SetBinContent(uBin,tmpSE2->GetBinContent(uBin));
+//                histSE_APAP[uCombo]->SetBinError(uBin,tmpSE2->GetBinError(uBin));
+            }
+            for(unsigned uBin=0; uBin<=tmpME2->GetNbinsX()+1; uBin++){
+//                histME_APAP[uCombo]->SetBinContent(uBin,tmpME2->GetBinContent(uBin));
+//                histME_APAP[uCombo]->SetBinError(uBin,tmpME2->GetBinError(uBin));
+            }
+
             //printf("hSE = %e\n",histSE[uCombo]->Integral(0,histSE[uCombo]->GetNbinsX()+1));
             //printf("hME = %e\n",histME[uCombo]->Integral(0,histME[uCombo]->GetNbinsX()+1));
+            fOutput.cd();
             histCk[uCombo] = new TH1F(TString::Format("histCk_Particle%u_Particle%u",uSpec1*2,uSpec2*2),TString::Format("histCk_Particle%u_Particle%u",uSpec1*2,uSpec2*2),
                                       histSE[uCombo]->GetNbinsX(),histSE[uCombo]->GetBinLowEdge(1),histSE[uCombo]->GetXaxis()->GetBinUpEdge(histSE[uCombo]->GetNbinsX()));
+//            histCk_PP[uCombo] = new TH1F(TString::Format("histCk_PP_Particle%u_Particle%u",uSpec1*2,uSpec2*2),TString::Format("histCk_PP_Particle%u_Particle%u",uSpec1*2,uSpec2*2),
+//                                      histSE[uCombo]->GetNbinsX(),histSE[uCombo]->GetBinLowEdge(1),histSE[uCombo]->GetXaxis()->GetBinUpEdge(histSE[uCombo]->GetNbinsX()));
+//            histCk_APAP[uCombo] = new TH1F(TString::Format("histCk_APAP_Particle%u_Particle%u",uSpec1*2,uSpec2*2),TString::Format("histCk_APAP_Particle%u_Particle%u",uSpec1*2,uSpec2*2),
+//                                      histSE[uCombo]->GetNbinsX(),histSE[uCombo]->GetBinLowEdge(1),histSE[uCombo]->GetXaxis()->GetBinUpEdge(histSE[uCombo]->GetNbinsX()));
+            fInput.cd();
             for(unsigned uBin=0; uBin<=histSE[uCombo]->GetNbinsX()+1; uBin++){
                 histCk[uCombo]->SetBinContent(uBin,histSE[uCombo]->GetBinContent(uBin));
                 histCk[uCombo]->SetBinError(uBin,histSE[uCombo]->GetBinError(uBin));
+
+//                histCk_PP[uCombo]->SetBinContent(uBin,histSE_PP[uCombo]->GetBinContent(uBin));
+//                histCk_PP[uCombo]->SetBinError(uBin,histSE_PP[uCombo]->GetBinError(uBin));
+
+//                histCk_APAP[uCombo]->SetBinContent(uBin,histSE_APAP[uCombo]->GetBinContent(uBin));
+//                histCk_APAP[uCombo]->SetBinError(uBin,histSE_APAP[uCombo]->GetBinError(uBin));
             }
             //histCk[uCombo] = (TH1F*)histSE[uCombo]->Clone(TString::Format("histCk_Particle%u_Particle%u",uSpec1*2,uSpec2*2));
             histCk[uCombo]->Divide(histME[uCombo]);
+//            histCk_PP[uCombo]->Divide(histME_PP[uCombo]);
+//            histCk_APAP[uCombo]->Divide(histME_APAP[uCombo]);
             ComboDescr[uCombo] = SpeciesDescr[uSpec1]+SpeciesDescr[uSpec2];
             uCombo++;
         }
     }
 printf("Hello\n");
     unsigned uRatio=0;
+    fOutput.cd();
     for(unsigned uCombo1=0; uCombo1<NumCkCombo; uCombo1++){
         for(unsigned uCombo2=uCombo1+1; uCombo2<NumCkCombo; uCombo2++){
             histCkRatio[uRatio] = new TH1F("histRatio_"+ComboDescr[uCombo1]+"_"+ComboDescr[uCombo2],"histRatio_"+ComboDescr[uCombo1]+"_"+ComboDescr[uCombo2],
@@ -2893,36 +3338,63 @@ printf("Hello\n");
 printf("Hello 0\n");
 
     for(unsigned uSys=0; uSys<NumSyst; uSys++){
-        graph[uSys].Write();
+//        graph[uSys].Write();
     }
 printf("Hello 1\n");
     for(uRat=0; uRat<NumRatioPlots; uRat++){
-        graphRatio[uRat].Write();
+//        graphRatio[uRat].Write();
     }
 printf("Hello 2\n");
     for(uCombo=0; uCombo<NumCkCombo; uCombo++){
         histSE[uCombo]->Write();
-        histME[uCombo]->Write();
-        histCk[uCombo]->Write();
+//        histSE_PP[uCombo]->Write();
+//        histSE_APAP[uCombo]->Write();
+//        histME[uCombo]->Write();
+//        histME_PP[uCombo]->Write();
+//        histME_APAP[uCombo]->Write();
+//        histCk[uCombo]->Write();
+//        histCk_PP[uCombo]->Write();
+//        histCk_APAP[uCombo]->Write();
     }
 printf("Hello 3\n");
     for(uRatio=0; uRatio<NumCkRatios; uRatio++){
-        histCkRatio[uRatio]->Write();
+//        histCkRatio[uRatio]->Write();
     }
 printf("Hello 4\n");
 
     delete [] MomBins;
     for(uCombo=0; uCombo<NumCkCombo; uCombo++){
-        delete histCk[uCombo];
+//        delete histCk[uCombo];
+//        delete histCk_PP[uCombo];
+//        delete histCk_APAP[uCombo];
     }
-    delete [] histCk;
+//    delete [] histCk;
+//    delete [] histCk_PP;
+//    delete [] histCk_APAP;
 
     for(uRatio=0; uRatio<NumCkRatios; uRatio++){
-        delete histCkRatio[uRatio];
+//        delete histCkRatio[uRatio];
     }
-    delete [] histCkRatio;
+//    delete [] histCkRatio;
 }
 
+void TestRandom(){
+    TRandom3 Ran3(11);
+    DLM_Random RanD(11);
+    TH1F* hist3 = new TH1F("hist3","hist3",100,0,10);
+    TH1F* histD = new TH1F("histD","histD",100,0,10);
+
+    for(unsigned uIter=0; uIter<100000; uIter++){
+        double rv3 = Ran3.Exp(1./3.);
+        double rvd = RanD.Exponential(3);
+        //printf("rv = %f (%f)\n",rv3,rvd);
+        hist3->Fill(rv3);
+        histD->Fill(rvd);
+    }
+    TFile fOut("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Temp/fRandom.root","recreate");
+    hist3->Write();
+    histD->Write();
+}
 
 int main(int argc, char *argv[])
 {
@@ -2944,8 +3416,10 @@ int main(int argc, char *argv[])
         strcpy(ARGV[iARG],argv[iARG]);
     }
 
-    pp_in_txtfile();
+    //TestRandom();
+    //pp_in_txtfile();
     //pp_pLambda_pXi_Ratios();
+    //cout<<tLab_pCm(200,938,938)<<endl;
 
 
     //! FOR THE CATS TUTORIAL 2019
@@ -3001,6 +3475,9 @@ printf("%.3f\n",lambdapars[4]*100.);
     //MIXEDEVENTS(argc,ARGV);
     //SOURCESTUDIES(argc,ARGV);
     //KAONPROTON_MAIN(argc,ARGV);
+    //UNFOLD_MAIN(argc,ARGV);
+    OTHERTASKS(argc,ARGV);
+
 /*
 void ScatParsFromRandPotential(const TString OutputFolder,
                                const unsigned RandomSeed, const unsigned& NumIter,

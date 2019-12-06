@@ -23,11 +23,15 @@
 //Gaussian and Gaussian+Reso sources
 void CompareCkAndSr(){
 
-    const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/SourceStudies/CompareCkAndSr/";
+    const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/SourceStudies/CompareCkAndSr/Nov2019/";
 
-    const double R_core = 1.00;
-    const double R_pp = 1.32;
-    const double R_pL = 1.48;
+    //const double R_core = 1.00;
+    //const double R_pp = 1.32;
+    //const double R_pL = 1.48;
+
+    const double R_core = 1.20;
+    const double R_pp = 1.280;
+    const double R_pL = 1.414;
 
     const unsigned kNumBins=100;
     const double kMin = 0;
@@ -71,7 +75,8 @@ void CompareCkAndSr(){
         gSr_pp_Core.SetPoint(uBin,rDummy.GetBinCenter(0,uBin),AB_pp.EvaluateTheSource(0,rDummy.GetBinCenter(0,uBin),0));
     }
 
-    AnalysisObject.SetUpCats_pp(AB_pp,"AV18","McGauss_Reso");
+    //AnalysisObject.SetUpCats_pp(AB_pp,"AV18","McGauss_Reso");
+    AnalysisObject.SetUpCats_pp(AB_pp,"AV18","McGauss_ResoTM",0,202);
     AB_pp.SetAnaSource(0,R_core);
     AB_pp.KillTheCat();
     TGraph gCk_pp_CoreReso; gCk_pp_CoreReso.SetName("gCk_pp_CoreReso"); gCk_pp_CoreReso.Set(kNumBins);
@@ -113,7 +118,8 @@ void CompareCkAndSr(){
         gSr_pL_Core.SetPoint(uBin,RAD,AB_pL.EvaluateTheSource(0,rDummy.GetBinCenter(0,uBin),0));
     }
 
-    AnalysisObject.SetUpCats_pL(AB_pL,"NLO_Coupled_S","McGauss_Reso");
+    //AnalysisObject.SetUpCats_pL(AB_pL,"NLO_Coupled_S","McGauss_Reso");
+    AnalysisObject.SetUpCats_pL(AB_pL,"NLO_Coupled_S","McGauss_ResoTM",0,202);
     AB_pL.SetAnaSource(0,R_core);
     AB_pL.KillTheCat();
     TGraph gCk_pL_CoreReso; gCk_pL_CoreReso.SetName("gCk_pL_CoreReso"); gCk_pL_CoreReso.Set(kNumBins);
@@ -183,11 +189,11 @@ void CompareCkAndSr(){
     TLegend* legSr = new TLegend(0.65,0.65,0.975,0.975);//lbrt
     legSr->SetName(TString::Format("legSr"));
     legSr->SetTextSize(0.04);
-    legSr->AddEntry(&gSr_pp_Core,"Gauss r(core)=1.00 fm");
+    legSr->AddEntry(&gSr_pp_Core,TString::Format("Gauss r(core)=%.2f fm",R_core));
     legSr->AddEntry(&gSr_pp_CoreReso,"Core + p-p resonances");
-    legSr->AddEntry(&gSr_pp_Gauss,"Gauss r(p-p)=1.32 fm");
+    legSr->AddEntry(&gSr_pp_Gauss,TString::Format("Gauss r(p-p)=%.2f fm",R_pp));
     legSr->AddEntry(&gSr_pL_CoreReso,"Core + p-#Lambda resonances");
-    legSr->AddEntry(&gSr_pL_Gauss,"Gauss r(p-#Lambda)=1.48 fm");
+    legSr->AddEntry(&gSr_pL_Gauss,TString::Format("Gauss r(p-#Lambda)=%.2f fm",R_pL));
 
 
     TH1F* hSrAxis = new TH1F("hSrAxis", "hSrAxis", rNumBins, rMin, rMax);
@@ -206,8 +212,8 @@ void CompareCkAndSr(){
     hSrAxis->GetYaxis()->SetTitleOffset(0.90);
     hSrAxis->GetYaxis()->SetTitleSize(0.075);
     //hSrAxis->GetYaxis()->SetLimits(0, hNkSe->GetBinContent(hNkSe->GetMaximumBin())*1.2);
-    //hSrAxis->GetYaxis()->SetRangeUser(1e-3,1);
-    hSrAxis->GetYaxis()->SetRangeUser(0,0.5);
+    hSrAxis->GetYaxis()->SetRangeUser(1e-3,1);
+    //hSrAxis->GetYaxis()->SetRangeUser(0,0.5);
 
     hSrAxis->Draw("axis");
     gSr_pp_Core.Draw("same,C");
@@ -217,7 +223,7 @@ void CompareCkAndSr(){
     gSr_pL_CoreReso.Draw("same,P");
     legSr->Draw("same");
 
-    //cSr->SetLogy(true);
+    cSr->SetLogy(true);
     cSr->SetGridx(true);
     cSr->SetGridy(true);
 
@@ -1177,7 +1183,7 @@ Tau2 = 4.69;
 //}
 
 int SOURCESTUDIES(int narg, char** ARGS){
-    //CompareCkAndSr();
+    CompareCkAndSr();
     //ConvertThetaAngleHisto("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/AngleStudy_1/DimiPhi_pp.root","h_rkAngle_Mom2",400,600);
     //AverageResoApprox_pp();
     //AverageResoApprox_pL();
@@ -1185,7 +1191,7 @@ int SOURCESTUDIES(int narg, char** ARGS){
     //TestDifferentAngularDistributions(1.0);
     //TestDifferentAngularDistributions(1.2);
 
-    TestEposDistos(1.0);
+    //TestEposDistos(1.0);
 
     return 0;
 }

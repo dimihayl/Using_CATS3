@@ -9,6 +9,7 @@ class TH2F;
 class CATS;
 class DLM_CleverLevy;
 class DLM_CleverMcLevyReso;
+class DLM_CleverMcLevyResoTM;
 class DLM_Ck;
 
 //class MS_GaussExp_mT_Simple;
@@ -101,16 +102,21 @@ public:
     DLM_CleverMcLevyReso* GetCleverMcLevyReso_pXim();
     DLM_CleverMcLevyReso* GetCleverMcLevyReso_pOmegam();
 
+    DLM_CleverMcLevyResoTM* GetCleverMcLevyResoTM_pp();
+    DLM_CleverMcLevyResoTM* GetCleverMcLevyResoTM_pL();
+    DLM_CleverMcLevyResoTM* GetCleverMcLevyResoTM_pXim();
+    DLM_CleverMcLevyResoTM* GetCleverMcLevyResoTM_pOmegam();
+
 private:
     void Clean_CommonAnaFunctions();
     //MS_GaussExp_mT_Simple* Simple_Reso;
     DLM_CleverLevy* CleverLevy;
     DLM_CleverMcLevyReso* CleverMcLevyReso;
+    DLM_CleverMcLevyResoTM* CleverMcLevyResoTM;
     const unsigned NumCleverLevyObjects;
 };
 
 DLM_Histo<double>* ConvertThetaAngleHisto(const TString& FileName, const TString& HistoName, const double kMin, const double kMax);
-
 
 /*
 class DLM_Analyzer{
@@ -128,7 +134,6 @@ private:
 
 };
 */
-
 
 #endif
 
