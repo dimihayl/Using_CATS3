@@ -50,7 +50,7 @@ void DifferentTechniquesTest1(const TString& TranModDescr, const TString& DataSe
     const double kMaxZoom = DataSetDescr=="pp"?0.6:DataSetDescr=="pLambda"?0.6:DataSetDescr=="pXim"?0.6:0.6;
     //const double kNormMin = 0.400;
     //const double kNormMax = 0.600;
-    const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/DifferentTechniquesTest1/";
+    const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/DifferentTechniquesTest1/dEta_dPhi/";
     const unsigned NumMomBins = DataSetDescr=="pp"?100:DataSetDescr=="pLambda"?50:DataSetDescr=="pXim"?50:50;
     const TString OutFileBaseName = OutputFolder+TranModDescr+"_"+DataSetDescr;
     const TString InputFileName = DataSetDescr=="pp"?TransportFile_pp_Alice:DataSetDescr=="pLambda"?TransportFile_pL_Alice:
@@ -252,12 +252,16 @@ CatsParticle FirstPart;
             KittyParticle.ReadFromOscarFile(InFile);
             KittyParticleOriginal=KittyParticle;
             if(iPart==0) FirstPart=KittyParticle;
+
+            //induce correlation
             if(rangen.Uniform(0,1)<0.05&&iPart){
             //if(iPart){
                 KittyParticle.Set(FirstPart.GetT(),FirstPart.GetX(),FirstPart.GetY(),FirstPart.GetZ(),
                                   FirstPart.GetE(),FirstPart.GetPx(),FirstPart.GetPy(),FirstPart.GetPz());
                 KittyParticle.RotateMomPhi(rangen.Uniform(-20.*DegToRad,20.*DegToRad));
             }
+
+
             //KittyParticle.Set(KittyParticle.GetT(),KittyParticle.GetX(),KittyParticle.GetY(),KittyParticle.GetZ(),
             //                  KittyParticle.GetE(),KittyParticle.GetPx(),KittyParticle.GetPy(),0);
             KittyParticleRnd = KittyParticle;
@@ -1001,6 +1005,671 @@ printf("hNkSeDimiPhi_Mult->Integral()=%e\n",hNkSeDimiPhi_Mult->Integral());
     delete KittyBufferDimiPhi;
     delete fOut;
 }
+
+
+
+
+
+
+
+
+
+void dEta_dPhi_Ck_QS(const TString& TranModDescr, const TString& DataSetDescr, const bool& ALICE_acc){
+    const double QS_r = 0.3;
+    const double QS_s = 0.25;
+
+    const double kMin = DataSetDescr=="pp"?0:DataSetDescr=="pLambda"?0:DataSetDescr=="pXim"?0:0;
+    const double kMax = DataSetDescr=="pp"?6:DataSetDescr=="pLambda"?6:DataSetDescr=="pXim"?6:6;
+    const double kMinZoom = DataSetDescr=="pp"?0:DataSetDescr=="pLambda"?0:DataSetDescr=="pXim"?0:0;
+    const double kMaxZoom = DataSetDescr=="pp"?2:DataSetDescr=="pLambda"?2:DataSetDescr=="pXim"?2:2;
+
+    const double phiMin = -TMath::Pi()*2;
+    const double phiMax = TMath::Pi()*2;
+
+    const double etaMin = -1.5;
+    const double etaMax = 1.5;
+
+    const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/dEta_dPhi_Ck_QS/";
+    const unsigned NumMomBins = DataSetDescr=="pp"?300:DataSetDescr=="pLambda"?240:DataSetDescr=="pXim"?120:120;
+    const unsigned NumPhiBins = NumMomBins;
+    const unsigned NumEtaBins = NumMomBins;
+    const TString OutFileBaseName = OutputFolder+TranModDescr+"_"+DataSetDescr;
+    const TString InputFileName = DataSetDescr=="pp"?TransportFile_pp_Alice:DataSetDescr=="pLambda"?TransportFile_pL_Alice:
+        DataSetDescr=="pXim"?TString("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/Scratch9_OSCAR1997_100KiLrz_pXim.f19"):"";
+    const unsigned NumBlankHeaderLines=3;
+    const unsigned MaxPairsToRead = 4e6;
+    const unsigned HighMultLimit = 128;
+    int pdgID[2] = {2212, DataSetDescr=="pp"?2212:DataSetDescr=="pLambda"?3122:DataSetDescr=="pXim"?3312:0};
+
+    const unsigned NumNorm = 1;
+    const double kNormMin[NumNorm] = {kMin};
+    const double kNormMax[NumNorm] = {kMax};
+
+    TFile* fOut = new TFile(OutFileBaseName+".root","recreate");
+/// THE QsRs does not properly work
+//to make it work you need to get SE + QS events, than rotate the particles within this particular event
+    //hNk in same event
+    TH1F* hNkSe = new TH1F("hNkSe", "hNkSe", NumMomBins, kMin, kMax);
+    //hNk after including QS
+    TH1F* hNkQs = new TH1F("hNkQs", "hNkQs", NumMomBins, kMin, kMax);
+    //rotated sample
+    TH1F* hNkRs = new TH1F("hNkRs", "hNkRs", NumMomBins, kMin, kMax);
+    //rotated sample, after QS
+    TH1F* hNkQsRs = new TH1F("hNkQsRs", "hNkQsRs", NumMomBins, kMin, kMax);
+    //hNkQs/hNkSe
+    TH1F* hCkQs = new TH1F("hCkQs", "hCkQs", NumMomBins, kMin, kMax);
+    TH1F* hCkRs = new TH1F("hCkRs", "hCkRs", NumMomBins, kMin, kMax);
+    TH1F* hCkQsRs = new TH1F("hCkQsRs", "hCkQsRs", NumMomBins, kMin, kMax);
+
+    //hNk in same event
+    TH1F* hNphiSe = new TH1F("hNphiSe", "hNphiSe", NumPhiBins, phiMin, phiMax);
+    TH1F* hNphiMe = new TH1F("hNphiMe", "hNphiMe", NumPhiBins, phiMin, phiMax);
+    //hNk after including Qs
+    TH1F* hNphiQs = new TH1F("hNphiQs", "hNphiQs", NumPhiBins, phiMin, phiMax);
+    TH1F* hNphiRs = new TH1F("hNphiRs", "hNphiRs", NumPhiBins, phiMin, phiMax);
+    TH1F* hNphiQsRs = new TH1F("hNphiQsRs", "hNphiQsRs", NumPhiBins, phiMin, phiMax);
+    //hNkSe/hNkMe
+    TH1F* hCphiMe = new TH1F("hCphiMe", "hCphiMe", NumPhiBins, phiMin, phiMax);
+    TH1F* hCphiQs = new TH1F("hCphiQs", "hCphiQs", NumPhiBins, phiMin, phiMax);
+    TH1F* hCphiRs = new TH1F("hCphiRs", "hCphiRs", NumPhiBins, phiMin, phiMax);
+    TH1F* hCphiQsRs = new TH1F("hCphiQsRs", "hCphiQsRs", NumPhiBins, phiMin, phiMax);
+
+    //hNk in same event
+    TH1F* hNetaSe = new TH1F("hNetaSe", "hNetaSe", NumEtaBins, etaMin, etaMax);
+    //hNk after including Qs
+    TH1F* hNetaQs = new TH1F("hNetaQs", "hNetaQs", NumEtaBins, etaMin, etaMax);
+    TH1F* hNetaRs = new TH1F("hNetaRs", "hNetaRs", NumPhiBins, phiMin, phiMax);
+    TH1F* hNetaQsRs = new TH1F("hNetaQsRs", "hNetaQsRs", NumPhiBins, phiMin, phiMax);
+    //hNkSe/hNkMe
+    TH1F* hCetaQs = new TH1F("hCetaQs", "hCetaQs", NumEtaBins, etaMin, etaMax);
+    TH1F* hCetaRs = new TH1F("hCetaRs", "hCetaRs", NumPhiBins, phiMin, phiMax);
+    TH1F* hCetaQsRs = new TH1F("hCetaQsRs", "hCetaQsRs", NumPhiBins, phiMin, phiMax);
+
+    FILE *InFile;
+    InFile = fopen(InputFileName, "r");
+    if(!InFile){
+        printf("          \033[1;31mERROR:\033[0m The file\033[0m %s cannot be opened!\n", InputFileName.Data());
+        return;
+    }
+    fseek ( InFile , 0 , SEEK_END );
+    long EndPos;
+    EndPos = ftell (InFile);
+    fseek ( InFile , 0 , SEEK_SET );
+    long CurPos;
+    char* cdummy = new char [512];
+    for(unsigned short us=0; us<NumBlankHeaderLines; us++){
+        if(!fgets(cdummy, 511, InFile)){
+            printf("Issue!\n");
+            continue;
+        }
+    }
+    if(feof(InFile)){
+        printf("\033[1;31m          ERROR:\033[0m Trying to read past end of file %s\n", InputFileName.Data());
+        printf("         No particle pairs were loaded :(\n");
+        return;
+    }
+
+    float pFile;
+    //percentage of the required number of pairs found in the file. Unless the file has some special
+    //internal structure and the events are saved randomly, the should also be a very accurate
+    //estimate of the max ETA
+    float pMaxPairsToRead;
+    double Time;
+    int pTotal;
+    int pTotalOld;
+    float ProgressLoad;
+    DLM_Timer dlmTimer;
+    bool ProgressBar=false;
+
+    unsigned NumTotalPairs=0;
+    unsigned TotNumEvents=0;
+    unsigned RejectedHighMultEvents=0;
+    unsigned uBuffer=0;
+    unsigned NumSePairs;
+    unsigned NumSePairsRs;
+
+    CatsParticle KittyParticle;
+    CatsParticle KittyParticleRs;
+    CatsEvent* KittyEvent = new CatsEvent(pdgID[0],pdgID[1]);
+    CatsEvent* KittyEventLab = new CatsEvent(pdgID[0],pdgID[1]);
+    CatsEvent* KittyEventRs = new CatsEvent(pdgID[0],pdgID[1]);
+    CatsEvent* KittyEventRsLab = new CatsEvent(pdgID[0],pdgID[1]);
+    CatsDataBuffer* KittyBuffer = new CatsDataBuffer(1,pdgID[0],pdgID[1]);
+    CatsDataBuffer* KittyBufferLab = new CatsDataBuffer(1,pdgID[0],pdgID[1]);
+    CatsDataBuffer* KittyBufferRs = new CatsDataBuffer(1,pdgID[0],pdgID[1]);
+    CatsDataBuffer* KittyBufferRsLab = new CatsDataBuffer(1,pdgID[0],pdgID[1]);
+
+    int EventNumber;
+    int NumPartInEvent;
+    double ImpPar;
+    double fDummy;
+    TRandom3 rangen(11);
+    while(!feof(InFile)){
+        if(NumTotalPairs>=MaxPairsToRead) break;
+        if(!fscanf(InFile,"%i %i %lf %lf",&EventNumber,&NumPartInEvent,&ImpPar,&fDummy)){
+            printf("Some fscanf issue!\n");
+            continue;
+        }
+        TotNumEvents++;
+        if(NumPartInEvent>int(HighMultLimit)) RejectedHighMultEvents++;
+        //!---Iteration over all particles in this event---
+        for(int iPart=0; iPart<NumPartInEvent; iPart++){
+            KittyParticle.ReadFromOscarFile(InFile);
+            KittyParticleRs = KittyParticle;
+            if(NumTotalPairs>=MaxPairsToRead) continue;
+            if(NumPartInEvent>int(HighMultLimit)) continue;
+
+            //sometimes one might go beyond the limit of the file
+            if(ftell(InFile)>=EndPos)continue;
+
+            if(KittyParticle.GetE()==0){
+                printf("WARNING! Possible bad input-file, there are particles with zero energy!\n");
+                continue;
+            }
+
+            if(KittyParticle.GetPid()!=pdgID[0] && KittyParticle.GetPid()!=pdgID[1])
+                continue; //don't save this particle if it is of the wrong type
+
+            //ALICE ACCEPTANCE
+            if( (ALICE_acc&&KittyParticle.GetP()>0.4&&fabs(KittyParticle.GetPseudoRap())<0.8) || !ALICE_acc ){
+                KittyEvent->AddParticle(KittyParticle);
+                KittyEventLab->AddParticle(KittyParticle);
+            }
+            //for(int iDepth=0; iDepth<8; iDepth++){
+            KittyParticleRs.RotateMomPhi(rangen.Uniform(2.*TMath::Pi()));
+            if( (ALICE_acc&&KittyParticleRs.GetP()>0.4&&fabs(KittyParticleRs.GetPseudoRap())<0.8) || !ALICE_acc ){
+                KittyEventRs->AddParticle(KittyParticleRs);
+                KittyEventRsLab->AddParticle(KittyParticleRs);
+            }
+            //}
+
+        }//for(int iPart=0; iPart<NumPartInEvent; iPart++)
+
+        KittyEvent->ComputeParticlePairs();
+        KittyEventLab->ComputeParticlePairs(false,false);
+        KittyBuffer->SetEvent(0, *KittyEvent);
+        KittyBufferLab->SetEvent(0, *KittyEventLab);
+
+        KittyEventRs->ComputeParticlePairs();
+        KittyEventRsLab->ComputeParticlePairs(false,false);
+        KittyBufferRs->SetEvent(0, *KittyEventRs);
+        KittyBufferRsLab->SetEvent(0, *KittyEventRsLab);
+
+        //if the buffer is full -> empty it!
+        //note that if it happens that we leave the while loop before emptying the buffer,
+        //uBuffer will be != than zero! use this condition to empty the buffer when exiting the loop!
+
+        KittyBuffer->GoBabyGo();
+        KittyBufferLab->GoBabyGo();
+        KittyBufferRs->GoBabyGo();
+        KittyBufferRsLab->GoBabyGo();
+        NumSePairs = KittyBuffer->GetNumPairsSameEvent();
+        NumSePairsRs = KittyBufferRs->GetNumPairsSameEvent();
+        NumTotalPairs += KittyBuffer->GetNumPairs();
+        for(unsigned uSe=0; uSe<NumSePairs; uSe++){
+            int PART1 = rangen.Integer(2);
+            int PART2 = !PART1;
+            hNkSe->Fill(KittyBuffer->GetSePair(uSe)->GetP()*0.5);
+            hCkRs->Fill(KittyBuffer->GetSePair(uSe)->GetP()*0.5);
+            hNphiSe->Fill(KittyBufferLab->GetSePair(uSe)->GetParticle(PART1).GetPphi()-KittyBufferLab->GetSePair(uSe)->GetParticle(PART2).GetPphi());
+            hCphiMe->Fill(KittyBufferLab->GetSePair(uSe)->GetParticle(PART1).GetPphi()-KittyBufferLab->GetSePair(uSe)->GetParticle(PART2).GetPphi());
+            hCphiRs->Fill(KittyBufferLab->GetSePair(uSe)->GetParticle(PART1).GetPphi()-KittyBufferLab->GetSePair(uSe)->GetParticle(PART2).GetPphi());
+            hNetaSe->Fill(KittyBufferLab->GetSePair(uSe)->GetParticle(PART1).GetPseudoRap()-KittyBufferLab->GetSePair(uSe)->GetParticle(PART2).GetPseudoRap());
+            hCetaRs->Fill(KittyBufferLab->GetSePair(uSe)->GetParticle(PART1).GetPseudoRap()-KittyBufferLab->GetSePair(uSe)->GetParticle(PART2).GetPseudoRap());
+            double Pair_k = KittyBuffer->GetSePair(uSe)->GetP()*0.5;
+            double ProbToReject = QS_s*exp(-Pair_k*Pair_k*QS_r*QS_r/0.197327/0.197327);
+            if(rangen.Uniform(1)>ProbToReject){
+                hNkQs->Fill(KittyBuffer->GetSePair(uSe)->GetP()*0.5);
+                hCkQs->Fill(KittyBuffer->GetSePair(uSe)->GetP()*0.5);
+                hNphiQs->Fill(KittyBufferLab->GetSePair(uSe)->GetParticle(PART1).GetPphi()-KittyBufferLab->GetSePair(uSe)->GetParticle(PART2).GetPphi());
+                hCphiQs->Fill(KittyBufferLab->GetSePair(uSe)->GetParticle(PART1).GetPphi()-KittyBufferLab->GetSePair(uSe)->GetParticle(PART2).GetPphi());
+                hNetaQs->Fill(KittyBufferLab->GetSePair(uSe)->GetParticle(PART1).GetPseudoRap()-KittyBufferLab->GetSePair(uSe)->GetParticle(PART2).GetPseudoRap());
+                hCetaQs->Fill(KittyBufferLab->GetSePair(uSe)->GetParticle(PART1).GetPseudoRap()-KittyBufferLab->GetSePair(uSe)->GetParticle(PART2).GetPseudoRap());
+            }
+        }
+        for(unsigned uSe=0; uSe<NumSePairsRs; uSe++){
+            int PART1 = rangen.Integer(2);
+            int PART2 = !PART1;
+            hNkRs->Fill(KittyBufferRs->GetSePair(uSe)->GetP()*0.5);
+            hNphiRs->Fill(KittyBufferRsLab->GetSePair(uSe)->GetParticle(PART1).GetPphi()-KittyBufferRsLab->GetSePair(uSe)->GetParticle(PART2).GetPphi());
+            hNetaRs->Fill(KittyBufferRsLab->GetSePair(uSe)->GetParticle(PART1).GetPseudoRap()-KittyBufferRsLab->GetSePair(uSe)->GetParticle(PART2).GetPseudoRap());
+            double Pair_k = KittyBufferRs->GetSePair(uSe)->GetP()*0.5;
+            double ProbToReject = QS_s*exp(-Pair_k*Pair_k*QS_r*QS_r/0.197327/0.197327);
+            if(rangen.Uniform(1)>ProbToReject){
+                hNkQsRs->Fill(KittyBufferRs->GetSePair(uSe)->GetP()*0.5);
+                hCkQsRs->Fill(KittyBufferRs->GetSePair(uSe)->GetP()*0.5);
+                hNphiQsRs->Fill(KittyBufferRsLab->GetSePair(uSe)->GetParticle(PART1).GetPphi()-KittyBufferRsLab->GetSePair(uSe)->GetParticle(PART2).GetPphi());
+                //hCphiQsRs->Fill(KittyBufferRsLab->GetSePair(uSe)->GetParticle(PART1).GetPphi()-KittyBufferRsLab->GetSePair(uSe)->GetParticle(PART2).GetPphi());
+                hNetaQsRs->Fill(KittyBufferRsLab->GetSePair(uSe)->GetParticle(PART1).GetPseudoRap()-KittyBufferRsLab->GetSePair(uSe)->GetParticle(PART2).GetPseudoRap());
+                hCetaQsRs->Fill(KittyBufferRsLab->GetSePair(uSe)->GetParticle(PART1).GetPseudoRap()-KittyBufferRsLab->GetSePair(uSe)->GetParticle(PART2).GetPseudoRap());
+            }
+        }
+        for(unsigned uMe=0; uMe<KittyBuffer->GetNumPairsMixedEvent(); uMe++){
+            int PART1 = rangen.Integer(2);
+            int PART2 = !PART1;
+            hNphiMe->Fill(KittyBufferLab->GetMePair(uMe)->GetParticle(PART1).GetPphi()-KittyBufferLab->GetMePair(uMe)->GetParticle(PART2).GetPphi());
+        }
+        KittyEvent->Reset();
+        KittyEventLab->Reset();
+        KittyEventRs->Reset();
+        KittyEventRsLab->Reset();
+
+        CurPos = ftell (InFile);
+        pMaxPairsToRead = double(NumTotalPairs)/double(MaxPairsToRead);//
+        pFile = double(CurPos)/double(EndPos);//what fraction of the file has been read
+        ProgressLoad = pMaxPairsToRead>pFile?pMaxPairsToRead:pFile;
+
+        pTotal = int(ProgressLoad*100);
+        if(pTotal!=pTotalOld){
+            Time = double(dlmTimer.Stop())/1000000.;
+            Time = round((1./ProgressLoad-1.)*Time);
+            ShowTime((long long)(Time), cdummy, 2, true, 5);
+            printf("\r\033[K          Progress %3d%%, ETA %s",pTotal,cdummy);
+            ProgressBar = true;
+            cout << flush;
+            pTotalOld = pTotal;
+        }
+
+    }//while(!feof(InFile))
+
+    if(ProgressBar){
+        printf("\r\033[K");
+    }
+
+
+    //for(int iBin=1; iBin<=hCkQs->GetNbinsX(); iBin++){hCkQs->SetBinError(iBin,hNkSe->GetBinError(iBin));}
+    //for(int iBin=1; iBin<=hCphiQs->GetNbinsX(); iBin++){hCphiQs->SetBinError(iBin,hNphiSe->GetBinError(iBin));}
+    //for(int iBin=1; iBin<=hCetaQs->GetNbinsX(); iBin++){hCetaQs->SetBinError(iBin,hNetaSe->GetBinError(iBin));}
+
+    hNkSe->Sumw2();
+    //for(int iBin=1; iBin<=hNkSe->GetNbinsX(); iBin++){hNkSe->SetBinError(iBin,0);}
+    hNkQs->Sumw2();
+    hNkRs->Sumw2();
+    hNkQsRs->Sumw2();
+    hCkQs->Sumw2();
+    hCkRs->Sumw2();
+    hCkQsRs->Sumw2();
+    hNphiSe->Sumw2();
+    hNphiMe->Sumw2();
+    //for(int iBin=1; iBin<=hNphiSe->GetNbinsX(); iBin++){hNphiSe->SetBinError(iBin,0);}
+    hNphiQs->Sumw2();
+    hNphiRs->Sumw2();
+    hNphiQsRs->Sumw2();
+    hCphiMe->Sumw2();
+    hCphiQs->Sumw2();
+    hCphiRs->Sumw2();
+    //hCphiQsRs->Sumw2();
+    hNetaSe->Sumw2();
+    //for(int iBin=1; iBin<=hNetaSe->GetNbinsX(); iBin++){hNetaSe->SetBinError(iBin,0);}
+    hNetaQs->Sumw2();
+    hNetaRs->Sumw2();
+    hNetaQsRs->Sumw2();
+    hCetaQs->Sumw2();
+    hCetaRs->Sumw2();
+    hCetaQsRs->Sumw2();
+
+    hNkSe->Scale(1./hNkSe->Integral(),"width");
+    hNkQs->Scale(1./hNkQs->Integral(),"width");
+    hNkRs->Scale(1./hNkRs->Integral(),"width");
+    hNkQsRs->Scale(1./hNkQsRs->Integral(),"width");
+    hCkQs->Scale(1./hCkQs->Integral(),"width");
+    hCkRs->Scale(1./hCkRs->Integral(),"width");
+    hCkQsRs->Scale(1./hCkQsRs->Integral(),"width");
+    hNphiSe->Scale(1./hNphiSe->Integral(),"width");
+    hNphiMe->Scale(1./hNphiMe->Integral(),"width");
+    hNphiQs->Scale(1./hNphiQs->Integral(),"width");
+    hNphiRs->Scale(1./hNphiRs->Integral(),"width");
+    hNphiQsRs->Scale(1./hNphiQsRs->Integral(),"width");
+    hCphiMe->Scale(1./hCphiMe->Integral(),"width");
+    hCphiQs->Scale(1./hCphiQs->Integral(),"width");
+    hCphiRs->Scale(1./hCphiRs->Integral(),"width");
+    //hCphiQsRs->Scale(1./hCphiQsRs->Integral(),"width");
+    hNetaSe->Scale(1./hNetaSe->Integral(),"width");
+    hNetaQs->Scale(1./hNetaQs->Integral(),"width");
+    hNetaRs->Scale(1./hNetaRs->Integral(),"width");
+    hNetaQsRs->Scale(1./hNetaQsRs->Integral(),"width");
+    hCetaQs->Scale(1./hCetaQs->Integral(),"width");
+    hCetaRs->Scale(1./hCetaRs->Integral(),"width");
+    hCetaQsRs->Scale(1./hCetaQsRs->Integral(),"width");
+
+    printf("hNkSe->Integral = %f\n",hNkSe->Integral());
+    printf("hNkQs->Integral = %f\n",hNkQs->Integral());
+    printf("hCkQs->Integral = %f\n",hCkQs->Integral());
+
+    hCkQs->Divide(hNkSe);
+    hCphiMe->Divide(hNphiMe);
+    hCphiQs->Divide(hNphiSe);
+    hCetaQs->Divide(hNetaSe);
+
+    hCkRs->Divide(hNkRs);
+    hCphiRs->Divide(hNphiRs);
+    hCetaRs->Divide(hNetaRs);
+
+    hCkQsRs->Divide(hNkRs);
+    //hCphiQsRs->Divide(hNphiRs);
+    for(int iBin=1; iBin<=hCphiQsRs->GetNbinsX(); iBin++){
+        hCphiQsRs->SetBinContent(iBin,hCphiQs->GetBinContent(iBin)*hCphiRs->GetBinContent(iBin));
+        hCphiQsRs->SetBinError(iBin,hCphiQs->GetBinError(iBin));
+    }
+
+    hCetaQsRs->Divide(hNetaRs);
+
+
+
+    TF1* UnitLine = new TF1("UnitLine", "1", kMin, kMax);
+    UnitLine->SetLineColor(kGray);
+    UnitLine->SetLineWidth(5);
+
+    TH1F* hAxis = new TH1F("hAxis", "hAxis", NumMomBins, kMin, kMax);
+    hAxis->SetStats(false);
+    hAxis->SetTitle("");
+    hAxis->GetXaxis()->SetLabelSize(0.065);
+    hAxis->GetXaxis()->SetTitle("k (GeV)");
+    hAxis->GetXaxis()->CenterTitle();
+    hAxis->GetXaxis()->SetTitleOffset(1.15);
+    hAxis->GetXaxis()->SetLabelOffset(0.02);
+    hAxis->GetXaxis()->SetTitleSize(0.075);
+    hAxis->GetYaxis()->SetLabelSize(0.065);
+    //hAxis->GetYaxis()->SetTitle("(N per bin)x10^{-3}");
+    hAxis->GetYaxis()->SetTitle("Arbitrary units");
+    hAxis->GetYaxis()->CenterTitle();
+    hAxis->GetYaxis()->SetTitleOffset(0.45);
+    hAxis->GetYaxis()->SetTitleSize(0.075);
+    hAxis->GetYaxis()->SetLimits(0, hNkSe->GetBinContent(hNkSe->GetMaximumBin())*1.4);
+    hAxis->GetYaxis()->SetRangeUser(0, hNkSe->GetBinContent(hNkSe->GetMaximumBin())*1.4);
+
+    TH1F* hAxisRatio = new TH1F("hAxisRatio", "hAxisRatio", NumMomBins, kMin, kMax);
+    hAxisRatio->SetStats(false);
+    hAxisRatio->SetTitle("");
+    hAxisRatio->GetXaxis()->SetLabelSize(0.065);
+    hAxisRatio->GetXaxis()->SetTitle("k (GeV)");
+    hAxisRatio->GetXaxis()->CenterTitle();
+    hAxisRatio->GetXaxis()->SetTitleOffset(1.15);
+    hAxisRatio->GetXaxis()->SetLabelOffset(0.02);
+    hAxisRatio->GetXaxis()->SetTitleSize(0.075);
+    hAxisRatio->GetYaxis()->SetLabelSize(0.065);
+    hAxisRatio->GetYaxis()->SetTitle("N_{SE}/N_{ME}");
+    hAxisRatio->GetYaxis()->CenterTitle();
+    hAxisRatio->GetYaxis()->SetTitleOffset(0.45/1.0);
+    hAxisRatio->GetYaxis()->SetTitleSize(0.075);
+
+    hAxisRatio->GetYaxis()->SetRangeUser(0.0, 2.0);
+    hAxisRatio->GetYaxis()->SetLimits(0.0, 2.0);
+    hAxisRatio->GetYaxis()->SetNdivisions(504);
+
+    TPaveText* InfoText1 = new TPaveText(0.1,0.8,0.7,0.94, "blNDC");//lbrt
+    InfoText1->SetName("InfoText1");
+    InfoText1->SetBorderSize(1);
+    InfoText1->SetTextSize(0.065);
+    InfoText1->SetFillColor(kWhite);
+    InfoText1->SetTextFont(42);
+    InfoText1->AddText("N.B. no multiplicity binning so far!");
+    //InfoText1->AddText(TString::Format("Norm. region: [%.2f, %.2f] GeV", kNormMin, kNormMax));
+
+
+
+    for(unsigned uNorm=0; uNorm<NumNorm; uNorm++){
+
+        TF1* NormLine = new TF1(TString::Format("NormLine%u",uNorm), "[0]", kNormMin[uNorm], kNormMax[uNorm]);
+        NormLine->SetLineColor(kGray);
+        NormLine->SetLineWidth(5);
+        NormLine->SetParameter(0,1);
+        //0 = SE/Qs
+        const unsigned NumTypes=1;
+
+        TH1F** HistCk = new TH1F* [NumTypes];
+        TH1F** HistSe = new TH1F* [NumTypes];
+        TH1F** HistMe = new TH1F* [NumTypes];
+        HistCk[0] = hCkQs;
+        HistSe[0] = hNkQs;
+        HistMe[0] = hNkSe;
+
+        for(unsigned uType=0; uType<NumTypes; uType++){
+
+            //HistCk[uType]->Fit(NormLine, "S, N, R, M");
+            //HistSe[uType]->Scale(1./NormLine->GetParameter(0));
+            //HistCk[uType]->Scale(1./NormLine->GetParameter(0));
+
+            HistSe[uType]->SetLineWidth(6);
+            HistSe[uType]->SetLineColor(kBlue+1);
+
+            HistMe[uType]->SetLineWidth(6);
+            HistMe[uType]->SetLineColor(kRed+1);
+
+            HistCk[uType]->SetLineWidth(6);
+            HistCk[uType]->SetLineColor(kBlack);
+
+            TH1F* hShade = new TH1F(TString::Format("hShade%u_%u",uNorm,uType), TString::Format("hShade%u_%u",uNorm,uType), 1, kNormMin[uNorm], kNormMax[uNorm]);
+            double hShadeMaxVal = HistSe[uType]->GetBinContent(HistSe[uType]->GetMaximumBin())*1.4;
+            if(HistCk[uType]->GetBinContent(HistSe[uType]->GetMaximumBin())*1.4>hShadeMaxVal) hShadeMaxVal = HistCk[uType]->GetBinContent(HistSe[uType]->GetMaximumBin())*1.4;
+            hShade->SetBinContent(1, hShadeMaxVal);
+            hShade->SetFillStyle(3344);//4050
+            hShade->SetFillColor(46);
+            hShade->SetLineColor(46);
+            hShade->SetLineWidth(0);
+
+            TLegend* myLegend = new TLegend(0.7,0.5,0.96,0.94);//lbrt
+            myLegend->SetName(TString::Format("myLegend%u_%u",uNorm,uType));
+            myLegend->SetTextSize(0.07);
+            if(uType==0){
+                myLegend->AddEntry(HistSe[uType], "EPOS same event");
+                myLegend->AddEntry(HistMe[uType], "EPOS same event (Qs)");
+            }
+
+            myLegend->AddEntry(HistCk[uType], "Ratio");
+            myLegend->AddEntry(hShade, "Norm. region");
+
+            DLM_SubPads DrawBoard(1920,1080);
+            DrawBoard.AddSubPadTL(0,1,0,0.5);//lrtb
+            DrawBoard.AddSubPadTL(0,1,0.5,1);//lrtb
+
+            DrawBoard.SetMargin(0, 0.1, 0.04, 0.0, 0.05);//lrbt
+            DrawBoard.SetMargin(1, 0.1, 0.04, 0.15, 0);//lrbt
+
+        ////////////
+            DrawBoard.cd(0);
+
+            DrawBoard.SetLabelSize(0, hAxis->GetXaxis(), 18);
+            DrawBoard.SetLabelSize(0, hAxis->GetYaxis(), 18);
+            DrawBoard.SetTitleSize(0, hAxis->GetXaxis(), 18);
+            DrawBoard.SetTitleSize(0, hAxis->GetYaxis(), 18);
+
+            hAxis->GetYaxis()->SetRangeUser(0, HistSe[uType]->GetBinContent(HistSe[uType]->GetMaximumBin())*1.4);
+            hAxis->GetXaxis()->SetRangeUser(kMin,kMax);
+            hAxisRatio->GetYaxis()->SetRangeUser(0.0, 2.0);
+            hAxisRatio->GetXaxis()->SetRangeUser(kMin,kMax);
+
+            hAxis->Draw("AXIS");
+            if(kNormMin[uNorm]!=kMin || kNormMax[uNorm]!=kMax) hShade->Draw("same,HIST");
+            HistSe[uType]->Draw("same");
+            HistMe[uType]->Draw("same");
+            myLegend->Draw("same");
+            InfoText1->Draw("same");
+
+            DrawBoard.cd(1);
+
+            DrawBoard.SetLabelSize(1, hAxisRatio->GetXaxis(), 18);
+            DrawBoard.SetLabelSize(1, hAxisRatio->GetYaxis(), 18);
+            DrawBoard.SetTitleSize(1, hAxisRatio->GetXaxis(), 18);
+            DrawBoard.SetTitleSize(1, hAxisRatio->GetYaxis(), 18);
+
+            hAxisRatio->Draw("AXIS");
+            if(kNormMin[uNorm]!=kMin || kNormMax[uNorm]!=kMax) hShade->Draw("same,HIST");
+            UnitLine->Draw("same");
+            HistCk[uType]->Draw("same");
+
+            Width_t width_hShade=hShade->GetLineWidth();
+            Width_t width_hNkSe=HistSe[uType]->GetLineWidth();
+            Width_t width_hNkMe=HistMe[uType]->GetLineWidth();
+            Width_t width_UnitLine=UnitLine->GetLineWidth();
+            Width_t width_hCk=HistCk[uType]->GetLineWidth();
+
+            DrawBoard.GetCanvas()->SaveAs(TString::Format("%s_DB_N%.0f-%.0f_%u.png",OutFileBaseName.Data(),kNormMin[uNorm]*1000,kNormMax[uNorm]*1000,uType));
+            hShade->SetLineWidth(width_hShade/2.5);
+            HistSe[uType]->SetLineWidth(width_hNkSe/2.5);
+            HistMe[uType]->SetLineWidth(width_hNkMe/2.5);
+            UnitLine->SetLineWidth(width_UnitLine/2.5);
+            HistCk[uType]->SetLineWidth(width_hCk/2.5);
+            DrawBoard.GetCanvas()->SaveAs(TString::Format("%s_DB_N%.0f-%.0f_%u.pdf",OutFileBaseName.Data(),kNormMin[uNorm]*1000,kNormMax[uNorm]*1000,uType));
+            hShade->SetLineWidth(width_hShade);
+            HistSe[uType]->SetLineWidth(width_hNkSe);
+            HistMe[uType]->SetLineWidth(width_hNkMe);
+            UnitLine->SetLineWidth(width_UnitLine);
+            HistCk[uType]->SetLineWidth(width_hCk);
+
+        /////////////////////////////////////////////////////////////////////
+            DLM_SubPads DrawBoardZoom(1920,1080);
+            DrawBoardZoom.AddSubPadTL(0,1,0,0.5);//lrtb
+            DrawBoardZoom.AddSubPadTL(0,1,0.5,1);//lrtb
+
+            DrawBoardZoom.SetMargin(0, 0.1, 0.04, 0.0, 0.05);//lrbt
+            DrawBoardZoom.SetMargin(1, 0.1, 0.04, 0.15, 0);//lrbt
+
+        ////////////
+            DrawBoardZoom.cd(0);
+
+            DrawBoardZoom.SetLabelSize(0, hAxis->GetXaxis(), 18);
+            DrawBoardZoom.SetLabelSize(0, hAxis->GetYaxis(), 18);
+            DrawBoardZoom.SetTitleSize(0, hAxis->GetXaxis(), 18);
+            DrawBoardZoom.SetTitleSize(0, hAxis->GetYaxis(), 18);
+
+            unsigned BinLow = HistSe[uType]->FindBin(kMinZoom);
+            unsigned BinUp = HistSe[uType]->FindBin(kMaxZoom);
+            double MaxYval=0;
+            for(unsigned uBin=BinLow; uBin<=BinUp; uBin++){
+                if(MaxYval<HistSe[uType]->GetBinContent(uBin)) MaxYval=HistSe[uType]->GetBinContent(uBin);
+            }
+            hAxis->GetYaxis()->SetRangeUser(0, MaxYval*1.4);
+            hAxis->GetYaxis()->SetLimits(0, MaxYval*1.4);
+            hAxis->GetXaxis()->SetRangeUser(kMinZoom, kMaxZoom);
+            //hAxis->GetXaxis()->SetLimits(kMinZoom, kMaxZoom);
+
+            hAxisRatio->GetYaxis()->SetRangeUser(0.0, 2.0);
+            hAxisRatio->GetYaxis()->SetLimits(0.0, 2.0);
+            hAxisRatio->GetXaxis()->SetRangeUser(kMinZoom, kMaxZoom);
+            //hAxisRatio->GetXaxis()->SetLimits(kMinZoom, kMaxZoom);
+
+            hAxis->Draw("AXIS");
+            if(kNormMin[uNorm]!=kMin || kNormMax[uNorm]!=kMax) hShade->Draw("same,HIST");
+            HistSe[uType]->Draw("same");
+            HistMe[uType]->Draw("same");
+            myLegend->Draw("same");
+            InfoText1->Draw("same");
+
+            DrawBoardZoom.cd(1);
+
+            DrawBoardZoom.SetLabelSize(1, hAxisRatio->GetXaxis(), 18);
+            DrawBoardZoom.SetLabelSize(1, hAxisRatio->GetYaxis(), 18);
+            DrawBoardZoom.SetTitleSize(1, hAxisRatio->GetXaxis(), 18);
+            DrawBoardZoom.SetTitleSize(1, hAxisRatio->GetYaxis(), 18);
+
+            hAxisRatio->Draw("AXIS");
+            if(kNormMin[uNorm]!=kMin || kNormMax[uNorm]!=kMax) hShade->Draw("same,HIST");
+            UnitLine->Draw("same");
+            HistCk[uType]->Draw("same");
+
+            DrawBoardZoom.GetCanvas()->SaveAs(TString::Format("%s_DBZoom_N%.0f-%.0f_%u.png",OutFileBaseName.Data(),kNormMin[uNorm]*1000,kNormMax[uNorm]*1000,uType));
+            hShade->SetLineWidth(width_hShade/2.5);
+            HistSe[uType]->SetLineWidth(width_hNkSe/2.5);
+            HistMe[uType]->SetLineWidth(width_hNkMe/2.5);
+            UnitLine->SetLineWidth(width_UnitLine/2.5);
+            HistCk[uType]->SetLineWidth(width_hCk/2.5);
+            DrawBoardZoom.GetCanvas()->SaveAs(TString::Format("%s_DBZoom_N%.0f-%.0f_%u.pdf",OutFileBaseName.Data(),kNormMin[uNorm]*1000,kNormMax[uNorm]*1000,uType));
+            hShade->SetLineWidth(width_hShade);
+            HistSe[uType]->SetLineWidth(width_hNkSe);
+            HistMe[uType]->SetLineWidth(width_hNkMe);
+            UnitLine->SetLineWidth(width_UnitLine);
+            HistCk[uType]->SetLineWidth(width_hCk);
+
+    printf("HistSe[uType]->Integral = %f\n",HistSe[uType]->Integral());
+    printf("HistMe[uType]->Integral = %f\n",HistMe[uType]->Integral());
+    printf("HistCk[uType]->Integral = %f\n",HistCk[uType]->Integral());
+
+            //HistSe[uType]->Write();
+            //HistMe[uType]->Write();
+            //HistCk[uType]->Write();
+
+            delete hShade;
+            delete myLegend;
+        }
+
+        delete [] HistCk;
+        delete [] HistSe;
+        delete [] HistMe;
+
+        delete NormLine;
+
+    }
+
+    hNkSe->Write();
+    hNkQs->Write();
+    hNkRs->Write();
+    hNkQsRs->Write();
+    hCkQs->Write();
+    hCkRs->Write();
+    hCkQsRs->Write();
+
+    hNphiSe->Write();
+    hNphiMe->Write();
+    hNphiQs->Write();
+    hNphiRs->Write();
+    hNphiQsRs->Write();
+    hCphiMe->Write();
+    hCphiQs->Write();
+    hCphiRs->Write();
+    hCphiQsRs->Write();
+
+    hNetaSe->Write();
+    hNetaQs->Write();
+    hNetaRs->Write();
+    hNetaQsRs->Write();
+    hCetaQs->Write();
+    hCetaRs->Write();
+    hCetaQsRs->Write();
+
+    delete hNkSe;
+    delete hNkQs;
+    delete hNkRs;
+    delete hNkQsRs;
+    delete hCkQs;
+    delete hCkRs;
+    delete hCkQsRs;
+
+    delete hNphiSe;
+    delete hNphiMe;
+    delete hNphiQs;
+    delete hNphiRs;
+    delete hNphiQsRs;
+    delete hCphiMe;
+    delete hCphiQs;
+    delete hCphiRs;
+    delete hCphiQsRs;
+
+    delete hNetaSe;
+    delete hNetaQs;
+    delete hNetaRs;
+    delete hNetaQsRs;
+    delete hCetaQs;
+    delete hCetaRs;
+    delete hCetaQsRs;
+
+    delete UnitLine;
+    delete hAxis;
+    delete hAxisRatio;
+    delete InfoText1;
+    //delete OutRoot;
+    delete [] cdummy;
+    delete KittyEvent;
+    delete KittyEventLab;
+    delete KittyBuffer;
+    delete KittyBufferLab;
+    delete fOut;
+}
+
+
+
+
+
 
 /*
 
@@ -1818,6 +2487,8 @@ printf("hNkSeDimiPhi_Mult->Integral()=%e\n",hNkSeDimiPhi_Mult->Integral());
 }
 
 */
+
+
 
 
 DLM_CkDecomposition* FIT_CK;
@@ -4552,11 +5223,12 @@ int MIXEDEVENTS(int narg, char** ARGS){
     //ReferenceSampleStudy_2("EposDisto","p_pReso");
     //ReferenceSampleStudy_2("EposDisto","pReso_pReso");
     //ReferenceSampleStudy_2("EposDisto","p_LamReso");
-    ReferenceSampleStudy_2("EposDisto","pReso_Lam");
+    //ReferenceSampleStudy_2("EposDisto","pReso_Lam");
     //ReferenceSampleStudy_2("EposDisto","pReso_LamReso");
-    ReferenceSampleStudy_2("EposDisto","pReso_Xim");
-    ReferenceSampleStudy_2("EposDisto","pReso_Omega");
+    //ReferenceSampleStudy_2("EposDisto","pReso_Xim");
+    //ReferenceSampleStudy_2("EposDisto","pReso_Omega");
     //ReferenceSampleStudy_2("DimiPhi","p_p");
+    dEta_dPhi_Ck_QS("QS", "pp", true);
     //CompareReferenceSamples("pp");
     //CompareSameMixedEventToBoltzmann();
     //RatioBetweenLevy();

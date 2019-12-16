@@ -3396,6 +3396,27 @@ void TestRandom(){
     histD->Write();
 }
 
+void SmearTest(){
+/*
+    CATS Kitty;
+    Kitty.SetMaxNumThreads(1);
+    Kitty.SetMomBins(30,0,120);
+    AnalysisObject.SetUpCats_pp(Kitty,"AV18","Gauss");
+    Kitty.SetAnaSource(0,1.0);
+    Kitty.SetAnaSource(1,2);
+    Kitty.SetEpsilonProp(1e-8);
+    Kitty.KillTheCat();
+
+    DLM_Ck* Ck_pp = new DLM_Ck(Kitty.GetNumSourcePars(),0,Kitty);
+    Ck_pp->Update();
+
+    TH2F* hResolution_pp = AnalysisObject.GetResolutionMatrix(DataSample,"pp");
+    DLM_CkDecomposition CkDec_pp("pp",0,*Ck_pp,hResolution_pp);
+
+    CkDec_pp.Update();
+*/
+}
+
 int main(int argc, char *argv[])
 {
 

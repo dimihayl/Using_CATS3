@@ -9,6 +9,7 @@
 #include "TFile.h"
 #include "TCanvas.h"
 #include "TH1F.h"
+#include "TH2F.h"
 #include "TNtuple.h"
 #include "TRandom3.h"
 #include "TF1.h"
@@ -347,8 +348,8 @@ void pp_CompareToNorfolk(){
 
 
 void pp_pL_CorrectedMC_EXP(){
-    TString DataFolder = "/home/dmihaylov/Downloads/Temp/VALE_DEC19/MyResults/Data/CF/Norm024034/";
-    TString McFolder = "/home/dmihaylov/Downloads/Temp/VALE_DEC19/MyResults/MC/CF/AOD_Trains/Norm024034/";
+    TString DataFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/pp13TeV_HM_Baseline/MyResults_Vale/Data/CF/Norm024034/";
+    TString McFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/pp13TeV_HM_Baseline/MyResults_Vale/MC/CF/AOD_Trains/Norm024034/";
     TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/OtherTasks/pp_pL_CorrectedMC_EXP/";
     TString DataFile_pp = "CFOutput_pp_8.root";
     TString DataFile_pL = "CFOutput_pL_8.root";
@@ -762,146 +763,214 @@ printf(" e2 = %f\n",dlm_McSe_pp.GetBinError(4));
 
 DLM_Histo<float>* dlm_ff_t1;
 DLM_Histo<float>* dlm_ff_t2;
+
+
+double dimi_fraction_fitter_T1(double* x, double* par){
+    return  par[0]*dlm_ff_t1->Eval(x);
+}
+double dimi_fraction_fitter_T2(double* x, double* par){
+    return  par[0]*dlm_ff_t2->Eval(x);
+}
 double dimi_fraction_fitter(double* x, double* par){
     return  (par[0]*dlm_ff_t1->Eval(x)+par[1]*dlm_ff_t2->Eval(x))+
             (par[2]+par[3]*0.5*(*x)+par[4]*(*x)*(*x));
 }
+double dimi_fractionQS_fitter(double* x, double* par){
+    double Templates = par[0]*dlm_ff_t1->Eval(x)+par[1]*dlm_ff_t2->Eval(x);
+    //double Correction = par[5]+par[6]*0.5*(*x)+par[7]*(*x)*(*x);
+    double Correction = par[5]+par[6]*(*x)+par[7]*(*x)*(*x)+par[8]*(*x)*(*x)*(*x)+par[9]*(*x)*(*x)*(*x)*(*x);
+    double Pauli = 1.-par[2]*exp(-pow((*x)*par[3]/197.327,par[4]));
+    return (Templates+Correction)*Pauli;
+}
+double dimi_fractionPolQS_fitter(double* x, double* par){
+    double k = *x;
+    double Baseline = par[6]*(1.+par[7]*k+par[8]*k*k+par[9]*k*k*k);
+    double Pauli = 1.-par[0]*exp(-pow((*x)*par[1]/197.327,par[2]));
+    double Peak = 1.+par[3]*TMath::Gaus(k,par[4],par[5],0);
+    //double Peak = 1.+par[3]*dlm_ff_t2->Eval(x)+par[4];
+    return Baseline*Pauli*Peak;
+}
+
 
 void ALL_CorrectedMC_EXP(){
     TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/OtherTasks/ALL_CorrectedMC_EXP/";
-    const unsigned NumSpecies = 8;
+    const unsigned NumSpecies = 10;
     TString* SpeciesName = new TString[NumSpecies];
     TString* SpeciesLegend = new TString[NumSpecies];
     SpeciesName[0] = "pp"; SpeciesLegend[0] = "p-p";
     SpeciesName[1] = "pL"; SpeciesLegend[1] = "p-#Lambda";
     SpeciesName[2] = "pXi"; SpeciesLegend[2] = "p-#Xi";
-    SpeciesName[3] = "LL"; SpeciesLegend[3] = "#Lambda-#Lambda";
-    SpeciesName[4] = "pAp"; SpeciesLegend[4] = "p-#bar{p}";
-    SpeciesName[5] = "pAL"; SpeciesLegend[5] = "p-#bar{#Lambda}";
-    SpeciesName[6] = "pAXi"; SpeciesLegend[6] = "p-#bar{#Xi}";
-    SpeciesName[7] = "LAL"; SpeciesLegend[7] = "#Lambda-#bar{#Lambda}";
+    SpeciesName[3] = "pOmega"; SpeciesLegend[3] = "p-#Omega";
+    SpeciesName[4] = "LL"; SpeciesLegend[4] = "#Lambda-#Lambda";
+    SpeciesName[5] = "pAp"; SpeciesLegend[5] = "p-#bar{p}";
+    SpeciesName[6] = "pAL"; SpeciesLegend[6] = "p-#bar{#Lambda}";
+    SpeciesName[7] = "pAXi"; SpeciesLegend[7] = "p-#bar{#Xi}";
+    SpeciesName[8] = "pAOmega"; SpeciesLegend[8] = "p-#bar{#Omega}";
+    SpeciesName[9] = "LAL"; SpeciesLegend[9] = "#Lambda-#bar{#Lambda}";
+
 
     TString* DataFolder = new TString[NumSpecies];
-    DataFolder[0] = "/home/dmihaylov/Downloads/Temp/VALE_DEC19/MyResults/Fast_BBar/Data/";
-    DataFolder[1] = "/home/dmihaylov/Downloads/Temp/VALE_DEC19/MyResults/Fast_BBar/Data/";
-    DataFolder[2] = "/home/dmihaylov/Downloads/Temp/VALE_DEC19/MyResults/Fast_BBar/Data/";
-    DataFolder[3] = "/home/dmihaylov/Downloads/Temp/VALE_DEC19/MyResults/Fast_BBar/Data/";
-    DataFolder[4] = "/home/dmihaylov/Downloads/Temp/VALE_DEC19/MyResults/Fast_BBar/Data/";
-    DataFolder[5] = "/home/dmihaylov/Downloads/Temp/VALE_DEC19/MyResults/Fast_BBar/Data/";
-    DataFolder[6] = "/home/dmihaylov/Downloads/Temp/VALE_DEC19/MyResults/Fast_BBar/Data/";
-    DataFolder[7] = "/home/dmihaylov/Downloads/Temp/VALE_DEC19/MyResults/Fast_BBar/Data/";
+    DataFolder[0] = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/pp13TeV_HM_Baseline/MyResults_Vale/Fast_BBar/Data/";
+    //DataFolder[0] = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample9/";
+    DataFolder[1] = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/pp13TeV_HM_Baseline/MyResults_Vale/Fast_BBar/Data/";
+    DataFolder[2] = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/pp13TeV_HM_Baseline/MyResults_Vale/Fast_BBar/Data/";
+    DataFolder[3] = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/pp13TeV_HM_Baseline/pOmega_1/";
+    DataFolder[4] = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/pp13TeV_HM_Baseline/MyResults_Vale/Fast_BBar/Data/";
+    DataFolder[5] = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/pp13TeV_HM_Baseline/MyResults_Vale/Fast_BBar/Data/";
+    DataFolder[6] = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/pp13TeV_HM_Baseline/MyResults_Vale/Fast_BBar/Data/";
+    DataFolder[7] = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/pp13TeV_HM_Baseline/MyResults_Vale/Fast_BBar/Data/";
+    DataFolder[8] = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/pp13TeV_HM_Baseline/pOmega_1/";
+    DataFolder[9] = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/pp13TeV_HM_Baseline/MyResults_Vale/Fast_BBar/Data/";
 
     TString* McFolder = new TString[NumSpecies];
-    McFolder[0] = "/home/dmihaylov/Downloads/Temp/VALE_DEC19/MyResults/Fast_BBar/Trains_MCAOD/Norm018028/";
-    McFolder[1] = "/home/dmihaylov/Downloads/Temp/VALE_DEC19/MyResults/Fast_BBar/Trains_MCAOD/Norm018028/";
-    McFolder[2] = "/home/dmihaylov/Downloads/Temp/VALE_DEC19/MyResults/Fast_BBar/Trains_MCAOD/Norm018028/";
-    McFolder[3] = "/home/dmihaylov/Downloads/Temp/VALE_DEC19/MyResults/Fast_BBar/Trains_MCAOD/Norm018028/";
-    McFolder[4] = "/home/dmihaylov/Downloads/Temp/VALE_DEC19/MyResults/Fast_BBar/Trains_MCAOD/Norm018028/";
-    McFolder[5] = "/home/dmihaylov/Downloads/Temp/VALE_DEC19/MyResults/Fast_BBar/Trains_MCAOD/Norm018028/";
-    McFolder[6] = "/home/dmihaylov/Downloads/Temp/VALE_DEC19/MyResults/Fast_BBar/Trains_MCAOD/Norm018028/";
-    McFolder[7] = "/home/dmihaylov/Downloads/Temp/VALE_DEC19/MyResults/Fast_BBar/Trains_MCAOD/Norm018028/";
+    McFolder[0] = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/pp13TeV_HM_Baseline/MyResults_Vale/Fast_BBar/Trains_MCAOD/Norm018028/";
+    McFolder[1] = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/pp13TeV_HM_Baseline/MyResults_Vale/Fast_BBar/Trains_MCAOD/Norm018028/";
+    McFolder[2] = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/pp13TeV_HM_Baseline/MyResults_Vale/Fast_BBar/Trains_MCAOD/Norm018028/";
+    McFolder[3] = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/pp13TeV_HM_Baseline/pOmega_1/";
+    McFolder[4] = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/pp13TeV_HM_Baseline/MyResults_Vale/Fast_BBar/Trains_MCAOD/Norm018028/";
+    McFolder[5] = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/pp13TeV_HM_Baseline/MyResults_Vale/Fast_BBar/Trains_MCAOD/Norm018028/";
+    McFolder[6] = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/pp13TeV_HM_Baseline/MyResults_Vale/Fast_BBar/Trains_MCAOD/Norm018028/";
+    McFolder[7] = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/pp13TeV_HM_Baseline/MyResults_Vale/Fast_BBar/Trains_MCAOD/Norm018028/";
+    McFolder[8] = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/pp13TeV_HM_Baseline/pOmega_1/";
+    McFolder[9] = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/pp13TeV_HM_Baseline/MyResults_Vale/Fast_BBar/Trains_MCAOD/Norm018028/";
 
     TString* DataFile = new TString[NumSpecies];
     DataFile[0] = "CFOutput_pp_8.root";
+    //DataFile[0] = "CFOutput_pp.root";
     DataFile[1] = "CFOutput_pL_8.root";
     DataFile[2] = "CFOutput_pXi_8.root";
-    DataFile[3] = "CFOutput_LL_8.root";
-    DataFile[4] = "CFOutput_pAp_8.root";
-    DataFile[5] = "CFOutput_pAL_8.root";
-    DataFile[6] = "CFOutput_pAXi_8.root";
-    DataFile[7] = "CFOutput_LAL_8.root";
+    DataFile[3] = "outmTsyst.root";
+    DataFile[4] = "CFOutput_LL_8.root";
+    DataFile[5] = "CFOutput_pAp_8.root";
+    DataFile[6] = "CFOutput_pAL_8.root";
+    DataFile[7] = "CFOutput_pAXi_8.root";
+    DataFile[8] = "outmTpantiomega.root";
+    DataFile[9] = "CFOutput_LAL_8.root";
 
     TString* McFile = new TString[NumSpecies];
     McFile[0] = "CFOutput_pp_8.root";
     McFile[1] = "CFOutput_pL_8.root";
     McFile[2] = "CFOutput_pXi_8.root";
-    McFile[3] = "CFOutput_LL_8.root";
-    McFile[4] = "CFOutput_pAp_8.root";
-    McFile[5] = "CFOutput_pAL_8.root";
-    McFile[6] = "CFOutput_pAXi_8.root";
-    McFile[7] = "CFOutput_LAL_8.root";
+    McFile[3] = "outmTsyst.root";
+    McFile[4] = "CFOutput_LL_8.root";
+    McFile[5] = "CFOutput_pAp_8.root";
+    McFile[6] = "CFOutput_pAL_8.root";
+    McFile[7] = "CFOutput_pAXi_8.root";
+    McFile[8] = "outmTpantiomega.root";
+    McFile[9] = "CFOutput_LAL_8.root";
 
     TString* DataHisto = new TString[NumSpecies];
     DataHisto[0] = "hCk_ReweightedMeV_0";
     DataHisto[1] = "hCk_ReweightedMeV_0";
     DataHisto[2] = "hCk_ReweightedMeV_0";
-    DataHisto[3] = "hCk_ReweightedMeV_0";
+    DataHisto[3] = "CF";
     DataHisto[4] = "hCk_ReweightedMeV_0";
     DataHisto[5] = "hCk_ReweightedMeV_0";
     DataHisto[6] = "hCk_ReweightedMeV_0";
     DataHisto[7] = "hCk_ReweightedMeV_0";
+    DataHisto[8] = "CF";
+    DataHisto[9] = "hCk_ReweightedMeV_0";
+
 
     TString* McHisto = new TString[NumSpecies];
     McHisto[0] = "hCk_ReweightedMeV_0";
     McHisto[1] = "hCk_ReweightedMeV_0";
     McHisto[2] = "hCk_ReweightedMeV_0";
-    McHisto[3] = "hCk_ReweightedMeV_0";
+    McHisto[3] = "CF";
     McHisto[4] = "hCk_ReweightedMeV_0";
     McHisto[5] = "hCk_ReweightedMeV_0";
     McHisto[6] = "hCk_ReweightedMeV_0";
     McHisto[7] = "hCk_ReweightedMeV_0";
+    McHisto[8] = "CF";
+    McHisto[9] = "hCk_ReweightedMeV_0";
 
     int* RescaleFactor = new int[NumSpecies];
-    RescaleFactor[0] = 4;
+    RescaleFactor[0] = 1;
     RescaleFactor[1] = 1;
     RescaleFactor[2] = 1;
     RescaleFactor[3] = 1;
-    RescaleFactor[4] = 4;
+    RescaleFactor[4] = 1;
     RescaleFactor[5] = 1;
     RescaleFactor[6] = 1;
     RescaleFactor[7] = 1;
+    RescaleFactor[8] = 1;
+    RescaleFactor[9] = 1;
+
+    int* RescaleSeMeAxis = new int[NumSpecies];
+    RescaleSeMeAxis[0] = 1000;
+    RescaleSeMeAxis[1] = 1000;
+    RescaleSeMeAxis[2] = 1000;
+    RescaleSeMeAxis[3] = 1;
+    RescaleSeMeAxis[4] = 1000;
+    RescaleSeMeAxis[5] = 1000;
+    RescaleSeMeAxis[6] = 1000;
+    RescaleSeMeAxis[7] = 1000;
+    RescaleSeMeAxis[8] = 1;
+    RescaleSeMeAxis[9] = 1000;
 
     TString* DataSeList1 = new TString[NumSpecies];
     for(unsigned uSpec=0; uSpec<NumSpecies; uSpec++) DataSeList1[uSpec] = "PairDist";
+    DataSeList1[3] = "";DataSeList1[8] = "";
 
     TString* DataSeList2 = new TString[NumSpecies];
     for(unsigned uSpec=0; uSpec<NumSpecies; uSpec++) DataSeList2[uSpec] = "PairReweighted";
+    DataSeList2[3] = "";DataSeList2[8] = "";
 
     TString* McSeList1 = new TString[NumSpecies];
     for(unsigned uSpec=0; uSpec<NumSpecies; uSpec++) McSeList1[uSpec] = "PairDist";
+    McSeList1[3] = "";McSeList1[8] = "";
 
     TString* McSeList2 = new TString[NumSpecies];
     for(unsigned uSpec=0; uSpec<NumSpecies; uSpec++) McSeList2[uSpec] = "PairReweighted";
+    McSeList2[3] = "";McSeList2[8] = "";
 
     TString* DataSe = new TString[NumSpecies];
     DataSe[0] = "SEDist_Particle0_Particle0_clone_Shifted_FixShifted_Reweighted";
     DataSe[1] = "SEDist_Particle0_Particle2_clone_Shifted_FixShifted_Rebinned_4_Reweighted";
     DataSe[2] = "SEDist_Particle0_Particle4_clone_Shifted_FixShifted_Rebinned_4_Reweighted";
-    DataSe[3] = "SEDist_Particle2_Particle2_clone_Shifted_FixShifted_Rebinned_4_Reweighted";
-    DataSe[4] = "SEDist_Particle0_Particle1_clone_Shifted_FixShifted_Reweighted";
-    DataSe[5] = "SEDist_Particle0_Particle3_clone_Shifted_FixShifted_Rebinned_4_Reweighted";
-    DataSe[6] = "SEDist_Particle0_Particle5_clone_Shifted_FixShifted_Rebinned_4_Reweighted";
-    DataSe[7] = "SEDist_Particle2_Particle3_clone_Shifted_FixShifted_Rebinned_4_Reweighted";
+    DataSe[3] = "SE";
+    DataSe[4] = "SEDist_Particle2_Particle2_clone_Shifted_FixShifted_Rebinned_4_Reweighted";
+    DataSe[5] = "SEDist_Particle0_Particle1_clone_Shifted_FixShifted_Reweighted";
+    DataSe[6] = "SEDist_Particle0_Particle3_clone_Shifted_FixShifted_Rebinned_4_Reweighted";
+    DataSe[7] = "SEDist_Particle0_Particle5_clone_Shifted_FixShifted_Rebinned_4_Reweighted";
+    DataSe[8] = "SE";
+    DataSe[9] = "SEDist_Particle2_Particle3_clone_Shifted_FixShifted_Rebinned_4_Reweighted";
 
     TString* McSe = new TString[NumSpecies];
     McSe[0] = "SEDist_Particle0_Particle0_clone_Shifted_FixShifted_Reweighted";
     McSe[1] = "SEDist_Particle0_Particle2_clone_Shifted_FixShifted_Rebinned_4_Reweighted";
     McSe[2] = "SEDist_Particle0_Particle4_clone_Shifted_FixShifted_Rebinned_4_Reweighted";
-    McSe[3] = "SEDist_Particle2_Particle2_clone_Shifted_FixShifted_Rebinned_4_Reweighted";
-    McSe[4] = "SEDist_Particle0_Particle1_clone_Shifted_FixShifted_Reweighted";
-    McSe[5] = "SEDist_Particle0_Particle3_clone_Shifted_FixShifted_Rebinned_4_Reweighted";
-    McSe[6] = "SEDist_Particle0_Particle5_clone_Shifted_FixShifted_Rebinned_4_Reweighted";
-    McSe[7] = "SEDist_Particle2_Particle3_clone_Shifted_FixShifted_Rebinned_4_Reweighted";
+    McSe[3] = "SE";
+    McSe[4] = "SEDist_Particle2_Particle2_clone_Shifted_FixShifted_Rebinned_4_Reweighted";
+    McSe[5] = "SEDist_Particle0_Particle1_clone_Shifted_FixShifted_Reweighted";
+    McSe[6] = "SEDist_Particle0_Particle3_clone_Shifted_FixShifted_Rebinned_4_Reweighted";
+    McSe[7] = "SEDist_Particle0_Particle5_clone_Shifted_FixShifted_Rebinned_4_Reweighted";
+    McSe[8] = "SE";
+    McSe[9] = "SEDist_Particle2_Particle3_clone_Shifted_FixShifted_Rebinned_4_Reweighted";
 
     TString* DataMe = new TString[NumSpecies];
     DataMe[0] = "MEDist_Particle0_Particle0_clone_Shifted_FixShifted_Reweighted";
     DataMe[1] = "MEDist_Particle0_Particle2_clone_Shifted_FixShifted_Rebinned_4_Reweighted";
     DataMe[2] = "MEDist_Particle0_Particle4_clone_Shifted_FixShifted_Rebinned_4_Reweighted";
-    DataMe[3] = "MEDist_Particle2_Particle2_clone_Shifted_FixShifted_Rebinned_4_Reweighted";
-    DataMe[4] = "MEDist_Particle0_Particle1_clone_Shifted_FixShifted_Reweighted";
-    DataMe[5] = "MEDist_Particle0_Particle3_clone_Shifted_FixShifted_Rebinned_4_Reweighted";
-    DataMe[6] = "MEDist_Particle0_Particle5_clone_Shifted_FixShifted_Rebinned_4_Reweighted";
-    DataMe[7] = "MEDist_Particle2_Particle3_clone_Shifted_FixShifted_Rebinned_4_Reweighted";
+    DataMe[3] = "ME";
+    DataMe[4] = "MEDist_Particle2_Particle2_clone_Shifted_FixShifted_Rebinned_4_Reweighted";
+    DataMe[5] = "MEDist_Particle0_Particle1_clone_Shifted_FixShifted_Reweighted";
+    DataMe[6] = "MEDist_Particle0_Particle3_clone_Shifted_FixShifted_Rebinned_4_Reweighted";
+    DataMe[7] = "MEDist_Particle0_Particle5_clone_Shifted_FixShifted_Rebinned_4_Reweighted";
+    DataMe[8] = "ME";
+    DataMe[9] = "MEDist_Particle2_Particle3_clone_Shifted_FixShifted_Rebinned_4_Reweighted";
 
     TString* McMe = new TString[NumSpecies];
     McMe[0] = "MEDist_Particle0_Particle0_clone_Shifted_FixShifted_Reweighted";
     McMe[1] = "MEDist_Particle0_Particle2_clone_Shifted_FixShifted_Rebinned_4_Reweighted";
     McMe[2] = "MEDist_Particle0_Particle4_clone_Shifted_FixShifted_Rebinned_4_Reweighted";
-    McMe[3] = "MEDist_Particle2_Particle2_clone_Shifted_FixShifted_Rebinned_4_Reweighted";
-    McMe[4] = "MEDist_Particle0_Particle1_clone_Shifted_FixShifted_Reweighted";
-    McMe[5] = "MEDist_Particle0_Particle3_clone_Shifted_FixShifted_Rebinned_4_Reweighted";
-    McMe[6] = "MEDist_Particle0_Particle5_clone_Shifted_FixShifted_Rebinned_4_Reweighted";
-    McMe[7] = "MEDist_Particle2_Particle3_clone_Shifted_FixShifted_Rebinned_4_Reweighted";
+    McMe[3] = "ME";
+    McMe[4] = "MEDist_Particle2_Particle2_clone_Shifted_FixShifted_Rebinned_4_Reweighted";
+    McMe[5] = "MEDist_Particle0_Particle1_clone_Shifted_FixShifted_Reweighted";
+    McMe[6] = "MEDist_Particle0_Particle3_clone_Shifted_FixShifted_Rebinned_4_Reweighted";
+    McMe[7] = "MEDist_Particle0_Particle5_clone_Shifted_FixShifted_Rebinned_4_Reweighted";
+    McMe[8] = "ME";
+    McMe[9] = "MEDist_Particle2_Particle3_clone_Shifted_FixShifted_Rebinned_4_Reweighted";
 
     DLM_Histo<float>* dlm_DataSe = new DLM_Histo<float> [NumSpecies];
     DLM_Histo<float>* dlm_McSe = new DLM_Histo<float> [NumSpecies];
@@ -939,22 +1008,30 @@ void ALL_CorrectedMC_EXP(){
         double kMin;
         double kMax;
         TH1F* hCk_tmp;
-        TList* list1_tmp;
-        TList* list2_tmp;
+        TList* list1_tmp=NULL;
+        TList* list2_tmp=NULL;
         TH1F* hSe_tmp;
         TH1F* hMe_tmp;
 printf("Opening file %s%s\n",DataFolder[uSpec].Data(),DataFile[uSpec].Data());
-        TFile datafile(DataFolder[uSpec]+DataFile[uSpec]);
+        TFile datafile(DataFolder[uSpec]+DataFile[uSpec],"read");
         hCk_tmp = (TH1F*)datafile.Get(DataHisto[uSpec]);
+//printf("hCk_tmp = %p\n",hCk_tmp);
 //printf("hCk_tmp->GetNbinsX()=%u\n",hCk_tmp->GetNbinsX());
         hCk_tmp->Rebin(RescaleFactor[uSpec]); hCk_tmp->Scale(1./double(RescaleFactor[uSpec]));
 //printf("hCk_tmp->GetNbinsX()=%u\n",hCk_tmp->GetNbinsX());
-        list1_tmp = (TList*)datafile.Get(DataSeList1[uSpec]);
-        list2_tmp = (TList*)list1_tmp->FindObject(DataSeList2[uSpec]);
-        hSe_tmp = (TH1F*)list2_tmp->FindObject(DataSe[uSpec]);
-        hSe_tmp->Rebin(RescaleFactor[uSpec]); hSe_tmp->Scale(1./hSe_tmp->Integral(),"width");
-        hMe_tmp = (TH1F*)list2_tmp->FindObject(DataMe[uSpec]);
-        hMe_tmp->Rebin(RescaleFactor[uSpec]); hMe_tmp->Scale(1./hMe_tmp->Integral(),"width");
+        if(DataSeList1[uSpec]!="") list1_tmp = (TList*)datafile.Get(DataSeList1[uSpec]);
+        if(list1_tmp) list2_tmp = (TList*)list1_tmp->FindObject(DataSeList2[uSpec]);
+        if(list2_tmp) hSe_tmp = (TH1F*)list2_tmp->FindObject(DataSe[uSpec]);
+        else hSe_tmp = (TH1F*)datafile.Get(DataSe[uSpec]);
+//printf("hSe_tmp = %p\n",hSe_tmp);
+//printf("hSe_tmp->Integral() = %f\n",hSe_tmp->Integral());
+//printf("hSe_tmp->GetBinWidth() = %f\n",hSe_tmp->GetBinWidth(1));
+        hSe_tmp->Rebin(RescaleFactor[uSpec]); hSe_tmp->Scale(1./hSe_tmp->Integral()/RescaleSeMeAxis[uSpec],"width");
+//printf(" hSe_tmp->Integral() = %f\n",hSe_tmp->Integral());
+        if(list1_tmp) hMe_tmp = (TH1F*)list2_tmp->FindObject(DataMe[uSpec]);
+        else hMe_tmp = (TH1F*)datafile.Get(DataMe[uSpec]);
+//printf("hMe_tmp = %p\n",hMe_tmp);
+        hMe_tmp->Rebin(RescaleFactor[uSpec]); hMe_tmp->Scale(1./hMe_tmp->Integral()/RescaleSeMeAxis[uSpec],"width");
         NumBins = hCk_tmp->GetNbinsX();
         kMin = hCk_tmp->GetBinLowEdge(1);
         kMax = hCk_tmp->GetXaxis()->GetBinUpEdge(NumBins);
@@ -977,15 +1054,23 @@ printf("Opening file %s%s\n",DataFolder[uSpec].Data(),DataFile[uSpec].Data());
         }
         datafile.Close();
 
-        TFile mcfile(McFolder[uSpec]+McFile[uSpec]);
+        list1_tmp=NULL;
+        list2_tmp=NULL;
+
+        TFile mcfile(McFolder[uSpec]+McFile[uSpec],"read");
         hCk_tmp = (TH1F*)mcfile.Get(McHisto[uSpec]);
         hCk_tmp->Rebin(RescaleFactor[uSpec]); hCk_tmp->Scale(1./double(RescaleFactor[uSpec]));
-        list1_tmp = (TList*)mcfile.Get(McSeList1[uSpec]);
-        list2_tmp = (TList*)list1_tmp->FindObject(McSeList2[uSpec]);
-        hSe_tmp = (TH1F*)list2_tmp->FindObject(McSe[uSpec]);
-        hSe_tmp->Rebin(RescaleFactor[uSpec]); hSe_tmp->Scale(1./hSe_tmp->Integral(),"width");
-        hMe_tmp = (TH1F*)list2_tmp->FindObject(McMe[uSpec]);
-        hMe_tmp->Rebin(RescaleFactor[uSpec]); hMe_tmp->Scale(1./hMe_tmp->Integral(),"width");
+        if(McSeList1[uSpec]!="") list1_tmp = (TList*)mcfile.Get(McSeList1[uSpec]);
+        if(list1_tmp) list2_tmp = (TList*)list1_tmp->FindObject(McSeList2[uSpec]);
+        if(list2_tmp) hSe_tmp = (TH1F*)list2_tmp->FindObject(McSe[uSpec]);
+        else hSe_tmp = (TH1F*)mcfile.Get(McSe[uSpec]);
+//mcfile.ls();
+//printf("McSe=%s\n",McSe[uSpec].Data());
+//printf("hSe_tmp = %p\n",hSe_tmp);
+        hSe_tmp->Rebin(RescaleFactor[uSpec]); hSe_tmp->Scale(1./hSe_tmp->Integral()/RescaleSeMeAxis[uSpec],"width");
+        if(list2_tmp) hMe_tmp = (TH1F*)list2_tmp->FindObject(McMe[uSpec]);
+        else hMe_tmp = (TH1F*)mcfile.Get(McMe[uSpec]);
+        hMe_tmp->Rebin(RescaleFactor[uSpec]); hMe_tmp->Scale(1./hMe_tmp->Integral()/RescaleSeMeAxis[uSpec],"width");
         NumBins = hCk_tmp->GetNbinsX();
         kMin = hCk_tmp->GetBinLowEdge(1);
         kMax = hCk_tmp->GetXaxis()->GetBinUpEdge(NumBins);
@@ -1007,6 +1092,9 @@ printf("Opening file %s%s\n",DataFolder[uSpec].Data(),DataFile[uSpec].Data());
             dlm_McMe[uSpec].SetBinError(uBin,hMe_tmp->GetBinError(uBin+1));
         }
         mcfile.Close();
+
+        list1_tmp=NULL;
+        list2_tmp=NULL;
     }
 
     for(unsigned uSpec=0; uSpec<NumSpecies; uSpec++){
@@ -1084,31 +1172,31 @@ printf("Opening file %s%s\n",DataFolder[uSpec].Data(),DataFile[uSpec].Data());
         for(unsigned uSpec2=0; uSpec2<NumSpecies; uSpec2++){
         histo_RatioSe_Data_Mc[uSpec][uSpec2] = new TH1F("histo_RatioSe_Data:"+SpeciesName[uSpec]+"_Mc:"+SpeciesName[uSpec2],
                                                         "histo_RatioSe_Data:"+SpeciesName[uSpec]+"_Mc:"+SpeciesName[uSpec2],
-                                       dlm_RatioSe_Data_Mc[uSpec][uSpec].GetNbins(),dlm_RatioSe_Data_Mc[uSpec][uSpec].GetLowEdge(0),dlm_RatioSe_Data_Mc[uSpec][uSpec].GetUpEdge(0));
+                                       dlm_RatioSe_Data_Mc[uSpec][uSpec2].GetNbins(),dlm_RatioSe_Data_Mc[uSpec][uSpec2].GetLowEdge(0),dlm_RatioSe_Data_Mc[uSpec][uSpec2].GetUpEdge(0));
         histo_RatioMe_Data_Mc[uSpec][uSpec2] = new TH1F("histo_RatioMe_Data:"+SpeciesName[uSpec]+"_Mc:"+SpeciesName[uSpec2],
                                                         "histo_RatioMe_Data:"+SpeciesName[uSpec]+"_Mc:"+SpeciesName[uSpec2],
-                                       dlm_RatioMe_Data_Mc[uSpec][uSpec].GetNbins(),dlm_RatioMe_Data_Mc[uSpec][uSpec].GetLowEdge(0),dlm_RatioMe_Data_Mc[uSpec][uSpec].GetUpEdge(0));
+                                       dlm_RatioMe_Data_Mc[uSpec][uSpec2].GetNbins(),dlm_RatioMe_Data_Mc[uSpec][uSpec2].GetLowEdge(0),dlm_RatioMe_Data_Mc[uSpec][uSpec2].GetUpEdge(0));
         histo_RatioCk_Data_Mc[uSpec][uSpec2] = new TH1F("histo_RatioCk_Data:"+SpeciesName[uSpec]+"_Mc:"+SpeciesName[uSpec2],
                                                         "histo_RatioCk_Data:"+SpeciesName[uSpec]+"_Mc:"+SpeciesName[uSpec2],
-                                       dlm_RatioCk_Data_Mc[uSpec][uSpec].GetNbins(),dlm_RatioCk_Data_Mc[uSpec][uSpec].GetLowEdge(0),dlm_RatioCk_Data_Mc[uSpec][uSpec].GetUpEdge(0));
+                                       dlm_RatioCk_Data_Mc[uSpec][uSpec2].GetNbins(),dlm_RatioCk_Data_Mc[uSpec][uSpec2].GetLowEdge(0),dlm_RatioCk_Data_Mc[uSpec][uSpec2].GetUpEdge(0));
         histo_RatioSe_Data_Data[uSpec][uSpec2] = new TH1F("histo_RatioSe_Data:"+SpeciesName[uSpec]+"_Data:"+SpeciesName[uSpec2],
                                                         "histo_RatioSe_Data:"+SpeciesName[uSpec]+"_Data:"+SpeciesName[uSpec2],
-                                       dlm_RatioSe_Data_Data[uSpec][uSpec].GetNbins(),dlm_RatioSe_Data_Data[uSpec][uSpec].GetLowEdge(0),dlm_RatioSe_Data_Data[uSpec][uSpec].GetUpEdge(0));
+                                       dlm_RatioSe_Data_Data[uSpec][uSpec2].GetNbins(),dlm_RatioSe_Data_Data[uSpec][uSpec2].GetLowEdge(0),dlm_RatioSe_Data_Data[uSpec][uSpec2].GetUpEdge(0));
         histo_RatioMe_Data_Data[uSpec][uSpec2] = new TH1F("histo_RatioMe_Data:"+SpeciesName[uSpec]+"_Data:"+SpeciesName[uSpec2],
                                                         "histo_RatioMe_Data:"+SpeciesName[uSpec]+"_Data:"+SpeciesName[uSpec2],
-                                       dlm_RatioMe_Data_Data[uSpec][uSpec].GetNbins(),dlm_RatioMe_Data_Data[uSpec][uSpec].GetLowEdge(0),dlm_RatioMe_Data_Data[uSpec][uSpec].GetUpEdge(0));
+                                       dlm_RatioMe_Data_Data[uSpec][uSpec2].GetNbins(),dlm_RatioMe_Data_Data[uSpec][uSpec2].GetLowEdge(0),dlm_RatioMe_Data_Data[uSpec][uSpec2].GetUpEdge(0));
         histo_RatioCk_Data_Data[uSpec][uSpec2] = new TH1F("histo_RatioCk_Data:"+SpeciesName[uSpec]+"_Data:"+SpeciesName[uSpec2],
                                                         "histo_RatioCk_Data:"+SpeciesName[uSpec]+"_Data:"+SpeciesName[uSpec2],
-                                       dlm_RatioCk_Data_Data[uSpec][uSpec].GetNbins(),dlm_RatioCk_Data_Data[uSpec][uSpec].GetLowEdge(0),dlm_RatioCk_Data_Data[uSpec][uSpec].GetUpEdge(0));
+                                       dlm_RatioCk_Data_Data[uSpec][uSpec2].GetNbins(),dlm_RatioCk_Data_Data[uSpec][uSpec2].GetLowEdge(0),dlm_RatioCk_Data_Data[uSpec][uSpec2].GetUpEdge(0));
         histo_RatioSe_Mc_Mc[uSpec][uSpec2] = new TH1F("histo_RatioSe_Mc:"+SpeciesName[uSpec]+"_Mc:"+SpeciesName[uSpec2],
                                                         "histo_RatioSe_Mc:"+SpeciesName[uSpec]+"_Mc:"+SpeciesName[uSpec2],
-                                       dlm_RatioSe_Mc_Mc[uSpec][uSpec].GetNbins(),dlm_RatioSe_Mc_Mc[uSpec][uSpec].GetLowEdge(0),dlm_RatioSe_Mc_Mc[uSpec][uSpec].GetUpEdge(0));
+                                       dlm_RatioSe_Mc_Mc[uSpec][uSpec2].GetNbins(),dlm_RatioSe_Mc_Mc[uSpec][uSpec2].GetLowEdge(0),dlm_RatioSe_Mc_Mc[uSpec][uSpec2].GetUpEdge(0));
         histo_RatioMe_Mc_Mc[uSpec][uSpec2] = new TH1F("histo_RatioMe_Mc:"+SpeciesName[uSpec]+"_Mc:"+SpeciesName[uSpec2],
                                                         "histo_RatioMe_Mc:"+SpeciesName[uSpec]+"_Mc:"+SpeciesName[uSpec2],
-                                       dlm_RatioMe_Mc_Mc[uSpec][uSpec].GetNbins(),dlm_RatioMe_Mc_Mc[uSpec][uSpec].GetLowEdge(0),dlm_RatioMe_Mc_Mc[uSpec][uSpec].GetUpEdge(0));
+                                       dlm_RatioMe_Mc_Mc[uSpec][uSpec2].GetNbins(),dlm_RatioMe_Mc_Mc[uSpec][uSpec2].GetLowEdge(0),dlm_RatioMe_Mc_Mc[uSpec][uSpec2].GetUpEdge(0));
         histo_RatioCk_Mc_Mc[uSpec][uSpec2] = new TH1F("histo_RatioCk_Mc:"+SpeciesName[uSpec]+"_Mc:"+SpeciesName[uSpec2],
                                                         "histo_RatioCk_Mc:"+SpeciesName[uSpec]+"_Mc:"+SpeciesName[uSpec2],
-                                       dlm_RatioCk_Mc_Mc[uSpec][uSpec].GetNbins(),dlm_RatioCk_Mc_Mc[uSpec][uSpec].GetLowEdge(0),dlm_RatioCk_Mc_Mc[uSpec][uSpec].GetUpEdge(0));
+                                       dlm_RatioCk_Mc_Mc[uSpec][uSpec2].GetNbins(),dlm_RatioCk_Mc_Mc[uSpec][uSpec2].GetLowEdge(0),dlm_RatioCk_Mc_Mc[uSpec][uSpec2].GetUpEdge(0));
 
         }
         for(unsigned uBin=0; uBin<dlm_DataSe[uSpec].GetNbins(); uBin++){
@@ -1129,7 +1217,17 @@ printf("Opening file %s%s\n",DataFolder[uSpec].Data(),DataFile[uSpec].Data());
         }
         for(unsigned uBin=0; uBin<dlm_DataCk[uSpec].GetNbins(); uBin++){
             histo_DataCk[uSpec]->SetBinContent(uBin+1,dlm_DataCk[uSpec].GetBinContent(uBin));
+if(dlm_DataCk[uSpec].GetBinCenter(0,uBin)<250) histo_DataCk[uSpec]->SetBinContent(uBin+1,1.003);
+if(dlm_DataCk[uSpec].GetBinCenter(0,uBin)<150) histo_DataCk[uSpec]->SetBinContent(uBin+1,1.0015);
+if(dlm_DataCk[uSpec].GetBinCenter(0,uBin)<50) histo_DataCk[uSpec]->SetBinContent(uBin+1,1.0);
+
+if(uSpec==1&&dlm_DataCk[uSpec].GetBinCenter(0,uBin)<305&&dlm_DataCk[uSpec].GetBinCenter(0,uBin)>260) histo_DataCk[uSpec]->SetBinError(uBin+1,0.1);
+
             histo_DataCk[uSpec]->SetBinError(uBin+1,dlm_DataCk[uSpec].GetBinError(uBin));
+//if(dlm_DataCk[uSpec].GetBinCenter(0,uBin)<500||dlm_DataCk[uSpec].GetBinCenter(0,uBin)>2500)
+//histo_DataCk[uSpec]->SetBinError(uBin+1,dlm_DataCk[uSpec].GetBinError(uBin));
+//else
+//histo_DataCk[uSpec]->SetBinError(uBin+1,dlm_DataCk[uSpec].GetBinError(uBin)*4.0);
         }
         for(unsigned uBin=0; uBin<dlm_McCk[uSpec].GetNbins(); uBin++){
             histo_McCk[uSpec]->SetBinContent(uBin+1,dlm_McCk[uSpec].GetBinContent(uBin));
@@ -1252,34 +1350,271 @@ printf("Opening file %s%s\n",DataFolder[uSpec].Data(),DataFile[uSpec].Data());
 
     //OTHER STUFF ///////////////////////////////////////////
 
+    TF1** fitTemplate = new TF1* [NumSpecies];
+    TF1** fitTemplatePert = new TF1* [NumSpecies];
+    TF1** fitTemplate1 = new TF1* [NumSpecies];
+    TF1** fitTemplate2 = new TF1* [NumSpecies];
+    TF1** fitTemplateFull = new TF1* [NumSpecies];
+    TH1F** hCorrected = new TH1F* [NumSpecies];
+    TH1F** hOriginal = new TH1F* [NumSpecies];
+
+    TF1** fitMickeyMouse = new TF1* [NumSpecies];
+    TF1** fitMickeyMouseBL = new TF1* [NumSpecies];
+    TF1** fitMickeyMouseQS = new TF1* [NumSpecies];
+    TF1** fitMickeyMouseNoQS = new TF1* [NumSpecies];
+    TF1** fitMickeyMouseJet = new TF1* [NumSpecies];
+    TH1F** hMickeyMouseCorrected = new TH1F* [NumSpecies];
+
+    for(unsigned uSpec=0; uSpec<NumSpecies; uSpec++){
+        fitTemplate[uSpec]=NULL;
+        fitTemplatePert[uSpec]=NULL;
+        fitTemplate1[uSpec]=NULL;
+        fitTemplate2[uSpec]=NULL;
+        fitTemplateFull[uSpec]=NULL;
+        hCorrected[uSpec]=NULL;
+        hOriginal[uSpec]=NULL;
+        fitMickeyMouse[uSpec]=NULL;
+        fitMickeyMouseBL[uSpec]=NULL;
+        fitMickeyMouseQS[uSpec]=NULL;
+        fitMickeyMouseNoQS[uSpec]=NULL;
+        fitMickeyMouseJet[uSpec]=NULL;
+        hMickeyMouseCorrected[uSpec]=NULL;
+    }
+
+    //fit baryon-antibaryon
+    //using templates from MC
+    for(unsigned uSpec=NumSpecies/2; uSpec<NumSpecies; uSpec++){
+        dlm_ff_t1 = &dlm_McCk[uSpec-NumSpecies/2];//baryon baryon template
+        dlm_ff_t2 = &dlm_McCk[uSpec];//baryon antibaryon template
+
+        fitTemplate[uSpec] = new TF1("fitTemplate_"+SpeciesName[uSpec],dimi_fraction_fitter,350,3500,5);
+
+        fitTemplate[uSpec]->SetParameter(0,0.7);
+        fitTemplate[uSpec]->SetParLimits(0,0.05,1.4);
+
+        fitTemplate[uSpec]->SetParameter(1,0.15);
+        fitTemplate[uSpec]->SetParLimits(1,0.01,1.00);
+
+        fitTemplate[uSpec]->SetParameter(2,0.0);
+        fitTemplate[uSpec]->SetParLimits(2,-0.15,0.15);
+
+        fitTemplate[uSpec]->SetParameter(3,0.0);
+        fitTemplate[uSpec]->SetParLimits(3,-1e-4*10,1e-4*10);
+
+        fitTemplate[uSpec]->SetParameter(4,0.0);
+        fitTemplate[uSpec]->SetParLimits(4,-1e-7*10,1e-7*10);
+
+        histo_DataCk[uSpec]->Fit(fitTemplate[uSpec],"S, N, R, M");
+
+        fitTemplate1[uSpec] = new TF1("fitTemplatePP_"+SpeciesName[uSpec],dimi_fraction_fitter_T1,0,4500,1);
+        fitTemplate1[uSpec]->SetParameter(0,fitTemplate[uSpec]->GetParameter(0));
+
+        fitTemplate2[uSpec] = new TF1("fitTemplatePAP_"+SpeciesName[uSpec],dimi_fraction_fitter_T2,0,4500,1);
+        fitTemplate2[uSpec]->SetParameter(0,fitTemplate[uSpec]->GetParameter(1));
+
+        fitTemplatePert[uSpec] = new TF1("fitTemplatePert_"+SpeciesName[uSpec],"[0]+[1]*0.5*x+[2]*x*x",0,4500);
+        fitTemplatePert[uSpec]->SetParameter(0,fitTemplate[uSpec]->GetParameter(2));
+        fitTemplatePert[uSpec]->SetParameter(1,fitTemplate[uSpec]->GetParameter(3));
+        fitTemplatePert[uSpec]->SetParameter(2,fitTemplate[uSpec]->GetParameter(4));
+
+        fitTemplateFull[uSpec] = new TF1("fitTemplateFull_"+SpeciesName[uSpec],dimi_fraction_fitter,0,4500,5);
+        fitTemplateFull[uSpec]->SetParameter(0,fitTemplate[uSpec]->GetParameter(0));
+        fitTemplateFull[uSpec]->SetParameter(1,fitTemplate[uSpec]->GetParameter(1));
+        fitTemplateFull[uSpec]->SetParameter(2,fitTemplate[uSpec]->GetParameter(2));
+        fitTemplateFull[uSpec]->SetParameter(3,fitTemplate[uSpec]->GetParameter(3));
+        fitTemplateFull[uSpec]->SetParameter(4,fitTemplate[uSpec]->GetParameter(4));
+
+        fitTemplate[uSpec]->SetNpx(1024);
+        fitTemplatePert[uSpec]->SetNpx(1024);
+        fitTemplateFull[uSpec]->SetNpx(1024);
+
+        fitTemplate[uSpec]->Write();
+        fitTemplate1[uSpec]->Write();
+        fitTemplate2[uSpec]->Write();
+        fitTemplatePert[uSpec]->Write();
+        fitTemplateFull[uSpec]->Write();
+
+        hCorrected[uSpec] = new TH1F("hCorrected_"+SpeciesName[uSpec],"hCorrected_"+SpeciesName[uSpec],histo_DataCk[uSpec]->GetNbinsX(),
+                                    histo_DataCk[uSpec]->GetBinLowEdge(1),histo_DataCk[uSpec]->GetXaxis()->GetBinUpEdge(histo_DataCk[uSpec]->GetNbinsX()));
+
+        for(unsigned uBin=1; uBin<=histo_DataCk[uSpec]->GetNbinsX(); uBin++){
+            double MOM = hCorrected[uSpec]->GetBinCenter(uBin);
+            //hCorrected[uSpec]->SetBinContent(uBin,histo_DataCk[5]->GetBinContent(uBin)/fitTemplateFull[uSpec]->Eval(MOM));
+            //hCorrected[uSpec]->SetBinError(uBin,histo_DataCk[uSpec]->GetBinError(uBin)/fitTemplateFull[uSpec]->Eval(MOM));
+            hCorrected[uSpec]->SetBinContent(uBin,dlm_DataCk[uSpec].GetBinContent(uBin-1)/fitTemplateFull[uSpec]->Eval(MOM));
+            hCorrected[uSpec]->SetBinError(uBin,dlm_DataCk[uSpec].GetBinError(uBin-1)/fitTemplateFull[uSpec]->Eval(MOM));
+            if(dlm_DataCk[uSpec].GetBinContent(uBin-1)/fitTemplateFull[uSpec]->Eval(MOM)!=dlm_DataCk[uSpec].GetBinContent(uBin-1)/fitTemplateFull[uSpec]->Eval(MOM)||
+               dlm_DataCk[uSpec].GetBinContent(uBin-1)/fitTemplateFull[uSpec]->Eval(MOM)>100){
+            hCorrected[uSpec]->SetBinContent(uBin,100);
+            hCorrected[uSpec]->SetBinError(uBin,100);
+               }
+            //
+        }
+
+        hCorrected[uSpec]->Write();
+
+
+    }
+
+    //fit baryon-baryon
+    //using Mickey Mouse fit with QS
+    for(unsigned uSpec=0; uSpec<NumSpecies; uSpec++){
+printf("uSpec = %u\n",uSpec);
+        //double Baseline = par[6]*(1.+par[7]*k+par[8]*k*k+par[9]*k*k*k);
+        //double Pauli = 1.-par[0]*exp(-pow((*x)*par[1]/197.327,par[2]));
+        //double Peak = 1.+par[3]*TMath::Gaus(k,par[4],par[5],1);
+        //return Baseline*Pauli*Peak;
+        fitMickeyMouse[uSpec] = new TF1("fitMickeyMouse_"+SpeciesName[uSpec],dimi_fractionPolQS_fitter,0,2500,10);
+
+        fitMickeyMouse[uSpec]->SetParameter(0,0.1);
+        fitMickeyMouse[uSpec]->SetParLimits(0,0.0,1.0);
+
+        fitMickeyMouse[uSpec]->SetParameter(1,0.3);
+        fitMickeyMouse[uSpec]->SetParLimits(1,0.1,0.5);
+
+        fitMickeyMouse[uSpec]->FixParameter(2,2.0);
+
+        //no QS for baryon-antibaryon
+        if(uSpec>=NumSpecies/2){
+            fitMickeyMouse[uSpec]->FixParameter(0,0.0);
+            fitMickeyMouse[uSpec]->FixParameter(1,1.0);
+            fitMickeyMouse[uSpec]->FixParameter(2,2.0);
+        }
+
+        fitMickeyMouse[uSpec]->SetParameter(3,1.0);
+        fitMickeyMouse[uSpec]->SetParLimits(3,0.01,10.0);
+
+        fitMickeyMouse[uSpec]->SetParameter(4,200.);
+        fitMickeyMouse[uSpec]->SetParLimits(4,60.,400.);
+
+        fitMickeyMouse[uSpec]->SetParameter(5,200.);
+        fitMickeyMouse[uSpec]->SetParLimits(5,80.,600.);
+
+        fitMickeyMouse[uSpec]->SetParameter(6,1.0);
+        fitMickeyMouse[uSpec]->SetParLimits(6,0.0,2.0);
+
+        fitMickeyMouse[uSpec]->SetParameter(7,0.0);
+        fitMickeyMouse[uSpec]->SetParLimits(7,-1e-2,1e-2);
+
+        fitMickeyMouse[uSpec]->SetParameter(8,0.0);
+        fitMickeyMouse[uSpec]->SetParLimits(8,-1e-4,1e-4);
+
+        fitMickeyMouse[uSpec]->FixParameter(9,0.0);
+
+        histo_DataCk[uSpec]->Fit(fitMickeyMouse[uSpec],"S, N, R, M");
+
+        fitMickeyMouseQS[uSpec] = new TF1("fitMickeyMouseQS_"+SpeciesName[uSpec],"1-[0]*exp(-pow(x*[1]/197.327,[2]))",0,4500);
+        fitMickeyMouseQS[uSpec]->SetParameter(0,fitMickeyMouse[uSpec]->GetParameter(0));
+        fitMickeyMouseQS[uSpec]->SetParameter(1,fitMickeyMouse[uSpec]->GetParameter(1));
+        fitMickeyMouseQS[uSpec]->SetParameter(2,fitMickeyMouse[uSpec]->GetParameter(2));
+
+        fitMickeyMouseJet[uSpec] = new TF1("fitMickeyMouseJet_"+SpeciesName[uSpec],"1.+[0]*TMath::Gaus(x,[1],[2],0)",0,4500);
+        fitMickeyMouseJet[uSpec]->SetParameter(0,fitMickeyMouse[uSpec]->GetParameter(3));
+        fitMickeyMouseJet[uSpec]->SetParameter(1,fitMickeyMouse[uSpec]->GetParameter(4));
+        fitMickeyMouseJet[uSpec]->SetParameter(2,fitMickeyMouse[uSpec]->GetParameter(5));
+
+        fitMickeyMouseBL[uSpec] = new TF1("fitMickeyMouseBL_"+SpeciesName[uSpec],"[0]*(1.+[1]*x+[2]*x*x+[3]*x*x*x+[4]*x*x*x*x)",0,4500);
+        fitMickeyMouseBL[uSpec]->SetParameter(0,fitMickeyMouse[uSpec]->GetParameter(6));
+        fitMickeyMouseBL[uSpec]->SetParameter(1,fitMickeyMouse[uSpec]->GetParameter(7));
+        fitMickeyMouseBL[uSpec]->SetParameter(2,fitMickeyMouse[uSpec]->GetParameter(8));
+        fitMickeyMouseBL[uSpec]->SetParameter(3,fitMickeyMouse[uSpec]->GetParameter(9));
+        fitMickeyMouseBL[uSpec]->SetParameter(4,0);
+
+        fitMickeyMouseNoQS[uSpec] = new TF1("fitMickeyMouseNoQS_"+SpeciesName[uSpec],"(1-[0]*exp(-pow(x*[1]/197.327,[2])))*[3]*(1.+[4]*x+[5]*x*x+[6]*x*x*x+[7]*x*x*x*x)",0,4500);
+        fitMickeyMouseNoQS[uSpec]->SetParameter(0,fitMickeyMouse[uSpec]->GetParameter(3));
+        fitMickeyMouseNoQS[uSpec]->SetParameter(1,fitMickeyMouse[uSpec]->GetParameter(4));
+        fitMickeyMouseNoQS[uSpec]->SetParameter(2,fitMickeyMouse[uSpec]->GetParameter(5));
+        fitMickeyMouseNoQS[uSpec]->SetParameter(3,fitMickeyMouse[uSpec]->GetParameter(6));
+        fitMickeyMouseNoQS[uSpec]->SetParameter(4,fitMickeyMouse[uSpec]->GetParameter(7));
+        fitMickeyMouseNoQS[uSpec]->SetParameter(5,fitMickeyMouse[uSpec]->GetParameter(8));
+        fitMickeyMouseNoQS[uSpec]->SetParameter(6,fitMickeyMouse[uSpec]->GetParameter(9));
+        fitMickeyMouseNoQS[uSpec]->SetParameter(7,0);
+
+
+        fitMickeyMouse[uSpec]->SetNpx(1024);
+        fitMickeyMouseQS[uSpec]->SetNpx(1024);
+        fitMickeyMouseJet[uSpec]->SetNpx(1024);
+        fitMickeyMouseBL[uSpec]->SetNpx(1024);
+        fitMickeyMouseNoQS[uSpec]->SetNpx(1024);
+
+        fitMickeyMouse[uSpec]->Write();
+        fitMickeyMouseQS[uSpec]->Write();
+        fitMickeyMouseJet[uSpec]->Write();
+        fitMickeyMouseBL[uSpec]->Write();
+        fitMickeyMouseNoQS[uSpec]->Write();
+
+        hMickeyMouseCorrected[uSpec] = new TH1F("hMickeyMouseCorrected_"+SpeciesName[uSpec],"hMickeyMouseCorrected_"+SpeciesName[uSpec],histo_DataCk[uSpec]->GetNbinsX(),
+                                    histo_DataCk[uSpec]->GetBinLowEdge(1),histo_DataCk[uSpec]->GetXaxis()->GetBinUpEdge(histo_DataCk[uSpec]->GetNbinsX()));
+printf("HELLO\n");
+        for(unsigned uBin=1; uBin<=histo_DataCk[uSpec]->GetNbinsX(); uBin++){
+            double MOM = hMickeyMouseCorrected[uSpec]->GetBinCenter(uBin);
+            //hCorrected[uSpec]->SetBinContent(uBin,histo_DataCk[5]->GetBinContent(uBin)/fitTemplateFull[uSpec]->Eval(MOM));
+            //hCorrected[uSpec]->SetBinError(uBin,histo_DataCk[uSpec]->GetBinError(uBin)/fitTemplateFull[uSpec]->Eval(MOM));
+            hMickeyMouseCorrected[uSpec]->SetBinContent(uBin,dlm_DataCk[uSpec].GetBinContent(uBin-1)/fitMickeyMouse[uSpec]->Eval(MOM));
+            hMickeyMouseCorrected[uSpec]->SetBinError(uBin,dlm_DataCk[uSpec].GetBinError(uBin-1)/fitMickeyMouse[uSpec]->Eval(MOM));
+            if(dlm_DataCk[uSpec].GetBinContent(uBin-1)/fitMickeyMouse[uSpec]->Eval(MOM)!=dlm_DataCk[uSpec].GetBinContent(uBin-1)/fitMickeyMouse[uSpec]->Eval(MOM)||
+               dlm_DataCk[uSpec].GetBinContent(uBin-1)/fitMickeyMouse[uSpec]->Eval(MOM)>100){
+            hMickeyMouseCorrected[uSpec]->SetBinContent(uBin,100);
+            hMickeyMouseCorrected[uSpec]->SetBinError(uBin,100);
+               }
+            //
+        }
+printf("HELLO2\n");
+        hMickeyMouseCorrected[uSpec]->Write();
+
+        hOriginal[uSpec] = new TH1F("hOriginal_"+SpeciesName[uSpec],"hOriginal_"+SpeciesName[uSpec],histo_DataCk[uSpec]->GetNbinsX(),
+                                    histo_DataCk[uSpec]->GetBinLowEdge(1),histo_DataCk[uSpec]->GetXaxis()->GetBinUpEdge(histo_DataCk[uSpec]->GetNbinsX()));
+        for(unsigned uBin=1; uBin<=histo_DataCk[uSpec]->GetNbinsX(); uBin++){
+            double MOM = hOriginal[uSpec]->GetBinCenter(uBin);
+            if(fitTemplateFull[uSpec]&&fitTemplateFull[uSpec]->Eval(MOM)<1e-8){
+                hOriginal[uSpec]->SetBinContent(uBin,100);
+                hOriginal[uSpec]->SetBinError(uBin,100);
+            }
+            else if(fitMickeyMouse[uSpec]&&fitMickeyMouse[uSpec]->Eval(MOM)<1e-8){
+                hOriginal[uSpec]->SetBinContent(uBin,100);
+                hOriginal[uSpec]->SetBinError(uBin,100);
+            }
+            else{
+                hOriginal[uSpec]->SetBinContent(uBin,dlm_DataCk[uSpec].GetBinContent(uBin-1));
+                hOriginal[uSpec]->SetBinError(uBin,dlm_DataCk[uSpec].GetBinError(uBin-1));
+            }
+        }
+        hOriginal[uSpec]->Write();
+    }
+
+
+
+/*
     //FIT pAp
     dlm_ff_t1 = &dlm_McCk[0];
-    dlm_ff_t2 = &dlm_McCk[4];
+    dlm_ff_t2 = &dlm_McCk[5];
     TF1* fit_pAp = new TF1("fit_pAp",dimi_fraction_fitter,350,3500,5);
+    //TF1* fit_pAp = new TF1("fit_pAp",dimi_fraction_fitter,350,3500,8);
 
     fit_pAp->SetParameter(0,0.7);
     fit_pAp->SetParLimits(0,0.3,1.1);
 
     fit_pAp->SetParameter(1,0.15);
-    fit_pAp->SetParLimits(1,0.05,0.35);
+    fit_pAp->SetParLimits(1,0.05,0.65);
 
     fit_pAp->SetParameter(2,0.0);
-    fit_pAp->SetParLimits(2,-0.1,0.1);
+    fit_pAp->SetParLimits(2,-0.1*5,0.1*5);
 
     fit_pAp->SetParameter(3,0.0);
-    fit_pAp->SetParLimits(3,-1e-4,1e-4);
+    fit_pAp->SetParLimits(3,-1e-4*5,1e-4*5);
 
     fit_pAp->SetParameter(4,0.0);
-    fit_pAp->SetParLimits(4,-1e-7,1e-7);
+    fit_pAp->SetParLimits(4,-1e-7*5,1e-7*5);
 
-    //fit_pAp->FixParameter(0,0);
-    //fit_pAp->FixParameter(1,1);
+    //fit_pAp->FixParameter(0,0.55);
+    //fit_pAp->FixParameter(1,0.45);
     //fit_pAp->FixParameter(2,0);
     //fit_pAp->FixParameter(3,0);
     //fit_pAp->FixParameter(4,0);
 
-    histo_DataCk[4]->Fit(fit_pAp,"S, N, R, M");
-    TF1* fitPert_pAp = new TF1("fitPert_pAp","[0]+[1]*0.5*x+[2]*x*x",350,3200);
+    histo_DataCk[5]->Fit(fit_pAp,"S, N, R, M");
+
+    TF1* fitPert_pAp = new TF1("fitPert_pAp","[0]+[1]*0.5*x+[2]*x*x",0,4500);
     fitPert_pAp->SetParameter(0,fit_pAp->GetParameter(2));
     fitPert_pAp->SetParameter(1,fit_pAp->GetParameter(3));
     fitPert_pAp->SetParameter(2,fit_pAp->GetParameter(4));
@@ -1291,30 +1626,655 @@ printf("Opening file %s%s\n",DataFolder[uSpec].Data(),DataFile[uSpec].Data());
     fitFull_pAp->SetParameter(3,fit_pAp->GetParameter(3));
     fitFull_pAp->SetParameter(4,fit_pAp->GetParameter(4));
 
-
     fit_pAp->Write();
     fitPert_pAp->Write();
     fitFull_pAp->Write();
-    TH1F* hCorrected_pAp = new TH1F("hCorrected_pAp","hCorrected_pAp",histo_DataCk[4]->GetNbinsX(),
-                                    histo_DataCk[4]->GetBinLowEdge(1),histo_DataCk[4]->GetXaxis()->GetBinUpEdge(histo_DataCk[4]->GetNbinsX()));
-    for(unsigned uBin=1; uBin<=histo_DataCk[4]->GetNbinsX(); uBin++){
+    TH1F* hCorrected_pAp = new TH1F("hCorrected_pAp","hCorrected_pAp",histo_DataCk[5]->GetNbinsX(),
+                                    histo_DataCk[5]->GetBinLowEdge(1),histo_DataCk[5]->GetXaxis()->GetBinUpEdge(histo_DataCk[5]->GetNbinsX()));
+    for(unsigned uBin=1; uBin<=histo_DataCk[5]->GetNbinsX(); uBin++){
         double MOM = hCorrected_pAp->GetBinCenter(uBin);
-        hCorrected_pAp->SetBinContent(uBin,histo_DataCk[4]->GetBinContent(uBin)/fitFull_pAp->Eval(MOM));
-        hCorrected_pAp->SetBinError(uBin,histo_DataCk[4]->GetBinError(uBin)/fitFull_pAp->Eval(MOM));
+        //hCorrected_pAp->SetBinContent(uBin,histo_DataCk[5]->GetBinContent(uBin)/fitFull_pAp->Eval(MOM));
+        //hCorrected_pAp->SetBinError(uBin,histo_DataCk[5]->GetBinError(uBin)/fitFull_pAp->Eval(MOM));
+        hCorrected_pAp->SetBinContent(uBin,dlm_DataCk[5].GetBinContent(uBin-1)/fitFull_pAp->Eval(MOM));
+        hCorrected_pAp->SetBinError(uBin,dlm_DataCk[5].GetBinError(uBin-1)/fitFull_pAp->Eval(MOM));
+        if(dlm_DataCk[5].GetBinContent(uBin-1)/fitFull_pAp->Eval(MOM)!=dlm_DataCk[5].GetBinContent(uBin-1)/fitFull_pAp->Eval(MOM)||
+           dlm_DataCk[5].GetBinContent(uBin-1)/fitFull_pAp->Eval(MOM)>100){
+        hCorrected_pAp->SetBinContent(uBin,100);
+        hCorrected_pAp->SetBinError(uBin,100);
+           }
+        //
     }
     hCorrected_pAp->Write();
+*/
+
+    //FIT ppp
+
+TH1F* hWHICHONE = histo_DataCk[0];
+DLM_Histo<float>& dWHICHONE = dlm_DataCk[0];
+//TH1F* hWHICHONE = histo_McCk[0];
+//DLM_Histo<float>& dWHICHONE = dlm_McCk[0];
+
+    dlm_ff_t1 = &dlm_McCk[0];
+    dlm_ff_t2 = &dlm_McCk[5];
+    //TF1* fit_pp = new TF1("fit_pp",dimi_fractionQS_fitter,200,3500,10);
+    TF1* fit_pp = new TF1("fit_pp",dimi_fractionPolQS_fitter,0,2500,10);
+
+/*
+    fit_pp->FixParameter(0,0.0);
+    fit_pp->FixParameter(1,0.0);
+    fit_pp->FixParameter(2,0.25);
+    fit_pp->FixParameter(3,0.3);
+    fit_pp->FixParameter(4,2);
+    fit_pp->FixParameter(5,0);
+    fit_pp->FixParameter(6,0);
+    fit_pp->FixParameter(7,0);
 
 
-    //FIT pAp
+    fit_pp->SetParameter(0,1.0);
+    fit_pp->SetParLimits(0,0.3,3.0);
+    fit_pp->SetParameter(1,1.0);
+    fit_pp->SetParLimits(1,0.5,3.0);
+    fit_pp->SetParameter(2,0.1);
+    fit_pp->SetParLimits(2,0,1.0);
+    fit_pp->SetParameter(3,0.3);
+    fit_pp->SetParLimits(3,0.1,0.5);
+    //fit_pp->SetParameter(4,2);
+    //fit_pp->SetParLimits(4,1,2);
+
+    fit_pp->SetParameter(5,0.3);
+    fit_pp->SetParLimits(5,-1.0,1.0);
+
+    fit_pp->SetParameter(6,0.0);
+    fit_pp->SetParLimits(6,-1e-5,1e-5);
+
+    fit_pp->SetParameter(7,0.0);
+    fit_pp->SetParLimits(7,-1e-9,1e-9);
+
+    fit_pp->SetParameter(8,0.0);
+    fit_pp->SetParLimits(8,-1e-13,1e-13);
+
+    fit_pp->SetParameter(9,0.0);
+    fit_pp->SetParLimits(9,-1e-17,1e-17);
+*/
+
+    fit_pp->SetParameter(0,0.1);
+    fit_pp->SetParLimits(0,0,1.0);
+//fit_pp->SetParameter(0,0.67);
+    fit_pp->SetParameter(1,0.3);
+    fit_pp->SetParLimits(1,0.1,0.5);
+    fit_pp->SetParameter(2,2);
+    fit_pp->SetParLimits(2,1,2);
+fit_pp->FixParameter(2,2);
+
+    fit_pp->SetParameter(3,10);
+    fit_pp->SetParLimits(3,0.01,1000);
+    fit_pp->SetParameter(4,260);
+    fit_pp->SetParLimits(4,60,300);
+//fit_pp->FixParameter(4,100);
+    fit_pp->SetParameter(5,460);
+    fit_pp->SetParLimits(5,80,500);
+//fit_pp->FixParameter(5,150);
+
+//fit_pp->SetParameter(3,0.1);
+//fit_pp->SetParLimits(3,0,2.0);
+//fit_pp->SetParameter(4,0);
+//fit_pp->SetParLimits(4,-1,1);
+
+//fit_pp->FixParameter(3,0);
+//fit_pp->FixParameter(4,0);
+//fit_pp->FixParameter(5,0);
+
+    fit_pp->SetParameter(6,1.0);
+    fit_pp->SetParLimits(6,0.0,2.0);
+
+    fit_pp->SetParameter(7,0);
+    fit_pp->SetParLimits(7,-1e-2,1e-2);
+
+    fit_pp->SetParameter(8,0);
+    fit_pp->SetParLimits(8,-1e-4,1e-4);
+//fit_pp->FixParameter(8,0);
+
+    fit_pp->SetParameter(9,0);
+    fit_pp->SetParLimits(9,-1e-6,1e-6);
+fit_pp->FixParameter(9,0);
 
 
-    /////////////////////////////////////////////////////////
+fit_pp->FixParameter(0,2.23021e-01);
+fit_pp->FixParameter(1,2.93243e-01);
+fit_pp->FixParameter(2,2.00000e+00);
+fit_pp->FixParameter(3,2.76903e+01);
+fit_pp->FixParameter(4,9.76146e+01);
+fit_pp->FixParameter(5,1.50618e+02);
+fit_pp->FixParameter(6,1.19729e+00);
+fit_pp->FixParameter(7,-3.13238e-05);
+fit_pp->FixParameter(8,2.03317e-08);
+fit_pp->FixParameter(9,0.00000e+00);
+
+
+
+
+    hWHICHONE->Fit(fit_pp,"S, N, R, M");
+//histo_McCk[0]->Fit(fit_pp,"S, N, R, M");
+//histo_McCk[4]->Fit(fit_pp,"S, N, R, M");
+
+    TF1* fitNonjet_pp = new TF1("fitNonjet_pp","[0]*(1.+[1]*x+[2]*x*x+[3]*x*x*x+[4]*x*x*x*x)",0,4500);
+    fitNonjet_pp->SetParameter(0,fit_pp->GetParameter(6));
+    fitNonjet_pp->SetParameter(1,fit_pp->GetParameter(7));
+    fitNonjet_pp->SetParameter(2,fit_pp->GetParameter(8));
+    fitNonjet_pp->SetParameter(3,fit_pp->GetParameter(9));
+    fitNonjet_pp->SetParameter(4,0);
+
+    TF1* fitJet_pp = new TF1("fitJet_pp","1.+[0]*TMath::Gaus(x,[1],[2],1);",0,4500);
+    fitJet_pp->SetParameter(0,fit_pp->GetParameter(3));
+    fitJet_pp->SetParameter(1,fit_pp->GetParameter(4));
+    fitJet_pp->SetParameter(2,fit_pp->GetParameter(5));
+
+
+    TF1* fitQS_pp = new TF1("fitQS_pp","1-[0]*exp(-pow(x*[1]/197.327,[2]))",0,4500);
+    fitQS_pp->SetParameter(0,fit_pp->GetParameter(0));
+    fitQS_pp->SetParameter(1,fit_pp->GetParameter(1));
+    fitQS_pp->SetParameter(2,fit_pp->GetParameter(2));
+
+    TF1* fit_wo_Jet_pp = new TF1("fit_wo_Jet_pp","(1-[0]*exp(-pow(x*[1]/197.327,[2])))*[3]*(1.+[4]*x+[5]*x*x+[6]*x*x*x+[7]*x*x*x*x)",0,4500);
+    fit_wo_Jet_pp->SetParameter(0,fit_pp->GetParameter(0));
+    fit_wo_Jet_pp->SetParameter(1,fit_pp->GetParameter(1));
+    fit_wo_Jet_pp->SetParameter(2,fit_pp->GetParameter(2));
+    fit_wo_Jet_pp->SetParameter(3,fit_pp->GetParameter(6));
+    fit_wo_Jet_pp->SetParameter(4,fit_pp->GetParameter(7));
+    fit_wo_Jet_pp->SetParameter(5,fit_pp->GetParameter(8));
+    fit_wo_Jet_pp->SetParameter(6,fit_pp->GetParameter(9));
+    fit_wo_Jet_pp->SetParameter(7,0);
+
+    //TF1* fitFull_pp = new TF1("fitFull_pp",dimi_fractionQS_fitter,0,4500,10);
+    TF1* fitFull_pp = new TF1("fitFull_pp",dimi_fractionPolQS_fitter,0,4500,10);
+
+    fitFull_pp->SetParameter(0,fit_pp->GetParameter(0));
+    fitFull_pp->SetParameter(1,fit_pp->GetParameter(1));
+    fitFull_pp->SetParameter(2,fit_pp->GetParameter(2));
+    fitFull_pp->SetParameter(3,fit_pp->GetParameter(3));
+    fitFull_pp->SetParameter(4,fit_pp->GetParameter(4));
+    fitFull_pp->SetParameter(5,fit_pp->GetParameter(5));
+    fitFull_pp->SetParameter(6,fit_pp->GetParameter(6));
+    fitFull_pp->SetParameter(7,fit_pp->GetParameter(7));
+    fitFull_pp->SetParameter(8,fit_pp->GetParameter(8));
+    fitFull_pp->SetParameter(9,fit_pp->GetParameter(9));
+    fitFull_pp->SetNpx(1024);
+/*
+    fit_pp->Write();
+    fitNonjet_pp->Write();
+    fitJet_pp->Write();
+    fitQS_pp->Write();
+    fit_wo_Jet_pp->Write();
+    fitFull_pp->Write();
+
+    TH1F* hOriginal_pp = new TH1F("hOriginal_pp","hOriginal_pp",hWHICHONE->GetNbinsX(),
+                                    hWHICHONE->GetBinLowEdge(1),hWHICHONE->GetXaxis()->GetBinUpEdge(hWHICHONE->GetNbinsX()));
+    for(unsigned uBin=1; uBin<=hWHICHONE->GetNbinsX(); uBin++){
+        double MOM = hOriginal_pp->GetBinCenter(uBin);
+        if(fitFull_pp->Eval(MOM)<1e-8){
+            hOriginal_pp->SetBinContent(uBin,100);
+            hOriginal_pp->SetBinError(uBin,100);
+        }
+        else{
+            //hCorrected_pp->SetBinContent(uBin,hWHICHONE->GetBinContent(uBin)/fitFull_pp->Eval(MOM));
+            //hCorrected_pp->SetBinError(uBin,hWHICHONE->GetBinError(uBin)/fitFull_pp->Eval(MOM));
+            hOriginal_pp->SetBinContent(uBin,dWHICHONE.GetBinContent(uBin-1));
+            hOriginal_pp->SetBinError(uBin,dWHICHONE.GetBinError(uBin-1));
+            //printf("%f %e (%e)\n",MOM,hWHICHONE->GetBinContent(uBin),fitFull_pp->Eval(MOM));
+        }
+    }
+    hOriginal_pp->Write();
+
+    TH1F* hCorrected_pp = new TH1F("hCorrected_pp","hCorrected_pp",hWHICHONE->GetNbinsX(),
+                                    hWHICHONE->GetBinLowEdge(1),hWHICHONE->GetXaxis()->GetBinUpEdge(hWHICHONE->GetNbinsX()));
+    for(unsigned uBin=1; uBin<=hWHICHONE->GetNbinsX(); uBin++){
+        double MOM = hCorrected_pp->GetBinCenter(uBin);
+        if(fitFull_pp->Eval(MOM)<1e-8){
+            hCorrected_pp->SetBinContent(uBin,100);
+            hCorrected_pp->SetBinError(uBin,100);
+        }
+        else{
+            //hCorrected_pp->SetBinContent(uBin,hWHICHONE->GetBinContent(uBin)/fitFull_pp->Eval(MOM));
+            //hCorrected_pp->SetBinError(uBin,hWHICHONE->GetBinError(uBin)/fitFull_pp->Eval(MOM));
+            hCorrected_pp->SetBinContent(uBin,dWHICHONE.GetBinContent(uBin-1)/fitFull_pp->Eval(MOM));
+            hCorrected_pp->SetBinError(uBin,dWHICHONE.GetBinError(uBin-1)/fitFull_pp->Eval(MOM));
+            //printf("%f %e (%e)\n",MOM,hWHICHONE->GetBinContent(uBin),fitFull_pp->Eval(MOM));
+        }
+    }
+    hCorrected_pp->Write();
+*/
+    TCanvas* c_pp = new TCanvas("c_pp", "c_pp", 1);
+    c_pp->cd(0);
+    c_pp->SetCanvasSize(1280, 720);
+    c_pp->SetMargin(0.15,0.05,0.2,0.05);//lrbt
+
+    hWHICHONE->GetYaxis()->SetRangeUser(0.6,1.4);
+    hWHICHONE->Draw();
+    fitFull_pp->Draw("same");
+    //fitPert_pp->Draw("same");
+    c_pp->SaveAs(OutputFolder+"c_pp.png");
+
+    ////////////////////////////////////////////////////////
+}
+
+void ParametrizeTemplates(const TString Particle1, const TString Particle2){
+
+    const TString InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/OtherTasks/ALL_CorrectedMC_EXP/fOutput.root";
+    const TString OutputFileName =
+    "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/OtherTasks/ParametrizeTemplates/fTemplates_"+Particle1+Particle2+".root";
+
+    TString SystemName = Particle1+Particle2;
+    TString AntiSystemName = Particle1+"A"+Particle2;
+    printf("SystemName = %s (%s)\n",SystemName.Data(),AntiSystemName.Data());
+
+    TString McCk_PP = "histo_McCk_"+SystemName;
+    TString McCk_PAP = "histo_McCk_"+AntiSystemName;
+    TString DataCk_PP = "histo_DataCk_"+SystemName;
+    TString DataCk_PAP = "histo_DataCk_"+AntiSystemName;
+
+    TFile fInput(InputFileName,"read");
+
+    TH1F* Template_PP;
+    TH1F* Template_PAP;
+    TH1F* Data_PP;
+    TH1F* Data_PAP;
+
+
+    Template_PP = (TH1F*)fInput.Get(McCk_PP);
+    Template_PAP = (TH1F*)fInput.Get(McCk_PAP);
+    Data_PP = (TH1F*)fInput.Get(DataCk_PP);
+    Data_PAP = (TH1F*)fInput.Get(DataCk_PAP);
+
+    TFile fOutput(OutputFileName,"recreate");
+
+    TF1* fTemplate_PP = new TF1("fTemplate_PP","[0]+[1]*x+[2]*x*x+[3]*x*x*x+[4]*x*x*x*x",500,3000);
+    fTemplate_PP->SetParameter(0,1.03);
+    fTemplate_PP->SetParameter(1,-1.21e-4);
+    fTemplate_PP->SetParLimits(1,-1e-3,1e-3);
+    fTemplate_PP->SetParameter(2,1.08e-7);
+    fTemplate_PP->SetParLimits(2,-1e-6,1e-6);
+    fTemplate_PP->SetParameter(3,-2.76e-11);
+    fTemplate_PP->SetParLimits(3,-1e-9,1e-9);
+    fTemplate_PP->SetParameter(4,2.76e-15);
+    fTemplate_PP->SetParLimits(4,-1e-12,1e-12);
+    Template_PP->Fit(fTemplate_PP,"S, N, R, M");
+
+
+
+
+
+    Template_PP->Write();
+    fTemplate_PP->Write();
+
+    Template_PAP->Write();
+    //fTemplate_PP->Write();
 
 }
 
+void ReweightME(){
+    TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/OtherTasks/ReweightME/";
+    const unsigned NumSpecies = 8;
+    TString* SpeciesName = new TString[NumSpecies];
+    TString* SpeciesLegend = new TString[NumSpecies];
+    SpeciesName[0] = "pp"; SpeciesLegend[0] = "p-p";
+    SpeciesName[1] = "pL"; SpeciesLegend[1] = "p-#Lambda";
+    SpeciesName[2] = "pXi"; SpeciesLegend[2] = "p-#Xi";
+    SpeciesName[3] = "LL"; SpeciesLegend[3] = "#Lambda-#Lambda";
+    SpeciesName[4] = "pAp"; SpeciesLegend[4] = "p-#bar{p}";
+    SpeciesName[5] = "pAL"; SpeciesLegend[5] = "p-#bar{#Lambda}";
+    SpeciesName[6] = "pAXi"; SpeciesLegend[6] = "p-#bar{#Xi}";
+    SpeciesName[7] = "LAL"; SpeciesLegend[7] = "#Lambda-#bar{#Lambda}";
+
+
+    TString* DataFolder = new TString[NumSpecies];
+    for(unsigned uSpec=0; uSpec<NumSpecies; uSpec++)
+    DataFolder[uSpec] = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/pp13TeV_HM_Baseline/MyResults_Vale/Data/AnalysisResults/Nano/";
+
+    TString* McFolder = new TString[NumSpecies];
+    McFolder[0] = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/pp13TeV_HM_Baseline/MyResults_Vale/Fast_BBar/Trains_MCAOD/Norm018028/";
+    McFolder[1] = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/pp13TeV_HM_Baseline/MyResults_Vale/Fast_BBar/Trains_MCAOD/Norm018028/";
+    McFolder[2] = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/pp13TeV_HM_Baseline/MyResults_Vale/Fast_BBar/Trains_MCAOD/Norm018028/";
+    McFolder[3] = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/pp13TeV_HM_Baseline/MyResults_Vale/Fast_BBar/Trains_MCAOD/Norm018028/";
+    McFolder[4] = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/pp13TeV_HM_Baseline/MyResults_Vale/Fast_BBar/Trains_MCAOD/Norm018028/";
+    McFolder[5] = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/pp13TeV_HM_Baseline/MyResults_Vale/Fast_BBar/Trains_MCAOD/Norm018028/";
+    McFolder[6] = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/pp13TeV_HM_Baseline/MyResults_Vale/Fast_BBar/Trains_MCAOD/Norm018028/";
+    McFolder[7] = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/pp13TeV_HM_Baseline/MyResults_Vale/Fast_BBar/Trains_MCAOD/Norm018028/";
+
+    TString* DataFile = new TString[NumSpecies];
+    //DataFile[0] = "CFOutput_pp_8.root";
+    DataFile[0] = "AnalysisResults.root";
+    DataFile[1] = "AnalysisResults.root";
+    DataFile[2] = "AnalysisResults.root";
+    DataFile[3] = "AnalysisResults.root";
+    DataFile[4] = "AnalysisResults.root";
+    DataFile[5] = "AnalysisResults.root";
+    DataFile[6] = "AnalysisResults.root";
+    DataFile[7] = "AnalysisResults.root";
+
+    TString* McFile = new TString[NumSpecies];
+    McFile[0] = "CFOutput_pp_8.root";
+    McFile[1] = "CFOutput_pL_8.root";
+    McFile[2] = "CFOutput_pXi_8.root";
+    McFile[3] = "CFOutput_LL_8.root";
+    McFile[4] = "CFOutput_pAp_8.root";
+    McFile[5] = "CFOutput_pAL_8.root";
+    McFile[6] = "CFOutput_pAXi_8.root";
+    McFile[7] = "CFOutput_LAL_8.root";
+
+    TString* DataHisto = new TString[NumSpecies];
+    DataHisto[0] = "hCk_ReweightedMeV_0";
+    DataHisto[1] = "hCk_ReweightedMeV_0";
+    DataHisto[2] = "hCk_ReweightedMeV_0";
+    DataHisto[3] = "hCk_ReweightedMeV_0";
+    DataHisto[4] = "hCk_ReweightedMeV_0";
+    DataHisto[5] = "hCk_ReweightedMeV_0";
+    DataHisto[6] = "hCk_ReweightedMeV_0";
+    DataHisto[7] = "hCk_ReweightedMeV_0";
+
+    TString* McHisto = new TString[NumSpecies];
+    McHisto[0] = "hCk_ReweightedMeV_0";
+    McHisto[1] = "hCk_ReweightedMeV_0";
+    McHisto[2] = "hCk_ReweightedMeV_0";
+    McHisto[3] = "hCk_ReweightedMeV_0";
+    McHisto[4] = "hCk_ReweightedMeV_0";
+    McHisto[5] = "hCk_ReweightedMeV_0";
+    McHisto[6] = "hCk_ReweightedMeV_0";
+    McHisto[7] = "hCk_ReweightedMeV_0";
+
+    int* RescaleFactor = new int[NumSpecies];
+    RescaleFactor[0] = 1;
+    RescaleFactor[1] = 1;
+    RescaleFactor[2] = 1;
+    RescaleFactor[3] = 1;
+    RescaleFactor[4] = 1;
+    RescaleFactor[5] = 1;
+    RescaleFactor[6] = 1;
+    RescaleFactor[7] = 1;
+
+    int* RescaleSeMeAxis = new int[NumSpecies];
+    RescaleSeMeAxis[0] = 1000;
+    RescaleSeMeAxis[1] = 1000;
+    RescaleSeMeAxis[2] = 1000;
+    RescaleSeMeAxis[3] = 1000;
+    RescaleSeMeAxis[4] = 1000;
+    RescaleSeMeAxis[5] = 1000;
+    RescaleSeMeAxis[6] = 1000;
+    RescaleSeMeAxis[7] = 1000;
+
+    TString* DataResultsList = new TString[NumSpecies];
+    for(unsigned uSpec=0; uSpec<NumSpecies; uSpec++) DataResultsList[uSpec] = "HMBBarResults8";
+
+    TString* DataPP_List = new TString[NumSpecies];
+    DataPP_List[0] = "Particle0_Particle0";
+    DataPP_List[1] = "Particle0_Particle2";
+    DataPP_List[2] = "Particle0_Particle4";
+    DataPP_List[3] = "Particle2_Particle2";
+    DataPP_List[4] = "Particle0_Particle1";
+    DataPP_List[5] = "Particle0_Particle3";
+    DataPP_List[6] = "Particle0_Particle5";
+    DataPP_List[7] = "Particle2_Particle3";
+
+    TString* DataAPAP_List = new TString[NumSpecies];
+    DataAPAP_List[0] = "Particle1_Particle1";
+    DataAPAP_List[1] = "Particle1_Particle3";
+    DataAPAP_List[2] = "Particle1_Particle5";
+    DataAPAP_List[3] = "Particle3_Particle3";
+    DataAPAP_List[4] = "Particle1_Particle1";
+    DataAPAP_List[5] = "Particle1_Particle3";
+    DataAPAP_List[6] = "Particle3_Particle3";
+    DataAPAP_List[7] = "Particle1_Particle3";
+
+    TString* DataPP_SEMultDist = new TString[NumSpecies];
+    for(unsigned uSpec=0; uSpec<NumSpecies; uSpec++)DataPP_SEMultDist[uSpec] = "SEMultDist_"+DataPP_List[uSpec];
+
+    TString* DataAPAP_SEMultDist = new TString[NumSpecies];
+    for(unsigned uSpec=0; uSpec<NumSpecies; uSpec++)DataAPAP_SEMultDist[uSpec] = "SEMultDist_"+DataAPAP_List[uSpec];
+
+    TString* DataPP_MEMultDist = new TString[NumSpecies];
+    for(unsigned uSpec=0; uSpec<NumSpecies; uSpec++)DataPP_MEMultDist[uSpec] = "MEMultDist_"+DataPP_List[uSpec];
+
+    TString* DataAPAP_MEMultDist = new TString[NumSpecies];
+    for(unsigned uSpec=0; uSpec<NumSpecies; uSpec++)DataAPAP_MEMultDist[uSpec] = "MEMultDist_"+DataAPAP_List[uSpec];
+
+    DLM_Histo<float>* dlm_SEMult_PP = new DLM_Histo<float>[NumSpecies];
+    DLM_Histo<float>* dlm_SEMult_APAP = new DLM_Histo<float>[NumSpecies];
+    DLM_Histo<float>* dlm_SEMult = new DLM_Histo<float>[NumSpecies];
+
+    DLM_Histo<float>* dlm_MEMult_PP = new DLM_Histo<float>[NumSpecies];
+    DLM_Histo<float>* dlm_MEMult_APAP = new DLM_Histo<float>[NumSpecies];
+    DLM_Histo<float>* dlm_MEMult = new DLM_Histo<float>[NumSpecies];
+
+    DLM_Histo<float>* dlm_MEMultW_PP = new DLM_Histo<float>[NumSpecies];
+    DLM_Histo<float>* dlm_MEMultW_APAP = new DLM_Histo<float>[NumSpecies];
+    DLM_Histo<float>* dlm_MEMultW = new DLM_Histo<float>[NumSpecies];
+
+    DLM_Histo<float>* dlm_CkMult_PP = new DLM_Histo<float>[NumSpecies];
+    DLM_Histo<float>* dlm_CkMult_APAP = new DLM_Histo<float>[NumSpecies];
+    DLM_Histo<float>* dlm_CkMult = new DLM_Histo<float>[NumSpecies];
+
+    DLM_Histo<float>* dlm_CkMultW_PP = new DLM_Histo<float>[NumSpecies];
+    DLM_Histo<float>* dlm_CkMultW_APAP = new DLM_Histo<float>[NumSpecies];
+    DLM_Histo<float>* dlm_CkMultW = new DLM_Histo<float>[NumSpecies];
+
+    TH2F** h_CkMult = new TH2F* [NumSpecies];
+    TH2F** h_CkMultW = new TH2F* [NumSpecies];
+
+    for(unsigned uSpec=0; uSpec<NumSpecies; uSpec++){
+        unsigned NumBins;
+        double kMin;
+        double kMax;
+        TH2F* hSEpp_tmp;
+        TH2F* hMEpp_tmp;
+        TH2F* hSEapap_tmp;
+        TH2F* hMEapap_tmp;
+        TDirectoryFile *dirResults=NULL;
+        TList* listresults_tmp=NULL;
+        TList* listpp_tmp=NULL;
+        TList* listapap_tmp=NULL;
+
+printf("Opening file %s%s\n",DataFolder[uSpec].Data(),DataFile[uSpec].Data());
+
+        TFile datafile(DataFolder[uSpec]+DataFile[uSpec],"read");
+        dirResults=(TDirectoryFile*)(datafile.FindObjectAny(DataResultsList[uSpec]));
+printf("dirResults=%p\n",dirResults);
+        dirResults->GetObject(DataResultsList[uSpec],listresults_tmp);
+printf("listresults_tmp=%p\n",listresults_tmp);
+        listpp_tmp = (TList*)listresults_tmp->FindObject(DataPP_List[uSpec]);
+printf("listpp_tmp=%p\n",listpp_tmp);
+        if(DataAPAP_List[uSpec]!="")listapap_tmp = (TList*)listresults_tmp->FindObject(DataAPAP_List[uSpec]);
+        else listapap_tmp=NULL;
+printf("listapap_tmp=%p\n",listapap_tmp);
+        hSEpp_tmp = (TH2F*)listpp_tmp->FindObject(DataPP_SEMultDist[uSpec]);
+printf("hSEpp_tmp=%p\n",hSEpp_tmp);
+        if(listapap_tmp)hSEapap_tmp = (TH2F*)listapap_tmp->FindObject(DataAPAP_SEMultDist[uSpec]);
+        else hSEapap_tmp=NULL;
+printf("hSEapap_tmp=%p\n",hSEapap_tmp);
+        hMEpp_tmp = (TH2F*)listpp_tmp->FindObject(DataPP_MEMultDist[uSpec]);
+printf("hMEpp_tmp=%p\n",hMEpp_tmp);
+        if(listapap_tmp)hMEapap_tmp = (TH2F*)listapap_tmp->FindObject(DataAPAP_MEMultDist[uSpec]);
+        else hMEapap_tmp=NULL;
+printf("hMEapap_tmp=%p\n",hMEapap_tmp);
+
+        dlm_SEMult_PP[uSpec].SetUp(2);
+        dlm_SEMult_PP[uSpec].SetUp(0,hSEpp_tmp->GetNbinsX(),
+                                   hSEpp_tmp->GetXaxis()->GetBinLowEdge(1)*RescaleSeMeAxis[uSpec],
+                                   hSEpp_tmp->GetXaxis()->GetBinUpEdge(hSEpp_tmp->GetNbinsX())*RescaleSeMeAxis[uSpec]);
+        dlm_SEMult_PP[uSpec].SetUp(1,hSEpp_tmp->GetNbinsY(),
+                                   hSEpp_tmp->GetYaxis()->GetBinLowEdge(1),
+                                   hSEpp_tmp->GetYaxis()->GetBinUpEdge(hSEpp_tmp->GetNbinsY()));
+        dlm_SEMult_PP[uSpec].Initialize();
+        for(unsigned uBinX=0; uBinX<hSEpp_tmp->GetNbinsX(); uBinX++){
+            for(unsigned uBinY=0; uBinY<hSEpp_tmp->GetNbinsY(); uBinY++){
+                unsigned WhichBin[2]; WhichBin[0]=uBinX; WhichBin[1]=uBinY;
+                dlm_SEMult_PP[uSpec].SetBinContent(WhichBin,hSEpp_tmp->GetBinContent(uBinX+1,uBinY+1));
+                dlm_SEMult_PP[uSpec].SetBinError(WhichBin,hSEpp_tmp->GetBinError(uBinX+1,uBinY+1));
+            }
+        }
+
+        dlm_SEMult_APAP[uSpec].SetUp(2);
+        dlm_SEMult_APAP[uSpec].SetUp(0,hSEapap_tmp->GetNbinsX(),
+                                   hSEapap_tmp->GetXaxis()->GetBinLowEdge(1)*RescaleSeMeAxis[uSpec],
+                                   hSEapap_tmp->GetXaxis()->GetBinUpEdge(hSEapap_tmp->GetNbinsX())*RescaleSeMeAxis[uSpec]);
+        dlm_SEMult_APAP[uSpec].SetUp(1,hSEapap_tmp->GetNbinsY(),
+                                   hSEapap_tmp->GetYaxis()->GetBinLowEdge(1),
+                                   hSEapap_tmp->GetYaxis()->GetBinUpEdge(hSEapap_tmp->GetNbinsY()));
+        dlm_SEMult_APAP[uSpec].Initialize();
+        for(unsigned uBinX=0; uBinX<hSEapap_tmp->GetNbinsX(); uBinX++){
+            for(unsigned uBinY=0; uBinY<hSEapap_tmp->GetNbinsY(); uBinY++){
+                unsigned WhichBin[2]; WhichBin[0]=uBinX; WhichBin[1]=uBinY;
+                dlm_SEMult_APAP[uSpec].SetBinContent(WhichBin,hSEapap_tmp->GetBinContent(uBinX+1,uBinY+1));
+                dlm_SEMult_APAP[uSpec].SetBinError(WhichBin,hSEapap_tmp->GetBinError(uBinX+1,uBinY+1));
+            }
+        }
+
+        dlm_MEMult_PP[uSpec].SetUp(2);
+        dlm_MEMult_PP[uSpec].SetUp(0,hMEpp_tmp->GetNbinsX(),
+                                   hMEpp_tmp->GetXaxis()->GetBinLowEdge(1)*RescaleSeMeAxis[uSpec],
+                                   hMEpp_tmp->GetXaxis()->GetBinUpEdge(hMEpp_tmp->GetNbinsX())*RescaleSeMeAxis[uSpec]);
+        dlm_MEMult_PP[uSpec].SetUp(1,hMEpp_tmp->GetNbinsY(),
+                                   hMEpp_tmp->GetYaxis()->GetBinLowEdge(1),
+                                   hMEpp_tmp->GetYaxis()->GetBinUpEdge(hMEpp_tmp->GetNbinsY()));
+        dlm_MEMult_PP[uSpec].Initialize();
+        for(unsigned uBinX=0; uBinX<hMEpp_tmp->GetNbinsX(); uBinX++){
+            for(unsigned uBinY=0; uBinY<hMEpp_tmp->GetNbinsY(); uBinY++){
+                unsigned WhichBin[2]; WhichBin[0]=uBinX; WhichBin[1]=uBinY;
+                dlm_MEMult_PP[uSpec].SetBinContent(WhichBin,hMEpp_tmp->GetBinContent(uBinX+1,uBinY+1));
+                dlm_MEMult_PP[uSpec].SetBinError(WhichBin,hMEpp_tmp->GetBinError(uBinX+1,uBinY+1));
+            }
+        }
+
+        dlm_MEMult_APAP[uSpec].SetUp(2);
+        dlm_MEMult_APAP[uSpec].SetUp(0,hMEapap_tmp->GetNbinsX(),
+                                   hMEapap_tmp->GetXaxis()->GetBinLowEdge(1)*RescaleSeMeAxis[uSpec],
+                                   hMEapap_tmp->GetXaxis()->GetBinUpEdge(hMEapap_tmp->GetNbinsX())*RescaleSeMeAxis[uSpec]);
+        dlm_MEMult_APAP[uSpec].SetUp(1,hMEapap_tmp->GetNbinsY(),
+                                   hMEapap_tmp->GetYaxis()->GetBinLowEdge(1),
+                                   hMEapap_tmp->GetYaxis()->GetBinUpEdge(hMEapap_tmp->GetNbinsY()));
+        dlm_MEMult_APAP[uSpec].Initialize();
+        for(unsigned uBinX=0; uBinX<hMEapap_tmp->GetNbinsX(); uBinX++){
+            for(unsigned uBinY=0; uBinY<hMEapap_tmp->GetNbinsY(); uBinY++){
+                unsigned WhichBin[2]; WhichBin[0]=uBinX; WhichBin[1]=uBinY;
+                dlm_MEMult_APAP[uSpec].SetBinContent(WhichBin,hMEapap_tmp->GetBinContent(uBinX+1,uBinY+1));
+                dlm_MEMult_APAP[uSpec].SetBinError(WhichBin,hMEapap_tmp->GetBinError(uBinX+1,uBinY+1));
+            }
+        }
+
+        dlm_CkMult_PP[uSpec] = dlm_SEMult_PP[uSpec]; dlm_CkMult_PP[uSpec] /= dlm_MEMult_PP[uSpec];
+        dlm_CkMult_APAP[uSpec] = dlm_SEMult_APAP[uSpec]; dlm_CkMult_APAP[uSpec] /= dlm_MEMult_APAP[uSpec];
+        dlm_CkMult[uSpec] = dlm_CkMult_PP[uSpec]; dlm_CkMult[uSpec].AddWeightedHisto(dlm_CkMult_APAP[uSpec]);
+
+
+
+
+        DLM_Histo<float> MultSE_PP_kIntegrated;
+        MultSE_PP_kIntegrated.SetUp(1);
+        MultSE_PP_kIntegrated.SetUp(0,dlm_SEMult_PP[uSpec].GetNbins(1),dlm_SEMult_PP[uSpec].GetLowEdge(1),dlm_SEMult_PP[uSpec].GetUpEdge(1));
+        MultSE_PP_kIntegrated.Initialize();
+        double kRange[2];kRange[0]=dlm_SEMult_PP[uSpec].GetLowEdge(0);kRange[1]=dlm_SEMult_PP[uSpec].GetUpEdge(0);
+        for(unsigned uBin=0; uBin<MultSE_PP_kIntegrated.GetNbins(); uBin++){
+            double MultRange[2];MultRange[0]=MultSE_PP_kIntegrated.GetBinLowEdge(0,uBin);MultRange[1]=MultSE_PP_kIntegrated.GetBinUpEdge(0,uBin);
+            MultSE_PP_kIntegrated.SetBinContent(uBin,dlm_SEMult_PP[uSpec].Integral(kRange,MultRange));
+        }
+
+        DLM_Histo<float> MultME_PP_kIntegrated;
+        MultME_PP_kIntegrated.SetUp(1);
+        MultME_PP_kIntegrated.SetUp(0,dlm_MEMult_PP[uSpec].GetNbins(1),dlm_MEMult_PP[uSpec].GetLowEdge(1),dlm_MEMult_PP[uSpec].GetUpEdge(1));
+        MultME_PP_kIntegrated.Initialize();
+        kRange[0]=dlm_MEMult_PP[uSpec].GetLowEdge(0); kRange[1]=dlm_MEMult_PP[uSpec].GetUpEdge(0);
+        for(unsigned uBin=0; uBin<MultME_PP_kIntegrated.GetNbins(); uBin++){
+            double MultRange[2];MultRange[0]=MultME_PP_kIntegrated.GetBinLowEdge(0,uBin);MultRange[1]=MultME_PP_kIntegrated.GetBinUpEdge(0,uBin);
+            MultME_PP_kIntegrated.SetBinContent(uBin,dlm_MEMult_PP[uSpec].Integral(kRange,MultRange));
+        }
+        dlm_MEMultW_PP[uSpec] = dlm_MEMult_PP[uSpec];
+        for(unsigned uBinX=0; uBinX<dlm_MEMultW_PP[uSpec].GetNbins(0); uBinX++){
+            for(unsigned uBinY=0; uBinY<dlm_MEMultW_PP[uSpec].GetNbins(1); uBinY++){
+                unsigned WhichBin[2]; WhichBin[0]=uBinX; WhichBin[1]=uBinY;
+                double Rescale = MultSE_PP_kIntegrated.GetBinContent(uBinY)/MultME_PP_kIntegrated.GetBinContent(uBinY);
+                dlm_MEMultW_PP[uSpec].SetBinContent(WhichBin,dlm_MEMultW_PP[uSpec].GetBinContent(WhichBin)*Rescale);
+                dlm_MEMultW_PP[uSpec].SetBinError(WhichBin,dlm_MEMultW_PP[uSpec].GetBinError(WhichBin)*Rescale);
+            }
+        }
+        dlm_CkMultW_PP[uSpec] = dlm_SEMult_PP[uSpec];
+        dlm_CkMultW_PP[uSpec] /= dlm_MEMultW_PP[uSpec];
+
+
+
+        DLM_Histo<float> MultSE_APAP_kIntegrated;
+        MultSE_APAP_kIntegrated.SetUp(1);
+        MultSE_APAP_kIntegrated.SetUp(0,dlm_SEMult_APAP[uSpec].GetNbins(1),dlm_SEMult_APAP[uSpec].GetLowEdge(1),dlm_SEMult_APAP[uSpec].GetUpEdge(1));
+        MultSE_APAP_kIntegrated.Initialize();
+        kRange[2];kRange[0]=dlm_SEMult_APAP[uSpec].GetLowEdge(0);kRange[1]=dlm_SEMult_APAP[uSpec].GetUpEdge(0);
+        for(unsigned uBin=0; uBin<MultSE_APAP_kIntegrated.GetNbins(); uBin++){
+            double MultRange[2];MultRange[0]=MultSE_APAP_kIntegrated.GetBinLowEdge(0,uBin);MultRange[1]=MultSE_APAP_kIntegrated.GetBinUpEdge(0,uBin);
+            MultSE_APAP_kIntegrated.SetBinContent(uBin,dlm_SEMult_APAP[uSpec].Integral(kRange,MultRange));
+        }
+        DLM_Histo<float> MultME_APAP_kIntegrated;
+        MultME_APAP_kIntegrated.SetUp(1);
+        MultME_APAP_kIntegrated.SetUp(0,dlm_MEMult_APAP[uSpec].GetNbins(1),dlm_MEMult_APAP[uSpec].GetLowEdge(1),dlm_MEMult_APAP[uSpec].GetUpEdge(1));
+        MultME_APAP_kIntegrated.Initialize();
+        kRange[0]=dlm_MEMult_APAP[uSpec].GetLowEdge(0); kRange[1]=dlm_MEMult_APAP[uSpec].GetUpEdge(0);
+        for(unsigned uBin=0; uBin<MultME_APAP_kIntegrated.GetNbins(); uBin++){
+            double MultRange[2];MultRange[0]=MultME_APAP_kIntegrated.GetBinLowEdge(0,uBin);MultRange[1]=MultME_APAP_kIntegrated.GetBinUpEdge(0,uBin);
+            MultME_APAP_kIntegrated.SetBinContent(uBin,dlm_MEMult_APAP[uSpec].Integral(kRange,MultRange));
+        }
+        dlm_MEMultW_APAP[uSpec] = dlm_MEMult_APAP[uSpec];
+        for(unsigned uBinX=0; uBinX<dlm_MEMultW_APAP[uSpec].GetNbins(0); uBinX++){
+            for(unsigned uBinY=0; uBinY<dlm_MEMultW_APAP[uSpec].GetNbins(1); uBinY++){
+                unsigned WhichBin[2]; WhichBin[0]=uBinX; WhichBin[1]=uBinY;
+                double Rescale = MultSE_APAP_kIntegrated.GetBinContent(uBinY)/MultME_APAP_kIntegrated.GetBinContent(uBinY);
+                dlm_MEMultW_APAP[uSpec].SetBinContent(WhichBin,dlm_MEMultW_APAP[uSpec].GetBinContent(WhichBin)*Rescale);
+                dlm_MEMultW_APAP[uSpec].SetBinError(WhichBin,dlm_MEMultW_APAP[uSpec].GetBinError(WhichBin)*Rescale);
+            }
+        }
+        dlm_CkMultW_APAP[uSpec] = dlm_SEMult_APAP[uSpec];
+        dlm_CkMultW_APAP[uSpec] /= dlm_MEMultW_APAP[uSpec];
+
+        dlm_CkMultW[uSpec] = dlm_CkMultW_PP[uSpec]; dlm_CkMultW[uSpec].AddWeightedHisto(dlm_CkMultW_APAP[uSpec]);
+    }
+
+    TFile fOutput(OutputFolder+"fReweightME.root","recreate");
+    for(unsigned uSpec=0; uSpec<NumSpecies; uSpec++){
+        h_CkMult[uSpec] = new TH2F("h_CkMult_"+SpeciesName[uSpec],"h_CkMult_"+SpeciesName[uSpec],
+                                   dlm_CkMult[uSpec].GetNbins(0),dlm_CkMult[uSpec].GetLowEdge(0),dlm_CkMult[uSpec].GetUpEdge(0),
+                                   dlm_CkMult[uSpec].GetNbins(1),dlm_CkMult[uSpec].GetLowEdge(1),dlm_CkMult[uSpec].GetUpEdge(1));
+        for(unsigned uBinX=0; uBinX<dlm_CkMult[uSpec].GetNbins(0); uBinX++){
+            for(unsigned uBinY=0; uBinY<dlm_CkMult[uSpec].GetNbins(1); uBinY++){
+                unsigned WhichBin[2]; WhichBin[0]=uBinX; WhichBin[1]=uBinY;
+                h_CkMult[uSpec]->SetBinContent(uBinX+1,uBinY+1,dlm_CkMult[uSpec].GetBinContent(WhichBin));
+                h_CkMult[uSpec]->SetBinError(uBinX+1,uBinY+1,dlm_CkMult[uSpec].GetBinError(WhichBin));
+                if(dlm_CkMult[uSpec].GetBinContent(WhichBin)>100||dlm_CkMult[uSpec].GetBinContent(WhichBin)!=dlm_CkMult[uSpec].GetBinContent(WhichBin)){
+                    h_CkMult[uSpec]->SetBinContent(uBinX+1,uBinY+1,100);
+                    h_CkMult[uSpec]->SetBinError(uBinX+1,uBinY+1,100);
+                }
+            }
+        }
+
+        h_CkMultW[uSpec] = new TH2F("h_CkMultW_"+SpeciesName[uSpec],"h_CkMultW_"+SpeciesName[uSpec],
+                                   dlm_CkMultW[uSpec].GetNbins(0),dlm_CkMultW[uSpec].GetLowEdge(0),dlm_CkMultW[uSpec].GetUpEdge(0),
+                                   dlm_CkMultW[uSpec].GetNbins(1),dlm_CkMultW[uSpec].GetLowEdge(1),dlm_CkMultW[uSpec].GetUpEdge(1));
+        for(unsigned uBinX=0; uBinX<dlm_CkMultW[uSpec].GetNbins(0); uBinX++){
+            for(unsigned uBinY=0; uBinY<dlm_CkMultW[uSpec].GetNbins(1); uBinY++){
+                unsigned WhichBin[2]; WhichBin[0]=uBinX; WhichBin[1]=uBinY;
+                h_CkMultW[uSpec]->SetBinContent(uBinX+1,uBinY+1,dlm_CkMultW[uSpec].GetBinContent(WhichBin));
+                h_CkMultW[uSpec]->SetBinError(uBinX+1,uBinY+1,dlm_CkMultW[uSpec].GetBinError(WhichBin));
+                if(dlm_CkMultW[uSpec].GetBinContent(WhichBin)>100||dlm_CkMultW[uSpec].GetBinContent(WhichBin)!=dlm_CkMultW[uSpec].GetBinContent(WhichBin)){
+                    h_CkMultW[uSpec]->SetBinContent(uBinX+1,uBinY+1,100);
+                    h_CkMultW[uSpec]->SetBinError(uBinX+1,uBinY+1,100);
+                }
+            }
+        }
+
+        h_CkMult[uSpec]->Write();
+        h_CkMultW[uSpec]->Write();
+    }
+
+
+}
 
 int OTHERTASKS(int narg, char** ARGS){
     //pp_CompareToNorfolk();
     //pp_pL_CorrectedMC_EXP();
     ALL_CorrectedMC_EXP();
+    //ReweightME();
+    //ParametrizeTemplates("p","p");
 }
