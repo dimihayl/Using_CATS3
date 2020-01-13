@@ -2363,7 +2363,10 @@ void MickeyMouseEffectOnSourceBasedOnTheta(){
     const double Core_pp_Rand = 0.96;
     const double Core_pp_TM_Back = 0.73;
     //const double Core_pp_TM_Epos = 0.921;
-    const double Core_pp_TM_Epos = 1.2;
+    //const double Core_pp_TM_Epos = 1.11483;
+    // const double Core_pp_TM_Epos = 1.07645;
+      const double Core_pp_TM_Epos = 1.15142;
+    //const double Core_pp_TM_Epos = 1.2;
     const double Core_pL_TM_Epos = 1.2;
 
     //const double Core_pXi_Back = 1.0;
@@ -3417,6 +3420,168 @@ void SmearTest(){
 */
 }
 
+void TestCauchy(){
+
+    DLM_CommonAnaFunctions AnalysisObject;
+
+    CATS AB_Cauchy;
+    AB_Cauchy.SetMomBins(25,0,100);
+    AnalysisObject.SetUpCats_pp(AB_Cauchy,"AV18","Cauchy",0,0);
+
+    CATS AB_McCauchy;
+    AB_McCauchy.SetMomBins(25,0,100);
+    AnalysisObject.SetUpCats_pp(AB_McCauchy,"AV18","McLevy_ResoTM",0,0);
+
+    CATS AB_McAlmostCauchy;
+    AB_McAlmostCauchy.SetMomBins(25,0,100);
+    AnalysisObject.SetUpCats_pp(AB_McAlmostCauchy,"AV18","McLevy_ResoTM",0,0);
+
+    AB_Cauchy.SetAnaSource(0,1.0);
+
+    AB_McCauchy.SetAnaSource(0,1.0);
+    AB_McCauchy.SetAnaSource(1,1.0);
+
+    AB_McAlmostCauchy.SetAnaSource(0,1.0);
+    AB_McAlmostCauchy.SetAnaSource(1,1.01);
+
+    unsigned NumSourcePts = 512;
+    double rMin = 0;
+    double rMax = 16;
+    double RAD;
+
+    TFile fOut("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/TestCauchy/fOut.root","recreate");
+
+    TH1F* hRad_Cauchy = new TH1F("hRad_Cauchy","hRad_Cauchy",NumSourcePts,rMin,rMax);
+    TH1F* hRad_McCauchy = new TH1F("hRad_McCauchy","hRad_McCauchy",NumSourcePts,rMin,rMax);
+    TH1F* hRad_McAlmostCauchy = new TH1F("hRad_McAlmostCauchy","hRad_McAlmostCauchy",NumSourcePts,rMin,rMax);
+
+    for(unsigned uRad=0; uRad<NumSourcePts; uRad++){
+        RAD = hRad_Cauchy->GetBinCenter(uRad+1);
+        hRad_Cauchy->SetBinContent(uRad+1,AB_Cauchy.EvaluateTheSource(10,RAD,0));
+        hRad_McCauchy->SetBinContent(uRad+1,AB_McCauchy.EvaluateTheSource(10,RAD,0));
+        hRad_McAlmostCauchy->SetBinContent(uRad+1,AB_McAlmostCauchy.EvaluateTheSource(10,RAD,0));
+    }
+    hRad_Cauchy->Write();
+    hRad_McCauchy->Write();
+    hRad_McAlmostCauchy->Write();
+
+    delete hRad_Cauchy;
+    delete hRad_McCauchy;
+    delete hRad_McAlmostCauchy;
+}
+
+
+void Test_New_pLambda(){
+
+
+    DLM_CommonAnaFunctions AnalysisObject;
+    const double SourceSize = 1.125;
+    const double LambdaPar = 0.4713;
+
+    CATS KittyNLO_Old;
+    KittyNLO_Old.SetMaxNumThreads(1);
+    KittyNLO_Old.SetMomBins(85,0,340);
+    AnalysisObject.SetUpCats_pL(KittyNLO_Old,"NLO_Coupled_S","Gauss");
+    KittyNLO_Old.SetAnaSource(0,SourceSize);
+    KittyNLO_Old.KillTheCat();
+
+    CATS KittyNLO;
+    KittyNLO.SetMaxNumThreads(1);
+    KittyNLO.SetMomBins(85,0,340);
+    AnalysisObject.SetUpCats_pL(KittyNLO,"NLO_Coupled_SPD","Gauss");
+    KittyNLO.SetAnaSource(0,SourceSize);
+    for(unsigned short usCh=1; usCh<=6; usCh++){
+        //KittyNLO.RemoveExternalWaveFunction(usCh,1);
+    }
+    for(unsigned short usCh=1; usCh<=3; usCh++){
+        //KittyNLO.RemoveExternalWaveFunction(usCh,2);
+    }
+    KittyNLO.KillTheCat();
+
+    unsigned short NumChannels = KittyNLO.GetNumChannels();
+    double* OriginalWeight = new double [NumChannels];
+
+    TFile fOutput("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/Test_New_pLambda/fOutput.root","recreate");
+
+    TGraph gOld;
+    gOld.SetName("gOld");
+    gOld.Set(KittyNLO_Old.GetNumMomBins());
+    for(unsigned uBin=0; uBin<KittyNLO_Old.GetNumMomBins(); uBin++){
+        gOld.SetPoint(uBin,KittyNLO_Old.GetMomentum(uBin),LambdaPar*KittyNLO_Old.GetCorrFun(uBin)+1.-LambdaPar);
+    }
+
+    TGraph gFull;
+    gFull.SetName("gFull");
+    gFull.Set(KittyNLO.GetNumMomBins());
+    for(unsigned uBin=0; uBin<KittyNLO.GetNumMomBins(); uBin++){
+        gFull.SetPoint(uBin,KittyNLO.GetMomentum(uBin),LambdaPar*KittyNLO.GetCorrFun(uBin)+1.-LambdaPar);
+    }
+
+    TGraph* gChannel = new TGraph[NumChannels];
+    TGraph* gWeightedChannel = new TGraph[NumChannels];
+
+    for(unsigned short usCh=0; usCh<NumChannels; usCh++){
+         OriginalWeight[usCh] = KittyNLO.GetChannelWeight(usCh);
+    }
+
+
+//haidenbauer has:
+//channel 0 s-wave only 1/4
+//channel 1 s-wave only 3/4
+//channel 8 3/4 ?
+//channel 10 3/4 ?
+for(unsigned short usCh=0; usCh<NumChannels; usCh++){
+    KittyNLO.SetChannelWeight(usCh,0);
+}
+KittyNLO.SetChannelWeight(0,1./4.);
+KittyNLO.RemoveExternalWaveFunction(0,1);
+
+KittyNLO.SetChannelWeight(1,3./4.);
+KittyNLO.RemoveExternalWaveFunction(1,1);
+KittyNLO.RemoveExternalWaveFunction(1,2);
+
+KittyNLO.SetChannelWeight(8,3./4.);
+KittyNLO.SetChannelWeight(10,3./4.);
+
+KittyNLO.KillTheCat();
+
+    for(unsigned short usCh=0; usCh<NumChannels; usCh++){
+        gChannel[usCh].SetName(TString::Format("gChannel_%u",usCh));
+        gChannel[usCh].Set(KittyNLO.GetNumMomBins());
+
+        gWeightedChannel[usCh].SetName(TString::Format("gWeightedChannel_%u",usCh));
+        gWeightedChannel[usCh].Set(KittyNLO.GetNumMomBins());
+
+        for(unsigned short usCh2=0; usCh2<NumChannels; usCh2++){
+            KittyNLO.SetChannelWeight(usCh2,0);
+        }
+
+        double BASELINE = (usCh>=7);
+
+        KittyNLO.SetChannelWeight(usCh,1);
+        KittyNLO.KillTheCat();
+        for(unsigned uBin=0; uBin<KittyNLO.GetNumMomBins(); uBin++){
+            gChannel[usCh].SetPoint(uBin,KittyNLO.GetMomentum(uBin),KittyNLO.GetCorrFun(uBin)+BASELINE);
+        }
+
+        KittyNLO.SetChannelWeight(usCh,OriginalWeight[usCh]);
+        KittyNLO.KillTheCat();
+        for(unsigned uBin=0; uBin<KittyNLO.GetNumMomBins(); uBin++){
+            gWeightedChannel[usCh].SetPoint(uBin,KittyNLO.GetMomentum(uBin),KittyNLO.GetCorrFun(uBin)+BASELINE);
+        }
+
+        gChannel[usCh].Write();
+        gWeightedChannel[usCh].Write();
+    }
+
+    gFull.Write();
+    gOld.Write();
+
+    delete [] OriginalWeight;
+    delete [] gChannel;
+    delete [] gWeightedChannel;
+}
+
 int main(int argc, char *argv[])
 {
 
@@ -3497,9 +3662,9 @@ printf("%.3f\n",lambdapars[4]*100.);
     //SOURCESTUDIES(argc,ARGV);
     //KAONPROTON_MAIN(argc,ARGV);
     //UNFOLD_MAIN(argc,ARGV);
-    OTHERTASKS(argc,ARGV);
-
+    //OTHERTASKS(argc,ARGV);
 /*
+
 void ScatParsFromRandPotential(const TString OutputFolder,
                                const unsigned RandomSeed, const unsigned& NumIter,
                                const double& V0_min, const double& V0_max,
@@ -3539,6 +3704,9 @@ void ScatParsFromRandPotential(const TString OutputFolder,
     //TestCATS3_NewExtWf("NLO_Coupled_S");
 
     //TestVALE_pLambda();
+
+    //TestCauchy();
+    Test_New_pLambda();
 
     for(int iARG=1; iARG<argc; iARG++){
         delete [] ARGV[iARG];

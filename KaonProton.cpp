@@ -1950,6 +1950,7 @@ void ScatParsFromRandPotential(const TString OutputFolder,
 void TestKyoto2019(const double& RADIUS){
     const unsigned NumChannels = 6;
 
+    //(tSource or tPotential, Number of parameters, keep it true)
     CATSparameters cPars(CATSparameters::tSource,1,true);
     cPars.SetParameter(0,RADIUS);
 
@@ -1995,6 +1996,9 @@ void TestKyoto2019(const double& RADIUS){
     for(unsigned uCh=0; uCh<NumChannels; uCh++){
         KittyFull.SetExternalWaveFunction(uCh,0,ExternalWF_Full[0][uCh][0],ExternalWF_Full[1][uCh][0]);
     }
+    //for channels 1-5 these are the omega weights
+    //KittyFull.SetChannelWeight(WHICH_CHANNEL, WEIGHT);
+    //if you change the weights, kill the cat again
     KittyFull.KillTheCat();
 
     TGraph* gStrong = new TGraph [NumChannels+1];

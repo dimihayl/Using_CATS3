@@ -200,8 +200,9 @@ void DLM_CommonAnaFunctions::SetUpCats_pp(CATS& Kitty, const TString& POT, const
     }
     //SourceVar last digit is 0-9 the type
     //(SourceVar/10)*10 is the cutoff value (e.g. 192 is cutoff value of 190 and type 2)
-    else if(SOURCE=="McGauss_ResoTM"){
-        CleverMcLevyResoTM[0].InitStability(1,2-1e-6,2+1e-6);
+    else if(SOURCE=="McGauss_ResoTM"||SOURCE=="McLevy_ResoTM"){
+        if(SOURCE=="McGauss_ResoTM") CleverMcLevyResoTM[0].InitStability(1,2-1e-6,2+1e-6);
+        else CleverMcLevyResoTM[0].InitStability(21,1,2);
         CleverMcLevyResoTM[0].InitScale(38,0.15,2.0);
         CleverMcLevyResoTM[0].InitRad(257*2,0,64);
         CleverMcLevyResoTM[0].InitType(2);
@@ -209,7 +210,7 @@ void DLM_CommonAnaFunctions::SetUpCats_pp(CATS& Kitty, const TString& POT, const
         CleverMcLevyResoTM[0].SetUpReso(1,0.6422);
         //pure Gauss
         if(SourceVar%100==0){
-
+printf("Hello 0\n");
         }
         //back-to-back
         else if(SourceVar%100==1){
@@ -219,6 +220,7 @@ void DLM_CommonAnaFunctions::SetUpCats_pp(CATS& Kitty, const TString& POT, const
         }
         //EPOS, 2 is with fixed mass, 3 is with EPOS mass
         else{
+printf("Hello 2\n");
             const double k_CutOff = int(int(SourceVar)/10)*10.;
             Float_t k_D;
             Float_t fP1;
@@ -291,7 +293,8 @@ void DLM_CommonAnaFunctions::SetUpCats_pp(CATS& Kitty, const TString& POT, const
             delete F_EposDisto_pReso_pReso;
         }
 
-        CleverMcLevyResoTM[0].InitNumMcIter(1000000);
+        if(SOURCE=="McGauss_ResoTM") CleverMcLevyResoTM[0].InitNumMcIter(1000000);
+        else CleverMcLevyResoTM[0].InitNumMcIter(100000);
         Kitty.SetAnaSource(CatsSourceForwarder, &CleverMcLevyResoTM[0], 2);
         Kitty.SetAnaSource(0,1.0);
         Kitty.SetAnaSource(1,2.0);
@@ -656,8 +659,9 @@ void DLM_CommonAnaFunctions::SetUpCats_pL(CATS& Kitty, const TString& POT, const
     }
     //SourceVar last digit is 0-9 the type
     //(SourceVar/10)*10 is the cutoff value (e.g. 192 is cutoff value of 190 and type 2)
-    else if(SOURCE=="McGauss_ResoTM"){
-        CleverMcLevyResoTM[1].InitStability(1,2-1e-6,2+1e-6);
+    else if(SOURCE=="McGauss_ResoTM"||SOURCE=="McLevy_ResoTM"){
+        if(SOURCE=="McGauss_ResoTM") CleverMcLevyResoTM[1].InitStability(1,2-1e-6,2+1e-6);
+        else CleverMcLevyResoTM[1].InitStability(21,1,2);
         CleverMcLevyResoTM[1].InitScale(38,0.15,2.0);
         CleverMcLevyResoTM[1].InitRad(257*2,0,64);
         CleverMcLevyResoTM[1].InitType(2);
@@ -772,7 +776,8 @@ void DLM_CommonAnaFunctions::SetUpCats_pL(CATS& Kitty, const TString& POT, const
             delete F_EposDisto_pReso_LamReso;
         }
 
-        CleverMcLevyResoTM[1].InitNumMcIter(1000000);
+        if(SOURCE=="McGauss_ResoTM") CleverMcLevyResoTM[1].InitNumMcIter(1000000);
+        else CleverMcLevyResoTM[1].InitNumMcIter(100000);
         Kitty.SetAnaSource(CatsSourceForwarder, &CleverMcLevyResoTM[1], 2);
         Kitty.SetAnaSource(0,1.0);
         Kitty.SetAnaSource(1,2.0);
@@ -821,6 +826,11 @@ void DLM_CommonAnaFunctions::SetUpCats_pL(CATS& Kitty, const TString& POT, const
                                 Kitty, 11, 600);
         NumChannels=4;
     }
+    else if(POT=="NLO_Coupled_SPD"){
+        ExternalWF = Init_pL_Haidenbauer2019(   "/home/dmihaylov/CernBox/CATS_potentials/Haidenbauer/pLambda_Coupled_SD/",
+                                Kitty, 0 , 0);
+        NumChannels=16;
+    }
     else if(POT=="Usmani"){
         //#,#,POT_ID,POT_FLAG,t_tot,t1,t2,s,l,j
         double PotPars1S0[8]={pL_UsmaniOli,0,0,0,0,0,0,0};
@@ -833,6 +843,8 @@ void DLM_CommonAnaFunctions::SetUpCats_pL(CATS& Kitty, const TString& POT, const
         printf("\033[1;31mERROR:\033[0m Non-existing pp potential '%s'\n",POT.Data());
         goto CLEAN_SetUpCats_pL;
     }
+printf("NumChannels=%u\n",NumChannels);
+printf("ExternalWF=%p\n",ExternalWF);
 
     Kitty.SetMomentumDependentSource(false);
     //Kitty.SetThetaDependentSource(false);
@@ -850,7 +862,6 @@ void DLM_CommonAnaFunctions::SetUpCats_pL(CATS& Kitty, const TString& POT, const
             Kitty.SetChannelWeight(uCh, uCh%2==0?0.25:0.75);
         }
 
-
         if(cPotPars1S0&&uCh==0)Kitty.SetShortRangePotential(uCh,0,fDlmPot,*cPotPars1S0);
         else if(cPotPars3S1&&uCh==1) Kitty.SetShortRangePotential(uCh,0,fDlmPot,*cPotPars3S1);
         else if(ExternalWF){
@@ -858,9 +869,18 @@ void DLM_CommonAnaFunctions::SetUpCats_pL(CATS& Kitty, const TString& POT, const
                 //Kitty.UseExternalWaveFunction(uMomBin,uCh,0,WaveFunctionU[uMomBin][uCh][0], NumRadBins, RadBins, PhaseShifts[uMomBin][uCh][0]);
 //printf("Look at that view (%u)!\n",uCh);
                 Kitty.SetExternalWaveFunction(uCh,0,ExternalWF[0][uCh][0],ExternalWF[1][uCh][0]);
-                if(Kitty.GetNumPW(uCh)==2){
+                if(POT=="NLO_Coupled_SPD"){
+                    if(uCh<=6){
+                        Kitty.SetExternalWaveFunction(uCh,1,ExternalWF[0][uCh][1],ExternalWF[1][uCh][1]);
+                    }
+                    if(uCh>=1&&uCh<=3){
+                        Kitty.SetExternalWaveFunction(uCh,2,ExternalWF[0][uCh][2],ExternalWF[1][uCh][2]);
+                    }
+                }
+                else if(Kitty.GetNumPW(uCh)>=2){
                     Kitty.SetExternalWaveFunction(uCh,1,ExternalWF[0][uCh][1],ExternalWF[1][uCh][1]);
                 }
+
 //printf(" --Look at that view (%u)!\n",uCh);
             //}
         }
@@ -1495,7 +1515,7 @@ void DLM_CommonAnaFunctions::SetUpBinning_pp(const TString& DataSample, unsigned
             return;
         }
     }
-    else if(DataSample=="pp13TeV_HM_March19"){
+    else if(DataSample=="pp13TeV_HM_March19"||DataSample=="pp13TeV_HM_Dec19"||DataSample=="pp13TeV_HM_RotPhiDec19"){
         if(MomBinVar==0){
             kMin=4;
             kStep=4;
@@ -1677,7 +1697,7 @@ void DLM_CommonAnaFunctions::SetUpBinning_pL(const TString& DataSample, unsigned
         FitRegion[2] = MomBins[NumMomBins]+kCoarseStep;//348
         FitRegion[3] = MomBins[NumMomBins]+kCoarseStep*20.;//588
     }
-    else if(DataSample=="pp13TeV_HM_March19"){
+    else if(DataSample=="pp13TeV_HM_March19"||DataSample=="pp13TeV_HM_Dec19"||DataSample=="pp13TeV_HM_RotPhiDec19"){
         if(MomBinVar==0){
             kMin=0;
             kFineMin=336;//272//216
@@ -1882,7 +1902,7 @@ void DLM_CommonAnaFunctions::GetPurities_p(const TString& DataSample, const int&
     if(DataSample=="pp13TeV_MB_Run2paper"){
         PurityProton = 0.989859;
     }
-    else if(DataSample=="pp13TeV_HM_March19"){
+    else if(DataSample=="pp13TeV_HM_March19"||DataSample=="pp13TeV_HM_Dec19"||DataSample=="pp13TeV_HM_RotPhiDec19"){
         PurityProton = 0.9943;
     }
     else if(DataSample=="pPb5TeV_Run2paper"){
@@ -1916,7 +1936,7 @@ void DLM_CommonAnaFunctions::GetPurities_L(const TString& DataSample, const int&
     if(DataSample=="pp13TeV_MB_Run2paper"){
         PurityLambda = 0.96768;
     }
-    else if(DataSample=="pp13TeV_HM_March19"){
+    else if(DataSample=="pp13TeV_HM_March19"||DataSample=="pp13TeV_HM_Dec19"||DataSample=="pp13TeV_HM_RotPhiDec19"){
         //printf("\033[1;33mWARNING:\033[0m pp13TeV_HM_March19 is not available yet!\n");
         PurityLambda = 0.9595;
     }
@@ -1949,8 +1969,7 @@ void DLM_CommonAnaFunctions::GetPurities_Xim(const TString& DataSample, const in
     if(DataSample=="pp13TeV_MB_Run2paper"){
         PurityXim = 0.956;
     }
-    else if(DataSample=="pp13TeV_HM_March19"){
-        printf("\033[1;33mWARNING:\033[0m pp13TeV_HM_March19 is not available yet!\n");
+    else if(DataSample=="pp13TeV_HM_March19"||DataSample=="pp13TeV_HM_Dec19"||DataSample=="pp13TeV_HM_RotPhiDec19"){
         PurityXim = 0.956;
     }
     else if(DataSample=="pPb5TeV_Run2paper"){
@@ -2001,6 +2020,10 @@ void DLM_CommonAnaFunctions::GetFractions_p(const TString& DataSample, const int
         pp_f0 = 0.873;
         pp_f1 = 0.0898;
     }
+    else if(DataSample=="pp13TeV_HM_Dec19"||DataSample=="pp13TeV_HM_RotPhiDec19"){
+        pp_f0 = 0.823;
+        pp_f1 = 0.125;
+    }
     else if(DataSample=="pPb5TeV_Run2paper"){
         pp_f0 = 0.862814;
         pp_f1 = 0.09603;
@@ -2048,7 +2071,7 @@ void DLM_CommonAnaFunctions::GetFractions_L(const TString& DataSample, const int
         pL_f1 = 0.200336;
         pL_f2 = 0.099328;
     }
-    else if(DataSample=="pp13TeV_HM_March19"){
+    else if(DataSample=="pp13TeV_HM_March19"||DataSample=="pp13TeV_HM_Dec19"||DataSample=="pp13TeV_HM_RotPhiDec19"){
         pL_f0 = 0.576066;
         pL_f1 = 0.192022;
         pL_f2 = 0.115956;
@@ -2193,8 +2216,7 @@ TH2F* DLM_CommonAnaFunctions::GetResolutionMatrix(const TString& DataSample,cons
     if(DataSample=="pp13TeV_MB_Run2paper"){
         FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/ResolutionMatrices/Sample6_MeV_compact.root";
     }
-    else if(DataSample=="pp13TeV_HM_March19"){
-        printf("\033[1;33mWARNING:\033[0m pp13TeV_HM_March19 is not available yet!\n");
+    else if(DataSample=="pp13TeV_HM_March19"||DataSample=="pp13TeV_HM_Dec19"||DataSample=="pp13TeV_HM_RotPhiDec19"){
         FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/ResolutionMatrices/Sample6_MeV_compact.root";
     }
     else if(DataSample=="pPb5TeV_Run2paper"){
@@ -2319,7 +2341,7 @@ TH1F* DLM_CommonAnaFunctions::GetAliceExpCorrFun(const TString& DataSample,const
             printf("\033[1;31mERROR:\033[0m The system '%s' does not exist\n",System.Data());
         }
     }
-    else if(DataSample=="pp13TeV_HM_March19"){
+    else if(DataSample=="pp13TeV_HM_March19"||DataSample=="pp13TeV_HM_Dec19"){
         if(System=="pp"){
             if(mTbin==-1){
                 //buggy for all but _0
@@ -2372,6 +2394,47 @@ TH1F* DLM_CommonAnaFunctions::GetAliceExpCorrFun(const TString& DataSample,const
         else if(System=="pXim"){
             if(mTbin==-1){
                 FileName = TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample12HM/CFOutput_pXi%s.root",CutVar.Data());
+                HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
+            }
+            else{
+                printf("\033[1;31mERROR:\033[0m The mT bin #%i is not defined for %s (%s)\n",mTbin,DataSample.Data(),System.Data());
+            }
+        }
+        else{
+            printf("\033[1;31mERROR:\033[0m The system '%s' does not exist\n",System.Data());
+        }
+    }
+    else if(DataSample=="pp13TeV_HM_RotPhiDec19"){
+        if(System=="pp"){
+            if(mTbin==-1){
+                FileName = TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/pp13TeV_HM_Baseline/MyResults_Vale/Data/CF/ME_Methods_14122019/CFOutput_pp_3.root");
+                HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
+            }
+            else{
+                printf("\033[1;31mERROR:\033[0m The mT bin #%i is not defined for %s (%s)\n",mTbin,DataSample.Data(),System.Data());
+            }
+        }
+        else if(System=="pLambda"){
+            if(mTbin==-1){
+                FileName = TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/pp13TeV_HM_Baseline/MyResults_Vale/Data/CF/ME_Methods_14122019/CFOutput_pL_3.root");
+                HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
+            }
+            else{
+                printf("\033[1;31mERROR:\033[0m The mT bin #%i is not defined for %s (%s)\n",mTbin,DataSample.Data(),System.Data());
+            }
+        }
+        else if(System=="LambdaLambda"){
+            if(mTbin==-1){
+                FileName = TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/pp13TeV_HM_Baseline/MyResults_Vale/Data/CF/ME_Methods_14122019/CFOutput_LL_3.root");
+                HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
+            }
+            else{
+                printf("\033[1;31mERROR:\033[0m The mT bin #%i is not defined for %s (%s)\n",mTbin,DataSample.Data(),System.Data());
+            }
+        }
+        else if(System=="pXim"){
+            if(mTbin==-1){
+                FileName = TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/pp13TeV_HM_Baseline/MyResults_Vale/Data/CF/ME_Methods_14122019/CFOutput_pXi_3.root");
                 HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
             }
             else{

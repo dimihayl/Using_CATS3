@@ -1183,7 +1183,7 @@ Tau2 = 4.69;
 //}
 
 int SOURCESTUDIES(int narg, char** ARGS){
-    CompareCkAndSr();
+    //CompareCkAndSr();
     //ConvertThetaAngleHisto("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/AngleStudy_1/DimiPhi_pp.root","h_rkAngle_Mom2",400,600);
     //AverageResoApprox_pp();
     //AverageResoApprox_pL();
