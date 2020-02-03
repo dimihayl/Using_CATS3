@@ -3482,6 +3482,8 @@ void Test_New_pLambda(){
     KittyNLO_Old.SetMaxNumThreads(1);
     KittyNLO_Old.SetMomBins(85,0,340);
     AnalysisObject.SetUpCats_pL(KittyNLO_Old,"NLO_Coupled_S","Gauss");
+//KittyNLO_Old.SetChannelWeight(2,0.25*2./3.);
+//KittyNLO_Old.SetChannelWeight(3,0.75*2./3.);
     KittyNLO_Old.SetAnaSource(0,SourceSize);
     KittyNLO_Old.KillTheCat();
 
@@ -3491,11 +3493,35 @@ void Test_New_pLambda(){
     AnalysisObject.SetUpCats_pL(KittyNLO,"NLO_Coupled_SPD","Gauss");
     KittyNLO.SetAnaSource(0,SourceSize);
     for(unsigned short usCh=1; usCh<=6; usCh++){
+        //remove the p-waves
         //KittyNLO.RemoveExternalWaveFunction(usCh,1);
     }
     for(unsigned short usCh=1; usCh<=3; usCh++){
+        //remove the d-waves
         //KittyNLO.RemoveExternalWaveFunction(usCh,2);
     }
+    for(unsigned short usCh=8; usCh<=15; usCh++){
+        //remove all coupling
+        //KittyNLO.RemoveExternalWaveFunction(usCh,0);
+
+        //remove all coupling, but the s-wave SN->LN
+        //if(usCh!=8) KittyNLO.RemoveExternalWaveFunction(usCh,0);
+
+        //remove all coupling, but the s,d-wave SN->LN
+        //if(usCh!=8&&usCh!=13) KittyNLO.RemoveExternalWaveFunction(usCh,0);
+
+        //if(usCh!=8&&usCh!=10&&usCh!=13) KittyNLO.RemoveExternalWaveFunction(usCh,0);
+
+        //remove all coupling to p-waves
+        if(usCh==11||usCh==12) KittyNLO.RemoveExternalWaveFunction(usCh,0);
+    }
+
+
+//KittyNLO.SetChannelWeight(8,KittyNLO.GetChannelWeight(8)*2./3.);
+//KittyNLO.SetChannelWeight(13,KittyNLO.GetChannelWeight(13)*2./3.);
+//KittyNLO.SetChannelWeight(8,KittyNLO.GetChannelWeight(8)*2./3.);
+//KittyNLO.SetChannelWeight(10,3./4.);
+//KittyNLO.SetChannelWeight(13,3./4.);
     KittyNLO.KillTheCat();
 
     unsigned short NumChannels = KittyNLO.GetNumChannels();
@@ -3517,6 +3543,67 @@ void Test_New_pLambda(){
         gFull.SetPoint(uBin,KittyNLO.GetMomentum(uBin),LambdaPar*KittyNLO.GetCorrFun(uBin)+1.-LambdaPar);
     }
 
+    const unsigned NumMomForRad = 6;
+    double MomentaForRad[NumMomForRad];
+    MomentaForRad[0] = 50;
+    MomentaForRad[1] = 100;
+    MomentaForRad[2] = 150;
+    MomentaForRad[3] = 200;
+    MomentaForRad[4] = 250;
+    MomentaForRad[5] = 300;
+    const unsigned NumRadPts = 256;
+    const double RadMin = 0;
+    const double RadMax = 10;
+    const double RadBinWidth = (RadMax-RadMin)/double(NumRadPts);
+
+    TGraph* gWF_3S1 = new TGraph[NumMomForRad];
+    TGraph* gAS_3S1 = new TGraph[NumMomForRad];
+
+    TGraph* gWF_3P1 = new TGraph[NumMomForRad];
+    TGraph* gAS_3P1 = new TGraph[NumMomForRad];
+
+    TGraph* gWF_3D1 = new TGraph[NumMomForRad];
+    TGraph* gAS_3D1 = new TGraph[NumMomForRad];
+    for(unsigned uMomRad=0; uMomRad<NumMomForRad; uMomRad++){
+        gWF_3S1[uMomRad].SetName(TString::Format("gWF_3S1_%.0f",MomentaForRad[uMomRad]));
+        gWF_3S1[uMomRad].Set(RadBinWidth);
+
+        gAS_3S1[uMomRad].SetName(TString::Format("gAS_3S1_%.0f",MomentaForRad[uMomRad]));
+        gAS_3S1[uMomRad].Set(RadBinWidth);
+
+        gWF_3P1[uMomRad].SetName(TString::Format("gWF_3P1_%.0f",MomentaForRad[uMomRad]));
+        gWF_3P1[uMomRad].Set(RadBinWidth);
+
+        gAS_3P1[uMomRad].SetName(TString::Format("gAS_3P1_%.0f",MomentaForRad[uMomRad]));
+        gAS_3P1[uMomRad].Set(RadBinWidth);
+
+        gWF_3D1[uMomRad].SetName(TString::Format("gWF_3D1_%.0f",MomentaForRad[uMomRad]));
+        gWF_3D1[uMomRad].Set(RadBinWidth);
+
+        gAS_3D1[uMomRad].SetName(TString::Format("gAS_3D1_%.0f",MomentaForRad[uMomRad]));
+        gAS_3D1[uMomRad].Set(RadBinWidth);
+
+        for(unsigned uRad=0; uRad<NumRadPts; uRad++){
+            double RADIUS = RadBinWidth*0.5+RadBinWidth*double(uRad);
+
+            gWF_3S1[uMomRad].SetPoint(uRad,RADIUS,
+                                      std::abs(KittyNLO.EvalRadialWaveFunction(KittyNLO.GetMomBin(MomentaForRad[uMomRad]),1,0,RADIUS,true)));
+            gAS_3S1[uMomRad].SetPoint(uRad,RADIUS,
+                                      std::abs(KittyNLO.EvalAsymptoticRadialWF(KittyNLO.GetMomBin(MomentaForRad[uMomRad]),1,0,RADIUS,true)));
+
+            gWF_3P1[uMomRad].SetPoint(uRad,RADIUS,
+                                      std::abs(KittyNLO.EvalRadialWaveFunction(KittyNLO.GetMomBin(MomentaForRad[uMomRad]),1,1,RADIUS,true)));
+            gAS_3P1[uMomRad].SetPoint(uRad,RADIUS,
+                                      std::abs(KittyNLO.EvalAsymptoticRadialWF(KittyNLO.GetMomBin(MomentaForRad[uMomRad]),1,1,RADIUS,true)));
+
+            gWF_3D1[uMomRad].SetPoint(uRad,RADIUS,
+                                      std::abs(KittyNLO.EvalRadialWaveFunction(KittyNLO.GetMomBin(MomentaForRad[uMomRad]),1,2,RADIUS,true)));
+            gAS_3D1[uMomRad].SetPoint(uRad,RADIUS,
+                                      std::abs(KittyNLO.EvalAsymptoticRadialWF(KittyNLO.GetMomBin(MomentaForRad[uMomRad]),1,2,RADIUS,true)));
+        }
+    }
+
+
     TGraph* gChannel = new TGraph[NumChannels];
     TGraph* gWeightedChannel = new TGraph[NumChannels];
 
@@ -3525,11 +3612,13 @@ void Test_New_pLambda(){
     }
 
 
+
 //haidenbauer has:
 //channel 0 s-wave only 1/4
 //channel 1 s-wave only 3/4
 //channel 8 3/4 ?
 //channel 10 3/4 ?
+/*
 for(unsigned short usCh=0; usCh<NumChannels; usCh++){
     KittyNLO.SetChannelWeight(usCh,0);
 }
@@ -3544,7 +3633,7 @@ KittyNLO.SetChannelWeight(8,3./4.);
 KittyNLO.SetChannelWeight(10,3./4.);
 
 KittyNLO.KillTheCat();
-
+*/
     for(unsigned short usCh=0; usCh<NumChannels; usCh++){
         gChannel[usCh].SetName(TString::Format("gChannel_%u",usCh));
         gChannel[usCh].Set(KittyNLO.GetNumMomBins());
@@ -3577,11 +3666,77 @@ KittyNLO.KillTheCat();
     gFull.Write();
     gOld.Write();
 
+    for(unsigned uMomRad=0; uMomRad<NumMomForRad; uMomRad++){
+        gWF_3S1[uMomRad].Write();
+        gAS_3S1[uMomRad].Write();
+    }
+    for(unsigned uMomRad=0; uMomRad<NumMomForRad; uMomRad++){
+        gWF_3P1[uMomRad].Write();
+        gAS_3P1[uMomRad].Write();
+    }
+    for(unsigned uMomRad=0; uMomRad<NumMomForRad; uMomRad++){
+        gWF_3D1[uMomRad].Write();
+        gAS_3D1[uMomRad].Write();
+    }
+
+    delete [] gWF_3S1;
+    delete [] gAS_3S1;
+    delete [] gWF_3P1;
+    delete [] gAS_3P1;
+    delete [] gWF_3D1;
+    delete [] gAS_3D1;
     delete [] OriginalWeight;
     delete [] gChannel;
     delete [] gWeightedChannel;
 }
+/*
+void pn_B2(){
+    CATSparameters cPars(CATSparameters::tSource,1,true);
+    cPars.SetParameter(0,1.2);
+    CATS Kitty;
+    Kitty.SetMomBins(30,0,300);
+    Kitty.SetThetaDependentSource(false);
+    Kitty.SetAnaSource(GaussSource, cPars);
+    Kitty.SetUseAnalyticSource(true);
+    Kitty.SetMomentumDependentSource(false);
+    //Kitty.SetThetaDependentSource(false);
+    Kitty.SetExcludeFailedBins(false);
 
+    Kitty.SetQ1Q2(0);
+    Kitty.SetPdgId(2212, 2213);
+    Kitty.SetRedMass( 0.5*Mass_p );
+
+    Kitty.SetNumChannels(1);
+    Kitty.SetNumPW(0,1);
+    Kitty.SetSpin(0,1);
+    Kitty.SetChannelWeight(0, 1.);
+
+    CATSparameters pPars(CATSparameters::tPotential,8,true);
+    double PotPars[8]={NN_AV18,v18_Coupled3P2,0,-1,1,1,0,1};
+    pPars.SetParameters(PotPars);
+    Kitty.SetShortRangePotential(0,0,fDlmPot,pPars);
+    Kitty.KillTheCat();
+
+    TFile fOutput("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pn_B2/fOutput.root","recreate");
+
+    TGraph gCk;
+    gCk.SetName("gCk");
+    TGraph gB2_Gauss;
+    gB2_Gauss.SetName("gB2_Gauss");
+    TGraph gB2_Hulthen;
+    gB2_Hulthen.SetName("gB2_Hulthen");
+
+    for(unsigned uBin=0; uBin<Kitty.GetNumMomBins(); uBin++){
+        gCk.SetPoint(uBin,Kitty.GetMomentum(uBin),Kitty.GetCorrFun(uBin));
+        gB2_Gauss.SetPoint(uBin,Kitty.GetMomentum(uBin),Kitty.GetB2_Gauss(uBin));
+        gB2_Hulthen.SetPoint(uBin,Kitty.GetMomentum(uBin),Kitty.GetB2_Hulthen(uBin));
+    }
+
+    gCk.Write();
+    gB2_Gauss.Write();
+    gB2_Hulthen.Write();
+}
+*/
 int main(int argc, char *argv[])
 {
 
@@ -3684,6 +3839,8 @@ void ScatParsFromRandPotential(const TString OutputFolder,
     //PlotResonanceAngles(1.0,8.0);
 
     //MickeyMouseEffectOnSourceBasedOnTheta();
+
+    //pn_B2();
 
     //TestCommonInit();
     //plot_pp();

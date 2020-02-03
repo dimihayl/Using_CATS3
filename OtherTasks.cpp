@@ -12,6 +12,7 @@
 #include "DLM_CkModels.h"
 
 #include "TGraph.h"
+#include "TGraphErrors.h"
 #include "TFile.h"
 #include "TCanvas.h"
 #include "TH1F.h"
@@ -2330,8 +2331,8 @@ DLM_CkDecomposition* MM_PL;
 CATS* MM_CatPL;
 double MickeyFitter_pL(double* x, double* par){
     double& MOM = *x;
-    MM_CatPL->SetChannelWeight(2,0.25*par[11]);
-    MM_CatPL->SetChannelWeight(3,0.75*par[11]);
+//MM_CatPL->SetChannelWeight(2,0.25*par[11]);
+//MM_CatPL->SetChannelWeight(3,0.75*par[11]);
     MM_CatPL->SetAnaSource(0,par[12],true);
     if(MM_CatPL->GetNumSourcePars()>1){
         MM_CatPL->SetAnaSource(1,par[13],true);
@@ -2390,19 +2391,22 @@ void Fit_pL_MickeyMouse(){
     AnalysisObject.SetUpLambdaPars_pL(DataSample,0,0,lam_pL);
     AnalysisObject.SetUpLambdaPars_pXim(DataSample,0,0,lam_pXim);
 
-    //TString SourceDescription = "Gauss";
-    TString SourceDescription = "McGauss_ResoTM";
+    TString SourceDescription = "Gauss";
+    //TString SourceDescription = "McGauss_ResoTM";
     //TString SourceDescription = "McLevy_ResoTM";
 
     TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/OtherTasks/Fit_pL_MickeyMouse/";
-    TString OutFileName = "Out.root";
+    TString OutFileName = "OutSPD.root";
     TFile* OutputFile = new TFile(OutputFolder+OutFileName,"recreate");
     hData_pL->Write();
 
     CATS AB_pL;
     DLM_Ck* Ck_pL;
     AB_pL.SetMomBins(NumMomBins_pL,MomBins_pL);
-    AnalysisObject.SetUpCats_pL(AB_pL,"NLO_Coupled_S",SourceDescription,0,202);//NLO_Coupled_S
+    //AnalysisObject.SetUpCats_pL(AB_pL,"NLO_Coupled_S",SourceDescription,0,202);//NLO_Coupled_S
+    AnalysisObject.SetUpCats_pL(AB_pL,"NLO_Coupled_SPD",SourceDescription,0,202);//NLO_Coupled_S
+AB_pL.SetChannelWeight(8,AB_pL.GetChannelWeight(8)*0.54);
+AB_pL.SetChannelWeight(13,AB_pL.GetChannelWeight(13)*0.54);
     AB_pL.SetAnaSource(0,1.4);
     if(SourceDescription.Contains("Mc")){
         AB_pL.SetAnaSource(0,1.10);//c.a. 10% smaller compared to p-p due to the mT scaling
@@ -2465,7 +2469,7 @@ void Fit_pL_MickeyMouse(){
     fit_pL->SetParLimits(3,0.01,10.0);
 
     fit_pL->SetParameter(4,200.);
-    fit_pL->SetParLimits(4,20.,400.);
+    fit_pL->SetParLimits(4,-100.,400.);
 
     fit_pL->SetParameter(5,200.);
     fit_pL->SetParLimits(5,80.,600.);
@@ -2496,6 +2500,9 @@ void Fit_pL_MickeyMouse(){
     fit_pL->SetParameter(14,1);
     fit_pL->SetParLimits(14,0.8,1.2);
 
+
+/*
+//used for the resonances
 //fit_pL->FixParameter(0,0.2);
 //fit_pL->FixParameter(1,0.32);
 //fit_pL->FixParameter(2,2.0);
@@ -2511,7 +2518,11 @@ fit_pL->FixParameter(11,0.67);
 fit_pL->FixParameter(12,Ck_pL->GetSourcePar(0));//1.36
 fit_pL->FixParameter(13,2.00);//1.36
 fit_pL->FixParameter(14,1);
+*/
 
+fit_pL->FixParameter(11,0.67);
+fit_pL->FixParameter(13,2.00);//1.36
+fit_pL->FixParameter(14,1);
     hData_pL->Fit(fit_pL,"S, N, R, M");
     printf("chi2/ndf = %.2f / %i\n",fit_pL->GetChisquare(),fit_pL->GetNDF());
     printf("prob = %.4f\n",fit_pL->GetProb());
@@ -2528,6 +2539,18 @@ fit_pL->FixParameter(14,1);
     fit_pL_QS->SetParameter(1,fit_pL->GetParameter(1));
     fit_pL_QS->SetParameter(2,fit_pL->GetParameter(2));
 
+    TF1* fit_pL_NonFemtoNonJet = new TF1("fit_pL_NonFemtoNonJet","(1.-[0]*exp(-pow(x*[1]/197.327,[2])))*(1.+[3]*TMath::Gaus(x,[4],[5],0))*[6]*(1.+[7]*x+[8]*x*x+[9]*x*x*x)",0,4500);
+    fit_pL_NonFemtoNonJet->SetParameter(0,fit_pL->GetParameter(0));
+    fit_pL_NonFemtoNonJet->SetParameter(1,fit_pL->GetParameter(1));
+    fit_pL_NonFemtoNonJet->SetParameter(2,fit_pL->GetParameter(2));
+    fit_pL_NonFemtoNonJet->SetParameter(3,0);
+    fit_pL_NonFemtoNonJet->SetParameter(4,fit_pL->GetParameter(4));
+    fit_pL_NonFemtoNonJet->SetParameter(5,fit_pL->GetParameter(5));
+    fit_pL_NonFemtoNonJet->SetParameter(6,fit_pL->GetParameter(6));
+    fit_pL_NonFemtoNonJet->SetParameter(7,fit_pL->GetParameter(7));
+    fit_pL_NonFemtoNonJet->SetParameter(8,fit_pL->GetParameter(8));
+    fit_pL_NonFemtoNonJet->SetParameter(9,fit_pL->GetParameter(9));
+
     TF1* fit_pL_NonFemto = new TF1("fit_pL_NonFemto","(1.-[0]*exp(-pow(x*[1]/197.327,[2])))*(1.+[3]*TMath::Gaus(x,[4],[5],0))*[6]*(1.+[7]*x+[8]*x*x+[9]*x*x*x)",0,4500);
     fit_pL_NonFemto->SetParameter(0,fit_pL->GetParameter(0));
     fit_pL_NonFemto->SetParameter(1,fit_pL->GetParameter(1));
@@ -2535,13 +2558,19 @@ fit_pL->FixParameter(14,1);
     fit_pL_NonFemto->SetParameter(3,fit_pL->GetParameter(3));
     fit_pL_NonFemto->SetParameter(4,fit_pL->GetParameter(4));
     fit_pL_NonFemto->SetParameter(5,fit_pL->GetParameter(5));
-    fit_pL_NonFemto->SetParameter(6,1);
+    fit_pL_NonFemto->SetParameter(6,fit_pL->GetParameter(6));
     fit_pL_NonFemto->SetParameter(7,fit_pL->GetParameter(7));
     fit_pL_NonFemto->SetParameter(8,fit_pL->GetParameter(8));
     fit_pL_NonFemto->SetParameter(9,fit_pL->GetParameter(9));
 
     TGraph fit_nsigma;
     fit_nsigma.SetName("fit_nsigma");
+
+    TGraphErrors fit_sourcepars;
+    fit_sourcepars.SetName("fit_sourcepars");
+    fit_sourcepars.SetPoint(0,fit_pL->GetParameter(12),fit_pL->GetParameter(13));
+    fit_sourcepars.SetPointError(0,fit_pL->GetParError(12),fit_pL->GetParError(13));
+
 
     TH1F* hfit_Ratio = new TH1F("hfit_Ratio","hfit_Ratio",
             hData_pL->GetNbinsX(),hData_pL->GetBinLowEdge(1),hData_pL->GetXaxis()->GetBinUpEdge(hData_pL->GetNbinsX()));
@@ -2570,9 +2599,14 @@ fit_pL->FixParameter(14,1);
     fit_pL->Write();
     fit_pL_Jet->Write();
     fit_pL_QS->Write();
+    fit_pL_NonFemtoNonJet->Write();
     fit_pL_NonFemto->Write();
     fit_nsigma.Write();
+    fit_sourcepars.Write();
     hfit_Ratio->Write();
+    printf("Closing\n");
+    OutputFile->Close();
+    printf("Closed\n");
 
     //delete fit_pL;
 }
@@ -2899,9 +2933,9 @@ void Compare_RotPhi_ME(){
     //TH1F* hData_pp_ME = AnalysisObject.GetAliceExpCorrFun("pp13TeV_HM_Dec19","pp","_0",0,false,-1);
     //TH1F* hData_pp_RE = AnalysisObject.GetAliceExpCorrFun("pp13TeV_HM_RotPhiDec19","pp","_0",0,false,-1);
     //pLambda
-    TH1F* hData_pp_ME = AnalysisObject.GetAliceExpCorrFun("pp13TeV_HM_Dec19","pLambda","_0",3,false,-1);
-    TH1F* hData_pp_RE = AnalysisObject.GetAliceExpCorrFun("pp13TeV_HM_RotPhiDec19","pLambda","_0",0,false,-1);
-/*
+    //TH1F* hData_pp_ME = AnalysisObject.GetAliceExpCorrFun("pp13TeV_HM_Dec19","pLambda","_0",3,false,-1);
+    //TH1F* hData_pp_RE = AnalysisObject.GetAliceExpCorrFun("pp13TeV_HM_RotPhiDec19","pLambda","_0",0,false,-1);
+
     //MC pp
     TFile* InFile = new TFile(
     "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/pp13TeV_HM_Baseline/MyResults_Vale/Fast_BBar/Trains_MCAOD/Norm018028/CFOutput_pp_8.root"
@@ -2918,7 +2952,7 @@ void Compare_RotPhi_ME(){
     gROOT->cd();
     TH1F *hData_pp_RE = (TH1F*)hDummy->Clone("hData_pp_RE");
     delete InFile; InFile=NULL;
-*/
+
 /*
     //MC pLambda
     TFile* InFile = new TFile(
@@ -2937,15 +2971,17 @@ void Compare_RotPhi_ME(){
     TH1F *hData_pp_RE = (TH1F*)hDummy->Clone("hData_pp_RE");
     delete InFile; InFile=NULL;
 */
-
-
     DLM_Histo<float> dlmData_pp_ME;
     DLM_Histo<float> dlmData_pp_RE;
     DLM_Histo<float> dlmData_pp_MEvsRE;
 
-    const unsigned NumBins = hData_pp_ME->GetNbinsX()>hData_pp_RE->GetNbinsX()?hData_pp_RE->GetNbinsX():hData_pp_ME->GetNbinsX();
-    const double kMin = hData_pp_RE->GetBinLowEdge(1);
-    const double kMax = hData_pp_RE->GetXaxis()->GetBinUpEdge(NumBins);
+    unsigned NumBins = hData_pp_ME->GetNbinsX()>hData_pp_RE->GetNbinsX()?hData_pp_RE->GetNbinsX():hData_pp_ME->GetNbinsX();
+    double kMin = hData_pp_RE->GetBinLowEdge(1);
+    double kMax = hData_pp_RE->GetXaxis()->GetBinUpEdge(NumBins);
+
+unsigned RebinFactor = 4;
+NumBins /= RebinFactor;
+kMax =  hData_pp_RE->GetXaxis()->GetBinUpEdge(NumBins*RebinFactor);
 
     printf("NumBins=%u; kMin kMax = %f %f\n",NumBins,kMin,kMax);
 
@@ -2956,12 +2992,32 @@ void Compare_RotPhi_ME(){
     dlmData_pp_RE.SetUp(1);
     dlmData_pp_RE.SetUp(0,NumBins,kMin,kMax);
     dlmData_pp_RE.Initialize();
-
     for(unsigned uBin=0; uBin<NumBins; uBin++){
-        dlmData_pp_ME.SetBinContent(uBin,hData_pp_ME->GetBinContent(uBin+1));
-        dlmData_pp_ME.SetBinError(uBin,hData_pp_ME->GetBinError(uBin+1));
-        dlmData_pp_RE.SetBinContent(uBin,hData_pp_RE->GetBinContent(uBin+1)+0.001);
-        dlmData_pp_RE.SetBinError(uBin,hData_pp_RE->GetBinError(uBin+1));
+
+        double BinVal=0; double BinErr=0;
+        for(unsigned uReb=0; uReb<RebinFactor; uReb++){
+            BinVal += hData_pp_ME->GetBinContent(uBin*RebinFactor+uReb+1);
+            BinErr += hData_pp_ME->GetBinError(uBin*RebinFactor+uReb+1)*hData_pp_ME->GetBinError(uBin*RebinFactor+uReb+1);
+        }
+        BinErr = sqrt(BinErr);
+        dlmData_pp_ME.SetBinContent(uBin,BinVal);
+        dlmData_pp_ME.SetBinError(uBin,BinErr);
+
+        BinVal=0; BinErr=0;
+        for(unsigned uReb=0; uReb<RebinFactor; uReb++){
+            BinVal += hData_pp_RE->GetBinContent(uBin*RebinFactor+uReb+1);
+            BinErr += hData_pp_RE->GetBinError(uBin*RebinFactor+uReb+1)*hData_pp_RE->GetBinError(uBin*RebinFactor+uReb+1);
+        }
+        BinVal += 0.001;
+        BinErr = sqrt(BinErr);
+        dlmData_pp_RE.SetBinContent(uBin,BinVal);
+        dlmData_pp_RE.SetBinError(uBin,BinErr);
+
+
+        //dlmData_pp_ME.SetBinContent(uBin,hData_pp_ME->GetBinContent(uBin+1));
+        //dlmData_pp_ME.SetBinError(uBin,hData_pp_ME->GetBinError(uBin+1));
+        //dlmData_pp_RE.SetBinContent(uBin,hData_pp_RE->GetBinContent(uBin+1)+0.001);
+        //dlmData_pp_RE.SetBinError(uBin,hData_pp_RE->GetBinError(uBin+1));
     }
 
     dlmData_pp_MEvsRE = dlmData_pp_ME;
@@ -2978,6 +3034,392 @@ void Compare_RotPhi_ME(){
     delete hData_pp_MEvsRE;
 }
 
+
+
+void ReadDeuteronWF(const char* InputFileName, DLM_Histo<float>& OutputU, DLM_Histo<float>& OutputW){
+
+    FILE *InFile;
+    InFile = fopen(InputFileName, "r");
+    if(!InFile){
+        printf("\033[1;31mERROR:\033[0m The file\033[0m %s cannot be opened!\n", InputFileName);
+        return;
+    }
+
+    char* cdummy = new char [1024];
+    unsigned CurrentLine=0;
+    float fRadius, fuWF, fwWF;
+    double* Radius = new double [1024];
+    double* RadiusBins = new double [1025];
+
+    unsigned NumBins = 0;
+    RadiusBins[0] = 0;
+    //read line-by-line until the end of the file
+    while(!feof(InFile)){
+        CurrentLine++;
+        //read the next line
+        if(!fgets(cdummy, 1023, InFile)) continue;
+        if(CurrentLine<=3) continue;
+        //printf("Line#%u: %s\n",CurrentLine,cdummy);
+        sscanf(cdummy, "%f %f %f",&fRadius, &fuWF, &fwWF);
+        //printf("Line#%u: %.2e; %.2e; %.2e;\n",CurrentLine,fRadius,fuWF,fwWF);
+
+        //if((CurrentLine)%int(NumRadBins)==0){
+         //   sscanf(cdummy, "%f",&fMomentum);
+        Radius[NumBins] = fRadius;
+        if(NumBins){
+            //set the bin range in between the last two bin centers
+            RadiusBins[NumBins] = 0.5*(Radius[NumBins]+Radius[NumBins-1]);
+        }
+        //}
+
+        NumBins++;
+    }
+    fclose(InFile);
+
+    //set the upper edge of the last bin, where we just add the bin width of the last bin
+    //i.e. if we have l(low) c(center) u(up), we have that u=c+(c-l)=2c-l
+    RadiusBins[NumBins] = 2.*Radius[NumBins-1]-RadiusBins[NumBins-1];
+
+    //for(unsigned uBin=0; uBin<NumBins; uBin++){
+    //    printf("#%u: %f %f %f\n",uBin,RadiusBins[uBin],Radius[uBin],RadiusBins[uBin+1]);
+    //}
+
+    //dimension (1D)
+    OutputU.SetUp(1);
+    OutputU.SetUp(0,NumBins,RadiusBins,Radius);
+    OutputU.Initialize();
+
+    OutputW.SetUp(1);
+    OutputW.SetUp(0,NumBins,RadiusBins,Radius);
+    OutputW.Initialize();
+
+    CurrentLine=0;
+    NumBins=0;
+    InFile = fopen(InputFileName, "r");
+    while(!feof(InFile)){
+        CurrentLine++;
+        //read the next line
+        if(!fgets(cdummy, 1023, InFile)) continue;
+        if(CurrentLine<=3) continue;
+        sscanf(cdummy, "%f %f %f",&fRadius, &fuWF, &fwWF);
+        OutputU.SetBinContent(NumBins,fuWF);
+        OutputW.SetBinContent(NumBins,fwWF);
+        NumBins++;
+    }
+    fclose(InFile);
+
+    delete [] cdummy;
+    delete [] Radius;
+}
+
+double Fitter_MC_SimpleTemplate_pL(double* x, double* par){
+    double& MOM = *x;
+MM_CatPL->SetChannelWeight(8,3./4.*par[5]);
+MM_CatPL->SetChannelWeight(13,3./20.*par[5]);
+    MM_CatPL->SetAnaSource(0,par[6],true);
+    if(MM_CatPL->GetNumSourcePars()>1){
+        MM_CatPL->SetAnaSource(1,par[7],true);
+    }
+    MM_CatPL->KillTheCat();
+    MM_PL->GetCk()->SetCutOff(340,par[4]);
+    //MM_PL->GetCk()->SetSourcePar(0,par[6]);
+    MM_PL->Update(true);
+    static int COUNTER = 0;
+    if(MOM<MM_PL->GetCk()->GetBinUpEdge(0,0)){
+    COUNTER++;
+    //if(COUNTER%100==0)
+    printf("COUNTER=%i\n",COUNTER);
+    }
+
+    double CkVal;
+    //if(MOM<320) CkVal = MM_PL->EvalCk(MOM);
+    //else{
+    //    CkVal = (MOM-320-MM_PL->EvalCk(320)*(MOM-par[10]))/(par[10]-320);
+    //}
+    CkVal = MM_PL->EvalCk(MOM);
+    if(MOM<280) CkVal *= par[8];
+    //[0]*(1.+[1]*exp(-pow((x-[2])/[3],2.)))
+    double Baseline = par[0]*(1.+par[1]*exp(-pow((MOM-par[2])/par[3],2.)));
+    return CkVal*Baseline;
+}
+
+//including QS
+void Fit_pL_MC_SimpleTemplate(){
+    const bool Include_dWaves = true;
+    double ResidualSourceSize = 1.5;
+
+    double* MomBins_pL = NULL;
+    double* FitRegion_pL = NULL;
+    const unsigned NumBinsCk = 36;
+    const double BinWidthCk = 12;
+    const double MaxBinValCk = double(NumBinsCk)*BinWidthCk;
+    unsigned NumMomBins_pL;
+    //TString DataSample = "pp13TeV_HM_Dec19";
+    TString DataSample = "pp13TeV_HM_RotPhiDec19";
+
+    const double MCfit_Min = 0;
+    const double MCfit_Max = 540;
+    TString McFile = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/pp13TeV_HM_Baseline/MyResults_Vale/MC/CF/NanoMC/CFOutput_pL_3.root";
+    TString McHisto = "hCk_ReweightedMeV_1";
+
+    //so we need to copy our histogram, as else we lose it when we delete the file
+    //and we need to change to the "central" root directory, as else histoCopy will also be lost
+    //and we need to play with the name a little bit, else we are fucked!
+    TFile* mcfile = new TFile(McFile,"read");
+    TH1F* hCk_tmp = (TH1F*)mcfile->Get(McHisto);
+    if(!hCk_tmp){printf("\033[1;31mERROR:\033[0m The hCk_tmp '%s' if file '%s' does not exist\n",McHisto.Data(),McFile.Data());return;}
+    TString Name = hCk_tmp->GetName();
+    gROOT->cd();
+    TH1F *hCk_MC = (TH1F*)hCk_tmp->Clone("hCk_MC");
+    mcfile->Close();
+    //delete mcfile;
+
+    TF1* fit_MC = new TF1("fit_MC","[0]*(1.+[1]*exp(-pow((x-[2])/[3],2.)))",MCfit_Min,MCfit_Max);
+    fit_MC->SetParameter(0,1);
+    fit_MC->SetParLimits(0,0.5,2.);
+    fit_MC->SetParameter(1,0.03);
+    fit_MC->SetParLimits(1,0.005,0.1);
+    //fit_MC->SetParameter(2,0);
+    //fit_MC->SetParLimits(2,-50,50);
+    fit_MC->FixParameter(2,0);
+    fit_MC->SetParameter(3,200);
+    fit_MC->SetParLimits(3,50,500);
+
+    hCk_MC->Fit(fit_MC,"S, N, R, M");
+
+    DLM_CommonAnaFunctions AnalysisObject;
+    AnalysisObject.SetUpBinning_pL(DataSample,NumMomBins_pL,MomBins_pL,FitRegion_pL,0,0);
+
+    DLM_Ck* Ck_pSigma0 = new DLM_Ck(1,0,NumMomBins_pL,MomBins_pL,Lednicky_gauss_Sigma0);
+    Ck_pSigma0->SetSourcePar(0,ResidualSourceSize);
+
+    TH2F* hResolution_pL = AnalysisObject.GetResolutionMatrix(DataSample,"pLambda");
+    TH2F* hResidual_pL_pSigma0 = AnalysisObject.GetResidualMatrix("pLambda","pSigma0");
+    TH2F* hResidual_pL_pXim = AnalysisObject.GetResidualMatrix("pLambda","pXim");
+
+    TH1F* hData_pL = AnalysisObject.GetAliceExpCorrFun(DataSample,"pLambda","_0",1,false,-1);
+
+    double lam_pL[5];
+    double lam_pXim[5];
+
+    AnalysisObject.SetUpLambdaPars_pL(DataSample,0,0,lam_pL);
+    AnalysisObject.SetUpLambdaPars_pXim(DataSample,0,0,lam_pXim);
+
+    //TString SourceDescription = "Gauss";
+    TString SourceDescription = "McGauss_ResoTM";
+    //TString SourceDescription = "McLevy_ResoTM";
+
+    TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/OtherTasks/Fit_pL_MC_SimpleTemplate/";
+    TString OutFileName = "fOutput.root";
+    TFile* OutputFile = new TFile(OutputFolder+OutFileName,"recreate");
+    hCk_MC->Write();
+    fit_MC->Write();
+    hData_pL->Write();
+
+
+    CATS AB_pL;
+    DLM_Ck* Ck_pL;
+    AB_pL.SetMomBins(NumMomBins_pL,MomBins_pL);
+    //AnalysisObject.SetUpCats_pL(AB_pL,"NLO_Coupled_S",SourceDescription,0,202);//NLO_Coupled_S
+    AnalysisObject.SetUpCats_pL(AB_pL,"NLO_Coupled_SPD",SourceDescription,0,202);//NLO_Coupled_S
+//AB_pL.SetChannelWeight(8,AB_pL.GetChannelWeight(8)*0.54);
+//AB_pL.SetChannelWeight(13,AB_pL.GetChannelWeight(13)*0.54);
+    AB_pL.SetAnaSource(0,1.4);
+    if(SourceDescription.Contains("Mc")){
+        AB_pL.SetAnaSource(0,1.10);//c.a. 10% smaller compared to p-p due to the mT scaling
+        AB_pL.SetAnaSource(1,2.0);
+    }
+
+    for(unsigned short usCh=1; usCh<=6; usCh++){
+        //remove the p-waves
+        AB_pL.RemoveExternalWaveFunction(usCh,1);
+    }
+    for(unsigned short usCh=1; usCh<=3; usCh++){
+        //remove the d-waves
+        if(!Include_dWaves) AB_pL.RemoveExternalWaveFunction(usCh,2);
+    }
+    for(unsigned short usCh=8; usCh<=15; usCh++){
+        //remove all coupling
+        //AB_pL.RemoveExternalWaveFunction(usCh,0);
+
+        //remove all coupling, but the s-wave SN->LN
+        if(usCh!=8&&!Include_dWaves) AB_pL.RemoveExternalWaveFunction(usCh,0);
+        //remove all coupling, but the s,d-wave SN->LN
+        else if(usCh!=8&&usCh!=13) AB_pL.RemoveExternalWaveFunction(usCh,0);
+    }
+
+    AB_pL.SetNotifications(CATS::nWarning);
+    AB_pL.KillTheCat();
+    Ck_pL = new DLM_Ck(AB_pL.GetNumSourcePars(),0,AB_pL,NumBinsCk,0,MaxBinValCk);
+    Ck_pL->SetSourcePar(0,AB_pL.GetAnaSourcePar(0));
+    if(SourceDescription.Contains("Mc")){
+        Ck_pL->SetSourcePar(0,AB_pL.GetAnaSourcePar(0));
+        Ck_pL->SetSourcePar(1,AB_pL.GetAnaSourcePar(1));
+    }
+    Ck_pL->SetCutOff(320,500);
+
+    CATS AB_pXim;
+    //same binning as pL, as we only use pXim as feed-down
+    AB_pXim.SetMomBins(NumMomBins_pL,MomBins_pL);
+    AnalysisObject.SetUpCats_pXim(AB_pXim,"pXim_HALQCD1","Gauss");
+    AB_pXim.SetAnaSource(0,ResidualSourceSize);
+    AB_pXim.SetNotifications(CATS::nWarning);
+    AB_pXim.KillTheCat();
+    DLM_Ck* Ck_pXim = new DLM_Ck(AB_pXim.GetNumSourcePars(),0,AB_pXim);
+    Ck_pL->Update();
+    Ck_pSigma0->Update();
+    Ck_pXim->Update();
+
+    DLM_CkDecomposition CkDec_pL("pLambda",4,*Ck_pL,hResolution_pL);
+    DLM_CkDecomposition CkDec_pSigma0("pSigma0",0,*Ck_pSigma0,NULL);
+    DLM_CkDecomposition CkDec_pXim("pXim",2,*Ck_pXim,NULL);
+
+    //CkDec_pL.AddContribution(0,lam_pL[1],DLM_CkDecomposition::cFeedDown,&CkDec_pSigma0,hResidual_pL_pSigma0);
+    //CkDec_pL.AddContribution(1,lam_pL[2],DLM_CkDecomposition::cFeedDown,&CkDec_pXim,hResidual_pL_pXim);
+    CkDec_pL.AddContribution(0,lam_pL[1],DLM_CkDecomposition::cFeedDown);
+    CkDec_pL.AddContribution(1,lam_pL[2],DLM_CkDecomposition::cFeedDown);
+    CkDec_pL.AddContribution(2,lam_pL[3],DLM_CkDecomposition::cFeedDown);
+    CkDec_pL.AddContribution(3,lam_pL[4],DLM_CkDecomposition::cFake);//0.03
+
+    //for Xim we simplify a bit and take ALL feed-down as flat
+    CkDec_pXim.AddContribution(0,lam_pXim[1]+lam_pXim[2]+lam_pXim[3],DLM_CkDecomposition::cFeedDown);
+    CkDec_pXim.AddContribution(1,lam_pXim[4],DLM_CkDecomposition::cFake);
+
+    CkDec_pL.Update();
+
+    MM_PL = &CkDec_pL;
+    MM_CatPL = &AB_pL;
+    OutputFile->cd();
+    const double FitMin = 0;
+    const double FitMax = 340;
+    TF1* fit_pL = new TF1("fit_pL",Fitter_MC_SimpleTemplate_pL,FitMin,FitMax,9);
+
+    //norm
+    fit_pL->SetParameter(0,fit_MC->GetParameter(0));
+    fit_pL->SetParLimits(0,0.5*fit_MC->GetParameter(0),2.0*fit_MC->GetParameter(0));
+//fit_pL->FixParameter(0,fit_MC->GetParameter(0));
+
+    //strength
+    fit_pL->SetParameter(1,fit_MC->GetParameter(1));
+    fit_pL->SetParLimits(1,0.5*fit_MC->GetParameter(1),2.0*fit_MC->GetParameter(1));
+//fit_pL->FixParameter(1,fit_MC->GetParameter(1));
+
+    //exp mean
+    fit_pL->FixParameter(2,fit_MC->GetParameter(2));
+    //exp width
+    fit_pL->FixParameter(3,fit_MC->GetParameter(3));
+
+    //cutoff
+    fit_pL->FixParameter(4,500);
+
+    //weight of NSigma
+    fit_pL->SetParameter(5,0.5);
+    fit_pL->SetParLimits(5,0.2,0.8);
+    //fit_pL->FixParameter(5,0.54);
+
+    //radius
+    fit_pL->SetParameter(6,Ck_pL->GetSourcePar(0));
+    fit_pL->SetParLimits(6,0.8*Ck_pL->GetSourcePar(0),1.2*Ck_pL->GetSourcePar(0));
+fit_pL->FixParameter(6,1.1);
+    //alpha
+    fit_pL->FixParameter(7,2.00);//1.2 gives the best fit
+    //fit_pL->SetParameter(7,Ck_pL->GetSourcePar(1));
+    //fit_pL->SetParLimits(7,1.0,2.0);
+
+    //some bullshit
+    fit_pL->FixParameter(8,1);
+
+    hData_pL->Fit(fit_pL,"S, N, R, M");
+    printf("chi2/ndf = %.2f / %i\n",fit_pL->GetChisquare(),fit_pL->GetNDF());
+    printf("prob = %.4f\n",fit_pL->GetProb());
+    printf("nsigma = %.2f\n",sqrt(2)*TMath::ErfcInverse(fit_pL->GetProb()));
+    fit_pL->SetNpx(1024);
+/*
+    TF1* fit_pL_Jet = new TF1("fit_pL_Jet","1.+[0]*TMath::Gaus(x,[1],[2],0)",0,4500);
+    fit_pL_Jet->SetParameter(0,fit_pL->GetParameter(3));
+    fit_pL_Jet->SetParameter(1,fit_pL->GetParameter(4));
+    fit_pL_Jet->SetParameter(2,fit_pL->GetParameter(5));
+
+    TF1* fit_pL_QS = new TF1("fit_pL_QS","(1.-[0]*exp(-pow(x*[1]/197.327,[2])))",0,4500);
+    fit_pL_QS->SetParameter(0,fit_pL->GetParameter(0));
+    fit_pL_QS->SetParameter(1,fit_pL->GetParameter(1));
+    fit_pL_QS->SetParameter(2,fit_pL->GetParameter(2));
+
+    TF1* fit_pL_NonFemtoNonJet = new TF1("fit_pL_NonFemtoNonJet","(1.-[0]*exp(-pow(x*[1]/197.327,[2])))*(1.+[3]*TMath::Gaus(x,[4],[5],0))*[6]*(1.+[7]*x+[8]*x*x+[9]*x*x*x)",0,4500);
+    fit_pL_NonFemtoNonJet->SetParameter(0,fit_pL->GetParameter(0));
+    fit_pL_NonFemtoNonJet->SetParameter(1,fit_pL->GetParameter(1));
+    fit_pL_NonFemtoNonJet->SetParameter(2,fit_pL->GetParameter(2));
+    fit_pL_NonFemtoNonJet->SetParameter(3,0);
+    fit_pL_NonFemtoNonJet->SetParameter(4,fit_pL->GetParameter(4));
+    fit_pL_NonFemtoNonJet->SetParameter(5,fit_pL->GetParameter(5));
+    fit_pL_NonFemtoNonJet->SetParameter(6,fit_pL->GetParameter(6));
+    fit_pL_NonFemtoNonJet->SetParameter(7,fit_pL->GetParameter(7));
+    fit_pL_NonFemtoNonJet->SetParameter(8,fit_pL->GetParameter(8));
+    fit_pL_NonFemtoNonJet->SetParameter(9,fit_pL->GetParameter(9));
+*/
+    TF1* fit_pL_NonFemto = new TF1("fit_pL_NonFemto","[0]*(1.+[1]*exp(-pow((x-[2])/[3],2.)))",MCfit_Min,MCfit_Max);
+    fit_pL_NonFemto->SetParameter(0,fit_pL->GetParameter(0));
+    fit_pL_NonFemto->SetParameter(1,fit_pL->GetParameter(1));
+    fit_pL_NonFemto->SetParameter(2,fit_pL->GetParameter(2));
+    fit_pL_NonFemto->SetParameter(3,fit_pL->GetParameter(3));
+
+    TGraph fit_nsigma;
+    fit_nsigma.SetName("fit_nsigma");
+
+    TGraphErrors fit_sourcepars;
+    fit_sourcepars.SetName("fit_sourcepars");
+    fit_sourcepars.SetPoint(0,fit_pL->GetParameter(6),fit_pL->GetParameter(7));
+    fit_sourcepars.SetPointError(0,fit_pL->GetParError(6),fit_pL->GetParError(7));
+
+
+    TH1F* hfit_Ratio = new TH1F("hfit_Ratio","hfit_Ratio",
+            hData_pL->GetNbinsX(),hData_pL->GetBinLowEdge(1),hData_pL->GetXaxis()->GetBinUpEdge(hData_pL->GetNbinsX()));
+
+    int NumPts=0;
+    double Avg_nsigma = 0;//should be around 0
+    for(unsigned uBin=0; uBin<hData_pL->GetNbinsX(); uBin++){
+        double MOM = hData_pL->GetBinCenter(uBin+1);
+        if(MOM<FitMin || MOM>FitMax) continue;
+        double CkData = hData_pL->GetBinContent(uBin+1);
+        double CkErr = hData_pL->GetBinError(uBin+1);
+        double CkFit = fit_pL->Eval(MOM);
+        double nsigma = (CkData-CkFit)/CkErr;
+        fit_nsigma.SetPoint(NumPts,MOM,nsigma);
+        Avg_nsigma += nsigma;
+
+        hfit_Ratio->SetBinContent(uBin+1,CkData/CkFit);
+        hfit_Ratio->SetBinError(uBin+1,CkErr/CkFit);
+
+        NumPts++;
+    }
+    Avg_nsigma /= double(NumPts);
+    printf("Avg_nsigma = %.3f\n",Avg_nsigma);
+
+    OutputFile->cd();
+    fit_pL->Write();
+    //fit_pL_Jet->Write();
+    //fit_pL_QS->Write();
+    //fit_pL_NonFemtoNonJet->Write();
+    fit_pL_NonFemto->Write();
+    fit_nsigma.Write();
+    fit_sourcepars.Write();
+    hfit_Ratio->Write();
+    printf("Closing\n");
+    OutputFile->Close();
+    printf("Closed\n");
+
+    //delete fit_pL;
+}
+
+DLM_Histo<float> huWF;
+DLM_Histo<float> hwWF;
+float Evaluate_d_u(double Radius){
+    return huWF.Eval(&Radius);
+}
+float Evaluate_d_w(double Radius){
+    return hwWF.Eval(&Radius);
+}
+
 int OTHERTASKS(int narg, char** ARGS){
     //pp_CompareToNorfolk();
     //pp_pL_CorrectedMC_EXP();
@@ -2987,5 +3429,14 @@ int OTHERTASKS(int narg, char** ARGS){
 
     //Fit_pL_MickeyMouse();
     //Fit_pp_MickeyMouse();
-    Compare_RotPhi_ME();
+    //Compare_RotPhi_ME();
+    //Fit_pL_MC_SimpleTemplate();
+
+
+    //ReadDeuteronWF("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/Coalesce/WaveFunctions/Machleidt/deuwaves_n4lo500_rspace.d",huWF,hwWF);
+
+    //const double RAD = 5.11;
+    //printf("u(%.2f) = %.4f\n",RAD,Evaluate_d_u(RAD));
+    //printf(" w(%.2f) = %.4f\n",RAD,Evaluate_d_w(RAD));
+
 }

@@ -2087,12 +2087,89 @@ void TestKyoto2019(const double& RADIUS){
     delete [] MomBins;
 }
 
+void SmearTest_pKminus(){
+    const unsigned NumMomBins = 100;
+    const double MinMomentum = 0;
+    const double MaxMomentum = 250;
+    const double RADIUS = 1.0;
+    TString OutputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/KaonProton/SmearTest_pKminus/fOutput.root";
+
+    //(tSource or tPotential, Number of parameters, keep it true)
+    CATSparameters cPars(CATSparameters::tSource,1,true);
+    cPars.SetParameter(0,RADIUS);
+
+    CATS KittyFull;
+    KittyFull.SetMomBins(NumMomBins,MinMomentum,MaxMomentum);
+    KittyFull.SetAnaSource(GaussSource, cPars);
+    KittyFull.SetUseAnalyticSource(true);
+    DLM_Histo<complex<double>>*** ExternalWF_Full=Init_pKminus_Kyoto2019("/home/dmihaylov/CernBox/CATS_potentials/Tetsuo/Kyoto2019/",KittyFull,1);
+    for(unsigned uCh=0; uCh<6; uCh++){
+        KittyFull.SetExternalWaveFunction(uCh,0,ExternalWF_Full[0][uCh][0],ExternalWF_Full[1][uCh][0]);
+    }
+    //for channels 1-5 these are the omega weights
+    //KittyFull.SetChannelWeight(WHICH_CHANNEL, WEIGHT);
+    //if you change the weights, kill the cat again
+    KittyFull.KillTheCat();
+
+    //in essence, this is a custom made histogram class designed to work directly with CATS
+    DLM_Ck CkHisto(KittyFull.GetNumSourcePars(),0,KittyFull);
+    //fills all bins with the contents from KittyFull
+    CkHisto.Update();
+
+    //the next lines are getting the momentum-smear matrix from a file, saving a local copy to work with
+    TString FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/ResolutionMatrices/Sample6_MeV_compact.root";
+    TString HistoName = "hSigmaMeV_Proton_Proton";
+    ///ROOT SUCKS!
+    //so we need to copy our histogram, as else we lose it when we delete the file
+    //and we need to change to the "central" root directory, as else hResolution will also be lost
+    //and we need to play with the name a little bit, else we are fucked!
+    TFile* FileROOT = new TFile(FileName, "read");
+    TH2F* histoTemp = (TH2F*)FileROOT->Get(HistoName);
+    if(!histoTemp){printf("\033[1;31mERROR:\033[0m The histoTemp '%s' if file '%s' does not exist\n",HistoName.Data(),FileName.Data());}
+    TString Name = histoTemp->GetName();
+    gROOT->cd();
+    TH2F *hResolution = (TH2F*)histoTemp->Clone("hResolution");
+    delete FileROOT;
+    hResolution->SetName(Name);
+
+    //this class is used to apply feed-down and resolution corrections onto the theory curve
+    //in this example we only use it to smear the Ck for the momentum resolution
+    //arguments: "Arbitrary name of this object", number of feed-down contributions, Ck histogram, resolution matrix
+    DLM_CkDecomposition CkCorrected("pKminus",0,CkHisto,hResolution);
+    //applies the smearing and computes the corresponding histogram
+    CkCorrected.Update();
+
+    TFile fOutput(OutputFileName,"recreate");
+    //finally we save the output, both the theoretical and smeared correlations
+    TGraph gCkTheory;
+    gCkTheory.SetName("gCkTheory");
+    TGraph gCkCorrected;
+    gCkCorrected.SetName("gCkCorrected");
+
+    for(unsigned uBin=0; uBin<NumMomBins; uBin++){
+        double Momentum;
+        double Value_CkTh;
+        double Value_CkCorr;
+        Momentum = CkHisto.GetBinCenter(0,uBin);
+        Value_CkTh = CkHisto.Eval(Momentum);
+        Value_CkCorr = CkCorrected.EvalCk(Momentum);
+        gCkTheory.SetPoint(uBin,Momentum,Value_CkTh);
+        gCkCorrected.SetPoint(uBin,Momentum,Value_CkCorr);
+    }
+
+    gCkTheory.Write();
+    gCkCorrected.Write();
+
+}
+
 int KAONPROTON_MAIN(int argc, char *argv[]){
 
+    SmearTest_pKminus();
+
     //TestKyoto2019(1.2);
-    for(double rad=1; rad<=7.5; rad+=0.5){
-        TestKyoto2019(rad);
-    }
+    //for(double rad=1; rad<=7.5; rad+=0.5){
+    //    TestKyoto2019(rad);
+    //}
 
     //Toy_pKplus();
     //Toy_pKplus_2();

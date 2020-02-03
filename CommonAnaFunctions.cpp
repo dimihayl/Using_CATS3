@@ -872,9 +872,11 @@ printf("ExternalWF=%p\n",ExternalWF);
                 if(POT=="NLO_Coupled_SPD"){
                     if(uCh<=6){
                         Kitty.SetExternalWaveFunction(uCh,1,ExternalWF[0][uCh][1],ExternalWF[1][uCh][1]);
+//printf("1: uCh=%u\n",uCh);
                     }
                     if(uCh>=1&&uCh<=3){
                         Kitty.SetExternalWaveFunction(uCh,2,ExternalWF[0][uCh][2],ExternalWF[1][uCh][2]);
+//printf("uCh=%u\n",uCh);
                     }
                 }
                 else if(Kitty.GetNumPW(uCh)>=2){
