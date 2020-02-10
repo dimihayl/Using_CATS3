@@ -8,6 +8,7 @@
 #include "SourceStudies.h"
 #include "KaonProton.h"
 #include "OtherTasks.h"
+#include "DimiMcPlayground.h"
 
 #include <iostream>
 #include <stdio.h>
@@ -199,6 +200,7 @@ void TestCommonInit(){
 
 }
 */
+
 void plot_pp(){
 
     const double SourceSize = 1.0;
@@ -253,6 +255,35 @@ void plot_pp(){
     delete OutputFile;
 }
 
+void plot_pp_2(){
+
+    const double SourceSize = 1.0;
+
+    const double kMin=0;
+    const double kMax=600;
+    const unsigned NumMomBins = 150;
+
+    TFile* OutputFile = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/plot_pp/OutputFile2.root","recreate");
+
+    DLM_CommonAnaFunctions AnalysisObject;
+    CATS Kitty;
+    Kitty.SetMaxNumThreads(1);
+    Kitty.SetMomBins(NumMomBins,kMin,kMax);
+    AnalysisObject.SetUpCats_pp(Kitty,"AV18","Gauss");
+    Kitty.SetAnaSource(0,SourceSize);
+    //Kitty.SetEpsilonProp(1e-8);
+    Kitty.KillTheCat();
+    TGraph gKitty;
+    gKitty.SetName(TString::Format("gKitty"));
+    gKitty.Set(NumMomBins);
+    for(unsigned uBin=0; uBin<NumMomBins; uBin++){
+        //printf("C(%.2f) = %.2f\n",Kitty.GetMomentum(uBin),Kitty.GetCorrFun(uBin));
+        gKitty.SetPoint(uBin,Kitty.GetMomentum(uBin),Kitty.GetCorrFun(uBin));
+    }
+    gKitty.Write();
+
+    delete OutputFile;
+}
 
 void plot_pL(){
 
@@ -3494,18 +3525,21 @@ void Test_New_pLambda(){
     KittyNLO.SetAnaSource(0,SourceSize);
     for(unsigned short usCh=1; usCh<=6; usCh++){
         //remove the p-waves
-        //KittyNLO.RemoveExternalWaveFunction(usCh,1);
+        KittyNLO.RemoveExternalWaveFunction(usCh,1);
     }
     for(unsigned short usCh=1; usCh<=3; usCh++){
         //remove the d-waves
-        //KittyNLO.RemoveExternalWaveFunction(usCh,2);
+        KittyNLO.RemoveExternalWaveFunction(usCh,2);
     }
-    for(unsigned short usCh=8; usCh<=15; usCh++){
+    for(unsigned short usCh=7; usCh<=15; usCh++){
         //remove all coupling
         //KittyNLO.RemoveExternalWaveFunction(usCh,0);
 
-        //remove all coupling, but the s-wave SN->LN
+        //remove all coupling, but the s-wave SN->LN (3S1)
         //if(usCh!=8) KittyNLO.RemoveExternalWaveFunction(usCh,0);
+
+        //remove all coupling, but the s-wave SN->LN (1S0 and 3S1)
+        if(usCh!=7&&usCh!=8) KittyNLO.RemoveExternalWaveFunction(usCh,0);
 
         //remove all coupling, but the s,d-wave SN->LN
         //if(usCh!=8&&usCh!=13) KittyNLO.RemoveExternalWaveFunction(usCh,0);
@@ -3513,7 +3547,7 @@ void Test_New_pLambda(){
         //if(usCh!=8&&usCh!=10&&usCh!=13) KittyNLO.RemoveExternalWaveFunction(usCh,0);
 
         //remove all coupling to p-waves
-        if(usCh==11||usCh==12) KittyNLO.RemoveExternalWaveFunction(usCh,0);
+        //if(usCh==11||usCh==12) KittyNLO.RemoveExternalWaveFunction(usCh,0);
     }
 
 
@@ -3737,6 +3771,37 @@ void pn_B2(){
     gB2_Hulthen.Write();
 }
 */
+
+
+CATS* ReturnCk_CAT;
+double ReturnCk(double* x){
+    return (0.91*ReturnCk_CAT->EvalCorrFun(*x)-1.00);
+}
+
+//goal: see if Int C(k)-1 = 0
+void Integrate_Ck(){
+
+    const double kMin = 0;
+    const double kMax = 1500;
+    const unsigned NumMomBins = 500;
+
+    DLM_CommonAnaFunctions AO_pL;
+    CATS Kitty_pL;
+    Kitty_pL.SetMaxNumThreads(4);
+    Kitty_pL.SetMomBins(NumMomBins,kMin,kMax);
+    AO_pL.SetUpCats_pL(Kitty_pL,"Usmani","Gauss",0,202);
+    Kitty_pL.SetAnaSource(0,1.2);
+    Kitty_pL.SetAnaSource(1,2);
+    Kitty_pL.KillTheCat();
+
+    ReturnCk_CAT = &Kitty_pL;
+    double Pars[1];
+    DLM_INT_SetFunction(ReturnCk,Pars,0);
+    double NORM = DLM_INT_aSimpsonWiki(kMin,kMax);
+    printf("NORM = %f\n",NORM);
+
+}
+
 int main(int argc, char *argv[])
 {
 
@@ -3817,7 +3882,8 @@ printf("%.3f\n",lambdapars[4]*100.);
     //SOURCESTUDIES(argc,ARGV);
     //KAONPROTON_MAIN(argc,ARGV);
     //UNFOLD_MAIN(argc,ARGV);
-    //OTHERTASKS(argc,ARGV);
+    OTHERTASKS(argc,ARGV);
+    //DimiMcPlayground_MAIN(argc,ARGV);
 /*
 
 void ScatParsFromRandPotential(const TString OutputFolder,
@@ -3844,6 +3910,7 @@ void ScatParsFromRandPotential(const TString OutputFolder,
 
     //TestCommonInit();
     //plot_pp();
+    //plot_pp_2();
     //plot_pL();
     //plot_pSigma0();
     //McLevyTest1();
@@ -3863,7 +3930,9 @@ void ScatParsFromRandPotential(const TString OutputFolder,
     //TestVALE_pLambda();
 
     //TestCauchy();
-    Test_New_pLambda();
+    //Test_New_pLambda();
+    //Integrate_Ck();
+
 
     for(int iARG=1; iARG<argc; iARG++){
         delete [] ARGV[iARG];
