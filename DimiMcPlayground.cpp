@@ -135,16 +135,33 @@ printf("TotParticles_ME = %u\n",TotParticles_ME);
             ParticleC[uPart_Event].SetY(rangen.Gaus(MeanMom[1],SigmaMom[1]));
             ParticleC[uPart_Event].SetZ(rangen.Gaus(MeanMom[2],SigmaMom[2]));
             double kStar;
+            double dPhi;
             double REJprob;
+            double CkVal;
+            double CkMax = 1.8;
+            double CphiMax = 0.945+0.258*exp(-pow((0-0.)/0.736,2.))+0.0109*exp(-pow((0-3.1415)/0.573,2.));
+//printf("CphiMax=%f\n",CphiMax);
+            const double Enhance = 1.0;
+            const double Renorm = 1.0;
             if(uPart_Event==0){
                 REJprob=0;
             }
             else{
+                REJprob = 1;//prob to keep the particle pair
+                //kStar
                 kStar = (ParticleC[uPart_Event]-ParticleC[uPart_Event-1]).Mag();
-                if(kStar>5900) REJprob=0;
-                else REJprob = 1.8-h_pL->GetBinContent(h_pL->FindBin(kStar));
+                CkVal = Renorm*((h_pL->GetBinContent(h_pL->FindBin(kStar)) - 1)*Enhance + 1);
+                CkMax = Renorm*((CkMax - 1)*Enhance + 1);
+                //if(kStar>5900) REJprob=0.9;
+                //else REJprob = 1.-(CkMax-CkVal)/CkMax;//prob to keep the particle pair
+                //dPhi
+                dPhi = fabs(ParticleC[uPart_Event].Phi()-ParticleC[uPart_Event-1].Phi());
+                //REJprob *= TMath::Gaus(dPhi,3.1415,5.5,false);
+                //tuned to reproduce experimental pAntip dPhi C
+                REJprob *= (0.945+0.258*exp(-pow((dPhi-0.)/0.736,2.))+0.0109*exp(-pow((dPhi-3.1415)/0.573,2.)))/CphiMax;
+                REJprob = 1.-REJprob;
             }
-            Rejected = 1.8*rangen.Uniform()<REJprob;
+            Rejected = rangen.Uniform()<REJprob;
             //Rejected = false;
         }
 

@@ -3505,8 +3505,8 @@ void Fit_pp_MC_SimpleTemplate(){
 
     //Gauss
     //TString SourceDescription = "Gauss";
-    //TString SourceDescription = "McGauss_ResoTM";
-    TString SourceDescription = "McLevy_ResoTM";
+    TString SourceDescription = "McGauss_ResoTM";
+    //TString SourceDescription = "McLevy_ResoTM";
 
     DLM_CommonAnaFunctions AnalysisObject;
 
@@ -3593,9 +3593,9 @@ void Fit_pp_MC_SimpleTemplate(){
     fit_pp->FixParameter(3,fit_MC->GetParameter(3));
 
     //rescale of the strength
-    fit_pp->SetParameter(4,1);
-    fit_pp->SetParLimits(4,0.1,2.0);
-//fit_pp->FixParameter(4,1.0);
+    //fit_pp->SetParameter(4,1);
+    //fit_pp->SetParLimits(4,0.1,2.0);
+fit_pp->FixParameter(4,1.0);
 
     //radius
     fit_pp->SetParameter(5,Ck_pp->GetSourcePar(0));
@@ -3605,7 +3605,7 @@ void Fit_pp_MC_SimpleTemplate(){
     //fit_pp->FixParameter(6,2.0);//1.3 gives the best fit
     fit_pp->SetParameter(6,Ck_pp->GetSourcePar(1));
     fit_pp->SetParLimits(6,1.0,2.0);
-//fit_pp->FixParameter(6,1.3);
+fit_pp->FixParameter(6,1.3);
 
     hData_pp->Fit(fit_pp,"S, N, R, M");
     printf("chi2/ndf = %.2f / %i\n",fit_pp->GetChisquare(),fit_pp->GetNDF());
@@ -3690,20 +3690,566 @@ void Fit_pp_MC_SimpleTemplate(){
 }
 
 
+double dimi_MC_template_fitter_pp(double* x, double* par){
+    MM_PP->GetCk()->SetSourcePar(0,par[9]);
+    if(MM_CatPP->GetNumSourcePars()>1){
+        MM_PP->GetCk()->SetSourcePar(1,par[10]);
+    }
+    MM_PP->Update(false);
+    double Com = par[0]*(1.+par[1]*exp(-pow((*x-par[2])/par[3],2.)));
+    double NonCom = par[4]*(1.+par[5]*exp(-pow((*x-par[6])/par[7],2.)));
+    double Femto = MM_PP->EvalCk(*x);
+    return par[8]*(Com+NonCom)*Femto;
+}
+
 void Fit_pp_CommonAncestorTemplate_Ck(){
 
-    TString fName_MC_Common = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/pLambda_Rush/Ancestors/dEtadPhiAncestors.root";
-    TString fName_MC_NonCommon = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/pLambda_Rush/Ancestors/dEtadPhiAncestors.root";
-    TString fName_MC = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/pLambda_Rush/Ancestors/dEtadPhiAncestors.root";
-    TString fName_Data = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/pLambda_Rush/Ancestors/dEtadPhiAncestors.root";
+    TString fName_MC_Common = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/pLambda_Rush/Ancestors_YieldNorm/CFOutput_pp_8_Common.root";
+    TString fName_MC_NonCommon = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/pLambda_Rush/Ancestors_YieldNorm/CFOutput_pp_8_NonCommon.root";
+    TString fName_MC = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/pp13TeV_HM_Baseline/MyResults_Vale/MC/CF/NanoMC/CFOutput_pp_8.root";
+    TString fName_Data = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/pp13TeV_HM_Baseline/MyResults_Vale/Data/CF/Norm024034/CFOutput_pp_8.root";
 
-    const double WC_MC = 0.162;
+    TString hName_MC_Common = "hCk_FixShiftedMeV_0";
+    TString hName_MC_NonCommon = "hCk_FixShiftedMeV_0";
+    TString hName_MC = "hCk_FixShiftedMeV_0";
+    TString hName_Data = "hCk_FixShiftedMeV_0";
+
+    TH1D* h_MC_Common;
+    TH1D* h_MC_NonCommon;
+    TH1D* h_MC;
+    TH1D* h_MC_TEMPLATE;
+    TH1D* h_Data;
+
+    const double WC_MC = 0.166;
     const double WN_MC = 0.834;
 
     const double WC_Data = 0.069;
     const double WN_Data = 0.931;
 
+    TFile* fInputFile;
+    TH1D* InputHisto;
+    TFile* OutputFile = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/OtherTasks/Fit_pp_CAT_Ck/OutputFile.root","recreate");
+    double FitMin;
+    double FitMax;
 
+    fInputFile = new TFile(fName_MC_Common,"read");
+    InputHisto = (TH1D*)fInputFile->Get(hName_MC_Common);
+    OutputFile->cd();
+    h_MC_Common = (TH1D*)InputHisto->Clone("h_MC_Common");
+    h_MC_Common->Write();
+    FitMin = 56;
+    FitMax = 380;
+    TF1* fTemplate_MC_Common = new TF1("fTemplate_MC_Common","[0]*(1.+[1]*exp(-pow((x-[2])/[3],2.)))",FitMin,FitMax);
+    fTemplate_MC_Common->SetParameter(0,1);
+    fTemplate_MC_Common->SetParameter(1,0.3);
+    fTemplate_MC_Common->SetParameter(2,250);
+    fTemplate_MC_Common->SetParameter(3,150);
+    h_MC_Common->Fit(fTemplate_MC_Common,"S, N, R, M");
+    delete fInputFile;
+
+    fInputFile = new TFile(fName_MC_NonCommon,"read");
+    InputHisto = (TH1D*)fInputFile->Get(hName_MC_NonCommon);
+    OutputFile->cd();
+    h_MC_NonCommon = (TH1D*)InputHisto->Clone("h_MC_NonCommon");
+    h_MC_NonCommon->Write();
+    FitMin = 20;
+    FitMax = 380;
+    TF1* fTemplate_MC_NonCommon = new TF1("fTemplate_MC_NonCommon","[0]*(1.+[1]*exp(-pow((x-[2])/[3],2.)))",FitMin,FitMax);
+    fTemplate_MC_NonCommon->SetParameter(0,0.9);
+    fTemplate_MC_NonCommon->SetParameter(1,0.03);
+    fTemplate_MC_NonCommon->FixParameter(2,0);
+    fTemplate_MC_NonCommon->SetParameter(3,120);
+    h_MC_NonCommon->Fit(fTemplate_MC_NonCommon,"S, N, R, M");
+    delete fInputFile;
+
+    fInputFile = new TFile(fName_MC,"read");
+    InputHisto = (TH1D*)fInputFile->Get(hName_MC);
+    OutputFile->cd();
+    h_MC = (TH1D*)InputHisto->Clone("h_MC");
+    h_MC->Write();
+    FitMin = 56;
+    FitMax = 380;
+    TF1* fTemplate_MC = new TF1("fTemplate_MC","[8]*([0]*(1.+[1]*exp(-pow((x-[2])/[3],2.)))+[4]*(1.+[5]*exp(-pow((x-[6])/[7],2.))))",FitMin,FitMax);
+    fTemplate_MC->FixParameter(0,fTemplate_MC_Common->GetParameter(0)*WC_MC);
+    fTemplate_MC->FixParameter(1,fTemplate_MC_Common->GetParameter(1));
+    fTemplate_MC->FixParameter(2,fTemplate_MC_Common->GetParameter(2));
+    fTemplate_MC->FixParameter(3,fTemplate_MC_Common->GetParameter(3));
+    fTemplate_MC->FixParameter(4,fTemplate_MC_NonCommon->GetParameter(0)*WN_MC);
+    fTemplate_MC->FixParameter(5,fTemplate_MC_NonCommon->GetParameter(1));
+    fTemplate_MC->FixParameter(6,fTemplate_MC_NonCommon->GetParameter(2));
+    fTemplate_MC->FixParameter(7,fTemplate_MC_NonCommon->GetParameter(3));
+    fTemplate_MC->SetParameter(8,1.0178);
+    h_MC->Fit(fTemplate_MC,"S, N, R, M");
+    delete fInputFile;
+
+    OutputFile->cd();
+    h_MC_TEMPLATE = (TH1D*)h_MC_Common->Clone("h_MC_TEMPLATE");
+    h_MC_TEMPLATE->Scale(WC_MC);
+    h_MC_TEMPLATE->Add(h_MC_NonCommon,WN_MC);
+    h_MC_TEMPLATE->Scale(fTemplate_MC->GetParameter(8));
+
+    fInputFile = new TFile(fName_Data,"read");
+    InputHisto = (TH1D*)fInputFile->Get(hName_Data);
+    OutputFile->cd();
+    h_Data = (TH1D*)InputHisto->Clone("h_Data");
+    h_Data->Write();
+    FitMin = 0;
+    FitMax = 340;
+    delete fInputFile;
+
+    TString DataSample = "pp13TeV_HM_Dec19";
+    DLM_CommonAnaFunctions AnalysisObject;
+
+    TH2F* hResolution_pp = AnalysisObject.GetResolutionMatrix(DataSample,"pp");
+    TH2F* hResidual_pp_pL = AnalysisObject.GetResidualMatrix("pp","pLambda");
+    double lam_pp[5];
+    double lam_pL[5];
+    AnalysisObject.SetUpLambdaPars_pp(DataSample,0,lam_pp);
+    AnalysisObject.SetUpLambdaPars_pL(DataSample,0,0,lam_pL);
+    //Gauss
+    //TString SourceDescription = "Gauss";
+    TString SourceDescription = "McGauss_ResoTM";
+    //TString SourceDescription = "McLevy_ResoTM";
+    CATS AB_pp;
+    DLM_Ck* Ck_pp;
+    AB_pp.SetMomBins(105,0,420);
+    AB_pp.SetNotifications(CATS::nWarning);
+    AnalysisObject.SetUpCats_pp(AB_pp,"AV18",SourceDescription,0,202);//McLevyNolan_Reso
+    AB_pp.SetAnaSource(0,1.3);
+    if(SourceDescription.Contains("Mc")){
+        AB_pp.SetAnaSource(0,1.20);
+        AB_pp.SetAnaSource(1,2.0);
+    }
+    //AB_pp.SetAnaSource(1,2.0);
+    //AB_pp.SetNotifications(CATS::nWarning);
+    //AB_pp.SetEpsilonConv(5e-8);
+    //AB_pp.SetEpsilonProp(5e-8);
+    AB_pp.KillTheCat();
+    Ck_pp = new DLM_Ck(AB_pp.GetNumSourcePars(),0,AB_pp);
+    Ck_pp->Update();
+
+    CATS AB_pL;
+    DLM_Ck* Ck_pL;
+    AB_pL.SetMomBins(105,0,420);
+    //AnalysisObject.SetUpCats_pL(AB_pL,"NLO_Coupled_S","Gauss");
+    AnalysisObject.SetUpCats_pL(AB_pL,"Usmani","Gauss");
+    AB_pL.SetAnaSource(0,1.3);
+    AB_pL.SetNotifications(CATS::nWarning);
+    AB_pL.KillTheCat();
+    Ck_pL = new DLM_Ck(AB_pL.GetNumSourcePars(),0,AB_pL);
+    Ck_pL->Update();
+
+    DLM_CkDecomposition CkDec_pp("pp",3,*Ck_pp,hResolution_pp);
+    DLM_CkDecomposition CkDec_pL("pLambda",2,*Ck_pL,NULL);
+
+    CkDec_pp.AddContribution(0,lam_pp[1],DLM_CkDecomposition::cFeedDown,&CkDec_pL,hResidual_pp_pL);
+    CkDec_pp.AddContribution(1,lam_pp[2],DLM_CkDecomposition::cFeedDown);
+    CkDec_pp.AddContribution(2,lam_pp[3],DLM_CkDecomposition::cFake);
+
+    CkDec_pL.AddContribution(2,lam_pL[1]+lam_pL[2]+lam_pL[3],DLM_CkDecomposition::cFeedDown);
+    CkDec_pL.AddContribution(3,lam_pL[4],DLM_CkDecomposition::cFake);//0.03
+
+    CkDec_pp.Update();
+    CkDec_pL.Update();
+
+    MM_PP = &CkDec_pp;
+    MM_CatPP = &AB_pp;
+
+    TF1* fTemplate_Data = new TF1("fTemplate_Data",dimi_MC_template_fitter_pp,FitMin,FitMax,11);
+    fTemplate_Data->FixParameter(0,fTemplate_MC_Common->GetParameter(0)*WC_Data);
+    fTemplate_Data->FixParameter(1,fTemplate_MC_Common->GetParameter(1));
+    fTemplate_Data->FixParameter(2,fTemplate_MC_Common->GetParameter(2));
+    fTemplate_Data->FixParameter(3,fTemplate_MC_Common->GetParameter(3));
+    fTemplate_Data->FixParameter(4,fTemplate_MC_NonCommon->GetParameter(0)*WN_Data);
+    fTemplate_Data->FixParameter(5,fTemplate_MC_NonCommon->GetParameter(1));
+    fTemplate_Data->FixParameter(6,fTemplate_MC_NonCommon->GetParameter(2));
+    fTemplate_Data->FixParameter(7,fTemplate_MC_NonCommon->GetParameter(3));
+    fTemplate_Data->SetParameter(8,1.0);
+    fTemplate_Data->SetParLimits(8,0.5,2.0);
+    fTemplate_Data->SetParameter(9,CkDec_pp.GetCk()->GetSourcePar(0));
+    fTemplate_Data->SetParLimits(9,CkDec_pp.GetCk()->GetSourcePar(0)*0.8,CkDec_pp.GetCk()->GetSourcePar(0)*1.2);
+    if(AB_pp.GetNumSourcePars()>1){
+        fTemplate_Data->SetParameter(10,CkDec_pp.GetCk()->GetSourcePar(1));
+        fTemplate_Data->SetParLimits(10,1,2);
+    }
+    else fTemplate_Data->FixParameter(10,2.0);
+fTemplate_Data->FixParameter(10,2.0);
+    h_Data->Fit(fTemplate_Data,"S, N, R, M");
+
+    TF1* fTemplate_Data_BL = new TF1("fTemplate_Data_BL","[8]*([0]*(1.+[1]*exp(-pow((x-[2])/[3],2.)))+[4]*(1.+[5]*exp(-pow((x-[6])/[7],2.))))",FitMin,FitMax);
+    fTemplate_Data_BL->FixParameter(0,fTemplate_Data->GetParameter(0));
+    fTemplate_Data_BL->FixParameter(1,fTemplate_Data->GetParameter(1));
+    fTemplate_Data_BL->FixParameter(2,fTemplate_Data->GetParameter(2));
+    fTemplate_Data_BL->FixParameter(3,fTemplate_Data->GetParameter(3));
+    fTemplate_Data_BL->FixParameter(4,fTemplate_Data->GetParameter(4));
+    fTemplate_Data_BL->FixParameter(5,fTemplate_Data->GetParameter(5));
+    fTemplate_Data_BL->FixParameter(6,fTemplate_Data->GetParameter(6));
+    fTemplate_Data_BL->FixParameter(7,fTemplate_Data->GetParameter(7));
+    fTemplate_Data_BL->FixParameter(8,fTemplate_Data->GetParameter(8));
+
+
+    TH1F* hfit_Ratio = new TH1F("hfit_Ratio","hfit_Ratio",
+            h_Data->GetNbinsX(),h_Data->GetBinLowEdge(1),h_Data->GetXaxis()->GetBinUpEdge(h_Data->GetNbinsX()));
+    TGraph fit_nsigma;
+    fit_nsigma.SetName("fit_nsigma");
+
+    int NumPts=0;
+    double Avg_nsigma = 0;//should be around 0
+    for(unsigned uBin=0; uBin<h_Data->GetNbinsX(); uBin++){
+        double MOM = h_Data->GetBinCenter(uBin+1);
+        if(MOM<FitMin || MOM>FitMax) continue;
+        double CkData = h_Data->GetBinContent(uBin+1);
+        double CkErr = h_Data->GetBinError(uBin+1);
+        double CkFit = fTemplate_Data->Eval(MOM);
+        double nsigma = (CkData-CkFit)/CkErr;
+        fit_nsigma.SetPoint(NumPts,MOM,nsigma);
+        Avg_nsigma += nsigma;
+
+        hfit_Ratio->SetBinContent(uBin+1,CkData/CkFit);
+        hfit_Ratio->SetBinError(uBin+1,CkErr/CkFit);
+
+        NumPts++;
+    }
+    Avg_nsigma /= double(NumPts);
+    printf("Avg_nsigma = %.3f\n",Avg_nsigma);
+
+    TGraphErrors fit_sourcepars;
+    fit_sourcepars.SetName("fit_sourcepars");
+    fit_sourcepars.SetPoint(0,fTemplate_Data->GetParameter(9),fTemplate_Data->GetParameter(10));
+    fit_sourcepars.SetPointError(0,fTemplate_Data->GetParError(9),fTemplate_Data->GetParError(10));
+
+
+    OutputFile->cd();
+    fTemplate_MC_Common->Write();
+    fTemplate_MC_NonCommon->Write();
+    fTemplate_MC->Write();
+    h_MC_TEMPLATE->Write();
+    fTemplate_Data->Write();
+    fTemplate_Data_BL->Write();
+    hfit_Ratio->Write();
+    fit_nsigma.Write();
+    fit_sourcepars.Write();
+
+    printf("nsigma = %.2f\n",sqrt(2)*TMath::ErfcInverse(fTemplate_Data->GetProb()));
+
+printf("END pp ------------------------------------\n");
+    delete h_MC_Common;
+    delete h_MC_NonCommon;
+    delete h_MC;
+    delete h_MC_TEMPLATE;
+    delete h_Data;
+    delete hfit_Ratio;
+
+    delete fTemplate_MC_Common;
+    delete fTemplate_MC_NonCommon;
+    delete fTemplate_MC;
+    delete fTemplate_Data;
+    delete fTemplate_Data_BL;
+    delete OutputFile;
+}
+
+
+double dimi_MC_template_fitter_pL(double* x, double* par){
+    MM_PL->GetCk()->SetSourcePar(0,par[9]);
+    if(MM_CatPL->GetNumSourcePars()>1){
+        MM_PL->GetCk()->SetSourcePar(1,par[10]);
+    }
+    MM_PL->Update(false);
+    double Com = par[0]*(1.+par[1]*exp(-pow((*x-par[2])/par[3],2.)));
+    double NonCom = par[4]*(1.+par[5]*exp(-pow((*x-par[6])/par[7],2.)));
+    double Femto = MM_PL->EvalCk(*x);
+    return par[8]*(Com+NonCom)*Femto;
+}
+
+void Fit_pL_CommonAncestorTemplate_Ck(){
+
+    TString fName_MC_Common = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/pLambda_Rush/Ancestors_YieldNorm/CFOutput_pL_8_Common.root";
+    TString fName_MC_NonCommon = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/pLambda_Rush/Ancestors_YieldNorm/CFOutput_pL_8_NonCommon.root";
+    TString fName_MC = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/pp13TeV_HM_Baseline/MyResults_Vale/MC/CF/NanoMC/CFOutput_pL_8.root";
+    TString fName_Data = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/pp13TeV_HM_Baseline/MyResults_Vale/Data/CF/Norm024034/CFOutput_pL_8.root";
+
+    //TString hName_MC_Common = "hCk_RebinnedMeV_1";
+    //TString hName_MC_NonCommon = "hCk_RebinnedMeV_1";
+    //TString hName_MC = "hCk_RebinnedMeV_1";
+    //TString hName_Data = "hCk_RebinnedMeV_1";
+
+    TString hName_MC_Common = "hCkTotNormWeightMeV";
+    TString hName_MC_NonCommon = "hCkTotNormWeightMeV";
+    TString hName_MC = "hCkTotNormWeightMeV";
+    TString hName_Data = "hCkTotNormWeightMeV";
+    int REBIN = 4;
+
+    TH1D* h_MC_Common;
+    TH1D* h_MC_NonCommon;
+    TH1D* h_MC;
+    TH1D* h_MC_TEMPLATE;
+    TH1D* h_Data;
+
+    const double WC_MC = 0.162;
+    const double WN_MC = 0.838;
+    //const double WC_MC = 0.8;
+    //const double WN_MC = 0.2;
+
+    const double WC_Data = 0.100;
+    const double WN_Data = 0.900;
+
+    TFile* fInputFile;
+    TH1D* InputHisto;
+    TFile* OutputFile = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/OtherTasks/Fit_pL_CAT_Ck/OutputFile.root","recreate");
+    double FitMin;
+    double FitMax;
+
+    fInputFile = new TFile(fName_MC_Common,"read");
+    InputHisto = (TH1D*)fInputFile->Get(hName_MC_Common);
+    OutputFile->cd();
+    h_MC_Common = (TH1D*)InputHisto->Clone("h_MC_Common");
+    h_MC_Common->Rebin(REBIN);
+    h_MC_Common->Scale(1./double(REBIN));
+    h_MC_Common->Write();
+    FitMin = 0;
+    FitMax = 380;
+    TF1* fTemplate_MC_Common = new TF1("fTemplate_MC_Common","[0]*(1.+[1]*exp(-pow((x-[2])/[3],2.)))",FitMin,FitMax);
+    fTemplate_MC_Common->SetParameter(0,1);
+    fTemplate_MC_Common->SetParameter(1,0.3);
+    fTemplate_MC_Common->SetParameter(2,250);
+    fTemplate_MC_Common->SetParameter(3,150);
+    h_MC_Common->Fit(fTemplate_MC_Common,"S, N, R, M");
+    delete fInputFile;
+
+    fInputFile = new TFile(fName_MC_NonCommon,"read");
+    InputHisto = (TH1D*)fInputFile->Get(hName_MC_NonCommon);
+    OutputFile->cd();
+    h_MC_NonCommon = (TH1D*)InputHisto->Clone("h_MC_NonCommon");
+    h_MC_NonCommon->Rebin(REBIN);
+    h_MC_NonCommon->Scale(1./double(REBIN));
+    h_MC_NonCommon->Write();
+    FitMin = 0;
+    FitMax = 380;
+    TF1* fTemplate_MC_NonCommon = new TF1("fTemplate_MC_NonCommon","[0]*(1.+[1]*exp(-pow((x-[2])/[3],2.)))",FitMin,FitMax);
+    fTemplate_MC_NonCommon->SetParameter(0,0.9);
+    fTemplate_MC_NonCommon->SetParameter(1,0.03);
+    fTemplate_MC_NonCommon->FixParameter(2,0);
+    fTemplate_MC_NonCommon->SetParameter(3,120);
+    h_MC_NonCommon->Fit(fTemplate_MC_NonCommon,"S, N, R, M");
+    delete fInputFile;
+
+    fInputFile = new TFile(fName_MC,"read");
+    InputHisto = (TH1D*)fInputFile->Get(hName_MC);
+    OutputFile->cd();
+    h_MC = (TH1D*)InputHisto->Clone("h_MC");
+    h_MC->Rebin(REBIN);
+    h_MC->Scale(1./double(REBIN));
+    h_MC->Write();
+    FitMin = 0;
+    FitMax = 380;
+    TF1* fTemplate_MC = new TF1("fTemplate_MC","[8]*([0]*(1.+[1]*exp(-pow((x-[2])/[3],2.)))+[4]*(1.+[5]*exp(-pow((x-[6])/[7],2.))))",FitMin,FitMax);
+    fTemplate_MC->FixParameter(0,fTemplate_MC_Common->GetParameter(0)*WC_MC);
+    fTemplate_MC->FixParameter(1,fTemplate_MC_Common->GetParameter(1));
+    fTemplate_MC->FixParameter(2,fTemplate_MC_Common->GetParameter(2));
+    fTemplate_MC->FixParameter(3,fTemplate_MC_Common->GetParameter(3));
+    fTemplate_MC->FixParameter(4,fTemplate_MC_NonCommon->GetParameter(0)*WN_MC);
+    fTemplate_MC->FixParameter(5,fTemplate_MC_NonCommon->GetParameter(1));
+    fTemplate_MC->FixParameter(6,fTemplate_MC_NonCommon->GetParameter(2));
+    fTemplate_MC->FixParameter(7,fTemplate_MC_NonCommon->GetParameter(3));
+    fTemplate_MC->SetParameter(8,1.0178);
+    h_MC->Fit(fTemplate_MC,"S, N, R, M");
+    delete fInputFile;
+
+    OutputFile->cd();
+    h_MC_TEMPLATE = (TH1D*)h_MC_Common->Clone("h_MC_TEMPLATE");
+    h_MC_TEMPLATE->Scale(WC_MC);
+    h_MC_TEMPLATE->Add(h_MC_NonCommon,WN_MC);
+    h_MC_TEMPLATE->Scale(fTemplate_MC->GetParameter(8));
+
+    fInputFile = new TFile(fName_Data,"read");
+    InputHisto = (TH1D*)fInputFile->Get(hName_Data);
+    OutputFile->cd();
+    h_Data = (TH1D*)InputHisto->Clone("h_Data");
+    h_Data->Rebin(REBIN);
+    h_Data->Scale(1./double(REBIN));
+    h_Data->Write();
+    FitMin = 0;
+    FitMax = 380;
+    delete fInputFile;
+
+    TString DataSample = "pp13TeV_HM_Dec19";
+    DLM_CommonAnaFunctions AnalysisObject;
+    const double ResidualSourceSize = 1.4;
+
+    DLM_Ck* Ck_pSigma0 = new DLM_Ck(1,0,24,0,384,Lednicky_gauss_Sigma0);
+    Ck_pSigma0->SetSourcePar(0,ResidualSourceSize);
+
+    TH2F* hResolution_pL = AnalysisObject.GetResolutionMatrix(DataSample,"pLambda");
+    TH2F* hResidual_pL_pSigma0 = AnalysisObject.GetResidualMatrix("pLambda","pSigma0");
+    TH2F* hResidual_pL_pXim = AnalysisObject.GetResidualMatrix("pLambda","pXim");
+
+    TH1F* hData_pL = AnalysisObject.GetAliceExpCorrFun(DataSample,"pLambda","_0",1,false,-1);
+
+    double lam_pL[5];
+    double lam_pXim[5];
+
+    AnalysisObject.SetUpLambdaPars_pL(DataSample,0,0,lam_pL);
+    AnalysisObject.SetUpLambdaPars_pXim(DataSample,0,0,lam_pXim);
+
+    //TString SourceDescription = "Gauss";
+    TString SourceDescription = "McGauss_ResoTM";
+    //TString SourceDescription = "McLevy_ResoTM";
+
+    CATS AB_pL;
+    DLM_Ck* Ck_pL;
+    AB_pL.SetMomBins(22,0,352);
+    AnalysisObject.SetUpCats_pL(AB_pL,"NLO_Coupled_SPD",SourceDescription,0,202);//NLO_Coupled_S
+
+    const double CUSP_WEIGHT = 0.33;//0.54
+    AB_pL.SetChannelWeight(7,1./4.*CUSP_WEIGHT);//1S0 SN(s) -> LN(s)
+    AB_pL.SetChannelWeight(8,3./4.*CUSP_WEIGHT);//3S1 SN(s) -> LN(s)
+    AB_pL.SetChannelWeight(10,3./4.*CUSP_WEIGHT);//3S1 SN(d) -> LN(s)
+    AB_pL.SetChannelWeight(13,3./20.*CUSP_WEIGHT);//3D1 SN(d) -> LN(d)
+    AB_pL.SetChannelWeight(15,3./20.*CUSP_WEIGHT);//3D1 SN(s) -> LN(d)
+
+    AB_pL.SetAnaSource(0,1.4);
+    if(SourceDescription.Contains("Mc")){
+        AB_pL.SetAnaSource(0,1.10);//c.a. 10% smaller compared to p-p due to the mT scaling
+        AB_pL.SetAnaSource(1,2.0);
+    }
+    AB_pL.SetNotifications(CATS::nWarning);
+    AB_pL.KillTheCat();
+    Ck_pL = new DLM_Ck(AB_pL.GetNumSourcePars(),0,AB_pL,24,0,384);
+    Ck_pL->SetSourcePar(0,AB_pL.GetAnaSourcePar(0));
+    if(SourceDescription.Contains("Mc")){
+        Ck_pL->SetSourcePar(0,AB_pL.GetAnaSourcePar(0));
+        Ck_pL->SetSourcePar(1,AB_pL.GetAnaSourcePar(1));
+    }
+    Ck_pL->SetCutOff(350,500);
+
+    CATS AB_pXim;
+    //same binning as pL, as we only use pXim as feed-down
+    AB_pXim.SetMomBins(24,0,384);
+    AnalysisObject.SetUpCats_pXim(AB_pXim,"pXim_HALQCD1","Gauss");
+    AB_pXim.SetAnaSource(0,ResidualSourceSize);
+    AB_pXim.SetNotifications(CATS::nWarning);
+    AB_pXim.KillTheCat();
+    DLM_Ck* Ck_pXim = new DLM_Ck(AB_pXim.GetNumSourcePars(),0,AB_pXim);
+    Ck_pL->Update();
+    Ck_pSigma0->Update();
+    Ck_pXim->Update();
+
+    DLM_CkDecomposition CkDec_pL("pLambda",4,*Ck_pL,hResolution_pL);
+    DLM_CkDecomposition CkDec_pSigma0("pSigma0",0,*Ck_pSigma0,NULL);
+    DLM_CkDecomposition CkDec_pXim("pXim",2,*Ck_pXim,NULL);
+
+    //CkDec_pL.AddContribution(0,lam_pL[1],DLM_CkDecomposition::cFeedDown,&CkDec_pSigma0,hResidual_pL_pSigma0);
+    //CkDec_pL.AddContribution(1,lam_pL[2],DLM_CkDecomposition::cFeedDown,&CkDec_pXim,hResidual_pL_pXim);
+    CkDec_pL.AddContribution(0,lam_pL[1],DLM_CkDecomposition::cFeedDown);
+    CkDec_pL.AddContribution(1,lam_pL[2],DLM_CkDecomposition::cFeedDown);
+    CkDec_pL.AddContribution(2,lam_pL[3],DLM_CkDecomposition::cFeedDown);
+    CkDec_pL.AddContribution(3,lam_pL[4],DLM_CkDecomposition::cFake);//0.03
+
+    //for Xim we simplify a bit and take ALL feed-down as flat
+    CkDec_pXim.AddContribution(0,lam_pXim[1]+lam_pXim[2]+lam_pXim[3],DLM_CkDecomposition::cFeedDown);
+    CkDec_pXim.AddContribution(1,lam_pXim[4],DLM_CkDecomposition::cFake);
+
+    CkDec_pL.Update();
+
+    MM_PL = &CkDec_pL;
+    MM_CatPL = &AB_pL;
+
+    FitMin = 0;
+    FitMax = 340;
+    OutputFile->cd();
+    TF1* fTemplate_Data = new TF1("fTemplate_Data",dimi_MC_template_fitter_pL,FitMin,FitMax,11);
+    fTemplate_Data->FixParameter(0,fTemplate_MC_Common->GetParameter(0)*WC_Data);
+    fTemplate_Data->FixParameter(1,fTemplate_MC_Common->GetParameter(1));
+    fTemplate_Data->FixParameter(2,fTemplate_MC_Common->GetParameter(2));
+    fTemplate_Data->FixParameter(3,fTemplate_MC_Common->GetParameter(3));
+    fTemplate_Data->FixParameter(4,fTemplate_MC_NonCommon->GetParameter(0)*WN_Data);
+    fTemplate_Data->FixParameter(5,fTemplate_MC_NonCommon->GetParameter(1));
+    fTemplate_Data->FixParameter(6,fTemplate_MC_NonCommon->GetParameter(2));
+    fTemplate_Data->FixParameter(7,fTemplate_MC_NonCommon->GetParameter(3));
+    fTemplate_Data->SetParameter(8,1.0);
+    fTemplate_Data->SetParLimits(8,0.5,2.0);
+    fTemplate_Data->SetParameter(9,CkDec_pL.GetCk()->GetSourcePar(0));
+    fTemplate_Data->SetParLimits(9,CkDec_pL.GetCk()->GetSourcePar(0)*0.8,CkDec_pL.GetCk()->GetSourcePar(0)*1.2);
+    if(AB_pL.GetNumSourcePars()>1){
+        fTemplate_Data->SetParameter(10,CkDec_pL.GetCk()->GetSourcePar(1));
+        fTemplate_Data->SetParLimits(10,1,2);
+    }
+    else fTemplate_Data->FixParameter(10,2.0);
+
+
+fTemplate_Data->FixParameter(9,1.18);
+fTemplate_Data->FixParameter(10,2.0);
+
+    h_Data->Fit(fTemplate_Data,"S, N, R, M");
+
+    TF1* fTemplate_Data_BL = new TF1("fTemplate_Data_BL","[8]*([0]*(1.+[1]*exp(-pow((x-[2])/[3],2.)))+[4]*(1.+[5]*exp(-pow((x-[6])/[7],2.))))",FitMin,FitMax);
+    fTemplate_Data_BL->FixParameter(0,fTemplate_Data->GetParameter(0));
+    fTemplate_Data_BL->FixParameter(1,fTemplate_Data->GetParameter(1));
+    fTemplate_Data_BL->FixParameter(2,fTemplate_Data->GetParameter(2));
+    fTemplate_Data_BL->FixParameter(3,fTemplate_Data->GetParameter(3));
+    fTemplate_Data_BL->FixParameter(4,fTemplate_Data->GetParameter(4));
+    fTemplate_Data_BL->FixParameter(5,fTemplate_Data->GetParameter(5));
+    fTemplate_Data_BL->FixParameter(6,fTemplate_Data->GetParameter(6));
+    fTemplate_Data_BL->FixParameter(7,fTemplate_Data->GetParameter(7));
+    fTemplate_Data_BL->FixParameter(8,fTemplate_Data->GetParameter(8));
+
+    TH1F* hfit_Ratio = new TH1F("hfit_Ratio","hfit_Ratio",
+            h_Data->GetNbinsX(),h_Data->GetBinLowEdge(1),h_Data->GetXaxis()->GetBinUpEdge(h_Data->GetNbinsX()));
+    TGraph fit_nsigma;
+    fit_nsigma.SetName("fit_nsigma");
+
+    int NumPts=0;
+    double Avg_nsigma = 0;//should be around 0
+    for(unsigned uBin=0; uBin<h_Data->GetNbinsX(); uBin++){
+        double MOM = h_Data->GetBinCenter(uBin+1);
+        if(MOM<FitMin || MOM>FitMax) continue;
+        double CkData = h_Data->GetBinContent(uBin+1);
+        double CkErr = h_Data->GetBinError(uBin+1);
+        double CkFit = fTemplate_Data->Eval(MOM);
+        double nsigma = (CkData-CkFit)/CkErr;
+        fit_nsigma.SetPoint(NumPts,MOM,nsigma);
+        Avg_nsigma += nsigma;
+
+        hfit_Ratio->SetBinContent(uBin+1,CkData/CkFit);
+        hfit_Ratio->SetBinError(uBin+1,CkErr/CkFit);
+
+        NumPts++;
+    }
+    Avg_nsigma /= double(NumPts);
+    printf("Avg_nsigma = %.3f\n",Avg_nsigma);
+
+    TGraphErrors fit_sourcepars;
+    fit_sourcepars.SetName("fit_sourcepars");
+    fit_sourcepars.SetPoint(0,fTemplate_Data->GetParameter(9),fTemplate_Data->GetParameter(10));
+    fit_sourcepars.SetPointError(0,fTemplate_Data->GetParError(9),fTemplate_Data->GetParError(10));
+
+
+    OutputFile->cd();
+    fTemplate_MC_Common->Write();
+    fTemplate_MC_NonCommon->Write();
+    fTemplate_MC->Write();
+    h_MC_TEMPLATE->Write();
+    fTemplate_Data->Write();
+    fTemplate_Data_BL->Write();
+    hfit_Ratio->Write();
+    fit_nsigma.Write();
+    fit_sourcepars.Write();
+
+    printf("nsigma = %.2f\n",sqrt(2)*TMath::ErfcInverse(fTemplate_Data->GetProb()));
+
+    delete h_MC_Common;
+    delete h_MC_NonCommon;
+    delete h_MC;
+    delete h_MC_TEMPLATE;
+    delete h_Data;
+    delete hfit_Ratio;
+
+    delete fTemplate_MC_Common;
+    delete fTemplate_MC_NonCommon;
+    delete fTemplate_MC;
+    delete fTemplate_Data;
+    delete fTemplate_Data_BL;
+    delete OutputFile;
 }
 
 void Fit_pp_CommonAncestorTemplate_dPhi(){
@@ -3963,7 +4509,8 @@ int OTHERTASKS(int narg, char** ARGS){
 
     //Fit_pp_CommonAncestorTemplate_dPhi();
     //Fit_pL_CommonAncestorTemplate_dPhi();
-    Fit_pp_CommonAncestorTemplate_Ck();
+    //Fit_pp_CommonAncestorTemplate_Ck();
+    Fit_pL_CommonAncestorTemplate_Ck();
 
     //ReadDeuteronWF("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/Coalesce/WaveFunctions/Machleidt/deuwaves_n4lo500_rspace.d",huWF,hwWF);
 

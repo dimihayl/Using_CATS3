@@ -3802,6 +3802,26 @@ void Integrate_Ck(){
 
 }
 
+void Silly(){
+
+    int a = 11;
+    int b = 13;
+    int* pointer;
+    printf("a = (%p) %i\n",&a,a);
+    printf("b = (%p) %i\n",&b,b);
+    pointer = &a;
+    printf("pointer = (%p) %i\n",pointer,*pointer);
+    *pointer *= 2;
+    printf("    a = (%p) %i\n",&a,a);
+    printf("    b = (%p) %i\n",&b,b);
+    pointer = &b;
+    printf("pointer = (%p) %i\n",pointer,*pointer);
+    *pointer *= 3;
+    printf("    a = (%p) %i\n",&a,a);
+    printf("    b = (%p) %i\n",&b,b);
+
+}
+
 int main(int argc, char *argv[])
 {
 
@@ -3882,8 +3902,10 @@ printf("%.3f\n",lambdapars[4]*100.);
     //SOURCESTUDIES(argc,ARGV);
     //KAONPROTON_MAIN(argc,ARGV);
     //UNFOLD_MAIN(argc,ARGV);
-    OTHERTASKS(argc,ARGV);
+    //OTHERTASKS(argc,ARGV);
     //DimiMcPlayground_MAIN(argc,ARGV);
+
+    Silly();
 /*
 
 void ScatParsFromRandPotential(const TString OutputFolder,
