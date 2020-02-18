@@ -7,6 +7,8 @@
 #include "TH1F.h"
 #include "TFile.h"
 #include "TH2F.h"
+#include "TLorentzVector.h"
+#include "TF1.h"
 
 //study what happens if you start from basics:
 //independent single particle emission (A)
@@ -346,6 +348,377 @@ printf("TotParticles_ME = %u\n",TotParticles_ME);
     delete hCk_ReCC;
 }
 
+double Compute_kStar(TLorentzVector vec1, TLorentzVector vec2){
+    //printf("k = %f\n",(vec1-vec2).P());
+    TLorentzVector BoostVec(vec1+vec2);
+    vec1.Boost(-BoostVec.BoostVector());
+    vec2.Boost(-BoostVec.BoostVector());
+    //printf("TotMom = %f\n",(vec1+vec2).P());
+    //printf("k* = %f\n",0.5*(vec1-vec2).P());
+    //printf("p1* = %f\n",(vec1).P());
+    //printf("p2* = %f\n",(vec2).P());
+    return 0.5*(vec1-vec2).P();
+}
+
+
+double Silly_pp_Ck(double& Momentum){
+
+}
+
+void Correlations_MomentumClasses(unsigned SEED, unsigned NumberOfEvents){
+
+    //per event, how many classes of particles we have (with different mom distr)
+    unsigned NumPart_class = 2;
+    //how many event classes we have. For each one we also have a modification of the mom distr
+    unsigned NumEvent_class = 3;
+    const double MASS = 938;
+
+    //!DO NOT CHANGE THIS, IT WILL NOT WORK WITH A NUMBER != 2
+    const unsigned EventPartMult = 2;
+    const unsigned EventPairMult = TMath::Factorial(EventPartMult-1);
+    const unsigned TotParticles = NumberOfEvents*EventPartMult;
+    const unsigned TotPairs = NumberOfEvents*EventPairMult;
+    const unsigned MixBufferSize = EventPartMult*1;
+
+    const unsigned MaxNumEvents_ME = 20000000;
+    const unsigned TotParticles_ME = NumberOfEvents>MaxNumEvents_ME?MaxNumEvents_ME*EventPartMult:TotParticles;
+    printf("TotParticles_ME = %u\n",TotParticles_ME);
+
+    TLorentzVector* Buffer_ME_All = new TLorentzVector[TotParticles_ME];
+    unsigned Num_ME_All = 0;
+    TLorentzVector** Buffer_ME_Class = new TLorentzVector*[NumEvent_class];
+    unsigned* Num_ME_Class = new unsigned [NumEvent_class];
+    unsigned* Num_SE_Class = new unsigned [NumEvent_class];
+    for(unsigned uEC=0; uEC<NumEvent_class; uEC++){
+        Buffer_ME_Class[uEC] = new TLorentzVector[TotParticles_ME];
+        Num_ME_Class[uEC] = 0;
+        Num_SE_Class[uEC] = 0;
+    }
+
+    //with how many particles to mix each particle
+    const double MixesPerParticle = 64;
+
+    //x,y,z
+    double MomMean[3][NumPart_class];
+    MomMean[0][0] = 0;
+    MomMean[0][1] = 0;
+    MomMean[1][0] = 0;
+    MomMean[1][1] = 0;
+    MomMean[2][0] = 0;
+    MomMean[2][1] = 0;
+
+    //x,y,z
+    double MomSigma[3][NumPart_class];
+    MomSigma[0][0] = 500;
+    MomSigma[0][1] = 600;
+    MomSigma[1][0] = 500;
+    MomSigma[1][1] = 600;
+    MomSigma[2][0] = 700;
+    MomSigma[2][1] = 900;
+
+    //added to the standard momentum
+    double EventMean[3][NumEvent_class];
+    EventMean[0][0] = 0;
+    EventMean[0][1] = 0;
+    EventMean[0][2] = 0;
+    EventMean[1][0] = 0;
+    EventMean[1][1] = 0;
+    EventMean[1][2] = 0;
+    EventMean[2][0] = 0;
+    EventMean[2][1] = 0;
+    EventMean[2][2] = 0;
+
+    //added to the standard momentum
+    double EventSigma[3][NumEvent_class];
+    EventSigma[0][0] = 0;
+    EventSigma[0][1] = 100;
+    EventSigma[0][2] = 200;
+    EventSigma[1][0] = 0;
+    EventSigma[1][1] = 100;
+    EventSigma[1][2] = 200;
+    EventSigma[2][0] = 0;
+    EventSigma[2][1] = 100;
+    EventSigma[2][2] = 200;
+
+    TRandom3 rangen(SEED);
+
+    TH1F* h_A = new TH1F("h_A","h_A",256,0,4096);
+    TH1F* h_A_P1 = new TH1F("h_A_P1","h_A_P1",256,0,4096);
+    TH1F* h_A_P2 = new TH1F("h_A_P2","h_A_P2",256,0,4096);
+
+    TH1F* h_C = new TH1F("h_C","h_C",256,0,4096);
+    TH1F* h_C_P1 = new TH1F("h_C_P1","h_C_P1",256,0,4096);
+    TH1F* h_C_P2 = new TH1F("h_C_P2","h_C_P2",256,0,4096);
+
+    TH1F* h_ME_All = new TH1F("h_ME_All","h_ME_All",256,0,4096);
+    TH1F* h_ME_Class = new TH1F("h_ME_Class","h_ME_Class",256,0,4096);
+    TH1F* h_ME_Class_P = new TH1F("h_ME_Class_P","h_ME_Class_P",256,0,4096);
+
+    TH1F* h_RotPhi = new TH1F("h_RotPhi","h_RotPhi",256,0,4096);
+
+    TH1F* hCk_CA;
+    TH1F* hCk_C_ME_All;
+    TH1F* hCk_C_ME_Class;
+    TH1F* hCk_C_RotPhi;
+
+    float kStar;
+
+    for(unsigned uEvent=0; uEvent<NumberOfEvents; uEvent++){
+        int EventClass = rangen.Integer(NumEvent_class);
+        Num_SE_Class[EventClass] += 2;
+        TLorentzVector* ParticleNonC = new TLorentzVector[EventPartMult];
+        TLorentzVector* ParticleCorr = new TLorentzVector[EventPartMult];
+        TLorentzVector* ParticleRotPhi = new TLorentzVector[EventPartMult];
+        double RanX,RanY,RanZ;
+        for(unsigned uPart=0; uPart<EventPartMult; uPart++){
+            int PartClass = rangen.Integer(NumPart_class);
+            RanX = rangen.Gaus(MomMean[0][PartClass]+EventMean[0][EventClass],MomSigma[0][PartClass]+EventSigma[0][EventClass]);
+            RanY = rangen.Gaus(MomMean[1][PartClass]+EventMean[1][EventClass],MomSigma[1][PartClass]+EventSigma[1][EventClass]);
+            RanZ = rangen.Gaus(MomMean[2][PartClass]+EventMean[2][EventClass],MomSigma[2][PartClass]+EventSigma[2][EventClass]);
+//printf("MeanX = %f\n",MomMean[0][PartClass]+EventMean[0][EventClass]);
+//printf("SX = %f\n",MomSigma[0][PartClass]+EventSigma[0][EventClass]);
+//printf("RanX = %f\n\n",RanX);
+            //Non-correlated particles
+            ParticleNonC[uPart].SetXYZM(RanX,RanY,RanZ,MASS);
+
+            //Correlated particles, where the second particle is weighted with a Fermi term
+            bool Rejected = true;
+            while(Rejected){
+                RanX = rangen.Gaus(MomMean[0][PartClass]+EventMean[0][EventClass],MomSigma[0][PartClass]+EventSigma[0][EventClass]);
+                RanY = rangen.Gaus(MomMean[1][PartClass]+EventMean[1][EventClass],MomSigma[1][PartClass]+EventSigma[1][EventClass]);
+                RanZ = rangen.Gaus(MomMean[2][PartClass]+EventMean[2][EventClass],MomSigma[2][PartClass]+EventSigma[2][EventClass]);
+                ParticleCorr[uPart].SetXYZM(RanX,RanY,RanZ,MASS);
+                //ParticleCorr[uPart].Print();
+                Rejected = false;
+                if(uPart){
+                    //prob for an emission in the opposite direction
+                    if(rangen.Uniform()<-0.002){
+                        RanX = rangen.Gaus(-ParticleCorr[0].X(),MomSigma[0][PartClass]*2.+EventSigma[0][EventClass]*2.);
+                        RanY = rangen.Gaus(-ParticleCorr[0].Y(),MomSigma[1][PartClass]*2.+EventSigma[1][EventClass]*2.);
+                        RanZ = rangen.Gaus(-ParticleCorr[0].Z(),MomSigma[2][PartClass]*2.+EventSigma[2][EventClass]*2.);
+                        ParticleCorr[uPart].SetXYZM(RanX,RanY,RanZ,MASS);
+                    }
+                    else{
+                        kStar = Compute_kStar(ParticleCorr[uPart],ParticleCorr[uPart-1]);
+                        Rejected = (1.-0.5*exp(-pow(kStar*0.5/197.,2.0)))<rangen.Uniform();
+                    }
+                }
+            }
+        }
+
+        if(Num_ME_All<TotParticles_ME-1){
+            Buffer_ME_All[Num_ME_All] = ParticleCorr[0];
+            Buffer_ME_All[Num_ME_All+1] = ParticleCorr[1];
+            Num_ME_All += 2;
+        }
+
+        if(Num_ME_Class[EventClass]<TotParticles_ME-1){
+            Buffer_ME_Class[EventClass][Num_ME_Class[EventClass]] = ParticleCorr[0];
+            Buffer_ME_Class[EventClass][Num_ME_Class[EventClass]+1] = ParticleCorr[1];
+            Num_ME_Class[EventClass] += 2;
+        }
+
+        //rotated phi
+        ParticleRotPhi[0] = ParticleCorr[0];
+        ParticleRotPhi[1] = ParticleCorr[1];
+        ParticleRotPhi[0].SetPhi(rangen.Uniform(2.*TMath::Pi()));
+        ParticleRotPhi[1].SetPhi(rangen.Uniform(2.*TMath::Pi()));
+        h_RotPhi->Fill(Compute_kStar(ParticleRotPhi[0],ParticleRotPhi[1]));
+
+        h_A->Fill(Compute_kStar(ParticleNonC[0],ParticleNonC[1]));
+        h_A_P1->Fill(ParticleNonC[0].P());
+        h_A_P2->Fill(ParticleNonC[1].P());
+
+        h_C->Fill(Compute_kStar(ParticleCorr[0],ParticleCorr[1]));
+        h_C_P1->Fill(ParticleCorr[0].P());
+        h_C_P2->Fill(ParticleCorr[1].P());
+
+        delete [] ParticleNonC;
+        delete [] ParticleCorr;
+        delete [] ParticleRotPhi;
+    }
+
+    //do the event mixing (all)
+/*
+    for(unsigned uPart1=0; uPart1<Num_ME_All; uPart1++){
+        //+EventPartMult to avoid auto-correlation from particles from the same event
+        //for(unsigned uPart2=uPart1+EventPartMult; uPart2<Num_ME_All; uPart2++){
+        //    kStar = Compute_kStar(Buffer_ME_All[uPart1],Buffer_ME_All[uPart2]);
+        //    h_ME_All->Fill(kStar);
+        //}
+        unsigned uPart2;
+        for(unsigned uMix=0; uMix<MixesPerParticle; uMix++){
+            uPart2 = rangen.Integer(Num_ME_All);
+            kStar = Compute_kStar(Buffer_ME_All[uPart1],Buffer_ME_All[uPart2]);
+            h_ME_All->Fill(kStar);
+        }
+    }
+*/
+
+    for(unsigned uPair=0; uPair<TotPairs; uPair++){
+        unsigned uPart1 = rangen.Integer(TotParticles_ME);
+        unsigned uPart2 = rangen.Integer(TotParticles_ME);
+        kStar = Compute_kStar(Buffer_ME_All[uPart1],Buffer_ME_All[uPart2]);
+        h_ME_All->Fill(kStar);
+        //h_ME_All_P->Fill(Buffer_ME_All[uPart1].P());
+        //h_ME_All_P->Fill(Buffer_ME_All[uPart2].P());
+    }
+
+    //do the event mixing (same event class)
+    unsigned ParticlesToIterateOver = TotParticles_ME;
+    for(unsigned uEC=0; uEC<NumEvent_class; uEC++){
+        if(Num_SE_Class[uEC]<ParticlesToIterateOver) ParticlesToIterateOver = Num_SE_Class[uEC];
+    }
+    for(unsigned uEC=0; uEC<NumEvent_class; uEC++){
+        /*
+        for(unsigned uPart1=0; uPart1<ParticlesToIterateOver; uPart1++){
+            unsigned uPart2;
+            for(unsigned uMix=0; uMix<MixesPerParticle; uMix++){
+                uPart2 = rangen.Integer(Num_ME_Class[uEC]);
+                kStar = Compute_kStar(Buffer_ME_Class[uEC][uPart1],Buffer_ME_Class[uEC][uPart2]);
+                h_ME_Class->Fill(kStar);
+                h_ME_Class_P->Fill(Buffer_ME_Class[uEC][uPart2].P());
+            }
+            h_ME_Class_P->Fill(Buffer_ME_Class[uEC][uPart1].P());
+        }
+        */
+
+        unsigned uPart1;
+        unsigned uPart2;
+        for(unsigned uPair=0; uPair<TotPairs; uPair++){
+            uPart1 = rangen.Integer(Num_ME_Class[uEC]);
+            uPart2 = rangen.Integer(Num_ME_Class[uEC]);
+            kStar = Compute_kStar(Buffer_ME_Class[uEC][uPart1],Buffer_ME_Class[uEC][uPart2]);
+            h_ME_Class->Fill(kStar);
+            h_ME_Class_P->Fill(Buffer_ME_Class[uEC][uPart1].P());
+            h_ME_Class_P->Fill(Buffer_ME_Class[uEC][uPart2].P());
+        }
+
+    }
+
+    h_A->Sumw2();
+    h_A_P1->Sumw2();
+    h_A_P2->Sumw2();
+    h_C->Sumw2();
+    h_C_P1->Sumw2();
+    h_C_P2->Sumw2();
+    h_ME_All->Sumw2();
+    h_ME_Class->Sumw2();
+    h_ME_Class_P->Sumw2();
+    h_RotPhi->Sumw2();
+
+    h_A->Scale(1./h_A->Integral(),"width");
+    h_A_P1->Scale(1./h_A_P1->Integral(),"width");
+    h_A_P2->Scale(1./h_A_P2->Integral(),"width");
+    h_C->Scale(1./h_C->Integral(),"width");
+    h_C_P1->Scale(1./h_C_P1->Integral(),"width");
+    h_C_P2->Scale(1./h_C_P2->Integral(),"width");
+    h_ME_All->Scale(1./h_ME_All->Integral(),"width");
+    h_ME_Class->Scale(1./h_ME_Class->Integral(),"width");
+    h_ME_Class_P->Scale(1./h_ME_Class_P->Integral(),"width");
+    h_RotPhi->Scale(1./h_RotPhi->Integral(),"width");
+
+    hCk_CA = (TH1F*)h_C->Clone("hCk_CA");
+    hCk_CA->Divide(h_A);
+
+    hCk_C_ME_All = (TH1F*)h_C->Clone("hCk_C_ME_All");
+    hCk_C_ME_All->Divide(h_ME_All);
+
+    hCk_C_ME_Class = (TH1F*)h_C->Clone("hCk_C_ME_Class");
+    hCk_C_ME_Class->Divide(h_ME_Class);
+
+    hCk_C_RotPhi = (TH1F*)h_C->Clone("hCk_C_RotPhi");
+    hCk_C_RotPhi->Divide(h_RotPhi);
+
+    TF1* fTheoryCA = new TF1("fTheoryCA","[0]*(1-[1]*exp(-pow(x*[2]/197,2.0)))",0,4096);
+    fTheoryCA->FixParameter(0,1);
+    fTheoryCA->FixParameter(1,0.5);
+    fTheoryCA->FixParameter(2,0.5);
+
+    TH1F* hCkRatio_Th_A = (TH1F*)hCk_CA->Clone("hCkRatio_Th_A");
+    for(unsigned uBin=1; uBin<=hCkRatio_Th_A->GetNbinsX(); uBin++){
+        double kStar = hCkRatio_Th_A->GetBinCenter(uBin);
+        double Ratio = fTheoryCA->Eval(kStar);
+        //double RatioErr = hCk_CA->GetBinError(uBin)/fTheoryCA->Eval(kStar);
+        hCkRatio_Th_A->SetBinContent(uBin,Ratio);
+        hCkRatio_Th_A->SetBinError(uBin,0);
+    }
+    hCkRatio_Th_A->Sumw2();
+    hCkRatio_Th_A->Divide(hCk_CA);
+
+    TH1F* hCkRatio_Th_ME_Class = (TH1F*)hCk_CA->Clone("hCkRatio_Th_ME_Class");
+    for(unsigned uBin=1; uBin<=hCkRatio_Th_ME_Class->GetNbinsX(); uBin++){
+        double kStar = hCkRatio_Th_ME_Class->GetBinCenter(uBin);
+        double Ratio = fTheoryCA->Eval(kStar);
+        //double RatioErr = hCkRatio_Th_ME_Class->GetBinError(uBin)/fTheoryCA->Eval(kStar);
+        hCkRatio_Th_ME_Class->SetBinContent(uBin,Ratio);
+        hCkRatio_Th_ME_Class->SetBinError(uBin,0);
+    }
+    hCkRatio_Th_ME_Class->Sumw2();
+    hCkRatio_Th_ME_Class->Divide(hCk_C_ME_Class);
+
+    TH1F* hRatio_ME_Class_A = (TH1F*)h_ME_Class->Clone("hRatio_ME_Class_A");
+    hRatio_ME_Class_A->Divide(h_A);
+
+    TH1F* hRatio_ME_All_A = (TH1F*)h_ME_All->Clone("hRatio_ME_All_A");
+    hRatio_ME_All_A->Divide(h_A);
+
+    TH1F* hRatio_RotPhi_A = (TH1F*)h_RotPhi->Clone("hRatio_RotPhi_A");
+    hRatio_RotPhi_A->Divide(h_A);
+
+    TFile fOutput("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/DimiMcPlayground/Correlations_MomentumClasses/fOutput.root","recreate");
+
+    h_A->Write();
+    h_A_P1->Write();
+    h_A_P2->Write();
+    h_C->Write();
+    h_C_P1->Write();
+    h_C_P2->Write();
+    h_ME_All->Write();
+    h_ME_Class->Write();
+    h_ME_Class_P->Write();
+    hCk_CA->Write();
+    hCk_C_ME_All->Write();
+    hCk_C_ME_Class->Write();
+    hCk_C_RotPhi->Write();
+    fTheoryCA->Write();
+    hCkRatio_Th_A->Write();
+    hCkRatio_Th_ME_Class->Write();
+    hRatio_ME_Class_A->Write();
+    hRatio_ME_All_A->Write();
+    hRatio_RotPhi_A->Write();
+
+    delete h_A;
+    delete h_A_P1;
+    delete h_A_P2;
+
+    delete h_C;
+    delete h_C_P1;
+    delete h_C_P2;
+
+    delete h_ME_All;
+    delete h_ME_Class;
+    delete h_ME_Class_P;
+
+    delete hCk_CA;
+    delete hCk_C_ME_All;
+    delete hCk_C_ME_Class;
+    delete hCk_C_RotPhi;
+    delete hCkRatio_Th_A;
+    delete hCkRatio_Th_ME_Class;
+    delete hRatio_ME_Class_A;
+    delete hRatio_ME_All_A;
+    delete hRatio_RotPhi_A;
+
+    for(unsigned uEC=0; uEC<NumEvent_class; uEC++){
+        delete [] Buffer_ME_Class[uEC];
+    }
+    delete [] Buffer_ME_Class;
+    delete [] Buffer_ME_All;
+    delete [] Num_ME_Class;
+}
+
 int DimiMcPlayground_MAIN(int argc, char *argv[]){
-    McCorrelation6D(atoi(argv[1]),atoi(argv[2]));
+    //McCorrelation6D(atoi(argv[1]),atoi(argv[2]));
+    Correlations_MomentumClasses(11,160000000*8);
 }

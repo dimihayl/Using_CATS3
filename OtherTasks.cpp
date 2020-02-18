@@ -897,7 +897,7 @@ void ALL_CorrectedMC_EXP(){
 
     int* RescaleFactor = new int[NumSpecies];
     RescaleFactor[0] = 1;//pp
-    RescaleFactor[1] = 1;//pL
+    RescaleFactor[1] = 2;//pL
     RescaleFactor[2] = 2;//pXi
     RescaleFactor[3] = 4;//pOmega
     RescaleFactor[4] = 2;//LL
@@ -1398,7 +1398,7 @@ if(uSpec==1&&dlm_DataCk[uSpec].GetBinCenter(0,uBin)<305&&dlm_DataCk[uSpec].GetBi
         dlm_ff_t1 = &dlm_McCk[uSpec-NumSpecies/2];//baryon baryon template
         dlm_ff_t2 = &dlm_McCk[uSpec];//baryon antibaryon template
 
-        fitTemplate[uSpec] = new TF1("fitTemplate_"+SpeciesName[uSpec],dimi_fraction_fitter,350,3500,5);
+        fitTemplate[uSpec] = new TF1("fitTemplate_"+SpeciesName[uSpec],dimi_fraction_fitter,280,3500,5);
 
         fitTemplate[uSpec]->SetParameter(0,0.7);
         fitTemplate[uSpec]->SetParLimits(0,0.05,1.4);
@@ -1410,10 +1410,10 @@ if(uSpec==1&&dlm_DataCk[uSpec].GetBinCenter(0,uBin)<305&&dlm_DataCk[uSpec].GetBi
         fitTemplate[uSpec]->SetParLimits(2,-0.15,0.15);
 
         fitTemplate[uSpec]->SetParameter(3,0.0);
-        fitTemplate[uSpec]->SetParLimits(3,-1e-4*10,1e-4*10);
+        fitTemplate[uSpec]->SetParLimits(3,-1e-4*100,1e-4*100);
 
         fitTemplate[uSpec]->SetParameter(4,0.0);
-        fitTemplate[uSpec]->SetParLimits(4,-1e-7*10,1e-7*10);
+        fitTemplate[uSpec]->SetParLimits(4,-1e-7*100,1e-7*100);
 
         histo_DataCk[uSpec]->Fit(fitTemplate[uSpec],"S, N, R, M");
 
@@ -1475,7 +1475,10 @@ printf("uSpec = %u\n",uSpec);
         //double Pauli = 1.-par[0]*exp(-pow((*x)*par[1]/197.327,par[2]));
         //double Peak = 1.+par[3]*TMath::Gaus(k,par[4],par[5],1);
         //return Baseline*Pauli*Peak;
-        fitMickeyMouse[uSpec] = new TF1("fitMickeyMouse_"+SpeciesName[uSpec],dimi_fractionPolQS_fitter,0,2500,10);
+        //different fit range for baryon-antibaryon
+        if(uSpec>=NumSpecies/2) fitMickeyMouse[uSpec] = new TF1("fitMickeyMouse_"+SpeciesName[uSpec],dimi_fractionPolQS_fitter,280,2500,10);
+        //for baryon-baryon
+        else fitMickeyMouse[uSpec] = new TF1("fitMickeyMouse_"+SpeciesName[uSpec],dimi_fractionPolQS_fitter,0,2500,10);
 
         fitMickeyMouse[uSpec]->SetParameter(0,0.1);
         fitMickeyMouse[uSpec]->SetParLimits(0,0.0,1.0);
@@ -3704,10 +3707,14 @@ double dimi_MC_template_fitter_pp(double* x, double* par){
 
 void Fit_pp_CommonAncestorTemplate_Ck(){
 
+    const unsigned NumSystIter = 256;
+
     TString fName_MC_Common = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/pLambda_Rush/Ancestors_YieldNorm/CFOutput_pp_8_Common.root";
     TString fName_MC_NonCommon = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/pLambda_Rush/Ancestors_YieldNorm/CFOutput_pp_8_NonCommon.root";
     TString fName_MC = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/pp13TeV_HM_Baseline/MyResults_Vale/MC/CF/NanoMC/CFOutput_pp_8.root";
     TString fName_Data = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/pp13TeV_HM_Baseline/MyResults_Vale/Data/CF/Norm024034/CFOutput_pp_8.root";
+    TString fName_TempInfoData = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/OtherTasks/Fit_pp_CommonAncestorTemplate_dPhi/OutputFile_pp_Data.root";
+    TString fName_TempInfoMC = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/OtherTasks/Fit_pp_CommonAncestorTemplate_dPhi/OutputFile_pp_MC.root";
 
     TString hName_MC_Common = "hCk_FixShiftedMeV_0";
     TString hName_MC_NonCommon = "hCk_FixShiftedMeV_0";
@@ -3720,82 +3727,68 @@ void Fit_pp_CommonAncestorTemplate_Ck(){
     TH1D* h_MC_TEMPLATE;
     TH1D* h_Data;
 
-    const double WC_MC = 0.166;
-    const double WN_MC = 0.834;
+    const unsigned NumPlotBins = 200;
+    const float PlotMin = 0;
+    const float PlotMax = 400;
+    const float PlotBinWidth = (PlotMax-PlotMin)/float(NumPlotBins);
+    float* BlData_Up = new float [NumPlotBins];
+    float* BlData_Down = new float [NumPlotBins];
+    float* BlMc_Up = new float [NumPlotBins];
+    float* BlMc_Down = new float [NumPlotBins];
+    float* Data_Up = new float [NumPlotBins];
+    float* Data_Down = new float [NumPlotBins];
+    for(unsigned uBin=0; uBin<NumPlotBins; uBin++){
+        BlData_Up[uBin] = 0;
+        BlMc_Up[uBin] = 0;
+        Data_Up[uBin] = 0;
 
-    const double WC_Data = 0.069;
-    const double WN_Data = 0.931;
+        BlData_Down[uBin] = 1000;
+        BlMc_Down[uBin] = 1000;
+        Data_Down[uBin] = 1000;
+    }
 
+    double WC_MC_mean;// = 0.166;
+    double WC_MC_err;
+    //double WN_MC_mean;// = 0.834;
+    //double WN_MC_err;
+    double WC_MC;
+    double WN_MC;
+    //const double WC_Data = 0.069;
+    //const double WN_Data = 0.931;
+    double WC_Data_mean;// = 0.166;
+    double WC_Data_err;
+    //double WN_Data_mean;// = 0.834;
+    //double WN_Data_err;
+    double WC_Data;
+    double WN_Data;
+    double ddummy;
     TFile* fInputFile;
     TH1D* InputHisto;
+    TGraphErrors* graph_temp;
+
+    fInputFile = new TFile(fName_TempInfoMC,"read");
+    graph_temp = (TGraphErrors*)fInputFile->Get("gWC_TotErr");
+    graph_temp->GetPoint(0,ddummy,WC_MC_mean);
+    WC_MC_err = graph_temp->GetErrorY(0);
+    //graph_temp = (TGraphErrors*)fInputFile->Get("gWN_TotErr");
+    //graph_temp->GetPoint(0,ddummy,WN_MC_mean);
+    //WN_MC_err = graph_temp->GetErrorY(0);
+    delete fInputFile;
+//return;
+    fInputFile = new TFile(fName_TempInfoData,"read");
+    graph_temp = (TGraphErrors*)fInputFile->Get("gWC_TotErr");
+    graph_temp->GetPoint(0,ddummy,WC_Data_mean);
+    WC_Data_err = graph_temp->GetErrorY(0);
+    //graph_temp = (TGraphErrors*)fInputFile->Get("gWN_TotErr");
+    //graph_temp->GetPoint(0,ddummy,WN_Data_mean);
+    //WN_Data_err = graph_temp->GetErrorY(0);
+    delete fInputFile;
+
+    TRandom3 rangen(11);
+
     TFile* OutputFile = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/OtherTasks/Fit_pp_CAT_Ck/OutputFile.root","recreate");
     double FitMin;
     double FitMax;
-
-    fInputFile = new TFile(fName_MC_Common,"read");
-    InputHisto = (TH1D*)fInputFile->Get(hName_MC_Common);
-    OutputFile->cd();
-    h_MC_Common = (TH1D*)InputHisto->Clone("h_MC_Common");
-    h_MC_Common->Write();
-    FitMin = 56;
-    FitMax = 380;
-    TF1* fTemplate_MC_Common = new TF1("fTemplate_MC_Common","[0]*(1.+[1]*exp(-pow((x-[2])/[3],2.)))",FitMin,FitMax);
-    fTemplate_MC_Common->SetParameter(0,1);
-    fTemplate_MC_Common->SetParameter(1,0.3);
-    fTemplate_MC_Common->SetParameter(2,250);
-    fTemplate_MC_Common->SetParameter(3,150);
-    h_MC_Common->Fit(fTemplate_MC_Common,"S, N, R, M");
-    delete fInputFile;
-
-    fInputFile = new TFile(fName_MC_NonCommon,"read");
-    InputHisto = (TH1D*)fInputFile->Get(hName_MC_NonCommon);
-    OutputFile->cd();
-    h_MC_NonCommon = (TH1D*)InputHisto->Clone("h_MC_NonCommon");
-    h_MC_NonCommon->Write();
-    FitMin = 20;
-    FitMax = 380;
-    TF1* fTemplate_MC_NonCommon = new TF1("fTemplate_MC_NonCommon","[0]*(1.+[1]*exp(-pow((x-[2])/[3],2.)))",FitMin,FitMax);
-    fTemplate_MC_NonCommon->SetParameter(0,0.9);
-    fTemplate_MC_NonCommon->SetParameter(1,0.03);
-    fTemplate_MC_NonCommon->FixParameter(2,0);
-    fTemplate_MC_NonCommon->SetParameter(3,120);
-    h_MC_NonCommon->Fit(fTemplate_MC_NonCommon,"S, N, R, M");
-    delete fInputFile;
-
-    fInputFile = new TFile(fName_MC,"read");
-    InputHisto = (TH1D*)fInputFile->Get(hName_MC);
-    OutputFile->cd();
-    h_MC = (TH1D*)InputHisto->Clone("h_MC");
-    h_MC->Write();
-    FitMin = 56;
-    FitMax = 380;
-    TF1* fTemplate_MC = new TF1("fTemplate_MC","[8]*([0]*(1.+[1]*exp(-pow((x-[2])/[3],2.)))+[4]*(1.+[5]*exp(-pow((x-[6])/[7],2.))))",FitMin,FitMax);
-    fTemplate_MC->FixParameter(0,fTemplate_MC_Common->GetParameter(0)*WC_MC);
-    fTemplate_MC->FixParameter(1,fTemplate_MC_Common->GetParameter(1));
-    fTemplate_MC->FixParameter(2,fTemplate_MC_Common->GetParameter(2));
-    fTemplate_MC->FixParameter(3,fTemplate_MC_Common->GetParameter(3));
-    fTemplate_MC->FixParameter(4,fTemplate_MC_NonCommon->GetParameter(0)*WN_MC);
-    fTemplate_MC->FixParameter(5,fTemplate_MC_NonCommon->GetParameter(1));
-    fTemplate_MC->FixParameter(6,fTemplate_MC_NonCommon->GetParameter(2));
-    fTemplate_MC->FixParameter(7,fTemplate_MC_NonCommon->GetParameter(3));
-    fTemplate_MC->SetParameter(8,1.0178);
-    h_MC->Fit(fTemplate_MC,"S, N, R, M");
-    delete fInputFile;
-
-    OutputFile->cd();
-    h_MC_TEMPLATE = (TH1D*)h_MC_Common->Clone("h_MC_TEMPLATE");
-    h_MC_TEMPLATE->Scale(WC_MC);
-    h_MC_TEMPLATE->Add(h_MC_NonCommon,WN_MC);
-    h_MC_TEMPLATE->Scale(fTemplate_MC->GetParameter(8));
-
-    fInputFile = new TFile(fName_Data,"read");
-    InputHisto = (TH1D*)fInputFile->Get(hName_Data);
-    OutputFile->cd();
-    h_Data = (TH1D*)InputHisto->Clone("h_Data");
-    h_Data->Write();
-    FitMin = 0;
-    FitMax = 340;
-    delete fInputFile;
 
     TString DataSample = "pp13TeV_HM_Dec19";
     DLM_CommonAnaFunctions AnalysisObject;
@@ -3816,14 +3809,19 @@ void Fit_pp_CommonAncestorTemplate_Ck(){
     AB_pp.SetNotifications(CATS::nWarning);
     AnalysisObject.SetUpCats_pp(AB_pp,"AV18",SourceDescription,0,202);//McLevyNolan_Reso
     AB_pp.SetAnaSource(0,1.3);
+    double InitialRadius;
+    double InitialAlpha = 2.0;
     if(SourceDescription.Contains("Mc")){
         AB_pp.SetAnaSource(0,1.20);
         AB_pp.SetAnaSource(1,2.0);
+        InitialAlpha = 2.0;
     }
+    InitialRadius = AB_pp.GetAnaSourcePar(0);
+
     //AB_pp.SetAnaSource(1,2.0);
     //AB_pp.SetNotifications(CATS::nWarning);
-    //AB_pp.SetEpsilonConv(5e-8);
-    //AB_pp.SetEpsilonProp(5e-8);
+    AB_pp.SetEpsilonConv(2e-8);
+    AB_pp.SetEpsilonProp(2e-8);
     AB_pp.KillTheCat();
     Ck_pp = new DLM_Ck(AB_pp.GetNumSourcePars(),0,AB_pp);
     Ck_pp->Update();
@@ -3855,97 +3853,291 @@ void Fit_pp_CommonAncestorTemplate_Ck(){
     MM_PP = &CkDec_pp;
     MM_CatPP = &AB_pp;
 
-    TF1* fTemplate_Data = new TF1("fTemplate_Data",dimi_MC_template_fitter_pp,FitMin,FitMax,11);
-    fTemplate_Data->FixParameter(0,fTemplate_MC_Common->GetParameter(0)*WC_Data);
-    fTemplate_Data->FixParameter(1,fTemplate_MC_Common->GetParameter(1));
-    fTemplate_Data->FixParameter(2,fTemplate_MC_Common->GetParameter(2));
-    fTemplate_Data->FixParameter(3,fTemplate_MC_Common->GetParameter(3));
-    fTemplate_Data->FixParameter(4,fTemplate_MC_NonCommon->GetParameter(0)*WN_Data);
-    fTemplate_Data->FixParameter(5,fTemplate_MC_NonCommon->GetParameter(1));
-    fTemplate_Data->FixParameter(6,fTemplate_MC_NonCommon->GetParameter(2));
-    fTemplate_Data->FixParameter(7,fTemplate_MC_NonCommon->GetParameter(3));
-    fTemplate_Data->SetParameter(8,1.0);
-    fTemplate_Data->SetParLimits(8,0.5,2.0);
-    fTemplate_Data->SetParameter(9,CkDec_pp.GetCk()->GetSourcePar(0));
-    fTemplate_Data->SetParLimits(9,CkDec_pp.GetCk()->GetSourcePar(0)*0.8,CkDec_pp.GetCk()->GetSourcePar(0)*1.2);
-    if(AB_pp.GetNumSourcePars()>1){
-        fTemplate_Data->SetParameter(10,CkDec_pp.GetCk()->GetSourcePar(1));
-        fTemplate_Data->SetParLimits(10,1,2);
-    }
-    else fTemplate_Data->FixParameter(10,2.0);
+    TH1F* hRadius = new TH1F("hRadius","hRadius",1024,0.5,2.0);
+    TH1F* hAlpha = new TH1F("hAlpha","hAlpha",1024,0.95,2.05);
+    TH1F* hnSigma = new TH1F("hnSigma","hnSigma",1024,0,20.0);
+
+    float kStarVal;
+    for(unsigned uSyst=0; uSyst<NumSystIter; uSyst++){
+        printf("\r\033[K uSyst=%u",uSyst);
+        cout << flush;
+
+        if(uSyst==0) WC_MC = WC_MC_mean;
+        else WC_MC = rangen.Gaus(WC_MC_mean,WC_MC_err);
+        WN_MC = 1. - WC_MC;
+
+        if(uSyst==0) WC_Data = WC_Data_mean;
+        else WC_Data = rangen.Gaus(WC_Data_mean,WC_Data_err);
+        WN_Data = 1. - WC_Data;
+
+        fInputFile = new TFile(fName_MC_Common,"read");
+        InputHisto = (TH1D*)fInputFile->Get(hName_MC_Common);
+        OutputFile->cd();
+        h_MC_Common = (TH1D*)InputHisto->Clone("h_MC_Common");
+        if(uSyst==0) h_MC_Common->Write();
+        else{
+            float Value;
+            float Error;
+            float RanVal;
+            for(unsigned uBin=0; uBin<h_MC_Common->GetNbinsX(); uBin++){
+                Value = h_MC_Common->GetBinContent(uBin+1);
+                Error = h_MC_Common->GetBinError(uBin+1);
+                RanVal = rangen.Gaus(Value,Error);
+                h_MC_Common->SetBinContent(uBin+1,RanVal);
+                h_MC_Common->SetBinError(uBin+1,Error);
+            }
+        }
+        FitMin = 56;
+        FitMax = 380;
+        TF1* fTemplate_MC_Common = new TF1("fTemplate_MC_Common","[0]*(1.+[1]*exp(-pow((x-[2])/[3],2.)))",FitMin,FitMax);
+        fTemplate_MC_Common->SetParameter(0,1);
+        fTemplate_MC_Common->SetParameter(1,0.3);
+        fTemplate_MC_Common->SetParameter(2,250);
+        fTemplate_MC_Common->SetParameter(3,150);
+        h_MC_Common->Fit(fTemplate_MC_Common,"Q, S, N, R, M");
+        delete fInputFile;
+
+        fInputFile = new TFile(fName_MC_NonCommon,"read");
+        InputHisto = (TH1D*)fInputFile->Get(hName_MC_NonCommon);
+        OutputFile->cd();
+        h_MC_NonCommon = (TH1D*)InputHisto->Clone("h_MC_NonCommon");
+        if(uSyst==0) h_MC_NonCommon->Write();
+        else{
+            float Value;
+            float Error;
+            float RanVal;
+            for(unsigned uBin=0; uBin<h_MC_NonCommon->GetNbinsX(); uBin++){
+                Value = h_MC_NonCommon->GetBinContent(uBin+1);
+                Error = h_MC_NonCommon->GetBinError(uBin+1);
+                RanVal = rangen.Gaus(Value,Error);
+                h_MC_NonCommon->SetBinContent(uBin+1,RanVal);
+                h_MC_NonCommon->SetBinError(uBin+1,Error);
+            }
+        }
+        FitMin = 20;
+        FitMax = 380;
+        TF1* fTemplate_MC_NonCommon = new TF1("fTemplate_MC_NonCommon","[0]*(1.+[1]*exp(-pow((x-[2])/[3],2.)))",FitMin,FitMax);
+        fTemplate_MC_NonCommon->SetParameter(0,0.9);
+        fTemplate_MC_NonCommon->SetParameter(1,0.03);
+        fTemplate_MC_NonCommon->FixParameter(2,0);
+        fTemplate_MC_NonCommon->SetParameter(3,120);
+        h_MC_NonCommon->Fit(fTemplate_MC_NonCommon,"Q, S, N, R, M");
+        delete fInputFile;
+
+        fInputFile = new TFile(fName_MC,"read");
+        InputHisto = (TH1D*)fInputFile->Get(hName_MC);
+        OutputFile->cd();
+        h_MC = (TH1D*)InputHisto->Clone("h_MC");
+        if(uSyst==0) h_MC->Write();
+        else{
+            float Value;
+            float Error;
+            float RanVal;
+            for(unsigned uBin=0; uBin<h_MC->GetNbinsX(); uBin++){
+                Value = h_MC->GetBinContent(uBin+1);
+                Error = h_MC->GetBinError(uBin+1);
+                RanVal = rangen.Gaus(Value,Error);
+                h_MC->SetBinContent(uBin+1,RanVal);
+                h_MC->SetBinError(uBin+1,Error);
+            }
+        }
+        FitMin = 56;
+        FitMax = 380;
+        TF1* fTemplate_MC = new TF1("fTemplate_MC","[8]*([0]*(1.+[1]*exp(-pow((x-[2])/[3],2.)))+[4]*(1.+[5]*exp(-pow((x-[6])/[7],2.))))",FitMin,FitMax);
+        fTemplate_MC->FixParameter(0,fTemplate_MC_Common->GetParameter(0)*WC_MC);
+        fTemplate_MC->FixParameter(1,fTemplate_MC_Common->GetParameter(1));
+        fTemplate_MC->FixParameter(2,fTemplate_MC_Common->GetParameter(2));
+        fTemplate_MC->FixParameter(3,fTemplate_MC_Common->GetParameter(3));
+        fTemplate_MC->FixParameter(4,fTemplate_MC_NonCommon->GetParameter(0)*WN_MC);
+        fTemplate_MC->FixParameter(5,fTemplate_MC_NonCommon->GetParameter(1));
+        fTemplate_MC->FixParameter(6,fTemplate_MC_NonCommon->GetParameter(2));
+        fTemplate_MC->FixParameter(7,fTemplate_MC_NonCommon->GetParameter(3));
+        fTemplate_MC->SetParameter(8,1.0178);
+        h_MC->Fit(fTemplate_MC,"Q, S, N, R, M");
+        delete fInputFile;
+
+        OutputFile->cd();
+
+        h_MC_TEMPLATE = (TH1D*)h_MC_Common->Clone("h_MC_TEMPLATE");
+        h_MC_TEMPLATE->Scale(WC_MC);
+        h_MC_TEMPLATE->Add(h_MC_NonCommon,WN_MC);
+        h_MC_TEMPLATE->Scale(fTemplate_MC->GetParameter(8));
+
+        for(unsigned uBin=0; uBin<NumPlotBins; uBin++){
+            kStarVal = PlotMin+float(uBin)*PlotBinWidth+PlotBinWidth*0.5;
+            if(BlMc_Up[uBin]<fTemplate_MC->Eval(kStarVal)) BlMc_Up[uBin]=fTemplate_MC->Eval(kStarVal);
+            if(BlMc_Down[uBin]>fTemplate_MC->Eval(kStarVal)) BlMc_Down[uBin]=fTemplate_MC->Eval(kStarVal);
+        }
+
+        fInputFile = new TFile(fName_Data,"read");
+        InputHisto = (TH1D*)fInputFile->Get(hName_Data);
+        OutputFile->cd();
+        h_Data = (TH1D*)InputHisto->Clone("h_Data");
+        if(uSyst==0) h_Data->Write();
+        FitMin = 0;
+        FitMax = 340;
+        delete fInputFile;
+
+        TF1* fTemplate_Data = new TF1("fTemplate_Data",dimi_MC_template_fitter_pp,FitMin,FitMax,11);
+        fTemplate_Data->FixParameter(0,fTemplate_MC_Common->GetParameter(0)*WC_Data);
+        fTemplate_Data->FixParameter(1,fTemplate_MC_Common->GetParameter(1));
+        fTemplate_Data->FixParameter(2,fTemplate_MC_Common->GetParameter(2));
+        fTemplate_Data->FixParameter(3,fTemplate_MC_Common->GetParameter(3));
+        fTemplate_Data->FixParameter(4,fTemplate_MC_NonCommon->GetParameter(0)*WN_Data);
+        fTemplate_Data->FixParameter(5,fTemplate_MC_NonCommon->GetParameter(1));
+        fTemplate_Data->FixParameter(6,fTemplate_MC_NonCommon->GetParameter(2));
+        fTemplate_Data->FixParameter(7,fTemplate_MC_NonCommon->GetParameter(3));
+        fTemplate_Data->SetParameter(8,1.0);
+        fTemplate_Data->SetParLimits(8,0.5,2.0);
+        fTemplate_Data->SetParameter(9,InitialRadius);
+        fTemplate_Data->SetParLimits(9,InitialRadius*0.8,InitialRadius*1.2);
+        if(AB_pp.GetNumSourcePars()>1){
+            fTemplate_Data->SetParameter(10,InitialAlpha);
+            fTemplate_Data->SetParLimits(10,1,2);
+        }
+        else fTemplate_Data->FixParameter(10,2.0);
 fTemplate_Data->FixParameter(10,2.0);
-    h_Data->Fit(fTemplate_Data,"S, N, R, M");
+        h_Data->Fit(fTemplate_Data,"Q, S, N, R, M");
 
-    TF1* fTemplate_Data_BL = new TF1("fTemplate_Data_BL","[8]*([0]*(1.+[1]*exp(-pow((x-[2])/[3],2.)))+[4]*(1.+[5]*exp(-pow((x-[6])/[7],2.))))",FitMin,FitMax);
-    fTemplate_Data_BL->FixParameter(0,fTemplate_Data->GetParameter(0));
-    fTemplate_Data_BL->FixParameter(1,fTemplate_Data->GetParameter(1));
-    fTemplate_Data_BL->FixParameter(2,fTemplate_Data->GetParameter(2));
-    fTemplate_Data_BL->FixParameter(3,fTemplate_Data->GetParameter(3));
-    fTemplate_Data_BL->FixParameter(4,fTemplate_Data->GetParameter(4));
-    fTemplate_Data_BL->FixParameter(5,fTemplate_Data->GetParameter(5));
-    fTemplate_Data_BL->FixParameter(6,fTemplate_Data->GetParameter(6));
-    fTemplate_Data_BL->FixParameter(7,fTemplate_Data->GetParameter(7));
-    fTemplate_Data_BL->FixParameter(8,fTemplate_Data->GetParameter(8));
+        for(unsigned uBin=0; uBin<NumPlotBins; uBin++){
+            kStarVal = PlotMin+float(uBin)*PlotBinWidth+PlotBinWidth*0.5;
+            if(Data_Up[uBin]<fTemplate_Data->Eval(kStarVal)) Data_Up[uBin]=fTemplate_Data->Eval(kStarVal);
+            if(Data_Down[uBin]>fTemplate_Data->Eval(kStarVal)) Data_Down[uBin]=fTemplate_Data->Eval(kStarVal);
+        }
 
+        TF1* fTemplate_Data_BL = new TF1("fTemplate_Data_BL","[8]*([0]*(1.+[1]*exp(-pow((x-[2])/[3],2.)))+[4]*(1.+[5]*exp(-pow((x-[6])/[7],2.))))",FitMin,FitMax);
+        fTemplate_Data_BL->FixParameter(0,fTemplate_Data->GetParameter(0));
+        fTemplate_Data_BL->FixParameter(1,fTemplate_Data->GetParameter(1));
+        fTemplate_Data_BL->FixParameter(2,fTemplate_Data->GetParameter(2));
+        fTemplate_Data_BL->FixParameter(3,fTemplate_Data->GetParameter(3));
+        fTemplate_Data_BL->FixParameter(4,fTemplate_Data->GetParameter(4));
+        fTemplate_Data_BL->FixParameter(5,fTemplate_Data->GetParameter(5));
+        fTemplate_Data_BL->FixParameter(6,fTemplate_Data->GetParameter(6));
+        fTemplate_Data_BL->FixParameter(7,fTemplate_Data->GetParameter(7));
+        fTemplate_Data_BL->FixParameter(8,fTemplate_Data->GetParameter(8));
 
-    TH1F* hfit_Ratio = new TH1F("hfit_Ratio","hfit_Ratio",
-            h_Data->GetNbinsX(),h_Data->GetBinLowEdge(1),h_Data->GetXaxis()->GetBinUpEdge(h_Data->GetNbinsX()));
-    TGraph fit_nsigma;
-    fit_nsigma.SetName("fit_nsigma");
+        for(unsigned uBin=0; uBin<NumPlotBins; uBin++){
+            kStarVal = PlotMin+float(uBin)*PlotBinWidth+PlotBinWidth*0.5;
+            if(BlData_Up[uBin]<fTemplate_Data_BL->Eval(kStarVal)) BlData_Up[uBin]=fTemplate_Data_BL->Eval(kStarVal);
+            if(BlData_Down[uBin]>fTemplate_Data_BL->Eval(kStarVal)) BlData_Down[uBin]=fTemplate_Data_BL->Eval(kStarVal);
+            //if(uBin==10){
+            //    printf("at %f; Up = %f; Down = %f; Val = %f\n",kStarVal,BlData_Up[uBin],BlData_Down[uBin],fTemplate_Data_BL->Eval(kStarVal));
+            //}
+        }
 
-    int NumPts=0;
-    double Avg_nsigma = 0;//should be around 0
-    for(unsigned uBin=0; uBin<h_Data->GetNbinsX(); uBin++){
-        double MOM = h_Data->GetBinCenter(uBin+1);
-        if(MOM<FitMin || MOM>FitMax) continue;
-        double CkData = h_Data->GetBinContent(uBin+1);
-        double CkErr = h_Data->GetBinError(uBin+1);
-        double CkFit = fTemplate_Data->Eval(MOM);
-        double nsigma = (CkData-CkFit)/CkErr;
-        fit_nsigma.SetPoint(NumPts,MOM,nsigma);
-        Avg_nsigma += nsigma;
+        TH1F* hfit_Ratio = new TH1F("hfit_Ratio","hfit_Ratio",
+                h_Data->GetNbinsX(),h_Data->GetBinLowEdge(1),h_Data->GetXaxis()->GetBinUpEdge(h_Data->GetNbinsX()));
+        TGraph fit_nsigma;
+        fit_nsigma.SetName("fit_nsigma");
 
-        hfit_Ratio->SetBinContent(uBin+1,CkData/CkFit);
-        hfit_Ratio->SetBinError(uBin+1,CkErr/CkFit);
+        int NumPts=0;
+        double Avg_nsigma = 0;//should be around 0
+        for(unsigned uBin=0; uBin<h_Data->GetNbinsX(); uBin++){
+            double MOM = h_Data->GetBinCenter(uBin+1);
+            if(MOM<FitMin || MOM>FitMax) continue;
+            double CkData = h_Data->GetBinContent(uBin+1);
+            double CkErr = h_Data->GetBinError(uBin+1);
+            double CkFit = fTemplate_Data->Eval(MOM);
+            double nsigma = (CkData-CkFit)/CkErr;
+            fit_nsigma.SetPoint(NumPts,MOM,nsigma);
+            Avg_nsigma += nsigma;
 
-        NumPts++;
+            hfit_Ratio->SetBinContent(uBin+1,CkData/CkFit);
+            hfit_Ratio->SetBinError(uBin+1,CkErr/CkFit);
+
+            NumPts++;
+        }
+        Avg_nsigma /= double(NumPts);
+        //printf("Avg_nsigma = %.3f\n",Avg_nsigma);
+
+        TGraphErrors fit_sourcepars;
+        fit_sourcepars.SetName("fit_sourcepars");
+        fit_sourcepars.SetPoint(0,fTemplate_Data->GetParameter(9),fTemplate_Data->GetParameter(10));
+        fit_sourcepars.SetPointError(0,fTemplate_Data->GetParError(9),fTemplate_Data->GetParError(10));
+
+        if(uSyst==0){
+            OutputFile->cd();
+            fTemplate_MC_Common->Write();
+            fTemplate_MC_NonCommon->Write();
+            fTemplate_MC->Write();
+            h_MC_TEMPLATE->Write();
+            fTemplate_Data->Write();
+            fTemplate_Data_BL->Write();
+            hfit_Ratio->Write();
+            fit_nsigma.Write();
+            fit_sourcepars.Write();
+            //printf("nsigma = %.2f\n",sqrt(2)*TMath::ErfcInverse(fTemplate_Data->GetProb()));
+        }
+//printf("nsigma = %.2f\n",sqrt(2)*TMath::ErfcInverse(fTemplate_Data->GetProb()));
+
+        hRadius->Fill(fTemplate_Data->GetParameter(9));
+        hAlpha->Fill(fTemplate_Data->GetParameter(10));
+        hnSigma->Fill(sqrt(2)*TMath::ErfcInverse(fTemplate_Data->GetProb()));
+
+        ///DELETES
+//printf("0\n");
+        delete h_MC_Common;
+//printf("1\n");
+        delete h_MC_NonCommon;
+//printf("2\n");
+        delete h_MC;
+//printf("3\n");
+        delete h_MC_TEMPLATE;
+//printf("4\n");
+        delete h_Data;
+//printf("5\n");
+        delete hfit_Ratio;
+//printf("6\n");
+
+        delete fTemplate_MC_Common;
+//printf("7\n");
+        delete fTemplate_MC_NonCommon;
+//printf("8\n");
+        delete fTemplate_MC;
+//printf("9\n");
+        delete fTemplate_Data;
+//printf("10\n");
+        delete fTemplate_Data_BL;
+//printf("11\n");
     }
-    Avg_nsigma /= double(NumPts);
-    printf("Avg_nsigma = %.3f\n",Avg_nsigma);
 
-    TGraphErrors fit_sourcepars;
-    fit_sourcepars.SetName("fit_sourcepars");
-    fit_sourcepars.SetPoint(0,fTemplate_Data->GetParameter(9),fTemplate_Data->GetParameter(10));
-    fit_sourcepars.SetPointError(0,fTemplate_Data->GetParError(9),fTemplate_Data->GetParError(10));
+    cout << endl;
 
+    TGraphErrors graph_DataFit;
+    graph_DataFit.SetName("graph_DataFit");
+    TGraphErrors graph_DataBl;
+    graph_DataBl.SetName("graph_DataBl");
+    TGraphErrors graph_McBl;
+    graph_McBl.SetName("graph_McBl");
+    for(unsigned uBin=0; uBin<NumPlotBins; uBin++){
+        graph_DataFit.SetPoint(uBin,PlotMin+float(uBin)*PlotBinWidth+PlotBinWidth*0.5,(Data_Up[uBin]+Data_Down[uBin])*0.5);
+        graph_DataFit.SetPointError(uBin,0,(Data_Up[uBin]-Data_Down[uBin])*0.5);
 
-    OutputFile->cd();
-    fTemplate_MC_Common->Write();
-    fTemplate_MC_NonCommon->Write();
-    fTemplate_MC->Write();
-    h_MC_TEMPLATE->Write();
-    fTemplate_Data->Write();
-    fTemplate_Data_BL->Write();
-    hfit_Ratio->Write();
-    fit_nsigma.Write();
-    fit_sourcepars.Write();
+        graph_DataBl.SetPoint(uBin,PlotMin+float(uBin)*PlotBinWidth+PlotBinWidth*0.5,(BlData_Up[uBin]+BlData_Down[uBin])*0.5);
+        graph_DataBl.SetPointError(uBin,0,(BlData_Up[uBin]-BlData_Down[uBin])*0.5);
 
-    printf("nsigma = %.2f\n",sqrt(2)*TMath::ErfcInverse(fTemplate_Data->GetProb()));
+        graph_McBl.SetPoint(uBin,PlotMin+float(uBin)*PlotBinWidth+PlotBinWidth*0.5,(BlMc_Up[uBin]+BlMc_Down[uBin])*0.5);
+        graph_McBl.SetPointError(uBin,0,(BlMc_Up[uBin]-BlMc_Down[uBin])*0.5);
+    }
+
+    hRadius->Write();
+    hAlpha->Write();
+    hnSigma->Write();
+    graph_DataFit.Write();
+    graph_DataBl.Write();
+    graph_McBl.Write();
 
 printf("END pp ------------------------------------\n");
-    delete h_MC_Common;
-    delete h_MC_NonCommon;
-    delete h_MC;
-    delete h_MC_TEMPLATE;
-    delete h_Data;
-    delete hfit_Ratio;
-
-    delete fTemplate_MC_Common;
-    delete fTemplate_MC_NonCommon;
-    delete fTemplate_MC;
-    delete fTemplate_Data;
-    delete fTemplate_Data_BL;
+    delete hRadius;
+    delete hAlpha;
+    delete hnSigma;
     delete OutputFile;
+    delete [] BlMc_Down;
+    delete [] BlMc_Up;
+    delete [] BlData_Down;
+    delete [] BlData_Up;
+    delete [] Data_Down;
+    delete [] Data_Up;
 }
 
 
@@ -3960,13 +4152,28 @@ double dimi_MC_template_fitter_pL(double* x, double* par){
     double Femto = MM_PL->EvalCk(*x);
     return par[8]*(Com+NonCom)*Femto;
 }
+double dimi_MC_CrazyGauss_fitter_pL(double* x, double* par){
+    MM_PL->GetCk()->SetSourcePar(0,par[21]);
+    if(MM_CatPL->GetNumSourcePars()>1){
+        MM_PL->GetCk()->SetSourcePar(1,par[22]);
+    }
+    MM_PL->Update(false);
+    double Com = par[0]*(1.+par[1]*exp(-pow((*x-par[2])/par[3],2.)))*(1.+par[4]*exp(-pow((*x-par[5])/par[6],2.)))*(1.+par[7]*exp(-pow((*x-par[8])/par[9],2.)))*(1.+par[10]**x);
+    double NonCom = par[11]*(1.+par[12]*exp(-pow((*x-par[13])/par[14],2.)))*(1.+par[15]*exp(-pow((*x-par[16])/par[17],2.)))*(1.+par[18]**x);
+    double Femto = MM_PL->EvalCk(*x);
+    return par[19]*(par[20]*Com+(1.-par[20])*NonCom)*Femto;
+}
 
 void Fit_pL_CommonAncestorTemplate_Ck(){
+
+    const unsigned NumSystIter = 256;
 
     TString fName_MC_Common = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/pLambda_Rush/Ancestors_YieldNorm/CFOutput_pL_8_Common.root";
     TString fName_MC_NonCommon = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/pLambda_Rush/Ancestors_YieldNorm/CFOutput_pL_8_NonCommon.root";
     TString fName_MC = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/pp13TeV_HM_Baseline/MyResults_Vale/MC/CF/NanoMC/CFOutput_pL_8.root";
     TString fName_Data = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/pp13TeV_HM_Baseline/MyResults_Vale/Data/CF/Norm024034/CFOutput_pL_8.root";
+    TString fName_TempInfoData = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/OtherTasks/Fit_pp_CommonAncestorTemplate_dPhi/OutputFile_pp_Data.root";
+    TString fName_TempInfoMC = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/OtherTasks/Fit_pp_CommonAncestorTemplate_dPhi/OutputFile_pp_MC.root";
 
     //TString hName_MC_Common = "hCk_RebinnedMeV_1";
     //TString hName_MC_NonCommon = "hCk_RebinnedMeV_1";
@@ -3979,98 +4186,82 @@ void Fit_pL_CommonAncestorTemplate_Ck(){
     TString hName_Data = "hCkTotNormWeightMeV";
     int REBIN = 4;
 
+    const unsigned NumPlotBins = 100;
+    const float PlotMin = 0;
+    const float PlotMax = 400;
+    const float PlotBinWidth = (PlotMax-PlotMin)/float(NumPlotBins);
+    float* BlData_Up = new float [NumPlotBins];
+    float* BlData_Down = new float [NumPlotBins];
+    float* BlMc_Up = new float [NumPlotBins];
+    float* BlMc_Down = new float [NumPlotBins];
+    float* Data_Up = new float [NumPlotBins];
+    float* Data_Down = new float [NumPlotBins];
+    for(unsigned uBin=0; uBin<NumPlotBins; uBin++){
+        BlData_Up[uBin] = 0;
+        BlMc_Up[uBin] = 0;
+        Data_Up[uBin] = 0;
+
+        BlData_Down[uBin] = 1000;
+        BlMc_Down[uBin] = 1000;
+        Data_Down[uBin] = 1000;
+    }
+
     TH1D* h_MC_Common;
     TH1D* h_MC_NonCommon;
     TH1D* h_MC;
     TH1D* h_MC_TEMPLATE;
     TH1D* h_Data;
 
-    const double WC_MC = 0.162;
-    const double WN_MC = 0.838;
-    //const double WC_MC = 0.8;
-    //const double WN_MC = 0.2;
-
-    const double WC_Data = 0.100;
-    const double WN_Data = 0.900;
-
+    double WC_MC_mean;// = 0.166;
+    double WC_MC_err;
+    //double WN_MC_mean;// = 0.834;
+    //double WN_MC_err;
+    double WC_MC;
+    double WN_MC;
+    //const double WC_Data = 0.069;
+    //const double WN_Data = 0.931;
+    double WC_Data_mean;// = 0.166;
+    double WC_Data_err;
+    //double WN_Data_mean;// = 0.834;
+    //double WN_Data_err;
+    double WC_Data;
+    double WN_Data;
+    double ddummy;
     TFile* fInputFile;
     TH1D* InputHisto;
+    TGraphErrors* graph_temp;
+
+    //const double WC_MC = 0.162;
+    //const double WN_MC = 0.838;
+    ////const double WC_MC = 0.8;
+    ////const double WN_MC = 0.2;
+
+    //const double WC_Data = 0.100;
+    //const double WN_Data = 0.900;
+
+    fInputFile = new TFile(fName_TempInfoMC,"read");
+    graph_temp = (TGraphErrors*)fInputFile->Get("gWC_TotErr");
+    graph_temp->GetPoint(0,ddummy,WC_MC_mean);
+    WC_MC_err = graph_temp->GetErrorY(0);
+    //graph_temp = (TGraphErrors*)fInputFile->Get("gWN_TotErr");
+    //graph_temp->GetPoint(0,ddummy,WN_MC_mean);
+    //WN_MC_err = graph_temp->GetErrorY(0);
+    delete fInputFile;
+//return;
+    fInputFile = new TFile(fName_TempInfoData,"read");
+    graph_temp = (TGraphErrors*)fInputFile->Get("gWC_TotErr");
+    graph_temp->GetPoint(0,ddummy,WC_Data_mean);
+    WC_Data_err = graph_temp->GetErrorY(0);
+    //graph_temp = (TGraphErrors*)fInputFile->Get("gWN_TotErr");
+    //graph_temp->GetPoint(0,ddummy,WN_Data_mean);
+    //WN_Data_err = graph_temp->GetErrorY(0);
+    delete fInputFile;
+
+    TRandom3 rangen(14);
+
     TFile* OutputFile = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/OtherTasks/Fit_pL_CAT_Ck/OutputFile.root","recreate");
     double FitMin;
     double FitMax;
-
-    fInputFile = new TFile(fName_MC_Common,"read");
-    InputHisto = (TH1D*)fInputFile->Get(hName_MC_Common);
-    OutputFile->cd();
-    h_MC_Common = (TH1D*)InputHisto->Clone("h_MC_Common");
-    h_MC_Common->Rebin(REBIN);
-    h_MC_Common->Scale(1./double(REBIN));
-    h_MC_Common->Write();
-    FitMin = 0;
-    FitMax = 380;
-    TF1* fTemplate_MC_Common = new TF1("fTemplate_MC_Common","[0]*(1.+[1]*exp(-pow((x-[2])/[3],2.)))",FitMin,FitMax);
-    fTemplate_MC_Common->SetParameter(0,1);
-    fTemplate_MC_Common->SetParameter(1,0.3);
-    fTemplate_MC_Common->SetParameter(2,250);
-    fTemplate_MC_Common->SetParameter(3,150);
-    h_MC_Common->Fit(fTemplate_MC_Common,"S, N, R, M");
-    delete fInputFile;
-
-    fInputFile = new TFile(fName_MC_NonCommon,"read");
-    InputHisto = (TH1D*)fInputFile->Get(hName_MC_NonCommon);
-    OutputFile->cd();
-    h_MC_NonCommon = (TH1D*)InputHisto->Clone("h_MC_NonCommon");
-    h_MC_NonCommon->Rebin(REBIN);
-    h_MC_NonCommon->Scale(1./double(REBIN));
-    h_MC_NonCommon->Write();
-    FitMin = 0;
-    FitMax = 380;
-    TF1* fTemplate_MC_NonCommon = new TF1("fTemplate_MC_NonCommon","[0]*(1.+[1]*exp(-pow((x-[2])/[3],2.)))",FitMin,FitMax);
-    fTemplate_MC_NonCommon->SetParameter(0,0.9);
-    fTemplate_MC_NonCommon->SetParameter(1,0.03);
-    fTemplate_MC_NonCommon->FixParameter(2,0);
-    fTemplate_MC_NonCommon->SetParameter(3,120);
-    h_MC_NonCommon->Fit(fTemplate_MC_NonCommon,"S, N, R, M");
-    delete fInputFile;
-
-    fInputFile = new TFile(fName_MC,"read");
-    InputHisto = (TH1D*)fInputFile->Get(hName_MC);
-    OutputFile->cd();
-    h_MC = (TH1D*)InputHisto->Clone("h_MC");
-    h_MC->Rebin(REBIN);
-    h_MC->Scale(1./double(REBIN));
-    h_MC->Write();
-    FitMin = 0;
-    FitMax = 380;
-    TF1* fTemplate_MC = new TF1("fTemplate_MC","[8]*([0]*(1.+[1]*exp(-pow((x-[2])/[3],2.)))+[4]*(1.+[5]*exp(-pow((x-[6])/[7],2.))))",FitMin,FitMax);
-    fTemplate_MC->FixParameter(0,fTemplate_MC_Common->GetParameter(0)*WC_MC);
-    fTemplate_MC->FixParameter(1,fTemplate_MC_Common->GetParameter(1));
-    fTemplate_MC->FixParameter(2,fTemplate_MC_Common->GetParameter(2));
-    fTemplate_MC->FixParameter(3,fTemplate_MC_Common->GetParameter(3));
-    fTemplate_MC->FixParameter(4,fTemplate_MC_NonCommon->GetParameter(0)*WN_MC);
-    fTemplate_MC->FixParameter(5,fTemplate_MC_NonCommon->GetParameter(1));
-    fTemplate_MC->FixParameter(6,fTemplate_MC_NonCommon->GetParameter(2));
-    fTemplate_MC->FixParameter(7,fTemplate_MC_NonCommon->GetParameter(3));
-    fTemplate_MC->SetParameter(8,1.0178);
-    h_MC->Fit(fTemplate_MC,"S, N, R, M");
-    delete fInputFile;
-
-    OutputFile->cd();
-    h_MC_TEMPLATE = (TH1D*)h_MC_Common->Clone("h_MC_TEMPLATE");
-    h_MC_TEMPLATE->Scale(WC_MC);
-    h_MC_TEMPLATE->Add(h_MC_NonCommon,WN_MC);
-    h_MC_TEMPLATE->Scale(fTemplate_MC->GetParameter(8));
-
-    fInputFile = new TFile(fName_Data,"read");
-    InputHisto = (TH1D*)fInputFile->Get(hName_Data);
-    OutputFile->cd();
-    h_Data = (TH1D*)InputHisto->Clone("h_Data");
-    h_Data->Rebin(REBIN);
-    h_Data->Scale(1./double(REBIN));
-    h_Data->Write();
-    FitMin = 0;
-    FitMax = 380;
-    delete fInputFile;
 
     TString DataSample = "pp13TeV_HM_Dec19";
     DLM_CommonAnaFunctions AnalysisObject;
@@ -4106,13 +4297,16 @@ void Fit_pL_CommonAncestorTemplate_Ck(){
     AB_pL.SetChannelWeight(10,3./4.*CUSP_WEIGHT);//3S1 SN(d) -> LN(s)
     AB_pL.SetChannelWeight(13,3./20.*CUSP_WEIGHT);//3D1 SN(d) -> LN(d)
     AB_pL.SetChannelWeight(15,3./20.*CUSP_WEIGHT);//3D1 SN(s) -> LN(d)
-
+    double InitialRadius;
+    double InitialAlpha = 2.0;
     AB_pL.SetAnaSource(0,1.4);
     if(SourceDescription.Contains("Mc")){
         AB_pL.SetAnaSource(0,1.10);//c.a. 10% smaller compared to p-p due to the mT scaling
         AB_pL.SetAnaSource(1,2.0);
     }
-    AB_pL.SetNotifications(CATS::nWarning);
+    InitialRadius = AB_pL.GetAnaSourcePar(0);
+    //AB_pL.SetNotifications(CATS::nWarning);
+AB_pL.SetNotifications(CATS::nError);
     AB_pL.KillTheCat();
     Ck_pL = new DLM_Ck(AB_pL.GetNumSourcePars(),0,AB_pL,24,0,384);
     Ck_pL->SetSourcePar(0,AB_pL.GetAnaSourcePar(0));
@@ -4154,110 +4348,755 @@ void Fit_pL_CommonAncestorTemplate_Ck(){
     MM_PL = &CkDec_pL;
     MM_CatPL = &AB_pL;
 
-    FitMin = 0;
-    FitMax = 340;
-    OutputFile->cd();
-    TF1* fTemplate_Data = new TF1("fTemplate_Data",dimi_MC_template_fitter_pL,FitMin,FitMax,11);
-    fTemplate_Data->FixParameter(0,fTemplate_MC_Common->GetParameter(0)*WC_Data);
-    fTemplate_Data->FixParameter(1,fTemplate_MC_Common->GetParameter(1));
-    fTemplate_Data->FixParameter(2,fTemplate_MC_Common->GetParameter(2));
-    fTemplate_Data->FixParameter(3,fTemplate_MC_Common->GetParameter(3));
-    fTemplate_Data->FixParameter(4,fTemplate_MC_NonCommon->GetParameter(0)*WN_Data);
-    fTemplate_Data->FixParameter(5,fTemplate_MC_NonCommon->GetParameter(1));
-    fTemplate_Data->FixParameter(6,fTemplate_MC_NonCommon->GetParameter(2));
-    fTemplate_Data->FixParameter(7,fTemplate_MC_NonCommon->GetParameter(3));
-    fTemplate_Data->SetParameter(8,1.0);
-    fTemplate_Data->SetParLimits(8,0.5,2.0);
-    fTemplate_Data->SetParameter(9,CkDec_pL.GetCk()->GetSourcePar(0));
-    fTemplate_Data->SetParLimits(9,CkDec_pL.GetCk()->GetSourcePar(0)*0.8,CkDec_pL.GetCk()->GetSourcePar(0)*1.2);
-    if(AB_pL.GetNumSourcePars()>1){
-        fTemplate_Data->SetParameter(10,CkDec_pL.GetCk()->GetSourcePar(1));
-        fTemplate_Data->SetParLimits(10,1,2);
+    TH1F* hRadius = new TH1F("hRadius","hRadius",1024,0.5,2.0);
+    TH1F* hAlpha = new TH1F("hAlpha","hAlpha",1024,0.95,2.05);
+    TH1F* hnSigma = new TH1F("hnSigma","hnSigma",1024,0,20.0);
+
+    float kStarVal;
+    for(unsigned uSyst=0; uSyst<NumSystIter; uSyst++){
+        printf("\r\033[K uSyst=%u",uSyst);
+        cout << flush;
+
+        if(uSyst==0) WC_MC = WC_MC_mean;
+        else WC_MC = rangen.Gaus(WC_MC_mean,WC_MC_err);
+        WN_MC = 1. - WC_MC;
+
+        if(uSyst==0) WC_Data = WC_Data_mean;
+        else WC_Data = rangen.Gaus(WC_Data_mean,WC_Data_err);
+        WN_Data = 1. - WC_Data;
+
+        fInputFile = new TFile(fName_MC_Common,"read");
+        InputHisto = (TH1D*)fInputFile->Get(hName_MC_Common);
+        OutputFile->cd();
+        h_MC_Common = (TH1D*)InputHisto->Clone("h_MC_Common");
+        h_MC_Common->Rebin(REBIN);
+        h_MC_Common->Scale(1./double(REBIN));
+        if(uSyst==0) h_MC_Common->Write();
+        else{
+            float Value;
+            float Error;
+            float RanVal;
+            for(unsigned uBin=0; uBin<h_MC_Common->GetNbinsX(); uBin++){
+                Value = h_MC_Common->GetBinContent(uBin+1);
+                Error = h_MC_Common->GetBinError(uBin+1);
+                RanVal = rangen.Gaus(Value,Error);
+                h_MC_Common->SetBinContent(uBin+1,RanVal);
+                h_MC_Common->SetBinError(uBin+1,Error);
+            }
+        }
+        FitMin = 0;
+        FitMax = 380;
+        TF1* fTemplate_MC_Common = new TF1("fTemplate_MC_Common","[0]*(1.+[1]*exp(-pow((x-[2])/[3],2.)))",FitMin,FitMax);
+        fTemplate_MC_Common->SetParameter(0,1);
+        fTemplate_MC_Common->SetParameter(1,0.3);
+        fTemplate_MC_Common->SetParameter(2,250);
+        fTemplate_MC_Common->SetParameter(3,150);
+        h_MC_Common->Fit(fTemplate_MC_Common,"Q, S, N, R, M");
+        delete fInputFile;
+
+        fInputFile = new TFile(fName_MC_NonCommon,"read");
+        InputHisto = (TH1D*)fInputFile->Get(hName_MC_NonCommon);
+        OutputFile->cd();
+        h_MC_NonCommon = (TH1D*)InputHisto->Clone("h_MC_NonCommon");
+        h_MC_NonCommon->Rebin(REBIN);
+        h_MC_NonCommon->Scale(1./double(REBIN));
+        if(uSyst==0) h_MC_NonCommon->Write();
+        else{
+            float Value;
+            float Error;
+            float RanVal;
+            for(unsigned uBin=0; uBin<h_MC_NonCommon->GetNbinsX(); uBin++){
+                Value = h_MC_NonCommon->GetBinContent(uBin+1);
+                Error = h_MC_NonCommon->GetBinError(uBin+1);
+                RanVal = rangen.Gaus(Value,Error);
+                h_MC_NonCommon->SetBinContent(uBin+1,RanVal);
+                h_MC_NonCommon->SetBinError(uBin+1,Error);
+            }
+        }
+        FitMin = 0;
+        FitMax = 380;
+        TF1* fTemplate_MC_NonCommon = new TF1("fTemplate_MC_NonCommon","[0]*(1.+[1]*exp(-pow((x-[2])/[3],2.)))",FitMin,FitMax);
+        fTemplate_MC_NonCommon->SetParameter(0,0.9);
+        fTemplate_MC_NonCommon->SetParameter(1,0.03);
+        fTemplate_MC_NonCommon->FixParameter(2,0);
+        fTemplate_MC_NonCommon->SetParameter(3,120);
+        h_MC_NonCommon->Fit(fTemplate_MC_NonCommon,"Q, S, N, R, M");
+        delete fInputFile;
+
+        fInputFile = new TFile(fName_MC,"read");
+        InputHisto = (TH1D*)fInputFile->Get(hName_MC);
+        OutputFile->cd();
+        h_MC = (TH1D*)InputHisto->Clone("h_MC");
+        h_MC->Rebin(REBIN);
+        h_MC->Scale(1./double(REBIN));
+        if(uSyst==0) h_MC->Write();
+        else{
+            float Value;
+            float Error;
+            float RanVal;
+            for(unsigned uBin=0; uBin<h_MC->GetNbinsX(); uBin++){
+                Value = h_MC->GetBinContent(uBin+1);
+                Error = h_MC->GetBinError(uBin+1);
+                RanVal = rangen.Gaus(Value,Error);
+                h_MC->SetBinContent(uBin+1,RanVal);
+                h_MC->SetBinError(uBin+1,Error);
+            }
+        }
+        FitMin = 0;
+        FitMax = 380;
+        TF1* fTemplate_MC = new TF1("fTemplate_MC","[8]*([0]*(1.+[1]*exp(-pow((x-[2])/[3],2.)))+[4]*(1.+[5]*exp(-pow((x-[6])/[7],2.))))",FitMin,FitMax);
+        fTemplate_MC->FixParameter(0,fTemplate_MC_Common->GetParameter(0)*WC_MC);
+        fTemplate_MC->FixParameter(1,fTemplate_MC_Common->GetParameter(1));
+        fTemplate_MC->FixParameter(2,fTemplate_MC_Common->GetParameter(2));
+        fTemplate_MC->FixParameter(3,fTemplate_MC_Common->GetParameter(3));
+        fTemplate_MC->FixParameter(4,fTemplate_MC_NonCommon->GetParameter(0)*WN_MC);
+        fTemplate_MC->FixParameter(5,fTemplate_MC_NonCommon->GetParameter(1));
+        fTemplate_MC->FixParameter(6,fTemplate_MC_NonCommon->GetParameter(2));
+        fTemplate_MC->FixParameter(7,fTemplate_MC_NonCommon->GetParameter(3));
+        fTemplate_MC->SetParameter(8,1.0178);
+        h_MC->Fit(fTemplate_MC,"Q, S, N, R, M");
+        delete fInputFile;
+
+        OutputFile->cd();
+        h_MC_TEMPLATE = (TH1D*)h_MC_Common->Clone("h_MC_TEMPLATE");
+        h_MC_TEMPLATE->Scale(WC_MC);
+        h_MC_TEMPLATE->Add(h_MC_NonCommon,WN_MC);
+        h_MC_TEMPLATE->Scale(fTemplate_MC->GetParameter(8));
+
+        for(unsigned uBin=0; uBin<NumPlotBins; uBin++){
+            kStarVal = PlotMin+float(uBin)*PlotBinWidth+PlotBinWidth*0.5;
+            if(BlMc_Up[uBin]<fTemplate_MC->Eval(kStarVal)) BlMc_Up[uBin]=fTemplate_MC->Eval(kStarVal);
+            if(BlMc_Down[uBin]>fTemplate_MC->Eval(kStarVal)) BlMc_Down[uBin]=fTemplate_MC->Eval(kStarVal);
+        }
+
+        fInputFile = new TFile(fName_Data,"read");
+        InputHisto = (TH1D*)fInputFile->Get(hName_Data);
+        OutputFile->cd();
+        h_Data = (TH1D*)InputHisto->Clone("h_Data");
+        h_Data->Rebin(REBIN);
+        h_Data->Scale(1./double(REBIN));
+        if(uSyst==0) h_Data->Write();
+        FitMin = 0;
+        FitMax = 380;
+        delete fInputFile;
+
+        FitMin = 0;
+        FitMax = 340;
+        OutputFile->cd();
+        TF1* fTemplate_Data = new TF1("fTemplate_Data",dimi_MC_template_fitter_pL,FitMin,FitMax,11);
+        fTemplate_Data->FixParameter(0,fTemplate_MC_Common->GetParameter(0)*WC_Data);
+        fTemplate_Data->FixParameter(1,fTemplate_MC_Common->GetParameter(1));
+        fTemplate_Data->FixParameter(2,fTemplate_MC_Common->GetParameter(2));
+        fTemplate_Data->FixParameter(3,fTemplate_MC_Common->GetParameter(3));
+        fTemplate_Data->FixParameter(4,fTemplate_MC_NonCommon->GetParameter(0)*WN_Data);
+        fTemplate_Data->FixParameter(5,fTemplate_MC_NonCommon->GetParameter(1));
+        fTemplate_Data->FixParameter(6,fTemplate_MC_NonCommon->GetParameter(2));
+        fTemplate_Data->FixParameter(7,fTemplate_MC_NonCommon->GetParameter(3));
+        fTemplate_Data->SetParameter(8,1.0);
+        fTemplate_Data->SetParLimits(8,0.5,2.0);
+        fTemplate_Data->SetParameter(9,InitialRadius);
+        fTemplate_Data->SetParLimits(9,InitialRadius*0.8,InitialRadius*1.2);
+        if(AB_pL.GetNumSourcePars()>1){
+            fTemplate_Data->SetParameter(10,InitialAlpha);
+            fTemplate_Data->SetParLimits(10,1,2);
+        }
+        else fTemplate_Data->FixParameter(10,2.0);
+
+    //fTemplate_Data->FixParameter(9,1.08);
+    //fTemplate_Data->FixParameter(9,1.18);
+    fTemplate_Data->FixParameter(10,2.0);
+
+        h_Data->Fit(fTemplate_Data,"Q, S, N, R, M");
+
+        for(unsigned uBin=0; uBin<NumPlotBins; uBin++){
+            kStarVal = PlotMin+float(uBin)*PlotBinWidth+PlotBinWidth*0.5;
+            if(Data_Up[uBin]<fTemplate_Data->Eval(kStarVal)) Data_Up[uBin]=fTemplate_Data->Eval(kStarVal);
+            if(Data_Down[uBin]>fTemplate_Data->Eval(kStarVal)) Data_Down[uBin]=fTemplate_Data->Eval(kStarVal);
+        }
+
+        TF1* fTemplate_Data_BL = new TF1("fTemplate_Data_BL","[8]*([0]*(1.+[1]*exp(-pow((x-[2])/[3],2.)))+[4]*(1.+[5]*exp(-pow((x-[6])/[7],2.))))",FitMin,FitMax);
+        fTemplate_Data_BL->FixParameter(0,fTemplate_Data->GetParameter(0));
+        fTemplate_Data_BL->FixParameter(1,fTemplate_Data->GetParameter(1));
+        fTemplate_Data_BL->FixParameter(2,fTemplate_Data->GetParameter(2));
+        fTemplate_Data_BL->FixParameter(3,fTemplate_Data->GetParameter(3));
+        fTemplate_Data_BL->FixParameter(4,fTemplate_Data->GetParameter(4));
+        fTemplate_Data_BL->FixParameter(5,fTemplate_Data->GetParameter(5));
+        fTemplate_Data_BL->FixParameter(6,fTemplate_Data->GetParameter(6));
+        fTemplate_Data_BL->FixParameter(7,fTemplate_Data->GetParameter(7));
+        fTemplate_Data_BL->FixParameter(8,fTemplate_Data->GetParameter(8));
+
+        for(unsigned uBin=0; uBin<NumPlotBins; uBin++){
+            kStarVal = PlotMin+float(uBin)*PlotBinWidth+PlotBinWidth*0.5;
+            if(BlData_Up[uBin]<fTemplate_Data_BL->Eval(kStarVal)) BlData_Up[uBin]=fTemplate_Data_BL->Eval(kStarVal);
+            if(BlData_Down[uBin]>fTemplate_Data_BL->Eval(kStarVal)) BlData_Down[uBin]=fTemplate_Data_BL->Eval(kStarVal);
+        }
+
+        TH1F* hfit_Ratio = new TH1F("hfit_Ratio","hfit_Ratio",
+                h_Data->GetNbinsX(),h_Data->GetBinLowEdge(1),h_Data->GetXaxis()->GetBinUpEdge(h_Data->GetNbinsX()));
+        TGraph fit_nsigma;
+        fit_nsigma.SetName("fit_nsigma");
+
+        int NumPts=0;
+        double Avg_nsigma = 0;//should be around 0
+        for(unsigned uBin=0; uBin<h_Data->GetNbinsX(); uBin++){
+            double MOM = h_Data->GetBinCenter(uBin+1);
+            if(MOM<FitMin || MOM>FitMax) continue;
+            double CkData = h_Data->GetBinContent(uBin+1);
+            double CkErr = h_Data->GetBinError(uBin+1);
+            double CkFit = fTemplate_Data->Eval(MOM);
+            double nsigma = (CkData-CkFit)/CkErr;
+            fit_nsigma.SetPoint(NumPts,MOM,nsigma);
+            Avg_nsigma += nsigma;
+
+            hfit_Ratio->SetBinContent(uBin+1,CkData/CkFit);
+            hfit_Ratio->SetBinError(uBin+1,CkErr/CkFit);
+
+            NumPts++;
+        }
+        Avg_nsigma /= double(NumPts);
+        //printf("Avg_nsigma = %.3f\n",Avg_nsigma);
+
+        TGraphErrors fit_sourcepars;
+        fit_sourcepars.SetName("fit_sourcepars");
+        fit_sourcepars.SetPoint(0,fTemplate_Data->GetParameter(9),fTemplate_Data->GetParameter(10));
+        fit_sourcepars.SetPointError(0,fTemplate_Data->GetParError(9),fTemplate_Data->GetParError(10));
+
+        if(uSyst==0){
+            OutputFile->cd();
+            fTemplate_MC_Common->Write();
+            fTemplate_MC_NonCommon->Write();
+            fTemplate_MC->Write();
+            h_MC_TEMPLATE->Write();
+            fTemplate_Data->Write();
+            fTemplate_Data_BL->Write();
+            hfit_Ratio->Write();
+            fit_nsigma.Write();
+            fit_sourcepars.Write();
+        }
+
+        hRadius->Fill(fTemplate_Data->GetParameter(9));
+        hAlpha->Fill(fTemplate_Data->GetParameter(10));
+        hnSigma->Fill(sqrt(2)*TMath::ErfcInverse(fTemplate_Data->GetProb()));
+
+        //printf("nsigma = %.2f\n",sqrt(2)*TMath::ErfcInverse(fTemplate_Data->GetProb()));
+
+        ///DELETES
+        delete h_MC_Common;
+        delete h_MC_NonCommon;
+        delete h_MC;
+        delete h_MC_TEMPLATE;
+        delete h_Data;
+        delete hfit_Ratio;
+        delete fTemplate_MC_Common;
+        delete fTemplate_MC_NonCommon;
+        delete fTemplate_MC;
+        delete fTemplate_Data;
+        delete fTemplate_Data_BL;
     }
-    else fTemplate_Data->FixParameter(10,2.0);
+    cout << endl;
 
+    TGraphErrors graph_DataFit;
+    graph_DataFit.SetName("graph_DataFit");
+    TGraphErrors graph_DataBl;
+    graph_DataBl.SetName("graph_DataBl");
+    TGraphErrors graph_McBl;
+    graph_McBl.SetName("graph_McBl");
+    for(unsigned uBin=0; uBin<NumPlotBins; uBin++){
+        graph_DataFit.SetPoint(uBin,PlotMin+float(uBin)*PlotBinWidth+PlotBinWidth*0.5,(Data_Up[uBin]+Data_Down[uBin])*0.5);
+        graph_DataFit.SetPointError(uBin,0,(Data_Up[uBin]-Data_Down[uBin])*0.5);
 
-fTemplate_Data->FixParameter(9,1.18);
-fTemplate_Data->FixParameter(10,2.0);
+        graph_DataBl.SetPoint(uBin,PlotMin+float(uBin)*PlotBinWidth+PlotBinWidth*0.5,(BlData_Up[uBin]+BlData_Down[uBin])*0.5);
+        graph_DataBl.SetPointError(uBin,0,(BlData_Up[uBin]-BlData_Down[uBin])*0.5);
 
-    h_Data->Fit(fTemplate_Data,"S, N, R, M");
-
-    TF1* fTemplate_Data_BL = new TF1("fTemplate_Data_BL","[8]*([0]*(1.+[1]*exp(-pow((x-[2])/[3],2.)))+[4]*(1.+[5]*exp(-pow((x-[6])/[7],2.))))",FitMin,FitMax);
-    fTemplate_Data_BL->FixParameter(0,fTemplate_Data->GetParameter(0));
-    fTemplate_Data_BL->FixParameter(1,fTemplate_Data->GetParameter(1));
-    fTemplate_Data_BL->FixParameter(2,fTemplate_Data->GetParameter(2));
-    fTemplate_Data_BL->FixParameter(3,fTemplate_Data->GetParameter(3));
-    fTemplate_Data_BL->FixParameter(4,fTemplate_Data->GetParameter(4));
-    fTemplate_Data_BL->FixParameter(5,fTemplate_Data->GetParameter(5));
-    fTemplate_Data_BL->FixParameter(6,fTemplate_Data->GetParameter(6));
-    fTemplate_Data_BL->FixParameter(7,fTemplate_Data->GetParameter(7));
-    fTemplate_Data_BL->FixParameter(8,fTemplate_Data->GetParameter(8));
-
-    TH1F* hfit_Ratio = new TH1F("hfit_Ratio","hfit_Ratio",
-            h_Data->GetNbinsX(),h_Data->GetBinLowEdge(1),h_Data->GetXaxis()->GetBinUpEdge(h_Data->GetNbinsX()));
-    TGraph fit_nsigma;
-    fit_nsigma.SetName("fit_nsigma");
-
-    int NumPts=0;
-    double Avg_nsigma = 0;//should be around 0
-    for(unsigned uBin=0; uBin<h_Data->GetNbinsX(); uBin++){
-        double MOM = h_Data->GetBinCenter(uBin+1);
-        if(MOM<FitMin || MOM>FitMax) continue;
-        double CkData = h_Data->GetBinContent(uBin+1);
-        double CkErr = h_Data->GetBinError(uBin+1);
-        double CkFit = fTemplate_Data->Eval(MOM);
-        double nsigma = (CkData-CkFit)/CkErr;
-        fit_nsigma.SetPoint(NumPts,MOM,nsigma);
-        Avg_nsigma += nsigma;
-
-        hfit_Ratio->SetBinContent(uBin+1,CkData/CkFit);
-        hfit_Ratio->SetBinError(uBin+1,CkErr/CkFit);
-
-        NumPts++;
+        graph_McBl.SetPoint(uBin,PlotMin+float(uBin)*PlotBinWidth+PlotBinWidth*0.5,(BlMc_Up[uBin]+BlMc_Down[uBin])*0.5);
+        graph_McBl.SetPointError(uBin,0,(BlMc_Up[uBin]-BlMc_Down[uBin])*0.5);
     }
-    Avg_nsigma /= double(NumPts);
-    printf("Avg_nsigma = %.3f\n",Avg_nsigma);
 
-    TGraphErrors fit_sourcepars;
-    fit_sourcepars.SetName("fit_sourcepars");
-    fit_sourcepars.SetPoint(0,fTemplate_Data->GetParameter(9),fTemplate_Data->GetParameter(10));
-    fit_sourcepars.SetPointError(0,fTemplate_Data->GetParError(9),fTemplate_Data->GetParError(10));
+    hRadius->Write();
+    hAlpha->Write();
+    hnSigma->Write();
+    graph_DataFit.Write();
+    graph_DataBl.Write();
+    graph_McBl.Write();
 
-
-    OutputFile->cd();
-    fTemplate_MC_Common->Write();
-    fTemplate_MC_NonCommon->Write();
-    fTemplate_MC->Write();
-    h_MC_TEMPLATE->Write();
-    fTemplate_Data->Write();
-    fTemplate_Data_BL->Write();
-    hfit_Ratio->Write();
-    fit_nsigma.Write();
-    fit_sourcepars.Write();
-
-    printf("nsigma = %.2f\n",sqrt(2)*TMath::ErfcInverse(fTemplate_Data->GetProb()));
-
-    delete h_MC_Common;
-    delete h_MC_NonCommon;
-    delete h_MC;
-    delete h_MC_TEMPLATE;
-    delete h_Data;
-    delete hfit_Ratio;
-
-    delete fTemplate_MC_Common;
-    delete fTemplate_MC_NonCommon;
-    delete fTemplate_MC;
-    delete fTemplate_Data;
-    delete fTemplate_Data_BL;
+printf("END pL ------------------------------------\n");
+    delete hRadius;
+    delete hAlpha;
+    delete hnSigma;
     delete OutputFile;
+    delete [] BlMc_Down;
+    delete [] BlMc_Up;
+    delete [] BlData_Down;
+    delete [] BlData_Up;
+    delete [] Data_Down;
+    delete [] Data_Up;
 }
 
-void Fit_pp_CommonAncestorTemplate_dPhi(){
+//Last hope!
+void Fit_pL_CommonAncestorTemplate_CrazyGauss(){
+
+    const unsigned NumSystIter = 32;
+
+    TString fName_MC_Common = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/pLambda_Rush/Ancestors_YieldNorm/CFOutput_pL_8_Common.root";
+    TString fName_MC_NonCommon = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/pLambda_Rush/Ancestors_YieldNorm/CFOutput_pL_8_NonCommon.root";
+    TString fName_MC = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/pp13TeV_HM_Baseline/MyResults_Vale/MC/CF/NanoMC/CFOutput_pL_8.root";
+    TString fName_Data = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/pp13TeV_HM_Baseline/MyResults_Vale/Data/CF/Norm024034/CFOutput_pL_8.root";
+
+    //TString hName_MC_Common = "hCk_RebinnedMeV_1";
+    //TString hName_MC_NonCommon = "hCk_RebinnedMeV_1";
+    //TString hName_MC = "hCk_RebinnedMeV_1";
+    //TString hName_Data = "hCk_RebinnedMeV_1";
+
+    TString hName_MC_Common = "hCkTotNormWeightMeV";
+    TString hName_MC_NonCommon = "hCkTotNormWeightMeV";
+    TString hName_MC = "hCkTotNormWeightMeV";
+    TString hName_Data = "hCkTotNormWeightMeV";
+    int REBIN = 4;
+
+    const unsigned NumPlotBins = 100;
+    const float PlotMin = 0;
+    const float PlotMax = 400;
+    const float PlotBinWidth = (PlotMax-PlotMin)/float(NumPlotBins);
+    float* BlData_Up = new float [NumPlotBins];
+    float* BlData_Down = new float [NumPlotBins];
+    float* BlMc_Up = new float [NumPlotBins];
+    float* BlMc_Down = new float [NumPlotBins];
+    float* Data_Up = new float [NumPlotBins];
+    float* Data_Down = new float [NumPlotBins];
+    for(unsigned uBin=0; uBin<NumPlotBins; uBin++){
+        BlData_Up[uBin] = 0;
+        BlMc_Up[uBin] = 0;
+        Data_Up[uBin] = 0;
+
+        BlData_Down[uBin] = 1000;
+        BlMc_Down[uBin] = 1000;
+        Data_Down[uBin] = 1000;
+    }
+
+    TH1D* h_MC_Common;
+    TH1D* h_MC_NonCommon;
+    TH1D* h_MC;
+    TH1D* h_MC_TEMPLATE;
+    TH1D* h_Data;
+
+    //double WC_MC_mean;// = 0.166;
+    //double WC_MC_err;
+    //double WN_MC_mean;// = 0.834;
+    //double WN_MC_err;
+    //double WC_MC;
+    //double WN_MC;
+    //const double WC_Data = 0.069;
+    //const double WN_Data = 0.931;
+    //double WC_Data_mean;// = 0.166;
+    //double WC_Data_err;
+    //double WN_Data_mean;// = 0.834;
+    //double WN_Data_err;
+    //double WC_Data;
+    //double WN_Data;
+    double ddummy;
+    TFile* fInputFile;
+    TH1D* InputHisto;
+
+    TRandom3 rangen(14);
+
+    TFile* OutputFile = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/OtherTasks/Fit_pL_CommonAncestorTemplate_CrazyGauss/OutputFile.root","recreate");
+    double FitMin;
+    double FitMax;
+
+    TString DataSample = "pp13TeV_HM_Dec19";
+    DLM_CommonAnaFunctions AnalysisObject;
+    const double ResidualSourceSize = 1.4;
+
+    DLM_Ck* Ck_pSigma0 = new DLM_Ck(1,0,24,0,384,Lednicky_gauss_Sigma0);
+    Ck_pSigma0->SetSourcePar(0,ResidualSourceSize);
+
+    TH2F* hResolution_pL = AnalysisObject.GetResolutionMatrix(DataSample,"pLambda");
+    TH2F* hResidual_pL_pSigma0 = AnalysisObject.GetResidualMatrix("pLambda","pSigma0");
+    TH2F* hResidual_pL_pXim = AnalysisObject.GetResidualMatrix("pLambda","pXim");
+
+    TH1F* hData_pL = AnalysisObject.GetAliceExpCorrFun(DataSample,"pLambda","_0",1,false,-1);
+
+    double lam_pL[5];
+    double lam_pXim[5];
+
+    AnalysisObject.SetUpLambdaPars_pL(DataSample,0,0,lam_pL);
+    AnalysisObject.SetUpLambdaPars_pXim(DataSample,0,0,lam_pXim);
+
+    TString SourceDescription = "Gauss";
+    //TString SourceDescription = "McGauss_ResoTM";
+    //TString SourceDescription = "McLevy_ResoTM";
+
+    CATS AB_pL;
+    DLM_Ck* Ck_pL;
+    AB_pL.SetMomBins(22,0,352);
+    AnalysisObject.SetUpCats_pL(AB_pL,"NLO_Coupled_SPD",SourceDescription,0,202);//NLO_Coupled_S
+
+    const double CUSP_WEIGHT = 0.33;//0.54
+    AB_pL.SetChannelWeight(7,1./4.*CUSP_WEIGHT);//1S0 SN(s) -> LN(s)
+    AB_pL.SetChannelWeight(8,3./4.*CUSP_WEIGHT);//3S1 SN(s) -> LN(s)
+    AB_pL.SetChannelWeight(10,3./4.*CUSP_WEIGHT);//3S1 SN(d) -> LN(s)
+    AB_pL.SetChannelWeight(13,3./20.*CUSP_WEIGHT);//3D1 SN(d) -> LN(d)
+    AB_pL.SetChannelWeight(15,3./20.*CUSP_WEIGHT);//3D1 SN(s) -> LN(d)
+    double InitialRadius;
+    double InitialAlpha = 2.0;
+    AB_pL.SetAnaSource(0,1.4);
+    if(SourceDescription.Contains("Mc")){
+        AB_pL.SetAnaSource(0,1.10);//c.a. 10% smaller compared to p-p due to the mT scaling
+        AB_pL.SetAnaSource(1,2.0);
+    }
+    InitialRadius = AB_pL.GetAnaSourcePar(0);
+    //AB_pL.SetNotifications(CATS::nWarning);
+AB_pL.SetNotifications(CATS::nError);
+    AB_pL.KillTheCat();
+    Ck_pL = new DLM_Ck(AB_pL.GetNumSourcePars(),0,AB_pL,24,0,384);
+    Ck_pL->SetSourcePar(0,AB_pL.GetAnaSourcePar(0));
+    if(SourceDescription.Contains("Mc")){
+        Ck_pL->SetSourcePar(0,AB_pL.GetAnaSourcePar(0));
+        Ck_pL->SetSourcePar(1,AB_pL.GetAnaSourcePar(1));
+    }
+    Ck_pL->SetCutOff(350,500);
+
+    CATS AB_pXim;
+    //same binning as pL, as we only use pXim as feed-down
+    AB_pXim.SetMomBins(24,0,384);
+    AnalysisObject.SetUpCats_pXim(AB_pXim,"pXim_HALQCD1","Gauss");
+    AB_pXim.SetAnaSource(0,ResidualSourceSize);
+    AB_pXim.SetNotifications(CATS::nWarning);
+    AB_pXim.KillTheCat();
+    DLM_Ck* Ck_pXim = new DLM_Ck(AB_pXim.GetNumSourcePars(),0,AB_pXim);
+    Ck_pL->Update();
+    Ck_pSigma0->Update();
+    Ck_pXim->Update();
+
+    DLM_CkDecomposition CkDec_pL("pLambda",4,*Ck_pL,hResolution_pL);
+    DLM_CkDecomposition CkDec_pSigma0("pSigma0",0,*Ck_pSigma0,NULL);
+    DLM_CkDecomposition CkDec_pXim("pXim",2,*Ck_pXim,NULL);
+
+    //CkDec_pL.AddContribution(0,lam_pL[1],DLM_CkDecomposition::cFeedDown,&CkDec_pSigma0,hResidual_pL_pSigma0);
+    //CkDec_pL.AddContribution(1,lam_pL[2],DLM_CkDecomposition::cFeedDown,&CkDec_pXim,hResidual_pL_pXim);
+    CkDec_pL.AddContribution(0,lam_pL[1],DLM_CkDecomposition::cFeedDown);
+    CkDec_pL.AddContribution(1,lam_pL[2],DLM_CkDecomposition::cFeedDown);
+    CkDec_pL.AddContribution(2,lam_pL[3],DLM_CkDecomposition::cFeedDown);
+    CkDec_pL.AddContribution(3,lam_pL[4],DLM_CkDecomposition::cFake);//0.03
+
+    //for Xim we simplify a bit and take ALL feed-down as flat
+    CkDec_pXim.AddContribution(0,lam_pXim[1]+lam_pXim[2]+lam_pXim[3],DLM_CkDecomposition::cFeedDown);
+    CkDec_pXim.AddContribution(1,lam_pXim[4],DLM_CkDecomposition::cFake);
+
+    CkDec_pL.Update();
+
+    MM_PL = &CkDec_pL;
+    MM_CatPL = &AB_pL;
+
+    TH1F* hRadius = new TH1F("hRadius","hRadius",1024,0.5,2.0);
+    TH1F* hAlpha = new TH1F("hAlpha","hAlpha",1024,0.95,2.05);
+    TH1F* hnSigma = new TH1F("hnSigma","hnSigma",1024,0,20.0);
+    TH1F* hWC = new TH1F("hWC","hWC",256,-1,1);
+
+    float kStarVal;
+    for(unsigned uSyst=0; uSyst<NumSystIter; uSyst++){
+        printf("\r\033[K uSyst=%u",uSyst);
+        cout << flush;
+
+        fInputFile = new TFile(fName_MC_Common,"read");
+        InputHisto = (TH1D*)fInputFile->Get(hName_MC_Common);
+        OutputFile->cd();
+        h_MC_Common = (TH1D*)InputHisto->Clone("h_MC_Common");
+        h_MC_Common->Rebin(REBIN);
+        h_MC_Common->Scale(1./double(REBIN));
+        if(uSyst==0) h_MC_Common->Write();
+        else{
+            float Value;
+            float Error;
+            float RanVal;
+            for(unsigned uBin=0; uBin<h_MC_Common->GetNbinsX(); uBin++){
+                Value = h_MC_Common->GetBinContent(uBin+1);
+                Error = h_MC_Common->GetBinError(uBin+1);
+                RanVal = rangen.Gaus(Value,Error);
+                h_MC_Common->SetBinContent(uBin+1,RanVal);
+                h_MC_Common->SetBinError(uBin+1,Error);
+            }
+        }
+        FitMin = 0;
+        FitMax = 2500;
+        TF1* fTemplate_MC_Common = new TF1("fTemplate_MC_Common","[0]*(1.+[1]*exp(-pow((x-[2])/[3],2.)))*(1.+[4]*exp(-pow((x-[5])/[6],2.)))*(1.+[7]*exp(-pow((x-[8])/[9],2.)))*(1.+[10]*x)",FitMin,FitMax);
+        fTemplate_MC_Common->SetParameter(0,0.96);
+        fTemplate_MC_Common->SetParameter(1,0.47);
+        fTemplate_MC_Common->SetParameter(2,200.);
+        fTemplate_MC_Common->SetParameter(3,500.);
+        fTemplate_MC_Common->FixParameter(4,0);
+        fTemplate_MC_Common->FixParameter(5,0.0);
+        fTemplate_MC_Common->FixParameter(6,946);
+        fTemplate_MC_Common->FixParameter(7,0);
+        fTemplate_MC_Common->FixParameter(8,600);
+        fTemplate_MC_Common->FixParameter(9,100);
+        fTemplate_MC_Common->SetParameter(10,-6e-5);
+        h_MC_Common->Fit(fTemplate_MC_Common,"Q, S, N, R, M");
+        delete fInputFile;
+
+        fInputFile = new TFile(fName_MC_NonCommon,"read");
+        InputHisto = (TH1D*)fInputFile->Get(hName_MC_NonCommon);
+        OutputFile->cd();
+        h_MC_NonCommon = (TH1D*)InputHisto->Clone("h_MC_NonCommon");
+        h_MC_NonCommon->Rebin(REBIN);
+        h_MC_NonCommon->Scale(1./double(REBIN));
+        if(uSyst==0) h_MC_NonCommon->Write();
+        else{
+            float Value;
+            float Error;
+            float RanVal;
+            for(unsigned uBin=0; uBin<h_MC_NonCommon->GetNbinsX(); uBin++){
+                Value = h_MC_NonCommon->GetBinContent(uBin+1);
+                Error = h_MC_NonCommon->GetBinError(uBin+1);
+                RanVal = rangen.Gaus(Value,Error);
+                h_MC_NonCommon->SetBinContent(uBin+1,RanVal);
+                h_MC_NonCommon->SetBinError(uBin+1,Error);
+            }
+        }
+        FitMin = 0;
+        FitMax = 2500;
+        TF1* fTemplate_MC_NonCommon = new TF1("fTemplate_MC_NonCommon","[0]*(1.+[1]*exp(-pow((x-[2])/[3],2.)))*(1.+[4]*exp(-pow((x-[5])/[6],2.)))*(1.+[7]*x)",FitMin,FitMax);
+        fTemplate_MC_NonCommon->SetParameter(0,0.9);
+        fTemplate_MC_NonCommon->SetParameter(1,-0.02);
+        fTemplate_MC_NonCommon->SetParameter(2,390);
+        fTemplate_MC_NonCommon->SetParameter(3,185);
+        fTemplate_MC_NonCommon->SetParameter(4,0.1);
+        fTemplate_MC_NonCommon->SetParameter(5,-168);
+        fTemplate_MC_NonCommon->SetParameter(6,216);
+        fTemplate_MC_NonCommon->SetParameter(7,0.0001);
+        h_MC_NonCommon->Fit(fTemplate_MC_NonCommon,"Q, S, N, R, M");
+        delete fInputFile;
+
+        fInputFile = new TFile(fName_MC,"read");
+        InputHisto = (TH1D*)fInputFile->Get(hName_MC);
+        OutputFile->cd();
+        h_MC = (TH1D*)InputHisto->Clone("h_MC");
+        h_MC->Rebin(REBIN);
+        h_MC->Scale(1./double(REBIN));
+        if(uSyst==0) h_MC->Write();
+        else{
+            float Value;
+            float Error;
+            float RanVal;
+            for(unsigned uBin=0; uBin<h_MC->GetNbinsX(); uBin++){
+                Value = h_MC->GetBinContent(uBin+1);
+                Error = h_MC->GetBinError(uBin+1);
+                RanVal = rangen.Gaus(Value,Error);
+                h_MC->SetBinContent(uBin+1,RanVal);
+                h_MC->SetBinError(uBin+1,Error);
+            }
+        }
+        FitMin = 0;
+        FitMax = 2500;
+        TF1* fTemplate_MC = new TF1("fTemplate_MC","[19]*([20]*[0]*(1.+[1]*exp(-pow((x-[2])/[3],2.)))*(1.+[4]*exp(-pow((x-[5])/[6],2.)))*(1.+[7]*exp(-pow((x-[8])/[9],2.)))*(1.+[10]*x)"
+                                    "+(1-[20])*[11]*(1.+[12]*exp(-pow((x-[13])/[14],2.)))*(1.+[15]*exp(-pow((x-[16])/[17],2.)))*(1.+[18]*x))",FitMin,FitMax);
+        for(unsigned uPar=0; uPar<=10; uPar++){
+            fTemplate_MC->FixParameter(uPar,fTemplate_MC_Common->GetParameter(uPar));
+        }
+        for(unsigned uPar=11; uPar<=18; uPar++){
+            fTemplate_MC->FixParameter(uPar,fTemplate_MC_NonCommon->GetParameter(uPar-11));
+        }
+        fTemplate_MC->SetParameter(19,1);
+        fTemplate_MC->SetParameter(20,0.1);
+        h_MC->Fit(fTemplate_MC,"Q, S, N, R, M");
+        delete fInputFile;
+
+        OutputFile->cd();
+        h_MC_TEMPLATE = (TH1D*)h_MC_Common->Clone("h_MC_TEMPLATE");
+        h_MC_TEMPLATE->Scale(fTemplate_MC->GetParameter(20));
+        h_MC_TEMPLATE->Add(h_MC_NonCommon,1.-fTemplate_MC->GetParameter(20));
+        h_MC_TEMPLATE->Scale(fTemplate_MC->GetParameter(19));
+
+        for(unsigned uBin=0; uBin<NumPlotBins; uBin++){
+            kStarVal = PlotMin+float(uBin)*PlotBinWidth+PlotBinWidth*0.5;
+            if(BlMc_Up[uBin]<fTemplate_MC->Eval(kStarVal)) BlMc_Up[uBin]=fTemplate_MC->Eval(kStarVal);
+            if(BlMc_Down[uBin]>fTemplate_MC->Eval(kStarVal)) BlMc_Down[uBin]=fTemplate_MC->Eval(kStarVal);
+        }
+
+        fInputFile = new TFile(fName_Data,"read");
+        InputHisto = (TH1D*)fInputFile->Get(hName_Data);
+        OutputFile->cd();
+        h_Data = (TH1D*)InputHisto->Clone("h_Data");
+        h_Data->Rebin(REBIN);
+        h_Data->Scale(1./double(REBIN));
+        if(uSyst==0) h_Data->Write();
+        delete fInputFile;
+
+        FitMin = 0;
+        FitMax = 340;
+        OutputFile->cd();
+        TF1* fTemplate_Data = new TF1("fTemplate_Data",dimi_MC_CrazyGauss_fitter_pL,FitMin,FitMax,23);
+        for(unsigned uPar=0; uPar<=10; uPar++){
+            fTemplate_Data->FixParameter(uPar,fTemplate_MC_Common->GetParameter(uPar));
+        }
+        for(unsigned uPar=11; uPar<=18; uPar++){
+            fTemplate_Data->FixParameter(uPar,fTemplate_MC_NonCommon->GetParameter(uPar-11));
+        }
+        fTemplate_Data->SetParameter(10,fTemplate_Data->GetParameter(10));
+        fTemplate_Data->SetParameter(18,fTemplate_Data->GetParameter(18));
+
+        fTemplate_Data->SetParameter(19,1);
+        fTemplate_Data->SetParameter(20,0.1);
+        fTemplate_Data->SetParLimits(20,0.0,0.2);
+        fTemplate_Data->SetParameter(21,InitialRadius);
+        fTemplate_Data->SetParLimits(21,InitialRadius*0.8,InitialRadius*1.2);
+        if(AB_pL.GetNumSourcePars()>1){
+            fTemplate_Data->SetParameter(22,InitialAlpha);
+            fTemplate_Data->SetParLimits(22,1,2);
+        }
+        else fTemplate_Data->FixParameter(22,2.0);
+
+    //fTemplate_Data->FixParameter(9,1.08);
+    //fTemplate_Data->FixParameter(9,1.18);
+    fTemplate_Data->FixParameter(22,2.0);
+
+        h_Data->Fit(fTemplate_Data,"Q, S, N, R, M");
+
+        for(unsigned uBin=0; uBin<NumPlotBins; uBin++){
+            kStarVal = PlotMin+float(uBin)*PlotBinWidth+PlotBinWidth*0.5;
+            if(Data_Up[uBin]<fTemplate_Data->Eval(kStarVal)) Data_Up[uBin]=fTemplate_Data->Eval(kStarVal);
+            if(Data_Down[uBin]>fTemplate_Data->Eval(kStarVal)) Data_Down[uBin]=fTemplate_Data->Eval(kStarVal);
+        }
+
+        TF1* fTemplate_Data_BL = new TF1("fTemplate_Data_BL","[19]*([20]*[0]*(1.+[1]*exp(-pow((x-[2])/[3],2.)))*(1.+[4]*exp(-pow((x-[5])/[6],2.)))*(1.+[7]*exp(-pow((x-[8])/[9],2.)))*(1.+[10]*x)"
+                                    "+(1-[20])*[11]*(1.+[12]*exp(-pow((x-[13])/[14],2.)))*(1.+[15]*exp(-pow((x-[16])/[17],2.)))*(1.+[18]*x))",FitMin,FitMax);
+        for(unsigned uPar=0; uPar<=20; uPar++){
+            fTemplate_Data_BL->SetParameter(uPar,fTemplate_Data->GetParameter(uPar));
+        }
+
+        for(unsigned uBin=0; uBin<NumPlotBins; uBin++){
+            kStarVal = PlotMin+float(uBin)*PlotBinWidth+PlotBinWidth*0.5;
+            if(BlData_Up[uBin]<fTemplate_Data_BL->Eval(kStarVal)) BlData_Up[uBin]=fTemplate_Data_BL->Eval(kStarVal);
+            if(BlData_Down[uBin]>fTemplate_Data_BL->Eval(kStarVal)) BlData_Down[uBin]=fTemplate_Data_BL->Eval(kStarVal);
+        }
+
+        TH1F* hfit_Ratio = new TH1F("hfit_Ratio","hfit_Ratio",
+                h_Data->GetNbinsX(),h_Data->GetBinLowEdge(1),h_Data->GetXaxis()->GetBinUpEdge(h_Data->GetNbinsX()));
+        TGraph fit_nsigma;
+        fit_nsigma.SetName("fit_nsigma");
+
+        int NumPts=0;
+        double Avg_nsigma = 0;//should be around 0
+        for(unsigned uBin=0; uBin<h_Data->GetNbinsX(); uBin++){
+            double MOM = h_Data->GetBinCenter(uBin+1);
+            if(MOM<FitMin || MOM>FitMax) continue;
+            double CkData = h_Data->GetBinContent(uBin+1);
+            double CkErr = h_Data->GetBinError(uBin+1);
+            double CkFit = fTemplate_Data->Eval(MOM);
+            double nsigma = (CkData-CkFit)/CkErr;
+            fit_nsigma.SetPoint(NumPts,MOM,nsigma);
+            Avg_nsigma += nsigma;
+
+            hfit_Ratio->SetBinContent(uBin+1,CkData/CkFit);
+            hfit_Ratio->SetBinError(uBin+1,CkErr/CkFit);
+
+            NumPts++;
+        }
+        Avg_nsigma /= double(NumPts);
+        //printf("Avg_nsigma = %.3f\n",Avg_nsigma);
+
+        TGraphErrors fit_sourcepars;
+        fit_sourcepars.SetName("fit_sourcepars");
+        fit_sourcepars.SetPoint(0,fTemplate_Data->GetParameter(21),fTemplate_Data->GetParameter(22));
+        fit_sourcepars.SetPointError(0,fTemplate_Data->GetParError(21),fTemplate_Data->GetParError(22));
+
+        if(uSyst==0){
+            OutputFile->cd();
+            fTemplate_MC_Common->Write();
+            fTemplate_MC_NonCommon->Write();
+            fTemplate_MC->Write();
+            h_MC_TEMPLATE->Write();
+            fTemplate_Data->Write();
+            fTemplate_Data_BL->Write();
+            hfit_Ratio->Write();
+            fit_nsigma.Write();
+            fit_sourcepars.Write();
+        }
+
+        hRadius->Fill(fTemplate_Data->GetParameter(21));
+        hAlpha->Fill(fTemplate_Data->GetParameter(22));
+        hnSigma->Fill(sqrt(2)*TMath::ErfcInverse(fTemplate_Data->GetProb()));
+        hWC->Fill(fTemplate_Data->GetParameter(20));
+
+        //printf("nsigma = %.2f\n",sqrt(2)*TMath::ErfcInverse(fTemplate_Data->GetProb()));
+
+        ///DELETES
+        delete h_MC_Common;
+        delete h_MC_NonCommon;
+        delete h_MC;
+        delete h_MC_TEMPLATE;
+        delete h_Data;
+        delete hfit_Ratio;
+        delete fTemplate_MC_Common;
+        delete fTemplate_MC_NonCommon;
+        delete fTemplate_MC;
+        delete fTemplate_Data;
+        delete fTemplate_Data_BL;
+    }
+    cout << endl;
+
+    TGraphErrors graph_DataFit;
+    graph_DataFit.SetName("graph_DataFit");
+    TGraphErrors graph_DataBl;
+    graph_DataBl.SetName("graph_DataBl");
+    TGraphErrors graph_McBl;
+    graph_McBl.SetName("graph_McBl");
+    for(unsigned uBin=0; uBin<NumPlotBins; uBin++){
+        graph_DataFit.SetPoint(uBin,PlotMin+float(uBin)*PlotBinWidth+PlotBinWidth*0.5,(Data_Up[uBin]+Data_Down[uBin])*0.5);
+        graph_DataFit.SetPointError(uBin,0,(Data_Up[uBin]-Data_Down[uBin])*0.5);
+
+        graph_DataBl.SetPoint(uBin,PlotMin+float(uBin)*PlotBinWidth+PlotBinWidth*0.5,(BlData_Up[uBin]+BlData_Down[uBin])*0.5);
+        graph_DataBl.SetPointError(uBin,0,(BlData_Up[uBin]-BlData_Down[uBin])*0.5);
+
+        graph_McBl.SetPoint(uBin,PlotMin+float(uBin)*PlotBinWidth+PlotBinWidth*0.5,(BlMc_Up[uBin]+BlMc_Down[uBin])*0.5);
+        graph_McBl.SetPointError(uBin,0,(BlMc_Up[uBin]-BlMc_Down[uBin])*0.5);
+    }
+
+    hRadius->Write();
+    hAlpha->Write();
+    hnSigma->Write();
+    hWC->Write();
+    graph_DataFit.Write();
+    graph_DataBl.Write();
+    graph_McBl.Write();
+
+printf("END pL ------------------------------------\n");
+    delete hRadius;
+    delete hAlpha;
+    delete hnSigma;
+    delete hWC;
+    delete OutputFile;
+    delete [] BlMc_Down;
+    delete [] BlMc_Up;
+    delete [] BlData_Down;
+    delete [] BlData_Up;
+    delete [] Data_Down;
+    delete [] Data_Up;
+}
+
+
+void Fit_pp_CommonAncestorTemplate_dPhi(const bool useMC){
+
+    const unsigned NumSystIter = 256;
+    TH1F* hWeight_Common = new TH1F("hWeight_Common","hWeight_Common",4096,0,0.5);
+    TGraphErrors gWC_Def;//with stat uncertainty
+    gWC_Def.SetName("gWC_Def");
+    gWC_Def.SetMarkerStyle(20);
+    gWC_Def.SetMarkerSize(1);
+    TGraphErrors gWC_Syst;
+    gWC_Syst.SetName("gWC_Syst");
+    gWC_Syst.SetMarkerStyle(20);
+    gWC_Syst.SetMarkerSize(1);
+    TGraphErrors gWC_TotErr;
+    gWC_TotErr.SetName("gWC_TotErr");
+    gWC_TotErr.SetMarkerStyle(20);
+    gWC_TotErr.SetMarkerSize(1);
 
     TString fName_MC_Common = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/pLambda_Rush/Ancestors/dEtadPhiAncestors.root";
     TString fName_MC_NonCommon = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/pLambda_Rush/Ancestors/dEtadPhiAncestors.root";
-    //TString fName_Data = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/pLambda_Rush/dEtadPhi_Data/Data/dEtadPhi.root";
-    TString fName_Data = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/pLambda_Rush/dEtadPhi_Data/MC/dEtadPhi.root";
+    TString fName_Data;
+    if(useMC) fName_Data = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/pLambda_Rush/dEtadPhi_Data/MC/dEtadPhi.root";
+    else fName_Data = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/pLambda_Rush/dEtadPhi_Data/Data/dEtadPhi.root";
     TString l1Name_MC_Common = "ProtonProton";
     TString l1Name_MC_NonCommon = "ProtonProton";
     TString l1Name_Data = "ProtonProton";
@@ -4273,119 +5112,233 @@ void Fit_pp_CommonAncestorTemplate_dPhi(){
     TList* List2;
     TH1D* InputHisto;
 
-    TFile* OutputFile = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/OtherTasks/Fit_pL_CommonAncestorTemplate_Ck/OutputFile.root","recreate");
-    double FitMin;
+    TFile* OutputFile = new TFile(
+    TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/OtherTasks/Fit_pp_CommonAncestorTemplate_dPhi/OutputFile_pp_%s.root",
+                    useMC?"MC":"Data"),"recreate");    double FitMin;
     double FitMax;
+    double StatErr;
 
-    fInputFile = new TFile(fName_MC_Common,"read");
-    List1 = (TList*)fInputFile->Get(l1Name_MC_Common);
-    List2 = (TList*)List1->FindObject(l2Name_MC_Common);
-    InputHisto = (TH1D*)List2->FindObject(hName_MC_Common);
-    FitMin = -1.8;
-    FitMax = 4.3;
+    TRandom3 rangen(11);
+
+    for(unsigned uSyst=0; uSyst<NumSystIter; uSyst++){
+        printf("\r\033[K uSyst=%u",uSyst);
+        cout << flush;
+        fInputFile = new TFile(fName_MC_Common,"read");
+        List1 = (TList*)fInputFile->Get(l1Name_MC_Common);
+        List2 = (TList*)List1->FindObject(l2Name_MC_Common);
+        InputHisto = (TH1D*)List2->FindObject(hName_MC_Common);
+        FitMin = -1.8;
+        FitMax = 4.3;//4.3
+        OutputFile->cd();
+        if(uSyst==0) InputHisto->Write();
+        else{
+            float Value;
+            float Error;
+            float RanVal;
+            for(unsigned uBin=0; uBin<InputHisto->GetNbinsX(); uBin++){
+                Value = InputHisto->GetBinContent(uBin+1);
+                Error = InputHisto->GetBinError(uBin+1);
+                RanVal = rangen.Gaus(Value,Error);
+                InputHisto->SetBinContent(uBin+1,RanVal);
+                InputHisto->SetBinError(uBin+1,Error);
+            }
+        }
+        //TF1* fTemplate_MC_Common = new TF1("fTemplate_MC_Common","[0]*(1.+[1]*sin([2]*x+[3])+[4]*exp(-pow((x-[5])/[6],2.)))",FitMin,FitMax);
+        //TF1* fTemplate_MC_Common = new TF1("fTemplate_MC_Common",
+        //"[0]*(1.+[1]*exp(-pow((x-[2])/[3],2.)))*(1.+[4]*x+[5]*x*x+[6]*pow(x,3.)+[7]*pow(x,4.)+[8]*pow(x,5.)+[9]*pow(x,6.)+[10]*pow(x,7.))",
+        //FitMin,FitMax);
+        /*
+        fTemplate_MC_Common->SetParameter(0,1);
+        fTemplate_MC_Common->SetParLimits(0,0.5,1.5);
+        fTemplate_MC_Common->SetParameter(1,0.1);
+        fTemplate_MC_Common->SetParLimits(1,0.033,0.3);
+        fTemplate_MC_Common->SetParameter(2,1);
+        fTemplate_MC_Common->SetParLimits(2,0.33,3);
+        fTemplate_MC_Common->SetParameter(3,-1.4);
+        fTemplate_MC_Common->SetParLimits(3,-3,3);
+        fTemplate_MC_Common->SetParameter(4,1);
+        fTemplate_MC_Common->SetParLimits(4,0.33,3);
+        fTemplate_MC_Common->FixParameter(5,0);
+        fTemplate_MC_Common->SetParameter(6,0.4);
+        fTemplate_MC_Common->SetParLimits(6,0.1,1.6);
+        */
+        //fTemplate_MC_Common->SetParameter(0,1);
+        //fTemplate_MC_Common->SetParameter(1,1);
+        //fTemplate_MC_Common->FixParameter(2,0);
+        //fTemplate_MC_Common->SetParameter(3,1);
+
+
+        TF1* fTemplate_MC_Common = new TF1("fTemplate_MC_Common","[0]+[1]*exp(-pow((fabs(x)-[2])/[3],2.))+[4]*exp(-pow((fabs(x)-[5])/[6],2.))",FitMin,FitMax);
+        //TF1* fTemplate_MC_Common = new TF1("fTemplate_MC_Common","[0]+[0]*[1]*exp(-pow((x-[2])/[3],2.))+[0]*[4]*exp(-pow((x-[5])/[6],2.))",FitMin,FitMax);
+        //TF1* fTemplate_MC_Common = new TF1("fTemplate_MC_Common","[0]*(1+[1]*exp(-pow((x-[2])/[3],2.)))*(1+[4]*exp(-pow((x-[5])/[6],2.)))",FitMin,FitMax);
+        //TF1* fTemplate_MC_Common = new TF1("fTemplate_MC_Common","[0]*([7]+[1]*exp(-pow((x-[2])/[3],2.))+[4]*exp(-pow((x-[5])/[6],2.)))",FitMin,FitMax);
+        fTemplate_MC_Common->SetParameter(0,1);
+        fTemplate_MC_Common->SetParameter(1,1);
+        fTemplate_MC_Common->FixParameter(2,0);
+        fTemplate_MC_Common->SetParameter(3,1);
+        fTemplate_MC_Common->SetParameter(4,-0.1);
+        fTemplate_MC_Common->FixParameter(5,TMath::Pi());
+        fTemplate_MC_Common->SetParameter(6,1);
+
+
+        //fTemplate_MC_Common->SetParameter(7,1);
+
+        InputHisto->Fit(fTemplate_MC_Common,"Q, S, N, R, M");
+        delete fInputFile;
+
+        fInputFile = new TFile(fName_MC_NonCommon,"read");
+        List1 = (TList*)fInputFile->Get(l1Name_MC_NonCommon);
+        List2 = (TList*)List1->FindObject(l2Name_MC_NonCommon);
+        InputHisto = (TH1D*)List2->FindObject(hName_MC_NonCommon);
+        //FitMin = InputHisto->GetBinLowEdge(1);
+        //FitMax = InputHisto->GetBinLowEdge(InputHisto->GetNbinsX());
+        FitMin = -1.8;
+        FitMax = 4.3;
+        OutputFile->cd();
+        if(uSyst==0) InputHisto->Write();
+        else{
+            float Value;
+            float Error;
+            float RanVal;
+            for(unsigned uBin=0; uBin<InputHisto->GetNbinsX(); uBin++){
+                Value = InputHisto->GetBinContent(uBin+1);
+                Error = InputHisto->GetBinError(uBin+1);
+                RanVal = rangen.Gaus(Value,Error);
+                InputHisto->SetBinContent(uBin+1,RanVal);
+                InputHisto->SetBinError(uBin+1,Error);
+            }
+        }
+        //TF1* fTemplate_MC_NonCommon = new TF1("fTemplate_MC_NonCommon","[0]*(1.+[1]*sin([2]*x+[3]))",FitMin,FitMax);
+        //TF1* fTemplate_MC_NonCommon = new TF1("fTemplate_MC_NonCommon","[0]*(1.+[1]*sin([2]*x+[3]))*(1.+[4]*x+[5]*x*x+[6]*pow(x,3.))",FitMin,FitMax);
+        /*
+        fTemplate_MC_NonCommon->SetParameter(0,1);
+        fTemplate_MC_NonCommon->SetParLimits(0,0.5,1.5);
+        fTemplate_MC_NonCommon->SetParameter(1,0.1);
+        fTemplate_MC_NonCommon->SetParLimits(1,0.033,0.3);
+        fTemplate_MC_NonCommon->SetParameter(2,1);
+        fTemplate_MC_NonCommon->SetParLimits(2,0.33,3);
+        fTemplate_MC_NonCommon->SetParameter(3,-1.4);
+        fTemplate_MC_NonCommon->SetParLimits(3,-3,3);
+        */
+        //fTemplate_MC_NonCommon->SetParameter(0,1);
+        //fTemplate_MC_NonCommon->SetParameter(1,0.1);
+        //fTemplate_MC_NonCommon->FixParameter(2,1);
+        //fTemplate_MC_NonCommon->SetParameter(3,-1.4);
+
+
+        TF1* fTemplate_MC_NonCommon = new TF1("fTemplate_MC_NonCommon","[0]+[1]*exp(-pow((fabs(x)-[2])/[3],2.))+[4]*exp(-pow((fabs(x)-[5])/[6],2.))",FitMin,FitMax);
+        fTemplate_MC_NonCommon->SetParameter(0,1);
+        fTemplate_MC_NonCommon->SetParameter(1,-0.1);
+        fTemplate_MC_NonCommon->FixParameter(2,0);
+        fTemplate_MC_NonCommon->SetParameter(3,1);
+        fTemplate_MC_NonCommon->SetParameter(4,0.1);
+        fTemplate_MC_NonCommon->FixParameter(5,TMath::Pi());
+        fTemplate_MC_NonCommon->SetParameter(6,1);
+
+        InputHisto->Fit(fTemplate_MC_NonCommon,"Q, S, N, R, M");
+        delete fInputFile;
+
+
+        fInputFile = new TFile(fName_Data,"read");
+        List1 = (TList*)fInputFile->Get(l1Name_Data);
+        List2 = (TList*)List1->FindObject(l2Name_Data);
+        InputHisto = (TH1D*)List2->FindObject(hName_Data);
+        FitMin = -1.8;
+        FitMax = 4.3;
+        OutputFile->cd();
+        if(uSyst==0) InputHisto->Write();
+        else{
+            float Value;
+            float Error;
+            float RanVal;
+            for(unsigned uBin=0; uBin<InputHisto->GetNbinsX(); uBin++){
+                Value = InputHisto->GetBinContent(uBin+1);
+                Error = InputHisto->GetBinError(uBin+1);
+                RanVal = rangen.Gaus(Value,Error);
+                InputHisto->SetBinContent(uBin+1,RanVal);
+                InputHisto->SetBinError(uBin+1,Error);
+            }
+        }
+        //TF1* fTemplate_Data = new TF1("fTemplate_Data","[0]*(1.+[1]*sin([2]*x+[3])+[4]*exp(-pow((x-[5])/[6],2.)))+[7]*(1.+[8]*sin([9]*x+[10]))",
+        //                              FitMin,FitMax);
+        //TF1* fTemplate_Data = new TF1("fTemplate_Data",
+    //"[18]*[0]*(1.+[1]*exp(-pow((x-[2])/[3],2.)))*(1.+[4]*x+[5]*x*x+[6]*pow(x,3.)+[7]*pow(x,4.)+[8]*pow(x,5.)+[9]*pow(x,6.)+[10]*pow(x,7.))+[19]*[11]*(1.+[12]*sin([13]*x+[14]))*(1.+[15]*x+[16]*x*x+[17]*pow(x,3.))",
+    //                                  FitMin,FitMax);
+        ////fTemplate_Data->SetParameter(0,0.1*fTemplate_MC_Common->GetParameter(0));
+        //for(unsigned uPar=0; uPar<=10; uPar++) fTemplate_Data->FixParameter(uPar,fTemplate_MC_Common->GetParameter(uPar));
+
+        ////fTemplate_Data->SetParameter(11,0.9*fTemplate_MC_NonCommon->GetParameter(0));
+        //for(unsigned uPar=0; uPar<=6; uPar++) fTemplate_Data->FixParameter(uPar+11,fTemplate_MC_NonCommon->GetParameter(uPar));
+        //fTemplate_Data->SetParameter(18,0.2);
+        //fTemplate_Data->SetParameter(19,0.8);
+
+        TF1* fTemplate_Data = new TF1("fTemplate_Data","[15]*([14]*([0]+[1]*exp(-pow((fabs(x)-[2])/[3],2.))+[4]*exp(-pow((fabs(x)-[5])/[6],2.)))+"
+                                      "(1.-[14])*([7]+[8]*exp(-pow((fabs(x)-[9])/[10],2.))+[11]*exp(-pow((fabs(x)-[12])/[13],2.))))",FitMin,FitMax);
+        for(unsigned uPar=0; uPar<=6; uPar++) fTemplate_Data->FixParameter(uPar,fTemplate_MC_Common->GetParameter(uPar));
+        for(unsigned uPar=7; uPar<=13; uPar++) fTemplate_Data->FixParameter(uPar,fTemplate_MC_NonCommon->GetParameter(uPar-7));
+        fTemplate_Data->SetParameter(14,0.1);
+        fTemplate_Data->SetParameter(15,1);
+
+        InputHisto->Fit(fTemplate_Data,"Q, S, N, R, M");
+
+        delete fInputFile;
+
+        OutputFile->cd();
+        if(uSyst==0){
+            fTemplate_MC_Common->Write();
+            fTemplate_MC_NonCommon->Write();
+            fTemplate_Data->Write();
+            gWC_Def.SetPoint(0,0.9,fTemplate_Data->GetParameter(14));
+            gWC_Def.SetPointError(0,0,fTemplate_Data->GetParError(14));
+            StatErr = fTemplate_Data->GetParError(14);
+        }
+
+        hWeight_Common->Fill(fTemplate_Data->GetParameter(14));
+
+        delete fTemplate_MC_Common;
+        delete fTemplate_MC_NonCommon;
+        delete fTemplate_Data;
+    }
+    cout << endl;
+    gWC_Syst.SetPoint(0,1.1,hWeight_Common->GetMean());
+    gWC_Syst.SetPointError(0,0,hWeight_Common->GetStdDev());
+
+    gWC_TotErr.SetPoint(0,1.2,sqrt(StatErr*StatErr+hWeight_Common->GetMean()*hWeight_Common->GetMean()));
+    gWC_TotErr.SetPointError(0,0,sqrt(StatErr*StatErr+hWeight_Common->GetStdDev()*hWeight_Common->GetStdDev()));
+
     OutputFile->cd();
-    InputHisto->Write();
-    //TF1* fTemplate_MC_Common = new TF1("fTemplate_MC_Common","[0]*(1.+[1]*sin([2]*x+[3])+[4]*exp(-pow((x-[5])/[6],2.)))",FitMin,FitMax);
-    TF1* fTemplate_MC_Common = new TF1("fTemplate_MC_Common",
-    "[0]*(1.+[1]*exp(-pow((x-[2])/[3],2.)))*(1.+[4]*x+[5]*x*x+[6]*pow(x,3.)+[7]*pow(x,4.)+[8]*pow(x,5.)+[9]*pow(x,6.)+[10]*pow(x,7.))",
-    FitMin,FitMax);
-    /*
-    fTemplate_MC_Common->SetParameter(0,1);
-    fTemplate_MC_Common->SetParLimits(0,0.5,1.5);
-    fTemplate_MC_Common->SetParameter(1,0.1);
-    fTemplate_MC_Common->SetParLimits(1,0.033,0.3);
-    fTemplate_MC_Common->SetParameter(2,1);
-    fTemplate_MC_Common->SetParLimits(2,0.33,3);
-    fTemplate_MC_Common->SetParameter(3,-1.4);
-    fTemplate_MC_Common->SetParLimits(3,-3,3);
-    fTemplate_MC_Common->SetParameter(4,1);
-    fTemplate_MC_Common->SetParLimits(4,0.33,3);
-    fTemplate_MC_Common->FixParameter(5,0);
-    fTemplate_MC_Common->SetParameter(6,0.4);
-    fTemplate_MC_Common->SetParLimits(6,0.1,1.6);
-    */
-    fTemplate_MC_Common->SetParameter(0,1);
-    fTemplate_MC_Common->SetParameter(1,1);
-    fTemplate_MC_Common->FixParameter(2,0);
-    fTemplate_MC_Common->SetParameter(3,1);
+    hWeight_Common->Write();
+    gWC_Def.Write();
+    gWC_Syst.Write();
+    gWC_TotErr.Write();
 
-    InputHisto->Fit(fTemplate_MC_Common,"S, N, R, M");
-    delete fInputFile;
-
-    fInputFile = new TFile(fName_MC_NonCommon,"read");
-    List1 = (TList*)fInputFile->Get(l1Name_MC_NonCommon);
-    List2 = (TList*)List1->FindObject(l2Name_MC_NonCommon);
-    InputHisto = (TH1D*)List2->FindObject(hName_MC_NonCommon);
-    //FitMin = InputHisto->GetBinLowEdge(1);
-    //FitMax = InputHisto->GetBinLowEdge(InputHisto->GetNbinsX());
-    FitMin = -1.8;
-    FitMax = 4.3;
-    OutputFile->cd();
-    InputHisto->Write();
-    //TF1* fTemplate_MC_NonCommon = new TF1("fTemplate_MC_NonCommon","[0]*(1.+[1]*sin([2]*x+[3]))",FitMin,FitMax);
-    TF1* fTemplate_MC_NonCommon = new TF1("fTemplate_MC_NonCommon","[0]*(1.+[1]*sin([2]*x+[3]))*(1.+[4]*x+[5]*x*x+[6]*pow(x,3.))",FitMin,FitMax);
-    /*
-    fTemplate_MC_NonCommon->SetParameter(0,1);
-    fTemplate_MC_NonCommon->SetParLimits(0,0.5,1.5);
-    fTemplate_MC_NonCommon->SetParameter(1,0.1);
-    fTemplate_MC_NonCommon->SetParLimits(1,0.033,0.3);
-    fTemplate_MC_NonCommon->SetParameter(2,1);
-    fTemplate_MC_NonCommon->SetParLimits(2,0.33,3);
-    fTemplate_MC_NonCommon->SetParameter(3,-1.4);
-    fTemplate_MC_NonCommon->SetParLimits(3,-3,3);
-    */
-    fTemplate_MC_NonCommon->SetParameter(0,1);
-    fTemplate_MC_NonCommon->SetParameter(1,0.1);
-    fTemplate_MC_NonCommon->FixParameter(2,1);
-    fTemplate_MC_NonCommon->SetParameter(3,-1.4);
-
-    InputHisto->Fit(fTemplate_MC_NonCommon,"S, N, R, M");
-    delete fInputFile;
-
-
-    fInputFile = new TFile(fName_Data,"read");
-    List1 = (TList*)fInputFile->Get(l1Name_Data);
-    List2 = (TList*)List1->FindObject(l2Name_Data);
-    InputHisto = (TH1D*)List2->FindObject(hName_Data);
-    FitMin = -1.8;
-    FitMax = 4.3;
-    OutputFile->cd();
-    InputHisto->Write();
-    //TF1* fTemplate_Data = new TF1("fTemplate_Data","[0]*(1.+[1]*sin([2]*x+[3])+[4]*exp(-pow((x-[5])/[6],2.)))+[7]*(1.+[8]*sin([9]*x+[10]))",
-    //                              FitMin,FitMax);
-    TF1* fTemplate_Data = new TF1("fTemplate_Data",
-"[18]*[0]*(1.+[1]*exp(-pow((x-[2])/[3],2.)))*(1.+[4]*x+[5]*x*x+[6]*pow(x,3.)+[7]*pow(x,4.)+[8]*pow(x,5.)+[9]*pow(x,6.)+[10]*pow(x,7.))+[19]*[11]*(1.+[12]*sin([13]*x+[14]))*(1.+[15]*x+[16]*x*x+[17]*pow(x,3.))",
-                                  FitMin,FitMax);
-    //fTemplate_Data->SetParameter(0,0.1*fTemplate_MC_Common->GetParameter(0));
-    for(unsigned uPar=0; uPar<=10; uPar++) fTemplate_Data->FixParameter(uPar,fTemplate_MC_Common->GetParameter(uPar));
-
-    //fTemplate_Data->SetParameter(11,0.9*fTemplate_MC_NonCommon->GetParameter(0));
-    for(unsigned uPar=0; uPar<=6; uPar++) fTemplate_Data->FixParameter(uPar+11,fTemplate_MC_NonCommon->GetParameter(uPar));
-
-    fTemplate_Data->SetParameter(18,0.2);
-    fTemplate_Data->SetParameter(19,0.8);
-
-    InputHisto->Fit(fTemplate_Data,"S, N, R, M");
-
-
-    OutputFile->cd();
-    fTemplate_MC_Common->Write();
-    fTemplate_MC_NonCommon->Write();
-    fTemplate_Data->Write();
-
-    delete fTemplate_MC_Common;
-    delete fTemplate_MC_NonCommon;
-    delete fTemplate_Data;
+    delete hWeight_Common;
     delete OutputFile;
 
 }
 
-void Fit_pL_CommonAncestorTemplate_dPhi(){
+void Fit_pL_CommonAncestorTemplate_dPhi(const bool useMC){
+
+    const unsigned NumSystIter = 256;
+    TH1F* hWeight_Common = new TH1F("hWeight_Common","hWeight_Common",4096,0,0.5);
+    TGraphErrors gWC_Def;//with stat uncertainty
+    gWC_Def.SetName("gWC_Def");
+    gWC_Def.SetMarkerStyle(20);
+    gWC_Def.SetMarkerSize(1);
+    TGraphErrors gWC_Syst;
+    gWC_Syst.SetName("gWC_Syst");
+    gWC_Syst.SetMarkerStyle(20);
+    gWC_Syst.SetMarkerSize(1);
+    TGraphErrors gWC_TotErr;
+    gWC_TotErr.SetName("gWC_TotErr");
+    gWC_TotErr.SetMarkerStyle(20);
+    gWC_TotErr.SetMarkerSize(1);
 
     TString fName_MC_Common = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/pLambda_Rush/Ancestors/dEtadPhiAncestors.root";
     TString fName_MC_NonCommon = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/pLambda_Rush/Ancestors/dEtadPhiAncestors.root";
-    //TString fName_Data = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/pLambda_Rush/dEtadPhi_Data/Data/dEtadPhi.root";
-    TString fName_Data = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/pLambda_Rush/dEtadPhi_Data/MC/dEtadPhi.root";
+    TString fName_Data;
+    if(useMC)fName_Data = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/pLambda_Rush/dEtadPhi_Data/MC/dEtadPhi.root";
+    else fName_Data = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/pLambda_Rush/dEtadPhi_Data/Data/dEtadPhi.root";
     TString l1Name_MC_Common = "ProtonLambda";
     TString l1Name_MC_NonCommon = "ProtonLambda";
     TString l1Name_Data = "ProtonLambda";
@@ -4396,88 +5349,156 @@ void Fit_pL_CommonAncestorTemplate_dPhi(){
     TString hName_MC_NonCommon = "SEdPhidEtaDistNonCommon_Particle0_Particle2AShiftedProjection";
     TString hName_Data = "SEdPhidEtaDist_Particle0_Particle2ShiftedProjection";
 
-    TFile* fInputFile;
-    TList* List1;
-    TList* List2;
-    TH1D* InputHisto;
-
-    TFile* OutputFile = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/OtherTasks/Fit_pL_CommonAncestorTemplate_Ck/OutputFile_pL.root","recreate");
+    TFile* OutputFile = new TFile(
+    TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/OtherTasks/Fit_pL_CommonAncestorTemplate_dPhi/OutputFile_pL_%s.root",
+                    useMC?"MC":"Data"),"recreate");
     double FitMin;
     double FitMax;
+    double StatErr;
 
-    fInputFile = new TFile(fName_MC_Common,"read");
-    List1 = (TList*)fInputFile->Get(l1Name_MC_Common);
-    List2 = (TList*)List1->FindObject(l2Name_MC_Common);
-    InputHisto = (TH1D*)List2->FindObject(hName_MC_Common);
-    FitMin = -1.8;
-    FitMax = 4.3;
+    TRandom3 rangen(11);
+
+    for(unsigned uSyst=0; uSyst<NumSystIter; uSyst++){
+        printf("\r\033[K uSyst=%u",uSyst);
+        cout << flush;
+        TFile* fInputFile;
+        TList* List1;
+        TList* List2;
+        TH1D* InputHisto;
+
+        fInputFile = new TFile(fName_MC_Common,"read");
+        List1 = (TList*)fInputFile->Get(l1Name_MC_Common);
+        List2 = (TList*)List1->FindObject(l2Name_MC_Common);
+        InputHisto = (TH1D*)List2->FindObject(hName_MC_Common);
+        FitMin = -1.8;
+        FitMax = 4.3;
+        OutputFile->cd();
+        if(uSyst==0) InputHisto->Write();
+        else{
+            float Value;
+            float Error;
+            float RanVal;
+            for(unsigned uBin=0; uBin<InputHisto->GetNbinsX(); uBin++){
+                Value = InputHisto->GetBinContent(uBin+1);
+                Error = InputHisto->GetBinError(uBin+1);
+                RanVal = rangen.Gaus(Value,Error);
+                InputHisto->SetBinContent(uBin+1,RanVal);
+                InputHisto->SetBinError(uBin+1,Error);
+            }
+        }
+        TF1* fTemplate_MC_Common = new TF1("fTemplate_MC_Common",
+        "[0]+[1]*exp(-pow((fabs(x)-[2])/[3],2.))+[4]*exp(-pow((fabs(x)-[5])/[6],2.))",
+        FitMin,FitMax);
+        fTemplate_MC_Common->SetParameter(0,1);
+        fTemplate_MC_Common->SetParameter(1,1);
+        fTemplate_MC_Common->FixParameter(2,0);
+        fTemplate_MC_Common->SetParameter(3,1);
+        fTemplate_MC_Common->SetParameter(4,-0.1);
+        fTemplate_MC_Common->FixParameter(5,TMath::Pi());
+        fTemplate_MC_Common->SetParameter(6,1);
+
+        InputHisto->Fit(fTemplate_MC_Common,"Q, S, N, R, M");
+        delete fInputFile;
+
+        fInputFile = new TFile(fName_MC_NonCommon,"read");
+        List1 = (TList*)fInputFile->Get(l1Name_MC_NonCommon);
+        List2 = (TList*)List1->FindObject(l2Name_MC_NonCommon);
+        InputHisto = (TH1D*)List2->FindObject(hName_MC_NonCommon);
+        //FitMin = InputHisto->GetBinLowEdge(1);
+        //FitMax = InputHisto->GetBinLowEdge(InputHisto->GetNbinsX());
+        FitMin = -1.8;
+        FitMax = 4.3;
+        OutputFile->cd();
+        if(uSyst==0) {InputHisto->Write();}
+        else{
+            float Value;
+            float Error;
+            float RanVal;
+            for(unsigned uBin=0; uBin<InputHisto->GetNbinsX(); uBin++){
+                Value = InputHisto->GetBinContent(uBin+1);
+                Error = InputHisto->GetBinError(uBin+1);
+                RanVal = rangen.Gaus(Value,Error);
+                InputHisto->SetBinContent(uBin+1,RanVal);
+                InputHisto->SetBinError(uBin+1,Error);
+            }
+        }
+        TF1* fTemplate_MC_NonCommon = new TF1("fTemplate_MC_NonCommon","[0]+[1]*exp(-pow((fabs(x)-[2])/[3],2.))+[4]*exp(-pow((fabs(x)-[5])/[6],2.))",FitMin,FitMax);
+        fTemplate_MC_NonCommon->SetParameter(0,1);
+        fTemplate_MC_NonCommon->SetParameter(1,-0.1);
+        fTemplate_MC_NonCommon->FixParameter(2,0);
+        fTemplate_MC_NonCommon->SetParameter(3,1);
+        fTemplate_MC_NonCommon->SetParameter(4,0.1);
+        fTemplate_MC_NonCommon->FixParameter(5,TMath::Pi());
+        fTemplate_MC_NonCommon->SetParameter(6,1);
+
+        InputHisto->Fit(fTemplate_MC_NonCommon,"Q, S, N, R, M");
+        delete fInputFile;
+
+
+        fInputFile = new TFile(fName_Data,"read");
+        List1 = (TList*)fInputFile->Get(l1Name_Data);
+        List2 = (TList*)List1->FindObject(l2Name_Data);
+        InputHisto = (TH1D*)List2->FindObject(hName_Data);
+        FitMin = -1.8;
+        FitMax = 4.3;
+        OutputFile->cd();
+        if(uSyst==0) {InputHisto->Write();}
+        else{
+            float Value;
+            float Error;
+            float RanVal;
+            for(unsigned uBin=0; uBin<InputHisto->GetNbinsX(); uBin++){
+                Value = InputHisto->GetBinContent(uBin+1);
+                Error = InputHisto->GetBinError(uBin+1);
+                RanVal = rangen.Gaus(Value,Error);
+                InputHisto->SetBinContent(uBin+1,RanVal);
+                InputHisto->SetBinError(uBin+1,Error);
+            }
+        }
+
+        TF1* fTemplate_Data = new TF1("fTemplate_Data","[15]*([14]*([0]+[1]*exp(-pow((fabs(x)-[2])/[3],2.))+[4]*exp(-pow((fabs(x)-[5])/[6],2.)))+"
+                                      "(1.-[14])*([7]+[8]*exp(-pow((fabs(x)-[9])/[10],2.))+[11]*exp(-pow((fabs(x)-[12])/[13],2.))))",FitMin,FitMax);
+        for(unsigned uPar=0; uPar<=6; uPar++) fTemplate_Data->FixParameter(uPar,fTemplate_MC_Common->GetParameter(uPar));
+        for(unsigned uPar=7; uPar<=13; uPar++) fTemplate_Data->FixParameter(uPar,fTemplate_MC_NonCommon->GetParameter(uPar-7));
+        fTemplate_Data->SetParameter(14,0.1);
+        fTemplate_Data->SetParameter(15,1);
+
+        fTemplate_Data->SetParameter(18,0.2);
+        fTemplate_Data->SetParameter(19,0.8);
+
+        InputHisto->Fit(fTemplate_Data,"Q, S, N, R, M");
+        delete fInputFile;
+
+        OutputFile->cd();
+        if(uSyst==0){
+            fTemplate_MC_Common->Write();
+            fTemplate_MC_NonCommon->Write();
+            fTemplate_Data->Write();
+            gWC_Def.SetPoint(0,0.9,fTemplate_Data->GetParameter(14));
+            gWC_Def.SetPointError(0,0,fTemplate_Data->GetParError(14));
+            StatErr = fTemplate_Data->GetParError(14);
+        }
+
+        hWeight_Common->Fill(fTemplate_Data->GetParameter(14));
+
+        delete fTemplate_MC_Common;
+        delete fTemplate_MC_NonCommon;
+        delete fTemplate_Data;
+    }
+    cout << endl;
+    gWC_Syst.SetPoint(0,1.1,hWeight_Common->GetMean());
+    gWC_Syst.SetPointError(0,0,hWeight_Common->GetStdDev());
+
+    gWC_TotErr.SetPoint(0,1.2,sqrt(StatErr*StatErr+hWeight_Common->GetMean()*hWeight_Common->GetMean()));
+    gWC_TotErr.SetPointError(0,0,sqrt(StatErr*StatErr+hWeight_Common->GetStdDev()*hWeight_Common->GetStdDev()));
+
     OutputFile->cd();
-    InputHisto->Write();
-    TF1* fTemplate_MC_Common = new TF1("fTemplate_MC_Common",
-    "[0]*(1.+[1]*exp(-pow((x-[2])/[3],2.)))*(1.+[4]*x+[5]*x*x+[6]*pow(x,3.)+[7]*pow(x,4.)+[8]*pow(x,5.)+[9]*pow(x,6.)+[10]*pow(x,7.))",
-    FitMin,FitMax);
+    hWeight_Common->Write();
+    gWC_Def.Write();
+    gWC_Syst.Write();
+    gWC_TotErr.Write();
 
-    fTemplate_MC_Common->SetParameter(0,1);
-    fTemplate_MC_Common->SetParameter(1,1);
-    fTemplate_MC_Common->FixParameter(2,0);
-    fTemplate_MC_Common->SetParameter(3,1);
-
-    InputHisto->Fit(fTemplate_MC_Common,"S, N, R, M");
-    delete fInputFile;
-
-    fInputFile = new TFile(fName_MC_NonCommon,"read");
-    List1 = (TList*)fInputFile->Get(l1Name_MC_NonCommon);
-    List2 = (TList*)List1->FindObject(l2Name_MC_NonCommon);
-    InputHisto = (TH1D*)List2->FindObject(hName_MC_NonCommon);
-    //FitMin = InputHisto->GetBinLowEdge(1);
-    //FitMax = InputHisto->GetBinLowEdge(InputHisto->GetNbinsX());
-    FitMin = -1.8;
-    FitMax = 4.3;
-    OutputFile->cd();
-    InputHisto->Write();
-    TF1* fTemplate_MC_NonCommon = new TF1("fTemplate_MC_NonCommon","[0]*(1.+[1]*sin([2]*x+[3]))*(1.+[4]*x+[5]*x*x+[6]*pow(x,3.))",FitMin,FitMax);
-    fTemplate_MC_NonCommon->SetParameter(0,1);
-    fTemplate_MC_NonCommon->SetParameter(1,0.1);
-    fTemplate_MC_NonCommon->FixParameter(2,1);
-    fTemplate_MC_NonCommon->SetParameter(3,-1.4);
-
-    InputHisto->Fit(fTemplate_MC_NonCommon,"S, N, R, M");
-    delete fInputFile;
-
-
-    fInputFile = new TFile(fName_Data,"read");
-    List1 = (TList*)fInputFile->Get(l1Name_Data);
-    List2 = (TList*)List1->FindObject(l2Name_Data);
-    InputHisto = (TH1D*)List2->FindObject(hName_Data);
-    FitMin = -1.8;
-    FitMax = 4.3;
-    OutputFile->cd();
-    InputHisto->Write();
-    //TF1* fTemplate_Data = new TF1("fTemplate_Data","[0]*(1.+[1]*sin([2]*x+[3])+[4]*exp(-pow((x-[5])/[6],2.)))+[7]*(1.+[8]*sin([9]*x+[10]))",
-    //                              FitMin,FitMax);
-    TF1* fTemplate_Data = new TF1("fTemplate_Data",
-"[18]*[0]*(1.+[1]*exp(-pow((x-[2])/[3],2.)))*(1.+[4]*x+[5]*x*x+[6]*pow(x,3.)+[7]*pow(x,4.)+[8]*pow(x,5.)+[9]*pow(x,6.)+[10]*pow(x,7.))+[19]*[11]*(1.+[12]*sin([13]*x+[14]))*(1.+[15]*x+[16]*x*x+[17]*pow(x,3.))",
-                                  FitMin,FitMax);
-    //fTemplate_Data->SetParameter(0,0.1*fTemplate_MC_Common->GetParameter(0));
-    for(unsigned uPar=0; uPar<=10; uPar++) fTemplate_Data->FixParameter(uPar,fTemplate_MC_Common->GetParameter(uPar));
-
-    //fTemplate_Data->SetParameter(11,0.9*fTemplate_MC_NonCommon->GetParameter(0));
-    for(unsigned uPar=0; uPar<=6; uPar++) fTemplate_Data->FixParameter(uPar+11,fTemplate_MC_NonCommon->GetParameter(uPar));
-
-    fTemplate_Data->SetParameter(18,0.2);
-    fTemplate_Data->SetParameter(19,0.8);
-
-    InputHisto->Fit(fTemplate_Data,"S, N, R, M");
-
-
-    OutputFile->cd();
-    fTemplate_MC_Common->Write();
-    fTemplate_MC_NonCommon->Write();
-    fTemplate_Data->Write();
-
-    delete fTemplate_MC_Common;
-    delete fTemplate_MC_NonCommon;
-    delete fTemplate_Data;
+    delete hWeight_Common;
     delete OutputFile;
 
 }
@@ -4507,10 +5528,15 @@ int OTHERTASKS(int narg, char** ARGS){
 
     //
 
-    //Fit_pp_CommonAncestorTemplate_dPhi();
-    //Fit_pL_CommonAncestorTemplate_dPhi();
+    //Fit_pp_CommonAncestorTemplate_dPhi(0);
+    //Fit_pp_CommonAncestorTemplate_dPhi(1);
+    //Fit_pL_CommonAncestorTemplate_dPhi(0);
+    //Fit_pL_CommonAncestorTemplate_dPhi(1);
+
     //Fit_pp_CommonAncestorTemplate_Ck();
-    Fit_pL_CommonAncestorTemplate_Ck();
+    //Fit_pL_CommonAncestorTemplate_Ck();
+
+    Fit_pL_CommonAncestorTemplate_CrazyGauss();
 
     //ReadDeuteronWF("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/Coalesce/WaveFunctions/Machleidt/deuwaves_n4lo500_rspace.d",huWF,hwWF);
 
