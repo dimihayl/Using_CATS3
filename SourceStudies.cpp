@@ -23,7 +23,7 @@
 //Gaussian and Gaussian+Reso sources
 void CompareCkAndSr(){
 
-    const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/SourceStudies/CompareCkAndSr/Nov2019/";
+    const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/SourceStudies/CompareCkAndSr/Feb2020/";
 
     //const double R_core = 1.00;
     //const double R_pp = 1.32;
@@ -190,10 +190,10 @@ void CompareCkAndSr(){
     legSr->SetName(TString::Format("legSr"));
     legSr->SetTextSize(0.04);
     legSr->AddEntry(&gSr_pp_Core,TString::Format("Gauss r(core)=%.2f fm",R_core));
-    legSr->AddEntry(&gSr_pp_CoreReso,"Core + p-p resonances");
-    legSr->AddEntry(&gSr_pp_Gauss,TString::Format("Gauss r(p-p)=%.2f fm",R_pp));
-    legSr->AddEntry(&gSr_pL_CoreReso,"Core + p-#Lambda resonances");
-    legSr->AddEntry(&gSr_pL_Gauss,TString::Format("Gauss r(p-#Lambda)=%.2f fm",R_pL));
+    legSr->AddEntry(&gSr_pp_CoreReso,"Core + p#minusp resonances");
+    legSr->AddEntry(&gSr_pp_Gauss,TString::Format("Gauss r(p#minusp)=%.2f fm",R_pp));
+    legSr->AddEntry(&gSr_pL_CoreReso,"Core + p#minus#Lambda resonances");
+    legSr->AddEntry(&gSr_pL_Gauss,TString::Format("Gauss r(p#minus#Lambda)=%.2f fm",R_pL));
 
 
     TH1F* hSrAxis = new TH1F("hSrAxis", "hSrAxis", rNumBins, rMin, rMax);
@@ -201,14 +201,14 @@ void CompareCkAndSr(){
     hSrAxis->SetTitle("");
     hSrAxis->GetXaxis()->SetLabelSize(0.065);
     hSrAxis->GetXaxis()->SetTitle("r* (fm)");
-    hSrAxis->GetXaxis()->CenterTitle();
+    //hSrAxis->GetXaxis()->CenterTitle();
     hSrAxis->GetXaxis()->SetTitleOffset(1.15);
     hSrAxis->GetXaxis()->SetLabelOffset(0.02);
     hSrAxis->GetXaxis()->SetTitleSize(0.075);
     hSrAxis->GetYaxis()->SetLabelSize(0.065);
     //hAxis->GetYaxis()->SetTitle("(N per bin)x10^{-3}");
     hSrAxis->GetYaxis()->SetTitle("4#pir*^{2}S(r*) (1/fm)");
-    hSrAxis->GetYaxis()->CenterTitle();
+    //hSrAxis->GetYaxis()->CenterTitle();
     hSrAxis->GetYaxis()->SetTitleOffset(0.90);
     hSrAxis->GetYaxis()->SetTitleSize(0.075);
     //hSrAxis->GetYaxis()->SetLimits(0, hNkSe->GetBinContent(hNkSe->GetMaximumBin())*1.2);
@@ -1183,7 +1183,7 @@ Tau2 = 4.69;
 //}
 
 int SOURCESTUDIES(int narg, char** ARGS){
-    //CompareCkAndSr();
+    CompareCkAndSr();
     //ConvertThetaAngleHisto("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/AngleStudy_1/DimiPhi_pp.root","h_rkAngle_Mom2",400,600);
     //AverageResoApprox_pp();
     //AverageResoApprox_pL();

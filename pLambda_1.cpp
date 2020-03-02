@@ -16,6 +16,8 @@
 #include "TRandom3.h"
 #include "TLatex.h"
 #include "TStyle.h"
+#include "TSystem.h"
+#include "TAttFill.h"
 
 #include "CATS.h"
 #include "DLM_CkDecomposition.h"
@@ -23,9 +25,13 @@
 #include "CommonAnaFunctions.h"
 #include "DLM_Fitters.h"
 
+#include "DLM_HistoAnalysis.h"
+#include "DLM_SubPads.h"
+
 #include <unistd.h>
 #include <fcntl.h>
 #include <cerrno>
+
 
 TH1F* pL_CleverRebin(TH1F* hData_pL, const unsigned& NumMomBins_pL, const double* MomBins_pL){
     //the one with var binning
@@ -475,7 +481,7 @@ void Fit_pL(DLM_CommonAnaFunctions& AnalysisObject, const TString& OutputFolder,
     double ResidualSourceSize=0;
     if(DataSample=="pp13TeV_MB_Run2paper") ResidualSourceSize=1.1;
     else if(DataSample=="pPb5TeV_Run2paper"||DataSample=="pPb5TeV_CPR_Mar19") ResidualSourceSize=1.4;
-    else if(DataSample=="pp13TeV_HM_March19") ResidualSourceSize=1.4;
+    else if(DataSample=="pp13TeV_HM_March19"||DataSample=="pp13TeV_HM_Dec19") ResidualSourceSize=1.4;
     else printf("\033[1;31mERROR:\033[0m The data sample '%s' does not exist\n",DataSample.Data());
 
     double* MomBins_pL = NULL;
@@ -565,11 +571,13 @@ void Fit_pL(DLM_CommonAnaFunctions& AnalysisObject, const TString& OutputFolder,
     CkDec_pXim.AddContribution(1,lam_pXim[4],DLM_CkDecomposition::cFake);
 
     DLM_Fitter1* fitter = new DLM_Fitter1(1);
-    if(FittingMode_pL.Contains("Norm")||FittingMode_pL.Contains("Baseline")){
+    if(FittingMode_pL.Contains("Norm")||FittingMode_pL.Contains("Baseline")||
+       (FittingMode_pL.Contains("S2020")&&!FittingMode_pL.Contains("pol3"))){
         fitter->SetSystem(0,*hData_pL,1,CkDec_pL,
                     FitRegion_pL[0],FitRegion_pL[1],FitRegion_pL[1],FitRegion_pL[1]);
     }
-    else if(FittingMode_pL.Contains("Longbaseline")||FittingMode_pL.Contains("Spline")){
+    else if(FittingMode_pL.Contains("Longbaseline")||FittingMode_pL.Contains("Spline")||
+            FittingMode_pL.Contains("S2020_pol3")){
         fitter->SetSystem(0,*hData_pL,1,CkDec_pL,
                         FitRegion_pL[0],FitRegion_pL[1],FitRegion_pL[2],FitRegion_pL[3]);
     }
@@ -1529,6 +1537,7 @@ void Plot_pp_pL(const TString& DataSample, const TString& SourceType, const TStr
 //Mode==-1 => the default cut comb only (ignoring all first, last iter etc.)
 //Mode==0 => normal
 //Mode==1 => we only print the number of iter to be performed
+//! FOR THE PRELIMINARIES, THE DATA SET "pp13TeV_HM_March19" WAS USED, CHANGE IT WHEN CALLING Fit_pL
 void pL_SystematicsHM(const TString& OutputFolder, const int& WhichConfiguration, const int& FirstIter, const int& LastIter, const unsigned& OnlyFraction,
                       const int& RANDOMSEED, const int& Mode){
 
@@ -1815,6 +1824,24 @@ void pL_SystematicsHM(const TString& OutputFolder, const int& WhichConfiguration
             NumKcVars = 3;
             NumMtVars = 1;
             NumDataVars = 1;
+            break;
+        //the plots for Schleching, which include a Gauss and pol3 (with ^1 par ==0) BL
+        //we do not even consider pol0 anymore
+        //the source is the ORIGINAL Gauss+Reso, since that was the approved plot at the time
+        //we only look at NLO with the coupling included (d-waves) and reduced peak height to 1/3
+        case 50 :
+            NumSourceVars = 1;
+            NumSourceScaleVars = 3;
+            NumSourceStabilityVars = 1;
+            NumPotVars = 1;
+            NumBaselineVars = 3;
+            NumFemtoRangeVars = 3;
+            NumFitRangeVars = 2;
+            NumProtonFracVars = 3;
+            NumLambdaFracVars = 9;
+            NumKcVars = 1;
+            NumMtVars = 1;
+            NumDataVars = 45;
             break;
         //the case of meson exchange models
         //without the peak region (Lednicky)
@@ -2517,6 +2544,68 @@ void pL_SystematicsHM(const TString& OutputFolder, const int& WhichConfiguration
         DataVars[0] = TString::Format("_%i",0);
         DefData = 0;
     }
+    else if(WhichConfiguration==50){
+        Source[0] = "McGauss_Reso";
+        DefSource = 0;
+        //SourceScale[0] = -1;//free fit, but within the uncertainties
+        //initially it was 0.87 +/- 10 %
+        //with wrong systematics: 0.871,0.918,0.965
+        SourceScale[0] = 0.853;
+        SourceScale[1] = 0.878;
+        SourceScale[2] = 0.902;
+        // pLambda:   low 0.90218  mean 0.918078 up 0.933344 //pp + pL
+        // pLambda:   low 0.872613  mean 0.882538 up 0.892688 //pp
+        // new syst: pLambda(1.55):   low 0.853396 mean 0.877717 up 0.90239
+        DefSourceScale = 0;
+        SourceStability[0] = 0;//dummy
+        DefSourceStability = 0;
+        Potential[0] = "NLO_Coupled_SPD";
+        DefPot = 0;
+        Baseline[0] = "S2020_pol1";
+        Baseline[1] = "S2020_pol2";
+        Baseline[2] = "S2020_pol3";
+        //Baseline[3] = "S2020_Gauss";//not included in the fitter yet
+        DefBaseline = 2;
+
+        FemtoRangeVars[0] = 0;//default
+        FemtoRangeVars[1] = 1;//down
+        FemtoRangeVars[2] = 2;//up
+        DefFemtoRange = 0;
+
+        FitRangeVars[0] = 50;//default (only FemtoReg)
+        FitRangeVars[1] = 51;//extended fit up to c.a.450 used for the pol3
+        DefFitRange = 50;
+
+        pFracVars[0] = 0;//default
+        pFracVars[1] = 1;
+        pFracVars[2] = 2;
+        DefProtonFrac = 0;
+
+        LamFracVars[0] = 0;//default
+        LamFracVars[1] = 1;
+        LamFracVars[2] = 2;
+
+        LamFracVars[3] = 10;
+        LamFracVars[4] = 11;
+        LamFracVars[5] = 12;
+
+        LamFracVars[6] = 20;
+        LamFracVars[7] = 21;
+        LamFracVars[8] = 22;
+
+        DefLambdaFrac = 0;
+
+        kcVars[0] = 600;
+        DefKc = 0;
+
+        MtVars[0] = -1;
+        DefMt = 0;
+
+        for(int iData=0; iData<NumDataVars; iData++){
+            DataVars[iData] = TString::Format("_%i",iData);
+        }
+        DefData = 0;
+    }
     //meson exchange models with Lednicky, without the peak region
     else if(WhichConfiguration==112){
         Source[0] = "Gauss";
@@ -2789,8 +2878,8 @@ void pL_SystematicsHM(const TString& OutputFolder, const int& WhichConfiguration
     for(int ikc=0; ikc<NumKcVars; ikc++){
     for(int iMt=0; iMt<NumMtVars; iMt++){
     for(int iData=0; iData<NumDataVars; iData++){
-        if(Baseline[iBl]=="Norm"&&ikc) {continue;}//this variation is only relevant in case of a baseline
-        if(Baseline[iBl]=="Norm"&&iFitRan) {continue;}//this variation is only relevant in case of a baseline
+        if((Baseline[iBl]=="Norm"||(Baseline[iBl].Contains("S2020")&&!Baseline[iBl].Contains("pol3")))&&ikc) {continue;}//this variation is only relevant in case of a baseline
+        if((Baseline[iBl]=="Norm"||(Baseline[iBl].Contains("S2020")&&!Baseline[iBl].Contains("pol3")))&&iFitRan) {continue;}//this variation is only relevant in case of a baseline
         double UNI = RanGen.Uniform();
         //if(IterationCounter>=FirstIter&&IterationCounter<=LastIter){
         //    printf(" UNI=%.3f vs %.3f\n",UNI,1./double(OnlyFraction));
@@ -2819,7 +2908,7 @@ void pL_SystematicsHM(const TString& OutputFolder, const int& WhichConfiguration
         else{
             if(Mode!=-1&&(IterationCounter<FirstIter||IterationCounter>LastIter)) {IterationCounter++; continue;}
             unsigned EffectiveFraction = OnlyFraction;
-            if(Baseline[iBl]=="Norm"){
+            if((Baseline[iBl]=="Norm"||(Baseline[iBl].Contains("S2020")&&!Baseline[iBl].Contains("pol3")))){
                 EffectiveFraction /= NumFemtoRangeVars;
                 if(!Potential[iPot].Contains("Lednicky_")) EffectiveFraction /= NumFitRangeVars;
                 if(EffectiveFraction<0||EffectiveFraction>OnlyFraction) EffectiveFraction=1;
@@ -2866,7 +2955,8 @@ void pL_SystematicsHM(const TString& OutputFolder, const int& WhichConfiguration
         delete CheckIfFile;
         CheckIfFile = NULL;
 
-        Fit_pL(AnalysisObject, OutputFolder, FileName,"pp13TeV_HM_March19",DataVars[iData],Source[iSource],SourceScale[iSourceScal],SourceStability[iSourceStab],
+//! FOR THE PRELIMINARIES, THE DATA SET "pp13TeV_HM_March19" WAS USED, CHANGE IT WHEN CALLING Fit_pL
+        Fit_pL(AnalysisObject, OutputFolder, FileName,"pp13TeV_HM_Dec19",DataVars[iData],Source[iSource],SourceScale[iSourceScal],SourceStability[iSourceStab],
                Potential[iPot],Baseline[iBl],VARIATIONS,long(IterationCounter)*long(1000)+long(WhichConfiguration),ntFileName,"ntResult");
 
         IterationCounter++;
@@ -5617,6 +5707,1135 @@ void STUPED_TEST(){
 //            const TString& pL_Pot,const TString& FittingMode_pL, const int* VARIATIONS, const long& UniqueID=-1, const TString ntFileName="", const TString ntName=""
 }
 
+
+
+DLM_CkDecomposition* pLambda_1_Dec;
+CATS* pLambda_1_Cat;
+
+//parameters:
+//[0] = source size
+//[1] = source alpha
+//[2] = cusp strength
+//[3] = Ck convergence point
+//baseline of the type: []*(1+[]*exp([mean],[sigma]))*(1+[]*x+[]*x*x+[]*x*x*x)
+//the par in-front of x^3 is defined such as to represent the k* value at which the pol3 has an extrema
+//[4] = norm
+//[5],[6],[7] GAUSS
+//[8],[9],[10] POL
+double dimi_pL_Schleching_FitterBl(double* x, double* par){
+    double& MOM = *x;
+    double GAUSS = 1.+par[1]*exp(-pow((MOM-par[2])/par[3],2.));
+    double POL = 1.+par[4]*MOM+par[5]*MOM*MOM-(2.*par[5]+par[4])/(3.*par[6])*MOM*MOM*MOM;
+    return par[0]*GAUSS*POL;
+}
+double dimi_pL_Schleching_Fitter(double* x, double* par){
+    double& MOM = *x;
+    pLambda_1_Cat->SetChannelWeight(7,1./4.*par[2]);//1S0 SN(s) -> LN(s)
+    pLambda_1_Cat->SetChannelWeight(8,3./4.*par[2]);//3S1 SN(s) -> LN(s)
+    pLambda_1_Cat->SetChannelWeight(10,3./4.*par[2]);//3S1 SN(d) -> LN(s)
+    pLambda_1_Cat->SetChannelWeight(13,3./20.*par[2]);//3D1 SN(d) -> LN(d)
+    pLambda_1_Cat->SetChannelWeight(15,3./20.*par[2]);//3D1 SN(s) -> LN(d)
+    pLambda_1_Cat->SetAnaSource(0,par[0],true);
+    if(pLambda_1_Cat->GetNumSourcePars()>1){
+        pLambda_1_Cat->SetAnaSource(1,par[1],true);
+    }
+    pLambda_1_Cat->KillTheCat();
+    pLambda_1_Dec->GetCk()->SetCutOff(340,par[3]);
+    pLambda_1_Dec->Update(true);
+
+    double FEMTO = pLambda_1_Dec->EvalCk(MOM);
+    return dimi_pL_Schleching_FitterBl(x,&par[4])*FEMTO;
+}
+
+//the radius is fixed, and we use the latest Core+Reso
+//if the seed is 1, the default variations are computed first
+void pL_SchlechingSystematics(const unsigned SEED, const unsigned NumVars_PerBL){
+
+    const bool DataSyst = false;
+    enum BLTYPE { pol0,pol1,pol2,pol3,gaus };
+    const unsigned NumBlTypes = 5;
+    bool blType[NumBlTypes];
+    blType[pol0] = false;
+    blType[pol1] = false;
+    blType[pol2] = false;
+    blType[pol3] = true;
+    blType[gaus] = false;
+
+    //const unsigned NumVars_PerBL = DataSyst?1024:128;
+
+    // new syst: pLambda(1.55):   low 0.853396 mean 0.877717 up 0.90239
+    //the values below is for the updated epos version of the source
+    const double SourceSize = (1.05676+0.980842)*0.5;
+    const double SourceSizeErr = (1.05676-0.980842)*0.5;
+
+    double ResidualSourceSizeSigma0=1.25;
+    double ResidualSourceSizeXi=1.0;
+
+    unsigned CompletedVars[NumBlTypes];
+    CompletedVars[pol0] = 0;
+    CompletedVars[pol1] = 0;
+    CompletedVars[pol2] = 0;
+    CompletedVars[pol3] = 0;
+    CompletedVars[gaus] = 0;
+
+
+    TRandom3 rangen(SEED);
+
+    TString DataSample = "pp13TeV_HM_Dec19";
+    //TString DataSample = "pp13TeV_HM_RotPhiDec19";
+
+    TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SchlechingSystematics/";
+    TString OutFileName = TString::Format("Output_%s_%u.root",DataSample.Data(),SEED);
+    TFile* OutputFile = new TFile(OutputFolder+OutFileName,"recreate");
+
+    double* MomBins_pL = NULL;
+    double* FitRegion_pL = NULL;
+    const unsigned NumBinsCk = 45; // for dlm_ck
+    const double BinWidthCk = 12;
+    const double MaxBinValCk = double(NumBinsCk)*BinWidthCk;
+    unsigned NumMomBins_pL = 30;// for CATS
+    const double MaxBinValCats = double(NumMomBins_pL)*BinWidthCk;
+    unsigned uDummy;
+
+    //used for plotting the systematics, keeps track of the mean and stdv of the value of the fit in each bin
+    //the last entry is independent of the baseline type
+    float** Fit_Mean = new float* [NumBlTypes+1];
+    float** Fit_Stdv = new float* [NumBlTypes+1];
+    float** Fit_Min = new float* [NumBlTypes+1];
+    float** Fit_Max = new float* [NumBlTypes+1];
+    unsigned** Fit_Entries = new unsigned* [NumBlTypes+1];
+    float** Bl_Mean = new float* [NumBlTypes+1];
+    float** Bl_Stdv = new float* [NumBlTypes+1];
+    float** Bl_Min = new float* [NumBlTypes+1];
+    float** Bl_Max = new float* [NumBlTypes+1];
+
+    float** Ratio_Min = new float* [NumBlTypes+1];
+    float** Ratio_Max = new float* [NumBlTypes+1];
+
+
+    //TH1F* hRadius = new TH1F("hRadius","hRadius",256,0.9,1.1);
+    //TH1F* hAlpha = new TH1F("hAlpha","hAlpha",256,0.95,2.05);
+    TH1F** hnSigma = new TH1F* [NumBlTypes+1];
+    //TH1F** hRatio = new TH1F* [NumBlTypes+1];
+    TH1F** hRadius = new TH1F* [NumBlTypes+1];
+    TH1F** hCS = new TH1F* [NumBlTypes+1];
+
+//[0] = source size
+//[1] = source alpha
+//[2] = cusp strength
+//[3] = Ck convergence point
+//baseline of the type: []*(1+[]*exp([mean],[sigma]))*(1+[]*x+[]*x*x+[]*x*x*x)
+//the par in-front of x^3 is defined such as to represent the k* value at which the pol3 has an extrema
+//[4] = norm
+//[5],[6],[7] GAUSS
+//[8],[9],[10] POL
+    TNtuple* ntResult = new TNtuple("ntResult", "ntResult",
+            "SourceSize:SourceAlpha:CuspStrength:CkConv:Norm:GaussAmpl:GaussMu:GaussSig:p1:p2:p3:"
+            "WhichBl:WhichFemtoRange:WhichFitRange:WhichData:pval");
+
+    for(unsigned uBl=0; uBl<=NumBlTypes; uBl++){
+        Fit_Mean[uBl] = new float [NumBinsCk];
+        Fit_Stdv[uBl] = new float [NumBinsCk];
+        Fit_Min[uBl] = new float [NumBinsCk];
+        Fit_Max[uBl] = new float [NumBinsCk];
+        Bl_Mean[uBl] = new float [NumBinsCk];
+        Bl_Stdv[uBl] = new float [NumBinsCk];
+        Bl_Min[uBl] = new float [NumBinsCk];
+        Bl_Max[uBl] = new float [NumBinsCk];
+        Ratio_Min[uBl] = new float [NumBinsCk];
+        Ratio_Max[uBl] = new float [NumBinsCk];
+        Fit_Entries[uBl] = new unsigned [NumBinsCk];
+        for(unsigned uBin=0; uBin<NumBinsCk; uBin++){
+            Fit_Mean[uBl][uBin] = 0;
+            Fit_Stdv[uBl][uBin] = 0;
+            Fit_Min[uBl][uBin] = 10000;
+            Fit_Max[uBl][uBin] = 0;
+            Bl_Mean[uBl][uBin] = 0;
+            Bl_Stdv[uBl][uBin] = 0;
+            Bl_Min[uBl][uBin] = 10000;
+            Bl_Max[uBl][uBin] = 0;
+            Ratio_Min[uBl][uBin] = 10000;
+            Ratio_Max[uBl][uBin] = 0;
+            Fit_Entries[uBl][uBin] = 0;
+        }
+        TString hnSigmaName = "hnSigma";
+        if(uBl<NumBlTypes) hnSigmaName = TString::Format("hnSigma_%u",uBl);
+        hnSigma[uBl] = new TH1F (hnSigmaName,hnSigmaName,1024,0,20.0);
+        //TString hRatioName = "hRatio";
+        //if(uBl<NumBlTypes) hRatioName = TString::Format("hRatio_%u",uBl);
+        //hRatio[uBl] = new TH1F (hRatioName,hRatioName,38,0,456);
+        TString hRadiusName = "hRadius";
+        if(uBl<NumBlTypes) hRadiusName = TString::Format("hRadius_%u",uBl);
+        hRadius[uBl] = new TH1F (hRadiusName,hRadiusName,256,0.6,1.4);
+        TString hCSName = "hCS";
+        if(uBl<NumBlTypes) hCSName = TString::Format("hCS_%u",uBl);
+        hCS[uBl] = new TH1F (hCSName,hCSName,256,0.0,1.0);
+    }
+
+
+    DLM_CommonAnaFunctions AnalysisObject;
+    AnalysisObject.SetUpBinning_pL(DataSample,uDummy,MomBins_pL,FitRegion_pL,0,0);
+
+    DLM_Ck* Ck_pSigma0 = new DLM_Ck(1,0,NumBinsCk,0,MaxBinValCk,Lednicky_gauss_Sigma0);
+    Ck_pSigma0->SetSourcePar(0,ResidualSourceSizeSigma0);
+
+    TH2F* hResolution_pL = AnalysisObject.GetResolutionMatrix(DataSample,"pLambda");
+    TH2F* hResidual_pL_pSigma0 = AnalysisObject.GetResidualMatrix("pLambda","pSigma0");
+    TH2F* hResidual_pL_pXim = AnalysisObject.GetResidualMatrix("pLambda","pXim");
+
+
+    //TString SourceDescription = "Gauss";
+    TString SourceDescription = "McGauss_ResoTM";
+    //TString SourceDescription = "McLevy_ResoTM";
+
+
+    //hData_pL->Write();
+
+    CATS AB_pL;
+    DLM_Ck* Ck_pL;
+    AB_pL.SetMomBins(NumMomBins_pL,0,MaxBinValCats);
+    AnalysisObject.SetUpCats_pL(AB_pL,"NLO_Coupled_SPD",SourceDescription,0,202);//NLO_Coupled_S
+
+    double CUSP_WEIGHT = 0.33;//0.54
+    AB_pL.SetChannelWeight(7,1./4.*CUSP_WEIGHT);//1S0 SN(s) -> LN(s)
+    AB_pL.SetChannelWeight(8,3./4.*CUSP_WEIGHT);//3S1 SN(s) -> LN(s)
+    AB_pL.SetChannelWeight(10,3./4.*CUSP_WEIGHT);//3S1 SN(d) -> LN(s)
+    AB_pL.SetChannelWeight(13,3./20.*CUSP_WEIGHT);//3D1 SN(d) -> LN(d)
+    AB_pL.SetChannelWeight(15,3./20.*CUSP_WEIGHT);//3D1 SN(s) -> LN(d)
+
+    AB_pL.SetAnaSource(0,1.4);
+    if(SourceDescription.Contains("Mc")){
+        AB_pL.SetAnaSource(0,1.10);//c.a. 10% smaller compared to p-p due to the mT scaling
+        AB_pL.SetAnaSource(1,2.0);
+    }
+    AB_pL.SetNotifications(CATS::nError);
+    AB_pL.KillTheCat();
+    Ck_pL = new DLM_Ck(AB_pL.GetNumSourcePars(),0,AB_pL,NumBinsCk,0,MaxBinValCk);
+    Ck_pL->SetSourcePar(0,AB_pL.GetAnaSourcePar(0));
+    if(SourceDescription.Contains("Mc")){
+        Ck_pL->SetSourcePar(0,AB_pL.GetAnaSourcePar(0));
+        Ck_pL->SetSourcePar(1,AB_pL.GetAnaSourcePar(1));
+    }
+    Ck_pL->SetCutOff(340,600);
+
+    CATS AB_pXim;
+    //same binning as pL, as we only use pXim as feed-down
+    AB_pXim.SetMomBins(NumMomBins_pL,0,MaxBinValCats);
+    AnalysisObject.SetUpCats_pXim(AB_pXim,"pXim_HALQCD1","Gauss");
+    AB_pXim.SetAnaSource(0,ResidualSourceSizeXi);
+    AB_pXim.SetNotifications(CATS::nError);
+    AB_pXim.KillTheCat();
+    DLM_Ck* Ck_pXim = new DLM_Ck(AB_pXim.GetNumSourcePars(),0,AB_pXim,NumBinsCk,0,MaxBinValCk);
+    Ck_pL->Update();
+    Ck_pSigma0->Update();
+    Ck_pXim->Update();
+
+    bool WHILE_CONDITON = false;
+    for(unsigned uBl=0; uBl<NumBlTypes; uBl++){
+        WHILE_CONDITON += (CompletedVars[uBl]<NumVars_PerBL&&blType[uBl]);
+    }
+    bool DefaultDataSaved = false;
+
+    unsigned Progress = 0;
+
+    while(WHILE_CONDITON){
+        const unsigned WhichBl = rangen.Integer(5);
+        if(!blType[WhichBl] || CompletedVars[WhichBl]>=NumVars_PerBL) continue;
+
+        printf("\r\033[K Progress=%u",Progress);
+        cout << flush;
+
+        bool DefaultVariation = true;
+        if(CompletedVars[WhichBl]||SEED!=1) DefaultVariation = false;
+
+        //printf("WhichBl = %u\n",WhichBl);
+        //printf(" DefVar = %i\n",DefaultVariation);
+
+        unsigned WhichFemtoRange = rangen.Integer(3);
+        if(DefaultVariation) WhichFemtoRange = 0;
+//WhichFemtoRange = 0;
+        unsigned WhichFitRange = 50;
+        if(WhichBl==3) WhichFitRange = 50+rangen.Integer(2);
+        if(DefaultVariation) WhichFitRange = 50;
+        AnalysisObject.SetUpBinning_pL(DataSample,uDummy,MomBins_pL,FitRegion_pL,WhichFemtoRange,WhichFitRange);
+//WhichFitRange = 50;
+        //the cusp strength
+        //0 is 33%
+        //1 is 27% (20% lower, kind of compatible with experiment)
+        //2 is 40% (20% larger)
+        //3 is free fit
+        unsigned WhichCuspStrength = rangen.Integer(3);
+        if(DefaultVariation) WhichCuspStrength = 0;
+//WhichCuspStrength=3;
+//WhichCuspStrength = 0;
+        switch(WhichCuspStrength){
+            case 0 : CUSP_WEIGHT = 0.33; break;
+            case 1 : CUSP_WEIGHT = 0.27; break;
+            case 2 : CUSP_WEIGHT = 0.40; break;
+            default : CUSP_WEIGHT = 0.33; break;
+        }
+
+//NO FREE
+        unsigned WhichSourceRad = rangen.Integer(3);
+        double SourceRad;
+        if(DefaultVariation) {WhichSourceRad=0;}
+//WhichSourceRad=3;
+//WhichSourceRad=CompletedVars[WhichBl];
+
+        switch(WhichSourceRad){
+            case 0 : SourceRad = SourceSize; break;
+            case 1 : SourceRad = SourceSize-SourceSizeErr; break;
+            case 2 : SourceRad = SourceSize+SourceSizeErr; break;
+            default : SourceRad = SourceSize; break;
+        }
+
+        double lam_pL[5];
+        double lam_pXim[5];
+
+        int WhichProtonVar = rangen.Integer(3);
+        if(DefaultVariation) WhichProtonVar = 0;
+        int WhichLambdaVar = rangen.Integer(3);
+//WhichProtonVar=0;
+//WhichLambdaVar=0;
+        if(DefaultVariation) WhichLambdaVar = 0;
+        AnalysisObject.SetUpLambdaPars_pL(DataSample,WhichProtonVar,WhichLambdaVar,lam_pL);
+        AnalysisObject.SetUpLambdaPars_pXim(DataSample,0,0,lam_pXim);
+
+
+        DLM_CkDecomposition CkDec_pL("pLambda",4,*Ck_pL,hResolution_pL);
+        DLM_CkDecomposition CkDec_pSigma0("pSigma0",0,*Ck_pSigma0,NULL);
+        DLM_CkDecomposition CkDec_pXim("pXim",2,*Ck_pXim,NULL);
+
+        //CkDec_pL.AddContribution(0,lam_pL[1],DLM_CkDecomposition::cFeedDown,&CkDec_pSigma0,hResidual_pL_pSigma0);
+        //CkDec_pL.AddContribution(1,lam_pL[2],DLM_CkDecomposition::cFeedDown,&CkDec_pXim,hResidual_pL_pXim);
+        CkDec_pL.AddContribution(0,lam_pL[1],DLM_CkDecomposition::cFeedDown);
+        CkDec_pL.AddContribution(1,lam_pL[2],DLM_CkDecomposition::cFeedDown);
+        CkDec_pL.AddContribution(2,lam_pL[3],DLM_CkDecomposition::cFeedDown);
+        CkDec_pL.AddContribution(3,lam_pL[4],DLM_CkDecomposition::cFake);//0.03
+
+        //for Xim we simplify a bit and take ALL feed-down as flat
+        CkDec_pXim.AddContribution(0,lam_pXim[1]+lam_pXim[2]+lam_pXim[3],DLM_CkDecomposition::cFeedDown);
+        CkDec_pXim.AddContribution(1,lam_pXim[4],DLM_CkDecomposition::cFake);
+
+        CkDec_pL.Update();
+
+        unsigned WhichData = rangen.Integer(45);
+        if(DefaultVariation) WhichData = 0;
+//WhichData = 0;
+        TString DataVar = TString::Format("_%i",WhichData);
+        //TH1F* hData_pL = AnalysisObject.GetAliceExpCorrFun(DataSample,"pLambda","_0",1,false,-1);
+        TH1F* hData_pL = AnalysisObject.GetAliceExpCorrFun(DataSample,"pLambda",DataVar,2,false,-1);
+        if(!DefaultDataSaved){
+            OutputFile->cd();
+            TH1F *histoCopy = (TH1F*)hData_pL->Clone("hData");
+            histoCopy->Write();
+            delete histoCopy;
+            DefaultDataSaved = true;
+        }
+
+        pLambda_1_Dec = &CkDec_pL;
+        pLambda_1_Cat = &AB_pL;
+
+        //parameters:
+        //[0] = source size
+        //[1] = source alpha
+        //[2] = cusp strength
+        //[3] = Ck convergence point
+        //baseline of the type: []*(1+[]*exp([mean],[sigma]))*(1+[]*x+[]*x*x+[]*x*x*x)
+        //the par in-front of x^3 is defined such as to represent the k* value at which the pol3 has an extrema
+        //[4] = norm
+        //[5],[6],[7] GAUSS
+        //[8],[9],[10] POL
+        TF1* fit_pL = new TF1("fit_pL",dimi_pL_Schleching_Fitter,FitRegion_pL[0],FitRegion_pL[3],11);
+
+        //source
+        if(WhichSourceRad!=3){
+            fit_pL->FixParameter(0,SourceRad);
+        }
+        else{
+            fit_pL->SetParameter(0,SourceRad);
+            fit_pL->SetParLimits(0,SourceRad*0.8,SourceRad*1.2);
+        }
+        fit_pL->FixParameter(1,2.0);
+
+        //cusp
+        if(WhichCuspStrength==3){
+            fit_pL->SetParameter(2,CUSP_WEIGHT);
+            fit_pL->SetParLimits(2,0,1.);
+        }
+        else fit_pL->FixParameter(2,CUSP_WEIGHT);
+
+        //cutoff
+        fit_pL->FixParameter(3,600);
+
+        //norm
+        fit_pL->SetParameter(4,1);
+
+        //gauss and pol
+        if(WhichBl!=4){
+            //gauss
+            fit_pL->FixParameter(5,0);
+            fit_pL->FixParameter(6,0);
+            fit_pL->FixParameter(7,300);
+
+            //pol
+            fit_pL->SetParameter(8,0);
+            fit_pL->SetParLimits(8,-0.01,0.01);
+            if(WhichBl==3) fit_pL->FixParameter(8,0);
+            fit_pL->SetParameter(9,-2.75e-7);
+            fit_pL->SetParameter(10,250);
+            fit_pL->SetParLimits(10,150,350);
+            if(WhichBl<=2) fit_pL->FixParameter(10,1e9);
+            if(WhichBl<=1) fit_pL->FixParameter(9,0);
+            if(WhichBl<=0) fit_pL->FixParameter(8,0);
+        }
+        else{
+            //gauss
+            fit_pL->SetParameter(5,0.05);
+            fit_pL->FixParameter(6,0);
+            fit_pL->SetParameter(7,300);
+            fit_pL->SetParLimits(7,100,500);
+
+            //pol
+            fit_pL->FixParameter(8,0);
+            fit_pL->FixParameter(9,0);
+            fit_pL->FixParameter(10,300);
+        }
+        hData_pL->Fit(fit_pL,"Q, S, N, R, M");
+        fit_pL->SetNpx(1024);
+
+        TF1* fit_pL_Bl = new TF1("fit_pL_Bl",dimi_pL_Schleching_FitterBl,FitRegion_pL[0],FitRegion_pL[3],7);
+        for(unsigned uPar=0; uPar<7; uPar++) fit_pL_Bl->FixParameter(uPar,fit_pL->GetParameter(4+uPar));
+
+        for(unsigned uBin=0; uBin<NumBinsCk; uBin++){
+            if(Ck_pL->GetBinCenter(0,uBin)>FitRegion_pL[3]) continue;
+            //if(Ck_pL->GetBinCenter(0,uBin)>430){
+            //    printf("b = %u\n",uBin);
+            //    printf("bc = %f\n",Ck_pL->GetBinCenter(0,uBin));
+            //    printf("fr = %f\n",FitRegion_pL[3]);
+            //}
+
+            Fit_Mean[WhichBl][uBin] += fit_pL->Eval(Ck_pL->GetBinCenter(0,uBin));
+            Fit_Stdv[WhichBl][uBin] += fit_pL->Eval(Ck_pL->GetBinCenter(0,uBin))*fit_pL->Eval(Ck_pL->GetBinCenter(0,uBin));
+            if(Fit_Min[WhichBl][uBin]>fit_pL->Eval(Ck_pL->GetBinCenter(0,uBin)))
+                Fit_Min[WhichBl][uBin] = fit_pL->Eval(Ck_pL->GetBinCenter(0,uBin));
+            if(Fit_Max[WhichBl][uBin]<fit_pL->Eval(Ck_pL->GetBinCenter(0,uBin)))
+                Fit_Max[WhichBl][uBin] = fit_pL->Eval(Ck_pL->GetBinCenter(0,uBin));
+            Fit_Entries[WhichBl][uBin] ++;
+
+            Bl_Mean[WhichBl][uBin] += fit_pL_Bl->Eval(Ck_pL->GetBinCenter(0,uBin));
+            Bl_Stdv[WhichBl][uBin] += fit_pL_Bl->Eval(Ck_pL->GetBinCenter(0,uBin))*fit_pL_Bl->Eval(Ck_pL->GetBinCenter(0,uBin));
+            if(Bl_Min[WhichBl][uBin]>fit_pL->Eval(Ck_pL->GetBinCenter(0,uBin)))
+                Bl_Min[WhichBl][uBin] = fit_pL->Eval(Ck_pL->GetBinCenter(0,uBin));
+            if(Bl_Max[WhichBl][uBin]<fit_pL->Eval(Ck_pL->GetBinCenter(0,uBin)))
+                Bl_Max[WhichBl][uBin] = fit_pL->Eval(Ck_pL->GetBinCenter(0,uBin));
+
+            if(Ratio_Min[WhichBl][uBin]>hData_pL->GetBinContent(uBin+1)/fit_pL->Eval(Ck_pL->GetBinCenter(0,uBin)))
+                Ratio_Min[WhichBl][uBin] = hData_pL->GetBinContent(uBin+1)/fit_pL->Eval(Ck_pL->GetBinCenter(0,uBin));
+            if(Ratio_Max[WhichBl][uBin]<hData_pL->GetBinContent(uBin+1)/fit_pL->Eval(Ck_pL->GetBinCenter(0,uBin)))
+                Ratio_Max[WhichBl][uBin] = hData_pL->GetBinContent(uBin+1)/fit_pL->Eval(Ck_pL->GetBinCenter(0,uBin));
+
+
+            Fit_Mean[NumBlTypes][uBin] += fit_pL->Eval(Ck_pL->GetBinCenter(0,uBin));
+            Fit_Stdv[NumBlTypes][uBin] += fit_pL->Eval(Ck_pL->GetBinCenter(0,uBin))*fit_pL->Eval(Ck_pL->GetBinCenter(0,uBin));
+            if(Fit_Min[NumBlTypes][uBin]>fit_pL->Eval(Ck_pL->GetBinCenter(0,uBin)))
+                Fit_Min[NumBlTypes][uBin] = fit_pL->Eval(Ck_pL->GetBinCenter(0,uBin));
+            if(Fit_Max[NumBlTypes][uBin]<fit_pL->Eval(Ck_pL->GetBinCenter(0,uBin)))
+                Fit_Max[NumBlTypes][uBin] = fit_pL->Eval(Ck_pL->GetBinCenter(0,uBin));
+            Fit_Entries[NumBlTypes][uBin] ++;
+
+            Bl_Mean[NumBlTypes][uBin] += fit_pL_Bl->Eval(Ck_pL->GetBinCenter(0,uBin));
+            Bl_Stdv[NumBlTypes][uBin] += fit_pL_Bl->Eval(Ck_pL->GetBinCenter(0,uBin))*fit_pL_Bl->Eval(Ck_pL->GetBinCenter(0,uBin));
+            if(Bl_Min[NumBlTypes][uBin]>fit_pL->Eval(Ck_pL->GetBinCenter(0,uBin)))
+                Bl_Min[NumBlTypes][uBin] = fit_pL->Eval(Ck_pL->GetBinCenter(0,uBin));
+            if(Bl_Max[NumBlTypes][uBin]<fit_pL->Eval(Ck_pL->GetBinCenter(0,uBin)))
+                Bl_Max[NumBlTypes][uBin] = fit_pL->Eval(Ck_pL->GetBinCenter(0,uBin));
+            if(Ratio_Min[NumBlTypes][uBin]>hData_pL->GetBinContent(uBin+1)/fit_pL->Eval(Ck_pL->GetBinCenter(0,uBin)))
+                Ratio_Min[NumBlTypes][uBin] = hData_pL->GetBinContent(uBin+1)/fit_pL->Eval(Ck_pL->GetBinCenter(0,uBin));
+            if(Ratio_Max[NumBlTypes][uBin]<hData_pL->GetBinContent(uBin+1)/fit_pL->Eval(Ck_pL->GetBinCenter(0,uBin)))
+                Ratio_Max[NumBlTypes][uBin] = hData_pL->GetBinContent(uBin+1)/fit_pL->Eval(Ck_pL->GetBinCenter(0,uBin));
+
+
+        }
+
+        hnSigma[WhichBl]->Fill(sqrt(2)*TMath::ErfcInverse(fit_pL->GetProb()));
+        hnSigma[NumBlTypes]->Fill(sqrt(2)*TMath::ErfcInverse(fit_pL->GetProb()));
+
+        hRadius[WhichBl]->Fill(fit_pL->GetParameter(0));
+        hRadius[NumBlTypes]->Fill(fit_pL->GetParameter(0));
+
+        hCS[WhichBl]->Fill(fit_pL->GetParameter(2));
+        hCS[NumBlTypes]->Fill(fit_pL->GetParameter(2));
+
+        OutputFile->cd();
+
+        //hData_pL->Write();
+        //fit_pL->Write();
+        //fit_pL_Bl->Write();
+
+        Float_t* buffer = new Float_t [16];
+        buffer[0] = fit_pL->GetParameter(0);
+        buffer[1] = fit_pL->GetParameter(1);
+        buffer[2] = fit_pL->GetParameter(2);
+        buffer[3] = fit_pL->GetParameter(3);
+        buffer[4] = fit_pL->GetParameter(4);
+        buffer[5] = fit_pL->GetParameter(5);
+        buffer[6] = fit_pL->GetParameter(6);
+        buffer[7] = fit_pL->GetParameter(7);
+        buffer[8] = fit_pL->GetParameter(8);
+        buffer[9] = fit_pL->GetParameter(9);
+        buffer[10] = fit_pL->GetParameter(10);
+        buffer[11] = WhichBl;
+        buffer[12] = WhichFemtoRange;
+        buffer[13] = WhichFitRange;
+        buffer[14] = WhichData;
+        buffer[15] = fit_pL->GetProb();
+
+        ntResult->Fill(buffer);
+
+        delete fit_pL;
+        delete fit_pL_Bl;
+
+        CompletedVars[WhichBl]++;
+        Progress++;
+        WHILE_CONDITON = false;
+        for(unsigned uBl=0; uBl<NumBlTypes; uBl++){
+            WHILE_CONDITON += (CompletedVars[uBl]<NumVars_PerBL&&blType[uBl]);
+        }
+
+        delete [] buffer;
+    }
+printf("\n");
+
+    for(unsigned uBl=0; uBl<=NumBlTypes; uBl++){
+        for(unsigned uBin=0; uBin<NumBinsCk; uBin++){
+            if(Fit_Entries[uBl][uBin]){
+                Fit_Mean[uBl][uBin] /= double(Fit_Entries[uBl][uBin]);
+                Fit_Stdv[uBl][uBin] /= double(Fit_Entries[uBl][uBin]);
+                Bl_Mean[uBl][uBin] /= double(Fit_Entries[uBl][uBin]);
+                Bl_Stdv[uBl][uBin] /= double(Fit_Entries[uBl][uBin]);
+            }
+        }
+    }
+
+    OutputFile->cd();
+    //ntResult->Write("",TObject::kOverwrite);
+    ntResult->Write();
+
+    TGraphErrors* graph_Fit = new TGraphErrors[NumBlTypes+1];
+    TGraphErrors* graph_Bl = new TGraphErrors[NumBlTypes+1];
+
+    TGraphErrors* graph_FitMAX = new TGraphErrors[NumBlTypes+1];
+    TGraphErrors* graph_BlMAX = new TGraphErrors[NumBlTypes+1];
+    TGraphErrors* graph_RatioMAX = new TGraphErrors[NumBlTypes+1];
+
+
+    for(unsigned uBl=0; uBl<=NumBlTypes; uBl++){
+        if(uBl<NumBlTypes){
+            graph_Fit[uBl].SetName(TString::Format("graph_Fit_%u",uBl));
+            graph_Bl[uBl].SetName(TString::Format("graph_Bl_%u",uBl));
+            graph_FitMAX[uBl].SetName(TString::Format("graph_FitMAX_%u",uBl));
+            graph_BlMAX[uBl].SetName(TString::Format("graph_BlMAX_%u",uBl));
+            graph_RatioMAX[uBl].SetName(TString::Format("graph_RatioMAX_%u",uBl));
+        }
+        else{
+            graph_Fit[uBl].SetName(TString::Format("graph_Fit"));
+            graph_Bl[uBl].SetName(TString::Format("graph_Bl"));
+            graph_FitMAX[uBl].SetName(TString::Format("graph_FitMAX"));
+            graph_BlMAX[uBl].SetName(TString::Format("graph_BlMAX"));
+            graph_RatioMAX[uBl].SetName(TString::Format("graph_RatioMAX"));
+        }
+        for(unsigned uBin=0; uBin<NumBinsCk; uBin++){
+            graph_Fit[uBl].SetPoint(uBin,Ck_pL->GetBinCenter(0,uBin),Fit_Mean[uBl][uBin]);
+            graph_Fit[uBl].SetPointError(uBin,0,sqrt(Fit_Stdv[uBl][uBin]-Fit_Mean[uBl][uBin]*Fit_Mean[uBl][uBin]));
+
+            graph_Bl[uBl].SetPoint(uBin,Ck_pL->GetBinCenter(0,uBin),Bl_Mean[uBl][uBin]);
+            graph_Bl[uBl].SetPointError(uBin,0,sqrt(Bl_Stdv[uBl][uBin]-Bl_Mean[uBl][uBin]*Bl_Mean[uBl][uBin]));
+
+            graph_FitMAX[uBl].SetPoint(uBin,Ck_pL->GetBinCenter(0,uBin),(Fit_Max[uBl][uBin]+Fit_Min[uBl][uBin])*0.5);
+            graph_FitMAX[uBl].SetPointError(uBin,0,(Fit_Max[uBl][uBin]-Fit_Min[uBl][uBin])*0.5);
+
+            graph_BlMAX[uBl].SetPoint(uBin,Ck_pL->GetBinCenter(0,uBin),(Bl_Max[uBl][uBin]+Bl_Min[uBl][uBin])*0.5);
+            graph_BlMAX[uBl].SetPointError(uBin,0,(Bl_Max[uBl][uBin]-Bl_Min[uBl][uBin])*0.5);
+
+            graph_RatioMAX[uBl].SetPoint(uBin,Ck_pL->GetBinCenter(0,uBin),(Ratio_Max[uBl][uBin]+Ratio_Min[uBl][uBin])*0.5);
+            graph_RatioMAX[uBl].SetPointError(uBin,0,(Ratio_Max[uBl][uBin]-Ratio_Min[uBl][uBin])*0.5);
+        }
+        graph_Fit[uBl].Write();
+        graph_Bl[uBl].Write();
+        graph_FitMAX[uBl].Write();
+        graph_BlMAX[uBl].Write();
+        graph_RatioMAX[uBl].Write();
+        hnSigma[uBl]->Write();
+        hRadius[uBl]->Write();
+        hCS[uBl]->Write();
+    }
+
+
+    for(unsigned uBl=0; uBl<=NumBlTypes; uBl++){
+        delete [] Fit_Mean[uBl];
+        delete [] Fit_Stdv[uBl];
+        delete [] Bl_Mean[uBl];
+        delete [] Bl_Stdv[uBl];
+        delete [] Fit_Min[uBl];
+        delete [] Fit_Max[uBl];
+        delete [] Bl_Min[uBl];
+        delete [] Bl_Max[uBl];
+        delete [] Ratio_Min[uBl];
+        delete [] Ratio_Max[uBl];
+
+        delete hnSigma[uBl];
+        delete hRadius[uBl];
+        delete hCS[uBl];
+    }
+
+    delete [] Fit_Mean;
+    delete [] Fit_Stdv;
+    delete [] Bl_Mean;
+    delete [] Bl_Stdv;
+    delete [] Fit_Min;
+    delete [] Fit_Max;
+    delete [] Bl_Min;
+    delete [] Bl_Max;
+    delete [] Ratio_Min;
+    delete [] Ratio_Max;
+
+
+    delete [] hnSigma;
+    delete [] hRadius;
+    delete [] hCS;
+
+    delete Ck_pSigma0;
+    delete Ck_pL;
+    delete Ck_pXim;
+    delete OutputFile;
+
+}
+void pL_SchlechingPlots(const TString InputFileName){
+
+    const bool DataOnly = false;
+
+    const unsigned NumBlTypes = 5;
+    enum BLTYPE { pol0,pol1,pol2,pol3,gaus };
+
+    //bool blType[NumBlTypes];
+    //blType[pol0] = true;
+    //blType[pol1] = true;
+    //blType[pol2] = true;
+    //blType[pol3] = true;
+    //blType[gaus] = true;
+
+    double ResidualSourceSizeSigma0=1.25;
+    double ResidualSourceSizeXi=1.0;
+
+    //TRandom3 rangen(SEED);
+
+    TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SchlechingPlots/";
+    //TString OutFileName = "OutputFile.root";
+    //TFile* OutputFile = new TFile(OutputFolder+OutFileName,"recreate");
+
+    double* MomBins_pL = NULL;
+    double* FitRegion_pL = NULL;
+    const unsigned NumBinsCk = 45; // for dlm_ck
+    const double BinWidthCk = 12;
+    const double MaxBinValCk = double(NumBinsCk)*BinWidthCk;
+    unsigned NumMomBins_pL = 30;// for CATS
+    const double MaxBinValCats = double(NumMomBins_pL)*BinWidthCk;
+    unsigned uDummy;
+
+    float** Fit_Min = new float* [NumBlTypes+1];
+    float** Fit_Max = new float* [NumBlTypes+1];
+    unsigned** Fit_Entries = new unsigned* [NumBlTypes+1];
+    float** Bl_Min = new float* [NumBlTypes+1];
+    float** Bl_Max = new float* [NumBlTypes+1];
+
+    float** nSigma_Min = new float* [NumBlTypes+1];
+    float** nSigma_Max = new float* [NumBlTypes+1];
+
+    float* nSigma_Best = new float [NumBlTypes+1];
+    float* nSigma_Worst = new float [NumBlTypes+1];
+
+    for(unsigned uBl=0; uBl<=NumBlTypes; uBl++){
+        Fit_Min[uBl] = new float [NumBinsCk];
+        Fit_Max[uBl] = new float [NumBinsCk];
+        Bl_Min[uBl] = new float [NumBinsCk];
+        Bl_Max[uBl] = new float [NumBinsCk];
+        nSigma_Min[uBl] = new float [NumBinsCk];
+        nSigma_Max[uBl] = new float [NumBinsCk];
+        Fit_Entries[uBl] = new unsigned [NumBinsCk];
+        for(unsigned uBin=0; uBin<NumBinsCk; uBin++){
+            Fit_Min[uBl][uBin] = 10000;
+            Fit_Max[uBl][uBin] = 0;
+            Bl_Min[uBl][uBin] = 10000;
+            Bl_Max[uBl][uBin] = 0;
+            nSigma_Min[uBl][uBin] = 10000;
+            nSigma_Max[uBl][uBin] = 0;
+            Fit_Entries[uBl][uBin] = 0;
+        }
+        nSigma_Best[uBl] = 10000;
+        nSigma_Worst[uBl] = 0;
+    }
+
+    TString DataSample = "pp13TeV_HM_Dec19";
+    DLM_CommonAnaFunctions AnalysisObject;
+    AnalysisObject.SetUpBinning_pL(DataSample,uDummy,MomBins_pL,FitRegion_pL,0,0);
+
+    DLM_Ck* Ck_pSigma0 = new DLM_Ck(1,0,NumBinsCk,0,MaxBinValCk,Lednicky_gauss_Sigma0);
+    Ck_pSigma0->SetSourcePar(0,ResidualSourceSizeSigma0);
+
+    TH2F* hResolution_pL = AnalysisObject.GetResolutionMatrix(DataSample,"pLambda");
+    TH2F* hResidual_pL_pSigma0 = AnalysisObject.GetResidualMatrix("pLambda","pSigma0");
+    TH2F* hResidual_pL_pXim = AnalysisObject.GetResidualMatrix("pLambda","pXim");
+
+    double lam_pL[5];
+    double lam_pXim[5];
+
+    AnalysisObject.SetUpLambdaPars_pL(DataSample,0,0,lam_pL);
+    AnalysisObject.SetUpLambdaPars_pXim(DataSample,0,0,lam_pXim);
+
+    TString SourceDescription = "McGauss_ResoTM";
+
+    CATS AB_pL;
+    DLM_Ck* Ck_pL;
+    AB_pL.SetMomBins(NumMomBins_pL,0,MaxBinValCats);
+    AnalysisObject.SetUpCats_pL(AB_pL,"NLO_Coupled_SPD",SourceDescription,0,202);//NLO_Coupled_S
+
+    double CUSP_WEIGHT = 0.33;//0.54
+    AB_pL.SetChannelWeight(7,1./4.*CUSP_WEIGHT);//1S0 SN(s) -> LN(s)
+    AB_pL.SetChannelWeight(8,3./4.*CUSP_WEIGHT);//3S1 SN(s) -> LN(s)
+    AB_pL.SetChannelWeight(10,3./4.*CUSP_WEIGHT);//3S1 SN(d) -> LN(s)
+    AB_pL.SetChannelWeight(13,3./20.*CUSP_WEIGHT);//3D1 SN(d) -> LN(d)
+    AB_pL.SetChannelWeight(15,3./20.*CUSP_WEIGHT);//3D1 SN(s) -> LN(d)
+
+    AB_pL.SetAnaSource(0,1.4);
+    if(SourceDescription.Contains("Mc")){
+        AB_pL.SetAnaSource(0,1.10);//c.a. 10% smaller compared to p-p due to the mT scaling
+        AB_pL.SetAnaSource(1,2.0);
+    }
+    AB_pL.SetNotifications(CATS::nError);
+    AB_pL.KillTheCat();
+    Ck_pL = new DLM_Ck(AB_pL.GetNumSourcePars(),0,AB_pL,NumBinsCk,0,MaxBinValCk);
+    Ck_pL->SetSourcePar(0,AB_pL.GetAnaSourcePar(0));
+    if(SourceDescription.Contains("Mc")){
+        Ck_pL->SetSourcePar(0,AB_pL.GetAnaSourcePar(0));
+        Ck_pL->SetSourcePar(1,AB_pL.GetAnaSourcePar(1));
+    }
+    Ck_pL->SetCutOff(340,600);
+
+    CATS AB_pXim;
+    //same binning as pL, as we only use pXim as feed-down
+    AB_pXim.SetMomBins(NumMomBins_pL,0,MaxBinValCats);
+    AnalysisObject.SetUpCats_pXim(AB_pXim,"pXim_HALQCD1","Gauss");
+    AB_pXim.SetAnaSource(0,ResidualSourceSizeXi);
+    AB_pXim.SetNotifications(CATS::nError);
+    AB_pXim.KillTheCat();
+    DLM_Ck* Ck_pXim = new DLM_Ck(AB_pXim.GetNumSourcePars(),0,AB_pXim,NumBinsCk,0,MaxBinValCk);
+    Ck_pL->Update();
+    Ck_pSigma0->Update();
+    Ck_pXim->Update();
+
+    unsigned Progress = 0;
+
+    Float_t SourceSize,SourceAlpha,CuspStrength,CkConv,Norm,GaussAmpl,GaussMu,GaussSig,p1,p2,p3;
+    Float_t fWhichBl,fWhichFemtoRange,fWhichFitRange,fWhichData,pval;
+    unsigned WhichBl,WhichFemtoRange,WhichFitRange,WhichData;
+
+    TFile* InputFile = new TFile(InputFileName,"read");
+    TNtuple* ntResult = (TNtuple*)InputFile->Get("ntResult");
+
+    ntResult->SetBranchAddress("SourceSize",&SourceSize);
+    ntResult->SetBranchAddress("SourceAlpha",&SourceAlpha);
+    ntResult->SetBranchAddress("CuspStrength",&CuspStrength);
+    ntResult->SetBranchAddress("CkConv",&CkConv);
+    ntResult->SetBranchAddress("Norm",&Norm);
+    ntResult->SetBranchAddress("GaussAmpl",&GaussAmpl);
+    ntResult->SetBranchAddress("GaussMu",&GaussMu);
+    ntResult->SetBranchAddress("GaussSig",&GaussSig);
+    ntResult->SetBranchAddress("p1",&p1);
+    ntResult->SetBranchAddress("p2",&p2);
+    ntResult->SetBranchAddress("p3",&p3);
+    ntResult->SetBranchAddress("WhichBl",&fWhichBl);
+    ntResult->SetBranchAddress("WhichFemtoRange",&fWhichFemtoRange);
+    ntResult->SetBranchAddress("WhichFitRange",&fWhichFitRange);
+    ntResult->SetBranchAddress("WhichData",&fWhichData);
+    ntResult->SetBranchAddress("pval",&pval);
+
+    unsigned NumEntries = ntResult->GetEntries();
+
+    TH1F* hData_pL_Stat;
+
+    for(unsigned uEntry=0; uEntry<NumEntries; uEntry++){
+
+        ntResult->GetEntry(uEntry);
+
+        const unsigned WhichBl = TMath::Nint(fWhichBl);
+
+//if(WhichBl==3) continue;
+
+//printf("WhichBl=%u (%f)\n",WhichBl,fWhichBl);
+        printf("\r\033[K Progress=%u",Progress);
+        cout << flush;
+
+        unsigned WhichFemtoRange = TMath::Nint(fWhichFemtoRange);
+
+        unsigned WhichFitRange = TMath::Nint(fWhichFitRange);
+        AnalysisObject.SetUpBinning_pL(DataSample,uDummy,MomBins_pL,FitRegion_pL,WhichFemtoRange,WhichFitRange);
+
+        //the cusp strength
+        //0 is 33%
+        //1 is 27% (20% lower, kind of compatible with experiment)
+        //2 is 40% (20% larger)
+        //3 is free fit
+        CUSP_WEIGHT = CuspStrength;
+        //double SourceRad = SourceSize;
+
+        DLM_CkDecomposition CkDec_pL("pLambda",4,*Ck_pL,hResolution_pL);
+        DLM_CkDecomposition CkDec_pSigma0("pSigma0",0,*Ck_pSigma0,NULL);
+        DLM_CkDecomposition CkDec_pXim("pXim",2,*Ck_pXim,NULL);
+
+        //CkDec_pL.AddContribution(0,lam_pL[1],DLM_CkDecomposition::cFeedDown,&CkDec_pSigma0,hResidual_pL_pSigma0);
+        //CkDec_pL.AddContribution(1,lam_pL[2],DLM_CkDecomposition::cFeedDown,&CkDec_pXim,hResidual_pL_pXim);
+        CkDec_pL.AddContribution(0,lam_pL[1],DLM_CkDecomposition::cFeedDown);
+        CkDec_pL.AddContribution(1,lam_pL[2],DLM_CkDecomposition::cFeedDown);
+        CkDec_pL.AddContribution(2,lam_pL[3],DLM_CkDecomposition::cFeedDown);
+        CkDec_pL.AddContribution(3,lam_pL[4],DLM_CkDecomposition::cFake);//0.03
+
+        //for Xim we simplify a bit and take ALL feed-down as flat
+        CkDec_pXim.AddContribution(0,lam_pXim[1]+lam_pXim[2]+lam_pXim[3],DLM_CkDecomposition::cFeedDown);
+        CkDec_pXim.AddContribution(1,lam_pXim[4],DLM_CkDecomposition::cFake);
+
+        CkDec_pL.Update();
+
+        unsigned WhichData = TMath::Nint(fWhichData);
+        TString DataVar = TString::Format("_%i",WhichData);
+        //TH1F* hData_pL = AnalysisObject.GetAliceExpCorrFun(DataSample,"pLambda","_0",1,false,-1);
+        TH1F* hData_pL = AnalysisObject.GetAliceExpCorrFun(DataSample,"pLambda",DataVar,2,false,-1);
+
+        pLambda_1_Dec = &CkDec_pL;
+        pLambda_1_Cat = &AB_pL;
+
+        //parameters:
+        //[0] = source size
+        //[1] = source alpha
+        //[2] = cusp strength
+        //[3] = Ck convergence point
+        //baseline of the type: []*(1+[]*exp([mean],[sigma]))*(1+[]*x+[]*x*x+[]*x*x*x)
+        //the par in-front of x^3 is defined such as to represent the k* value at which the pol3 has an extrema
+        //[4] = norm
+        //[5],[6],[7] GAUSS
+        //[8],[9],[10] POL
+        TF1* fit_pL = new TF1("fit_pL",dimi_pL_Schleching_Fitter,FitRegion_pL[0],FitRegion_pL[3],11);
+
+        fit_pL->FixParameter(0,SourceSize);
+        fit_pL->FixParameter(1,SourceAlpha);
+        fit_pL->FixParameter(2,CuspStrength);
+        fit_pL->FixParameter(3,CkConv);
+        fit_pL->FixParameter(4,Norm);
+        fit_pL->FixParameter(5,GaussAmpl);
+        fit_pL->FixParameter(6,GaussMu);
+        fit_pL->FixParameter(7,GaussSig);
+        fit_pL->FixParameter(8,p1);
+        fit_pL->FixParameter(9,p2);
+        fit_pL->FixParameter(10,p3);
+
+        hData_pL->Fit(fit_pL,"Q, S, N, R, M");
+        fit_pL->SetNpx(1024);
+
+        TF1* fit_pL_Bl = new TF1("fit_pL_Bl",dimi_pL_Schleching_FitterBl,FitRegion_pL[0],FitRegion_pL[3],7);
+        for(unsigned uPar=0; uPar<7; uPar++) fit_pL_Bl->FixParameter(uPar,fit_pL->GetParameter(4+uPar));
+
+        if(nSigma_Best[WhichBl]>fabs(sqrt(2)*TMath::ErfcInverse(pval))&&fabs(sqrt(2)*TMath::ErfcInverse(pval))>1e-6)
+            nSigma_Best[WhichBl] = fabs(sqrt(2)*TMath::ErfcInverse(pval));
+        if(nSigma_Worst[WhichBl]<fabs(sqrt(2)*TMath::ErfcInverse(pval)))
+            nSigma_Worst[WhichBl] = fabs(sqrt(2)*TMath::ErfcInverse(pval));
+
+        if(nSigma_Best[NumBlTypes]>fabs(sqrt(2)*TMath::ErfcInverse(pval))&&fabs(sqrt(2)*TMath::ErfcInverse(pval))>1e-6)
+            nSigma_Best[NumBlTypes] = fabs(sqrt(2)*TMath::ErfcInverse(pval));
+        if(nSigma_Worst[NumBlTypes]<fabs(sqrt(2)*TMath::ErfcInverse(pval)))
+            nSigma_Worst[NumBlTypes] = fabs(sqrt(2)*TMath::ErfcInverse(pval));
+
+        for(unsigned uBin=0; uBin<NumBinsCk; uBin++){
+            if(Ck_pL->GetBinCenter(0,uBin)>FitRegion_pL[3]) continue;
+
+            if(Fit_Min[WhichBl][uBin]>fit_pL->Eval(Ck_pL->GetBinCenter(0,uBin)))
+                Fit_Min[WhichBl][uBin] = fit_pL->Eval(Ck_pL->GetBinCenter(0,uBin));
+            if(Fit_Max[WhichBl][uBin]<fit_pL->Eval(Ck_pL->GetBinCenter(0,uBin)))
+                Fit_Max[WhichBl][uBin] = fit_pL->Eval(Ck_pL->GetBinCenter(0,uBin));
+            Fit_Entries[WhichBl][uBin] ++;
+
+            if(Bl_Min[WhichBl][uBin]>fit_pL_Bl->Eval(Ck_pL->GetBinCenter(0,uBin)))
+                Bl_Min[WhichBl][uBin] = fit_pL_Bl->Eval(Ck_pL->GetBinCenter(0,uBin));
+            if(Bl_Max[WhichBl][uBin]<fit_pL_Bl->Eval(Ck_pL->GetBinCenter(0,uBin)))
+                Bl_Max[WhichBl][uBin] = fit_pL_Bl->Eval(Ck_pL->GetBinCenter(0,uBin));
+
+            if(nSigma_Min[WhichBl][uBin]>(fit_pL->Eval(Ck_pL->GetBinCenter(0,uBin))-hData_pL->GetBinContent(uBin+1))/hData_pL->GetBinError(uBin+1))
+                nSigma_Min[WhichBl][uBin] = (fit_pL->Eval(Ck_pL->GetBinCenter(0,uBin))-hData_pL->GetBinContent(uBin+1))/hData_pL->GetBinError(uBin+1);
+            if(nSigma_Max[WhichBl][uBin]<(fit_pL->Eval(Ck_pL->GetBinCenter(0,uBin))-hData_pL->GetBinContent(uBin+1))/hData_pL->GetBinError(uBin+1))
+                nSigma_Max[WhichBl][uBin] = (fit_pL->Eval(Ck_pL->GetBinCenter(0,uBin))-hData_pL->GetBinContent(uBin+1))/hData_pL->GetBinError(uBin+1);
+
+
+            if(Fit_Min[NumBlTypes][uBin]>fit_pL->Eval(Ck_pL->GetBinCenter(0,uBin)))
+                Fit_Min[NumBlTypes][uBin] = fit_pL->Eval(Ck_pL->GetBinCenter(0,uBin));
+            if(Fit_Max[NumBlTypes][uBin]<fit_pL->Eval(Ck_pL->GetBinCenter(0,uBin)))
+                Fit_Max[NumBlTypes][uBin] = fit_pL->Eval(Ck_pL->GetBinCenter(0,uBin));
+            Fit_Entries[NumBlTypes][uBin] ++;
+
+            if(Bl_Min[NumBlTypes][uBin]>fit_pL_Bl->Eval(Ck_pL->GetBinCenter(0,uBin)))
+                Bl_Min[NumBlTypes][uBin] = fit_pL_Bl->Eval(Ck_pL->GetBinCenter(0,uBin));
+            if(Bl_Max[NumBlTypes][uBin]<fit_pL_Bl->Eval(Ck_pL->GetBinCenter(0,uBin)))
+                Bl_Max[NumBlTypes][uBin] = fit_pL_Bl->Eval(Ck_pL->GetBinCenter(0,uBin));
+            if(nSigma_Min[NumBlTypes][uBin]>(fit_pL->Eval(Ck_pL->GetBinCenter(0,uBin))-hData_pL->GetBinContent(uBin+1))/hData_pL->GetBinError(uBin+1))
+                nSigma_Min[NumBlTypes][uBin] = (fit_pL->Eval(Ck_pL->GetBinCenter(0,uBin))-hData_pL->GetBinContent(uBin+1))/hData_pL->GetBinError(uBin+1);
+            if(nSigma_Max[NumBlTypes][uBin]<(fit_pL->Eval(Ck_pL->GetBinCenter(0,uBin))-hData_pL->GetBinContent(uBin+1))/hData_pL->GetBinError(uBin+1))
+                nSigma_Max[NumBlTypes][uBin] = (fit_pL->Eval(Ck_pL->GetBinCenter(0,uBin))-hData_pL->GetBinContent(uBin+1))/hData_pL->GetBinError(uBin+1);
+
+        }
+
+        delete fit_pL;
+        delete fit_pL_Bl;
+
+
+        Progress++;
+
+    }
+printf("\n");
+
+        TGraphErrors* graph_FitMAX = new TGraphErrors[NumBlTypes+1];
+        TGraphErrors* graph_BlMAX = new TGraphErrors[NumBlTypes+1];
+        TGraphErrors* graph_nSigmaMAX = new TGraphErrors[NumBlTypes+1];
+
+        for(unsigned uBl=0; uBl<=NumBlTypes; uBl++){
+            if(uBl<NumBlTypes){
+                graph_FitMAX[uBl].SetName(TString::Format("graph_FitMAX_%u",uBl));
+                graph_BlMAX[uBl].SetName(TString::Format("graph_BlMAX_%u",uBl));
+                graph_nSigmaMAX[uBl].SetName(TString::Format("graph_nSigmaMAX_%u",uBl));
+            }
+            else{
+                graph_FitMAX[uBl].SetName(TString::Format("graph_FitMAX"));
+                graph_BlMAX[uBl].SetName(TString::Format("graph_BlMAX"));
+                graph_nSigmaMAX[uBl].SetName(TString::Format("graph_nSigmaMAX"));
+            }
+            for(unsigned uBin=0; uBin<NumBinsCk; uBin++){
+                graph_FitMAX[uBl].SetPoint(uBin,Ck_pL->GetBinCenter(0,uBin),(Fit_Max[uBl][uBin]+Fit_Min[uBl][uBin])*0.5);
+                graph_FitMAX[uBl].SetPointError(uBin,0,(Fit_Max[uBl][uBin]-Fit_Min[uBl][uBin])*0.5);
+//printf("%u %f %f\n",uBin,Ck_pL->GetBinCenter(0,uBin),(Fit_Max[uBl][uBin]+Fit_Min[uBl][uBin])*0.5);
+                graph_BlMAX[uBl].SetPoint(uBin,Ck_pL->GetBinCenter(0,uBin),(Bl_Max[uBl][uBin]+Bl_Min[uBl][uBin])*0.5);
+                graph_BlMAX[uBl].SetPointError(uBin,0,(Bl_Max[uBl][uBin]-Bl_Min[uBl][uBin])*0.5);
+
+                graph_nSigmaMAX[uBl].SetPoint(uBin,Ck_pL->GetBinCenter(0,uBin),(nSigma_Max[uBl][uBin]+nSigma_Min[uBl][uBin])*0.5);
+                graph_nSigmaMAX[uBl].SetPointError(uBin,0,(nSigma_Max[uBl][uBin]-nSigma_Min[uBl][uBin])*0.5);
+
+//printf("%u %f %f\n",uBin,Ck_pL->GetBinCenter(0,uBin),(nSigma_Max[uBl][uBin]+nSigma_Min[uBl][uBin])*0.5);
+            }
+
+            //graph_FitMAX[uBl].Write();
+            //graph_BlMAX[uBl].Write();
+            //graph_nSigmaMAX[uBl].Write();
+        }
+
+
+///////////////////////////////////////////////
+
+    TFile* fPlot = new TFile(OutputFolder+"fPlot_"+".root","recreate");
+
+    hData_pL_Stat = AnalysisObject.GetAliceExpCorrFun(DataSample,"pLambda","_0",2,false,-1);
+
+    gStyle->SetCanvasPreferGL(1);
+    SetStyle();
+    fPlot->cd();
+hData_pL_Stat->Write();
+graph_FitMAX[0].Write();
+graph_FitMAX[1].Write();
+graph_FitMAX[2].Write();
+graph_FitMAX[3].Write();
+graph_FitMAX[4].Write();
+graph_FitMAX[5].Write();
+    const float right = 0.025;
+    const float top = 0.025;
+
+    graph_FitMAX[NumBlTypes].SetFillColorAlpha(kRed+1,0.67);
+    graph_FitMAX[NumBlTypes].SetLineColor(kRed+1);
+    graph_FitMAX[NumBlTypes].SetLineWidth(5);
+
+    graph_BlMAX[NumBlTypes].SetFillColorAlpha(kCyan+1,0.5);
+    graph_BlMAX[NumBlTypes].SetLineColor(kCyan+1);
+    graph_BlMAX[NumBlTypes].SetLineWidth(5);
+
+    DLM_SubPads DlmPad(720,720);
+    DlmPad.AddSubPad(0,1,0.33,1);
+    DlmPad.AddSubPad(0,1,0,0.33);
+    DlmPad.SetMargin(0,0.12,0.02,0.0,0.02);
+    DlmPad.SetMargin(1,0.12,0.02,0.09,0.0);
+    DlmPad.cd(0);
+
+    hData_pL_Stat->SetTitle("; #it{k*} (MeV/#it{c}); #it{C}(#it{k*})");
+    hData_pL_Stat->GetXaxis()->SetRangeUser(0, 336);
+    hData_pL_Stat->GetXaxis()->SetNdivisions(505);
+    hData_pL_Stat->GetYaxis()->SetRangeUser(0.9, 2.0);
+    hData_pL_Stat->SetFillColor(kGray+1);
+    SetStyleHisto2(hData_pL_Stat,2,0);
+    //hData_pL_Stat->GetYaxis()->SetTitleOffset(1.0);
+    hData_pL_Stat->Draw();
+
+    TFile* DataSystFile = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM/Systematics_pL.root");
+    TH1F* DataSystHisto = (TH1F*)DataSystFile->Get("SystErrRel");
+    TGraphErrors *Tgraph_syserror = DrawSystematicError_FAST(hData_pL_Stat, DataSystHisto, NULL, 3);
+    Tgraph_syserror->SetLineColor(kWhite);
+
+    //baselineLL->Draw("same");
+
+    if(!DataOnly){
+    graph_BlMAX[NumBlTypes].Draw("3 same");
+    graph_FitMAX[NumBlTypes].Draw("3 same");
+    }
+
+
+    hData_pL_Stat->Draw("same");
+
+    Tgraph_syserror->SetFillColorAlpha(kBlack, 0.4);
+    Tgraph_syserror->Draw("2 same");
+    //hData->Draw("pe same");
+
+    TString LegendSource_line1 = "Gaussian core + resonances";
+    TString LegendSource_line2 = TString::Format("n#sigma#in(%.1f,%.1f)",nSigma_Best[NumBlTypes],nSigma_Worst[NumBlTypes]);
+
+    unsigned NumRows=4;
+    TLegend *legend = new TLegend(0.39,0.73-0.055*NumRows,0.73,0.73);//lbrt
+    legend->SetBorderSize(0);
+    legend->SetTextFont(42);
+    legend->SetTextSize(gStyle->GetTextSize()*0.90);
+    TH1F* hCk_Fake;
+    hCk_Fake = (TH1F*)hData_pL_Stat->Clone("hCk_Fake");
+    hCk_Fake->SetName("hCk_Fake");
+    hCk_Fake->SetLineColor(hCk_Fake->GetFillColor());
+
+    legend->AddEntry(hCk_Fake, "p#minus#Lambda #oplus #bar{p}#minus#bar{#Lambda} pairs", "fpe");
+    if(!DataOnly){
+    legend->AddEntry(&graph_FitMAX[NumBlTypes],"Femtoscopic fit (NLO)","l");
+    legend->AddEntry(&graph_BlMAX[NumBlTypes],"Baseline","l");
+    }
+    legend->Draw("same");
+    TLatex BeamText;
+    BeamText.SetTextSize(gStyle->GetTextSize()*0.90);
+    BeamText.SetNDC(kTRUE);
+    BeamText.DrawLatex(0.40, 0.915, "ALICE work in progress");
+    BeamText.DrawLatex(0.40, 0.860, "high-mult. (0#minus0.17% INEL>0) pp #sqrt{#it{s}} = 13 TeV");
+
+    TLatex BeamTextSource;
+    BeamTextSource.SetTextSize(gStyle->GetTextSize()*0.90);
+    BeamTextSource.SetNDC(kTRUE);
+    BeamTextSource.DrawLatex(0.40, 0.805, LegendSource_line1);
+    BeamTextSource.DrawLatex(0.40, 0.750, LegendSource_line2);
+
+//INLET -------------------------------------------------------------------------------------------------------------------
+
+    TH1F* DataHisto_Inlet = (TH1F*)hData_pL_Stat->Clone("DataHisto_Inlet");
+    DataHisto_Inlet->SetMarkerSize(hData_pL_Stat->GetMarkerSize()*0.67);
+    DataHisto_Inlet->SetLineWidth(hData_pL_Stat->GetLineWidth()*0.67);
+    DataHisto_Inlet->GetXaxis()->SetTitleSize(hData_pL_Stat->GetXaxis()->GetTitleSize()*1.75);
+    DataHisto_Inlet->GetXaxis()->SetLabelSize(hData_pL_Stat->GetXaxis()->GetLabelSize()*1.75);
+    DataHisto_Inlet->GetXaxis()->SetRangeUser(100, 336);
+    DataHisto_Inlet->GetXaxis()->SetNdivisions(505);
+
+    DataHisto_Inlet->GetYaxis()->SetTitleSize(hData_pL_Stat->GetYaxis()->GetTitleSize()*1.75);
+    DataHisto_Inlet->GetYaxis()->SetLabelSize(hData_pL_Stat->GetYaxis()->GetLabelSize()*1.75);
+    DataHisto_Inlet->GetYaxis()->SetTitleOffset(hData_pL_Stat->GetYaxis()->GetTitleOffset()*0.67);
+    DataHisto_Inlet->GetYaxis()->SetRangeUser(0.98, 1.05);
+
+    TGraph* grFemto_Inlet = (TGraph*)graph_FitMAX[NumBlTypes].Clone("grFemto_Inlet");
+    grFemto_Inlet->SetLineWidth(graph_FitMAX[NumBlTypes].GetLineWidth()*0.67);
+
+
+    const double fXMinInlet=0.30;
+    const double fYMinInlet=0.12;
+    const double fXMaxInlet=0.95;
+    const double fYMaxInlet=0.50;
+    TPad *inset_pad = new TPad("insert", "insertPad", fXMinInlet, fYMinInlet,
+                             fXMaxInlet, fYMaxInlet);
+    inset_pad->SetTopMargin(0.01);
+    inset_pad->SetRightMargin(0.05);
+    inset_pad->SetBottomMargin(0.28);
+    inset_pad->SetLeftMargin(0.28);
+    inset_pad->SetFillStyle(4000);
+    if(!DataOnly) inset_pad->Draw();
+    inset_pad->cd();
+    DataHisto_Inlet->Draw();
+    if(!DataOnly){
+    graph_BlMAX[NumBlTypes].Draw("3 same");
+    grFemto_Inlet->Draw("3 same");
+    }
+    DataHisto_Inlet->Draw("same");
+    Tgraph_syserror->Draw("2 same");
+
+    DlmPad.cd(1);
+    TH1F* hAxis = new TH1F("hAxis", "hAxis", 28, 0, 336);
+    hAxis->SetStats(false);
+    if(!DataOnly) hAxis->SetTitle("; #it{k*} (MeV/#it{c}); #it{n_{#sigma}}");
+    else hAxis->SetTitle("; #it{k*} (MeV/#it{c}); #it{C}(#it{k*})");
+    hAxis->GetXaxis()->SetRangeUser(0, 336);
+    if(!DataOnly) hAxis->GetYaxis()->SetRangeUser(-6, 7);
+    else hAxis->GetYaxis()->SetRangeUser(0.98, 1.05);
+    //hData->SetTitle("; #it{k*} (MeV/#it{c}); #it{C}(#it{k*})");
+    //hData->GetXaxis()->SetRangeUser(0, 320);
+    hAxis->GetXaxis()->SetNdivisions(505);
+    //hData->GetYaxis()->SetRangeUser(0.85, 2.3);
+    //hData->SetFillColor(fFillColors[0]);
+    SetStyleHisto2(hAxis,2,0,2);
+    //hData->GetYaxis()->SetTitleOffset(1.0);
+    hAxis->Draw("");
+
+    graph_nSigmaMAX[NumBlTypes].SetFillColorAlpha(kRed+1,0.67);
+    if(!DataOnly) graph_nSigmaMAX[NumBlTypes].Draw("3 same");
+    else{
+    hData_pL_Stat->Draw("same");
+    Tgraph_syserror->Draw("2 same");
+    }
+
+    DlmPad.GetCanvas()->SaveAs(OutputFolder+"DlmPad.pdf");
+/*
+    delete hVarDeviationAV18;
+    delete hVarDevRatioAV18;
+    delete legend;
+    delete hCk_Fake;
+    delete Tgraph_syserror;
+    delete grFemto_AV18;
+    delete grOuterBl_AV18;
+    //delete Can_CF_pL;
+    delete hChi2NdfAV18;
+    delete hNsigmaAV18;
+    delete fPlot;
+    delete DataFile;
+    delete SystFile;
+    delete ntFile;
+*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+/////////////////////////////
+
+
+    delete [] Fit_Min;
+    delete [] Fit_Max;
+    delete [] Bl_Min;
+    delete [] Bl_Max;
+    delete [] nSigma_Min;
+    delete [] nSigma_Max;
+
+    delete Ck_pSigma0;
+    delete Ck_pL;
+    delete Ck_pXim;
+}
+
 int PLAMBDA_1_MAIN(int argc, char *argv[]){
 printf("PLAMBDA_1_MAIN\n");
 
@@ -5650,8 +6869,8 @@ printf("PLAMBDA_1_MAIN\n");
 //run for 30 and 32
     //pL_SystematicsHM("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pL/Systematics_020919/",
     //                 30,0,19845,200,1,0);
-    pL_SystematicsHM("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pL/Test/",
-                     atoi(argv[1]),atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),atoi(argv[5]),atoi(argv[6]));
+    //pL_SystematicsHM("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pL/Test/",
+    //                 atoi(argv[1]),atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),atoi(argv[5]),atoi(argv[6]));
     //pL_SystematicsHM("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pL/SystematicsAdd_300419/",
     //                 atoi(argv[1])+2,atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),atoi(argv[5]),atoi(argv[6]));
     //pL_SystematicsHM("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pL/SystematicsAdd_300419/",
@@ -5659,6 +6878,14 @@ printf("PLAMBDA_1_MAIN\n");
 
     //pL_SystematicsHM("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pL/SystematicsAdd_070419/",
     //                 0,0,4,1,1,0);
+
+    //the fast plots for Schleching
+    //goal: fit pL with systematic variations
+    //pL_SchlechingSystematics(11,4);
+
+    //pL_SchlechingSystematics(atoi(argv[1]),atoi(argv[2]));
+    pL_SchlechingPlots("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SchlechingSystematics/Output_pp13TeV_HM_Dec19_1002.root");
+
 return 0;
 //Systematics_080519 in prelim.
     Plot_mT_Scale(  "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pL/Systematics_190619/PLOT/",

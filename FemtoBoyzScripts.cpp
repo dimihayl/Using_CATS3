@@ -26,14 +26,16 @@
 #include "DLM_HistoAnalysis.h"
 #include "DLM_SubPads.h"
 
+//void plotLambda(const int flag=0);
 std::vector<int> fFillColors = {kGray+1, kRed-10, kBlue-9, kGreen-8, kMagenta-9, kOrange-9, kCyan-8, kYellow-7};
 std::vector<int> fColors     = {kBlack, kRed+1 , kBlue+2, kGreen+3, kMagenta+1, kOrange-1, kCyan+2, kYellow+2};
 std::vector<int> fMarkers    = {kFullCircle, kFullSquare, kOpenCircle, kOpenSquare, kOpenDiamond, kOpenCross, kFullCross, kFullDiamond, kFullStar, kOpenStar};
 std::vector<int> fPalette    = {kWhite, 18, 33, 48, kBlack};
 //std::vector<int> fPalette2    = {kWhite, kTeal-9, kGreen-8, kBlack};
 std::vector<int> fPalette2    = {kWhite, kRed-1, kRed-9, kBlack};
+
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-void SetStyle(bool graypalette=false, bool title=false)
+void SetStyle(bool graypalette, bool title)
 {
       const int NCont = 255;
       gStyle->Reset("Plain");
@@ -81,7 +83,7 @@ void SetStyle(bool graypalette=false, bool title=false)
       Double_t blue[NRGBs] = {  1., 221./255., 184./255., 154./255., 129./255., 98./255.};
       TColor::CreateGradientColorTable(NRGBs,stops,red,green,blue,NCont);
 }
-void SetStyle2(bool graypalette=false, bool title=false)
+void SetStyle2(bool graypalette, bool title)
 {
   const int NCont = 255;
   gStyle->Reset("Plain");
@@ -344,7 +346,7 @@ void SetStyleHisto(TH1 *histo, int marker, int color)
 }
 
 //pL HM
-void SetStyleHisto2(TH1 *histo, int marker, int color, double factor=1)
+void SetStyleHisto2(TH1 *histo, int marker, int color, double factor)
 {
     histo->GetXaxis()->SetLabelSize(0.055*factor);
     histo->GetXaxis()->SetTitleSize(0.06*factor);

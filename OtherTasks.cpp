@@ -2,6 +2,7 @@
 #include "OtherTasks.h"
 
 #include "CATS.h"
+#include "CATSconstants.h"
 #include "CommonAnaFunctions.h"
 #include "DLM_Potentials.h"
 #include "DLM_Random.h"
@@ -4153,15 +4154,16 @@ double dimi_MC_template_fitter_pL(double* x, double* par){
     return par[8]*(Com+NonCom)*Femto;
 }
 double dimi_MC_CrazyGauss_fitter_pL(double* x, double* par){
-    MM_PL->GetCk()->SetSourcePar(0,par[21]);
+    MM_PL->GetCk()->SetSourcePar(0,par[24]);
     if(MM_CatPL->GetNumSourcePars()>1){
-        MM_PL->GetCk()->SetSourcePar(1,par[22]);
+        MM_PL->GetCk()->SetSourcePar(1,par[25]);
     }
     MM_PL->Update(false);
     double Com = par[0]*(1.+par[1]*exp(-pow((*x-par[2])/par[3],2.)))*(1.+par[4]*exp(-pow((*x-par[5])/par[6],2.)))*(1.+par[7]*exp(-pow((*x-par[8])/par[9],2.)))*(1.+par[10]**x);
     double NonCom = par[11]*(1.+par[12]*exp(-pow((*x-par[13])/par[14],2.)))*(1.+par[15]*exp(-pow((*x-par[16])/par[17],2.)))*(1.+par[18]**x);
+    double Fermi = 1.-par[22]*exp(-pow(*x*par[23]*FmToNu,2.));
     double Femto = MM_PL->EvalCk(*x);
-    return par[19]*(par[20]*Com+(1.-par[20])*NonCom)*Femto;
+    return par[19]*(par[20]*Com+(1.-par[20]+par[21])*NonCom)*Fermi*Femto;
 }
 
 void Fit_pL_CommonAncestorTemplate_Ck(){
@@ -4502,7 +4504,7 @@ AB_pL.SetNotifications(CATS::nError);
         }
         else fTemplate_Data->FixParameter(10,2.0);
 
-    //fTemplate_Data->FixParameter(9,1.08);
+fTemplate_Data->FixParameter(9,1.02);
     //fTemplate_Data->FixParameter(9,1.18);
     fTemplate_Data->FixParameter(10,2.0);
 
@@ -4635,7 +4637,7 @@ printf("END pL ------------------------------------\n");
 //Last hope!
 void Fit_pL_CommonAncestorTemplate_CrazyGauss(){
 
-    const unsigned NumSystIter = 32;
+    const unsigned NumSystIter = 4;
 
     TString fName_MC_Common = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/pLambda_Rush/Ancestors_YieldNorm/CFOutput_pL_8_Common.root";
     TString fName_MC_NonCommon = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/pLambda_Rush/Ancestors_YieldNorm/CFOutput_pL_8_NonCommon.root";
@@ -4791,7 +4793,8 @@ AB_pL.SetNotifications(CATS::nError);
     TH1F* hRadius = new TH1F("hRadius","hRadius",1024,0.5,2.0);
     TH1F* hAlpha = new TH1F("hAlpha","hAlpha",1024,0.95,2.05);
     TH1F* hnSigma = new TH1F("hnSigma","hnSigma",1024,0,20.0);
-    TH1F* hWC = new TH1F("hWC","hWC",256,-1,1);
+    TH1F* hWC = new TH1F("hWC","hWC",512,-1,1);
+    TH1F* hWNC = new TH1F("hWNC","hWNC",512,-1,1);
 
     float kStarVal;
     for(unsigned uSyst=0; uSyst<NumSystIter; uSyst++){
@@ -4889,7 +4892,7 @@ AB_pL.SetNotifications(CATS::nError);
         FitMin = 0;
         FitMax = 2500;
         TF1* fTemplate_MC = new TF1("fTemplate_MC","[19]*([20]*[0]*(1.+[1]*exp(-pow((x-[2])/[3],2.)))*(1.+[4]*exp(-pow((x-[5])/[6],2.)))*(1.+[7]*exp(-pow((x-[8])/[9],2.)))*(1.+[10]*x)"
-                                    "+(1-[20])*[11]*(1.+[12]*exp(-pow((x-[13])/[14],2.)))*(1.+[15]*exp(-pow((x-[16])/[17],2.)))*(1.+[18]*x))",FitMin,FitMax);
+                                    "+(1-[20]+[21])*[11]*(1.+[12]*exp(-pow((x-[13])/[14],2.)))*(1.+[15]*exp(-pow((x-[16])/[17],2.)))*(1.+[18]*x))",FitMin,FitMax);
         for(unsigned uPar=0; uPar<=10; uPar++){
             fTemplate_MC->FixParameter(uPar,fTemplate_MC_Common->GetParameter(uPar));
         }
@@ -4898,6 +4901,7 @@ AB_pL.SetNotifications(CATS::nError);
         }
         fTemplate_MC->SetParameter(19,1);
         fTemplate_MC->SetParameter(20,0.1);
+        fTemplate_MC->FixParameter(21,0.0);
         h_MC->Fit(fTemplate_MC,"Q, S, N, R, M");
         delete fInputFile;
 
@@ -4923,34 +4927,58 @@ AB_pL.SetNotifications(CATS::nError);
         delete fInputFile;
 
         FitMin = 0;
-        FitMax = 340;
+        FitMax = 340;//340
         OutputFile->cd();
-        TF1* fTemplate_Data = new TF1("fTemplate_Data",dimi_MC_CrazyGauss_fitter_pL,FitMin,FitMax,23);
-        for(unsigned uPar=0; uPar<=10; uPar++){
+        TF1* fTemplate_Data = new TF1("fTemplate_Data",dimi_MC_CrazyGauss_fitter_pL,FitMin,FitMax,26);
+
+        for(unsigned uPar=0; uPar<=9; uPar++){
             fTemplate_Data->FixParameter(uPar,fTemplate_MC_Common->GetParameter(uPar));
         }
-        for(unsigned uPar=11; uPar<=18; uPar++){
+        for(unsigned uPar=11; uPar<=17; uPar++){
             fTemplate_Data->FixParameter(uPar,fTemplate_MC_NonCommon->GetParameter(uPar-11));
         }
-        fTemplate_Data->SetParameter(10,fTemplate_Data->GetParameter(10));
-        fTemplate_Data->SetParameter(18,fTemplate_Data->GetParameter(18));
+        fTemplate_Data->SetParameter(10,fTemplate_MC_Common->GetParameter(10));
+        fTemplate_Data->SetParLimits(10,fTemplate_MC_Common->GetParameter(10)-0.25*fabs(fTemplate_MC_Common->GetParameter(10)),fTemplate_MC_Common->GetParameter(10)+.25*fabs(fTemplate_MC_Common->GetParameter(10)));
+        fTemplate_Data->SetParameter(18,fTemplate_MC_NonCommon->GetParameter(7));
+        fTemplate_Data->SetParLimits(18,fTemplate_MC_NonCommon->GetParameter(7)-0.25*fabs(fTemplate_MC_NonCommon->GetParameter(7)),fTemplate_MC_NonCommon->GetParameter(7)+0.25*fabs(fTemplate_MC_NonCommon->GetParameter(7)));
 
+/*
+        for(unsigned uPar=0; uPar<=10; uPar++){
+            fTemplate_Data->SetParameter(uPar,fTemplate_MC_Common->GetParameter(uPar));
+            fTemplate_Data->SetParLimits(uPar,
+                                         fTemplate_MC_Common->GetParameter(uPar)-0.25*fabs(fTemplate_MC_Common->GetParameter(uPar)),
+                                         fTemplate_MC_Common->GetParameter(uPar)+0.25*fabs(fTemplate_MC_Common->GetParameter(uPar)));
+        }
+        for(unsigned uPar=11; uPar<=18; uPar++){
+            fTemplate_Data->SetParameter(uPar,fTemplate_MC_Common->GetParameter(uPar-11));
+            fTemplate_Data->SetParLimits(uPar,
+                                         fTemplate_MC_NonCommon->GetParameter(uPar-11)-0.25*fabs(fTemplate_MC_NonCommon->GetParameter(uPar-11)),
+                                         fTemplate_MC_NonCommon->GetParameter(uPar-11)+0.25*fabs(fTemplate_MC_NonCommon->GetParameter(uPar-11)));
+        }
+*/
         fTemplate_Data->SetParameter(19,1);
         fTemplate_Data->SetParameter(20,0.1);
         fTemplate_Data->SetParLimits(20,0.0,0.2);
-        fTemplate_Data->SetParameter(21,InitialRadius);
-        fTemplate_Data->SetParLimits(21,InitialRadius*0.8,InitialRadius*1.2);
+        fTemplate_Data->SetParameter(21,0.0);
+        fTemplate_Data->SetParLimits(21,-0.5,0.5);
+        fTemplate_Data->SetParameter(22,0.2);
+fTemplate_Data->FixParameter(22,0.0);
+        fTemplate_Data->SetParameter(23,0.4);
+fTemplate_Data->FixParameter(23,0.4);
+        fTemplate_Data->SetParameter(24,InitialRadius);
+        fTemplate_Data->SetParLimits(24,InitialRadius*0.8,InitialRadius*1.2);
         if(AB_pL.GetNumSourcePars()>1){
-            fTemplate_Data->SetParameter(22,InitialAlpha);
-            fTemplate_Data->SetParLimits(22,1,2);
+            fTemplate_Data->SetParameter(25,InitialAlpha);
+            fTemplate_Data->SetParLimits(25,1,2);
         }
-        else fTemplate_Data->FixParameter(22,2.0);
+        else fTemplate_Data->FixParameter(25,2.0);
 
     //fTemplate_Data->FixParameter(9,1.08);
     //fTemplate_Data->FixParameter(9,1.18);
-    fTemplate_Data->FixParameter(22,2.0);
+    fTemplate_Data->FixParameter(25,2.0);
 
-        h_Data->Fit(fTemplate_Data,"Q, S, N, R, M");
+        if(uSyst==0) h_Data->Fit(fTemplate_Data,"S, N, R, M");
+        else h_Data->Fit(fTemplate_Data,"Q, S, N, R, M");
 
         for(unsigned uBin=0; uBin<NumPlotBins; uBin++){
             kStarVal = PlotMin+float(uBin)*PlotBinWidth+PlotBinWidth*0.5;
@@ -4959,8 +4987,8 @@ AB_pL.SetNotifications(CATS::nError);
         }
 
         TF1* fTemplate_Data_BL = new TF1("fTemplate_Data_BL","[19]*([20]*[0]*(1.+[1]*exp(-pow((x-[2])/[3],2.)))*(1.+[4]*exp(-pow((x-[5])/[6],2.)))*(1.+[7]*exp(-pow((x-[8])/[9],2.)))*(1.+[10]*x)"
-                                    "+(1-[20])*[11]*(1.+[12]*exp(-pow((x-[13])/[14],2.)))*(1.+[15]*exp(-pow((x-[16])/[17],2.)))*(1.+[18]*x))",FitMin,FitMax);
-        for(unsigned uPar=0; uPar<=20; uPar++){
+                                    "+(1-[20]+[21])*[11]*(1.+[12]*exp(-pow((x-[13])/[14],2.)))*(1.+[15]*exp(-pow((x-[16])/[17],2.)))*(1.+[18]*x))",FitMin,FitMax);
+        for(unsigned uPar=0; uPar<=21; uPar++){
             fTemplate_Data_BL->SetParameter(uPar,fTemplate_Data->GetParameter(uPar));
         }
 
@@ -4997,8 +5025,8 @@ AB_pL.SetNotifications(CATS::nError);
 
         TGraphErrors fit_sourcepars;
         fit_sourcepars.SetName("fit_sourcepars");
-        fit_sourcepars.SetPoint(0,fTemplate_Data->GetParameter(21),fTemplate_Data->GetParameter(22));
-        fit_sourcepars.SetPointError(0,fTemplate_Data->GetParError(21),fTemplate_Data->GetParError(22));
+        fit_sourcepars.SetPoint(0,fTemplate_Data->GetParameter(24),fTemplate_Data->GetParameter(25));
+        fit_sourcepars.SetPointError(0,fTemplate_Data->GetParError(24),fTemplate_Data->GetParError(25));
 
         if(uSyst==0){
             OutputFile->cd();
@@ -5013,10 +5041,11 @@ AB_pL.SetNotifications(CATS::nError);
             fit_sourcepars.Write();
         }
 
-        hRadius->Fill(fTemplate_Data->GetParameter(21));
-        hAlpha->Fill(fTemplate_Data->GetParameter(22));
+        hRadius->Fill(fTemplate_Data->GetParameter(24));
+        hAlpha->Fill(fTemplate_Data->GetParameter(25));
         hnSigma->Fill(sqrt(2)*TMath::ErfcInverse(fTemplate_Data->GetProb()));
         hWC->Fill(fTemplate_Data->GetParameter(20));
+        hWNC->Fill(1.-fTemplate_Data->GetParameter(20)+fTemplate_Data->GetParameter(21));
 
         //printf("nsigma = %.2f\n",sqrt(2)*TMath::ErfcInverse(fTemplate_Data->GetProb()));
 
@@ -5056,6 +5085,7 @@ AB_pL.SetNotifications(CATS::nError);
     hAlpha->Write();
     hnSigma->Write();
     hWC->Write();
+    hWNC->Write();
     graph_DataFit.Write();
     graph_DataBl.Write();
     graph_McBl.Write();
@@ -5065,6 +5095,7 @@ printf("END pL ------------------------------------\n");
     delete hAlpha;
     delete hnSigma;
     delete hWC;
+    delete hWNC;
     delete OutputFile;
     delete [] BlMc_Down;
     delete [] BlMc_Up;
@@ -5534,9 +5565,9 @@ int OTHERTASKS(int narg, char** ARGS){
     //Fit_pL_CommonAncestorTemplate_dPhi(1);
 
     //Fit_pp_CommonAncestorTemplate_Ck();
-    //Fit_pL_CommonAncestorTemplate_Ck();
+    Fit_pL_CommonAncestorTemplate_Ck();
 
-    Fit_pL_CommonAncestorTemplate_CrazyGauss();
+    //Fit_pL_CommonAncestorTemplate_CrazyGauss();
 
     //ReadDeuteronWF("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/Coalesce/WaveFunctions/Machleidt/deuwaves_n4lo500_rspace.d",huWF,hwWF);
 
@@ -5545,3 +5576,4 @@ int OTHERTASKS(int narg, char** ARGS){
     //printf(" w(%.2f) = %.4f\n",RAD,Evaluate_d_w(RAD));
 
 }
+

@@ -3947,6 +3947,8 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
     TString InputFileName;
     if(DataSetDescr.Contains("Xim")||DataSetDescr.Contains("Omega"))
         InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp200/pp200_pResoXimOmega_Oct2019_4PI_ReducedWeights.f19";
+    else if(DataSetDescr=="Lam_Lam"||DataSetDescr=="Lam_LamReso"||DataSetDescr=="LamReso_LamReso")
+        InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp200/pp200_LamResoLamReso_Oct2019_4PI_ReducedWeights.f19";
     else
         InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp200/pp200_pResoLamReso_Oct2019_4PI_ReducedWeights.f19";
 
@@ -4141,6 +4143,58 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
 
         ResoMass[0] = 1.36;
         ResoMass[1] = -1;
+    }
+    //LL correlation
+    else if(DataSetDescr=="Lam_Lam"){
+        pdgID[0] = 3122;
+        pdgID[1] = 3122;
+        Original_eposID[0] = 2130;
+        Original_eposID[1] = 2130;
+        Original_pdgID[0] = 3122;
+        Original_pdgID[1] = 3122;
+
+        DaughterMassP1[0] = -1;
+        DaughterMassP1[1] = -1;
+
+        DaughterMassP2[0] = -1;
+        DaughterMassP2[1] = -1;
+
+        ResoMass[0] = -1;
+        ResoMass[1] = -1;
+    }
+    else if(DataSetDescr=="Lam_LamReso"){
+        pdgID[0] = 3122;
+        pdgID[1] = 0;
+        Original_eposID[0] = 2130;
+        Original_eposID[1] = 2130;
+        Original_pdgID[0] = 3122;
+        Original_pdgID[1] = 3122;
+
+        DaughterMassP1[0] = -1;
+        DaughterMassP1[1] = -1;
+
+        DaughterMassP2[0] = Mass_L*0.001;
+        DaughterMassP2[1] = Mass_pic*0.001;
+
+        ResoMass[0] = -1;
+        ResoMass[1] = 1.46;
+    }
+    else if(DataSetDescr=="LamReso_LamReso"){
+        pdgID[0] = 0;
+        pdgID[1] = 0;
+        Original_eposID[0] = 2130;
+        Original_eposID[1] = 2130;
+        Original_pdgID[0] = 3122;
+        Original_pdgID[1] = 3122;
+
+        DaughterMassP1[0] = Mass_L*0.001;
+        DaughterMassP1[1] = Mass_pic*0.001;
+
+        DaughterMassP2[0] = Mass_L*0.001;
+        DaughterMassP2[1] = Mass_pic*0.001;
+
+        ResoMass[0] = 1.46;
+        ResoMass[1] = 1.46;
     }
     unsigned NumTotalPairs=0;
     unsigned TotNumEvents=0;
@@ -5228,7 +5282,10 @@ int MIXEDEVENTS(int narg, char** ARGS){
     //ReferenceSampleStudy_2("EposDisto","pReso_Xim");
     //ReferenceSampleStudy_2("EposDisto","pReso_Omega");
     //ReferenceSampleStudy_2("DimiPhi","p_p");
-    dEta_dPhi_Ck_QS("QS", "pp", true);
+    ReferenceSampleStudy_2("EposDisto","Lam_Lam");
+    ReferenceSampleStudy_2("EposDisto","Lam_LamReso");
+    ReferenceSampleStudy_2("EposDisto","LamReso_LamReso");
+    //dEta_dPhi_Ck_QS("QS", "pp", true);
     //CompareReferenceSamples("pp");
     //CompareSameMixedEventToBoltzmann();
     //RatioBetweenLevy();

@@ -1813,6 +1813,20 @@ void DLM_CommonAnaFunctions::SetUpBinning_pL(const TString& DataSample, unsigned
             FitRegion[2] = 384;//408
             FitRegion[3] = 600;
         }
+        //for the Schleching fits
+        else if(FitRegVar==50){//only femto range
+            FitRegion[0] = MomBins[0];
+            FitRegion[1] = MomBins[NumMomBins];
+            FitRegion[2] = MomBins[NumMomBins];//336
+            FitRegion[3] = MomBins[NumMomBins];
+        }
+        //only used for pol3
+        else if(FitRegVar==51){//extended fit range
+            FitRegion[0] = MomBins[0];
+            FitRegion[1] = MomBins[NumMomBins];
+            FitRegion[2] = MomBins[NumMomBins];//336
+            FitRegion[3] = 456;
+        }
         else{
             printf("\033[1;31mERROR:\033[0m The FitRegVar '%i' does not exist\n",FitRegVar);
             return;
