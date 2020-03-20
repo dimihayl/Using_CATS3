@@ -86,7 +86,7 @@ void DecayMatrix(int SEED, int NumIter)
     double pRESO_decay_daughters[2] = {0.938,0.138};//pp feeddown
 
     const double momMean = 0.0;
-    const double momSpread = 0.35;
+    const double momSpread = 0.35;//o.35
 
     TLorentzVector tvec_proton,tvec_Xim,tvec_Lambda,tvec_Lambda_2,tvec_Sigma0,tvec_Xim1530,tvec_Omegam,tvec_pRESO,tvec_pRESO2;
     TLorentzVector *tvec_pp_pL,*tvec_pL_LL,*tvec_pL_pSigma0,*tvec_pL_pXim,*tvec_pXim_pXim1530,*tvec_pXim_pOmegam,*tvec_pp_ppRESO,*tvec_pp_pRESOpRESO;
@@ -674,6 +674,6 @@ printf("  p1.P()=%.1f | p2.P()=%.1f | r2.P()=%.1f\n",p1.P()*1000,p2.P()*1000,r2.
 
 
 int GENBOD(int narg, char** ARGS){
-    //DecayMatrix(atoi(ARGS[1]),atoi(ARGS[2]));
-    Resonances(atoi(ARGS[1]),atoi(ARGS[2]));
+    DecayMatrix(atoi(ARGS[1]),atoi(ARGS[2]));
+    //Resonances(atoi(ARGS[1]),atoi(ARGS[2]));
 }

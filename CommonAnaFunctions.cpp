@@ -827,8 +827,16 @@ void DLM_CommonAnaFunctions::SetUpCats_pL(CATS& Kitty, const TString& POT, const
         NumChannels=4;
     }
     else if(POT=="NLO_Coupled_SPD"){
-        ExternalWF = Init_pL_Haidenbauer2019(   "/home/dmihaylov/CernBox/CATS_potentials/Haidenbauer/pLambda_Coupled_SD/",
-                                Kitty, 0 , 0);
+        //original, NLO13 at 600 MeV
+        if(PotVar==0){
+            ExternalWF = Init_pL_Haidenbauer2019(   "/home/dmihaylov/CernBox/CATS_potentials/Haidenbauer/pLambda_Coupled_SD/",
+                                    Kitty, 0 , 0);
+        }
+        //NLO19 at 600 MeV
+        else if(PotVar==10){
+            ExternalWF = Init_pL_Haidenbauer2019(   "/home/dmihaylov/CernBox/CATS_potentials/Haidenbauer/pLambda_Coupled_SD/NLO19_600/",
+                                    Kitty, 0 , 0);
+        }
         NumChannels=16;
     }
     else if(POT=="Usmani"){

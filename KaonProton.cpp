@@ -2044,7 +2044,7 @@ void TestKyoto2019(const double& RADIUS){
         }
     }
 
-    TFile fOutput(TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/TestKyoto2019/fOutput_%.2f.root",
+    TFile fOutput(TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/TestKyoto2019/fOutput190320_%.2f.root",
                                   RADIUS),"recreate");
 
     for(unsigned uCh=0; uCh<=NumChannels; uCh++){
@@ -2057,8 +2057,8 @@ void TestKyoto2019(const double& RADIUS){
         gStrong[uCh].Write();
         //gGamow[uCh].Write();
         gFull[uCh].Write();
-        //hWfStrong[uCh]->Write();
-        //hWfFull[uCh]->Write();
+        hWfStrong[uCh]->Write();
+        hWfFull[uCh]->Write();
     }
 
     FILE * CkFile;
@@ -2164,12 +2164,12 @@ void SmearTest_pKminus(){
 
 int KAONPROTON_MAIN(int argc, char *argv[]){
 
-    SmearTest_pKminus();
+    //SmearTest_pKminus();
 
     //TestKyoto2019(1.2);
-    //for(double rad=1; rad<=7.5; rad+=0.5){
-    //    TestKyoto2019(rad);
-    //}
+    for(double rad=1; rad<=7.5; rad+=0.5){
+        TestKyoto2019(rad);
+    }
 
     //Toy_pKplus();
     //Toy_pKplus_2();

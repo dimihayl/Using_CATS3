@@ -5751,15 +5751,19 @@ double dimi_pL_Schleching_Fitter(double* x, double* par){
 //if the seed is 1, the default variations are computed first
 void pL_SchlechingSystematics(const unsigned SEED, const unsigned NumVars_PerBL){
 
+    // 0 = NLO13 600 MeV
+    //10 = NLO19 600 MeV
+    int POT_VAR = 10;
     const bool DataSyst = false;
-    enum BLTYPE { pol0,pol1,pol2,pol3,gaus };
+    enum BLTYPE { pol0,pol1,pol2,pol3,gaus,Dimi };
     const unsigned NumBlTypes = 5;
     bool blType[NumBlTypes];
-    blType[pol0] = false;
-    blType[pol1] = false;
-    blType[pol2] = false;
+    blType[pol0] = true;
+    blType[pol1] = true;
+    blType[pol2] = true;
     blType[pol3] = true;
-    blType[gaus] = false;
+    blType[gaus] = true;
+    //blType[Dimi] = true;
 
     //const unsigned NumVars_PerBL = DataSyst?1024:128;
 
@@ -5777,6 +5781,7 @@ void pL_SchlechingSystematics(const unsigned SEED, const unsigned NumVars_PerBL)
     CompletedVars[pol2] = 0;
     CompletedVars[pol3] = 0;
     CompletedVars[gaus] = 0;
+    CompletedVars[Dimi] = 0;
 
 
     TRandom3 rangen(SEED);
@@ -5785,7 +5790,7 @@ void pL_SchlechingSystematics(const unsigned SEED, const unsigned NumVars_PerBL)
     //TString DataSample = "pp13TeV_HM_RotPhiDec19";
 
     TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SchlechingSystematics/";
-    TString OutFileName = TString::Format("Output_%s_%u.root",DataSample.Data(),SEED);
+    TString OutFileName = TString::Format("Output_%s_POT%i_%u.root",DataSample.Data(),POT_VAR,SEED);
     TFile* OutputFile = new TFile(OutputFolder+OutFileName,"recreate");
 
     double* MomBins_pL = NULL;
@@ -5831,7 +5836,7 @@ void pL_SchlechingSystematics(const unsigned SEED, const unsigned NumVars_PerBL)
 //[8],[9],[10] POL
     TNtuple* ntResult = new TNtuple("ntResult", "ntResult",
             "SourceSize:SourceAlpha:CuspStrength:CkConv:Norm:GaussAmpl:GaussMu:GaussSig:p1:p2:p3:"
-            "WhichBl:WhichFemtoRange:WhichFitRange:WhichData:pval");
+            "WhichBl:WhichFemtoRange:WhichFitRange:WhichProtonVar:WhichLambdaVar:WhichData:pval");
 
     for(unsigned uBl=0; uBl<=NumBlTypes; uBl++){
         Fit_Mean[uBl] = new float [NumBinsCk];
@@ -5894,7 +5899,7 @@ void pL_SchlechingSystematics(const unsigned SEED, const unsigned NumVars_PerBL)
     CATS AB_pL;
     DLM_Ck* Ck_pL;
     AB_pL.SetMomBins(NumMomBins_pL,0,MaxBinValCats);
-    AnalysisObject.SetUpCats_pL(AB_pL,"NLO_Coupled_SPD",SourceDescription,0,202);//NLO_Coupled_S
+    AnalysisObject.SetUpCats_pL(AB_pL,"NLO_Coupled_SPD",SourceDescription,POT_VAR,202);//NLO_Coupled_S
 
     double CUSP_WEIGHT = 0.33;//0.54
     AB_pL.SetChannelWeight(7,1./4.*CUSP_WEIGHT);//1S0 SN(s) -> LN(s)
@@ -5939,7 +5944,7 @@ void pL_SchlechingSystematics(const unsigned SEED, const unsigned NumVars_PerBL)
     unsigned Progress = 0;
 
     while(WHILE_CONDITON){
-        const unsigned WhichBl = rangen.Integer(5);
+        const unsigned WhichBl = rangen.Integer(NumBlTypes);
         if(!blType[WhichBl] || CompletedVars[WhichBl]>=NumVars_PerBL) continue;
 
         printf("\r\033[K Progress=%u",Progress);
@@ -6020,7 +6025,7 @@ void pL_SchlechingSystematics(const unsigned SEED, const unsigned NumVars_PerBL)
         CkDec_pL.Update();
 
         unsigned WhichData = rangen.Integer(45);
-        if(DefaultVariation) WhichData = 0;
+        if(DefaultVariation||DataSyst==false) WhichData = 0;
 //WhichData = 0;
         TString DataVar = TString::Format("_%i",WhichData);
         //TH1F* hData_pL = AnalysisObject.GetAliceExpCorrFun(DataSample,"pLambda","_0",1,false,-1);
@@ -6173,7 +6178,7 @@ void pL_SchlechingSystematics(const unsigned SEED, const unsigned NumVars_PerBL)
         //fit_pL->Write();
         //fit_pL_Bl->Write();
 
-        Float_t* buffer = new Float_t [16];
+        Float_t* buffer = new Float_t [18];
         buffer[0] = fit_pL->GetParameter(0);
         buffer[1] = fit_pL->GetParameter(1);
         buffer[2] = fit_pL->GetParameter(2);
@@ -6188,8 +6193,10 @@ void pL_SchlechingSystematics(const unsigned SEED, const unsigned NumVars_PerBL)
         buffer[11] = WhichBl;
         buffer[12] = WhichFemtoRange;
         buffer[13] = WhichFitRange;
-        buffer[14] = WhichData;
-        buffer[15] = fit_pL->GetProb();
+        buffer[14] = WhichProtonVar;
+        buffer[15] = WhichLambdaVar;
+        buffer[16] = WhichData;
+        buffer[17] = fit_pL->GetProb();
 
         ntResult->Fill(buffer);
 
@@ -6437,7 +6444,7 @@ void pL_SchlechingPlots(const TString InputFileName){
     unsigned Progress = 0;
 
     Float_t SourceSize,SourceAlpha,CuspStrength,CkConv,Norm,GaussAmpl,GaussMu,GaussSig,p1,p2,p3;
-    Float_t fWhichBl,fWhichFemtoRange,fWhichFitRange,fWhichData,pval;
+    Float_t fWhichBl,fWhichFemtoRange,fWhichFitRange,fWhichProtonVar,fWhichLambdaVar,fWhichData,pval;
     unsigned WhichBl,WhichFemtoRange,WhichFitRange,WhichData;
 
     TFile* InputFile = new TFile(InputFileName,"read");
@@ -6457,6 +6464,8 @@ void pL_SchlechingPlots(const TString InputFileName){
     ntResult->SetBranchAddress("WhichBl",&fWhichBl);
     ntResult->SetBranchAddress("WhichFemtoRange",&fWhichFemtoRange);
     ntResult->SetBranchAddress("WhichFitRange",&fWhichFitRange);
+    ntResult->SetBranchAddress("WhichProtonVar",&fWhichProtonVar);
+    ntResult->SetBranchAddress("WhichLambdaVar",&fWhichLambdaVar);
     ntResult->SetBranchAddress("WhichData",&fWhichData);
     ntResult->SetBranchAddress("pval",&pval);
 
@@ -6477,9 +6486,12 @@ void pL_SchlechingPlots(const TString InputFileName){
         cout << flush;
 
         unsigned WhichFemtoRange = TMath::Nint(fWhichFemtoRange);
-
         unsigned WhichFitRange = TMath::Nint(fWhichFitRange);
+        unsigned WhichProtonVar = TMath::Nint(fWhichProtonVar);
+        unsigned WhichLambdaVar = TMath::Nint(fWhichLambdaVar);
+
         AnalysisObject.SetUpBinning_pL(DataSample,uDummy,MomBins_pL,FitRegion_pL,WhichFemtoRange,WhichFitRange);
+        AnalysisObject.SetUpLambdaPars_pL(DataSample,WhichProtonVar,WhichLambdaVar,lam_pL);
 
         //the cusp strength
         //0 is 33%
@@ -6884,7 +6896,10 @@ printf("PLAMBDA_1_MAIN\n");
     //pL_SchlechingSystematics(11,4);
 
     //pL_SchlechingSystematics(atoi(argv[1]),atoi(argv[2]));
-    pL_SchlechingPlots("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SchlechingSystematics/Output_pp13TeV_HM_Dec19_1002.root");
+    //pL_SchlechingPlots("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SchlechingSystematics/Output_pp13TeV_HM_Dec19_1002.root");
+    //pL_SchlechingPlots("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SchlechingSystematics/Output_pp13TeV_HM_Dec19_POT0_3.root");
+    //pL_SchlechingPlots("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SchlechingSystematics/Output_pp13TeV_HM_Dec19_POT10_4.root");
+
 
 return 0;
 //Systematics_080519 in prelim.
