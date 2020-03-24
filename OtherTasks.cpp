@@ -2451,10 +2451,10 @@ AB_pL.SetChannelWeight(15,3./20.*CUSP_WEIGHT);//3D1 SN(s) -> LN(d)
     DLM_CkDecomposition CkDec_pSigma0("pSigma0",0,*Ck_pSigma0,NULL);
     DLM_CkDecomposition CkDec_pXim("pXim",2,*Ck_pXim,NULL);
 
-    //CkDec_pL.AddContribution(0,lam_pL[1],DLM_CkDecomposition::cFeedDown,&CkDec_pSigma0,hResidual_pL_pSigma0);
-    //CkDec_pL.AddContribution(1,lam_pL[2],DLM_CkDecomposition::cFeedDown,&CkDec_pXim,hResidual_pL_pXim);
-    CkDec_pL.AddContribution(0,lam_pL[1],DLM_CkDecomposition::cFeedDown);
-    CkDec_pL.AddContribution(1,lam_pL[2],DLM_CkDecomposition::cFeedDown);
+    CkDec_pL.AddContribution(0,lam_pL[1],DLM_CkDecomposition::cFeedDown,&CkDec_pSigma0,hResidual_pL_pSigma0);
+    CkDec_pL.AddContribution(1,lam_pL[2],DLM_CkDecomposition::cFeedDown,&CkDec_pXim,hResidual_pL_pXim);
+    //CkDec_pL.AddContribution(0,lam_pL[1],DLM_CkDecomposition::cFeedDown);
+    //CkDec_pL.AddContribution(1,lam_pL[2],DLM_CkDecomposition::cFeedDown);
     CkDec_pL.AddContribution(2,lam_pL[3],DLM_CkDecomposition::cFeedDown);
     CkDec_pL.AddContribution(3,lam_pL[4],DLM_CkDecomposition::cFake);//0.03
 
@@ -5543,6 +5543,8 @@ float Evaluate_d_u(double Radius){
 float Evaluate_d_w(double Radius){
     return hwWF.Eval(&Radius);
 }
+
+
 
 int OTHERTASKS(int narg, char** ARGS){
     //pp_CompareToNorfolk();

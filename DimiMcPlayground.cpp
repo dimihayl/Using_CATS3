@@ -62,7 +62,7 @@ printf("TotParticles_ME = %u\n",TotParticles_ME);
     //h_pL->Scale(1./1.8);
 
 
-    TFile fOutput(TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/DimiMcPlayground/McCorrelation6D/fOutput_%u.root",SEED),"recreate");
+    TFile fOutput(TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/DimiMcPlayground/McCorrelation6D/FullRotation/fOutput_%u.root",SEED),"recreate");
 
     TH1F* hP_A = new TH1F("hP_A","hP_A",1024/2,0,4096*2);
     TH1F* hP_C = new TH1F("hP_C","hP_C",1024/2,0,4096*2);
@@ -101,9 +101,9 @@ printf("TotParticles_ME = %u\n",TotParticles_ME);
         ParticleB[uPart_Event].SetX(rangen.Gaus(MeanMom[0],SigmaMom[0]*1.05));
         ParticleB[uPart_Event].SetY(rangen.Gaus(MeanMom[1],SigmaMom[1]*1.05));
         ParticleB[uPart_Event].SetZ(rangen.Gaus(MeanMom[2],SigmaMom[2]*1.05));
-/*
-        //if(uPart_Event==0||rangen.Uniform()<0.97){
-        if(uPart_Event==0||rangen.Uniform()<0.5){
+
+        if(uPart_Event==0||rangen.Uniform()<0.97){
+        //if(uPart_Event==0||rangen.Uniform()<1.0){
             ParticleC[uPart_Event].SetX(rangen.Gaus(MeanMom[0],SigmaMom[0]));
             ParticleC[uPart_Event].SetY(rangen.Gaus(MeanMom[1],SigmaMom[1]));
             ParticleC[uPart_Event].SetZ(rangen.Gaus(MeanMom[2],SigmaMom[2]));
@@ -114,7 +114,7 @@ printf("TotParticles_ME = %u\n",TotParticles_ME);
             ParticleC[uPart_Event].SetX(rangen.Gaus(ParticleC[uPart_Event-1].X(),SigmaMom[0]*0.15));
             ParticleC[uPart_Event].SetY(rangen.Gaus(ParticleC[uPart_Event-1].Y(),SigmaMom[1]*0.15));
             ParticleC[uPart_Event].SetZ(rangen.Gaus(ParticleC[uPart_Event-1].Z(),SigmaMom[2]*0.15));
-
+/*
             //induce qs
             double kStar;
             double QSprob;
@@ -126,10 +126,10 @@ printf("TotParticles_ME = %u\n",TotParticles_ME);
                 QSprob = 1-exp(-kStar*kStar/500./500.);
             }
             while(rangen.Uniform()>QSprob);
-
-        }
 */
+        }
 
+/*
         //pLambda data driven correlation
         bool Rejected = true;
         while(Rejected){
@@ -166,7 +166,7 @@ printf("TotParticles_ME = %u\n",TotParticles_ME);
             Rejected = rangen.Uniform()<REJprob;
             //Rejected = false;
         }
-
+*/
         if(uPart<TotParticles_ME){
             ParticleMeA[uPart].SetX(ParticleA[uPart_Event].X());
             ParticleMeA[uPart].SetY(ParticleA[uPart_Event].Y());
@@ -179,7 +179,7 @@ printf("TotParticles_ME = %u\n",TotParticles_ME);
 
         ParticleC_RE[uPart_Event] = ParticleC[uPart_Event];
         ParticleC_RE[uPart_Event].SetPhi(rangen.Uniform(0,2.*TMath::Pi()));
-        //ParticleC_RE[uPart_Event].SetTheta(rangen.Uniform(0,acos(rangen.Uniform(-1.,1.))));
+        ParticleC_RE[uPart_Event].SetTheta(rangen.Uniform(0,acos(rangen.Uniform(-1.,1.))));
 
         hP_A->Fill(ParticleA[uPart_Event].Mag());
         hP_C->Fill(ParticleC[uPart_Event].Mag());

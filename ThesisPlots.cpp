@@ -76,7 +76,7 @@ void ToyPotentials_PS_WF_CF(){
     const double MassXY = (MassX*MassY)/(MassX+MassY);
 
     const double kMin = 0;
-    const double kMax = 400;
+    const double kMax = 200;
     const unsigned NumMomBins = 100;
 
     const double dfit_Min = 2;
@@ -95,7 +95,7 @@ void ToyPotentials_PS_WF_CF(){
     //RADIUS[3] = 3.0;
     RADIUS[0] = 1.0;
     RADIUS[1] = 1.5;
-    RADIUS[2] = 3.0;
+    RADIUS[2] = 4.0;
 
     const unsigned NumFreeWF = 3;
     double* FreeWaveK = new double[NumFreeWF];
@@ -407,21 +407,27 @@ void ToyPotentials_PS_WF_CF(){
     SetStyleAxis_2(hWFtot_Dummy);
     hWFtot_Dummy->GetXaxis()->SetTitle("r (fm)");
     hWFtot_Dummy->GetYaxis()->SetTitle("|#Psi_{k}(r)|^{2}");
-    hWFtot_Dummy->GetYaxis()->SetRangeUser(0,WFtot_yMax);
+    hWFtot_Dummy->GetYaxis()->SetRangeUser(-0.1,WFtot_yMax);
     TF1* fWFtot_base = new TF1("fWFtot_base","1",0,WF_rMax);
     fWFtot_base->SetLineColor(kBlack);
     fWFtot_base->SetLineWidth(1.5);
     fWFtot_base->SetLineStyle(2);
 
-    //DLM_SubPads Pad_WF(1080,1920);
-    DLM_SubPads Pad_WF(1280,1280);
-    Pad_WF.AddSubPad(0,1,0.5,1);
-    //Pad_WF.AddSubPad(0,1,0.38,0.62);
-    Pad_WF.AddSubPad(0,1,0,0.5);
+    TH1F* hSource_Dummy = new TH1F("hSource_Dummy","hSource_Dummy",128,0,WF_rMax);
+    SetStyleAxis_2(hSource_Dummy);
+    hSource_Dummy->GetXaxis()->SetTitle("r (fm)");
+    hSource_Dummy->GetYaxis()->SetTitle("4#pir^{2}S(r) (1/fm)");
+    hSource_Dummy->GetYaxis()->SetRangeUser(0,0.45);
 
-    Pad_WF.SetMargin(0,0.12,0.02,0.0,0.07);
-    //Pad_WF.SetMargin(1,0.12,0.02,0.,0.);
-    Pad_WF.SetMargin(1,0.12,0.02,0.09,0.0);
+    //DLM_SubPads Pad_WF(1080,1920);
+    DLM_SubPads Pad_WF(1080,1440);
+    Pad_WF.AddSubPad(0,1,0.65,1);
+    Pad_WF.AddSubPad(0,1,0.35,0.65);
+    Pad_WF.AddSubPad(0,1,0,0.35);
+
+    Pad_WF.SetMargin(0,0.12,0.02,0.0,0.06);
+    Pad_WF.SetMargin(1,0.12,0.02,0.,0.);
+    Pad_WF.SetMargin(2,0.12,0.02,0.07,0.0);
 
     Pad_WF.cd(0);
 
@@ -487,6 +493,23 @@ void ToyPotentials_PS_WF_CF(){
         lLegend_WF_low->AddEntry(&gTotWF[uPot],PotLegend[uPot]);
     }
     lLegend_WF_low->Draw("same");
+
+    Pad_WF.cd(2);
+    hSource_Dummy->Draw("axis");
+    for(unsigned uSor=0; uSor<NumRad; uSor++){
+        gSource[uSor].SetLineColor(kBlue+3);
+        gSource[uSor].SetLineStyle(uSor+1);
+        gSource[uSor].SetLineWidth(3.5);
+        gSource[uSor].Draw("same");
+    }
+    TLegend* lLegend_Source = new TLegend(0.6,0.65,0.95,0.95);//lbrt
+    lLegend_Source->SetName(TString::Format("lLegend_Source"));
+    lLegend_Source->SetTextSize(0.06);
+    for(unsigned uSor=0; uSor<NumRad; uSor++){
+        lLegend_Source->AddEntry(&gSource[uSor],TString::Format("Source size: %.1f fm",RADIUS[uSor]));
+    }
+
+    lLegend_Source->Draw("same");
 
     Pad_WF.GetCanvas()->SaveAs(OutputFolder+"Pad_WF.png");
     Pad_WF.GetCanvas()->SaveAs(OutputFolder+"Pad_WF.pdf");
@@ -666,6 +689,9 @@ void ToyPotentials_PS_WF_CF(){
     delete lLegend_PS;
     delete fPS_base;
     delete cPS;
+
+    delete hSource_Dummy;
+    delete lLegend_Source;
 
     for(unsigned uSor=0; uSor<NumRad; uSor++){
         delete PT_RAD[uSor];

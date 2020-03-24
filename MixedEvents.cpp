@@ -8,6 +8,7 @@
 #include "CATS.h"
 #include "DLM_CkDecomposition.h"
 #include "DLM_Fitters.h"
+#include "DLM_Histo.h"
 
 
 #include "math.h"
@@ -43,18 +44,22 @@
 
 using namespace std;
 
-void DifferentTechniquesTest1(const TString& TranModDescr, const TString& DataSetDescr){
+void DifferentTechniquesTest1(const TString& TranModDescr, const TString& DataSetDescr, const TString& Descr2=""){
     const double kMin = DataSetDescr=="pp"?0:DataSetDescr=="pLambda"?0:DataSetDescr=="pXim"?0:0;
     const double kMax = DataSetDescr=="pp"?3:DataSetDescr=="pLambda"?3:DataSetDescr=="pXim"?3:3;
     const double kMinZoom = DataSetDescr=="pp"?0:DataSetDescr=="pLambda"?0:DataSetDescr=="pXim"?0:0;
     const double kMaxZoom = DataSetDescr=="pp"?0.6:DataSetDescr=="pLambda"?0.6:DataSetDescr=="pXim"?0.6:0.6;
     //const double kNormMin = 0.400;
     //const double kNormMax = 0.600;
-    const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/DifferentTechniquesTest1/dEta_dPhi/";
+    //const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/DifferentTechniquesTest1/dEta_dPhi/";
+    const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/DifferentTechniquesTest1/ForVale/";
     const unsigned NumMomBins = DataSetDescr=="pp"?100:DataSetDescr=="pLambda"?50:DataSetDescr=="pXim"?50:50;
-    const TString OutFileBaseName = OutputFolder+TranModDescr+"_"+DataSetDescr;
-    const TString InputFileName = DataSetDescr=="pp"?TransportFile_pp_Alice:DataSetDescr=="pLambda"?TransportFile_pL_Alice:
+    const TString OutFileBaseName = OutputFolder+TranModDescr+"_"+DataSetDescr+Descr2;
+    TString InputFileName = DataSetDescr=="pp"?TransportFile_pp_Alice:DataSetDescr=="pLambda"?TransportFile_pL_Alice:
         DataSetDescr=="pXim"?TString("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/Scratch9_OSCAR1997_100KiLrz_pXim.f19"):"";
+    if(DataSetDescr=="pAp"&&Descr2=="All") InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/ForVale/EPOS_20200121/pAp_All.f19";
+    if(DataSetDescr=="pAp"&&Descr2=="Core") InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/ForVale/EPOS_20200121/pAp_Core.f19";
+    if(DataSetDescr=="pAp"&&Descr2=="Corona") InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/ForVale/EPOS_20200121/pAp_Corona.f19";
     const unsigned NumBlankHeaderLines=3;
     const unsigned MaxPairsToRead = 4e6;
     const unsigned HighMultLimit = 128;
@@ -62,6 +67,7 @@ void DifferentTechniquesTest1(const TString& TranModDescr, const TString& DataSe
     const unsigned RandomDepth = 16;
     const double DimiSmearPhi = (90.)*DegToRad;
     int pdgID[2] = {2212, DataSetDescr=="pp"?2212:DataSetDescr=="pLambda"?3122:DataSetDescr=="pXim"?3312:0};
+    if(DataSetDescr=="pAp"){pdgID[0]=2212; pdgID[1]=-2212;}
 /*
     const unsigned NumNorm = 4;
     const double kNormMin[NumNorm] = {0.2,0.4,0.6,1};
@@ -253,8 +259,8 @@ CatsParticle FirstPart;
             KittyParticleOriginal=KittyParticle;
             if(iPart==0) FirstPart=KittyParticle;
 
-            //induce correlation
-            if(rangen.Uniform(0,1)<0.05&&iPart){
+///induce correlation
+            if(rangen.Uniform(0,1)<0.00&&iPart){
             //if(iPart){
                 KittyParticle.Set(FirstPart.GetT(),FirstPart.GetX(),FirstPart.GetY(),FirstPart.GetZ(),
                                   FirstPart.GetE(),FirstPart.GetPx(),FirstPart.GetPy(),FirstPart.GetPz());
@@ -332,11 +338,11 @@ if(fabs(KittyParticle.GetPseudoRap())>0.8) continue;//!
 
             KittyEvent[uBuffer]->AddParticle(KittyParticle);
             static int COUNTER=0;
-            printf("wtf%i\n",COUNTER++);
-printf(" KittyParticle(Rnd).GetP() = %.4f (%.4f)\n",KittyParticle.GetP(),KittyParticleOriginal.GetP());
-printf(" KittyParticle(Rnd).GetPt() = %.4f (%.4f)\n",KittyParticle.GetPt(),KittyParticleOriginal.GetPt());
-printf(" KittyParticle(Rnd).GetPseudoRap() = %.4f (%.4f)\n",KittyParticle.GetPseudoRap(),KittyParticleOriginal.GetPseudoRap());
-printf("\n");
+//printf("wtf%i\n",COUNTER++);
+//printf(" KittyParticle(Rnd).GetP() = %.4f (%.4f)\n",KittyParticle.GetP(),KittyParticleOriginal.GetP());
+//printf(" KittyParticle(Rnd).GetPt() = %.4f (%.4f)\n",KittyParticle.GetPt(),KittyParticleOriginal.GetPt());
+//printf(" KittyParticle(Rnd).GetPseudoRap() = %.4f (%.4f)\n",KittyParticle.GetPseudoRap(),KittyParticleOriginal.GetPseudoRap());
+//printf("\n");
             KittyEventOriginal[uBuffer]->AddParticle(KittyParticleOriginal);
             KittyEventRnd[uBuffer]->AddParticle(KittyParticleRnd);
             for(unsigned uRnd=0; uRnd<RandomDepth; uRnd++){
@@ -3931,7 +3937,8 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
     //const double kNormMin = 0.400;
     //const double kNormMax = 0.600;
     //const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/ReferenceSampleStudy_1/";
-    const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/AngleStudy_3/";
+    //const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/AngleStudy_3/";
+    const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/Max/";
     const unsigned NumMomBins = DataSetDescr=="pp"?400:DataSetDescr=="pLambda"?200:DataSetDescr=="pXim"?200:200;
     const TString OutFileBaseName = OutputFolder+TranModDescr+"_"+DataSetDescr;
     //const TString InputFileName = DataSetDescr=="pp"?TransportFile_pp_Alice:DataSetDescr=="pLambda"?TransportFile_pL_Alice:
@@ -3949,9 +3956,12 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
         InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp200/pp200_pResoXimOmega_Oct2019_4PI_ReducedWeights.f19";
     else if(DataSetDescr=="Lam_Lam"||DataSetDescr=="Lam_LamReso"||DataSetDescr=="LamReso_LamReso")
         InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp200/pp200_LamResoLamReso_Oct2019_4PI_ReducedWeights.f19";
+    else if(DataSetDescr=="pi_pi"||DataSetDescr=="pi_piReso"||DataSetDescr=="piReso_piReso")
+        InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/Max/220320.f19";
     else
         InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp200/pp200_pResoLamReso_Oct2019_4PI_ReducedWeights.f19";
 
+//
     //AvgResoMass = 1.354190 for VER2, around 1.38 for the first version. Basically VER2 has inly ior==0 reso
     //const TString InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp80/pp80_pReso_PRIM_4PI_VER2.f19";
     //const TString InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp80/pp80_LamReso_PRIM_4PI.f19";
@@ -3965,9 +3975,17 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
     int Original_eposID[2];
     int Original_pdgID[2];
     //masses of the decay products (daughters)
-    double DaughterMassP1[2];
-    double DaughterMassP2[2];
+    //a maximum of four body decay is allowed. It is assumed that [0] Daughter is the only one of interest
+    double DaughterMassP1[4];
+    double DaughterMassP2[4];
     double ResoMass[2];
+
+    //[0] = 2 body //[1] = 3 body //[2] = 4 body
+    double FractionsNbody[3];
+    double FractionsNbodyC[3];//cumulative
+
+    //see the comment at ResoInfo
+    bool UseResoInfo = true;
 
     //p-p correlation
     if(DataSetDescr=="p_p"){
@@ -3980,12 +3998,22 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
 
         DaughterMassP1[0] = -1;
         DaughterMassP1[1] = -1;
+        DaughterMassP1[2] = -1;
+        DaughterMassP1[3] = -1;
 
         DaughterMassP2[0] = -1;
         DaughterMassP2[1] = -1;
+        DaughterMassP2[2] = -1;
+        DaughterMassP2[3] = -1;
 
         ResoMass[0] = -1;
         ResoMass[1] = -1;
+
+        FractionsNbody[0] = 1;
+        FractionsNbody[1] = 0;
+        FractionsNbody[2] = 0;
+
+        UseResoInfo = true;
     }
     else if(DataSetDescr=="p_pReso"){
         pdgID[0] = 2212;
@@ -3997,12 +4025,22 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
 
         DaughterMassP1[0] = -1;
         DaughterMassP1[1] = -1;
+        DaughterMassP1[2] = -1;
+        DaughterMassP1[3] = -1;
 
         DaughterMassP2[0] = Mass_p*0.001;
         DaughterMassP2[1] = Mass_pic*0.001;
+        DaughterMassP2[2] = -1;
+        DaughterMassP2[3] = -1;
 
         ResoMass[0] = -1;
         ResoMass[1] = 1.36;
+
+        FractionsNbody[0] = 1;
+        FractionsNbody[1] = 0;
+        FractionsNbody[2] = 0;
+
+        UseResoInfo = true;
     }
     else if(DataSetDescr=="pReso_pReso"){
         pdgID[0] = 0;
@@ -4014,12 +4052,22 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
 
         DaughterMassP1[0] = Mass_p*0.001;
         DaughterMassP1[1] = Mass_pic*0.001;
+        DaughterMassP1[2] = -1;
+        DaughterMassP1[3] = -1;
 
         DaughterMassP2[0] = Mass_p*0.001;
         DaughterMassP2[1] = Mass_pic*0.001;
+        DaughterMassP2[2] = -1;
+        DaughterMassP2[3] = -1;
 
         ResoMass[0] = 1.36;
         ResoMass[1] = 1.36;
+
+        FractionsNbody[0] = 1;
+        FractionsNbody[1] = 0;
+        FractionsNbody[2] = 0;
+
+        UseResoInfo = true;
     }
     //p-Lambda correlation
     else if(DataSetDescr=="p_LamReso"){
@@ -4032,12 +4080,22 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
 
         DaughterMassP1[0] = -1;
         DaughterMassP1[1] = -1;
+        DaughterMassP1[2] = -1;
+        DaughterMassP1[3] = -1;
 
         DaughterMassP2[0] = Mass_L*0.001;
         DaughterMassP2[1] = Mass_pic*0.001;
+        DaughterMassP2[2] = -1;
+        DaughterMassP2[3] = -1;
 
         ResoMass[0] = -1;
         ResoMass[1] = 1.46;
+
+        FractionsNbody[0] = 1;
+        FractionsNbody[1] = 0;
+        FractionsNbody[2] = 0;
+
+        UseResoInfo = true;
     }
 //! WRONG PIDs?
     else if(DataSetDescr=="pReso_Lam"){
@@ -4046,9 +4104,13 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
 
         DaughterMassP1[0] = Mass_p*0.001;
         DaughterMassP1[1] = Mass_pic*0.001;
+        DaughterMassP1[2] = -1;
+        DaughterMassP1[3] = -1;
 
         DaughterMassP2[0] = -1;
         DaughterMassP2[1] = -1;
+        DaughterMassP2[2] = -1;
+        DaughterMassP2[3] = -1;
 
         ResoMass[0] = 1.36;
         ResoMass[1] = -1;
@@ -4062,12 +4124,22 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
 
         DaughterMassP1[0] = Mass_p*0.001;
         DaughterMassP1[1] = Mass_pic*0.001;
+        DaughterMassP1[2] = -1;
+        DaughterMassP1[3] = -1;
 
         DaughterMassP2[0] = -1;
         DaughterMassP2[1] = -1;
+        DaughterMassP2[2] = -1;
+        DaughterMassP2[3] = -1;
 
         ResoMass[0] = 1.36;//was wrong set to 1.46
         ResoMass[1] = -1;
+
+        FractionsNbody[0] = 1;
+        FractionsNbody[1] = 0;
+        FractionsNbody[2] = 0;
+
+        UseResoInfo = true;
     }
     else if(DataSetDescr=="pReso_LamReso"){
         pdgID[0] = 0;
@@ -4079,12 +4151,22 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
 
         DaughterMassP1[0] = Mass_p*0.001;
         DaughterMassP1[1] = Mass_pic*0.001;
+        DaughterMassP1[2] = -1;
+        DaughterMassP1[3] = -1;
 
         DaughterMassP2[0] = Mass_L*0.001;
         DaughterMassP2[1] = Mass_pic*0.001;
+        DaughterMassP2[2] = -1;
+        DaughterMassP2[3] = -1;
 
         ResoMass[0] = 1.36;
         ResoMass[1] = 1.46;
+
+        FractionsNbody[0] = 1;
+        FractionsNbody[1] = 0;
+        FractionsNbody[2] = 0;
+
+        UseResoInfo = true;
     }
     else if(DataSetDescr=="pReso_Xim"){
         pdgID[0] = 0;
@@ -4092,9 +4174,13 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
 
         DaughterMassP1[0] = Mass_p*0.001;
         DaughterMassP1[1] = Mass_pic*0.001;
+        DaughterMassP1[2] = -1;
+        DaughterMassP1[3] = -1;
 
         DaughterMassP2[0] = -1;
         DaughterMassP2[1] = -1;
+        DaughterMassP2[2] = -1;
+        DaughterMassP2[3] = -1;
 
         ResoMass[0] = 1.36;
         ResoMass[1] = -1;
@@ -4108,12 +4194,22 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
 
         DaughterMassP1[0] = Mass_p*0.001;
         DaughterMassP1[1] = Mass_pic*0.001;
+        DaughterMassP1[2] = -1;
+        DaughterMassP1[3] = -1;
 
         DaughterMassP2[0] = -1;
         DaughterMassP2[1] = -1;
+        DaughterMassP2[2] = -1;
+        DaughterMassP2[3] = -1;
 
         ResoMass[0] = 1.36;
         ResoMass[1] = -1;
+
+        FractionsNbody[0] = 1;
+        FractionsNbody[1] = 0;
+        FractionsNbody[2] = 0;
+
+        UseResoInfo = true;
     }
     else if(DataSetDescr=="pReso_Omega"){
         pdgID[0] = 0;
@@ -4121,9 +4217,13 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
 
         DaughterMassP1[0] = Mass_p*0.001;
         DaughterMassP1[1] = Mass_pic*0.001;
+        DaughterMassP1[2] = -1;
+        DaughterMassP1[3] = -1;
 
         DaughterMassP2[0] = -1;
         DaughterMassP2[1] = -1;
+        DaughterMassP2[2] = -1;
+        DaughterMassP2[3] = -1;
 
         ResoMass[0] = 1.36;
         ResoMass[1] = -1;
@@ -4137,12 +4237,22 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
 
         DaughterMassP1[0] = Mass_p*0.001;
         DaughterMassP1[1] = Mass_pic*0.001;
+        DaughterMassP1[2] = -1;
+        DaughterMassP1[3] = -1;
 
         DaughterMassP2[0] = -1;
         DaughterMassP2[1] = -1;
+        DaughterMassP2[2] = -1;
+        DaughterMassP2[3] = -1;
 
         ResoMass[0] = 1.36;
         ResoMass[1] = -1;
+
+        FractionsNbody[0] = 1;
+        FractionsNbody[1] = 0;
+        FractionsNbody[2] = 0;
+
+        UseResoInfo = true;
     }
     //LL correlation
     else if(DataSetDescr=="Lam_Lam"){
@@ -4155,12 +4265,22 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
 
         DaughterMassP1[0] = -1;
         DaughterMassP1[1] = -1;
+        DaughterMassP1[2] = -1;
+        DaughterMassP1[3] = -1;
 
         DaughterMassP2[0] = -1;
         DaughterMassP2[1] = -1;
+        DaughterMassP2[2] = -1;
+        DaughterMassP2[3] = -1;
 
         ResoMass[0] = -1;
         ResoMass[1] = -1;
+
+        FractionsNbody[0] = 1;
+        FractionsNbody[1] = 0;
+        FractionsNbody[2] = 0;
+
+        UseResoInfo = true;
     }
     else if(DataSetDescr=="Lam_LamReso"){
         pdgID[0] = 3122;
@@ -4172,12 +4292,18 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
 
         DaughterMassP1[0] = -1;
         DaughterMassP1[1] = -1;
+        DaughterMassP1[2] = -1;
+        DaughterMassP1[3] = -1;
 
         DaughterMassP2[0] = Mass_L*0.001;
         DaughterMassP2[1] = Mass_pic*0.001;
+        DaughterMassP2[2] = -1;
+        DaughterMassP2[3] = -1;
 
         ResoMass[0] = -1;
         ResoMass[1] = 1.46;
+
+        UseResoInfo = true;
     }
     else if(DataSetDescr=="LamReso_LamReso"){
         pdgID[0] = 0;
@@ -4189,13 +4315,113 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
 
         DaughterMassP1[0] = Mass_L*0.001;
         DaughterMassP1[1] = Mass_pic*0.001;
+        DaughterMassP1[2] = -1;
+        DaughterMassP1[3] = -1;
 
         DaughterMassP2[0] = Mass_L*0.001;
         DaughterMassP2[1] = Mass_pic*0.001;
+        DaughterMassP2[2] = -1;
+        DaughterMassP2[3] = -1;
 
         ResoMass[0] = 1.46;
         ResoMass[1] = 1.46;
+
+        FractionsNbody[0] = 1;
+        FractionsNbody[1] = 0;
+        FractionsNbody[2] = 0;
+
+        UseResoInfo = true;
     }
+    //pipi correlation
+    else if(DataSetDescr=="pi_pi"){
+        pdgID[0] = 211;
+        pdgID[1] = 211;
+        Original_eposID[0] = 120;
+        Original_eposID[1] = 120;
+        Original_pdgID[0] = 211;
+        Original_pdgID[1] = 211;
+
+        DaughterMassP1[0] = -1;
+        DaughterMassP1[1] = -1;
+        DaughterMassP1[2] = -1;
+        DaughterMassP1[3] = -1;
+
+        DaughterMassP2[0] = -1;
+        DaughterMassP2[1] = -1;
+        DaughterMassP2[2] = -1;
+        DaughterMassP2[3] = -1;
+
+        ResoMass[0] = -1;
+        ResoMass[1] = -1;
+
+        FractionsNbody[0] = 0.934;
+        FractionsNbody[1] = 0.037;
+        FractionsNbody[2] = 0.029;
+
+        UseResoInfo = false;
+    }
+    else if(DataSetDescr=="pi_piReso"){
+        pdgID[0] = 211;
+        pdgID[1] = 0;
+        Original_eposID[0] = 120;
+        Original_eposID[1] = 120;
+        Original_pdgID[0] = 211;
+        Original_pdgID[1] = 211;
+
+        DaughterMassP1[0] = -1;
+        DaughterMassP1[1] = -1;
+        DaughterMassP1[2] = -1;
+        DaughterMassP1[3] = -1;
+
+        DaughterMassP2[0] = Mass_pic*0.001;
+        DaughterMassP2[1] = Mass_pic*0.001;
+        DaughterMassP2[2] = Mass_pic*0.001;
+        DaughterMassP2[3] = Mass_pic*0.001;
+
+        ResoMass[0] = -1;
+        ResoMass[1] = 1.124;
+
+        FractionsNbody[0] = 0.934;
+        FractionsNbody[1] = 0.037;
+        FractionsNbody[2] = 0.029;
+
+        UseResoInfo = false;
+    }
+    else if(DataSetDescr=="piReso_piReso"){
+        pdgID[0] = 0;
+        pdgID[1] = 0;
+        Original_eposID[0] = 120;
+        Original_eposID[1] = 120;
+        Original_pdgID[0] = 211;
+        Original_pdgID[1] = 211;
+
+        DaughterMassP1[0] = Mass_pic*0.001;
+        DaughterMassP1[1] = Mass_pic*0.001;
+        DaughterMassP1[2] = Mass_pic*0.001;
+        DaughterMassP1[3] = Mass_pic*0.001;
+
+        DaughterMassP2[0] = Mass_pic*0.001;
+        DaughterMassP2[1] = Mass_pic*0.001;
+        DaughterMassP2[2] = Mass_pic*0.001;
+        DaughterMassP2[3] = Mass_pic*0.001;
+
+        ResoMass[0] = 1.124;
+        ResoMass[1] = 1.124;
+
+        FractionsNbody[0] = 0.934;
+        FractionsNbody[1] = 0.037;
+        FractionsNbody[2] = 0.029;
+
+        UseResoInfo = false;
+    }
+
+    FractionsNbodyC[0] = FractionsNbody[0];
+    FractionsNbodyC[1] = FractionsNbodyC[0]+FractionsNbody[1];
+    FractionsNbodyC[2] = FractionsNbodyC[1]+FractionsNbody[2];
+    if(FractionsNbodyC[2]!=1){
+        printf("\033[1;33mWARNING:\033[0m The fractions sum up to %f\n",FractionsNbodyC[2]);
+    }
+
     unsigned NumTotalPairs=0;
     unsigned TotNumEvents=0;
     unsigned RejectedHighMultEvents=0;
@@ -4365,7 +4591,25 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
     int ParticlePID = KittyParticle.GetPid();
     double ResoWidth;
     int ParentPID;
-    ResoInfo(ParticlePID,ParentPID,ResoWidth);
+    //this was used for the baryon baryon femto, where each reso can be mapped to a specific daughter
+    //this will not work properly for meson meson, this is why we have to switch it off
+    if(UseResoInfo) ResoInfo(ParticlePID,ParentPID,ResoWidth);
+    else{
+        //to boost statistics we take both the particles and antiparticles and treat them the same
+        ParticlePID = abs(ParticlePID);
+        KittyParticle.SetPid(ParticlePID);
+        //ResoInfo should tell is which is the pid of the daughter associated with a resonances.
+        //If it is zero, than it implies the current particle is a primary
+        if(ParticlePID==Original_pdgID[0]||ParticlePID==Original_eposID[0]||ParticlePID==Original_pdgID[1]||ParticlePID==Original_eposID[1]){
+            ParentPID = 0;
+            ResoWidth = 0;
+        }
+        else{
+            //this works only for pions at the moment
+            ParentPID = 211;
+            ResoWidth = 1;
+        }
+    }
 
     if(ParticlePID==Original_pdgID[0]||ParticlePID==Original_eposID[0]) {KittyParticle.SetWidth(0);KittyParticle.SetPid(Original_pdgID[0]);}
     else if(ParticlePID==Original_pdgID[1]||ParticlePID==Original_eposID[1]) {KittyParticle.SetWidth(0);KittyParticle.SetPid(Original_pdgID[1]);}
@@ -4384,21 +4628,14 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
 //printf(" id = %i\n",KittyParticle.GetPid());
 //printf(" width = %f\n",KittyParticle.GetWidth());
 
-
-
 //if(DataSetDescr.Contains("Reso")&&KittyParticle.GetPid()!=Original_pdgID[0]&&KittyParticle.GetPid()!=Original_pdgID[1]
 //   &&KittyParticle.GetPid()!=Original_eposID[0]&&KittyParticle.GetPid()!=Original_eposID[1])KittyParticle.SetPid(0);
 //else if(KittyParticle.GetPid()==Original_eposID[0])KittyParticle.SetPid(Original_pdgID[0]);
 //else if(KittyParticle.GetPid()==Original_eposID[1])KittyParticle.SetPid(Original_pdgID[1]);
 
-
-
-
 //if(DataSetDescr.Contains("Reso")&&KittyParticle.GetPid()!=1120&&
 //   KittyParticle.GetPid()!=1114&&KittyParticle.GetPid()!=1128&&KittyParticle.GetPid()!=1228&&KittyParticle.GetPid()!=1127&&KittyParticle.GetPid()!=1227)continue;
 //if(DataSetDescr.Contains("Reso")&&KittyParticle.GetPid()!=1120) KittyParticle.SetPid(0);
-
-
 
 //printf("pdgID=%i\n",KittyParticle.GetPid());
             //printf("KittyParticle = %f (%.3f,%.3f,%.3f)\n",KittyParticle.GetP(),KittyParticle.GetPx(),KittyParticle.GetPy(),KittyParticle.GetPz());
@@ -4615,8 +4852,22 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
             TLV_Daughter2 = *TLVP_Daughter2;
 */
 
-            if(eventRan1) eventRan1->SetDecay(TLV_P1, 2, DaughterMassP1);
-            if(eventRan2) eventRan2->SetDecay(TLV_P2, 2, DaughterMassP2);
+            //decide how many body decay we have
+            int NbodyDecay;
+            double NbodyRandom = rangen.Uniform();
+            for(int inb=2; inb<=4; inb++){
+                if(NbodyRandom<=FractionsNbodyC[inb-2]){NbodyDecay=inb; break;}
+            }
+            double TotalDaughterMassP1 = DaughterMassP1[0];
+            double TotalDaughterMassP2 = DaughterMassP2[0];
+            for(int inb=0; inb<NbodyDecay; inb++){
+                TotalDaughterMassP1 += DaughterMassP1[inb+1];
+                TotalDaughterMassP2 += DaughterMassP1[inb+1];
+            }
+
+
+            if(eventRan1) eventRan1->SetDecay(TLV_P1, NbodyDecay, DaughterMassP1);
+            if(eventRan2) eventRan2->SetDecay(TLV_P2, NbodyDecay, DaughterMassP2);
 
             //if(eventRan1) printf("1\n");
             //if(eventRan2) printf("2\n");
@@ -4665,13 +4916,13 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
             //if(eventRan1) eventRan1->Generate();
             //if(eventRan2) eventRan2->Generate();
 
-            if(TLV_P1.M()<=DaughterMassP1[0]+DaughterMassP1[1]){
+            if(TLV_P1.M()<=TotalDaughterMassP1){
                 //printf("TLV_P1.M()=%f\n",TLV_P1.M());
                 //abort();
 printf("TROUBLE EXPECTED...\n");
 printf("TLV_P1.M()=%f\n",TLV_P1.M());
             }
-            if(TLV_P2.M()<=DaughterMassP2[0]+DaughterMassP2[1]){
+            if(TLV_P2.M()<=TotalDaughterMassP2){
                 //printf("TLV_P2.M()=%f\n",TLV_P2.M());
                 //abort();
 printf("TROUBLE EXPECTED...\n");
@@ -5267,10 +5518,469 @@ void TestVectorOrientation(){
 
 }
 
+//Descr2 system
+//Descr3 Core Corona All
+void CorrFromEpos(TString Descr2, TString Descr3, const double& CoronaFrac){
+
+    const unsigned NumBlankHeaderLines=3;
+    const unsigned MaxPairsToRead = 16e6;
+    const unsigned HighMultLimit = 128;
+    const double FractionForME = 0.002;
+
+    unsigned TotNumEvents=0;
+    unsigned RejectedHighMultEvents=0;
+
+    //bool ParticleAntiParticle = true;
+
+    double minMom[2];
+    minMom[0] = 0.4;
+    minMom[1] = 0.4;
+
+    double etaCut[2];
+    etaCut[0] = 0.8;
+    etaCut[1] = 0.8;
+
+    int pdgID[2];
+    pdgID[0]=2212;
+    pdgID[1]=-2212;
+
+    int eposID[2];
+    eposID[0]=1120;
+    eposID[1]=-1120;
+
+    if(Descr2.Contains("pp")){
+        pdgID[0]=2212;
+        eposID[0]=1120;
+        minMom[0] = 0.4;
+        etaCut[0] = 0.8;
+
+        pdgID[1]=2212;
+        eposID[1]=1120;
+        minMom[1] = 0.4;
+        etaCut[1] = 0.8;
+    }
+    if(Descr2.Contains("pL")){
+        pdgID[0]=2212;
+        eposID[0]=1120;
+        minMom[0] = 0.4;
+        etaCut[0] = 0.8;
+
+        pdgID[1]=3122;
+        eposID[1]=2130;
+        minMom[1] = 0.3;
+        etaCut[1] = 0.8;
+    }
+    if(Descr2.Contains("LL")){
+        pdgID[0]=3122;
+        eposID[0]=2130;
+        minMom[0] = 0.4;
+        etaCut[0] = 0.8;
+
+        pdgID[1]=3122;
+        eposID[1]=2130;
+        minMom[1] = 0.3;
+        etaCut[1] = 0.8;
+    }
+    if(Descr2.Contains("pAp")){
+        pdgID[0]=2212;
+        eposID[0]=1120;
+        minMom[0] = 0.4;
+        etaCut[0] = 0.8;
+
+        pdgID[1]=-2212;
+        eposID[1]=-1120;
+        minMom[1] = 0.4;
+        etaCut[1] = 0.8;
+    }
+    if(Descr2.Contains("pAL")){
+        pdgID[0]=2212;
+        eposID[0]=1120;
+        minMom[0] = 0.4;
+        etaCut[0] = 0.8;
+
+        pdgID[1]=-3122;
+        eposID[1]=-2130;
+        minMom[1] = 0.3;
+        etaCut[1] = 0.8;
+    }
+    if(Descr2.Contains("LAL")){
+        pdgID[0]=3122;
+        eposID[0]=2130;
+        minMom[0] = 0.4;
+        etaCut[0] = 0.8;
+
+        pdgID[1]=-3122;
+        eposID[1]=-2130;
+        minMom[1] = 0.3;
+        etaCut[1] = 0.8;
+    }
+
+    if(Descr3.Contains("Corona")){
+        pdgID[0]=eposID[0];
+        pdgID[1]=eposID[1];
+    }
+    if(Descr3.Contains("Core")){
+        eposID[0]=pdgID[0];
+        eposID[1]=pdgID[1];
+    }
+
+    const TString FileToCompareWith = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/OtherTasks/ALL_CorrectedMC_EXP/fOutput_MaybeImportant.root";
+    const TString HistoToCompareWith = "hOriginal_pAp";
+    TFile* fCompare = new TFile(FileToCompareWith, "read");
+    TH1F* hcOriginal = (TH1F*)fCompare->Get(HistoToCompareWith);
+    DLM_Histo<float> dlmOriginal;
+    dlmOriginal.SetUp(1);
+    dlmOriginal.SetUp(0,hcOriginal->GetNbinsX(),hcOriginal->GetBinLowEdge(1),hcOriginal->GetXaxis()->GetBinUpEdge(hcOriginal->GetNbinsX()));
+    dlmOriginal.Initialize();
+//printf("NB = %i %f %f\n",hcOriginal->GetNbinsX(),hcOriginal->GetBinLowEdge(1),hcOriginal->GetXaxis()->GetBinUpEdge(hcOriginal->GetNbinsX()));
+
+    for(unsigned uBin=0; uBin<dlmOriginal.GetNbins(); uBin++){
+        dlmOriginal.SetBinContent(uBin,hcOriginal->GetBinContent(uBin+1));
+//printf(" %u = %f\n",);
+        dlmOriginal.SetBinError(uBin,hcOriginal->GetBinError(uBin+1));
+    }
+    delete fCompare;
+
+    TH1F* hCompareCk = new TH1F("hCompareCk","hCompareCk",256,0,8192);
+    TH1F* hcEpos_Ck;// = new TH1F("hcEpos_Ck","hcEpos_Ck",256,0,8192);
+    TH1F* hcEpos_CdPhi;// = new TH1F("hcEpos_CdPhi","hcEpos_CdPhi",256,-3.15*2,3.15*2);
+
+    TH1F* hEpos_CkSe = new TH1F("hEpos_CkSe","hEpos_CkSe",256,0,8192);
+    TH1F* hEpos_CkMe = new TH1F("hEpos_CkMe","hEpos_CkMe",256,0,8192);
+    TH1F* hEpos_Ck = new TH1F("hEpos_Ck","hEpos_Ck",256,0,8192);
+    TH1F* hEpos_Ck_SillyNorm;
+
+    TH1F* hEpos_CdPhiSe = new TH1F("hEpos_CdPhiSe","hEpos_CdPhiSe",256,-3.15*2,3.15*2);
+    TH1F* hEpos_CdPhiMe = new TH1F("hEpos_CdPhiMe","hEpos_CdPhiMe",256,-3.15*2,3.15*2);
+    TH1F* hEpos_CdPhi = new TH1F("hEpos_CdPhi","hEpos_CdPhi",256,-3.15*2,3.15*2);
+
+    for(unsigned uBin=1; uBin<=hCompareCk->GetNbinsX(); uBin++){
+        double Momentum = hCompareCk->GetBinCenter(uBin);
+        hCompareCk->SetBinContent(uBin,dlmOriginal.Eval(&Momentum));
+        hCompareCk->SetBinError(uBin,dlmOriginal.EvalError(&Momentum));
+    }
+
+    CatsParticle KittyParticle;
+    //CatsParticle KittyParticleCM;
+
+    int EventNumber;
+    int NumPartInEvent;
+    double ImpPar;
+    double fDummy;
+    TRandom3 rangen(11);
+
+    TString InputFileName;
+    //if(Descr2=="pp_All") InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/ForVale/EPOS_20200121/pAp_All.f19";
+    //if(Descr2=="All") InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/ForVale/EPOS_20200121/pAp_All.f19";
+    //if(Descr2=="Core") InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/ForVale/EPOS_20200121/pAp_Core.f19";
+    //if(Descr2=="Corona") InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/ForVale/EPOS_20200121/pAp_Corona.f19";
+    //if(Descr2=="pAp_All") InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/ForVale/EPOS_20200121/pAL_All.f19";
+    //if(Descr2=="pAp_Core") InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/ForVale/EPOS_20200121/pAL_All.f19";
+    //if(Descr2=="pAp_Corona") InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/ForVale/EPOS_20200121/pAL_All.f19";
+    //if(Descr2=="pAL_All") InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/ForVale/EPOS_20200121/pAL_All.f19";
+    //if(Descr2=="pAL_Core") InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/ForVale/EPOS_20200121/pAL_All.f19";
+    //if(Descr2=="pAL_Corona") InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/ForVale/EPOS_20200121/pAL_All.f19";
+    //InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/ForVale/EPOS_20200121/pAL_All.f19";
+    InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/ForVale/EPOS_20200121/pAp_Corona.f19";
+
+    unsigned NumTotalPairs=0;
+
+    float pFile;
+    //percentage of the required number of pairs found in the file. Unless the file has some special
+    //internal structure and the events are saved randomly, the should also be a very accurate
+    //estimate of the max ETA
+    float pMaxPairsToRead;
+    double Time;
+    int pTotal;
+    int pTotalOld;
+    float ProgressLoad;
+    DLM_Timer dlmTimer;
+    bool ProgressBar=false;
+
+    FILE *InFile;
+    InFile = fopen(InputFileName, "r");
+    if(!InFile){
+        printf("          \033[1;31mERROR:\033[0m The file\033[0m %s cannot be opened!\n", InputFileName.Data());
+        return;
+    }
+    fseek ( InFile , 0 , SEEK_END );
+    long EndPos;
+    EndPos = ftell (InFile);
+    fseek ( InFile , 0 , SEEK_SET );
+    long CurPos;
+    char* cdummy = new char [512];
+    for(unsigned short us=0; us<NumBlankHeaderLines; us++){
+        if(!fgets(cdummy, 511, InFile)){
+            printf("Issue!\n");
+            continue;
+        }
+    }
+    if(feof(InFile)){
+        printf("\033[1;31m          ERROR:\033[0m Trying to read past end of file %s\n", InputFileName.Data());
+        printf("         No particle pairs were loaded :(\n");
+        return;
+    }
+
+    CatsEvent KittyMixedEvent(pdgID[0],pdgID[1]);
+    CatsEvent KittyMixedEventAp(-pdgID[0],-pdgID[1]);
+
+    CatsEvent KittyMixedEventCM(pdgID[0],pdgID[1]);
+    CatsEvent KittyMixedEventApCM(-pdgID[0],-pdgID[1]);
+
+    while(!feof(InFile)){
+//printf("Next event...\n");
+        if(NumTotalPairs>=MaxPairsToRead) break;
+        if(!fscanf(InFile,"%i %i %lf %lf",&EventNumber,&NumPartInEvent,&ImpPar,&fDummy)){
+            printf("Some fscanf issue!\n");
+            continue;
+        }
+//printf("Go on...\n");
+        TotNumEvents++;
+        if(NumPartInEvent>int(HighMultLimit)) RejectedHighMultEvents++;
+
+        CatsEvent KittyEvent(pdgID[0],pdgID[1]);
+        CatsEvent KittyEventAp(-pdgID[0],-pdgID[1]);
+        CatsEvent KittyEventCM(pdgID[0],pdgID[1]);
+        CatsEvent KittyEventApCM(-pdgID[0],-pdgID[1]);
+//printf("Go to the loop...\n");
+        //!---Iteration over all particles in this event---
+        for(int iPart=0; iPart<NumPartInEvent; iPart++){
+            KittyParticle.ReadFromOscarFile(InFile);
+            //KittyParticleCM = KittyParticle;
+
+            if(NumTotalPairs>=MaxPairsToRead) continue;
+            if(NumPartInEvent>int(HighMultLimit)) continue;
+
+            //sometimes one might go beyond the limit of the file
+            if(ftell(InFile)>=EndPos)continue;
+
+            if(KittyParticle.GetE()==0){
+                printf("WARNING! Possible bad input-file, there are particles with zero energy!\n");
+                continue;
+            }
+//printf("Original pid = %i\n",KittyParticle.GetPid());
+            //reduce the corona fraction
+            if(KittyParticle.GetPid()==eposID[0]){
+                if(Descr2.Contains("All")&&rangen.Uniform()>CoronaFrac) continue;
+                KittyParticle.SetPid(pdgID[0]);
+            }
+            if(KittyParticle.GetPid()==eposID[1]){
+                if(Descr2.Contains("All")&&rangen.Uniform()>CoronaFrac) continue;
+                KittyParticle.SetPid(pdgID[1]);
+            }
+//printf("Updated pid = %i\n",KittyParticle.GetPid());
+            bool pid1_compatible = (KittyEvent.GetPidParticle1()==KittyParticle.GetPid()||KittyEventAp.GetPidParticle1()==KittyParticle.GetPid());
+            bool pid2_compatible = (KittyEvent.GetPidParticle2()==KittyParticle.GetPid()||KittyEventAp.GetPidParticle2()==KittyParticle.GetPid());
+//printf(" pid1_compatible = %i\n",pid1_compatible);
+//printf(" pid2_compatible = %i\n",pid2_compatible);
+//printf(" KittyEvent.GetPidParticle1() = %i\n",KittyEvent.GetPidParticle1());
+//printf(" KittyEvent.GetPidParticle2() = %i\n",KittyEvent.GetPidParticle2());
+//printf(" KittyEventAp.GetPidParticle1() = %i\n",KittyEventAp.GetPidParticle1());
+//printf(" KittyEventAp.GetPidParticle2() = %i\n",KittyEventAp.GetPidParticle2());
+            if(!pid1_compatible&&!pid2_compatible) continue;
+
+            ///ALICE ACCEPTANCE
+            if(pid1_compatible&&KittyParticle.GetP()<minMom[0]) continue;
+            if(pid2_compatible&&KittyParticle.GetP()<minMom[1]) continue;
+            if(pid1_compatible&&fabs(KittyParticle.GetPseudoRap())>etaCut[0]) continue;
+            if(pid2_compatible&&fabs(KittyParticle.GetPseudoRap())>etaCut[1]) continue;
+
+//printf(" pid = %i\n",KittyParticle.GetPid());
+            bool TakeForMixing = FractionForME>rangen.Uniform();
+
+            if(KittyParticle.GetPid()==KittyEvent.GetPidParticle1() || KittyParticle.GetPid()==KittyEvent.GetPidParticle2()){
+                KittyEvent.AddParticle(KittyParticle);
+                KittyEventCM.AddParticle(KittyParticle);
+                if(TakeForMixing){
+                    KittyMixedEvent.AddParticle(KittyParticle);
+                    KittyMixedEventCM.AddParticle(KittyParticle);
+                }
+            }
+            else if( (KittyParticle.GetPid()==KittyEventAp.GetPidParticle1() || KittyParticle.GetPid()==KittyEventAp.GetPidParticle2()) &&
+                      KittyEventAp.GetPidParticle1()!=-KittyEventAp.GetPidParticle2() ){
+                KittyEventAp.AddParticle(KittyParticle);
+                KittyEventApCM.AddParticle(KittyParticle);
+                if(TakeForMixing){
+                    KittyMixedEventAp.AddParticle(KittyParticle);
+                    KittyMixedEventApCM.AddParticle(KittyParticle);
+                }
+            }
+            else{
+                printf("Unexpected continue call\n");
+                continue;
+            }
+
+        }
+//printf(" Computing...\n");
+        KittyEvent.ComputeParticlePairs(false,false);
+        KittyEventAp.ComputeParticlePairs(false,false);
+        KittyEventCM.ComputeParticlePairs(false,true);
+        KittyEventApCM.ComputeParticlePairs(false,true);
+//printf(" Computed...\n");
+        for(unsigned uPart=0; uPart<KittyEvent.GetNumPairs(); uPart++){
+//if(uPart==0) printf("PP = %u\n",KittyEvent.GetNumPairs());
+            hEpos_CkSe->Fill(KittyEventCM.GetParticlePair(uPart).GetP()*500.);
+            hEpos_Ck->Fill(KittyEventCM.GetParticlePair(uPart).GetP()*500.);
+            hEpos_CdPhiSe->Fill(KittyEvent.GetParticlePair(uPart).GetParticle(0).GetPhi()-KittyEvent.GetParticlePair(uPart).GetParticle(1).GetPhi());
+            hEpos_CdPhi->Fill(KittyEvent.GetParticlePair(uPart).GetParticle(0).GetPhi()-KittyEvent.GetParticlePair(uPart).GetParticle(1).GetPhi());
+        }
+        for(unsigned uPart=0; uPart<KittyEventAp.GetNumPairs(); uPart++){
+//if(uPart==0) printf("PAP = %u\n",KittyEventAp.GetNumPairs());
+            hEpos_CkSe->Fill(KittyEventApCM.GetParticlePair(uPart).GetP()*500.);
+            hEpos_Ck->Fill(KittyEventApCM.GetParticlePair(uPart).GetP()*500.);
+            hEpos_CdPhiSe->Fill(KittyEventAp.GetParticlePair(uPart).GetParticle(0).GetPhi()-KittyEventAp.GetParticlePair(uPart).GetParticle(1).GetPhi());
+            hEpos_CdPhi->Fill(KittyEventAp.GetParticlePair(uPart).GetParticle(0).GetPhi()-KittyEventAp.GetParticlePair(uPart).GetParticle(1).GetPhi());
+        }
+
+        CurPos = ftell (InFile);
+        pMaxPairsToRead = double(NumTotalPairs)/double(MaxPairsToRead);//
+        pFile = double(CurPos)/double(EndPos);//what fraction of the file has been read
+        ProgressLoad = pMaxPairsToRead>pFile?pMaxPairsToRead:pFile;
+
+        pTotal = int(ProgressLoad*100);
+        if(pTotal!=pTotalOld){
+            Time = double(dlmTimer.Stop())/1000000.;
+            Time = round((1./ProgressLoad-1.)*Time);
+            ShowTime((long long)(Time), cdummy, 2, true, 5);
+            printf("\r\033[K          Progress %3d%%, ETA %s",pTotal,cdummy);
+            ProgressBar = true;
+            cout << flush;
+            pTotalOld = pTotal;
+        }
+//printf("Next please...\n");
+    }//while(!feof(InFile))
+//printf("Mixed event...\n");
+
+    KittyMixedEvent.ComputeParticlePairs(false,false);
+    KittyMixedEventAp.ComputeParticlePairs(false,false);
+    KittyMixedEventCM.ComputeParticlePairs(false,true);
+    KittyMixedEventApCM.ComputeParticlePairs(false,true);
+
+    for(unsigned uPart=0; uPart<KittyMixedEvent.GetNumPairs(); uPart++){
+        hEpos_CkMe->Fill(KittyMixedEventCM.GetParticlePair(uPart).GetP()*500.);
+        hEpos_CdPhiMe->Fill(KittyMixedEvent.GetParticlePair(uPart).GetParticle(0).GetPhi()-KittyMixedEvent.GetParticlePair(uPart).GetParticle(1).GetPhi());
+    }
+    for(unsigned uPart=0; uPart<KittyMixedEventAp.GetNumPairs(); uPart++){
+        hEpos_CkMe->Fill(KittyMixedEventApCM.GetParticlePair(uPart).GetP()*500.);
+        hEpos_CdPhiMe->Fill(KittyMixedEventAp.GetParticlePair(uPart).GetParticle(0).GetPhi()-KittyMixedEventAp.GetParticlePair(uPart).GetParticle(1).GetPhi());
+    }
+
+    hEpos_Ck_SillyNorm = (TH1F*)hEpos_CkSe->Clone("hEpos_Ck_SillyNorm");
+    hEpos_CkMe->Scale(1./hEpos_CkMe->Integral(hEpos_CkMe->FindBin(180.),hEpos_CkMe->FindBin(280.)),"width");
+    hEpos_Ck_SillyNorm->Scale(1./hEpos_Ck_SillyNorm->Integral(hEpos_Ck_SillyNorm->FindBin(180.),hEpos_Ck_SillyNorm->FindBin(280.)),"width");
+    hEpos_Ck_SillyNorm->Divide(hEpos_CkMe);
+
+    hEpos_CkSe->Scale(1./hEpos_CkSe->Integral(),"width");
+    hEpos_CkMe->Scale(1./hEpos_CkMe->Integral(),"width");
+    hEpos_Ck->Scale(1./hEpos_Ck->Integral(),"width");
+
+    hEpos_CdPhiSe->Scale(1./hEpos_CdPhiSe->Integral(),"width");
+    hEpos_CdPhiMe->Scale(1./hEpos_CdPhiMe->Integral(),"width");
+    hEpos_CdPhi->Scale(1./hEpos_CdPhi->Integral(),"width");
+
+    hEpos_Ck->Divide(hEpos_CkMe);
+    hEpos_CdPhi->Divide(hEpos_CdPhiMe);
+
+    hcEpos_Ck = (TH1F*)hEpos_Ck->Clone("hcEpos_Ck");
+    //hcEpos_CdPhi = (TH1F*)hEpos_CdPhi->Clone("hcEpos_CdPhi");
+
+    hcEpos_Ck->Divide(hCompareCk);
+
+
+    TFile* fOutput;
+    if(!Descr2.Contains("All")){
+        fOutput = new TFile(TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/CorrFromEpos/fOutput_%s_%s.root",Descr2.Data(),Descr3.Data()),"recreate");
+    }
+    else{
+        fOutput = new TFile(TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/CorrFromEpos/fOutput_%s_%s_%.2f.root",Descr2.Data(),Descr3.Data(),CoronaFrac),"recreate");
+    }
+
+    hEpos_CkSe->Write();
+    hEpos_CkMe->Write();
+    hEpos_Ck->Write();
+    hEpos_Ck_SillyNorm->Write();
+    hCompareCk->Write();
+    hcEpos_Ck->Write();
+
+    hEpos_CdPhiSe->Write();
+    hEpos_CdPhiMe->Write();
+    hEpos_CdPhi->Write();
+
+
+
+    delete hEpos_CkSe;
+    delete hEpos_CkMe;
+    delete hEpos_Ck;
+    delete hcEpos_Ck;
+    delete hCompareCk;
+    delete hEpos_CdPhiSe;
+    delete hEpos_CdPhiMe;
+    delete hEpos_CdPhi;
+
+    delete fOutput;
+
+}
+
 
 int MIXEDEVENTS(int narg, char** ARGS){
     //DifferentTechniquesTest1("DimiPhi","pp");
     //DifferentTechniquesTest1("DimiPhi","pLambda");
+
+    //DifferentTechniquesTest1("ForVale","pAp","Core");
+
+    //ReferenceSampleStudy_2("ForMax","pi_pi");
+
+    //ReferenceSampleStudy_2("ForMax","pi_piReso");
+    //ReferenceSampleStudy_2("ForMax","piReso_piReso");
+
+    //CorrFromEpos("Core",1);
+    //CorrFromEpos("Corona",1);
+    //CorrFromEpos("All",1.0);
+    //CorrFromEpos("pp","Core",1.00);
+    CorrFromEpos("pp","Corona",1.00);
+    //CorrFromEpos("pp","All",1.00);
+    //CorrFromEpos("pAp","Core",1.00);
+    //CorrFromEpos("pAp","Corona",1.00);
+    //CorrFromEpos("pAp","All",1.00);
+    //CorrFromEpos("pL","Core",1.00);
+    //CorrFromEpos("pL","Corona",1.00);
+    //CorrFromEpos("pL","All",1.00);
+    //CorrFromEpos("pAL","Core",1.00);
+    //CorrFromEpos("pAL","Corona",1.00);
+    //CorrFromEpos("pAL","All",1.00);
+    //CorrFromEpos("LL","Core",1.00);
+    //CorrFromEpos("LL","Corona",1.00);
+    //CorrFromEpos("LL","All",1.00);
+    //CorrFromEpos("LAL","Core",1.00);
+    //CorrFromEpos("LAL","Corona",1.00);
+    //CorrFromEpos("LAL","All",1.00);
+
+    //CorrFromEpos("All",0.8);
+    //CorrFromEpos("All",0.7);
+    //CorrFromEpos("All",0.6);
+    //CorrFromEpos("All",0.5);
+    //CorrFromEpos("All",0.4);
+    //CorrFromEpos("All",0.39);
+    //CorrFromEpos("All",0.38);
+    //CorrFromEpos("All",0.37);
+    //CorrFromEpos("All",0.36);
+    //CorrFromEpos("All",0.35);
+    //CorrFromEpos("All",0.34);
+    //CorrFromEpos("All",0.33);
+    //CorrFromEpos("All",0.32);
+    //CorrFromEpos("All",0.31);
+    //CorrFromEpos("All",0.3);
+    //CorrFromEpos("All",0.28);
+    //CorrFromEpos("All",0.26);
+    //CorrFromEpos("All",0.24);
+    //CorrFromEpos("All",0.22);
+    //CorrFromEpos("All",0.2);
+    //CorrFromEpos("All",0.18);
+    //CorrFromEpos("All",0.16);
+    //CorrFromEpos("All",0.14);
+    //CorrFromEpos("All",0.12);
+    //CorrFromEpos("All",0.1);
+
     //ReferenceSampleStudy_1("DimiPhi","pOmega");
     //ReferenceSampleStudy_1("DimiPhi","pReso");
     //ReferenceSampleStudy_2("DimiPhi","p_p");
@@ -5282,9 +5992,9 @@ int MIXEDEVENTS(int narg, char** ARGS){
     //ReferenceSampleStudy_2("EposDisto","pReso_Xim");
     //ReferenceSampleStudy_2("EposDisto","pReso_Omega");
     //ReferenceSampleStudy_2("DimiPhi","p_p");
-    ReferenceSampleStudy_2("EposDisto","Lam_Lam");
-    ReferenceSampleStudy_2("EposDisto","Lam_LamReso");
-    ReferenceSampleStudy_2("EposDisto","LamReso_LamReso");
+    //ReferenceSampleStudy_2("EposDisto","Lam_Lam");
+    //ReferenceSampleStudy_2("EposDisto","Lam_LamReso");
+    //ReferenceSampleStudy_2("EposDisto","LamReso_LamReso");
     //dEta_dPhi_Ck_QS("QS", "pp", true);
     //CompareReferenceSamples("pp");
     //CompareSameMixedEventToBoltzmann();
