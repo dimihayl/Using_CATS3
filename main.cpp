@@ -10,6 +10,7 @@
 #include "KaonProton.h"
 #include "OtherTasks.h"
 #include "DimiMcPlayground.h"
+#include "PionAnalysis.h"
 
 #include <iostream>
 #include <stdio.h>
@@ -3823,6 +3824,8 @@ void Silly(){
 
 }
 
+
+
 int main(int argc, char *argv[])
 {
 
@@ -3843,6 +3846,7 @@ int main(int argc, char *argv[])
         strcpy(ARGV[iARG],argv[iARG]);
     }
 
+    //pipi_test();
     //TestRandom();
     //pp_in_txtfile();
     //pp_pLambda_pXi_Ratios();
@@ -3893,6 +3897,7 @@ printf("%.3f\n",lambdapars[3]*100.);
 printf("%.3f\n",lambdapars[4]*100.);
 */
 
+    //PION_ANA(argc,ARGV);
     //THESIS_PLOTS(argc,ARGV);
     //PLAMBDA_1_MAIN(argc,ARGV);
     //CALL_BERNIE_AND_VALE();

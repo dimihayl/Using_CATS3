@@ -477,6 +477,246 @@ printf("Hello 2\n");
     if(cPotPars3P2){delete cPotPars3P2; cPotPars3P2=NULL;}
 
 }
+
+void DLM_CommonAnaFunctions::SetUpCats_pipi(CATS& Kitty, const TString& SOURCE, const int& SourceVar){
+
+    CATSparameters* cPars = NULL;
+
+    Kitty.SetThetaDependentSource(false);
+
+    if(SOURCE=="Gauss"){
+        cPars = new CATSparameters(CATSparameters::tSource,1,true);
+        cPars->SetParameter(0,1.2);
+        Kitty.SetAnaSource(GaussSource, *cPars);
+        Kitty.SetUseAnalyticSource(true);
+    }
+    else if(SOURCE=="GaussTheta"){
+        cPars = new CATSparameters(CATSparameters::tSource,1,true);
+        cPars->SetParameter(0,1.2);
+        Kitty.SetAnaSource(GaussSourceTheta, *cPars);
+        Kitty.SetThetaDependentSource(true);
+        Kitty.SetUseAnalyticSource(true);
+    }
+    else if(SOURCE=="Cauchy"){
+        cPars = new CATSparameters(CATSparameters::tSource,1,true);
+        cPars->SetParameter(0,1.2);
+        Kitty.SetAnaSource(CauchySource, *cPars);
+        Kitty.SetUseAnalyticSource(true);
+    }
+    else if(SOURCE=="Levy_Nolan"){
+        cPars = new CATSparameters(CATSparameters::tSource,2,true);
+        cPars->SetParameter(0,1.2);
+        cPars->SetParameter(1,1.6);
+        Kitty.SetAnaSource(LevySource3D, *cPars);
+        Kitty.SetUseAnalyticSource(true);
+    }
+    else if(SOURCE=="Levy_Single"){
+        cPars = new CATSparameters(CATSparameters::tSource,2,true);
+        cPars->SetParameter(0,sqrt(1.6)*1.2);
+        cPars->SetParameter(1,1.6);
+        Kitty.SetAnaSource(LevySource3D_single, *cPars);
+        Kitty.SetUseAnalyticSource(true);
+    }
+    else if(SOURCE=="Levy_Diff"){
+        cPars->SetParameter(0,0.5*1.6*1.2);
+        cPars->SetParameter(1,1.6);
+        Kitty.SetAnaSource(LevySource3D_2particle, *cPars);
+        Kitty.SetUseAnalyticSource(true);
+    }
+    else if(SOURCE=="CleverLevy_Nolan"){
+        CleverLevy[0].InitStability(20,1,2);
+        CleverLevy[0].InitScale(35,0.25,2.0);
+        CleverLevy[0].InitRad(256,0,64);
+        CleverLevy[0].InitType(2);
+        Kitty.SetAnaSource(CatsSourceForwarder, &CleverLevy[0], 2);
+        Kitty.SetAnaSource(0,1.2);
+        Kitty.SetAnaSource(1,1.6);
+        Kitty.SetUseAnalyticSource(true);
+    }
+    else if(SOURCE=="CleverLevy_Single"){
+        CleverLevy[0].InitStability(20,1,2);
+        CleverLevy[0].InitScale(35,0.25,2.0);
+        CleverLevy[0].InitRad(256,0,64);
+        CleverLevy[0].InitType(0);
+        Kitty.SetAnaSource(CatsSourceForwarder, &CleverLevy[0], 2);
+        Kitty.SetAnaSource(0,sqrt(1.6)*1.2);
+        Kitty.SetAnaSource(1,1.6);
+        Kitty.SetUseAnalyticSource(true);
+    }
+    else if(SOURCE=="CleverLevy_Diff"){
+        CleverLevy[0].InitStability(20,1,2);
+        CleverLevy[0].InitScale(35,0.25,2.0);
+        CleverLevy[0].InitRad(256,0,64);
+        CleverLevy[0].InitType(1);
+        Kitty.SetAnaSource(CatsSourceForwarder, &CleverLevy[0], 2);
+        Kitty.SetUseAnalyticSource(true);
+        Kitty.SetAnaSource(0,0.5*1.6*1.2);
+        Kitty.SetAnaSource(1,1.6);
+    }
+    else if(SOURCE=="McLevyNolan_Reso"){
+        printf("\033[1;33mWARNING:\033[0m The CommonAnaFunction is still under construction (McLevyNolan_Reso)\n");
+        goto CLEAN_SetUpCats_pipi;
+    }
+    else if(SOURCE=="McGauss_Reso"){
+        printf("\033[1;33mWARNING:\033[0m The CommonAnaFunction is still under construction (McGauss_Reso)\n");
+        goto CLEAN_SetUpCats_pipi;
+    }
+    //SourceVar last digit is 0-9 the type
+    //(SourceVar/10)*10 is the cutoff value (e.g. 192 is cutoff value of 190 and type 2)
+    else if(SOURCE=="McGauss_ResoTM"||SOURCE=="McLevy_ResoTM"){
+        if(SOURCE=="McGauss_ResoTM") CleverMcLevyResoTM[0].InitStability(1,2-1e-6,2+1e-6);
+        else CleverMcLevyResoTM[0].InitStability(21,1,2);
+        CleverMcLevyResoTM[0].InitScale(38,0.15,2.0);
+        CleverMcLevyResoTM[0].InitRad(257*2,0,64);
+        CleverMcLevyResoTM[0].InitType(2);
+        CleverMcLevyResoTM[0].SetUpReso(0,0.6422);
+        CleverMcLevyResoTM[0].SetUpReso(1,0.6422);
+        //pure Gauss
+        if(SourceVar%100==0){
+        }
+        //back-to-back
+        else if(SourceVar%100==1){
+            printf("\033[1;33mWARNING:\033[0m The CommonAnaFunction is still under construction (McGauss_ResoTM back-to-back)\n");
+            goto CLEAN_SetUpCats_pipi;
+        }
+        //EPOS, 2 is with fixed mass, 3 is with EPOS mass
+        else{
+            const double k_CutOff = int(int(SourceVar)/10)*10.;
+            Float_t k_D;
+            Float_t fP1;
+            Float_t fP2;
+            Float_t fM1;
+            Float_t fM2;
+            Float_t Tau1;
+            Float_t Tau2;
+            Float_t AngleRcP1;
+            Float_t AngleRcP2;
+            Float_t AngleP1P2;
+            DLM_Random RanGen(11);
+            double RanVal1;
+            double RanVal2;
+            double RanVal3;
+
+            TFile* F_EposDisto_p_pReso = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/Max/ForMax_pi_piReso.root");
+            TNtuple* T_EposDisto_p_pReso = (TNtuple*)F_EposDisto_p_pReso->Get("InfoTuple_ClosePairs");
+            unsigned N_EposDisto_p_pReso = T_EposDisto_p_pReso->GetEntries();
+            T_EposDisto_p_pReso->SetBranchAddress("k_D",&k_D);
+            T_EposDisto_p_pReso->SetBranchAddress("P1",&fP1);
+            T_EposDisto_p_pReso->SetBranchAddress("P2",&fP2);
+            T_EposDisto_p_pReso->SetBranchAddress("M1",&fM1);
+            T_EposDisto_p_pReso->SetBranchAddress("M2",&fM2);
+            T_EposDisto_p_pReso->SetBranchAddress("Tau1",&Tau1);
+            T_EposDisto_p_pReso->SetBranchAddress("Tau2",&Tau2);
+            T_EposDisto_p_pReso->SetBranchAddress("AngleRcP1",&AngleRcP1);
+            T_EposDisto_p_pReso->SetBranchAddress("AngleRcP2",&AngleRcP2);
+            T_EposDisto_p_pReso->SetBranchAddress("AngleP1P2",&AngleP1P2);
+            for(unsigned uEntry=0; uEntry<N_EposDisto_p_pReso; uEntry++){
+                T_EposDisto_p_pReso->GetEntry(uEntry);
+                Tau1 = 0;
+                //treat the omega separately
+                if(fM2>782&&fM2<783){
+                    fM2 = 782.6;
+                    Tau2 = 23.24;
+                }
+                //the avg. values below should be computed for all resonances besides omega
+                else{
+                    Tau2 = 1.5;
+                    if(SourceVar%100==2){
+                        fM2 = 1124;
+                    }
+                }
+                if(k_D>k_CutOff) continue;
+                RanVal1 = RanGen.Exponential(fM2/(fP2*Tau2));
+                CleverMcLevyResoTM[0].AddBGT_PR(RanVal1,-cos(AngleRcP2));
+                CleverMcLevyResoTM[0].AddBGT_RP(RanVal1,cos(AngleRcP2));
+            }
+            delete F_EposDisto_p_pReso;
+
+            TFile* F_EposDisto_pReso_pReso = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/Max/ForMax_piReso_piReso.root");
+            TNtuple* T_EposDisto_pReso_pReso = (TNtuple*)F_EposDisto_pReso_pReso->Get("InfoTuple_ClosePairs");
+            unsigned N_EposDisto_pReso_pReso = T_EposDisto_pReso_pReso->GetEntries();
+            T_EposDisto_pReso_pReso->SetBranchAddress("k_D",&k_D);
+            T_EposDisto_pReso_pReso->SetBranchAddress("P1",&fP1);
+            T_EposDisto_pReso_pReso->SetBranchAddress("P2",&fP2);
+            T_EposDisto_pReso_pReso->SetBranchAddress("M1",&fM1);
+            T_EposDisto_pReso_pReso->SetBranchAddress("M2",&fM2);
+            T_EposDisto_pReso_pReso->SetBranchAddress("Tau1",&Tau1);
+            T_EposDisto_pReso_pReso->SetBranchAddress("Tau2",&Tau2);
+            T_EposDisto_pReso_pReso->SetBranchAddress("AngleRcP1",&AngleRcP1);
+            T_EposDisto_pReso_pReso->SetBranchAddress("AngleRcP2",&AngleRcP2);
+            T_EposDisto_pReso_pReso->SetBranchAddress("AngleP1P2",&AngleP1P2);
+            for(unsigned uEntry=0; uEntry<N_EposDisto_pReso_pReso; uEntry++){
+                T_EposDisto_pReso_pReso->GetEntry(uEntry);
+                //treat the omega separately
+                if(fM2>782&&fM2<783){
+                    fM1 = 782.6;
+                    Tau1 = 23.24;
+                    fM2 = 782.6;
+                    Tau2 = 23.24;
+                }
+                //the avg. values below should be computed for all resonances besides omega
+                else{
+                    Tau1 = 1.5;
+                    Tau2 = 1.5;
+                    if(SourceVar%100==2){
+                        fM1 = 1124;
+                        fM2 = 1124;
+                    }
+                }
+                if(k_D>k_CutOff) continue;
+                RanVal1 = RanGen.Exponential(fM1/(fP1*Tau1));
+                RanVal2 = RanGen.Exponential(fM2/(fP2*Tau2));
+                CleverMcLevyResoTM[0].AddBGT_RR(RanVal1,cos(AngleRcP1),RanVal2,cos(AngleRcP2),cos(AngleP1P2));
+            }
+            delete F_EposDisto_pReso_pReso;
+        }
+
+        if(SOURCE=="McGauss_ResoTM") CleverMcLevyResoTM[0].InitNumMcIter(1000000);
+        else CleverMcLevyResoTM[0].InitNumMcIter(100000);
+        Kitty.SetAnaSource(CatsSourceForwarder, &CleverMcLevyResoTM[0], 2);
+        Kitty.SetAnaSource(0,1.0);
+        Kitty.SetAnaSource(1,2.0);
+        Kitty.SetUseAnalyticSource(true);
+    }
+    else if(SOURCE=="EPOS"){
+        printf("\033[1;33mWARNING:\033[0m The CommonAnaFunction is still under construction (EPOS)\n");
+        goto CLEAN_SetUpCats_pipi;
+    }
+    else if(SOURCE=="EPOStheta"){
+        printf("\033[1;33mWARNING:\033[0m The CommonAnaFunction is still under construction (EPOStheta)\n");
+        goto CLEAN_SetUpCats_pipi;
+    }
+    else if(SOURCE=="EPOSrescaled"){
+        printf("\033[1;33mWARNING:\033[0m The CommonAnaFunction is still under construction (EPOSrescaled)\n");
+        goto CLEAN_SetUpCats_pipi;
+    }
+    else if(SOURCE=="Levy_mT_Reso"){
+        printf("\033[1;33mWARNING:\033[0m The CommonAnaFunction is still under construction (Levy_mT_Reso)\n");
+        goto CLEAN_SetUpCats_pipi;
+    }
+    else{
+        printf("\033[1;31mERROR:\033[0m Non-existing source '%s'\n",SOURCE.Data());
+        goto CLEAN_SetUpCats_pipi;
+    }
+
+    Kitty.SetMomentumDependentSource(false);
+    Kitty.SetExcludeFailedBins(false);
+
+    Kitty.SetQ1Q2(1);
+    Kitty.SetPdgId(211, 211);
+    Kitty.SetRedMass( 0.5*Mass_pic );
+
+    Kitty.SetNumChannels(1);
+    Kitty.SetNumPW(0,0);
+    Kitty.SetSpin(0,0);
+    Kitty.SetChannelWeight(0, 1.);
+
+    CLEAN_SetUpCats_pipi: ;
+    if(cPars){delete cPars; cPars=NULL;}
+
+}
+
+
 //POT:
 //  "LO"
 //  "LO_Coupled_S"
@@ -1155,7 +1395,7 @@ void DLM_CommonAnaFunctions::SetUpCats_pXim(CATS& Kitty, const TString& POT, con
     Kitty.SetExcludeFailedBins(false);
 
     Kitty.SetQ1Q2(-1);
-    Kitty.SetPdgId(2212, 3122);
+    Kitty.SetPdgId(2212, 3312);
     Kitty.SetRedMass( (Mass_p*Mass_Xim)/(Mass_p+Mass_Xim) );
 
     Kitty.SetNumChannels(4);

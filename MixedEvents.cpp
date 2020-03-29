@@ -3938,7 +3938,7 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
     //const double kNormMax = 0.600;
     //const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/ReferenceSampleStudy_1/";
     //const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/AngleStudy_3/";
-    const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/Max/";
+    const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/Max/WithOmega/";
     const unsigned NumMomBins = DataSetDescr=="pp"?400:DataSetDescr=="pLambda"?200:DataSetDescr=="pXim"?200:200;
     const TString OutFileBaseName = OutputFolder+TranModDescr+"_"+DataSetDescr;
     //const TString InputFileName = DataSetDescr=="pp"?TransportFile_pp_Alice:DataSetDescr=="pLambda"?TransportFile_pL_Alice:
@@ -3958,6 +3958,7 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
         InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp200/pp200_LamResoLamReso_Oct2019_4PI_ReducedWeights.f19";
     else if(DataSetDescr=="pi_pi"||DataSetDescr=="pi_piReso"||DataSetDescr=="piReso_piReso")
         InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/Max/220320.f19";
+        //InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/Max/270320_with_omega.f19";
     else
         InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp200/pp200_pResoLamReso_Oct2019_4PI_ReducedWeights.f19";
 
@@ -4862,7 +4863,7 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
             double TotalDaughterMassP2 = DaughterMassP2[0];
             for(int inb=0; inb<NbodyDecay; inb++){
                 TotalDaughterMassP1 += DaughterMassP1[inb+1];
-                TotalDaughterMassP2 += DaughterMassP1[inb+1];
+                TotalDaughterMassP2 += DaughterMassP2[inb+1];
             }
 
 
@@ -4906,6 +4907,7 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
             //}
 
             TLV_Daughter1 = Sol_D1[BestSol];
+//printf("TLV_Daughter2 set to %u\n",BestSol);
             TLV_Daughter2 = Sol_D2[BestSol];
 
             delete [] Sol_D1;
@@ -4920,13 +4922,13 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
                 //printf("TLV_P1.M()=%f\n",TLV_P1.M());
                 //abort();
 printf("TROUBLE EXPECTED...\n");
-printf("TLV_P1.M()=%f\n",TLV_P1.M());
+printf("TLV_P1.M()=%f <= %f\n",TLV_P1.M(),TotalDaughterMassP1);
             }
             if(TLV_P2.M()<=TotalDaughterMassP2){
                 //printf("TLV_P2.M()=%f\n",TLV_P2.M());
                 //abort();
 printf("TROUBLE EXPECTED...\n");
-printf("TLV_P2.M()=%f\n",TLV_P2.M());
+printf("TLV_P2.M()=%f <= %f\n",TLV_P2.M(),TotalDaughterMassP2);
             }
 
             ////get the daughters
@@ -4947,6 +4949,9 @@ printf("TROUBLE INCOMING!\n");
 printf("eventRan1=%p\n",eventRan1);
 printf("eventRan2=%p\n",eventRan2);
 printf("TLV_P2.M()=%f\n",TLV_P2.M());
+printf("TotalDaughterMassP2=%f\n",TotalDaughterMassP2);
+printf("TLV_Daughter2 set to %u\n",BestSol);
+printf("NbodyDecay set to %u\n",NbodyDecay);
 }
             CatsParticle DaughterOriginal1;
             CatsParticle DaughterOriginal2;
@@ -5680,8 +5685,8 @@ void CorrFromEpos(TString Descr2, TString Descr3, const double& CoronaFrac){
     //if(Descr2=="pAL_All") InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/ForVale/EPOS_20200121/pAL_All.f19";
     //if(Descr2=="pAL_Core") InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/ForVale/EPOS_20200121/pAL_All.f19";
     //if(Descr2=="pAL_Corona") InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/ForVale/EPOS_20200121/pAL_All.f19";
-    //InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/ForVale/EPOS_20200121/pAL_All.f19";
-    InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/ForVale/EPOS_20200121/pAp_Corona.f19";
+    InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/ForVale/EPOS_20200121/pAL_All.f19";
+    //InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/ForVale/EPOS_20200121/pAp_Corona.f19";
 
     unsigned NumTotalPairs=0;
 
@@ -5930,14 +5935,14 @@ int MIXEDEVENTS(int narg, char** ARGS){
 
     //ReferenceSampleStudy_2("ForMax","pi_pi");
 
-    //ReferenceSampleStudy_2("ForMax","pi_piReso");
-    //ReferenceSampleStudy_2("ForMax","piReso_piReso");
+    ReferenceSampleStudy_2("ForMax","pi_piReso");
+    ReferenceSampleStudy_2("ForMax","piReso_piReso");
 
     //CorrFromEpos("Core",1);
     //CorrFromEpos("Corona",1);
     //CorrFromEpos("All",1.0);
     //CorrFromEpos("pp","Core",1.00);
-    CorrFromEpos("pp","Corona",1.00);
+    //CorrFromEpos("pp","Corona",1.00);
     //CorrFromEpos("pp","All",1.00);
     //CorrFromEpos("pAp","Core",1.00);
     //CorrFromEpos("pAp","Corona",1.00);
