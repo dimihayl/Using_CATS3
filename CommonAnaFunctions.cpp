@@ -579,7 +579,8 @@ void DLM_CommonAnaFunctions::SetUpCats_pipi(CATS& Kitty, const TString& SOURCE, 
             printf("\033[1;33mWARNING:\033[0m The CommonAnaFunction is still under construction (McGauss_ResoTM back-to-back)\n");
             goto CLEAN_SetUpCats_pipi;
         }
-        //EPOS, 2 is with fixed mass, 3 is with EPOS mass
+        //EPOS, 2(4) is with fixed mass, 3 is with EPOS mass
+        //2 is with omega included, 4 is without omega
         else{
             const double k_CutOff = int(int(SourceVar)/10)*10.;
             Float_t k_D;
@@ -597,7 +598,7 @@ void DLM_CommonAnaFunctions::SetUpCats_pipi(CATS& Kitty, const TString& SOURCE, 
             double RanVal2;
             double RanVal3;
 
-            TFile* F_EposDisto_p_pReso = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/Max/ForMax_pi_piReso.root");
+            TFile* F_EposDisto_p_pReso = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/Max/ForMax_pi_piReso_withOmega.root");
             TNtuple* T_EposDisto_p_pReso = (TNtuple*)F_EposDisto_p_pReso->Get("InfoTuple_ClosePairs");
             unsigned N_EposDisto_p_pReso = T_EposDisto_p_pReso->GetEntries();
             T_EposDisto_p_pReso->SetBranchAddress("k_D",&k_D);
@@ -617,22 +618,26 @@ void DLM_CommonAnaFunctions::SetUpCats_pipi(CATS& Kitty, const TString& SOURCE, 
                 if(fM2>782&&fM2<783){
                     fM2 = 782.6;
                     Tau2 = 23.24;
+                    if(SourceVar%100==4) continue;
                 }
                 //the avg. values below should be computed for all resonances besides omega
                 else{
                     Tau2 = 1.5;
-                    if(SourceVar%100==2){
+                    if(SourceVar%100==2 || SourceVar%100==4){
                         fM2 = 1124;
                     }
                 }
                 if(k_D>k_CutOff) continue;
+//if(fM2>782&&fM2<783){
+//printf("omega\n");
+//}
                 RanVal1 = RanGen.Exponential(fM2/(fP2*Tau2));
                 CleverMcLevyResoTM[0].AddBGT_PR(RanVal1,-cos(AngleRcP2));
                 CleverMcLevyResoTM[0].AddBGT_RP(RanVal1,cos(AngleRcP2));
             }
             delete F_EposDisto_p_pReso;
 
-            TFile* F_EposDisto_pReso_pReso = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/Max/ForMax_piReso_piReso.root");
+            TFile* F_EposDisto_pReso_pReso = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/Max/ForMax_piReso_piReso_withOmega.root");
             TNtuple* T_EposDisto_pReso_pReso = (TNtuple*)F_EposDisto_pReso_pReso->Get("InfoTuple_ClosePairs");
             unsigned N_EposDisto_pReso_pReso = T_EposDisto_pReso_pReso->GetEntries();
             T_EposDisto_pReso_pReso->SetBranchAddress("k_D",&k_D);
@@ -648,18 +653,28 @@ void DLM_CommonAnaFunctions::SetUpCats_pipi(CATS& Kitty, const TString& SOURCE, 
             for(unsigned uEntry=0; uEntry<N_EposDisto_pReso_pReso; uEntry++){
                 T_EposDisto_pReso_pReso->GetEntry(uEntry);
                 //treat the omega separately
-                if(fM2>782&&fM2<783){
+                if(fM1>782&&fM1<783){
                     fM1 = 782.6;
                     Tau1 = 23.24;
-                    fM2 = 782.6;
-                    Tau2 = 23.24;
+                    if(SourceVar%100==4) continue;
                 }
                 //the avg. values below should be computed for all resonances besides omega
                 else{
                     Tau1 = 1.5;
-                    Tau2 = 1.5;
-                    if(SourceVar%100==2){
+                    if(SourceVar%100==2 || SourceVar%100==4){
                         fM1 = 1124;
+                    }
+                }
+                //treat the omega separately
+                if(fM2>782&&fM2<783){
+                    fM2 = 782.6;
+                    Tau2 = 23.24;
+                    if(SourceVar%100==4) continue;
+                }
+                //the avg. values below should be computed for all resonances besides omega
+                else{
+                    Tau2 = 1.5;
+                    if(SourceVar%100==2 || SourceVar%100==4){
                         fM2 = 1124;
                     }
                 }

@@ -7,6 +7,7 @@
 #include "DLM_Potentials.h"
 #include "DLM_Histo.h"
 #include "DLM_Random.h"
+#include "FemtoBoyzScripts.h"
 
 #include "TFile.h"
 #include "TGraph.h"
@@ -23,7 +24,7 @@
 //Gaussian and Gaussian+Reso sources
 void CompareCkAndSr(){
 
-    const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/SourceStudies/CompareCkAndSr/Feb2020/";
+    const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/SourceStudies/CompareCkAndSr/March2020/";
 
     //const double R_core = 1.00;
     //const double R_pp = 1.32;
@@ -183,11 +184,14 @@ void CompareCkAndSr(){
     gSr_pL_CoreReso.Write();
     gSr_pL_Gauss.Write();
 
-    TCanvas* cSr = new TCanvas("cSr", "cSr", 1);
-    cSr->cd(0); cSr->SetCanvasSize(1920/2, 1080/2); cSr->SetMargin(0.15,0.05,0.2,0.05);//lrbt
+    SetStyle();
 
-    TLegend* legSr = new TLegend(0.65,0.65,0.975,0.975);//lbrt
+    TCanvas* cSr = new TCanvas("cSr", "cSr", 1);
+    cSr->cd(0); cSr->SetCanvasSize(1920/2, 1080/2); cSr->SetMargin(0.15,0.04,0.2,0.05);//lrbt
+
+    TLegend* legSr = new TLegend(0.63,0.625,0.93,0.925);//lbrt
     legSr->SetName(TString::Format("legSr"));
+    legSr->SetBorderSize(0);
     legSr->SetTextSize(0.04);
     legSr->AddEntry(&gSr_pp_Core,TString::Format("Gauss r(core)=%.2f fm",R_core));
     legSr->AddEntry(&gSr_pp_CoreReso,"Core + p#minusp resonances");

@@ -3938,7 +3938,7 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
     //const double kNormMax = 0.600;
     //const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/ReferenceSampleStudy_1/";
     //const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/AngleStudy_3/";
-    const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/Max/WithOmega/";
+    const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/Max/";
     const unsigned NumMomBins = DataSetDescr=="pp"?400:DataSetDescr=="pLambda"?200:DataSetDescr=="pXim"?200:200;
     const TString OutFileBaseName = OutputFolder+TranModDescr+"_"+DataSetDescr;
     //const TString InputFileName = DataSetDescr=="pp"?TransportFile_pp_Alice:DataSetDescr=="pLambda"?TransportFile_pL_Alice:
@@ -3957,8 +3957,10 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
     else if(DataSetDescr=="Lam_Lam"||DataSetDescr=="Lam_LamReso"||DataSetDescr=="LamReso_LamReso")
         InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp200/pp200_LamResoLamReso_Oct2019_4PI_ReducedWeights.f19";
     else if(DataSetDescr=="pi_pi"||DataSetDescr=="pi_piReso"||DataSetDescr=="piReso_piReso")
-        InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/Max/220320.f19";
+        //InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/Max/220320.f19";
         //InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/Max/270320_with_omega.f19";
+        InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/Max/300320_width50_omegaYes.root";
+        //InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/Max/300320_width50_omegaNo.root";
     else
         InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp200/pp200_pResoLamReso_Oct2019_4PI_ReducedWeights.f19";
 
@@ -4500,6 +4502,8 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
     TH2F* h_AngleRCP1_P1P2_D = new TH2F("h_AngleRCP1_P1P2_D","h_AngleRCP1_P1P2_D",64,0,Pi,64,0,Pi);
     TH2F* h_AngleRCP2_P1P2_D   = new TH2F("h_AngleRCP2_P1P2_D","h_AngleRCP2_P1P2_D",64,0,Pi,64,0,Pi);
 
+    TH1F* hResoMass = new TH1F("hResoMass","hResoMass",4096,0,4096);
+
     TFile* fOut = new TFile(OutFileBaseName+".root","recreate");
     //TFile* fOut = new TFile(OutFileBaseName+"_REPICK.root","recreate");
     TNtuple* InfoTuple = new TNtuple("InfoTuple","InfoTuple","k_D:P1:P2:M1:M2:Tau1:Tau2:AngleRcP1:AngleRcP2:AngleP1P2");
@@ -4582,6 +4586,8 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
         //!---Iteration over all particles in this event---
         for(int iPart=0; iPart<NumPartInEvent; iPart++){
             KittyParticle.ReadFromOscarFile(InFile);
+
+//if(KittyParticle.GetMass()>0.780&&KittyParticle.GetMass()<0.785) {printf("Kicked out an omega\n"); continue;}
             //if(DataSetDescr.Contains("Reso")&&KittyParticle.GetPid()!=Original_pdgID[0]&&KittyParticle.GetPid()!=Original_pdgID[1]&&KittyParticle.GetMass()<DaughterMassP1[0]+DaughterMassP1[1])
             //{
                 //printf("mass = %f\n",KittyParticle.GetMass());
@@ -4590,6 +4596,10 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
 //KittyParticle.SetMass(1.36);
 //            }
     int ParticlePID = KittyParticle.GetPid();
+///Check for neutral pions
+//if(ParticlePID==111 || ParticlePID==110){
+//printf("PID=%i; M=%f\n",ParticlePID,KittyParticle.GetMass());
+//}
     double ResoWidth;
     int ParentPID;
     //this was used for the baryon baryon femto, where each reso can be mapped to a specific daughter
@@ -4655,13 +4665,16 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
                 continue;
             }
 
-            if(KittyParticle.GetPid()!=pdgID[0] && KittyParticle.GetPid()!=pdgID[1])
-                continue; //don't save this particle if it is of the wrong type
-
             //exclude particle with weird momenta
             if(KittyParticle.GetP()>100){
                 continue;
             }
+
+
+            if(KittyParticle.GetPid()!=pdgID[0] && KittyParticle.GetPid()!=pdgID[1])
+                continue; //don't save this particle if it is of the wrong type
+
+
 /*
             //cut out entries at very large rapidity
             if(fabs(KittyParticle.GetPseudoRap())>6){
@@ -4673,6 +4686,9 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
             }
 */
             KittyEvent->AddParticle(KittyParticle);
+
+if(KittyParticle.GetPid()==0)
+hResoMass->Fill(KittyParticle.GetMass()*1000.);
         }//for(int iPart=0; iPart<NumPartInEvent; iPart++)
 
 
@@ -4705,14 +4721,16 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
 //printf("ParticleOriginal1.GetWidth()=%f(%f)\n",ParticleOriginal1.GetWidth(),KittyFilteredEvent->GetParticlePair(uPair).GetParticle(0).GetWidth());
 //printf("ParticleOriginal2.GetWidth()=%f(%f)\n",ParticleOriginal2.GetWidth(),KittyFilteredEvent->GetParticlePair(uPair).GetParticle(1).GetWidth());
 
-            //correct the mass
+            ///correct the mass
             if(pid1<10&&ParticleOriginal1.GetMass()<DaughterMassP1[0]+DaughterMassP1[1]){
+printf("ParticleOriginal1.GetMass() = %f\n",ParticleOriginal1.GetMass());
                 ParticleOriginal1.SetMass(ResoMass[0]);
                 ParticleOriginal1.Set(ParticleOriginal1.GetT(),ParticleOriginal1.GetX(),ParticleOriginal1.GetY(),ParticleOriginal1.GetZ(),
                                       sqrt(ResoMass[0]*ResoMass[0]+ParticleOriginal1.GetP2()),
                                       ParticleOriginal1.GetPx(),ParticleOriginal1.GetPy(),ParticleOriginal1.GetPz());
             }
             if(pid2<10&&ParticleOriginal2.GetMass()<DaughterMassP2[0]+DaughterMassP2[1]){
+printf("ParticleOriginal2.GetMass() = %f\n",ParticleOriginal2.GetMass());
                 ParticleOriginal2.SetMass(ResoMass[1]);
                 ParticleOriginal2.Set(ParticleOriginal2.GetT(),ParticleOriginal2.GetX(),ParticleOriginal2.GetY(),ParticleOriginal2.GetZ(),
                                       sqrt(ResoMass[1]*ResoMass[1]+ParticleOriginal2.GetP2()),
@@ -4853,22 +4871,47 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
             TLV_Daughter2 = *TLVP_Daughter2;
 */
 
+            int CrashCounted = 0;
+
             //decide how many body decay we have
-            int NbodyDecay;
-            double NbodyRandom = rangen.Uniform();
-            for(int inb=2; inb<=4; inb++){
-                if(NbodyRandom<=FractionsNbodyC[inb-2]){NbodyDecay=inb; break;}
-            }
-            double TotalDaughterMassP1 = DaughterMassP1[0];
-            double TotalDaughterMassP2 = DaughterMassP2[0];
-            for(int inb=0; inb<NbodyDecay; inb++){
-                TotalDaughterMassP1 += DaughterMassP1[inb+1];
-                TotalDaughterMassP2 += DaughterMassP2[inb+1];
+            int NbodyDecayP1;
+            double NbodyRandomP1;
+            double TotalDaughterMassP1 = TLV_P1.M()*2.;
+            while(TotalDaughterMassP1>TLV_P1.M()){
+                NbodyRandomP1 = rangen.Uniform();
+                for(int inb=2; inb<=4; inb++){
+                    if(NbodyRandomP1<=FractionsNbodyC[inb-2]){NbodyDecayP1=inb; break;}
+                }
+                TotalDaughterMassP1 = DaughterMassP1[0];
+                for(int inb=1; inb<NbodyDecayP1; inb++){
+                    TotalDaughterMassP1 += DaughterMassP1[inb];
+                }
+                if(NbodyDecayP1==2 && TotalDaughterMassP1>TLV_P1.M()){
+                    printf("WTF!!!!\n");
+                    printf(" 1) %f > %f\n",TotalDaughterMassP1,TLV_P1.M());
+                }
             }
 
+            int NbodyDecayP2;
+            double NbodyRandomP2;
+            double TotalDaughterMassP2 = TLV_P2.M()*2.;
+            while(TotalDaughterMassP2>TLV_P2.M()){
+                NbodyRandomP2 = rangen.Uniform();
+                for(int inb=2; inb<=4; inb++){
+                    if(NbodyRandomP2<=FractionsNbodyC[inb-2]){NbodyDecayP2=inb; break;}
+                }
+                TotalDaughterMassP2 = DaughterMassP2[0];
+                for(int inb=1; inb<NbodyDecayP2; inb++){
+                    TotalDaughterMassP2 += DaughterMassP2[inb];
+                }
+                if(NbodyDecayP2==2 && TotalDaughterMassP2>TLV_P2.M()){
+                    printf("WTF!!!!\n");
+                    printf(" 2) %f > %f\n",TotalDaughterMassP2,TLV_P2.M());
+                }
+            }
 
-            if(eventRan1) eventRan1->SetDecay(TLV_P1, NbodyDecay, DaughterMassP1);
-            if(eventRan2) eventRan2->SetDecay(TLV_P2, NbodyDecay, DaughterMassP2);
+            if(eventRan1) eventRan1->SetDecay(TLV_P1, NbodyDecayP1, DaughterMassP1);
+            if(eventRan2) eventRan2->SetDecay(TLV_P2, NbodyDecayP2, DaughterMassP2);
 
             //if(eventRan1) printf("1\n");
             //if(eventRan2) printf("2\n");
@@ -4951,7 +4994,7 @@ printf("eventRan2=%p\n",eventRan2);
 printf("TLV_P2.M()=%f\n",TLV_P2.M());
 printf("TotalDaughterMassP2=%f\n",TotalDaughterMassP2);
 printf("TLV_Daughter2 set to %u\n",BestSol);
-printf("NbodyDecay set to %u\n",NbodyDecay);
+printf("NbodyDecayP2 set to %u\n",NbodyDecayP2);
 }
             CatsParticle DaughterOriginal1;
             CatsParticle DaughterOriginal2;
@@ -5460,6 +5503,7 @@ printf("d2 = %f(%.3f,%.3f) r %f(%.3f,%.3f)\n",DaughterOriginal2.GetP(),DaughterO
     h_AngleRCP1_RCP2_D->Write();
     h_AngleRCP1_P1P2_D->Write();
     h_AngleRCP2_P1P2_D->Write();
+    hResoMass->Write();
     //InfoTuple->Write();
     InfoTuple_ClosePairs->Write();
 
@@ -5506,6 +5550,7 @@ printf("d2 = %f(%.3f,%.3f) r %f(%.3f,%.3f)\n",DaughterOriginal2.GetP(),DaughterO
     delete h_AngleRCP1_RCP2_D;
     delete h_AngleRCP1_P1P2_D;
     delete h_AngleRCP2_P1P2_D;
+    delete hResoMass;
     delete InfoTuple;
     delete InfoTuple_ClosePairs;
     //delete h_kkAngle_Mom2;
