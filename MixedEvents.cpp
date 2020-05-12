@@ -3413,6 +3413,138 @@ if(fabs(KittyParticle.GetPseudoRap())>0.8) continue;//!
     delete [] hSE;
 }
 
+void SE_for_Vale(const TString DataSetDescr){
+    const double kMin = 0;
+    const double kMax = 4;
+    const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/SE_for_Vale/";
+    const unsigned NumMomBins = 200;
+    const TString OutFileBaseName = OutputFolder+DataSetDescr;
+    const TString InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/Scratch9_OSCAR1997_AllLrzLambdaFiles.f19";
+    const unsigned NumBlankHeaderLines = 3;
+    const unsigned MaxPairsToRead = 1e9;
+    const unsigned HighMultLimit = 128;
+    int pdgID[2] = {2212,3122};
+
+    TH1F* hSE = new TH1F("hSE","hSE",NumMomBins,kMin,kMax);
+
+    FILE *InFile;
+    InFile = fopen(InputFileName, "r");
+    if(!InFile){
+        printf("          \033[1;31mERROR:\033[0m The file\033[0m %s cannot be opened!\n", InputFileName.Data());
+        return;
+    }
+    fseek ( InFile , 0 , SEEK_END );
+    long EndPos;
+    EndPos = ftell (InFile);
+    fseek ( InFile , 0 , SEEK_SET );
+    long CurPos;
+    char* cdummy = new char [512];
+    for(unsigned short us=0; us<NumBlankHeaderLines; us++){
+        if(!fgets(cdummy, 511, InFile)){
+            printf("Issue!\n");
+            continue;
+        }
+    }
+    if(feof(InFile)){
+        printf("\033[1;31m          ERROR:\033[0m Trying to read past end of file %s\n", InputFileName.Data());
+        printf("         No particle pairs were loaded :(\n");
+        return;
+    }
+
+    float pFile;
+    //percentage of the required number of pairs found in the file. Unless the file has some special
+    //internal structure and the events are saved randomly, the should also be a very accurate
+    //estimate of the max ETA
+    float pMaxPairsToRead;
+    double Time;
+    int pTotal;
+    int pTotalOld;
+    float ProgressLoad;
+    DLM_Timer dlmTimer;
+    bool ProgressBar=false;
+
+    unsigned NumTotalPairs=0;
+    unsigned TotNumEvents=0;
+    unsigned RejectedHighMultEvents=0;
+
+    int EventNumber;
+    int NumPartInEvent;
+    double ImpPar;
+    double fDummy;
+
+    while(!feof(InFile)){
+        if(NumTotalPairs>=MaxPairsToRead) break;
+        if(!fscanf(InFile,"%i %i %lf %lf",&EventNumber,&NumPartInEvent,&ImpPar,&fDummy)){
+            printf("Some fscanf issue!\n");
+            continue;
+        }
+        TotNumEvents++;
+        if(NumPartInEvent>int(HighMultLimit)) RejectedHighMultEvents++;
+        CatsParticle KittyParticle;
+        CatsEvent* KittyEvent = new CatsEvent(pdgID[0],pdgID[1]);
+        //!---Iteration over all particles in this event---
+        for(int iPart=0; iPart<NumPartInEvent; iPart++){
+            KittyParticle.ReadFromOscarFile(InFile);
+            if(NumTotalPairs>=MaxPairsToRead) continue;
+            if(NumPartInEvent>int(HighMultLimit)) continue;
+
+            ///ALICE ACCEPTANCE
+            //if(KittyParticle.GetP()<0.4) continue;
+            if(fabs(KittyParticle.GetPseudoRap())>0.8) continue;
+
+            //sometimes one might go beyond the limit of the file
+            if(ftell(InFile)>=EndPos)continue;
+
+            if(KittyParticle.GetE()==0){
+                printf("WARNING! Possible bad input-file, there are particles with zero energy!\n");
+                continue;
+            }
+
+            if(KittyParticle.GetPid()!=pdgID[0] && KittyParticle.GetPid()!=pdgID[1])
+                continue; //don't save this particle if it is of the wrong type
+
+            KittyEvent->AddParticle(KittyParticle);
+        }//for(int iPart=0; iPart<NumPartInEvent; iPart++)
+
+        KittyEvent->ComputeParticlePairs();
+
+        NumTotalPairs += KittyEvent->GetNumPairs();
+
+        for(unsigned uPair=0; uPair<KittyEvent->GetNumPairs(); uPair++){
+            hSE->Fill((KittyEvent->GetParticlePair(uPair).GetP())*0.5);
+        }
+
+        CurPos = ftell (InFile);
+        pMaxPairsToRead = double(NumTotalPairs)/double(MaxPairsToRead);//
+        pFile = double(CurPos)/double(EndPos);//what fraction of the file has been read
+        ProgressLoad = pMaxPairsToRead>pFile?pMaxPairsToRead:pFile;
+
+        pTotal = int(ProgressLoad*100);
+        if(pTotal!=pTotalOld){
+            Time = double(dlmTimer.Stop())/1000000.;
+            Time = round((1./ProgressLoad-1.)*Time);
+            ShowTime((long long)(Time), cdummy, 2, true, 5);
+            printf("\r\033[K          Progress %3d%%, ETA %s",pTotal,cdummy);
+            ProgressBar = true;
+            cout << flush;
+            pTotalOld = pTotal;
+        }
+        delete KittyEvent;
+    }//while(!feof(InFile))
+
+    if(ProgressBar){
+        printf("\r\033[K");
+    }
+
+    hSE->Sumw2();
+
+    TFile OutputFile(OutFileBaseName+"_SE.root","recreate");
+    hSE->Write();
+
+    delete hSE;
+    delete cdummy;
+}
+
 
 //the original version, where we assume that the coordinate systems (CS) is fixed from one primordial protons
 //there is no separation between primordial-reso and reso-reso case
@@ -3961,6 +4093,8 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
         //InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/Max/270320_with_omega.f19";
         InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/Max/300320_width50_omegaYes.root";
         //InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/Max/300320_width50_omegaNo.root";
+    else if(DataSetDescr=="p_Kaon"||DataSetDescr=="p_KaonReso"||DataSetDescr=="pReso_KaonReso")
+        InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/Kaons/pKch_64.f19";
     else
         InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp200/pp200_pResoLamReso_Oct2019_4PI_ReducedWeights.f19";
 
@@ -4417,6 +4551,116 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
 
         UseResoInfo = false;
     }
+    //pK correlation
+    else if(DataSetDescr=="p_Kaon"){
+        pdgID[0] = 321;
+        pdgID[1] = 321;
+        Original_eposID[0] = 130;
+        Original_eposID[1] = 130;
+        Original_pdgID[0] = 321;
+        Original_pdgID[1] = 321;
+
+        DaughterMassP1[0] = -1;
+        DaughterMassP1[1] = -1;
+        DaughterMassP1[2] = -1;
+        DaughterMassP1[3] = -1;
+
+        DaughterMassP2[0] = -1;
+        DaughterMassP2[1] = -1;
+        DaughterMassP2[2] = -1;
+        DaughterMassP2[3] = -1;
+
+        ResoMass[0] = -1;
+        ResoMass[1] = -1;
+
+        FractionsNbody[0] = 1.0;
+        FractionsNbody[1] = 0.0;
+        FractionsNbody[2] = 0.0;
+
+        UseResoInfo = false;
+    }
+    else if(DataSetDescr=="p_KaonReso"){
+        pdgID[0] = 321;
+        pdgID[1] = 0;
+        Original_eposID[0] = 1120;
+        Original_eposID[1] = 130;
+        Original_pdgID[0] = 2212;
+        Original_pdgID[1] = 321;
+
+        DaughterMassP1[0] = -1;
+        DaughterMassP1[1] = -1;
+        DaughterMassP1[2] = -1;
+        DaughterMassP1[3] = -1;
+
+        DaughterMassP2[0] = Mass_Kch*0.001;
+        DaughterMassP2[1] = Mass_pi0*0.001;
+        DaughterMassP2[2] = -1;
+        DaughterMassP2[3] = -1;
+
+        ResoMass[0] = -1;
+        ResoMass[1] = 1.044;
+
+        FractionsNbody[0] = 1.0;
+        FractionsNbody[1] = 0.0;
+        FractionsNbody[2] = 0.0;
+
+        UseResoInfo = false;
+    }
+    else if(DataSetDescr=="pReso_Kaon"){
+        pdgID[0] = 0;
+        pdgID[1] = 2212;
+        Original_eposID[0] = 1120;
+        Original_eposID[1] = 130;
+        Original_pdgID[0] = 2212;
+        Original_pdgID[1] = 321;
+
+        DaughterMassP1[0] = Mass_p*0.001;
+        DaughterMassP1[1] = Mass_pic*0.001;
+        DaughterMassP1[2] = -1;
+        DaughterMassP1[3] = -1;
+
+        DaughterMassP2[0] = -1;
+        DaughterMassP2[1] = -1;
+        DaughterMassP2[2] = -1;
+        DaughterMassP2[3] = -1;
+
+        ResoMass[0] = 1.36;
+        ResoMass[1] = -1;
+
+        FractionsNbody[0] = 1.0;
+        FractionsNbody[1] = 0.0;
+        FractionsNbody[2] = 0.0;
+
+        UseResoInfo = false;
+    }
+    else if(DataSetDescr=="pReso_KaonReso"){
+        pdgID[0] = 0;
+        pdgID[1] = 0;
+        Original_eposID[0] = 1120;
+        Original_eposID[1] = 130;
+        Original_pdgID[0] = 2212;
+        Original_pdgID[1] = 321;
+
+        DaughterMassP1[0] = Mass_p*0.001;
+        DaughterMassP1[1] = Mass_pic*0.001;
+        DaughterMassP1[2] = -1;
+        DaughterMassP1[3] = -1;
+
+        DaughterMassP2[0] = Mass_Kch*0.001;
+        DaughterMassP2[1] = Mass_pi0*0.001;
+        DaughterMassP2[2] = -1;
+        DaughterMassP2[3] = -1;
+
+        ResoMass[0] = 1.36;
+        ResoMass[1] = 1.044;
+
+        FractionsNbody[0] = 1.0;
+        FractionsNbody[1] = 0.0;
+        FractionsNbody[2] = 0.0;
+
+        UseResoInfo = false;
+    }
+
 
     FractionsNbodyC[0] = FractionsNbody[0];
     FractionsNbodyC[1] = FractionsNbodyC[0]+FractionsNbody[1];
@@ -4615,10 +4859,16 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
             ParentPID = 0;
             ResoWidth = 0;
         }
-        else{
+        else if(DataSetDescr=="pi_piReso"||DataSetDescr=="piReso_piReso"){
             //this works only for pions at the moment
             ParentPID = 211;
             ResoWidth = 1;
+        }
+        //works for pKminus at the moment
+        else if(DataSetDescr=="p_KaonReso"||DataSetDescr=="pReso_KaonReso"){
+/// Пу дееба, това не работи. За пК, ще се наложи да имаш още работа. Трябва някак си да разбереш дали резонанса идва от протон или от Каон,
+/// и на тази база да сложиш ParentPID.
+/// Няма да стане :( има дупликати, като н1440, за резонансите на протоните и каоните, ще трябва нещо друго да измислищ
         }
     }
 
@@ -5980,8 +6230,13 @@ int MIXEDEVENTS(int narg, char** ARGS){
 
     //ReferenceSampleStudy_2("ForMax","pi_pi");
 
-    ReferenceSampleStudy_2("ForMax","pi_piReso");
-    ReferenceSampleStudy_2("ForMax","piReso_piReso");
+    //ReferenceSampleStudy_2("ForMax","pi_piReso");
+    //ReferenceSampleStudy_2("ForMax","piReso_piReso");
+    //ReferenceSampleStudy_2("ForMax","p_KaonReso");
+    //ReferenceSampleStudy_2("ForMax","pReso_KaonReso");
+
+    SE_for_Vale("pL");
+
 
     //CorrFromEpos("Core",1);
     //CorrFromEpos("Corona",1);

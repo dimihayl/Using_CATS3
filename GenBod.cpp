@@ -10,6 +10,9 @@
 #include "TCanvas.h"
 #include "TStyle.h"
 
+#include "DLM_DecayMatrix.h"
+#include "CommonAnaFunctions.h"
+
 double relKcalc(const TLorentzVector& track1, const TLorentzVector& track2)
 {
 
@@ -34,6 +37,245 @@ double relKcalc(const TLorentzVector& track1, const TLorentzVector& track2)
 
 
   return relK;
+}
+
+
+//used to generate the decay matrix
+void DecayMatrix_Vale(int SEED, int NumIter)
+{
+    // example of use of TGenPhaseSpace
+    //Author: Valerio Filippini
+    //further modified my O.W. Arnold and D.L. Mihaylov
+
+    //if (!gROOT->GetClass("TGenPhaseSpace")) gSystem->Load("libPhysics");
+
+    TRandom3 rangen(SEED);
+/*
+    TRandom3 *t3_ran_p_proton = new TRandom3();
+    TRandom3 *t3_ran_p_Xim = new TRandom3();
+    TRandom3 *t3_ran_p_Lambda = new TRandom3();
+    TRandom3 *t3_ran_p_Sigma0 = new TRandom3();
+    TRandom3 *t3_ran_p_Xim1530 = new TRandom3();
+    TRandom3 *t3_ran_p_Omegam = new TRandom3();
+
+    t3_ran_p_proton->SetSeed(SEED*10);
+    t3_ran_p_Xim->SetSeed(SEED*10+1);
+    t3_ran_p_Lambda->SetSeed(SEED*10+2);
+    t3_ran_p_Sigma0->SetSeed(SEED*10+3);
+    t3_ran_p_Xim1530->SetSeed(SEED*10+4);
+    t3_ran_p_Omegam->SetSeed(SEED*10+5);
+*/
+    TString output_string = TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/DecayMatrices/Decay_matrices_2020_%i.root",SEED);
+    TFile *outputfile = new TFile(output_string.Data(),"RECREATE");
+
+    UInt_t NumBins = 1000;
+    Double_t kMax = 1000;
+
+    TH2F* hRes_pp_pL = new TH2F("hRes_pp_pL","x: relk pV0, y: relk pp",NumBins,0,kMax,NumBins,0,kMax);
+    TH2F* hRes_pL_pSigma0 = new TH2F("hRes_pL_pSigma0","x: relk pSigma0, y: relk pV0",NumBins,0,kMax,NumBins,0,kMax);
+    TH2F* hRes_pL_pXim = new TH2F("hRes_pL_pXim","x: relk pXim, y: relk pV0",NumBins,0,kMax,NumBins,0,kMax);
+    TH2F* hRes_pXim_pXim1530 = new TH2F("hRes_pXim_pXim1530","x: relk pXim1530, y: relk pXim",NumBins,0,kMax,NumBins,0,kMax);
+    TH2F* hRes_pXim_pOmegam = new TH2F("hRes_pXim_pOmegam","x: relk pOmegam, y: relk pXim",NumBins,0,kMax,NumBins,0,kMax);
+    TH2F* hRes_LL_LXim = new TH2F("hRes_LL_LXim","x: relk LXim, y: relk LL",NumBins,0,kMax,NumBins,0,kMax);
+    TH2F* hRes_LL_LSigma0 = new TH2F("hRes_LL_LSigma0","x: relk LSigma0, y: relk LL",NumBins,0,kMax,NumBins,0,kMax);
+
+    Double_t Xim_decay_daughters[2] = {1.116,0.138};//Lambda-pion
+    Double_t Lambda_decay_daughters[2] = {0.938,0.138};//proton-pion
+    Double_t Sigma0_decay_daughters[2] = {1.116,0.};//Lambda-photon
+    Double_t Xim1530_decay_daughters[2] = {1.322,0.135};//Xim-pion0
+    Double_t Omegam_decay_daughters[2] = {1.322,0.135};//Xim-pion0
+
+    const double momMean = 0.0;
+    const double momSpread = 0.35;
+
+    TLorentzVector tvec_proton,tvec_Xim,tvec_Lambda,tvec_Lambda2,tvec_Sigma0,tvec_Xim1530,tvec_Omegam;
+    TLorentzVector *tvec_pp_pL,*tvec_pL_pSigma0,*tvec_pL_pXim,*tvec_pXim_pXim1530,*tvec_pXim_pOmegam,*tvec_LL_LSigma0,*tvec_LL_LXim;
+    TGenPhaseSpace eventLambda,eventSigma0,eventXim,eventXim1530,eventOmegam;
+
+    for(int i=0;i<NumIter;i++){
+        //if(i%1000==0) printf("i = %i(%i)\n",i,NumIter);
+
+        Double_t px_proton = rangen.Gaus(momMean,momSpread);
+        Double_t py_proton = rangen.Gaus(momMean,momSpread);
+        Double_t pz_proton = rangen.Gaus(momMean,momSpread);
+
+        Double_t px_L = rangen.Gaus(momMean,momSpread);
+        Double_t py_L = rangen.Gaus(momMean,momSpread);
+        Double_t pz_L = rangen.Gaus(momMean,momSpread);
+
+        //Double_t px_L2 = rangen.Gaus(momMean,momSpread);
+        //Double_t py_L2 = rangen.Gaus(momMean,momSpread);
+        //Double_t pz_L2 = rangen.Gaus(momMean,momSpread);
+
+        Double_t px_Sigma0 = rangen.Gaus(momMean,momSpread);
+        Double_t py_Sigma0 = rangen.Gaus(momMean,momSpread);
+        Double_t pz_Sigma0 = rangen.Gaus(momMean,momSpread);
+
+        Double_t px_Xim = rangen.Gaus(momMean,momSpread);
+        Double_t py_Xim = rangen.Gaus(momMean,momSpread);
+        Double_t pz_Xim = rangen.Gaus(momMean,momSpread);
+
+        Double_t px_Xim1530 = rangen.Gaus(momMean,momSpread);
+        Double_t py_Xim1530 = rangen.Gaus(momMean,momSpread);
+        Double_t pz_Xim1530 = rangen.Gaus(momMean,momSpread);
+
+        Double_t px_Omegam = rangen.Gaus(momMean,momSpread);
+        Double_t py_Omegam = rangen.Gaus(momMean,momSpread);
+        Double_t pz_Omegam = rangen.Gaus(momMean,momSpread);
+
+        tvec_proton.SetXYZM(px_proton,py_proton,pz_proton,0.938);//units are in GeV
+        tvec_Lambda.SetXYZM(px_L,py_L,pz_L,1.116);
+        //tvec_Lambda2.SetXYZM(px_L2,py_L2,pz_L2,1.116);
+        tvec_Sigma0.SetXYZM(px_Sigma0,py_Sigma0,pz_Sigma0,1.193);
+        tvec_Xim.SetXYZM(px_Xim,py_Xim,pz_Xim,1.322);
+        tvec_Xim1530.SetXYZM(px_Xim1530,py_Xim1530,pz_Xim1530,1.535);
+        tvec_Omegam.SetXYZM(px_Omegam,py_Omegam,pz_Omegam,1.672);
+
+        //Calculate initial momentum of the pair:
+        Double_t relK_pL = relKcalc(tvec_proton,tvec_Lambda);
+        Double_t relK_pSigma0 = relKcalc(tvec_proton,tvec_Sigma0);
+        Double_t relK_pXim = relKcalc(tvec_proton,tvec_Xim);
+        Double_t relK_pXim1530 = relKcalc(tvec_proton,tvec_Xim1530);
+        Double_t relK_pOmegam = relKcalc(tvec_proton,tvec_Omegam);
+        Double_t relK_LSigma0 = relKcalc(tvec_Lambda,tvec_Sigma0);
+        Double_t relK_LXim = relKcalc(tvec_Lambda,tvec_Xim);
+
+        //p-V0 -> p-p
+        eventLambda.SetDecay(tvec_Lambda, 2, Lambda_decay_daughters);
+        eventLambda.Generate();
+        tvec_pp_pL = eventLambda.GetDecay(0);
+        Double_t relK_pp_pL = relKcalc(tvec_proton,*tvec_pp_pL);
+        hRes_pp_pL->Fill(relK_pL*1000,relK_pp_pL*1000);
+
+        //p-Sigma0 -> p-Lambda
+        eventSigma0.SetDecay(tvec_Sigma0, 2, Sigma0_decay_daughters);
+        eventSigma0.Generate();
+        tvec_pL_pSigma0 = eventSigma0.GetDecay(0);
+        Double_t relK_pL_pSigma0 = relKcalc(tvec_proton,*tvec_pL_pSigma0);
+        hRes_pL_pSigma0->Fill(relK_pSigma0*1000,relK_pL_pSigma0*1000);
+
+        //Simulate the decay and obtain the final momentum after the decay:
+        //p-Xi -> p-V0
+        eventXim.SetDecay(tvec_Xim, 2, Xim_decay_daughters);//Let the Xi decay in Lambda pion
+        eventXim.Generate();
+        tvec_pL_pXim = eventXim.GetDecay(0);
+        Double_t relK_pL_pXim = relKcalc(tvec_proton,*tvec_pL_pXim);
+        hRes_pL_pXim->Fill(relK_pXim*1000,relK_pL_pXim*1000);
+
+        //p-Xim1530 -> p-Xim
+        eventXim1530.SetDecay(tvec_Xim1530, 2, Xim1530_decay_daughters);
+        eventXim1530.Generate();
+        tvec_pXim_pXim1530 = eventXim1530.GetDecay(0);
+        Double_t relK_pXim_pXim1530 = relKcalc(tvec_proton,*tvec_pXim_pXim1530);
+        hRes_pXim_pXim1530->Fill(relK_pXim1530*1000,relK_pXim_pXim1530*1000);
+
+        //p-Omegam -> p-Xim
+        eventOmegam.SetDecay(tvec_Omegam, 2, Omegam_decay_daughters);
+        eventOmegam.Generate();
+        tvec_pXim_pOmegam = eventOmegam.GetDecay(0);
+        Double_t relK_pXim_pOmegam = relKcalc(tvec_proton,*tvec_pXim_pOmegam);
+        hRes_pXim_pOmegam->Fill(relK_pOmegam*1000,relK_pXim_pOmegam*1000);
+
+        //L-Xim -> L-L
+        eventXim.SetDecay(tvec_Xim, 2, Xim_decay_daughters);//Let the Xi decay in Lambda pion
+        eventXim.Generate();
+        tvec_LL_LXim = eventXim.GetDecay(0);
+        Double_t relK_LL_LXim = relKcalc(tvec_Lambda,*tvec_LL_LXim);
+        hRes_LL_LXim->Fill(relK_LXim*1000,relK_LL_LXim*1000);
+
+        //L-Sig0 -> L-L
+        eventSigma0.SetDecay(tvec_Sigma0, 2, Sigma0_decay_daughters);
+        eventSigma0.Generate();
+        tvec_LL_LSigma0 = eventSigma0.GetDecay(0);
+        Double_t relK_LL_LSigma0 = relKcalc(tvec_Lambda,*tvec_LL_LSigma0);
+        hRes_LL_LSigma0->Fill(relK_LSigma0*1000,relK_LL_LSigma0*1000);
+    }
+
+    outputfile->cd();
+
+    hRes_pp_pL->Write();
+    hRes_pL_pSigma0->Write();
+    hRes_pL_pXim->Write();
+    hRes_pXim_pXim1530->Write();
+    hRes_pXim_pOmegam->Write();
+    hRes_LL_LSigma0->Write();
+    hRes_LL_LXim->Write();
+
+    //outputfile->Save();
+    //outputfile->Close();
+
+    //hist_pV0_pXim_relK_relK->Draw("colz");
+
+    //delete t3_ran_p_proton;
+    //delete t3_ran_p_Xim;
+    //delete t3_ran_p_Lambda;
+    //delete t3_ran_p_Sigma0;
+    //delete t3_ran_p_Xim1530;
+    delete hRes_pp_pL;
+    delete hRes_pL_pSigma0;
+    delete hRes_pL_pXim;
+    delete hRes_pXim_pXim1530;
+    delete hRes_pXim_pOmegam;
+    delete outputfile;
+
+}
+
+
+void DecayMatrix_dp_dL(int SEED, int NumIter)
+{
+    TRandom3 rangen(SEED);
+
+    TString output_string = TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/DecayMatrices/Decay_matrix_dp_dL_%i.root",SEED);
+    TFile *outputfile = new TFile(output_string.Data(),"RECREATE");
+
+    UInt_t NumBins = 1000;
+    Double_t kMax = 1000;
+
+    //hRes_pL_pXim
+    TH2F* hRes_dp_dL = new TH2F("hRes_dp_dL","x: relk pXim, y: relk pV0",NumBins,0,kMax,NumBins,0,kMax);
+
+    Double_t Lambda_decay_daughters[2] = {0.938,0.138};//proton-pion
+
+    const double momMean = 0.0;
+    const double momSpread = 0.35;
+
+    TLorentzVector tvec_deuteron,tvec_Lambda;
+    TLorentzVector *tvec_dp_dL;
+    TGenPhaseSpace eventLambda,eventSigma0,eventXim,eventXim1530,eventOmegam;
+
+    for(int i=0;i<NumIter;i++){
+        //if(i%1000==0) printf("i = %i(%i)\n",i,NumIter);
+
+        Double_t px_d = rangen.Gaus(momMean,momSpread);
+        Double_t py_d = rangen.Gaus(momMean,momSpread);
+        Double_t pz_d = rangen.Gaus(momMean,momSpread);
+
+        Double_t px_L = rangen.Gaus(momMean,momSpread);
+        Double_t py_L = rangen.Gaus(momMean,momSpread);
+        Double_t pz_L = rangen.Gaus(momMean,momSpread);
+
+        tvec_deuteron.SetXYZM(px_d,py_d,pz_d,1.8756);//units are in GeV
+        tvec_Lambda.SetXYZM(px_L,py_L,pz_L,1.116);
+
+        //Calculate initial momentum of the pair:
+        Double_t relK_dL = relKcalc(tvec_deuteron,tvec_Lambda);
+
+        //Simulate the decay and obtain the final momentum after the decay:
+        //L-d -> p-d
+        eventLambda.SetDecay(tvec_Lambda, 2, Lambda_decay_daughters);//Let the Xi decay in Lambda pion
+        eventLambda.Generate();
+        tvec_dp_dL = eventLambda.GetDecay(0);
+        Double_t relK_dp_dL = relKcalc(tvec_deuteron,*tvec_dp_dL);
+        hRes_dp_dL->Fill(relK_dL*1000,relK_dp_dL*1000);
+    }
+
+    outputfile->cd();
+
+    hRes_dp_dL->Write();
+
+    delete hRes_dp_dL;
+    delete outputfile;
+
 }
 
 //used to generate the decay matrix
@@ -671,9 +913,28 @@ printf("  p1.P()=%.1f | p2.P()=%.1f | r2.P()=%.1f\n",p1.P()*1000,p2.P()*1000,r2.
 }
 
 
-
+void Test_2020(){
+    DLM_DecayMatrix decmat;
+    decmat.SetFileName("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/DecayMatrices/Test2020_pL_pp.root");
+    decmat.SetHistoName("Test2020_pL_pp");
+    decmat.SetBins(1000,0,1000);
+    decmat.SetNumDaughters1(1);
+    decmat.SetNumDaughters2(2);
+    decmat.SetDaughterMass1(0,Mass_p);
+    decmat.SetDaughterMass2(0,Mass_p);
+    decmat.SetDaughterMass2(1,Mass_pic);
+    decmat.SetMotherMass1(Mass_p);
+    decmat.SetMotherMass2(Mass_L);
+    decmat.SetMeanMomentum(0);
+    decmat.SetMomentumSpread(350);
+    decmat.Run(1,125000000);
+}
 
 int GENBOD(int narg, char** ARGS){
-    DecayMatrix(atoi(ARGS[1]),atoi(ARGS[2]));
+    //DecayMatrix(atoi(ARGS[1]),atoi(ARGS[2]));
+    //DecayMatrix_Vale(atoi(ARGS[1]),atoi(ARGS[2]));
+    //DecayMatrix_dp_dL(atoi(ARGS[1]),atoi(ARGS[2]));
     //Resonances(atoi(ARGS[1]),atoi(ARGS[2]));
+    Test_2020();
+
 }

@@ -16,6 +16,8 @@ class DLM_Ck;
 
 const double Mass_pi0 = 134.9766;
 const double Mass_pic = 139.57018;
+const double Mass_Kch = 493.677;
+const double Mass_K0 = 497.648;
 const double Mass_p = 938.272;
 const double Mass_L = 1115.683;
 const double Mass_Xim = 1321.7;
@@ -48,6 +50,7 @@ public:
     //  "AV18"
     void SetUpCats_pp(CATS& Kitty, const TString& POT, const TString& SOURCE, const int& PotVar=0, const int& SourceVar=0);
     void SetUpCats_pipi(CATS& Kitty, const TString& SOURCE, const int& SourceVar);
+    void SetUpCats_pipi_broken(CATS& Kitty, const TString& SOURCE, const int& SourceVar);
     //POT:
     //  "LO"
     //  "NLO"
@@ -107,6 +110,7 @@ public:
     DLM_CleverMcLevyResoTM* GetCleverMcLevyResoTM_pL();
     DLM_CleverMcLevyResoTM* GetCleverMcLevyResoTM_pXim();
     DLM_CleverMcLevyResoTM* GetCleverMcLevyResoTM_pOmegam();
+    DLM_CleverMcLevyResoTM* GetCleverMcLevyResoTM_pipi();
 
 private:
     void Clean_CommonAnaFunctions();
@@ -118,6 +122,10 @@ private:
 };
 
 DLM_Histo<double>* ConvertThetaAngleHisto(const TString& FileName, const TString& HistoName, const double kMin, const double kMax);
+
+void RootFile_DlmCk(const TString& RootFileName, const TString& GraphName, DLM_Ck* CkToPlot);
+void RootFile_DlmCk(const TString& RootFileName, const TString& GraphName, CATS* Kitty);
+void RootFile_DlmSource(const TString& RootFileName, const TString& GraphName, CATS* Kitty, const unsigned& NumBins, const double& rMin, const double& rMax, const double& lambda=1, const bool& FourPi=true);
 
 /*
 class DLM_Analyzer{

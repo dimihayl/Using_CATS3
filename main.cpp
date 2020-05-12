@@ -36,11 +36,13 @@
 #include "ForBernie.h"
 #include "ForGerhard.h"
 #include "UnfoldRoot.h"
+#include "DLM_CkModels.h"
 
 #include "TGraph.h"
 #include "TFile.h"
 #include "TCanvas.h"
 #include "TH1F.h"
+#include "TH2F.h"
 #include "TNtuple.h"
 #include "TRandom3.h"
 #include "TF1.h"
@@ -48,6 +50,8 @@
 #include "TStyle.h"
 #include "TLegend.h"
 #include "TPaveText.h"
+#include "TLorentzVector.h"
+#include "TVector3.h"
 
 
 #include "ppbar.h"
@@ -2398,8 +2402,13 @@ void MickeyMouseEffectOnSourceBasedOnTheta(){
     //const double Core_pp_TM_Epos = 0.921;
     //const double Core_pp_TM_Epos = 1.11483;
     // const double Core_pp_TM_Epos = 1.07645;
-      const double Core_pp_TM_Epos = 1.15142;
+    //const double Core_pp_TM_Epos = 1.15142;
     //const double Core_pp_TM_Epos = 1.2;
+    //for pAp
+    //const double Core_pp_TM_Epos = 1.099;
+    //const double Core_pp_TM_Epos = 1.063;
+    const double Core_pp_TM_Epos = 1.025;
+
     const double Core_pL_TM_Epos = 1.2;
 
     //const double Core_pXi_Back = 1.0;
@@ -3824,7 +3833,146 @@ void Silly(){
 
 }
 
+void Test_CatsParticle(){
 
+    const unsigned NumIter = 1000000;
+
+    double momx,momy,momz;
+    const double MomSpread = 0.8;
+    const double Mass = 0.14;
+    const double MassProd1 = 0.938;
+    const double MassProd2 = 0.938;
+
+
+    TRandom3 rangen(11);
+
+    TH2F* hTLV_k_E = new TH2F("hTLV_k_E","hTLV_k_E",1024,0,4,128,0,4);
+    TH2F* hCats_k_E = new TH2F("hCats_k_E","hCats_k_E",1024,0,4,128,0,4);
+
+    TH2F* hTLV_ks_Ecm = new TH2F("hTLV_ks_Ecm","hTLV_ks_Ecm",1024,0,4,128,0,4);
+    TH2F* hCats_ks_Ecm = new TH2F("hCats_ks_Ecm","hCats_ks_Ecm",1024,0,4,128,0,4);
+
+    TH2F* hTLV_ksP_Ecm = new TH2F("hTLV_ksP_Ecm","hTLV_ksP_Ecm",1024,0,4,128,0,4);
+
+
+    for(unsigned uIter=0; uIter<NumIter; uIter++){
+        momx = rangen.Gaus(0,MomSpread);
+        momy = rangen.Gaus(0,MomSpread);
+        momz = rangen.Gaus(0,MomSpread);
+        TLorentzVector TLV_pion1;
+        TLV_pion1.SetXYZM(momx,momy,momz,Mass);
+        CatsParticle Cats_pion1;
+        Cats_pion1.Set(0,0,0,0,sqrt(momx*momx+momy*momy+momz*momz+Mass*Mass),momx,momy,momz);
+
+        momx = rangen.Gaus(0,MomSpread);
+        momy = rangen.Gaus(0,MomSpread);
+        momz = rangen.Gaus(0,MomSpread);
+        TLorentzVector TLV_pion2;
+        TLV_pion2.SetXYZM(momx,momy,momz,Mass);
+        CatsParticle Cats_pion2;
+        Cats_pion2.Set(0,0,0,0,sqrt(momx*momx+momy*momy+momz*momz+Mass*Mass),momx,momy,momz);
+
+        TLorentzVector TLV_Sum = TLV_pion1+TLV_pion2;
+        TLorentzVector TLV_Diff = TLV_pion1-TLV_pion2;
+
+        TVector3 BoostVec = -TLV_Sum.BoostVector();
+
+        TLorentzVector TLV_Sum_Boost = TLV_Sum;
+        TLorentzVector TLV_Diff_Boost = TLV_Diff;
+
+        TLV_Sum_Boost.Boost(BoostVec);
+        TLV_Diff_Boost.Boost(BoostVec);
+
+        hTLV_k_E->Fill(TLV_Diff.P()*0.5,TLV_Sum.M());
+        hTLV_ks_Ecm->Fill(TLV_Diff_Boost.P()*0.5,TLV_Sum_Boost.M());
+
+        CatsParticlePair PionPair;
+        PionPair.SetPair(Cats_pion1,Cats_pion2,false,false);
+
+        CatsParticlePair PionPairBoost;
+        PionPairBoost.SetPair(Cats_pion1,Cats_pion2,false,true);
+
+        hCats_k_E->Fill(PionPair.GetP()*0.5,PionPair.GetSum().Mag());
+        hCats_ks_Ecm->Fill(PionPairBoost.GetP()*0.5,PionPairBoost.GetSum().Mag());
+
+        double E_prod = PionPair.GetSum().Mag();
+        double Ks_prod = sqrt(pow(E_prod,4.)+pow(MassProd1*MassProd1-MassProd2*MassProd2,2.)-2.*E_prod*E_prod*(MassProd1*MassProd1+MassProd2*MassProd2))/(2.*E_prod);
+        hTLV_ksP_Ecm->Fill(Ks_prod,TLV_Sum_Boost.M());
+    }
+
+    TFile fOutput("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Temp/Test_CatsParticle.root","recreate");
+    hTLV_k_E->Write();
+    hCats_k_E->Write();
+    hTLV_ks_Ecm->Write();
+    hCats_ks_Ecm->Write();
+    hTLV_ksP_Ecm->Write();
+
+    delete hTLV_k_E;
+    delete hCats_k_E;
+    delete hTLV_ks_Ecm;
+    delete hCats_ks_Ecm;
+    delete hTLV_ksP_Ecm;
+}
+
+void Test_OliSigma(){
+    const unsigned NumBins =  16;
+    const double kMin = 0;
+    const double kMax = 160;
+    TH1F* hDummy = new TH1F("hDummy","hDummy",NumBins,kMin,kMax);
+
+    double PotPar = 0;
+    double SourceSize = 1.5;
+    double Momentum;
+
+    for(unsigned uBin=0; uBin<NumBins; uBin++){
+        Momentum = hDummy->GetBinCenter(uBin+1);
+        //printf(" ROOT = %f; C++ = %f\n",
+               //Lednicky_gauss_Sigma0_ROOT(Momentum,&SourceSize,&PotPar),
+               //Lednicky_gauss_Sigma0(Momentum,&SourceSize,&PotPar));
+    }
+
+    delete hDummy;
+}
+
+void Test_pXi_Yukawa(){
+
+    const unsigned NumBins = 200;
+    const double kMin = 0;
+    const double kMax = 400;
+
+    DLM_CommonAnaFunctions AnaObj;
+
+    CATS KittyOld;
+    KittyOld.SetMomBins(NumBins,kMin,kMax);
+    AnaObj.SetUpCats_pXim(KittyOld,"pXim_HALQCD1","Gauss",-12,0);
+    KittyOld.SetAnaSource(0,1.0);
+    KittyOld.KillTheCat();
+
+    CATS KittyNew;
+    KittyNew.SetMomBins(NumBins,kMin,kMax);
+    AnaObj.SetUpCats_pXim(KittyNew,"pXim_HALQCD1","Gauss",12,0);
+    KittyNew.SetAnaSource(0,1.0);
+    KittyNew.KillTheCat();
+
+    TFile fOutput("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Temp/Test_pXi_Yukawa.root","recreate");
+
+    TGraph gKittyOld;
+    gKittyOld.SetName(TString::Format("gKittyOld"));
+    gKittyOld.Set(NumBins);
+    for(unsigned uBin=0; uBin<NumBins; uBin++){
+        gKittyOld.SetPoint(uBin,KittyOld.GetMomentum(uBin),KittyOld.GetCorrFun(uBin));
+    }
+    gKittyOld.Write();
+
+    TGraph gKittyNew;
+    gKittyNew.SetName(TString::Format("gKittyNew"));
+    gKittyNew.Set(NumBins);
+    for(unsigned uBin=0; uBin<NumBins; uBin++){
+        gKittyNew.SetPoint(uBin,KittyNew.GetMomentum(uBin),KittyNew.GetCorrFun(uBin));
+    }
+    gKittyNew.Write();
+
+}
 
 int main(int argc, char *argv[])
 {
@@ -3851,6 +3999,8 @@ int main(int argc, char *argv[])
     //pp_in_txtfile();
     //pp_pLambda_pXi_Ratios();
     //cout<<tLab_pCm(200,938,938)<<endl;
+    //Test_CatsParticle();
+    //Test_OliSigma();
 
 
     //! FOR THE CATS TUTORIAL 2019
@@ -3870,6 +4020,7 @@ int main(int argc, char *argv[])
 //return 0;
 
     //TestHaide_pL_pWaves();
+    //Test_pXi_Yukawa();
 
     //TestTomPotential();
 
@@ -3898,7 +4049,7 @@ printf("%.3f\n",lambdapars[4]*100.);
 */
 
     //PION_ANA(argc,ARGV);
-    //THESIS_PLOTS(argc,ARGV);
+    THESIS_PLOTS(argc,ARGV);
     //PLAMBDA_1_MAIN(argc,ARGV);
     //CALL_BERNIE_AND_VALE();
     //FEMTOBOYZ_MAIN(argc,ARGV);
@@ -3906,7 +4057,7 @@ printf("%.3f\n",lambdapars[4]*100.);
     //GerhardMAIN(argc,ARGV);
     //Main_pSigma();
     //MIXEDEVENTS(argc,ARGV);
-    SOURCESTUDIES(argc,ARGV);
+    //SOURCESTUDIES(argc,ARGV);
     //KAONPROTON_MAIN(argc,ARGV);
     //UNFOLD_MAIN(argc,ARGV);
     //OTHERTASKS(argc,ARGV);

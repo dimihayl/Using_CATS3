@@ -5535,6 +5535,94 @@ void Fit_pL_CommonAncestorTemplate_dPhi(const bool useMC){
 }
 
 
+DLM_CommonAnaFunctions* DariuszSource_ppReso=NULL;
+double DariuszSourceFunction_pp(double* Pars){
+    if(!DariuszSource_ppReso){
+        DariuszSource_ppReso = new DLM_CommonAnaFunctions();
+        CATS Dummy;
+        Dummy.SetMomBins(1,0,10);
+        DariuszSource_ppReso->SetUpCats_pp(Dummy,"AV18","McGauss_ResoTM",0,202);
+    }
+    double CoreResoValue = DariuszSource_ppReso->GetCleverMcLevyResoTM_pp()->Eval(Pars);
+    double GaussValue = GaussSource(Pars);
+    if(Pars[1]<Pars[3] && CoreResoValue>GaussValue) return GaussValue;
+    else return CoreResoValue;
+}
+
+void pp_DariuszSetUp(CATS& Kitty){
+    Kitty.SetExcludeFailedBins(false);
+    Kitty.SetQ1Q2(1);
+    Kitty.SetPdgId(2212, 2212);
+    Kitty.SetRedMass( 0.5*Mass_p );
+    Kitty.SetNumChannels(4);
+    Kitty.SetNumPW(0,3);
+    Kitty.SetNumPW(1,2);
+    Kitty.SetNumPW(2,2);
+    Kitty.SetNumPW(3,2);
+    Kitty.SetSpin(0,0);
+    Kitty.SetSpin(1,1);
+    Kitty.SetSpin(2,1);
+    Kitty.SetSpin(3,1);
+    Kitty.SetChannelWeight(0, 3./12.);
+    Kitty.SetChannelWeight(1, 1./12.);
+    Kitty.SetChannelWeight(2, 3./12.);
+    Kitty.SetChannelWeight(3, 5./12.);
+
+    //#,#,POT_ID,POT_FLAG,t_tot,t1,t2,s,l,j
+    double PotPars1S0[8]={NN_AV18,v18_Coupled3P2,1,1,1,0,0,0};
+    double PotPars3P0[8]={NN_AV18,v18_Coupled3P2,1,1,1,1,1,0};
+    double PotPars3P1[8]={NN_AV18,v18_Coupled3P2,1,1,1,1,1,1};
+    double PotPars3P2[8]={NN_AV18,v18_Coupled3P2,1,1,1,1,1,2};
+    double PotPars1D2[8]={NN_AV18,v18_Coupled3P2,1,1,1,0,2,2};
+    CATSparameters cPotPars1S0(CATSparameters::tPotential,8,true); cPotPars1S0.SetParameters(PotPars1S0);
+    CATSparameters cPotPars3P0(CATSparameters::tPotential,8,true); cPotPars3P0.SetParameters(PotPars3P0);
+    CATSparameters cPotPars3P1(CATSparameters::tPotential,8,true); cPotPars3P1.SetParameters(PotPars3P1);
+    CATSparameters cPotPars3P2(CATSparameters::tPotential,8,true); cPotPars3P2.SetParameters(PotPars3P2);
+    CATSparameters cPotPars1D2(CATSparameters::tPotential,8,true); cPotPars1D2.SetParameters(PotPars1D2);
+
+    Kitty.SetShortRangePotential(0,0,fDlmPot,cPotPars1S0);
+    Kitty.SetShortRangePotential(0,2,fDlmPot,cPotPars1D2);
+    Kitty.SetShortRangePotential(1,1,fDlmPot,cPotPars3P0);
+    Kitty.SetShortRangePotential(2,1,fDlmPot,cPotPars3P1);
+    Kitty.SetShortRangePotential(3,1,fDlmPot,cPotPars3P2);
+}
+
+//showing off, that the resonances source that converges towards a Gaussian (i.e. remove the effect of particle coming together) does not matter.
+//so we build up a source function, that is GaussCore+Reso in general, but below 2 fm if S_core > S_gauss, we switch back to a Gaussian source
+void pp_DariuszSource(){
+    TString OutputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/OtherTasks/pp_DariuszSource/pp_DariuszSource.root";
+    CATS KittyD;
+    KittyD.SetMomBins(100,0,400);
+    KittyD.SetThetaDependentSource(false);
+    CATSparameters cPars(CATSparameters::tSource,1,true);
+    cPars.SetParameter(0,1.0);
+    KittyD.SetAnaSource(DariuszSourceFunction_pp, cPars);
+    KittyD.SetAutoNormSource(true);
+    KittyD.SetAnaSource(0,cPars.GetParameter(0));
+    KittyD.SetUseAnalyticSource(true);
+    KittyD.SetMomentumDependentSource(false);
+    pp_DariuszSetUp(KittyD);
+    KittyD.KillTheCat();
+
+    CATS KittyR;
+    KittyR.SetMomBins(100,0,400);
+    DLM_CommonAnaFunctions ANA;
+    ANA.SetUpCats_pp(KittyR,"AV18","McGauss_ResoTM",0,202);
+    KittyR.KillTheCat();
+
+    RootFile_DlmCk(OutputFileName,"Ck_pp_Dariusz",&KittyD);
+    RootFile_DlmCk(OutputFileName,"Ck_pp_Reso",&KittyR);
+
+    RootFile_DlmSource(OutputFileName,"Spdf_pp_Dariusz",&KittyD,128,0,10,1,true);
+    RootFile_DlmSource(OutputFileName,"Spdf_pp_Reso",&KittyR,128,0,10,1,true);
+
+    RootFile_DlmSource(OutputFileName,"Sr_pp_Dariusz",&KittyD,128,0,10,1,false);
+    RootFile_DlmSource(OutputFileName,"Sr_pp_Reso",&KittyR,128,0,10,1,false);
+
+
+}
+
+
 DLM_Histo<float> huWF;
 DLM_Histo<float> hwWF;
 float Evaluate_d_u(double Radius){
@@ -5543,8 +5631,261 @@ float Evaluate_d_u(double Radius){
 float Evaluate_d_w(double Radius){
     return hwWF.Eval(&Radius);
 }
+/*
+//par[0] is the order of the pol
+//par[1/2] are the two limits at which the derivative should be flat
+//if on limit is desired, set par[] = -1e6
+double PolN_flat_end(double* x, double* par){
+    double lim1 = par[1];
+    double lim2 = par[2];
+    double temp;
+    unsigned Order = par[0];
+    double* pol = &par[3];
+    if(lim2!=-1e6){
+        pol[2] = 0;
+        for(unsigned uOrd=3; uOrd<=Order; uOrd++){
+            pol[2] -= uOrd*pol[uOrd]*(pow(lim1,uOrd-1)+pow(lim2,uOrd-1));
+        }
+        pol[2] /= (2.*(lim1+lim2));
+    }
+    if(lim1!=-1e6){
+        pol[1] = 0;
+        for(unsigned uOrd=2; uOrd<=Order; uOrd++){
+            pol[1] += uOrd*pol[uOrd]*(pow(lim1,uOrd-1)+pow(lim2,uOrd-1));
+        }
+    }
+    double Result=0;
+    for(unsigned uOrd=0; uOrd<=Order; uOrd++){
+        Result += pol[uOrd]*pow(*x,uOrd);
+    }
+
+    return Result;
+}
+*/
+
+//par[0] is the order of the pol
+//par[1] is the limit at which the derivative should be flat
+//par[2...] are the pol coefficients (0,1...)
+double PolN_flat_end(double* x, double* par){
+    double& lim = par[1];
+    unsigned Order = par[0];
+    double* pol = &par[2];
+    if(lim!=-1e6){
+        pol[1] = 0;
+        for(unsigned uOrd=2; uOrd<=Order; uOrd++){
+            pol[1] -= uOrd*pol[uOrd]*(pow(lim,uOrd-1));
+        }
+    }
+    double Result=0;
+    for(unsigned uOrd=0; uOrd<=Order; uOrd++){
+        Result += pol[uOrd]*pow(*x,uOrd);
+    }
+    return Result;
+}
 
 
+void Test_flat_pol(){
+
+    //pol5
+    //fix at 0
+    TF1* fun1 = new TF1("fun1",PolN_flat_end,0,500,2+4);
+    //fix at 300
+    TF1* fun2 = new TF1("fun2",PolN_flat_end,0,500,2+4);
+
+    fun1->FixParameter(0,3);
+    fun1->FixParameter(1,0);
+    fun1->SetParameter(2,1);//0
+    fun1->SetParameter(3,1);//1
+    fun1->SetParameter(4,0.01);//2
+    fun1->SetParameter(5,0.0001);//3
+
+    fun2->FixParameter(0,3);
+    fun2->FixParameter(1,300);
+    fun2->SetParameter(2,1);//0
+    fun2->SetParameter(3,1);//1
+    fun2->SetParameter(4,0.01);//2
+    fun2->SetParameter(5,0.0001);//3
+
+    TFile fOutput("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/OtherTasks/Test_flat_pol/fOutput.root","recreate");
+    fun1->Write();
+    fun2->Write();
+
+}
+
+
+void TestOmegaOmega(){
+
+    const unsigned NumBins = 200;
+    CATS Kitty;
+    CATSparameters cPars(CATSparameters::tSource,1,true);
+    cPars.SetParameter(0,0.85);
+
+    Kitty.SetMomBins(NumBins,0,400);
+
+    Kitty.SetAnaSource(GaussSource, cPars);
+    Kitty.SetUseAnalyticSource(true);
+
+    Kitty.SetMomentumDependentSource(false);
+    //Kitty.SetThetaDependentSource(false);
+    Kitty.SetExcludeFailedBins(false);
+
+    Kitty.SetQ1Q2(1);
+    Kitty.SetPdgId(2212, 2212);
+    Kitty.SetRedMass( 0.5*MassOmega );
+
+    Kitty.SetNumChannels(4);
+    Kitty.SetNumPW(0,0);
+    Kitty.SetNumPW(1,0);
+    Kitty.SetNumPW(2,0);
+    Kitty.SetNumPW(3,0);
+    Kitty.SetSpin(0,0);
+    Kitty.SetSpin(1,1);
+    Kitty.SetSpin(2,2);
+    Kitty.SetSpin(3,3);
+    Kitty.SetChannelWeight(0, 1./16.);
+    Kitty.SetChannelWeight(1, 3./16.);
+    Kitty.SetChannelWeight(2, 5./16.);
+    Kitty.SetChannelWeight(3, 7./16.);
+
+    Kitty.KillTheCat();
+
+    TFile* RootFile = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/OtherTasks/TestOmegaOmega/OO_Dimi.root","recreate");
+    TGraph graph;
+    graph.SetName("Ck_OmegaOmega");
+    graph.Set(NumBins);
+    for(unsigned uBin=0; uBin<NumBins; uBin++){
+        graph.SetPoint(uBin,Kitty.GetMomentum(uBin),Kitty.GetCorrFun(uBin));
+    }
+    graph.Write("",TObject::kOverwrite);
+    delete RootFile;
+
+
+
+}
+
+void pXi_Bug_vs_True_Potential(const unsigned WhichChannel, const TString ChannelName){
+    const unsigned NumMomBins = 100;
+    const double kMin = 0;
+    const double kMax = 200;
+    const unsigned NumRadBins = 512;
+    const double rMin = 0;
+    const double rMax = 32;
+    DLM_Histo<float> DummyRad;
+    DummyRad.SetUp(1);
+    DummyRad.SetUp(0,NumRadBins,rMin,rMax);
+    DummyRad.Initialize();
+
+    const unsigned NumKstarBins = 4;
+    double* WF_Kstar = new double [NumKstarBins];
+    WF_Kstar[0] = 10;
+    WF_Kstar[1] = 30;
+    WF_Kstar[2] = 50;
+    WF_Kstar[3] = 70;
+
+    DLM_CommonAnaFunctions AnaObj;
+
+    CATS KittyOld;
+    KittyOld.SetMomBins(NumMomBins,kMin,kMax);
+    AnaObj.SetUpCats_pXim(KittyOld,"pXim_HALQCD1","Gauss",-12,0);
+    KittyOld.SetAnaSource(0,1.0);
+    KittyOld.KillTheCat();
+
+    CATS KittyNew;
+    KittyNew.SetMomBins(NumMomBins,kMin,kMax);
+    AnaObj.SetUpCats_pXim(KittyNew,"pXim_HALQCD1","Gauss",12,0);
+    KittyNew.SetAnaSource(0,1.0);
+    KittyNew.KillTheCat();
+
+    TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/OtherTasks/pXi_Bug_vs_True_Potential/";
+    OutputFolder += ChannelName;
+    OutputFolder += "_";
+    TFile fOutput(OutputFolder+"fOutput.root","recreate");
+    TGraph* WF_I0S0_Old = new TGraph [NumKstarBins];
+    TGraph* WF_I0S0_New = new TGraph [NumKstarBins];
+    TCanvas** cWF = new TCanvas* [NumKstarBins];
+    TLegend** wfLegend = new TLegend* [NumKstarBins];
+    TPaveText** PT_ks = new TPaveText* [NumKstarBins];
+
+    TH1F* hWF_Dummy = new TH1F("hWF_Dummy","hWF_Dummy",128,rMin,rMax);
+    hWF_Dummy->SetStats(false);
+    hWF_Dummy->SetTitle("");
+
+    hWF_Dummy->GetXaxis()->SetTitleSize(0.07);
+    hWF_Dummy->GetXaxis()->SetLabelSize(0.07);
+    hWF_Dummy->GetXaxis()->SetTitleOffset(1.3);
+    hWF_Dummy->GetXaxis()->SetLabelOffset(0.02);
+
+    hWF_Dummy->GetYaxis()->SetTitleSize(0.07);
+    hWF_Dummy->GetYaxis()->SetLabelSize(0.07);
+    hWF_Dummy->GetYaxis()->SetTitleOffset(1.00);
+    hWF_Dummy->GetYaxis()->SetNdivisions(505);
+
+    hWF_Dummy->GetXaxis()->SetTitle("r (fm)");
+    hWF_Dummy->GetYaxis()->SetTitle("u_{0}(kr)/r");
+    hWF_Dummy->GetYaxis()->SetRangeUser(-0.5,5.0);
+
+    for(unsigned uKstar=0; uKstar<NumKstarBins; uKstar++){
+        WF_I0S0_Old[uKstar].SetName(TString::Format("WF_I0S0_Old_%.0f",WF_Kstar[uKstar]));
+        WF_I0S0_New[uKstar].SetName(TString::Format("WF_I0S0_New_%.0f",WF_Kstar[uKstar]));
+        WF_I0S0_Old[uKstar].SetLineColor(kOrange+3);
+        WF_I0S0_New[uKstar].SetLineColor(kOrange+1);
+        WF_I0S0_Old[uKstar].SetLineWidth(4);
+        WF_I0S0_New[uKstar].SetLineWidth(4);
+        WF_I0S0_Old[uKstar].SetLineStyle(4);
+        WF_I0S0_New[uKstar].SetLineStyle(1);
+
+        for(unsigned uRad=0; uRad<NumRadBins; uRad++){
+            double RAD = DummyRad.GetBinCenter(0,uRad);
+            unsigned WhichMomBin = KittyOld.GetMomBin(WF_Kstar[uKstar]);
+            WF_I0S0_Old[uKstar].SetPoint(uRad,RAD,real(KittyOld.EvalRadialWaveFunction(WhichMomBin,WhichChannel,0,RAD,true)));
+            WF_I0S0_New[uKstar].SetPoint(uRad,RAD,real(KittyNew.EvalRadialWaveFunction(WhichMomBin,WhichChannel,0,RAD,true)));
+        }
+
+        wfLegend[uKstar] = new TLegend(0.6,0.70,0.95,0.95);//lbrt
+        wfLegend[uKstar]->SetName(TString::Format("wfLegend_I0S0_%.0f",WF_Kstar[uKstar]));
+        wfLegend[uKstar]->SetTextSize(0.06);
+        wfLegend[uKstar]->AddEntry(&WF_I0S0_Old[uKstar],"With Bug");
+        wfLegend[uKstar]->AddEntry(&WF_I0S0_New[uKstar],"Without Bug");
+
+        PT_ks[uKstar] = new TPaveText(0.25,0.75,0.6,0.95, "blNDC");//lbrt
+        PT_ks[uKstar]->SetName(TString::Format("PT_ks_%.0f",WF_Kstar[uKstar]));
+        PT_ks[uKstar]->SetBorderSize(1);
+        PT_ks[uKstar]->SetTextSize(0.055);
+        PT_ks[uKstar]->SetFillColor(kWhite);
+        PT_ks[uKstar]->SetTextFont(22);
+        PT_ks[uKstar]->AddText(TString::Format("Ch: %s; k*=%.0f MeV",ChannelName.Data(),WF_Kstar[uKstar]));
+
+        cWF[uKstar] = new TCanvas(TString::Format("cWF_I0S0_%.0f",WF_Kstar[uKstar]), TString::Format("cWF_I0S0_%.0f",WF_Kstar[uKstar]), 1);
+        cWF[uKstar]->cd(0); cWF[uKstar]->SetCanvasSize(1920, 1080); cWF[uKstar]->SetMargin(0.15,0.05,0.2,0.05);//lrbt
+        cWF[uKstar]->SetGrid(true);
+
+        hWF_Dummy->Draw("axis");
+        WF_I0S0_Old[uKstar].Draw("C,same");
+        WF_I0S0_New[uKstar].Draw("C,same");
+        wfLegend[uKstar]->Draw("same");
+        PT_ks[uKstar]->Draw("same");
+
+        cWF[uKstar]->SaveAs(OutputFolder+TString::Format("cWF_%.0f.pdf",WF_Kstar[uKstar]));
+
+        WF_I0S0_Old[uKstar].Write();
+        WF_I0S0_New[uKstar].Write();
+        wfLegend[uKstar]->Write();
+        PT_ks[uKstar]->Write();
+        cWF[uKstar]->Write();
+    }
+
+    delete [] WF_I0S0_Old;
+    delete [] WF_I0S0_New;
+    for(unsigned uKstar=0; uKstar<NumKstarBins; uKstar++) {
+        delete wfLegend[uKstar];
+        delete PT_ks[uKstar];
+        delete cWF[uKstar];
+    }
+    delete [] wfLegend;
+    delete [] PT_ks;
+    delete [] cWF;
+    delete [] WF_Kstar;
+}
 
 int OTHERTASKS(int narg, char** ARGS){
     //pp_CompareToNorfolk();
@@ -5567,11 +5908,19 @@ int OTHERTASKS(int narg, char** ARGS){
     //Fit_pL_CommonAncestorTemplate_dPhi(1);
 
     //Fit_pp_CommonAncestorTemplate_Ck();
-    Fit_pL_CommonAncestorTemplate_Ck();
+    //Fit_pL_CommonAncestorTemplate_Ck();
 
     //Fit_pL_CommonAncestorTemplate_CrazyGauss();
 
     //ReadDeuteronWF("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/Coalesce/WaveFunctions/Machleidt/deuwaves_n4lo500_rspace.d",huWF,hwWF);
+
+    //pp_DariuszSource();
+    //Test_flat_pol();
+    //TestOmegaOmega();
+    pXi_Bug_vs_True_Potential(0,"I0S0");
+    pXi_Bug_vs_True_Potential(1,"I0S1");
+    pXi_Bug_vs_True_Potential(2,"I1S0");
+    pXi_Bug_vs_True_Potential(3,"I1S1");
 
     //const double RAD = 5.11;
     //printf("u(%.2f) = %.4f\n",RAD,Evaluate_d_u(RAD));

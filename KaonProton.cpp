@@ -18,6 +18,7 @@
 #include "TGraph.h"
 #include "TFile.h"
 #include "TH1F.h"
+#include "TH2F.h"
 #include "TF1.h"
 #include "TCanvas.h"
 #include "TLegend.h"
