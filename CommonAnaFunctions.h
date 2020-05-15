@@ -64,6 +64,7 @@ public:
     //   the second:
     //    0 = no smear; 1 = smear according to the life-time
     void SetUpCats_pL(CATS& Kitty, const TString& POT, const TString& SOURCE, const int& PotVar=0, const int& SourceVar=0);
+    void SetUpCats_pS0(CATS& Kitty, const TString& POT, const TString& SOURCE, const int& PotVar=0, const int& SourceVar=0);
     //POT:
     //  "pXim_Lattice" (the first version)
     //  "pXim_HALQCD1" (the second version, THE ONE TO USE)

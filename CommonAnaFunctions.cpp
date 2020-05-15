@@ -18,7 +18,7 @@
 #include "TNtuple.h"
 #include "TVector3.h"
 
-DLM_CommonAnaFunctions::DLM_CommonAnaFunctions():NumCleverLevyObjects(5){
+DLM_CommonAnaFunctions::DLM_CommonAnaFunctions():NumCleverLevyObjects(6){
     //Simple_Reso = NULL;
     //Simple_Reso = new MS_GaussExp_mT_Simple [NumCleverLevyObjects];
     CleverLevy = NULL;
@@ -1000,6 +1000,11 @@ printf("SetUpCats_pipi_broken\n");
 //  0 = back-to-back
 //  1 = flat theta
 //  2 = EPOS theta
+//PotVar (for Chiral_Coupled_SPD):
+//  4 digits ABXXX
+//  A is NLO13 (0), NLO19 (1), LO13 (-1)
+//  B is: 0 (s waves), 1 (sd waves), 2 (spd waves)
+//  XXX are the cutoff
 void DLM_CommonAnaFunctions::SetUpCats_pL(CATS& Kitty, const TString& POT, const TString& SOURCE, const int& PotVar, const int& SourceVar){
     CATSparameters* cPars = NULL;
     CATSparameters* pPars = NULL;
@@ -1339,16 +1344,16 @@ void DLM_CommonAnaFunctions::SetUpCats_pL(CATS& Kitty, const TString& POT, const
                                 Kitty, 11, 600);
         NumChannels=4;
     }
-    else if(POT=="NLO_Coupled_SPD"){
+    else if(POT=="Chiral_Coupled_SPD"){
+        int CUTOFF = PotVar%1000;
+        int TYPE = PotVar/10000;
+        if(PotVar==0){CUTOFF=600;TYPE=0;}
+//printf("PotVar=%i\n",PotVar);
+//printf("CUTOFF=%i\n",CUTOFF);
+//printf("TYPE=%i\n",TYPE);
         //original, NLO13 at 600 MeV
-        if(PotVar==0||PotVar==600){
-            ExternalWF = Init_pL_Haidenbauer2019(   "/home/dmihaylov/CernBox/CATS_potentials/Haidenbauer/pLambda_Coupled_SD/",
-                                    Kitty, 0 , 600);
-        }
-        else{
-            ExternalWF = Init_pL_Haidenbauer2019(   "/home/dmihaylov/CernBox/CATS_potentials/Haidenbauer/pLambda_Coupled_SD/",
-                                    Kitty, 0 , PotVar);
-        }
+        ExternalWF = Init_pL_Haidenbauer2019(   "/home/dmihaylov/CernBox/CATS_potentials/Haidenbauer/pLambda_Coupled_SD/",
+                                    Kitty, TYPE , CUTOFF);
         NumChannels=16;
     }
     else if(POT=="Usmani"){
@@ -1363,8 +1368,8 @@ void DLM_CommonAnaFunctions::SetUpCats_pL(CATS& Kitty, const TString& POT, const
         printf("\033[1;31mERROR:\033[0m Non-existing pp potential '%s'\n",POT.Data());
         goto CLEAN_SetUpCats_pL;
     }
-printf("NumChannels=%u\n",NumChannels);
-printf("ExternalWF=%p\n",ExternalWF);
+//printf("NumChannels=%u\n",NumChannels);
+//printf("ExternalWF=%p\n",ExternalWF);
 
     Kitty.SetMomentumDependentSource(false);
     //Kitty.SetThetaDependentSource(false);
@@ -1388,18 +1393,21 @@ printf("ExternalWF=%p\n",ExternalWF);
             //for(unsigned uMomBin=0; uMomBin<Kitty.GetNumMomBins(); uMomBin++){
                 //Kitty.UseExternalWaveFunction(uMomBin,uCh,0,WaveFunctionU[uMomBin][uCh][0], NumRadBins, RadBins, PhaseShifts[uMomBin][uCh][0]);
 //printf("Look at that view (%u)!\n",uCh);
-                Kitty.SetExternalWaveFunction(uCh,0,ExternalWF[0][uCh][0],ExternalWF[1][uCh][0]);
-                if(POT=="NLO_Coupled_SPD"){
-                    if(uCh<=6&&(PotVar==0||abs(PotVar)==600)&&POT.Contains("NLO")){
+                int SPD = (PotVar/1000)%10;
+                //unless p-wave
+                if( ExternalWF[0][uCh][0].GetDim() ) Kitty.SetExternalWaveFunction(uCh,0,ExternalWF[0][uCh][0],ExternalWF[1][uCh][0]);
+                if(POT=="Chiral_Coupled_SPD"){
+
+                    if(uCh<=6&&SPD==2){
                         Kitty.SetExternalWaveFunction(uCh,1,ExternalWF[0][uCh][1],ExternalWF[1][uCh][1]);
 //printf("1: uCh=%u\n",uCh);
                     }
-                    if(uCh>=1&&uCh<=3){
+                    if(uCh>=1&&uCh<=3&&SPD!=0){
                         Kitty.SetExternalWaveFunction(uCh,2,ExternalWF[0][uCh][2],ExternalWF[1][uCh][2]);
 //printf("uCh=%u\n",uCh);
                     }
                 }
-                else if(Kitty.GetNumPW(uCh)>=2&&(PotVar==0||abs(PotVar)==600)&&POT.Contains("NLO")){
+                else if(Kitty.GetNumPW(uCh)>=2){
                     Kitty.SetExternalWaveFunction(uCh,1,ExternalWF[0][uCh][1],ExternalWF[1][uCh][1]);
                 }
 
@@ -1407,6 +1415,7 @@ printf("ExternalWF=%p\n",ExternalWF);
             //}
         }
         else{
+printf("PotVar=%i\n",PotVar);
             printf("\033[1;31mERROR:\033[0m SetUpCats_pL says that you should NEVER see this message! BIG BUG!\n");
             goto CLEAN_SetUpCats_pL;
         }
@@ -1424,6 +1433,65 @@ printf("ExternalWF=%p\n",ExternalWF);
     CleanUpWfHisto(Kitty,ExternalWF);
 
 }
+
+//for the moment only gauss
+//models are NLO and ESC16
+void DLM_CommonAnaFunctions::SetUpCats_pS0(CATS& Kitty, const TString& POT, const TString& SOURCE, const int& PotVar, const int& SourceVar){
+    CATSparameters* cPars = NULL;
+
+    DLM_Histo<complex<double>>*** ExternalWF=NULL;
+    unsigned NumChannels=0;
+
+    Kitty.SetThetaDependentSource(false);
+
+    if(SOURCE=="Gauss"){
+        cPars = new CATSparameters(CATSparameters::tSource,1,true);
+        cPars->SetParameter(0,1.2);
+        Kitty.SetAnaSource(GaussSource, *cPars);
+        Kitty.SetUseAnalyticSource(true);
+    }
+    else{
+        printf("\033[1;31mERROR:\033[0m Non-existing source '%s'\n",SOURCE.Data());
+        goto CLEAN_SetUpCats_pS0;
+    }
+
+    if(POT=="Chiral"){
+        ExternalWF = Init_pSigma0_Haidenbauer("/home/dmihaylov/CernBox/CATS_potentials/Haidenbauer/pSigma0/",Kitty);
+        NumChannels=Kitty.GetNumChannels();
+    }
+    else if(POT=="ESC16"){
+        ExternalWF = Init_pS0_ESC16("/home/dmihaylov/CernBox/CATS_potentials/Tom/pSigma0/DimiValeNorm170519/",Kitty);
+        NumChannels=Kitty.GetNumChannels();
+    }
+    else{
+        printf("\033[1;31mERROR:\033[0m Non-existing pp potential '%s'\n",POT.Data());
+        goto CLEAN_SetUpCats_pS0;
+    }
+
+    Kitty.SetMomentumDependentSource(false);
+    Kitty.SetExcludeFailedBins(false);
+
+    for(unsigned uCh=0; uCh<NumChannels; uCh++){
+        if(!ExternalWF){
+            Kitty.SetSpin(uCh, uCh%2==0?0:1);
+            Kitty.SetChannelWeight(uCh, uCh%2==0?0.25:0.75);
+        }
+        else if(ExternalWF){
+            Kitty.SetExternalWaveFunction(uCh,0,ExternalWF[0][uCh][0],ExternalWF[1][uCh][0]);
+        }
+        else{
+            printf("\033[1;31mERROR:\033[0m SetUpCats_pL says that you should NEVER see this message! BIG BUG!\n");
+            goto CLEAN_SetUpCats_pS0;
+        }
+    }
+    CLEAN_SetUpCats_pS0: ;
+
+    if(cPars){delete cPars; cPars=NULL;}
+    CleanUpWfHisto(Kitty,ExternalWF);
+
+}
+
+
 //POT:
 //  "pXim_Lattice" (the first version)
 //  "pXim_HALQCD1" (the second version)
@@ -2360,6 +2428,18 @@ void DLM_CommonAnaFunctions::SetUpBinning_pL(const TString& DataSample, unsigned
             FitRegion[1] = MomBins[NumMomBins];
             FitRegion[2] = MomBins[NumMomBins];//336
             FitRegion[3] = 456;
+        }
+        else if(FitRegVar==52){//extended fit range
+            FitRegion[0] = MomBins[0];
+            FitRegion[1] = MomBins[NumMomBins];
+            FitRegion[2] = MomBins[NumMomBins];//336
+            FitRegion[3] = 432;
+        }
+        else if(FitRegVar==53){//extended fit range
+            FitRegion[0] = MomBins[0];
+            FitRegion[1] = MomBins[NumMomBins];
+            FitRegion[2] = MomBins[NumMomBins];//336
+            FitRegion[3] = 480;
         }
         else{
             printf("\033[1;31mERROR:\033[0m The FitRegVar '%i' does not exist\n",FitRegVar);

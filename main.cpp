@@ -4049,8 +4049,8 @@ printf("%.3f\n",lambdapars[4]*100.);
 */
 
     //PION_ANA(argc,ARGV);
-    THESIS_PLOTS(argc,ARGV);
-    //PLAMBDA_1_MAIN(argc,ARGV);
+    //THESIS_PLOTS(argc,ARGV);
+    PLAMBDA_1_MAIN(argc,ARGV);
     //CALL_BERNIE_AND_VALE();
     //FEMTOBOYZ_MAIN(argc,ARGV);
     //GENBOD(argc,ARGV);

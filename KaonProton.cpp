@@ -2045,7 +2045,7 @@ void TestKyoto2019(const double& RADIUS){
         }
     }
 
-    TFile fOutput(TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/TestKyoto2019/fOutput190320_%.2f.root",
+    TFile fOutput(TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/TestKyoto2019/fOutput130520_%.2f.root",
                                   RADIUS),"recreate");
 
     for(unsigned uCh=0; uCh<=NumChannels; uCh++){
@@ -2063,7 +2063,7 @@ void TestKyoto2019(const double& RADIUS){
     }
 
     FILE * CkFile;
-    CkFile = fopen (TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/TestKyoto2019/CkProtonKaon.txt"),"w");
+    CkFile = fopen (TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/TestKyoto2019/CkProtonKaon130520.txt"),"w");
     fprintf (CkFile, "%10s%10s%10s%10s\n","k* (MeV)","C_S(k*)","C_G(k*)","C_C(k*)");
     double kVal_S,CkVal_S;
 	double kVal_G,CkVal_G;
@@ -2163,9 +2163,113 @@ void SmearTest_pKminus(){
 
 }
 
+//make the dr from 0.001 fm to 0.1 fm (to reduce the file size from 1.3 GB to 13 MB)
+void SmallerYukiFile(){
+    TString InputFileName = "/home/dmihaylov/CernBox/CATS_potentials/Tetsuo/Kyoto2019/wf_long.dat";
+    TString OutputFileName = "/home/dmihaylov/CernBox/CATS_potentials/Tetsuo/Kyoto2019/wf64_Kyoto_cc_C.dat";
+
+    FILE *InFile;
+    InFile = fopen(InputFileName, "r");
+
+    if(!InFile){
+        printf("\033[1;31mERROR:\033[0m The file\033[0m %s cannot be opened!\n", InputFileName.Data());
+        return;
+    }
+
+    fseek ( InFile , 0 , SEEK_END );
+    fseek ( InFile , 0 , SEEK_SET );
+
+    if(feof(InFile)){
+        printf("\033[1;31mERROR:\033[0m Trying to read past end of file %s\n", InputFileName.Data());
+        return;
+    }
+
+    char* cdummy = new char [512];
+    float fMomentum;
+    float fRadius;
+    float fReWf_Kp;
+    float fImWf_Kp;
+    float fReWf_Kn;
+    float fImWf_Kn;
+    float fReWf_pipSm;
+    float fImWf_pipSm;
+    float fReWf_pi0S0;
+    float fImWf_pi0S0;
+    float fReWf_pimSp;
+    float fImWf_pimSp;
+    float fReWf_pi0L;
+    float fImWf_pi0L;
+
+    unsigned NumLines=0;
+    unsigned ArraySize = 100000;
+    char** cLines = new char* [ArraySize];
+    for(unsigned uArray=0; uArray<ArraySize; uArray++){
+        cLines[uArray] = new char [384];
+    }
+
+    while(!feof(InFile)){
+
+        if(NumLines>=ArraySize){
+            printf("Reallocating...\n");
+            ArraySize *= 2;
+            char** cTemp = new char* [ArraySize];
+            for(unsigned uArray=0; uArray<ArraySize; uArray++){
+                cTemp[uArray] = new char [384];
+                if(uArray<ArraySize/2){
+                    strcpy(cTemp[uArray],cLines[uArray]);
+                }
+                delete [] cLines[uArray];
+            }
+            delete [] cLines;
+            cLines = cTemp;
+        }
+
+        //if(!fgets(cdummy, 511, InFile)||strlen(cdummy)<10) continue;
+        if(!fgets(cdummy, 511, InFile)) continue;
+        if(strlen(cdummy)>128){
+            sscanf(cdummy, " %f %f %f %f %f %f %f %f %f %f %f %f %f %f",
+                    &fMomentum, &fRadius,
+                    &fReWf_Kp,&fImWf_Kp,
+                    &fReWf_Kn,&fImWf_Kn,
+                    &fReWf_pipSm,&fImWf_pipSm,
+                    &fReWf_pi0S0,&fImWf_pi0S0,
+                    &fReWf_pimSp,&fImWf_pimSp,
+                    &fReWf_pi0L,&fImWf_pi0L);
+            int iRadius = TMath::Nint(fRadius*1000.);
+            //save only 1/100 entries
+            if(iRadius%100==0){
+                //printf("%s\n",cdummy);
+                //usleep(100e3);
+                strcpy(cLines[NumLines],cdummy);
+                NumLines++;
+            }
+        }
+        //we still keep empty lines etc, to have a consistent format as before
+        else{
+            strcpy(cLines[NumLines],cdummy);
+            NumLines++;
+        }
+    }
+    fclose(InFile);
+
+    FILE *OutFile;
+    OutFile = fopen(OutputFileName.Data(),"w");
+    for(unsigned uLine=0; uLine<NumLines; uLine++){
+        fprintf(OutFile,"%s",cLines[uLine]);
+    }
+    fclose(OutFile);
+
+    for(unsigned uArray=0; uArray<ArraySize; uArray++){
+        delete [] cLines[uArray];
+    }
+    delete [] cLines;
+    delete [] cdummy;
+}
+
 int KAONPROTON_MAIN(int argc, char *argv[]){
 
     //SmearTest_pKminus();
+    //SmallerYukiFile();
 
     //TestKyoto2019(1.2);
     for(double rad=1; rad<=7.5; rad+=0.5){

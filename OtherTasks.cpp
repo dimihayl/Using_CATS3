@@ -11,6 +11,7 @@
 #include "DLM_Potentials.h"
 #include "DLM_WfModel.h"
 #include "DLM_CkModels.h"
+#include "DLM_RootWrapper.h"
 
 #include "TGraph.h"
 #include "TGraphErrors.h"
@@ -5887,6 +5888,217 @@ void pXi_Bug_vs_True_Potential(const unsigned WhichChannel, const TString Channe
     delete [] WF_Kstar;
 }
 
+void MemBugHunt(){
+    const unsigned NumMomBins = 16;
+    const double kMin = 0;
+    const double kMax = 320;
+
+    unsigned uDummy;
+    double* MomBins_pL = NULL;
+    double* FitRegion_pL = NULL;
+
+    DLM_CommonAnaFunctions AnalysisObject;
+    AnalysisObject.SetUpBinning_pL("pp13TeV_HM_Dec19",uDummy,MomBins_pL,FitRegion_pL,0,0);
+
+    CATS AB_pL;
+    DLM_Ck* Ck_pL;
+    AB_pL.SetMomBins(NumMomBins,kMin,kMax);
+    AnalysisObject.SetUpCats_pL(AB_pL,"Chiral_Coupled_SPD","Gauss",11600,202);//NLO_Coupled_S
+
+    double CuspWeight = 0.33;//0.54
+    AB_pL.SetChannelWeight(7,1./4.*CuspWeight);//1S0 SN(s) -> LN(s)
+    AB_pL.SetChannelWeight(8,3./4.*CuspWeight);//3S1 SN(s) -> LN(s)
+    AB_pL.SetChannelWeight(10,3./4.*CuspWeight);//3S1 SN(d) -> LN(s)
+    AB_pL.SetChannelWeight(13,3./20.*CuspWeight);//3D1 SN(d) -> LN(d)
+    AB_pL.SetChannelWeight(15,3./20.*CuspWeight);//3D1 SN(s) -> LN(d)
+
+    AB_pL.SetAnaSource(0,1.4);
+    AB_pL.SetNotifications(CATS::nError);
+    AB_pL.KillTheCat();
+
+    CATS AB_pXim;
+    //same binning as pL, as we only use pXim as feed-down
+    AB_pXim.SetMomBins(NumMomBins,0,kMax);
+    AnalysisObject.SetUpCats_pXim(AB_pXim,"pXim_HALQCD1","Gauss");
+    AB_pXim.SetAnaSource(0,1.5);
+    AB_pXim.SetNotifications(CATS::nError);
+    AB_pXim.KillTheCat();
+
+    Ck_pL = new DLM_Ck(AB_pL.GetNumSourcePars(),0,AB_pL,NumMomBins*2,kMin,kMax*2);
+    Ck_pL->SetSourcePar(0,AB_pL.GetAnaSourcePar(0));
+    Ck_pL->SetCutOff(360,700);
+
+    DLM_Ck* Ck_pSigma0 = new DLM_Ck(1,0,NumMomBins*2,kMin,kMax*2,Lednicky_gauss_Sigma0);
+    Ck_pSigma0->SetSourcePar(0,1.5);
+    Ck_pSigma0->SetCutOff(360,700);
+
+    DLM_Ck* Ck_pXim = new DLM_Ck(AB_pXim.GetNumSourcePars(),0,AB_pXim,NumMomBins*2,kMin,kMax*2);
+    Ck_pXim->SetCutOff(360,700);
+    Ck_pL->Update();
+    Ck_pSigma0->Update();
+    Ck_pXim->Update();
+
+    TH2F* hResolution_pL = AnalysisObject.GetResolutionMatrix("pp13TeV_HM_Dec19","pLambda");
+    TH2F* hResidual_pL_pSigma0 = AnalysisObject.GetResidualMatrix("pLambda","pSigma0");
+    TH2F* hResidual_pL_pXim = AnalysisObject.GetResidualMatrix("pLambda","pXim");
+
+    DLM_Histo<float>* dlmResolution_pL = Convert_TH2F_DlmHisto(hResolution_pL);
+    DLM_Histo<float>* dlmResidual_pL_pSigma0 = Convert_TH2F_DlmHisto(hResidual_pL_pSigma0);
+    DLM_Histo<float>* dlmResidual_pL_pXim = Convert_TH2F_DlmHisto(hResidual_pL_pXim);
+
+    const unsigned NumIter = 10000;
+
+    TRandom3 rangen(11);
+
+    unsigned Progress;
+    for(unsigned uIter=0; uIter<NumIter; uIter++){
+        printf("\r\033[K Progress=%u",uIter);
+        cout << flush;
+        AnalysisObject.SetUpBinning_pL("pp13TeV_HM_Dec19",uDummy,MomBins_pL,FitRegion_pL,0,0);
+
+        double lam_pL[5];
+        double lam_pXim[5];
+
+        AnalysisObject.SetUpLambdaPars_pL("pp13TeV_HM_Dec19",0,0,lam_pL);
+        AnalysisObject.SetUpLambdaPars_pXim("pp13TeV_HM_Dec19",0,0,lam_pXim);
+
+/*
+        DLM_CkDecomposition* CkDec_pL = new DLM_CkDecomposition("pLambda",4,*Ck_pL,hResolution_pL);
+        DLM_CkDecomposition* CkDec_pSigma0 = new DLM_CkDecomposition("pSigma0",0,*Ck_pSigma0,NULL);
+        DLM_CkDecomposition* CkDec_pXim = new DLM_CkDecomposition("pXim",2,*Ck_pXim,NULL);
+    usleep(10e3);
+    delete CkDec_pL;
+    delete CkDec_pSigma0;
+    delete CkDec_pXim;
+    continue;
+        CkDec_pL->AddContribution(0,lam_pL[1],DLM_CkDecomposition::cFeedDown,CkDec_pSigma0,hResidual_pL_pSigma0);
+        CkDec_pL->AddContribution(1,lam_pL[2],DLM_CkDecomposition::cFeedDown,CkDec_pXim,hResidual_pL_pXim);
+        //CkDec_pL->AddContribution(0,lam_pL[1],DLM_CkDecomposition::cFeedDown);
+        //CkDec_pL->AddContribution(1,lam_pL[2],DLM_CkDecomposition::cFeedDown);
+        CkDec_pL->AddContribution(2,lam_pL[3],DLM_CkDecomposition::cFeedDown);
+        CkDec_pL->AddContribution(3,lam_pL[4],DLM_CkDecomposition::cFake);//0.03
+
+        //for Xim we simplify a bit and take ALL feed-down as flat
+        CkDec_pXim->AddContribution(0,lam_pXim[1]+lam_pXim[2]+lam_pXim[3],DLM_CkDecomposition::cFeedDown);
+        CkDec_pXim->AddContribution(1,lam_pXim[4],DLM_CkDecomposition::cFake);
+*/
+
+        DLM_CkDecomp* CkDec_pL = new DLM_CkDecomp("pLambda",4,*Ck_pL,dlmResolution_pL);
+        DLM_CkDecomp* CkDec_pSigma0 = new DLM_CkDecomp("pSigma0",0,*Ck_pSigma0,NULL);
+        DLM_CkDecomp* CkDec_pXim = new DLM_CkDecomp("pXim",2,*Ck_pXim,NULL);
+    usleep(10e3);
+    delete CkDec_pL;
+    delete CkDec_pSigma0;
+    delete CkDec_pXim;
+    continue;
+        CkDec_pL->AddContribution(0,lam_pL[1],DLM_CkDecomp::cFeedDown,CkDec_pSigma0,dlmResidual_pL_pSigma0);
+        CkDec_pL->AddContribution(1,lam_pL[2],DLM_CkDecomp::cFeedDown,CkDec_pXim,dlmResidual_pL_pXim);
+        //CkDec_pL->AddContribution(0,lam_pL[1],DLM_CkDecomp::cFeedDown);
+        //CkDec_pL->AddContribution(1,lam_pL[2],DLM_CkDecomp::cFeedDown);
+        CkDec_pL->AddContribution(2,lam_pL[3],DLM_CkDecomp::cFeedDown);
+        CkDec_pL->AddContribution(3,lam_pL[4],DLM_CkDecomp::cFake);//0.03
+
+        //for Xim we simplify a bit and take ALL feed-down as flat
+        CkDec_pXim->AddContribution(0,lam_pXim[1]+lam_pXim[2]+lam_pXim[3],DLM_CkDecomp::cFeedDown);
+        CkDec_pXim->AddContribution(1,lam_pXim[4],DLM_CkDecomp::cFake);
+
+        CkDec_pL->Update(true,true);
+
+        const unsigned NumFitIter = 0;
+        for(unsigned uFitIter=0; uFitIter<NumFitIter; uFitIter++){
+            double par[5];
+            par[0] = rangen.Uniform(1.3,1.5);
+            par[2] = rangen.Uniform(0.2,0.4);
+            par[3] = rangen.Uniform(350,370);
+            par[4] = rangen.Uniform(600,800);
+
+            AB_pL.SetChannelWeight(7,1./4.*par[2]);//1S0 SN(s) -> LN(s)
+            AB_pL.SetChannelWeight(8,3./4.*par[2]);//3S1 SN(s) -> LN(s)
+            AB_pL.SetChannelWeight(10,3./4.*par[2]);//3S1 SN(d) -> LN(s)
+            AB_pL.SetChannelWeight(13,3./20.*par[2]);//3D1 SN(d) -> LN(d)
+            AB_pL.SetChannelWeight(15,3./20.*par[2]);//3D1 SN(s) -> LN(d)
+            AB_pL.SetAnaSource(0,par[0],true);
+
+            AB_pL.KillTheCat();
+            CkDec_pL->GetCk()->SetCutOff(par[3],par[4]);
+            CkDec_pL->Update(true);
+        }
+
+        CkDec_pL->Update(true,true);
+
+
+    }
+}
+
+void DlmHistoMemBugHunt(){
+    const unsigned NumIter = 100000;
+    //DLM_Histo<float>* dlmHisto;
+    DLM_Histo<float>* dlmHisto = new DLM_Histo<float>();
+    dlmHisto->SetUp(2);
+    dlmHisto->SetUp(0,128,0,128);
+    dlmHisto->SetUp(1,128,0,128);
+    dlmHisto->Initialize();
+    TRandom3 rangen(11);
+    for(unsigned uIter=0; uIter<NumIter; uIter++){
+        //printf("\r\033[K Progress=%u",uIter);
+        //cout << flush;
+        printf("Progress=%u\n",uIter);
+
+        //dlmHisto = new DLM_Histo<float>();
+        dlmHisto->SetUp(2);
+        unsigned NumBins = 118+rangen.Integer(21);
+        dlmHisto->SetUp(0,NumBins,0,float(NumBins));
+        dlmHisto->SetUp(1,NumBins,0,float(NumBins));
+        dlmHisto->Initialize();
+        usleep(10e3);
+
+        //delete dlmHisto;
+    }
+
+    delete dlmHisto;
+}
+
+//f(x) = (3+0.001x+(−(0.6∙10^−3.5)x^2+(0.1∙10^−6)∙x^3)∙exp(−(x/200)^2))
+double NonFlatCorrelation1(const double &Momentum, const double* SourcePar, const double* PotPar){
+    double BASE = (3.+0.001*Momentum+(-pow(Momentum,2.)*0.6*pow(10.,-3.5)+0.1*pow(Momentum,3.)*pow(10.,-6))*exp(-pow(Momentum/200,2.)));
+    double PEAK = 2.*exp(-pow((Momentum-200.)/5.,2.));
+    return BASE+PEAK;
+}
+void SmearNonFlatCorrelation(){
+    const unsigned NumBinsCk = 250;
+    const double kMin = 0;
+    const double kMax = 500;
+    DLM_Ck dlmCk(0,0,NumBinsCk,kMin,kMax,NonFlatCorrelation1);
+    dlmCk.Update();
+
+    DLM_CommonAnaFunctions AnalysisObject;
+    TH2F* hResolution = AnalysisObject.GetResolutionMatrix("pp13TeV_HM_Dec19","pp");
+
+    DLM_CkDecomposition* CkDecomp = new DLM_CkDecomposition("dlmCk",0,dlmCk,hResolution);
+    CkDecomp->Update();
+
+    TFile fOutput("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/OtherTasks/SmearNonFlatCorrelation/fOutput1.root","recreate");
+    TGraph CkOriginal;
+    CkOriginal.SetName("CkOriginal");
+    CkOriginal.SetLineColor(kGreen+2);
+    CkOriginal.SetLineWidth(3);
+    TGraph CkSmeared;
+    CkSmeared.SetName("CkSmeared");
+    CkSmeared.SetLineColor(kAzure+2);
+    CkSmeared.SetLineWidth(3);
+    for(unsigned uBin=0; uBin<NumBinsCk; uBin++){
+        double MOM = dlmCk.GetBinCenter(0,uBin);
+        CkOriginal.SetPoint(uBin,MOM,dlmCk.GetBinContent(uBin));
+        CkSmeared.SetPoint(uBin,MOM,CkDecomp->EvalCk(MOM));
+    }
+
+    CkOriginal.Write();
+    CkSmeared.Write();
+
+    delete CkDecomp;
+    delete hResolution;
+}
+
 int OTHERTASKS(int narg, char** ARGS){
     //pp_CompareToNorfolk();
     //pp_pL_CorrectedMC_EXP();
@@ -5917,10 +6129,13 @@ int OTHERTASKS(int narg, char** ARGS){
     //pp_DariuszSource();
     //Test_flat_pol();
     //TestOmegaOmega();
-    pXi_Bug_vs_True_Potential(0,"I0S0");
-    pXi_Bug_vs_True_Potential(1,"I0S1");
-    pXi_Bug_vs_True_Potential(2,"I1S0");
-    pXi_Bug_vs_True_Potential(3,"I1S1");
+    //pXi_Bug_vs_True_Potential(0,"I0S0");
+    //pXi_Bug_vs_True_Potential(1,"I0S1");
+    //pXi_Bug_vs_True_Potential(2,"I1S0");
+    //pXi_Bug_vs_True_Potential(3,"I1S1");
+    //MemBugHunt();
+    //DlmHistoMemBugHunt();
+    SmearNonFlatCorrelation();
 
     //const double RAD = 5.11;
     //printf("u(%.2f) = %.4f\n",RAD,Evaluate_d_u(RAD));

@@ -1706,6 +1706,7 @@ void Ck_pp_Decomposition(){
     double lambda_pXim_flat = 0.37;
     CkDec_pXim.AddContribution(0,lambda_pXim_flat,DLM_CkDecomp::cFeedDown);
 
+//based on the paper, I think it should be 0.176
     double lambda_pSigma0_flat = 0.12;
     CkDec_pSigma0.AddContribution(0,lambda_pSigma0_flat,DLM_CkDecomp::cFeedDown);
 
