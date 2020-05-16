@@ -78,7 +78,7 @@ void pp_CompareToNorfolk(){
     const double kMin = 0;
     const double kMax = 320;
 
-    DLM_CommonAnaFunctions AnalysisObject;
+    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
 
     for(unsigned uPot=0; uPot<NumPotentials; uPot++){
         Kitty[uPot].SetMomBins(NumMomBins,kMin,kMax);
@@ -2380,7 +2380,7 @@ void Fit_pL_MickeyMouse(){
     unsigned NumMomBins_pL;
     //TString DataSample = "pp13TeV_HM_Dec19";
     TString DataSample = "pp13TeV_HM_RotPhiDec19";
-    DLM_CommonAnaFunctions AnalysisObject;
+    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
     AnalysisObject.SetUpBinning_pL(DataSample,NumMomBins_pL,MomBins_pL,FitRegion_pL,0,0);
 
     DLM_Ck* Ck_pSigma0 = new DLM_Ck(1,0,NumMomBins_pL,MomBins_pL,Lednicky_gauss_Sigma0);
@@ -2671,7 +2671,7 @@ void Fit_pp_MickeyMouse(){
     unsigned NumMomBins_pp;
     TString DataSample = "pp13TeV_HM_Dec19";
     //TString DataSample = "pp13TeV_HM_RotPhiDec19";
-    DLM_CommonAnaFunctions AnalysisObject;
+    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
     AnalysisObject.SetUpBinning_pp(DataSample,NumMomBins_pp,MomBins_pp,FitRegion_pp);
 
     TH2F* hResolution_pp = AnalysisObject.GetResolutionMatrix(DataSample,"pp");
@@ -2945,7 +2945,7 @@ fit_pp->FixParameter(12,2.0);
 }
 
 void Compare_RotPhi_ME(){
-    DLM_CommonAnaFunctions AnalysisObject;
+    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
 
     //pp
     //TH1F* hData_pp_ME = AnalysisObject.GetAliceExpCorrFun("pp13TeV_HM_Dec19","pp","_0",0,false,-1);
@@ -3208,7 +3208,7 @@ void Fit_pL_MC_SimpleTemplate(){
 
     hCk_MC->Fit(fit_MC,"S, N, R, M");
 
-    DLM_CommonAnaFunctions AnalysisObject;
+    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
     AnalysisObject.SetUpBinning_pL(DataSample,NumMomBins_pL,MomBins_pL,FitRegion_pL,0,0);
 
     DLM_Ck* Ck_pSigma0 = new DLM_Ck(1,0,NumMomBins_pL,MomBins_pL,Lednicky_gauss_Sigma0);
@@ -3513,7 +3513,7 @@ void Fit_pp_MC_SimpleTemplate(){
     TString SourceDescription = "McGauss_ResoTM";
     //TString SourceDescription = "McLevy_ResoTM";
 
-    DLM_CommonAnaFunctions AnalysisObject;
+    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
 
     CATS AB_pp;
     DLM_Ck* Ck_pp;
@@ -3793,7 +3793,7 @@ void Fit_pp_CommonAncestorTemplate_Ck(){
     double FitMax;
 
     TString DataSample = "pp13TeV_HM_Dec19";
-    DLM_CommonAnaFunctions AnalysisObject;
+    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
 
     TH2F* hResolution_pp = AnalysisObject.GetResolutionMatrix(DataSample,"pp");
     TH2F* hResidual_pp_pL = AnalysisObject.GetResidualMatrix("pp","pLambda");
@@ -4267,7 +4267,7 @@ void Fit_pL_CommonAncestorTemplate_Ck(){
     double FitMax;
 
     TString DataSample = "pp13TeV_HM_Dec19";
-    DLM_CommonAnaFunctions AnalysisObject;
+    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
     const double ResidualSourceSize = 1.4;
 
     DLM_Ck* Ck_pSigma0 = new DLM_Ck(1,0,24,0,384,Lednicky_gauss_Sigma0);
@@ -4707,7 +4707,7 @@ void Fit_pL_CommonAncestorTemplate_CrazyGauss(){
     double FitMax;
 
     TString DataSample = "pp13TeV_HM_Dec19";
-    DLM_CommonAnaFunctions AnalysisObject;
+    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
     const double ResidualSourceSize = 1.4;
 
     DLM_Ck* Ck_pSigma0 = new DLM_Ck(1,0,24,0,384,Lednicky_gauss_Sigma0);
@@ -5897,7 +5897,7 @@ void MemBugHunt(){
     double* MomBins_pL = NULL;
     double* FitRegion_pL = NULL;
 
-    DLM_CommonAnaFunctions AnalysisObject;
+    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
     AnalysisObject.SetUpBinning_pL("pp13TeV_HM_Dec19",uDummy,MomBins_pL,FitRegion_pL,0,0);
 
     CATS AB_pL;
@@ -6071,7 +6071,7 @@ void SmearNonFlatCorrelation(){
     DLM_Ck dlmCk(0,0,NumBinsCk,kMin,kMax,NonFlatCorrelation1);
     dlmCk.Update();
 
-    DLM_CommonAnaFunctions AnalysisObject;
+    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
     TH2F* hResolution = AnalysisObject.GetResolutionMatrix("pp13TeV_HM_Dec19","pp");
 
     DLM_CkDecomposition* CkDecomp = new DLM_CkDecomposition("dlmCk",0,dlmCk,hResolution);

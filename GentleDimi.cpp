@@ -774,7 +774,7 @@ void pp_FitDiff_CompareToTotal(char* argv[], const TString& DataSample, const TS
     hTotCk = (TH1F*)fInTot->Get(MainHistoName);
     hTotCk->SetName("hTotCk");
 
-    DLM_CommonAnaFunctions AnalysisObject;
+    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
 
     double lambda_pp[4];
     AnalysisObject.SetUpLambdaPars_pp(DataSample,0,lambda_pp);
@@ -1160,7 +1160,7 @@ printf("hCk[%u]=%p\n",umT,hCk[umT]);
     hTotCk = (TH1F*)fInTot->Get(MainHistoName);
     hTotCk->SetName("hTotCk");
 
-    DLM_CommonAnaFunctions AnalysisObject;
+    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
 
     //double lambda_pp[4];
     //AnalysisObject.SetUpLambdaPars_pp(DataSample,0,lambda_pp);

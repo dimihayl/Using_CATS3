@@ -46,7 +46,7 @@ void CompareCkAndSr(){
     rDummy.SetUp(0,rNumBins,rMin,rMax);
     rDummy.Initialize();
 
-    DLM_CommonAnaFunctions AnalysisObject;
+    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
 
     CATS AB_pp;
     AB_pp.SetMomBins(kNumBins,kMin,kMax);

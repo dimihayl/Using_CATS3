@@ -66,7 +66,7 @@ void TestCATS3_NewExtWf(TString POT_TYPE){
     double* MomentumBins=NULL;
     double* FitRegion=NULL;
 
-    DLM_CommonAnaFunctions AnalysisObject;
+    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
 
     AnalysisObject.SetUpBinning_pL("pp13TeV_MB_Run2paper",NumMomBins,MomentumBins,FitRegion);
 
@@ -235,7 +235,7 @@ void plot_pp(){
 
     for(unsigned uStab=0; uStab<NumStabilitySteps; uStab++){
 
-        DLM_CommonAnaFunctions AnalysisObject;
+        DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
 
         double Stability = StabMin+double(uStab)*StabStep;
         printf("\nStability = %.2f\n",Stability);
@@ -271,7 +271,7 @@ void plot_pp_2(){
 
     TFile* OutputFile = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/plot_pp/OutputFile2.root","recreate");
 
-    DLM_CommonAnaFunctions AnalysisObject;
+    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
     CATS Kitty;
     Kitty.SetMaxNumThreads(1);
     Kitty.SetMomBins(NumMomBins,kMin,kMax);
@@ -319,7 +319,7 @@ void plot_pL(){
 
     for(unsigned uStab=0; uStab<NumStabilitySteps; uStab++){
 
-        DLM_CommonAnaFunctions AnalysisObject;
+        DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
 
         double Stability = StabMin+double(uStab)*StabStep;
         printf("\nStability = %.2f\n",Stability);
@@ -824,7 +824,7 @@ void TestTomWF1(){
 
 void TestHaide_pL_pWaves(){
 
-    DLM_CommonAnaFunctions AnalysisObject;
+    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
 
     double* MomBins_pL = NULL;
     double* FitRegion_pL = NULL;
@@ -2944,7 +2944,7 @@ void GenerateFakeProtonLambda(){
     const double kMin = 0;
     const double kMax = 320;
 
-    DLM_CommonAnaFunctions AnalysisObject;
+    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
 
     CATS Kitty;
     Kitty.SetMomBins(NumMomBins,kMin,kMax);
@@ -2985,7 +2985,7 @@ void pp_in_txtfile(){
     const double rMax = 16;
     const unsigned NumRadBins = 320;
 
-    DLM_CommonAnaFunctions AnalysisObject;
+    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
 
     CATS Kitty_SI;
     Kitty_SI.SetMaxNumThreads(4);
@@ -3464,7 +3464,7 @@ void SmearTest(){
 
 void TestCauchy(){
 
-    DLM_CommonAnaFunctions AnalysisObject;
+    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
 
     CATS AB_Cauchy;
     AB_Cauchy.SetMomBins(25,0,100);
@@ -3516,7 +3516,7 @@ void TestCauchy(){
 void Test_New_pLambda(){
 
 
-    DLM_CommonAnaFunctions AnalysisObject;
+    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
     const double SourceSize = 1.125;
     const double LambdaPar = 0.4713;
 

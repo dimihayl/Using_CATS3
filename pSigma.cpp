@@ -21,7 +21,7 @@ void TestExternalWF(){
     Cat_ESC16.SetMomBins(NumMomBins,kMin,kMax);
     Cat_CHIRAL.SetMomBins(NumMomBins,kMin,kMax);
 
-    DLM_CommonAnaFunctions AnalysisObject;
+    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
     AnalysisObject.SetUpCats_pS0(Cat_ESC16,"ESC16","Gauss");
     AnalysisObject.SetUpCats_pS0(Cat_CHIRAL,"Chiral","Gauss");
 
@@ -58,7 +58,7 @@ void BugIn_pL_Fit_Test(){
 
     const double ResidualSourceSizeSigma0 = 1.25;
 
-    DLM_CommonAnaFunctions AnalysisObject;
+    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
 
     CATS AB_pS0_Chiral;
     //the minus one is to to avoid going above 350 MeV, since we do not have the WF there

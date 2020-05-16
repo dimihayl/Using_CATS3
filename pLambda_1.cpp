@@ -94,7 +94,7 @@ TH1F* pL_CleverRebin(TH1F* hData_pL, const unsigned& NumMomBins_pL, const double
 
 void Fit_pp_pL(const TString& DataSample, const TString& SourceType, const TString& FittingMode_pp, const TString& FittingMode_pL){
 
-    DLM_CommonAnaFunctions AnalysisObject;
+    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
 
     const TString OutputFolder = TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pp_pL/Test/");
 
@@ -1548,7 +1548,7 @@ void pL_SystematicsHM(const TString& OutputFolder, const int& WhichConfiguration
     printf("Iter: %i -> %i\n",FirstIter,LastIter);
     printf("Fraction: %i\n",OnlyFraction);
     printf("Seed: %i\n",RANDOMSEED);
-    DLM_CommonAnaFunctions AnalysisObject;
+    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
     int NumSourceVars;
     int NumSourceScaleVars;
     int NumSourceStabilityVars;
@@ -3017,7 +3017,7 @@ void pp_SystematicsHM(const TString& OutputFolder, const int& WhichConfiguration
     printf("Iter: %i -> %i\n",FirstIter,LastIter);
     printf("Fraction: %i\n",OnlyFraction);
     printf("Seed: %i\n",RANDOMSEED);
-    DLM_CommonAnaFunctions AnalysisObject;
+    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
     int NumSourceVars;
     int NumSourceScaleVars;
     int NumSourceStabilityVars;
@@ -5523,7 +5523,7 @@ void ComputeDataSystematics(){
 
 void Sigma0_To_Lambda(){
 
-    DLM_CommonAnaFunctions AnalysisObject;
+    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
     const TString DataSample = "pp13TeV_HM_March19";
     const TString SourceType = "Gauss";
     int VARIATIONS[10];
@@ -5679,7 +5679,7 @@ void Sigma0_To_Lambda(){
 }
 
 void STUPED_TEST(){
-    DLM_CommonAnaFunctions AnalysisObject;
+    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
 
     int VARIATIONS[6];
         VARIATIONS[0] = 10;
@@ -5949,7 +5949,7 @@ void pL_SchlechingSystematics(const unsigned SEED, const unsigned NumVars_PerBL,
     }
 
 
-    DLM_CommonAnaFunctions AnalysisObject;
+    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
     AnalysisObject.SetUpBinning_pL(DataSample,uDummy,MomBins_pL,FitRegion_pL,0,0);
 
     DLM_Ck* Ck_pSigma0 = new DLM_Ck(1,0,NumBinsCk,0,MaxBinValCk,Lednicky_gauss_Sigma0);
@@ -6461,7 +6461,7 @@ void pL_SchlechingPlots(const TString InputFileName){
     Ck_Dummy = new DLM_Ck(0,0,AB_Dummy,NumBinsCk,0,MaxBinValCk);
 
     TString DataSample = "pp13TeV_HM_Dec19";
-    DLM_CommonAnaFunctions AnalysisObject;
+    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
     AnalysisObject.SetUpBinning_pL(DataSample,uDummy,MomBins_pL,FitRegion_pL,0,0);
 
 
@@ -6967,8 +6967,8 @@ void pL_SystematicsMay2020(unsigned SEED, unsigned BASELINE_VAR, int POT_VAR, bo
     TString DataSample = "pp13TeV_HM_Dec19";
     //TString DataSample = "pp13TeV_HM_RotPhiDec19";
     //TString SourceDescription = "Gauss";
-    //TString SourceDescription = "McGauss_ResoTM";
-    TString SourceDescription = "McLevy_ResoTM";
+    TString SourceDescription = "McGauss_ResoTM";
+    //TString SourceDescription = "McLevy_ResoTM";
 
     TString OutFileName = TString::Format("Output_%s_POT%i_BL%i_%u.root",DataSample.Data(),POT_VAR,BASELINE_VAR,SEED);
     TFile* OutputFile = new TFile(TString(OutputFolder)+OutFileName,"recreate");
@@ -7074,7 +7074,7 @@ void pL_SystematicsMay2020(unsigned SEED, unsigned BASELINE_VAR, int POT_VAR, bo
     plambdaTree->Branch("pval", &pval, "pval/F");
     plambdaTree->Branch("DefaultVariation", &DefaultVariation, "DefaultVariation/O");
 
-    DLM_CommonAnaFunctions AnalysisObject;
+    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
     AnalysisObject.SetUpBinning_pL(DataSample,uDummy,MomBins_pL,FitRegion_pL,0,0);
 
     TH2F* hResolution_pL = AnalysisObject.GetResolutionMatrix(DataSample,"pLambda");
@@ -7157,14 +7157,14 @@ void pL_SystematicsMay2020(unsigned SEED, unsigned BASELINE_VAR, int POT_VAR, bo
         unsigned WhichFemtoRange = rangen.Integer(3);
         if(DefaultVariation) WhichFemtoRange = 0;
         unsigned WhichFitRange;
-        if(BASELINE_VAR<dpol2e||BASELINE_VAR>dpol4e) WhichFitRange=50;
+        if(BASELINE_VAR<pol2e||BASELINE_VAR>dpol4e) WhichFitRange=50;
         //for the Dimi baseline, fit to larger range
-        else WhichFitRange = 51;
+        else WhichFitRange = 51+WhichFemtoRange;
 
         AnalysisObject.SetUpBinning_pL(DataSample,uDummy,MomBins_pL,FitRegion_pL,WhichFemtoRange,WhichFitRange);
         kFemtoMin = FitRegion_pL[0];
-        kFemtoMax = FitRegion_pL[1];
-        kLongMin = FitRegion_pL[2];
+        kFemtoMax = FitRegion_pL[1];//plays no role
+        kLongMin = FitRegion_pL[2];//play no role
         kLongMax = FitRegion_pL[3];
 
         //the cusp strength
@@ -7221,6 +7221,7 @@ void pL_SystematicsMay2020(unsigned SEED, unsigned BASELINE_VAR, int POT_VAR, bo
         lam_L_Flat = lam_pL[3];
 
         int WhichSigmaVar = rangen.Integer(3);
+        if(DefaultVariation) WhichSigmaVar = 0;
         switch(WhichSigmaVar){
         case 1 : lam_S0_Flat = 0.14; break;
         case 2 : lam_S0_Flat = 0.21; break;
@@ -7240,6 +7241,7 @@ void pL_SystematicsMay2020(unsigned SEED, unsigned BASELINE_VAR, int POT_VAR, bo
 
         Xim_Feed = rangen.Integer(2);
         if(DefaultVariation) Xim_Feed=1;
+Xim_Feed = 1;
         DLM_Ck* Ck_pXiminus;
         if(Xim_Feed==0) Ck_pXiminus = NULL;
         else Ck_pXiminus = Ck_pXim;
@@ -7518,7 +7520,7 @@ void CompareChiralNLO_pLambda(){
             gChiralRatio[uType][uCutOff].SetLineColor(LineColor[uType]);
             gChiralRatio[uType][uCutOff].SetLineStyle(LineStyle[uCutOff]);
 
-            DLM_CommonAnaFunctions AnalysisObject;
+            DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
             CATS Kitty;
             Kitty.SetMomBins(NumMomBins,kMin,kMax);
             AnalysisObject.SetUpCats_pL(Kitty,"Chiral_Coupled_SPD","Gauss",Type[uType]*10000+1*1000+CutOff[uCutOff],0);
@@ -7573,7 +7575,7 @@ printf("PLAMBDA_1_MAIN\n");
 //STUPED_TEST();
 //CompareChiralNLO_pLambda();
 pL_SystematicsMay2020(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]),
-"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/150520/");
+"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/160520/");
 //pL_SystematicsMay2020(1, 9, 11600, 0, 64,
 //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/");
 //pL_SystematicsMay2020(1, 6, 11600, false, 3,
@@ -7656,7 +7658,7 @@ return 0;
     VARIATIONS[4] = 580;//kc
     VARIATIONS[5] = -1;//mT
 
-    DLM_CommonAnaFunctions AnalysisObject;
+    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
     const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pL/TEMP/";
     //Fit_pL(OutputFolder,"pp13TeV_HM_March19", "Gauss", false, "NLO_Coupled_S","Longbaseline",VARIATIONS);
     //Fit_pL(OutputFolder,"pp13TeV_HM_March19", "McGauss_Reso", false, "NLO_Coupled_S","Longbaseline",VARIATIONS);

@@ -98,6 +98,8 @@ public:
     void SetUpLambdaPars_pL(const TString& DataSample, const int& Variation_p, const int& Variation_L, double* lambda_pars);
     void SetUpLambdaPars_pXim(const TString& DataSample, const int& Variation_p, const int& Variation_Xim, double* lambda_pars);
 
+    void SetCatsFilesFolder(const TString& folder);
+
     TH2F* GetResolutionMatrix(const TString& DataSample,const TString&& System);
     TH2F* GetResidualMatrix(const TString&& FinalSystem, const TString& InitialSystem);
     TH1F* GetAliceExpCorrFun(const TString& DataSample,const TString& System,const TString& CutVar,const int& iReb, const bool& AddSyst=false,const int mTbin=-1);
@@ -120,6 +122,7 @@ private:
     DLM_CleverMcLevyReso* CleverMcLevyReso;
     DLM_CleverMcLevyResoTM* CleverMcLevyResoTM;
     const unsigned NumCleverLevyObjects;
+    TString* CatsFilesFolder;
 };
 
 DLM_Histo<double>* ConvertThetaAngleHisto(const TString& FileName, const TString& HistoName, const double kMin, const double kMax);

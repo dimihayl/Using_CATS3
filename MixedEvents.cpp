@@ -2646,7 +2646,7 @@ void CompareSameMixedEventToBoltzmann(){
     double* MomBins_pp = NULL;
     double* FitRegion_pp = NULL;
     unsigned NumMomBins_pp;
-    DLM_CommonAnaFunctions AnalysisObject;
+    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
     AnalysisObject.SetUpBinning_pp("pp13TeV_HM_March19",NumMomBins_pp,MomBins_pp,FitRegion_pp,0,0);
     FitRegion_pp[2] = FitRegion_pp[1];
     FitRegion_pp[3] = kMax;
@@ -2991,7 +2991,7 @@ void Fit_pL_Splines(){
     double* MomBins_pL = NULL;
     double* FitRegion_pL = NULL;
     unsigned NumMomBins_pL;
-    DLM_CommonAnaFunctions AnalysisObject;
+    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
     AnalysisObject.SetUpBinning_pL("pp13TeV_HM_March19",NumMomBins_pL,MomBins_pL,FitRegion_pL,0,0);
     FitRegion_pL[2] = FitRegion_pL[1];
     FitRegion_pL[3] = kMax;

@@ -27,7 +27,7 @@ DLM_CommonAnaFunctions::DLM_CommonAnaFunctions():NumCleverLevyObjects(6){
     CleverMcLevyReso = new DLM_CleverMcLevyReso [NumCleverLevyObjects];
     CleverMcLevyResoTM = NULL;
     CleverMcLevyResoTM = new DLM_CleverMcLevyResoTM [NumCleverLevyObjects];
-
+    CatsFilesFolder = new TString();
 }
 
 DLM_CommonAnaFunctions::~DLM_CommonAnaFunctions(){
@@ -35,6 +35,7 @@ DLM_CommonAnaFunctions::~DLM_CommonAnaFunctions(){
     if(CleverLevy){delete[]CleverLevy;CleverLevy=NULL;}
     if(CleverMcLevyReso){delete[]CleverMcLevyReso;CleverMcLevyReso=NULL;}
     if(CleverMcLevyResoTM){delete[]CleverMcLevyResoTM;CleverMcLevyResoTM=NULL;}
+    delete CatsFilesFolder;
 }
 
 //POT:
@@ -238,7 +239,7 @@ void DLM_CommonAnaFunctions::SetUpCats_pp(CATS& Kitty, const TString& POT, const
             double RanVal2;
             double RanVal3;
 
-            TFile* F_EposDisto_p_pReso = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/AngleStudy_3/EposDisto_p_pReso.root");
+            TFile* F_EposDisto_p_pReso = new TFile(CatsFilesFolder[0]+"/Source/EposAngularDist/EposDisto_p_pReso.root");
             TNtuple* T_EposDisto_p_pReso = (TNtuple*)F_EposDisto_p_pReso->Get("InfoTuple_ClosePairs");
             unsigned N_EposDisto_p_pReso = T_EposDisto_p_pReso->GetEntries();
             T_EposDisto_p_pReso->SetBranchAddress("k_D",&k_D);
@@ -265,7 +266,7 @@ void DLM_CommonAnaFunctions::SetUpCats_pp(CATS& Kitty, const TString& POT, const
             }
             delete F_EposDisto_p_pReso;
 
-            TFile* F_EposDisto_pReso_pReso = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/AngleStudy_3/EposDisto_pReso_pReso.root");
+            TFile* F_EposDisto_pReso_pReso = new TFile(CatsFilesFolder[0]+"/Source/EposAngularDist/EposDisto_pReso_pReso.root");
             TNtuple* T_EposDisto_pReso_pReso = (TNtuple*)F_EposDisto_pReso_pReso->Get("InfoTuple_ClosePairs");
             unsigned N_EposDisto_pReso_pReso = T_EposDisto_pReso_pReso->GetEntries();
             T_EposDisto_pReso_pReso->SetBranchAddress("k_D",&k_D);
@@ -601,7 +602,7 @@ unsigned NumOmega=0;
             double RanVal2;
             double RanVal3;
 
-            TFile* F_EposDisto_p_pReso = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/Max/ForMax_pi_piReso_withOmega.root");
+            TFile* F_EposDisto_p_pReso = new TFile(CatsFilesFolder[0]+"/Source/EposAngularDist/ForMax_pi_piReso_withOmega.root");
             TNtuple* T_EposDisto_p_pReso = (TNtuple*)F_EposDisto_p_pReso->Get("InfoTuple_ClosePairs");
             unsigned N_EposDisto_p_pReso = T_EposDisto_p_pReso->GetEntries();
             T_EposDisto_p_pReso->SetBranchAddress("k_D",&k_D);
@@ -649,7 +650,7 @@ NumOmega++;
 printf("%u/%u = %f\n",NumOmega,NumPart,double(NumOmega)/double(NumPart));
             delete F_EposDisto_p_pReso;
 
-            TFile* F_EposDisto_pReso_pReso = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/Max/ForMax_piReso_piReso_withOmega.root");
+            TFile* F_EposDisto_pReso_pReso = new TFile(CatsFilesFolder[0]+"/Source/EposAngularDist/ForMax_piReso_piReso_withOmega.root");
             TNtuple* T_EposDisto_pReso_pReso = (TNtuple*)F_EposDisto_pReso_pReso->Get("InfoTuple_ClosePairs");
             unsigned N_EposDisto_pReso_pReso = T_EposDisto_pReso_pReso->GetEntries();
             T_EposDisto_pReso_pReso->SetBranchAddress("k_D",&k_D);
@@ -1213,7 +1214,7 @@ void DLM_CommonAnaFunctions::SetUpCats_pL(CATS& Kitty, const TString& POT, const
             double RanVal2;
             double RanVal3;
 
-            TFile* F_EposDisto_p_LamReso = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/AngleStudy_3/EposDisto_p_LamReso.root");
+            TFile* F_EposDisto_p_LamReso = new TFile(CatsFilesFolder[0]+"/Source/EposAngularDist/EposDisto_p_LamReso.root");
             TNtuple* T_EposDisto_p_LamReso = (TNtuple*)F_EposDisto_p_LamReso->Get("InfoTuple_ClosePairs");
             unsigned N_EposDisto_p_LamReso = T_EposDisto_p_LamReso->GetEntries();
             T_EposDisto_p_LamReso->SetBranchAddress("k_D",&k_D);
@@ -1239,7 +1240,7 @@ void DLM_CommonAnaFunctions::SetUpCats_pL(CATS& Kitty, const TString& POT, const
             }
             delete F_EposDisto_p_LamReso;
 
-            TFile* F_EposDisto_pReso_Lam = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/AngleStudy_3/EposDisto_pReso_Lam.root");
+            TFile* F_EposDisto_pReso_Lam = new TFile(CatsFilesFolder[0]+"/Source/EposAngularDist/EposDisto_pReso_Lam.root");
             TNtuple* T_EposDisto_pReso_Lam = (TNtuple*)F_EposDisto_pReso_Lam->Get("InfoTuple_ClosePairs");
             unsigned N_EposDisto_pReso_Lam = T_EposDisto_pReso_Lam->GetEntries();
             T_EposDisto_pReso_Lam->SetBranchAddress("k_D",&k_D);
@@ -1265,7 +1266,7 @@ void DLM_CommonAnaFunctions::SetUpCats_pL(CATS& Kitty, const TString& POT, const
             }
             delete F_EposDisto_pReso_Lam;
 
-            TFile* F_EposDisto_pReso_LamReso = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/AngleStudy_3/EposDisto_pReso_LamReso.root");
+            TFile* F_EposDisto_pReso_LamReso = new TFile(CatsFilesFolder[0]+"/Source/EposAngularDist/EposDisto_pReso_LamReso.root");
             TNtuple* T_EposDisto_pReso_LamReso = (TNtuple*)F_EposDisto_pReso_LamReso->Get("InfoTuple_ClosePairs");
             unsigned N_EposDisto_pReso_LamReso = T_EposDisto_pReso_LamReso->GetEntries();
             T_EposDisto_pReso_LamReso->SetBranchAddress("k_D",&k_D);
@@ -1319,28 +1320,28 @@ void DLM_CommonAnaFunctions::SetUpCats_pL(CATS& Kitty, const TString& POT, const
     }
 
     if(POT=="LO"){
-        ExternalWF = Init_pL_Haidenbauer(   "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/Haidenbauer/pLambdaLO_600/",
+        ExternalWF = Init_pL_Haidenbauer(CatsFilesFolder[0]+"/Interaction/Haidenbauer/pLambdaLO_600/",
                                 Kitty, 0, 600);
         NumChannels=2;
     }
     else if(POT=="LO_Coupled_S"){
-        ExternalWF = Init_pL_Haidenbauer(   "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/Haidenbauer/pLambdaLO_Coupling/",
+        ExternalWF = Init_pL_Haidenbauer(CatsFilesFolder[0]+"/Interaction/Haidenbauer/pLambdaLO_Coupling/",
                                 Kitty, 1, 600);
         NumChannels=4;
     }
     else if(POT=="NLO"){
-        ExternalWF = Init_pL_Haidenbauer(   "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/Haidenbauer/pLambdaNLO/",
+        ExternalWF = Init_pL_Haidenbauer(CatsFilesFolder[0]+"/Interaction/Haidenbauer/pLambdaNLO/",
                                 Kitty, 10, 600);
         NumChannels=2;
     }
     //s and p waves
     else if(POT=="NLO_sp"){
-        ExternalWF = Init_pL_Haidenbauer(   "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/Haidenbauer/pLambdaNLO/",
+        ExternalWF = Init_pL_Haidenbauer(CatsFilesFolder[0]+"/Interaction/Haidenbauer/pLambdaNLO/",
                                 Kitty, 12, 600);
         NumChannels=4;
     }
     else if(POT=="NLO_Coupled_S"){
-        ExternalWF = Init_pL_Haidenbauer(   "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/Haidenbauer/pLambdaNLO_Coupling/",
+        ExternalWF = Init_pL_Haidenbauer(CatsFilesFolder[0]+"/Interaction/Haidenbauer/pLambdaNLO_Coupling/",
                                 Kitty, 11, 600);
         NumChannels=4;
     }
@@ -1352,7 +1353,7 @@ void DLM_CommonAnaFunctions::SetUpCats_pL(CATS& Kitty, const TString& POT, const
 //printf("CUTOFF=%i\n",CUTOFF);
 //printf("TYPE=%i\n",TYPE);
         //original, NLO13 at 600 MeV
-        ExternalWF = Init_pL_Haidenbauer2019(   "/home/dmihaylov/CernBox/CATS_potentials/Haidenbauer/pLambda_Coupled_SD/",
+        ExternalWF = Init_pL_Haidenbauer2019(CatsFilesFolder[0]+"/Interaction/Haidenbauer/pLambda_Coupled_SD/",
                                     Kitty, TYPE , CUTOFF);
         NumChannels=16;
     }
@@ -1456,11 +1457,11 @@ void DLM_CommonAnaFunctions::SetUpCats_pS0(CATS& Kitty, const TString& POT, cons
     }
 
     if(POT=="Chiral"){
-        ExternalWF = Init_pSigma0_Haidenbauer("/home/dmihaylov/CernBox/CATS_potentials/Haidenbauer/pSigma0/",Kitty);
+        ExternalWF = Init_pSigma0_Haidenbauer(CatsFilesFolder[0]+"/Interaction/Haidenbauer/pSigma0/",Kitty);
         NumChannels=Kitty.GetNumChannels();
     }
     else if(POT=="ESC16"){
-        ExternalWF = Init_pS0_ESC16("/home/dmihaylov/CernBox/CATS_potentials/Tom/pSigma0/DimiValeNorm170519/",Kitty);
+        ExternalWF = Init_pS0_ESC16(CatsFilesFolder[0]+"/Interaction/Tom/pSigma0/DimiValeNorm170519/",Kitty);
         NumChannels=Kitty.GetNumChannels();
     }
     else{
@@ -1666,7 +1667,7 @@ void DLM_CommonAnaFunctions::SetUpCats_pXim(CATS& Kitty, const TString& POT, con
             double RanVal2;
             double RanVal3;
 
-            TFile* F_EposDisto_pReso_Xim = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/AngleStudy_3/EposDisto_pReso_Xim.root");
+            TFile* F_EposDisto_pReso_Xim = new TFile(CatsFilesFolder[0]+"/Source/EposAngularDist/EposDisto_pReso_Xim.root");
             TNtuple* T_EposDisto_pReso_Xim = (TNtuple*)F_EposDisto_pReso_Xim->Get("InfoTuple_ClosePairs");
             unsigned N_EposDisto_pReso_Xim = T_EposDisto_pReso_Xim->GetEntries();
             T_EposDisto_pReso_Xim->SetBranchAddress("k_D",&k_D);
@@ -1938,7 +1939,7 @@ void DLM_CommonAnaFunctions::SetUpCats_pOmegam(CATS& Kitty, const TString& POT, 
             double RanVal2;
             double RanVal3;
 
-            TFile* F_EposDisto_pReso_Omega = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/AngleStudy_3/EposDisto_pReso_Omega.root");
+            TFile* F_EposDisto_pReso_Omega = new TFile(CatsFilesFolder[0]+"/Source/EposAngularDist/EposDisto_pReso_Omega.root");
             TNtuple* T_EposDisto_pReso_Omega = (TNtuple*)F_EposDisto_pReso_Omega->Get("InfoTuple_ClosePairs");
             unsigned N_EposDisto_pReso_Omega = T_EposDisto_pReso_Omega->GetEntries();
             T_EposDisto_pReso_Omega->SetBranchAddress("k_D",&k_D);
@@ -2844,10 +2845,10 @@ TH2F* DLM_CommonAnaFunctions::GetResolutionMatrix(const TString& DataSample,cons
     TString HistoName;
 
     if(DataSample=="pp13TeV_MB_Run2paper"){
-        FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/ResolutionMatrices/Sample6_MeV_compact.root";
+        FileName = CatsFilesFolder[0]+"/MomentumSmear/ALICE_pp_13TeV.root";
     }
     else if(DataSample=="pp13TeV_HM_March19"||DataSample=="pp13TeV_HM_Dec19"||DataSample=="pp13TeV_HM_RotPhiDec19"){
-        FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/ResolutionMatrices/Sample6_MeV_compact.root";
+        FileName = CatsFilesFolder[0]+"/MomentumSmear/ALICE_pp_13TeV.root";
     }
     else if(DataSample=="pPb5TeV_Run2paper"){
         FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pPb_5TeV/ResolutionMatrices/Sample3_MeV_compact.root";
@@ -2893,7 +2894,7 @@ TH2F* DLM_CommonAnaFunctions::GetResidualMatrix(const TString&& FinalSystem, con
     TString FileName;
     TString HistoName;
 
-    FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/DecayMatrices/run2_decay_matrices_old.root";
+    FileName = CatsFilesFolder[0]+"/DecaySmear/run2_decay_matrices_old.root";
 
     if(FinalSystem=="pp"&&InitialSystem=="pLambda"){
         HistoName = "hRes_pp_pL";
@@ -2975,16 +2976,16 @@ TH1F* DLM_CommonAnaFunctions::GetAliceExpCorrFun(const TString& DataSample,const
         if(System=="pp"){
             if(mTbin==-1){
                 //buggy for all but _0
-                FileName = TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample12HM/CFOutput_pp%s.root",CutVar.Data());
-                if(CutVar=="_0") FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM_ver2/CFOutput_pp.root";
+                FileName = TString::Format(CatsFilesFolder[0]+"/ExpData/ALICE_pp_13TeV_HM/Sample12HM/CFOutput_pp%s.root",CutVar.Data());
+                if(CutVar=="_0") FileName = CatsFilesFolder[0]+"/ExpData/ALICE_pp_13TeV_HM/Sample10HM_ver2/CFOutput_pp.root";
                 HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
             }
             else if(mTbin>=0&&mTbin<7){
-                FileName = TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample12HM/CFOutputALL_mT_pp_HM%s.root",CutVar.Data());
+                FileName = TString::Format(CatsFilesFolder[0]+"/ExpData/ALICE_pp_13TeV_HM/Sample12HM/CFOutputALL_mT_pp_HM%s.root",CutVar.Data());
                 //ugly solution to make sure that the default fit combination is the correlation we have showed at the preliminaries preview
-                if(CutVar=="_0") FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM_ver2/CFOutputALL_mT_pp_HM.root";
+                if(CutVar=="_0") FileName = CatsFilesFolder[0]+"/ExpData/ALICE_pp_13TeV_HM/Sample10HM_ver2/CFOutputALL_mT_pp_HM.root";
                 HistoName = TString::Format("hCkTotNormWeightMeV_mTBin_%i",mTbin);
-                SystFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample12HM/Systematics_pp.root";
+                SystFileName = CatsFilesFolder[0]+"/ExpData/ALICE_pp_13TeV_HM/Sample12HM/Systematics_pp.root";
                 SystHistName = "SystErrRel";
             }
             else{
@@ -2993,19 +2994,19 @@ TH1F* DLM_CommonAnaFunctions::GetAliceExpCorrFun(const TString& DataSample,const
         }
         else if(System=="pLambda"){
             if(mTbin==-1){
-                FileName = TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample12HM/CFOutput_pL%s.root",CutVar.Data());
+                FileName = TString::Format(CatsFilesFolder[0]+"/ExpData/ALICE_pp_13TeV_HM/Sample12HM/CFOutput_pL%s.root",CutVar.Data());
                 //ugly solution to make sure that the default fit combination is the correlation we have showed at the preliminaries preview
-                if(CutVar=="_0") FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM/CFOutput_pL.root";
+                if(CutVar=="_0") FileName = CatsFilesFolder[0]+"/ExpData/ALICE_pp_13TeV_HM/Sample10HM/CFOutput_pL.root";
                 HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
-                SystFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample12HM/Systematics_pL.root";
+                SystFileName = CatsFilesFolder[0]+"/ExpData/ALICE_pp_13TeV_HM/Sample12HM/Systematics_pL.root";
                 SystHistName = "SystErrRel";
             }
             else if(mTbin>=0&&mTbin<6){
-                FileName = TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample12HM/CFOutputALL_mT_pL_HM%s.root",CutVar.Data());
+                FileName = TString::Format(CatsFilesFolder[0]+"/ExpData/ALICE_pp_13TeV_HM/Sample12HM/CFOutputALL_mT_pL_HM%s.root",CutVar.Data());
                 //ugly solution to make sure that the default fit combination is the correlation we have showed at the preliminaries preview
-                if(CutVar=="_0") FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample10HM/CFOutputALL_mT_pL_HM.root";
+                if(CutVar=="_0") FileName = CatsFilesFolder[0]+"/ExpData/ALICE_pp_13TeV_HM/Sample10HM/CFOutputALL_mT_pL_HM.root";
                 HistoName = TString::Format("hCk_RebinnedMeV_%i_mTBin_%i",0,mTbin);
-                SystFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample12HM/Systematics_pL.root";
+                SystFileName = CatsFilesFolder[0]+"/ExpData/ALICE_pp_13TeV_HM/Sample12HM/Systematics_pL.root";
                 SystHistName = "SystErrRel";
             }
             else{
@@ -3014,7 +3015,7 @@ TH1F* DLM_CommonAnaFunctions::GetAliceExpCorrFun(const TString& DataSample,const
         }
         else if(System=="LambdaLambda"){
             if(mTbin==-1){
-                FileName = TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample12HM/CFOutput_LL%s.root",CutVar.Data());
+                FileName = TString::Format(CatsFilesFolder[0]+"/ExpData/ALICE_pp_13TeV_HM/Sample12HM/CFOutput_LL%s.root",CutVar.Data());
                 HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
             }
             else{
@@ -3023,7 +3024,7 @@ TH1F* DLM_CommonAnaFunctions::GetAliceExpCorrFun(const TString& DataSample,const
         }
         else if(System=="pXim"){
             if(mTbin==-1){
-                FileName = TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/Sample12HM/CFOutput_pXi%s.root",CutVar.Data());
+                FileName = TString::Format(CatsFilesFolder[0]+"/ExpData/ALICE_pp_13TeV_HM/Sample12HM/CFOutput_pXi%s.root",CutVar.Data());
                 HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
             }
             else{
@@ -3231,6 +3232,9 @@ DLM_CleverMcLevyResoTM* DLM_CommonAnaFunctions::GetCleverMcLevyResoTM_pOmegam(){
 }
 DLM_CleverMcLevyResoTM* DLM_CommonAnaFunctions::GetCleverMcLevyResoTM_pipi(){
     return &CleverMcLevyResoTM[4];
+}
+void DLM_CommonAnaFunctions::SetCatsFilesFolder(const TString& folder){
+    CatsFilesFolder[0] = folder;
 }
 
 DLM_Histo<double>* ConvertThetaAngleHisto(const TString& FileName, const TString& HistoName, const double kMin, const double kMax){
