@@ -12,6 +12,10 @@ void pL_SystematicsHM(const TString& OutputFolder, const int& WhichConfiguration
                       const int& RANDOMSEED, const int& Mode);
 
 
+void pL_SystematicsMay2020(unsigned SEED, unsigned BASELINE_VAR, int POT_VAR,
+                           bool DataSyst, bool FitSyst, bool Bootstrap, unsigned NumIter,
+                           const char* CatsFileFolder, const char* OutputFolder);
+
 int PLAMBDA_1_MAIN(int argc, char *argv[]);
 
 
