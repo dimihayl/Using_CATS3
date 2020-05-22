@@ -28,6 +28,7 @@
 
 #include "DLM_HistoAnalysis.h"
 #include "DLM_SubPads.h"
+#include "DLM_Sort.h"
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -7233,8 +7234,8 @@ void pL_SystematicsMay2020(unsigned SEED, unsigned BASELINE_VAR, int POT_VAR,
         }
         lam_S0_genuine = 1.-lam_S0_Flat;
 
-        lam_Xim_genuine = 1.-lam_pL[1]-lam_pL[2]-lam_pL[3]-lam_pL[4];
-        lam_Xim_Flat = lam_pL[3];
+        lam_Xim_genuine = 1.-lam_pXim[1]-lam_pXim[2]-lam_pXim[3]-lam_pXim[4];
+        lam_Xim_Flat = lam_pXim[3];
 
         Sigma0_Feed = rangen.Integer(3);
         if(DefaultVariation||FitSyst==false) Sigma0_Feed=1;
@@ -7473,9 +7474,40 @@ printf("\n");
 
 }
 
+
+void GetIterCombo(unsigned* WhichBin,const float& Sigma0_Feed,const float& SourceSize,const float& lam_L_genuine){
+    WhichBin[0] = Sigma0_Feed;
+    if(SourceSize<1.01) WhichBin[1] = 0;
+    else if(SourceSize>1.01&&SourceSize<1.03) WhichBin[1] = 1;
+    else if(SourceSize>1.05&&SourceSize<1.07) WhichBin[1] = 2;
+    else WhichBin[1] = 3;
+    if(lam_L_genuine<0.44) WhichBin[2] = 0;
+    else if(lam_L_genuine>0.44&&lam_L_genuine<0.46) WhichBin[2] = 1;
+    else WhichBin[2] = 2;
+}
+
+/*
+Sigma0_Feed = large (3x)
+SourceSize = large (4x)
+CuspWeight = small (4x, default var is best anyways)
+CkConv = small (3x, and its fitted, so it play no role actually)
+lam_L_genuine = large (3x)
+lam_S0_genuine = small (3x, best solution is the lowest var, but the default is almost identical. Only the largest var sticks a bit out, exclude?)
+//by the way, lam_S0_genuine only plays a role for non-flat Sigma0_Feed, and the best solution is the flat guy. So, in fact, we can ignore this as well
+
+Get the best solution out of the variations with largest effect on the final result (Sigma0_Feed, SourceSize, lam_L_genuine)
+
+out of this, build the chi2/ndf distribution. The mean value should be a good estimate on the 'true' chi2 value, and hence sigma
+(essentially the rest of the above variations can be neglected, while all other variations should be 'random' in nature)
+*/
 void Plot_pL_SystematicsMay2020(const int& SIGMA_FEED){
-    TString InputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/160520/";
-    TString InputFileName = "Gauss_128.root";
+    TString InputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/200520/";
+    TString InputFileName = "Gauss_4000.root";
+    //TString InputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/190520/";
+    //TString InputFileName = "Levy_1319x128_19x128.root";
+
+    const bool GaussOnly = true;
+
     TString OutputFolder;
     if(SIGMA_FEED==0) OutputFolder = InputFolder+"Flat_Sigma/";
     else if(SIGMA_FEED==1) OutputFolder = InputFolder+"NLO_Sigma/";
@@ -7484,17 +7516,19 @@ void Plot_pL_SystematicsMay2020(const int& SIGMA_FEED){
     else OutputFolder = InputFolder;
     /// as cross check: pol0s,pol1s,pol2s,dpol2s,pol3e
     /// as systematics: dpol3s,dpol3e,dpol4e
-    enum BLTYPE { pol0s,pol1s,pol2s,pol3s,dpol2s,dpol3s,dpol4s,pol2e,pol3e,dpol2e,dpol3e,dpol4e };
+    enum BLTYPE              { pol0s,pol1s,pol2s,pol3s,dpol2s,dpol3s,dpol4s,pol2e,pol3e,dpol2e,dpol3e,dpol4e };
+    //const bool IncludeBl[] = { true, true, true, false,false, true,  false, false,false,false, true,  false};
     const unsigned NumBaselines = 8;
     int* BlFlag = new int [NumBaselines];
-    BlFlag[0] = pol0s;
-    BlFlag[1] = pol1s;
-    BlFlag[2] = pol2s;
-    BlFlag[3] = dpol2s;
-    BlFlag[4] = pol3e;
-    BlFlag[5] = dpol3s;
-    BlFlag[6] = dpol3e;
-    BlFlag[7] = dpol4e;
+    bool* IncludeBl = new bool [NumBaselines];
+    BlFlag[0] = pol0s; IncludeBl[0] = true;
+    BlFlag[1] = pol1s; IncludeBl[1] = true;
+    BlFlag[2] = pol2s; IncludeBl[2] = true;
+    BlFlag[3] = dpol2s; IncludeBl[3] = false;
+    BlFlag[4] = pol3e; IncludeBl[4] = false;
+    BlFlag[5] = dpol3s; IncludeBl[5] = true;
+    BlFlag[6] = dpol3e; IncludeBl[6] = true;
+    BlFlag[7] = dpol4e; IncludeBl[7] = false;
     TString* BlName1 = new TString [NumBaselines+1];
     TString* BlName2 = new TString [NumBaselines+1];
     TString* BlDescr = new TString [NumBaselines+1];
@@ -7551,14 +7585,15 @@ void Plot_pL_SystematicsMay2020(const int& SIGMA_FEED){
     TString* PotName2 = new TString [NumPotVars+1];
     for(unsigned uPot=0; uPot<=NumPotVars; uPot++) PotName2[uPot] = "s,d waves";
     int* PotFlag = new int [NumPotVars];
-    PotFlag[0] = 1500;
-    PotFlag[1] = 1550;
-    PotFlag[2] = 1600;
-    PotFlag[3] = 1650;
-    PotFlag[4] = 11500;
-    PotFlag[5] = 11550;
-    PotFlag[6] = 11600;
-    PotFlag[7] = 11650;
+    bool* IncludePot = new bool [NumPotVars];
+    PotFlag[0] = 1500; IncludePot[0] = false;
+    PotFlag[1] = 1550; IncludePot[1] = false;
+    PotFlag[2] = 1600; IncludePot[2] = false;
+    PotFlag[3] = 1650; IncludePot[3] = false;
+    PotFlag[4] = 11500; IncludePot[4] = false;
+    PotFlag[5] = 11550; IncludePot[5] = true;
+    PotFlag[6] = 11600; IncludePot[6] = true;
+    PotFlag[7] = 11650; IncludePot[7] = true;
     TString* PotDescr = new TString [NumPotVars+1];
     PotDescr[0] = "NLO13-500";
     PotDescr[1] = "NLO13-550";
@@ -7667,16 +7702,71 @@ void Plot_pL_SystematicsMay2020(const int& SIGMA_FEED){
 
 	const unsigned NumEntries = plambdaTree->GetEntries();
 
+    const unsigned MaxNumBins = 50;
+    const double xBinWidth = 12;
+    TH2F* hdata_toterr = new TH2F("hdata_toterr","hdata_toterr",MaxNumBins,0,MaxNumBins,2048,0,4);
+    TGraphErrors* gdata_toterr = new TGraphErrors();
 
+
+    unsigned NumBestSolutions = 0;
+    //in bins of Sigma0_Feed, SourceSize, lam_L_genuine
+
+    const unsigned Num_Sigma0_Feed=3;
+    const unsigned Num_SourceSize=4;
+    const unsigned Num_lam_L_genuine=3;
+
+    //DLM_Histo<float> NDF_300;
+    //NDF_300.SetUp(3);
+    //NDF_300.SetUp(0,Num_Sigma0_Feed,-0.5,double(Num_Sigma0_Feed)+0.5);
+    //NDF_300.SetUp(1,Num_SourceSize,-0.5,double(Num_Sigma0_Feed)+0.5);
+    //NDF_300.SetUp(2,Num_lam_L_genuine,-0.5,double(Num_Sigma0_Feed)+0.5);
+    //NDF_300.Initialize();
+
+    for(unsigned uEntry=0; uEntry<NumEntries; uEntry++){
+        plambdaTree->GetBranch("gData")->GetEntry(uEntry);
+        double xVal,yVal;
+        for(unsigned uBin=0; uBin<gData->GetN(); uBin++){
+            if(uBin>=MaxNumBins) break;
+            gData->GetPoint(uBin,xVal,yVal);
+//if(uBin==0){
+//printf("DATA: C(%.0f) = %.3f\n",xVal,yVal);
+//usleep(0.25e6);
+//}
+            gdata_toterr->SetPoint(uBin,xVal,yVal);
+            hdata_toterr->Fill(double(uBin)+0.5,yVal);
+        }
+    }
+    for(unsigned uBin=0; uBin<gdata_toterr->GetN(); uBin++){
+        double xVal,yVal;
+        double yMean,yStddev;
+        TH1* hProj = hdata_toterr->ProjectionY("hProj",uBin+1,uBin+1);
+        yMean = hProj->GetMean();
+        yStddev = hProj->GetStdDev();
+        gdata_toterr->GetPoint(uBin,xVal,yVal);
+        //printf("uBin %u: C(%.0f) = %.3f +/- %.3f\n",uBin,xVal,yMean,yStddev);
+        gdata_toterr->SetPoint(uBin,xVal,yMean);
+        gdata_toterr->SetPointError(uBin,xBinWidth*0.5,yStddev);
+        delete hProj;
+    }
+//for(unsigned uBl=0; uBl<=NumBaselines; uBl++){
+//printf("IBL[%u] = %i\n",uBl,IncludeBl[uBl]);
+//}
     for(unsigned uBl=0; uBl<=NumBaselines; uBl++){
-//if(uBl!=10)continue;
+        if(!IncludeBl[uBl]&&uBl<NumBaselines) continue;
+//if(uBl!=1)continue;
         for(unsigned uPot=0; uPot<=NumPotVars; uPot++){
-//if(uPot!=7)continue;
-            const unsigned MaxNumBins = 50;
+            if(!IncludePot[uPot]&&uPot<NumPotVars) continue;
+//if(uPot!=6)continue;
             TH2F* hnsigma = new TH2F("hnsigma","hnsigma",MaxNumBins,0,MaxNumBins,2048,-32,32);
             TH2F* hnsigma_der = new TH2F("hnsigma_der","hnsigma_der",MaxNumBins,0,MaxNumBins,2048,-32,32);
             TH2F* hfdata = new TH2F("hfdata","hfdata",MaxNumBins,0,MaxNumBins,2048,0,4);
             TH2F* hbl = new TH2F("hbl","hbl",MaxNumBins,0,MaxNumBins,2048,0.5,1.5);
+
+            TH2F* hb_nsigma = new TH2F("hb_nsigma","hb_nsigma",MaxNumBins,0,MaxNumBins,2048,-32,32);
+            TH2F* hb_nsigma_der = new TH2F("hb_nsigma_der","hb_nsigma_der",MaxNumBins,0,MaxNumBins,2048,-32,32);
+            TH2F* hb_fdata = new TH2F("hb_fdata","hb_fdata",MaxNumBins,0,MaxNumBins,2048,0,4);
+            TH2F* hb_bl = new TH2F("hb_bl","hb_bl",MaxNumBins,0,MaxNumBins,2048,0.5,1.5);
+
             TH1F* hnsigma_0_100 = new TH1F("hnsigma_0_100","hnsigma_0_100",2048,-32,32);
             TH1F* hnsigma_100_200 = new TH1F("hnsigma_100_200","hnsigma_100_200",2048,-32,32);
             TH1F* hnsigma_200_300 = new TH1F("hnsigma_200_300","hnsigma_200_300",2048,-32,32);
@@ -7704,17 +7794,44 @@ void Plot_pL_SystematicsMay2020(const int& SIGMA_FEED){
                 for(unsigned uNSB=0; uNSB<2048; uNSB++){
                     hnsigma->SetBinContent(uBin+1,uNSB+1,0);
                     hnsigma_der->SetBinContent(uBin+1,uNSB+1,0);
+                    hb_nsigma->SetBinContent(uBin+1,uNSB+1,0);
+                    hb_nsigma_der->SetBinContent(uBin+1,uNSB+1,0);
                 }
             }
+
+            DLM_Histo<float> Chi2_300;
+            Chi2_300.SetUp(3);
+            Chi2_300.SetUp(0,Num_Sigma0_Feed,-0.5,double(Num_Sigma0_Feed)+0.5);
+            Chi2_300.SetUp(1,Num_SourceSize,-0.5,double(Num_Sigma0_Feed)+0.5);
+            Chi2_300.SetUp(2,Num_lam_L_genuine,-0.5,double(Num_Sigma0_Feed)+0.5);
+            Chi2_300.Initialize();
+
+            DLM_Histo<float> NDF_300;
+            NDF_300.SetUp(3);
+            NDF_300.SetUp(0,Num_Sigma0_Feed,-0.5,double(Num_Sigma0_Feed)+0.5);
+            NDF_300.SetUp(1,Num_SourceSize,-0.5,double(Num_Sigma0_Feed)+0.5);
+            NDF_300.SetUp(2,Num_lam_L_genuine,-0.5,double(Num_Sigma0_Feed)+0.5);
+            NDF_300.Initialize();
+
+            DLM_Histo<float> NumChi2Entries_300;
+            NumChi2Entries_300.SetUp(3);
+            NumChi2Entries_300.SetUp(0,Num_Sigma0_Feed,-0.5,double(Num_Sigma0_Feed)+0.5);
+            NumChi2Entries_300.SetUp(1,Num_SourceSize,-0.5,double(Num_Sigma0_Feed)+0.5);
+            NumChi2Entries_300.SetUp(2,Num_lam_L_genuine,-0.5,double(Num_Sigma0_Feed)+0.5);
+            NumChi2Entries_300.Initialize();
+
             unsigned UsedNumBins = 0;
+            unsigned NumUsefulEntries=0;
             for(unsigned uEntry=0; uEntry<NumEntries; uEntry++){
+                //Chi2_300[uEntry] = 1e6;
+                //NDF_300[uEntry] = 0;
                 plambdaTree->GetEntry(uEntry);
                 //if(uPot<NumPotVars&&POT_VAR!=PotFlag[uPot]) continue;
                 //if(uBl<NumBaselines&&BASELINE_VAR!=BlFlag[uBl]) continue;
                 if(uPot==NumPotVars){
                     bool UnknownPot=true;
                     for(unsigned uPot=0; uPot<NumPotVars; uPot++){
-                        if(POT_VAR==PotFlag[uPot]) {UnknownPot=false; break;}
+                        if(POT_VAR==PotFlag[uPot]&&IncludePot[uPot]) {UnknownPot=false; break;}
                     }
                     if(UnknownPot) continue;
                 }
@@ -7723,12 +7840,14 @@ void Plot_pL_SystematicsMay2020(const int& SIGMA_FEED){
                 if(uBl==NumBaselines){
                     bool UnknownBl=true;
                     for(unsigned uBl=0; uBl<NumBaselines; uBl++){
-                        if(BASELINE_VAR==BlFlag[uBl]) {UnknownBl=false; break;}
+                        if(BASELINE_VAR==BlFlag[uBl]&&IncludeBl[uBl]) {UnknownBl=false; break;}
                     }
                     if(UnknownBl) continue;
                 }
                 else if(BASELINE_VAR!=BlFlag[uBl]) continue;
                 if(Sigma0_Feed!=SIGMA_FEED&&SIGMA_FEED>=0&&SIGMA_FEED<=2) continue;
+if(SourceAlpha<1.99&&GaussOnly) continue;
+                NumUsefulEntries++;
                 unsigned NumBins = gData->GetN();
                 if(UsedNumBins<NumBins) UsedNumBins=NumBins;
                 double data_val[2];
@@ -7796,10 +7915,100 @@ void Plot_pL_SystematicsMay2020(const int& SIGMA_FEED){
 //    printf(" nsigma_der_0_300=%f\n",nsigma_der_0_300);
 //    usleep(3000e3);
 //}
+                unsigned WhichBin[3];
+                GetIterCombo(WhichBin,Sigma0_Feed,SourceSize,lam_L_genuine);
+
+                Chi2_300.Add(Chi2_300.GetTotBin(WhichBin),nsigma_0_300);
+                NDF_300.Add(NDF_300.GetTotBin(WhichBin),NDF_0_300);
+                NumChi2Entries_300.Add(NumChi2Entries_300.GetTotBin(WhichBin),1);
+
                 nsigma_0_300 = sqrt(2)*TMath::ErfcInverse(TMath::Prob(nsigma_0_300,NDF_0_300));
                 nsigma_der_0_300 = sqrt(2)*TMath::ErfcInverse(TMath::Prob(nsigma_der_0_300,NDF_0_300));
                 htot_nsigma_300->Fill(nsigma_0_300);
                 htot_nsigma_der_300->Fill(nsigma_der_0_300);
+//if(uPot==6&&uBl==1&&WhichBin[0]==0&&WhichBin[1]==2&&WhichBin[2]==2){
+//printf(" nsigma_0_300=%.2f\n",nsigma_0_300);
+//}
+                //NDF_300.Add(NDF_300.GetTotBin(WhichBin),NDF_0_300);
+            }
+
+            //turn the Chi2_300 into a mean Chi2_300
+            Chi2_300.DivideHisto(NumChi2Entries_300,false);
+            NDF_300.DivideHisto(NumChi2Entries_300,false);
+            for(unsigned uBin=0; uBin<NDF_300.GetNbins()-1; uBin++){
+                if(NDF_300.GetBinContent(uBin)!=NDF_300.GetBinContent(uBin+1)){
+                    printf("wtf %f %f\n",NDF_300.GetBinContent(uBin),NDF_300.GetBinContent(uBin+1));
+                }
+            }
+
+
+            //find the best solution
+            float MinChi2;
+            unsigned* Bin_MinChi2;//must be deleted
+            unsigned Num_MinChi2 = Chi2_300.FindMinima(MinChi2,Bin_MinChi2);
+            int MinNdf = TMath::Nint(NDF_300.GetBinContent(Bin_MinChi2[0]));
+            float MinNsigma = sqrt(2)*TMath::ErfcInverse(TMath::Prob(MinChi2,MinNdf));
+            //printf("We have %u minima for the chi2=%.2f/%i = %.2f (nsigma = %.2f)\n",Num_MinChi2,MinChi2,MinNdf,MinChi2/float(MinNdf),MinNsigma);
+            for(unsigned uMin=0; uMin<Num_MinChi2; uMin++){
+                //unsigned WhichBin[3];
+                //printf(" Bin_MinChi2=%p\n",Bin_MinChi2);
+                //printf(" Bin_MinChi2[0]=%u\n",Bin_MinChi2[0]);
+                //Chi2_300.GetBinCoordinates(Bin_MinChi2[uMin],WhichBin);
+                //printf(" Solution %u: S0=%u, SZ=%u, lam=%u\n",uMin,WhichBin[0],WhichBin[1],WhichBin[2]);
+
+                //WhichBin[0]=0; WhichBin[1]=0; WhichBin[2]=0;
+                //printf("             S0=%u, SZ=%u, lam=%u = %.2f\n",WhichBin[0],WhichBin[1],WhichBin[2],Chi2_300.GetBinContent(WhichBin));
+                //WhichBin[0]=0; WhichBin[1]=1; WhichBin[2]=0;
+                //printf("             S0=%u, SZ=%u, lam=%u = %.2f\n",WhichBin[0],WhichBin[1],WhichBin[2],Chi2_300.GetBinContent(WhichBin));
+                //WhichBin[0]=0; WhichBin[1]=2; WhichBin[2]=0;
+                //printf("             S0=%u, SZ=%u, lam=%u = %.2f\n",WhichBin[0],WhichBin[1],WhichBin[2],Chi2_300.GetBinContent(WhichBin));
+                //WhichBin[0]=0; WhichBin[1]=3; WhichBin[2]=0;
+                //printf("             S0=%u, SZ=%u, lam=%u = %.2f\n",WhichBin[0],WhichBin[1],WhichBin[2],Chi2_300.GetBinContent(WhichBin));
+            }
+
+            //printf("Proceeding...\n");
+
+/*
+            DLM_Sort < double, int > SortTool;
+            SortTool.SetData(Chi2_300,NumEntries);
+            SortTool.MergeSort();
+            SortTool.GetSortedData(Chi2_300,Chi2_300);
+            int* Temp = new int[NumEntries];
+            for(unsigned uEl=0; uEl<NumEntries; uEl++) Temp[uEl] = NDF_300[SortTool.GetKey()[uEl]];
+            for(unsigned uEl=0; uEl<NumEntries; uEl++) NDF_300[uEl] = Temp[uEl];
+            delete [] Temp;
+            Chi2_300[NumEntries] = 0;
+            NDF_300[NumEntries] = 0;
+            for(unsigned uBest=0; uBest<NumBestSolutions; uBest++){
+                Chi2_300[NumEntries] += Chi2_300[uBest];
+                NDF_300[NumEntries] += NDF_300[uBest];
+                printf("%u: CHI2=%.2f; NDF=%i; NSIGMA=%.1f\n",uBest,Chi2_300[uBest],NDF_300[uBest],sqrt(2)*TMath::ErfcInverse(TMath::Prob(Chi2_300[uBest],NDF_300[uBest])));
+            }
+            NSIGMA_300 = sqrt(2)*TMath::ErfcInverse(TMath::Prob(Chi2_300[NumEntries],NDF_300[NumEntries]));
+            printf(" CHI2=%.2f; NDF=%i; NSIGMA=%.1f\n",Chi2_300[NumEntries],NDF_300[NumEntries],NSIGMA_300);
+*/
+
+            if(!NumUsefulEntries){
+                delete hnsigma;
+                delete hnsigma_der;
+                delete hfdata;
+                delete hbl;
+                delete hb_nsigma;
+                delete hb_nsigma_der;
+                delete hb_fdata;
+                delete hb_bl;
+                delete hnsigma_0_100;
+                delete hnsigma_100_200;
+                delete hnsigma_200_300;
+                delete hnsigma_0_300;
+                delete hnsigma_der_0_100;
+                delete hnsigma_der_100_200;
+                delete hnsigma_der_200_300;
+                delete hnsigma_der_0_300;
+                delete htot_nsigma_300;
+                delete htot_nsigma_der_300;
+                delete [] Bin_MinChi2;
+                continue;
             }
 
             double nsigma_300_max;
@@ -7834,6 +8043,7 @@ void Plot_pL_SystematicsMay2020(const int& SIGMA_FEED){
                 else if(BASELINE_VAR!=BlFlag[uBl]) continue;
                 //if(uBl<NumBaselines&&BASELINE_VAR!=BlFlag[uBl]) continue;
                 if(Sigma0_Feed!=SIGMA_FEED&&SIGMA_FEED>=0&&SIGMA_FEED<=2) continue;
+if(SourceAlpha<1.99&&GaussOnly) continue;
                 unsigned NumBins = gData->GetN();
                 double data_val[2];
                 double data_err[2];
@@ -7911,8 +8121,8 @@ void Plot_pL_SystematicsMay2020(const int& SIGMA_FEED){
                 //if(nsigma_0_300>nsigma_300_max) continue;
 //if(!DefaultVariation) continue;
 //if(nsigma_200_300>1.0) continue;
-if(SourceSize>1.03||SourceSize<1.01) continue;
-if(lam_L_genuine>0.46||SourceSize<0.45) continue;
+//if(SourceSize>1.03||SourceSize<1.01) continue;
+//if(lam_L_genuine>0.46||SourceSize<0.45) continue;
 //if(Sigma0_Feed==0) continue;
 //if(nsigma_0_100>4) continue;
                 for(unsigned uBin=0; uBin<NumBins; uBin++){
@@ -7921,10 +8131,28 @@ if(lam_L_genuine>0.46||SourceSize<0.45) continue;
                     data_err[uBin%2] = gData->GetErrorY(uBin);
                     fitData->GetPoint(uBin,mom_val[uBin%2],fit_val[uBin%2]);
                     fitBaseline->GetPoint(uBin,mom_val[uBin%2],bl_val);
-                    //hnsigma->SetBinContent(uBin+1,hnsigma->GetYaxis()->FindBin(nsigma_val),hnsigma->GetBinContent(uBin+1)+1);
-                    //hnsigma_der->SetBinContent(uBin+1,hnsigma_der->GetYaxis()->FindBin(nsigma_der_val),hnsigma_der->GetBinContent(uBin+1)+1);
+                    nsigma_val = (fit_val[uBin%2]-data_val[uBin%2])/data_err[uBin%2];
+                    hnsigma->SetBinContent(uBin+1,hnsigma->GetYaxis()->FindBin(nsigma_val),hnsigma->GetBinContent(uBin+1)+1);
+                    hnsigma_der->SetBinContent(uBin+1,hnsigma_der->GetYaxis()->FindBin(nsigma_val),hnsigma_der->GetBinContent(uBin+1)+1);
                     hfdata->SetBinContent(uBin+1,hfdata->GetYaxis()->FindBin(fit_val[uBin%2]),hfdata->GetBinContent(uBin+1)+1);
                     hbl->SetBinContent(uBin+1,hbl->GetYaxis()->FindBin(bl_val),hbl->GetBinContent(uBin+1)+1);
+                    unsigned WhichBinCurrent[3];
+                    GetIterCombo(WhichBinCurrent,Sigma0_Feed,SourceSize,lam_L_genuine);
+                    bool OneOfTheBest=false;
+                    for(unsigned uMin=0; uMin<Num_MinChi2; uMin++){
+                        unsigned WhichBinBest[3];
+                        Chi2_300.GetBinCoordinates(Bin_MinChi2[uMin],WhichBinBest);
+                        if(WhichBinBest[0]==WhichBinCurrent[0]&&
+                           WhichBinBest[1]==WhichBinCurrent[1]&&
+                           WhichBinBest[2]==WhichBinCurrent[2]) OneOfTheBest=true;
+                        //printf(" Solution %u: S0=%u, SZ=%u, lam=%u\n",uMin,WhichBinBest[0],WhichBinBest[1],WhichBinBest[2]);
+                    }
+                    if(OneOfTheBest){
+                        hb_nsigma->SetBinContent(uBin+1,hnsigma->GetYaxis()->FindBin(nsigma_val),hnsigma->GetBinContent(uBin+1)+1);
+                        hb_nsigma_der->SetBinContent(uBin+1,hnsigma_der->GetYaxis()->FindBin(nsigma_val),hnsigma_der->GetBinContent(uBin+1)+1);
+                        hb_fdata->SetBinContent(uBin+1,hfdata->GetYaxis()->FindBin(fit_val[uBin%2]),hfdata->GetBinContent(uBin+1)+1);
+                        hb_bl->SetBinContent(uBin+1,hbl->GetYaxis()->FindBin(bl_val),hbl->GetBinContent(uBin+1)+1);
+                    }
                 }
                 hnsigma_0_100->Fill(nsigma_0_100);
                 hnsigma_100_200->Fill(nsigma_100_200);
@@ -7951,78 +8179,146 @@ if(lam_L_genuine>0.46||SourceSize<0.45) continue;
             TGraphErrors* ge_SigmaSlice_der = new TGraphErrors();
             ge_SigmaSlice_der->SetName("ge_SigmaSlice_der");
 
+            TGraphErrors* geb_Bl = new TGraphErrors();
+            geb_Bl->SetName("geb_Bl");
+            TGraphErrors* geb_Fit = new TGraphErrors();
+            geb_Fit->SetName("geb_Fit");
+            TGraphErrors* geb_SigmaSlice = new TGraphErrors();
+            geb_SigmaSlice->SetName("geb_SigmaSlice");
+            TGraphErrors* geb_SigmaSlice_der = new TGraphErrors();
+            geb_SigmaSlice_der->SetName("geb_SigmaSlice_der");
+
             TF1* fe_Sigma = new TF1("fe_Sigma","[0]",0,300);
+
             fe_Sigma->SetName("fe_Sigma");
             for(unsigned uBin=0; uBin<UsedNumBins; uBin++){
                 double MOM = hData_pL_Stat->GetBinCenter(uBin+1);
                 double MinVal,MaxVal,MedVal;
 
-                TH1* hProj = hfdata->ProjectionY("hProj",uBin+1,uBin+1);
+                TH1* hProj;
+
+                hProj = hfdata->ProjectionY("hProj",uBin+1,uBin+1);
                 if(!hProj->Integral()) continue;
-                MedVal = GetCentralInterval(*hProj,1.-1e-6,MinVal,MaxVal,true);
+                MedVal = GetCentralInterval(*hProj,0.68,MinVal,MaxVal,true);
                 ge_Fit->SetPoint(uBin,MOM,(MaxVal+MinVal)*0.5);
                 ge_Fit->SetPointError(uBin,0,(MaxVal-MinVal)*0.5);
-
                 delete hProj;
+
                 hProj = hbl->ProjectionY("hProj",uBin+1,uBin+1);
-                MedVal = GetCentralInterval(*hProj,1.-1e-6,MinVal,MaxVal,true);
+                MedVal = GetCentralInterval(*hProj,0.68,MinVal,MaxVal,true);
                 ge_Bl->SetPoint(uBin,MOM,(MaxVal+MinVal)*0.5);
                 ge_Bl->SetPointError(uBin,0,(MaxVal-MinVal)*0.5);
+                delete hProj;
 
+                hProj = hnsigma->ProjectionY("hProj",uBin+1,uBin+1);
+                MedVal = GetCentralInterval(*hProj,0.68,MinVal,MaxVal,true);
+                ge_SigmaSlice->SetPoint(uBin,MOM,(MaxVal+MinVal)*0.5);
+                ge_SigmaSlice->SetPointError(uBin,0,(MaxVal-MinVal)*0.5);
+                delete hProj;
+
+                hProj = hnsigma_der->ProjectionY("hProj",uBin+1,uBin+1);
+                MedVal = GetCentralInterval(*hProj,0.68,MinVal,MaxVal,true);
+                ge_SigmaSlice_der->SetPoint(uBin,MOM,(MaxVal+MinVal)*0.5);
+                ge_SigmaSlice_der->SetPointError(uBin,0,(MaxVal-MinVal)*0.5);
+                delete hProj;
+
+                hProj = hb_fdata->ProjectionY("hProj",uBin+1,uBin+1);
+                if(!hProj->Integral()) continue;
+                MedVal = GetCentralInterval(*hProj,0.68,MinVal,MaxVal,true);
+                geb_Fit->SetPoint(uBin,MOM,(MaxVal+MinVal)*0.5);
+                geb_Fit->SetPointError(uBin,0,(MaxVal-MinVal)*0.5);
+                delete hProj;
+
+                hProj = hb_bl->ProjectionY("hProj",uBin+1,uBin+1);
+                MedVal = GetCentralInterval(*hProj,0.68,MinVal,MaxVal,true);
+                geb_Bl->SetPoint(uBin,MOM,(MaxVal+MinVal)*0.5);
+                geb_Bl->SetPointError(uBin,0,(MaxVal-MinVal)*0.5);
+                delete hProj;
+
+                hProj = hb_nsigma->ProjectionY("hProj",uBin+1,uBin+1);
+                MedVal = GetCentralInterval(*hProj,0.68,MinVal,MaxVal,true);
+                geb_SigmaSlice->SetPoint(uBin,MOM,(MaxVal+MinVal)*0.5);
+                geb_SigmaSlice->SetPointError(uBin,0,(MaxVal-MinVal)*0.5);
+                delete hProj;
+
+                hProj = hb_nsigma_der->ProjectionY("hProj",uBin+1,uBin+1);
+                MedVal = GetCentralInterval(*hProj,0.68,MinVal,MaxVal,true);
+                geb_SigmaSlice_der->SetPoint(uBin,MOM,(MaxVal+MinVal)*0.5);
+                geb_SigmaSlice_der->SetPointError(uBin,0,(MaxVal-MinVal)*0.5);
+                delete hProj;
+
+                fe_Sigma->FixParameter(0,MinNsigma);
+
+/*
                 if(MOM<=100){
-                    MedVal = GetCentralInterval(*hnsigma_0_100,1.-1e-6,MinVal,MaxVal,true);
-MaxVal = MinVal+0.25;
+                    MedVal = GetCentralInterval(*hnsigma_0_100,0.68,MinVal,MaxVal,true);
+//MaxVal = MinVal+0.25;
                     ge_SigmaSlice->SetPoint(uBin,MOM,(MaxVal+MinVal)*0.5);
                     ge_SigmaSlice->SetPointError(uBin,0,(MaxVal-MinVal)*0.5);
 
                     MedVal = GetCentralInterval(*hnsigma_der_0_100,1.-1e-6,MinVal,MaxVal,true);
-MaxVal = MinVal+0.25;
+//MaxVal = MinVal+0.25;
                     ge_SigmaSlice_der->SetPoint(uBin,MOM,(MaxVal+MinVal)*0.5);
                     ge_SigmaSlice_der->SetPointError(uBin,0,(MaxVal-MinVal)*0.5);
                 }
                 else if(MOM<=200){
                     MedVal = GetCentralInterval(*hnsigma_100_200,1.-1e-6,MinVal,MaxVal,true);
-MaxVal = MinVal+0.25;
+//MaxVal = MinVal+0.25;
                     ge_SigmaSlice->SetPoint(uBin,MOM,(MaxVal+MinVal)*0.5);
                     ge_SigmaSlice->SetPointError(uBin,0,(MaxVal-MinVal)*0.5);
 
                     MedVal = GetCentralInterval(*hnsigma_der_100_200,1.-1e-6,MinVal,MaxVal,true);
-MaxVal = MinVal+0.25;
+//MaxVal = MinVal+0.25;
                     ge_SigmaSlice_der->SetPoint(uBin,MOM,(MaxVal+MinVal)*0.5);
                     ge_SigmaSlice_der->SetPointError(uBin,0,(MaxVal-MinVal)*0.5);
                 }
                 else if(MOM<=300){
                     MedVal = GetCentralInterval(*hnsigma_200_300,1.-1e-6,MinVal,MaxVal,true);
-MaxVal = MinVal+0.25;
+//MaxVal = MinVal+0.25;
                     ge_SigmaSlice->SetPoint(uBin,MOM,(MaxVal+MinVal)*0.5);
                     ge_SigmaSlice->SetPointError(uBin,0,(MaxVal-MinVal)*0.5);
 
                     MedVal = GetCentralInterval(*hnsigma_der_200_300,1.-1e-6,MinVal,MaxVal,true);
-MaxVal = MinVal+0.25;
+//MaxVal = MinVal+0.25;
                     ge_SigmaSlice_der->SetPoint(uBin,MOM,(MaxVal+MinVal)*0.5);
                     ge_SigmaSlice_der->SetPointError(uBin,0,(MaxVal-MinVal)*0.5);
                 }
                 if(MOM<=300){
                     MedVal = GetCentralInterval(*hnsigma_0_300,1.-1e-6,MinVal,MaxVal,true);
                     fe_Sigma->FixParameter(0,MinVal);
+                    //fe_Sigma->FixParameter(0,NSIGMA_300);
 //printf("MinVal = %f\n",MinVal);
                 }
                 delete hProj;
+*/
             }
+
 
             gStyle->SetCanvasPreferGL(1);
             SetStyle();
 
-            ge_Fit->SetFillColorAlpha(kRed+1,0.67);
+            ge_Fit->SetFillColorAlpha(kRed+1,0.40);
             ge_Fit->SetLineColor(kRed+1);
             ge_Fit->SetLineWidth(5);
 
-            ge_Bl->SetFillColorAlpha(kCyan+1,0.5);
+            ge_Bl->SetFillColorAlpha(kCyan+1,0.40);
             ge_Bl->SetLineColor(kCyan+1);
             ge_Bl->SetLineWidth(5);
 
-            ge_SigmaSlice->SetFillColorAlpha(kRed+1,0.67);
-            ge_SigmaSlice_der->SetFillColorAlpha(kBlue+1,0.67);
+            ge_SigmaSlice->SetFillColorAlpha(kRed+1,0.40);
+            ge_SigmaSlice_der->SetFillColorAlpha(kBlue+1,0.40);
+
+            geb_Fit->SetFillColorAlpha(kRed+1,0.70);
+            geb_Fit->SetLineColor(kRed+1);
+            geb_Fit->SetLineWidth(3);
+
+            geb_Bl->SetFillColorAlpha(kCyan+1,0.70);
+            geb_Bl->SetLineColor(kCyan+1);
+            geb_Bl->SetLineWidth(5);
+
+            geb_SigmaSlice->SetFillColorAlpha(kRed+1,0.70);
+            geb_SigmaSlice_der->SetFillColorAlpha(kBlue+1,0.70);
+
             fe_Sigma->SetLineColor(kBlack);
             fe_Sigma->SetLineWidth(3);
             fe_Sigma->SetLineStyle(2);
@@ -8043,14 +8339,30 @@ MaxVal = MinVal+0.25;
             //hData_pL_Stat->GetYaxis()->SetTitleOffset(1.0);
             hData_pL_Stat->Draw();
 
-            TFile* DataSystFile = new TFile("/home/dmihaylov/CernBox/CatsFiles/ExpData/ALICE_pp_13TeV_HM/Sample10HM/Systematics_pL.root");
-            TH1F* DataSystHisto = (TH1F*)DataSystFile->Get("SystErrRel");
-            TGraphErrors *Tgraph_syserror = DrawSystematicError_FAST(hData_pL_Stat, DataSystHisto, NULL, 3);
+            //TFile* DataSystFile = new TFile("/home/dmihaylov/CernBox/CatsFiles/ExpData/ALICE_pp_13TeV_HM/Sample10HM/Systematics_pL.root");
+            //TH1F* DataSystHisto = (TH1F*)DataSystFile->Get("SystErrRel");
+            //TGraphErrors *Tgraph_syserror = DrawSystematicError_FAST(hData_pL_Stat, DataSystHisto, NULL, 3);
+            TGraphErrors *Tgraph_syserror = (TGraphErrors*)gdata_toterr->Clone("Tgraph_syserror");
+            for(unsigned uBin=0; uBin<Tgraph_syserror->GetN(); uBin++){
+                double tot_err,stat_err,syst_err,k_err,Ck_val;
+                double xVal,yVal;
+                Ck_val = hData_pL_Stat->GetBinContent(uBin+1);
+                k_err = Tgraph_syserror->GetErrorX(uBin);
+                tot_err = Tgraph_syserror->GetErrorY(uBin);
+                stat_err = hData_pL_Stat->GetBinError(uBin+1);
+                syst_err = tot_err>stat_err?sqrt(tot_err*tot_err-stat_err*stat_err):0;
+                Tgraph_syserror->GetPoint(uBin,xVal,yVal);
+                Tgraph_syserror->SetPoint(uBin,xVal,Ck_val);
+                Tgraph_syserror->SetPointError(uBin,k_err,syst_err);
+            }
             Tgraph_syserror->SetLineColor(kWhite);
             //baselineLL->Draw("same");
             //if(!DataOnly){
             ge_Bl->Draw("3 same");
             ge_Fit->Draw("3 same");
+
+            geb_Bl->Draw("3 same");
+            geb_Fit->Draw("3L same");
             //}
             hData_pL_Stat->Draw("same");
 
@@ -8115,6 +8427,9 @@ MaxVal = MinVal+0.25;
             TGraph* grFemto_Inlet = (TGraph*)ge_Fit->Clone("grFemto_Inlet");
             grFemto_Inlet->SetLineWidth(ge_Fit->GetLineWidth()*0.67);
 
+            TGraph* grbFemto_Inlet = (TGraph*)geb_Fit->Clone("grbFemto_Inlet");
+            grbFemto_Inlet->SetLineWidth(geb_Fit->GetLineWidth()*0.67);
+
             const double fXMinInlet=0.17;
             const double fYMinInlet=0.12;
             const double fXMaxInlet=0.97;
@@ -8133,6 +8448,8 @@ MaxVal = MinVal+0.25;
             //if(!DataOnly){
             ge_Bl->Draw("3 same");
             grFemto_Inlet->Draw("3 same");
+            geb_Bl->Draw("3 same");
+            grbFemto_Inlet->Draw("3 same");
             //}
             DataHisto_Inlet->Draw("same");
             Tgraph_syserror->Draw("2 same");
@@ -8145,7 +8462,7 @@ MaxVal = MinVal+0.25;
             //else //hAxis->SetTitle("; #it{k*} (MeV/#it{c}); #it{C}(#it{k*})");
             hAxis->GetXaxis()->SetRangeUser(0, 456);
             //if(!DataOnly)
-            hAxis->GetYaxis()->SetRangeUser(0,7.5);
+            hAxis->GetYaxis()->SetRangeUser(-6.2,6.2);
             hAxis->GetXaxis()->SetNdivisions(505);
             //else hAxis->GetYaxis()->SetRangeUser(0.98, 1.05);
             //hData->SetTitle("; #it{k*} (MeV/#it{c}); #it{C}(#it{k*})");
@@ -8161,23 +8478,35 @@ MaxVal = MinVal+0.25;
             //ge_SigmaSlice->GetYaxis()->SetNdivisions(204);
             //if(!DataOnly)
             ge_SigmaSlice->Draw("3 same");
+            geb_SigmaSlice->Draw("3 same");
             /// a plot of the deviation of the first derivative
             //ge_SigmaSlice_der->Draw("3 same");
-            fe_Sigma->Draw("same");
+            //fe_Sigma->Draw("same");
             //else{
             //hData_pL_Stat->Draw("same");
             //Tgraph_syserror->Draw("2 same");
             //}
 
+            TLatex BeamText_nsigma;
+            BeamText_nsigma.SetTextSize(gStyle->GetTextSize()*1.8);
+            BeamText_nsigma.SetNDC(kTRUE);
+            BeamText_nsigma.DrawLatex(0.80, 0.90, TString::Format("n_{#sigma} = %.1f",MinNsigma));
+            TLatex BeamText_nsigma_info;
+            BeamText_nsigma_info.SetTextSize(gStyle->GetTextSize()*1.2);
+            BeamText_nsigma_info.SetNDC(kTRUE);
+            BeamText_nsigma_info.DrawLatex(0.80, 0.83, TString::Format("k*#in[0, 300] MeV/#it{c}"));
+
             DlmPad->GetCanvas()->SaveAs(OutputFolder+TString::Format("DlmPad_%s_%s.pdf",PotDescr[uPot].Data(),BlDescr[uBl].Data()));
 
             delete hnsigma;
+            delete hb_nsigma;
             delete hnsigma_0_300;
             delete hnsigma_0_100;
             delete hnsigma_100_200;
             delete hnsigma_200_300;
             delete htot_nsigma_300;
             delete hnsigma_der;
+            delete hb_nsigma_der;
             delete hnsigma_der_0_300;
             delete hnsigma_der_0_100;
             delete hnsigma_der_100_200;
@@ -8185,24 +8514,38 @@ MaxVal = MinVal+0.25;
             delete htot_nsigma_der_300;
             delete hfdata;
             delete hbl;
+            delete hb_fdata;
+            delete hb_bl;
 
             delete ge_SigmaSlice;
             delete ge_SigmaSlice_der;
+            delete geb_SigmaSlice;
+            delete geb_SigmaSlice_der;
             delete fe_Sigma;
 
             delete hData_pL_Stat;
             delete ge_Bl;
             delete ge_Fit;
+            delete geb_Bl;
+            delete geb_Fit;
             delete hAxis;
             delete hCk_Fake;
             delete legend;
             delete DataHisto_Inlet;
             delete grFemto_Inlet;
+            delete grbFemto_Inlet;
             delete inset_pad;
             delete DlmPad;
+
+            delete [] Bin_MinChi2;
         }
     }
 
+    //delete [] Chi2_300;
+    //delete [] NDF_300;
+    //delete [] NSIGMA_300;
+    delete [] IncludePot;
+    delete [] IncludeBl;
     delete [] BlFlag;
     delete [] BlName1;
     delete [] BlName2;
@@ -8213,6 +8556,8 @@ MaxVal = MinVal+0.25;
     delete [] PotDescr;
     delete [] SourceName1;
     //delete [] Chi2Ndf;
+    delete hdata_toterr;
+    delete gdata_toterr;
     delete plambdaTree;
 
 
@@ -8326,15 +8671,17 @@ void CompareChiralNLO_pLambda(){
 int PLAMBDA_1_MAIN(int argc, char *argv[]){
 printf("PLAMBDA_1_MAIN\n");
 //Plot_pL_SystematicsMay2020(1000);
-//Plot_pL_SystematicsMay2020(-1);
+Plot_pL_SystematicsMay2020(-1);
 //Plot_pL_SystematicsMay2020(0);
 //Plot_pL_SystematicsMay2020(1);
 //Plot_pL_SystematicsMay2020(2);
 //STUPED_TEST();
 //CompareChiralNLO_pLambda();
-pL_SystematicsMay2020(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]), atoi(argv[6]), atoi(argv[7]),
-"/home/dmihaylov/CernBox/CatsFiles",
-"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/190520/");
+//pL_SystematicsMay2020(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]), atoi(argv[6]), atoi(argv[7]),
+//"/home/dmihaylov/CernBox/CatsFiles",
+//"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/");
+//pL_SystematicsMay2020(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]), atoi(argv[6]), atoi(argv[7]),
+//                      argv[8],argv[9]);
 //pL_SystematicsMay2020(1, 9, 11600, 0, 64,
 //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/");
 //pL_SystematicsMay2020(1, 6, 11600, false, 3,
