@@ -2683,9 +2683,14 @@ void DLM_CommonAnaFunctions::GetFractions_L(const TString& DataSample, const int
     double Modify_SigL=1;
     double Modify_XiL=1;
     switch(Variation%10){
+//the new values will be 0.6,0.84,1.2,1.44
+//to keep consistency maybe just use 0.6,0.8,1.0,1.2,1.4
+//this will correspond to s/l ratio of 0.2,0.267,0.333,0.4,0.467
         case 0 : Modify_SigL=1; break;
         case 1 : Modify_SigL=0.8;break;
         case 2 : Modify_SigL=1.2; break;
+        case 3 : Modify_SigL=0.6; break;
+        case 4 : Modify_SigL=1.4; break;
         default : Modify_SigL=1; break;
     }
     switch(Variation/10){
