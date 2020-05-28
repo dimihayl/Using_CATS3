@@ -7219,7 +7219,7 @@ void pL_SystematicsMay2020(unsigned SEED, unsigned BASELINE_VAR, int POT_VAR,
 
         int WhichProtonVar = rangen.Integer(3);
         if(DefaultVariation||FitSyst==false) WhichProtonVar = 0;
-        int WhichLambdaVar = rangen.Integer(3);
+        int WhichLambdaVar = rangen.Integer(5);
 
         if(DefaultVariation||FitSyst==false) WhichLambdaVar = 0;
         AnalysisObject.SetUpLambdaPars_pL(DataSample,WhichProtonVar,WhichLambdaVar,lam_pL);
@@ -7491,7 +7491,18 @@ void GetIterCombo(unsigned* WhichBin,const float& Sigma0_Feed,const float& Sourc
     else if(lam_L_genuine>0.44&&lam_L_genuine<0.46) WhichBin[2] = 1;
     else WhichBin[2] = 2;
 }
+void GetIterCombo270520(unsigned* WhichBin,const float& Sigma0_Feed,const float& SourceSize,const float& lam_L_genuine,
+                        const float& CuspWeight, const float& SourceAlpha){
+    WhichBin[0] = Sigma0_Feed;
+    if(SourceSize<1.01) WhichBin[1] = 0;
+    else if(SourceSize>1.01&&SourceSize<1.03) WhichBin[1] = 1;
+    else if(SourceSize>1.05&&SourceSize<1.07) WhichBin[1] = 2;
+    else WhichBin[1] = 3;
+    if(lam_L_genuine<0.44) WhichBin[2] = 0;
+    else if(lam_L_genuine>0.44&&lam_L_genuine<0.46) WhichBin[2] = 1;
+    else WhichBin[2] = 2;
 
+}
 /*
 Sigma0_Feed = large (3x)
 SourceSize = large (4x)
@@ -7725,7 +7736,9 @@ void Plot_pL_SystematicsMay2020(const int& SIGMA_FEED, const int& WhichSourceAlp
 
     const unsigned Num_Sigma0_Feed=3;
     const unsigned Num_SourceSize=4;
-    const unsigned Num_lam_L_genuine=3;
+    const unsigned Num_lam_L_genuine=5;
+    const unsigned Num_CuspWeight=5;
+    const unsigned Num_SourceAlpha=1;
 
     //DLM_Histo<float> NDF_300;
     //NDF_300.SetUp(3);
@@ -7811,11 +7824,17 @@ void Plot_pL_SystematicsMay2020(const int& SIGMA_FEED, const int& WhichSourceAlp
                 }
             }
 
+
+            //original dimensions: 3 -> Sigma0_Feed, SourceSize,lam_L_genuine
+            //now I have added CuspWeight and SourceAlpha
+            //switch off some contributions by setting their number to 1
             DLM_Histo<float> Chi2_300;
-            Chi2_300.SetUp(3);
+            Chi2_300.SetUp(5);
             Chi2_300.SetUp(0,Num_Sigma0_Feed,-0.5,double(Num_Sigma0_Feed)+0.5);
             Chi2_300.SetUp(1,Num_SourceSize,-0.5,double(Num_Sigma0_Feed)+0.5);
             Chi2_300.SetUp(2,Num_lam_L_genuine,-0.5,double(Num_Sigma0_Feed)+0.5);
+            Chi2_300.SetUp(3,Num_CuspWeight,-0.5,double(Num_CuspWeight)+0.5);
+            Chi2_300.SetUp(4,Num_SourceAlpha,-0.5,double(Num_SourceAlpha)+0.5);
             Chi2_300.Initialize();
 
             DLM_Histo<float> NDF_300;
@@ -7823,6 +7842,8 @@ void Plot_pL_SystematicsMay2020(const int& SIGMA_FEED, const int& WhichSourceAlp
             NDF_300.SetUp(0,Num_Sigma0_Feed,-0.5,double(Num_Sigma0_Feed)+0.5);
             NDF_300.SetUp(1,Num_SourceSize,-0.5,double(Num_Sigma0_Feed)+0.5);
             NDF_300.SetUp(2,Num_lam_L_genuine,-0.5,double(Num_Sigma0_Feed)+0.5);
+            NDF_300.SetUp(3,Num_CuspWeight,-0.5,double(Num_CuspWeight)+0.5);
+            NDF_300.SetUp(4,Num_SourceAlpha,-0.5,double(Num_SourceAlpha)+0.5);
             NDF_300.Initialize();
 
             DLM_Histo<float> NumChi2Entries_300;
@@ -7830,6 +7851,8 @@ void Plot_pL_SystematicsMay2020(const int& SIGMA_FEED, const int& WhichSourceAlp
             NumChi2Entries_300.SetUp(0,Num_Sigma0_Feed,-0.5,double(Num_Sigma0_Feed)+0.5);
             NumChi2Entries_300.SetUp(1,Num_SourceSize,-0.5,double(Num_Sigma0_Feed)+0.5);
             NumChi2Entries_300.SetUp(2,Num_lam_L_genuine,-0.5,double(Num_Sigma0_Feed)+0.5);
+            NumChi2Entries_300.SetUp(3,Num_CuspWeight,-0.5,double(Num_CuspWeight)+0.5);
+            NumChi2Entries_300.SetUp(4,Num_SourceAlpha,-0.5,double(Num_SourceAlpha)+0.5);
             NumChi2Entries_300.Initialize();
 
             unsigned UsedNumBins = 0;
@@ -7929,8 +7952,9 @@ else if((SourceAlpha<1.59||SourceAlpha>1.61)&&WhichSourceAlpha==2) continue;
 //    printf(" nsigma_der_0_300=%f\n",nsigma_der_0_300);
 //    usleep(3000e3);
 //}
-                unsigned WhichBin[3];
-                GetIterCombo(WhichBin,Sigma0_Feed,SourceSize,lam_L_genuine);
+                unsigned WhichBin[5];
+                //GetIterCombo(WhichBin,Sigma0_Feed,SourceSize,lam_L_genuine);
+                GetIterCombo270520(WhichBin,Sigma0_Feed,SourceSize,lam_L_genuine,CuspWeight,SourceAlpha);
 
                 Chi2_300.Add(Chi2_300.GetTotBin(WhichBin),nsigma_0_300);
                 NDF_300.Add(NDF_300.GetTotBin(WhichBin),NDF_0_300);
@@ -7964,7 +7988,7 @@ else if((SourceAlpha<1.59||SourceAlpha>1.61)&&WhichSourceAlpha==2) continue;
             float MinNsigma = sqrt(2)*TMath::ErfcInverse(TMath::Prob(MinChi2,MinNdf));
             //printf("We have %u minima for the chi2=%.2f/%i = %.2f (nsigma = %.2f)\n",Num_MinChi2,MinChi2,MinNdf,MinChi2/float(MinNdf),MinNsigma);
             for(unsigned uMin=0; uMin<Num_MinChi2; uMin++){
-                unsigned WhichBin[3];
+                unsigned WhichBin[5];
                 printf(" Bin_MinChi2=%p\n",Bin_MinChi2);
                 printf(" Bin_MinChi2[0]=%u\n",Bin_MinChi2[0]);
                 Chi2_300.GetBinCoordinates(Bin_MinChi2[uMin],WhichBin);
