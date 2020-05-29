@@ -6944,7 +6944,7 @@ graph_FitMAX[5].Write();
 //the radius is fixed, and we use the latest Core+Reso
 /// if the SEED<100 we take the default iteration first
 //i.e. to avoid the default iteration, use SEED>=100
-void pL_SystematicsMay2020(unsigned SEED, unsigned BASELINE_VAR, int POT_VAR,
+void pL_SystematicsMay2020(unsigned SEED, unsigned BASELINE_VAR, int POT_VAR, int Sigma0_Feed,
                            bool DataSyst, bool FitSyst, bool Bootstrap, unsigned NumIter,
                            const char* CatsFileFolder, const char* OutputFolder){
 
@@ -6974,7 +6974,7 @@ void pL_SystematicsMay2020(unsigned SEED, unsigned BASELINE_VAR, int POT_VAR,
     TString SourceDescription = "McGauss_ResoTM";
     //TString SourceDescription = "McLevy_ResoTM";
 
-    TString OutFileName = TString::Format("Output_%s_POT%i_BL%i_%u.root",DataSample.Data(),POT_VAR,BASELINE_VAR,SEED);
+    TString OutFileName = TString::Format("Output_%s_POT%i_BL%i_SIG%i_%u.root",DataSample.Data(),POT_VAR,BASELINE_VAR,Sigma0_Feed,SEED);
     TFile* OutputFile = new TFile(TString(OutputFolder)+OutFileName,"recreate");
 
     double* MomBins_pL = NULL;
@@ -7027,7 +7027,7 @@ void pL_SystematicsMay2020(unsigned SEED, unsigned BASELINE_VAR, int POT_VAR,
     float pval;
     unsigned WhichData;
     bool DefaultVariation;
-    int Sigma0_Feed;
+    //int Sigma0_Feed;
     int Xim_Feed;
 
 /// WHAT ABOUT MISID AND SIDEBANDS
@@ -7193,7 +7193,7 @@ void pL_SystematicsMay2020(unsigned SEED, unsigned BASELINE_VAR, int POT_VAR,
         //this parameter only plays a role for the extended fit range
         CkConv = 700;
 
-        unsigned WhichSourceRad = rangen.Integer(4);
+        unsigned WhichSourceRad = rangen.Integer(5);
         if(DefaultVariation||FitSyst==false) {WhichSourceRad=0;}
         //if(DefaultVariation) SourceRad = SourceSize;
         //else SourceRad = rangen.Gaus(SourceSize,SourceSizeErr);
@@ -7202,15 +7202,18 @@ void pL_SystematicsMay2020(unsigned SEED, unsigned BASELINE_VAR, int POT_VAR,
             case 1 : SourceRad = SourceSize-SourceSizeErr; break;
             case 2 : SourceRad = SourceSize+SourceSizeErr; break;
             case 3 : SourceRad = SourceSize+2.*SourceSizeErr; break;
+            case 4 : SourceRad = SourceSize-2.*SourceSizeErr; break;
             default : SourceRad = SourceSize; break;
         }
 
-        unsigned WhichSourceAlpha = rangen.Integer(3);
+        unsigned WhichSourceAlpha = rangen.Integer(5);
         if(DefaultVariation||SourceDescription.Contains("Gauss")||FitSyst==false) {WhichSourceAlpha=0;}
         switch(WhichSourceAlpha){
             case 0 : SourceAlpha = 2.0; break;
-            case 1 : SourceAlpha = 1.8; break;
-            case 2 : SourceAlpha = 1.6; break;
+            case 1 : SourceAlpha = 1.9; break;
+            case 2 : SourceAlpha = 1.8; break;
+            case 3 : SourceAlpha = 1.7; break;
+            case 4 : SourceAlpha = 1.6; break;
             default : SourceAlpha = 2.0; break;
         }
 
@@ -7242,8 +7245,8 @@ void pL_SystematicsMay2020(unsigned SEED, unsigned BASELINE_VAR, int POT_VAR,
         lam_Xim_genuine = 1.-lam_pXim[1]-lam_pXim[2]-lam_pXim[3]-lam_pXim[4];
         lam_Xim_Flat = lam_pXim[3];
 
-        Sigma0_Feed = rangen.Integer(3);
-        if(DefaultVariation||FitSyst==false) Sigma0_Feed=1;
+        //Sigma0_Feed = rangen.Integer(3);
+        //if(DefaultVariation||FitSyst==false) Sigma0_Feed=1;
         DLM_Ck* Ck_pS0;
         if(Sigma0_Feed==0) Ck_pS0 = NULL;
         else if(Sigma0_Feed==1) Ck_pS0 = Ck_pS0_Chiral;
@@ -7494,15 +7497,45 @@ void GetIterCombo(unsigned* WhichBin,const float& Sigma0_Feed,const float& Sourc
 void GetIterCombo270520(unsigned* WhichBin,const float& Sigma0_Feed,const float& SourceSize,const float& lam_L_genuine,
                         const float& CuspWeight, const float& SourceAlpha){
     WhichBin[0] = Sigma0_Feed;
-    if(SourceSize<1.01) WhichBin[1] = 0;
-    else if(SourceSize>1.01&&SourceSize<1.03) WhichBin[1] = 1;
-    else if(SourceSize>1.05&&SourceSize<1.07) WhichBin[1] = 2;
+    if(SourceSize<1.00) WhichBin[1] = 0;
+    else if(SourceSize<1.04) WhichBin[1] = 1;
+    else if(SourceSize<1.08) WhichBin[1] = 2;
     else WhichBin[1] = 3;
-    if(lam_L_genuine<0.44) WhichBin[2] = 0;
-    else if(lam_L_genuine>0.44&&lam_L_genuine<0.46) WhichBin[2] = 1;
-    else WhichBin[2] = 2;
-
+    if(lam_L_genuine<0.42) WhichBin[2] = 0;
+    else if(lam_L_genuine<0.44) WhichBin[2] = 1;
+    else if(lam_L_genuine<0.46) WhichBin[2] = 2;
+    else if(lam_L_genuine<0.48) WhichBin[2] = 3;
+    else WhichBin[2] = 4;
+    if(CuspWeight<0.23) WhichBin[3] = 0;
+    else if(CuspWeight<0.30) WhichBin[3] = 1;
+    else if(CuspWeight<0.37) WhichBin[3] = 2;
+    else if(CuspWeight<0.44) WhichBin[3] = 3;
+    else WhichBin[3] = 4;
+    if(SourceAlpha>1.9) WhichBin[4] = 0;
+    else if(SourceAlpha<1.7) WhichBin[4] = 1;
+    else WhichBin[4] = 2;
 }
+void GetIterCombo290520(unsigned* WhichBin,const float& SourceSize,const float& lam_L_genuine,
+                        const float& CuspWeight, const float& SourceAlpha){
+    if(SourceSize<1.00) WhichBin[1] = 0;
+    else if(SourceSize<1.04) WhichBin[1] = 1;
+    else if(SourceSize<1.08) WhichBin[1] = 2;
+    else WhichBin[1] = 3;
+    if(lam_L_genuine<0.42) WhichBin[2] = 0;
+    else if(lam_L_genuine<0.44) WhichBin[2] = 1;
+    else if(lam_L_genuine<0.46) WhichBin[2] = 2;
+    else if(lam_L_genuine<0.48) WhichBin[2] = 3;
+    else WhichBin[2] = 4;
+    if(CuspWeight<0.23) WhichBin[3] = 0;
+    else if(CuspWeight<0.30) WhichBin[3] = 1;
+    else if(CuspWeight<0.37) WhichBin[3] = 2;
+    else if(CuspWeight<0.44) WhichBin[3] = 3;
+    else WhichBin[3] = 4;
+    if(SourceAlpha>1.9) WhichBin[4] = 0;
+    else if(SourceAlpha<1.7) WhichBin[4] = 1;
+    else WhichBin[4] = 2;
+}
+
 /*
 Sigma0_Feed = large (3x)
 SourceSize = large (4x)
@@ -7955,6 +7988,11 @@ else if((SourceAlpha<1.59||SourceAlpha>1.61)&&WhichSourceAlpha==2) continue;
                 unsigned WhichBin[5];
                 //GetIterCombo(WhichBin,Sigma0_Feed,SourceSize,lam_L_genuine);
                 GetIterCombo270520(WhichBin,Sigma0_Feed,SourceSize,lam_L_genuine,CuspWeight,SourceAlpha);
+                if(Num_Sigma0_Feed==1) WhichBin[0]=0;
+                if(Num_SourceSize==1) WhichBin[1]=0;
+                if(Num_lam_L_genuine==1) WhichBin[2]=0;
+                if(Num_CuspWeight==1) WhichBin[3]=0;
+                if(Num_SourceAlpha==1) WhichBin[4]=0;
 
                 Chi2_300.Add(Chi2_300.GetTotBin(WhichBin),nsigma_0_300);
                 NDF_300.Add(NDF_300.GetTotBin(WhichBin),NDF_0_300);
@@ -7992,7 +8030,7 @@ else if((SourceAlpha<1.59||SourceAlpha>1.61)&&WhichSourceAlpha==2) continue;
                 printf(" Bin_MinChi2=%p\n",Bin_MinChi2);
                 printf(" Bin_MinChi2[0]=%u\n",Bin_MinChi2[0]);
                 Chi2_300.GetBinCoordinates(Bin_MinChi2[uMin],WhichBin);
-                printf(" Solution %u: S0=%u, SZ=%u, lam=%u\n",uMin,WhichBin[0],WhichBin[1],WhichBin[2]);
+                printf(" Solution %u: S0=%u, SZ=%u, lam=%u, CW=%u, SA=%u\n",uMin,WhichBin[0],WhichBin[1],WhichBin[2],WhichBin[3],WhichBin[4]);
 
                 //WhichBin[0]=0; WhichBin[1]=0; WhichBin[2]=0;
                 //printf("             S0=%u, SZ=%u, lam=%u = %.2f\n",WhichBin[0],WhichBin[1],WhichBin[2],Chi2_300.GetBinContent(WhichBin));
@@ -8607,6 +8645,965 @@ else if((SourceAlpha<1.59||SourceAlpha>1.61)&&WhichSourceAlpha==2) continue;
     delete InputFile;
 }
 
+/*
+void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
+                                  const int& WhichBaseline,
+                                  const int& WhichPotential,
+                                  const int& WhichSourceAlpha,
+                                  TString InputFolder, TString InputFileName, TString OutputFolder){
+
+    enum BLTYPE              { pol0s,pol1s,pol2s,pol3s,dpol2s,dpol3s,dpol4s,pol2e,pol3e,dpol2e,dpol3e,dpol4e };
+    TString BlName1;
+    TString BlName2;
+    TString BlDescr;
+
+    switch(WhichBaseline){
+        case pol0s :    BlName1 = "Constant baseline";
+                        BlName2 = "Standard fit range";
+                        BlDescr = "pol0s";
+                        break;
+        case pol1s :    BlName1 = "Linear baseline";
+                        BlName2 = "Standard fit range";
+                        BlDescr = "pol1s";
+                        break;
+        case pol2s :    BlName1 = "Quadratic baseline";
+                        BlName2 = "Standard fit range";
+                        BlDescr = "pol2s";
+                        break;
+        case pol3s :    BlName1 = "Cubic baseline";
+                        BlName2 = "Standard fit range";
+                        BlDescr = "pol3s";
+                        break;
+        case dpol2s :   BlName1 = "Quadratic baseline (constrained)";
+                        BlName2 = "Standard fit range";
+                        BlDescr = "dpol2s";
+                        break;
+        case dpol3s :   BlName1 = "Cubic baseline (constrained)";
+                        BlName2 = "Standard fit range";
+                        BlDescr = "dpol3s";
+                        break;
+        case dpol4s :   BlName1 = "Quartic baseline (constrained)";
+                        BlName2 = "Standard fit range";
+                        BlDescr = "dpol4s";
+                        break;
+        case pol2e :    BlName1 = "Quadratic baseline";
+                        BlName2 = "Extended fit range";
+                        BlDescr = "pol2e";
+                        break;//
+        case pol3e :    BlName1 = "Cubic baseline";
+                        BlName2 = "Extended fit range";
+                        BlDescr = "pol3e";
+                        break;
+        case dpol2e :   BlName1 = "Quadratic baseline (constrained)";
+                        BlName2 = "Extended fit range";
+                        BlDescr = "dpol2e";
+                        break;
+        case dpol3e :   BlName1 = "Cubic baseline (constrained)";
+                        BlName2 = "Extended fit range";
+                        BlDescr = "dpol3e";
+                        break;
+        case dpol4e :   BlName1 = "Quartic baseline (constrained)";
+                        BlName2 = "Extended fit range";
+                        BlDescr = "dpol4e";
+                        break;
+        default :       BlName1 = "Unknown baseline";
+                        BlName2 = "";
+                        BlDescr = "Unknown";
+                        break;
+    }
+
+    TString PotName1;
+    TString PotDescr;
+    int PotFlag;
+    switch(WhichPotential){
+        case 0 :    PotName1 = "NLO13 (500)";
+                    PotDescr = "NLO13-500";
+                    PotFlag = 1500;
+                    break;
+        case 1 :    PotName1 = "NLO13 (550)";
+                    PotDescr = "NLO13-550";
+                    PotFlag = 1550;
+                    break;
+        case 2 :    PotName1 = "NLO13 (600)";
+                    PotDescr = "NLO13-600";
+                    PotFlag = 1600;
+                    break;
+        case 3 :    PotName1 = "NLO13 (650)";
+                    PotDescr = "NLO13-650";
+                    PotFlag = 1650;
+                    break;
+        case 4 :    PotName1 = "NLO19 (500)";
+                    PotDescr = "NLO19-500";
+                    PotFlag = 11500;
+                    break;
+        case 5 :    PotName1 = "NLO19 (550)";
+                    PotDescr = "NLO19-550";
+                    PotFlag = 11550;
+                    break;
+        case 6 :    PotName1 = "NLO19 (600)";
+                    PotDescr = "NLO19-600";
+                    PotFlag = 11600;
+                    break;
+        case 7 :    PotName1 = "NLO19 (650)";
+                    PotDescr = "NLO19-650";
+                    PotFlag = 11650;
+                    break;//
+        default :   PotName1 = "Unknown potential";
+                    PotDescr = "Unknown";
+                    break;
+    }
+
+    TString SourceName1;
+    float ValueSourceAlpha;
+    switch(WhichSourceAlpha){
+        case 0 :    SourceName1 = "Gaussian core source";
+                    ValueSourceAlpha = 2;
+                    break;
+        case 20 :   SourceName1 = "Gaussian core source";
+                    ValueSourceAlpha = 2;
+                    break;
+        default :   SourceName1 = TString::Format("Levy core source (#alpha=%.1f)",double(WhichSourceAlpha)/10.);
+                    ValueSourceAlpha = double(WhichSourceAlpha)/10.;
+                    break;
+    }
+
+    TFile* InputFile = new TFile(InputFolder+InputFileName,"read");
+    TTree* plambdaTree = (TTree*)InputFile->Get("plambdaTree");
+
+	TGraphErrors* gData = NULL;
+	TGraphErrors* fitData = NULL;
+	TGraphErrors* fitFemto = NULL;
+	TGraphErrors* fitGenuine = NULL;
+	TGraphErrors* fitSignal_pL = NULL;
+	TGraphErrors* fitSignal_pL_pS0 = NULL;
+	TGraphErrors* fitSignal_pL_pXim = NULL;
+	TGraphErrors* fitBaseline = NULL;
+	TString* DataSample = NULL;
+	TString* SourceDescription = NULL;
+	unsigned SEED;
+	unsigned BASELINE_VAR;
+	int POT_VAR;
+	bool DataSyst;
+	bool FitSyst;
+	bool Bootstrap;
+	float SourceSize;
+	float SourceAlpha;
+    float CuspWeight;
+    float CkConv;
+    float CkCutOff;
+    float Norm;
+    float pp1;
+    float pp2;
+    float pp3;
+    float pp4;
+    float kFemtoMin;
+    float kFemtoMax;
+    float kLongMin;
+    float kLongMax;
+    float lam_L_genuine;
+    float lam_L_Sig0;
+    float lam_L_Xim;
+    float lam_L_Flat;
+    float lam_S0_genuine;
+    float lam_S0_Flat;
+    float lam_Xim_genuine;
+    float lam_Xim_Flat;
+    float pval;
+    unsigned WhichData;
+    bool DefaultVariation;
+    int Sigma0_Feed;
+    int Xim_Feed;
+
+	plambdaTree->SetBranchAddress("gData",&gData);
+	plambdaTree->SetBranchAddress("fitData",&fitData);
+	plambdaTree->SetBranchAddress("fitFemto",&fitFemto);
+	plambdaTree->SetBranchAddress("fitGenuine",&fitGenuine);
+	plambdaTree->SetBranchAddress("fitSignal_pL",&fitSignal_pL);
+	plambdaTree->SetBranchAddress("fitSignal_pL_pS0",&fitSignal_pL_pS0);
+	plambdaTree->SetBranchAddress("fitSignal_pL_pXim",&fitSignal_pL_pXim);
+	plambdaTree->SetBranchAddress("fitBaseline",&fitBaseline);
+	plambdaTree->SetBranchAddress("DataSample",&DataSample);
+	plambdaTree->SetBranchAddress("SourceDescription",&SourceDescription);
+	plambdaTree->SetBranchAddress("SEED",&SEED);
+	plambdaTree->SetBranchAddress("BASELINE_VAR",&BASELINE_VAR);
+	plambdaTree->SetBranchAddress("POT_VAR",&POT_VAR);
+	plambdaTree->SetBranchAddress("Sigma0_Feed",&Sigma0_Feed);
+	plambdaTree->SetBranchAddress("Xim_Feed",&Xim_Feed);
+	plambdaTree->SetBranchAddress("DataSyst",&DataSyst);
+    plambdaTree->SetBranchAddress("FitSyst", &FitSyst);//
+    plambdaTree->SetBranchAddress("Bootstrap", &Bootstrap);//
+	plambdaTree->SetBranchAddress("SourceSize",&SourceSize);
+	plambdaTree->SetBranchAddress("SourceAlpha",&SourceAlpha);
+	plambdaTree->SetBranchAddress("CuspWeight",&CuspWeight);
+	plambdaTree->SetBranchAddress("CkCutOff",&CkCutOff);
+	plambdaTree->SetBranchAddress("CkConv",&CkConv);
+	plambdaTree->SetBranchAddress("Norm",&Norm);
+	plambdaTree->SetBranchAddress("pp1",&pp1);
+	plambdaTree->SetBranchAddress("pp2",&pp2);
+	plambdaTree->SetBranchAddress("pp3",&pp3);
+	plambdaTree->SetBranchAddress("pp4",&pp4);
+	plambdaTree->SetBranchAddress("kFemtoMin",&kFemtoMin);
+	plambdaTree->SetBranchAddress("kFemtoMax",&kFemtoMax);
+	plambdaTree->SetBranchAddress("kLongMin",&kLongMin);
+	plambdaTree->SetBranchAddress("kLongMax",&kLongMax);
+	plambdaTree->SetBranchAddress("lam_L_genuine",&lam_L_genuine);
+	plambdaTree->SetBranchAddress("lam_L_Sig0",&lam_L_Sig0);
+	plambdaTree->SetBranchAddress("lam_L_Flat",&lam_L_Flat);
+	plambdaTree->SetBranchAddress("lam_S0_genuine",&lam_S0_genuine);
+	plambdaTree->SetBranchAddress("lam_S0_Flat",&lam_S0_Flat);
+	plambdaTree->SetBranchAddress("lam_Xim_genuine",&lam_Xim_genuine);
+	plambdaTree->SetBranchAddress("lam_Xim_Flat",&lam_Xim_Flat);
+	plambdaTree->SetBranchAddress("WhichData",&WhichData);
+	plambdaTree->SetBranchAddress("pval",&pval);
+	plambdaTree->SetBranchAddress("DefaultVariation",&DefaultVariation);
+
+	const unsigned NumEntries = plambdaTree->GetEntries();
+
+    const unsigned MaxNumBins = 50;
+    const double xBinWidth = 12;
+    TH2F* hdata_toterr = new TH2F("hdata_toterr","hdata_toterr",MaxNumBins,0,MaxNumBins,2048,0,4);
+    TGraphErrors* gdata_toterr = new TGraphErrors();
+
+    unsigned NumBestSolutions = 0;
+    const unsigned Num_Sigma0_Feed=3;
+    const unsigned Num_SourceSize=4;
+    const unsigned Num_lam_L_genuine=5;
+    const unsigned Num_CuspWeight=5;
+    const unsigned Num_SourceAlpha=1;
+
+    for(unsigned uEntry=0; uEntry<NumEntries; uEntry++){
+        plambdaTree->GetBranch("gData")->GetEntry(uEntry);
+        double xVal,yVal;
+        for(unsigned uBin=0; uBin<gData->GetN(); uBin++){
+            if(uBin>=MaxNumBins) break;
+            gData->GetPoint(uBin,xVal,yVal);
+            gdata_toterr->SetPoint(uBin,xVal,yVal);
+            hdata_toterr->Fill(double(uBin)+0.5,yVal);
+        }
+    }
+    for(unsigned uBin=0; uBin<gdata_toterr->GetN(); uBin++){
+        double xVal,yVal;
+        double yMean,yStddev;
+        TH1* hProj = hdata_toterr->ProjectionY("hProj",uBin+1,uBin+1);
+        yMean = hProj->GetMean();
+        yStddev = hProj->GetStdDev();
+        gdata_toterr->GetPoint(uBin,xVal,yVal);
+        gdata_toterr->SetPoint(uBin,xVal,yMean);
+        gdata_toterr->SetPointError(uBin,xBinWidth*0.5,yStddev);
+        delete hProj;
+    }
+
+    TH2F* hnsigma = new TH2F("hnsigma","hnsigma",MaxNumBins,0,MaxNumBins,2048,-32,32);
+    TH2F* hnsigma_der = new TH2F("hnsigma_der","hnsigma_der",MaxNumBins,0,MaxNumBins,2048,-32,32);
+    TH2F* hfdata = new TH2F("hfdata","hfdata",MaxNumBins,0,MaxNumBins,2048,0,4);
+    TH2F* hbl = new TH2F("hbl","hbl",MaxNumBins,0,MaxNumBins,2048,0.5,1.5);
+
+    TH2F* hb_nsigma = new TH2F("hb_nsigma","hb_nsigma",MaxNumBins,0,MaxNumBins,2048,-32,32);
+    TH2F* hb_nsigma_der = new TH2F("hb_nsigma_der","hb_nsigma_der",MaxNumBins,0,MaxNumBins,2048,-32,32);
+    TH2F* hb_fdata = new TH2F("hb_fdata","hb_fdata",MaxNumBins,0,MaxNumBins,2048,0,4);
+    TH2F* hb_bl = new TH2F("hb_bl","hb_bl",MaxNumBins,0,MaxNumBins,2048,0.5,1.5);
+
+    TH1F* hnsigma_0_100 = new TH1F("hnsigma_0_100","hnsigma_0_100",2048,-32,32);
+    TH1F* hnsigma_100_200 = new TH1F("hnsigma_100_200","hnsigma_100_200",2048,-32,32);
+    TH1F* hnsigma_200_300 = new TH1F("hnsigma_200_300","hnsigma_200_300",2048,-32,32);
+    TH1F* hnsigma_0_300 = new TH1F("hnsigma_0_300","hnsigma_0_300",2048,-32,32);
+    TH1F* hnsigma_der_0_100 = new TH1F("hnsigma_der_0_100","hnsigma_der_0_100",2048,-32,32);
+    TH1F* hnsigma_der_100_200 = new TH1F("hnsigma_der_100_200","hnsigma_der_100_200",2048,-32,32);
+    TH1F* hnsigma_der_200_300 = new TH1F("hnsigma_der_200_300","hnsigma_der_200_300",2048,-32,32);
+    TH1F* hnsigma_der_0_300 = new TH1F("hnsigma_der_0_300","hnsigma_der_0_300",2048,-32,32);
+
+    TH1F* htot_nsigma_300 = new TH1F("htot_nsigma_300","htot_nsigma_300",2048,-32,32);
+    TH1F* htot_nsigma_der_300 = new TH1F("htot_nsigma_der_300","htot_nsigma_der_300",2048,-32,32);
+    float nsigma_0_100;
+    float nsigma_100_200;
+    float nsigma_200_300;
+    float nsigma_0_300;
+    float nsigma_der_0_100;
+    float nsigma_der_100_200;
+    float nsigma_der_200_300;
+    float nsigma_der_0_300;
+    int NDF_0_100;
+    int NDF_100_200;
+    int NDF_200_300;
+    int NDF_0_300;
+    for(unsigned uBin=0; uBin<MaxNumBins; uBin++){
+        for(unsigned uNSB=0; uNSB<2048; uNSB++){
+            hnsigma->SetBinContent(uBin+1,uNSB+1,0);
+            hnsigma_der->SetBinContent(uBin+1,uNSB+1,0);
+            hb_nsigma->SetBinContent(uBin+1,uNSB+1,0);
+            hb_nsigma_der->SetBinContent(uBin+1,uNSB+1,0);
+        }
+    }
+
+    //original dimensions: 3 -> Sigma0_Feed, SourceSize,lam_L_genuine
+    //now I have added CuspWeight and SourceAlpha
+    //switch off some contributions by setting their number to 1
+    DLM_Histo<float> Chi2_300;
+    Chi2_300.SetUp(5);
+    Chi2_300.SetUp(0,Num_Sigma0_Feed,-0.5,double(Num_Sigma0_Feed)+0.5);
+    Chi2_300.SetUp(1,Num_SourceSize,-0.5,double(Num_Sigma0_Feed)+0.5);
+    Chi2_300.SetUp(2,Num_lam_L_genuine,-0.5,double(Num_Sigma0_Feed)+0.5);
+    Chi2_300.SetUp(3,Num_CuspWeight,-0.5,double(Num_CuspWeight)+0.5);
+    Chi2_300.SetUp(4,Num_SourceAlpha,-0.5,double(Num_SourceAlpha)+0.5);
+    Chi2_300.Initialize();
+
+    DLM_Histo<float> NDF_300;
+    NDF_300.SetUp(3);
+    NDF_300.SetUp(0,Num_Sigma0_Feed,-0.5,double(Num_Sigma0_Feed)+0.5);
+    NDF_300.SetUp(1,Num_SourceSize,-0.5,double(Num_Sigma0_Feed)+0.5);
+    NDF_300.SetUp(2,Num_lam_L_genuine,-0.5,double(Num_Sigma0_Feed)+0.5);
+    NDF_300.SetUp(3,Num_CuspWeight,-0.5,double(Num_CuspWeight)+0.5);
+    NDF_300.SetUp(4,Num_SourceAlpha,-0.5,double(Num_SourceAlpha)+0.5);
+    NDF_300.Initialize();
+
+    DLM_Histo<float> NumChi2Entries_300;
+    NumChi2Entries_300.SetUp(3);
+    NumChi2Entries_300.SetUp(0,Num_Sigma0_Feed,-0.5,double(Num_Sigma0_Feed)+0.5);
+    NumChi2Entries_300.SetUp(1,Num_SourceSize,-0.5,double(Num_Sigma0_Feed)+0.5);
+    NumChi2Entries_300.SetUp(2,Num_lam_L_genuine,-0.5,double(Num_Sigma0_Feed)+0.5);
+    NumChi2Entries_300.SetUp(3,Num_CuspWeight,-0.5,double(Num_CuspWeight)+0.5);
+    NumChi2Entries_300.SetUp(4,Num_SourceAlpha,-0.5,double(Num_SourceAlpha)+0.5);
+    NumChi2Entries_300.Initialize();
+
+    unsigned UsedNumBins = 0;
+    unsigned NumUsefulEntries=0;
+    for(unsigned uEntry=0; uEntry<NumEntries; uEntry++){
+        //Chi2_300[uEntry] = 1e6;
+        //NDF_300[uEntry] = 0;
+        plambdaTree->GetEntry(uEntry);
+        //if(uPot<NumPotVars&&POT_VAR!=PotFlag[uPot]) continue;
+        //if(uBl<NumBaselines&&BASELINE_VAR!=BlFlag[uBl]) continue;
+        if(uPot==NumPotVars){
+            bool UnknownPot=true;
+            for(unsigned uPot=0; uPot<NumPotVars; uPot++){
+                if(POT_VAR==PotFlag[uPot]&&IncludePot[uPot]) {UnknownPot=false; break;}
+            }
+            if(UnknownPot) continue;
+        }
+        else if(POT_VAR!=PotFlag[uPot]) continue;
+        //if(uPot<NumPotVars&&POT_VAR!=PotFlag[uPot]) continue;
+        if(uBl==NumBaselines){
+            bool UnknownBl=true;
+            for(unsigned uBl=0; uBl<NumBaselines; uBl++){
+                if(BASELINE_VAR==BlFlag[uBl]&&IncludeBl[uBl]) {UnknownBl=false; break;}
+            }
+            if(UnknownBl) continue;
+        }
+        else if(BASELINE_VAR!=BlFlag[uBl]) continue;
+        if(Sigma0_Feed!=SIGMA_FEED&&SIGMA_FEED>=0&&SIGMA_FEED<=2) continue;
+if(SourceAlpha<1.99&&WhichSourceAlpha==0) continue;
+else if((SourceAlpha<1.79||SourceAlpha>1.81)&&WhichSourceAlpha==1) continue;
+else if((SourceAlpha<1.59||SourceAlpha>1.61)&&WhichSourceAlpha==2) continue;
+        NumUsefulEntries++;
+        unsigned NumBins = gData->GetN();
+        if(UsedNumBins<NumBins) UsedNumBins=NumBins;
+        double data_val[2];
+        double data_err[2];
+        double fit_val[2];
+        double mom_val[2];
+        double nsigma_val;
+        double delta_Ck;
+        double delta_k;
+        double fit_der;
+        double data_der;
+        double data_der_err;
+        double nsigma_der_val;
+        nsigma_0_100=0;
+        nsigma_100_200=0;
+        nsigma_200_300=0;
+        nsigma_0_300=0;
+        nsigma_der_0_100=0;
+        nsigma_der_100_200=0;
+        nsigma_der_200_300=0;
+        nsigma_der_0_300=0;
+        NDF_0_100=0;
+        NDF_100_200=0;
+        NDF_200_300=0;
+        NDF_0_300=0;
+        for(unsigned uBin=0; uBin<NumBins; uBin++){
+            gData->GetPoint(uBin,mom_val[uBin%2],data_val[uBin%2]);
+            if(mom_val[uBin%2]>kLongMax) continue;
+            data_err[uBin%2] = gData->GetErrorY(uBin);
+            fitData->GetPoint(uBin,mom_val[uBin%2],fit_val[uBin%2]);
+            nsigma_val = (fit_val[uBin%2]-data_val[uBin%2])/data_err[uBin%2];
+            //first we compute the chi (and chi2) for the first der
+            fit_der = (fit_val[uBin%2]-fit_val[(uBin+1)%2])/(mom_val[uBin%2]-mom_val[(uBin+1)%2]);
+            data_der = (data_val[uBin%2]-data_val[(uBin+1)%2])/(mom_val[uBin%2]-mom_val[(uBin+1)%2]);
+            data_der_err = sqrt(pow(data_err[uBin%2],2.)+pow(data_err[(uBin+1)%2],2.))/(mom_val[uBin%2]-mom_val[(uBin+1)%2]);
+            nsigma_der_val = (fit_der-data_der)/data_der_err;
+
+            if(mom_val[uBin%2]<=100){
+                nsigma_0_100 += nsigma_val*nsigma_val;
+                nsigma_der_0_100 += nsigma_der_val*nsigma_der_val;
+                NDF_0_100++;
+            }
+            else if(mom_val[uBin%2]<=200){
+                nsigma_100_200 += nsigma_val*nsigma_val;
+                nsigma_der_100_200 += nsigma_der_val*nsigma_der_val;
+                NDF_100_200++;
+            }
+            else if(mom_val[uBin%2]<=300){
+                nsigma_200_300 += nsigma_val*nsigma_val;
+                nsigma_der_200_300 += nsigma_der_val*nsigma_der_val;
+                NDF_200_300++;
+            }
+            if(mom_val[uBin%2]<=300){
+                nsigma_0_300 += nsigma_val*nsigma_val;
+                nsigma_der_0_300 += nsigma_der_val*nsigma_der_val;
+                NDF_0_300++;
+            }
+            else break;
+        }
+
+        unsigned WhichBin[5];
+        //GetIterCombo(WhichBin,Sigma0_Feed,SourceSize,lam_L_genuine);
+        GetIterCombo270520(WhichBin,Sigma0_Feed,SourceSize,lam_L_genuine,CuspWeight,SourceAlpha);
+        if(Num_Sigma0_Feed==1) WhichBin[0]=0;
+        if(Num_SourceSize==1) WhichBin[1]=0;
+        if(Num_lam_L_genuine==1) WhichBin[2]=0;
+        if(Num_CuspWeight==1) WhichBin[3]=0;
+        if(Num_SourceAlpha==1) WhichBin[4]=0;
+
+        Chi2_300.Add(Chi2_300.GetTotBin(WhichBin),nsigma_0_300);
+        NDF_300.Add(NDF_300.GetTotBin(WhichBin),NDF_0_300);
+        NumChi2Entries_300.Add(NumChi2Entries_300.GetTotBin(WhichBin),1);
+
+        nsigma_0_300 = sqrt(2)*TMath::ErfcInverse(TMath::Prob(nsigma_0_300,NDF_0_300));
+        nsigma_der_0_300 = sqrt(2)*TMath::ErfcInverse(TMath::Prob(nsigma_der_0_300,NDF_0_300));
+        htot_nsigma_300->Fill(nsigma_0_300);
+        htot_nsigma_der_300->Fill(nsigma_der_0_300);
+    }
+
+    //turn the Chi2_300 into a mean Chi2_300
+    Chi2_300.DivideHisto(NumChi2Entries_300,false);
+    NDF_300.DivideHisto(NumChi2Entries_300,false);
+    for(unsigned uBin=0; uBin<NDF_300.GetNbins()-1; uBin++){
+        if(NDF_300.GetBinContent(uBin)!=NDF_300.GetBinContent(uBin+1)){
+            printf("wtf %f %f\n",NDF_300.GetBinContent(uBin),NDF_300.GetBinContent(uBin+1));
+        }
+    }
+
+    //find the best solution
+    float MinChi2;
+    unsigned* Bin_MinChi2;//must be deleted
+    unsigned Num_MinChi2 = Chi2_300.FindMinima(MinChi2,Bin_MinChi2);
+    int MinNdf = TMath::Nint(NDF_300.GetBinContent(Bin_MinChi2[0]));
+    float MinNsigma = sqrt(2)*TMath::ErfcInverse(TMath::Prob(MinChi2,MinNdf));
+    //printf("We have %u minima for the chi2=%.2f/%i = %.2f (nsigma = %.2f)\n",Num_MinChi2,MinChi2,MinNdf,MinChi2/float(MinNdf),MinNsigma);
+    for(unsigned uMin=0; uMin<Num_MinChi2; uMin++){
+        unsigned WhichBin[5];
+        printf(" Bin_MinChi2=%p\n",Bin_MinChi2);
+        printf(" Bin_MinChi2[0]=%u\n",Bin_MinChi2[0]);
+        Chi2_300.GetBinCoordinates(Bin_MinChi2[uMin],WhichBin);
+        printf(" Solution %u: S0=%u, SZ=%u, lam=%u, CW=%u, SA=%u\n",uMin,WhichBin[0],WhichBin[1],WhichBin[2],WhichBin[3],WhichBin[4]);
+    }
+
+    if(!NumUsefulEntries){
+        delete hnsigma;
+        delete hnsigma_der;
+        delete hfdata;
+        delete hbl;
+        delete hb_nsigma;
+        delete hb_nsigma_der;
+        delete hb_fdata;
+        delete hb_bl;
+        delete hnsigma_0_100;
+        delete hnsigma_100_200;
+        delete hnsigma_200_300;
+        delete hnsigma_0_300;
+        delete hnsigma_der_0_100;
+        delete hnsigma_der_100_200;
+        delete hnsigma_der_200_300;
+        delete hnsigma_der_0_300;
+        delete htot_nsigma_300;
+        delete htot_nsigma_der_300;
+        delete [] Bin_MinChi2;
+        continue;
+    }
+
+    double nsigma_300_max;
+    double nsigma_300_min;
+    //I want to keep the best 68%. => I should get rid of the upper most 32%,
+    //a dirty trick here is to just select the 36% central interval, leaving out 32% on both sides of the distribution.
+    double nsigma_300_med = GetCentralInterval(*htot_nsigma_300,0.32,nsigma_300_min,nsigma_300_max,true);
+    double nsigma_der_300_max;
+    double nsigma_der_300_min;
+    double nsigma_der_300_med = GetCentralInterval(*htot_nsigma_der_300,0.32,nsigma_der_300_min,nsigma_der_300_max,true);
+
+    for(unsigned uEntry=0; uEntry<NumEntries; uEntry++){
+        plambdaTree->GetEntry(uEntry);
+        if(Sigma0_Feed!=SIGMA_FEED) continue;
+        if(BASELINE_VAR!=WhichBaseline) continue;
+        if(POT_VAR!=WhichPotential) continue;
+        if(SourceAlpha!=ValueSourceAlpha) continue;
+
+        unsigned NumBins = gData->GetN();
+        double data_val[2];
+        double data_err[2];
+        double fit_val[2];
+        double mom_val[2];
+        double bl_val;
+        double nsigma_val;
+        double delta_Ck;
+        double delta_k;
+        double fit_der;
+        double data_der;
+        double data_der_err;
+        double nsigma_der_val;
+        nsigma_0_100=0;
+        nsigma_100_200=0;
+        nsigma_200_300=0;
+        nsigma_0_300=0;
+        nsigma_der_0_100=0;
+        nsigma_der_100_200=0;
+        nsigma_der_200_300=0;
+        nsigma_der_0_300=0;
+        NDF_0_100=0;
+        NDF_100_200=0;
+        NDF_200_300=0;
+        NDF_0_300=0;
+        for(unsigned uBin=0; uBin<NumBins; uBin++){
+            gData->GetPoint(uBin,mom_val[uBin%2],data_val[uBin%2]);
+            if(mom_val[uBin%2]>kLongMax) continue;
+            data_err[uBin%2] = gData->GetErrorY(uBin);
+            fitData->GetPoint(uBin,mom_val[uBin%2],fit_val[uBin%2]);
+            nsigma_val = (fit_val[uBin%2]-data_val[uBin%2])/data_err[uBin%2];
+            //first we compute the chi (and chi2) for the first der
+            fit_der = (fit_val[uBin%2]-fit_val[(uBin+1)%2])/(mom_val[uBin%2]-mom_val[(uBin+1)%2]);
+            data_der = (data_val[uBin%2]-data_val[(uBin+1)%2])/(mom_val[uBin%2]-mom_val[(uBin+1)%2]);
+            data_der_err = sqrt(pow(data_err[uBin%2],2.)+pow(data_err[(uBin+1)%2],2.))/(mom_val[uBin%2]-mom_val[(uBin+1)%2]);
+            nsigma_der_val = (fit_der-data_der)/data_der_err;
+            if(mom_val[uBin%2]<=100){
+                nsigma_0_100 += nsigma_val*nsigma_val;
+                nsigma_der_0_100 += nsigma_der_val*nsigma_der_val;
+                NDF_0_100++;
+            }
+            else if(mom_val[uBin%2]<=200){
+                nsigma_100_200 += nsigma_val*nsigma_val;
+                nsigma_der_100_200 += nsigma_der_val*nsigma_der_val;
+                NDF_100_200++;
+            }
+            else if(mom_val[uBin%2]<=300){
+                nsigma_200_300 += nsigma_val*nsigma_val;
+                nsigma_der_200_300 += nsigma_der_val*nsigma_der_val;
+                NDF_200_300++;
+            }
+            if(mom_val[uBin%2]<=300){
+                nsigma_0_300 += nsigma_val*nsigma_val;
+                nsigma_der_0_300 += nsigma_der_val*nsigma_der_val;
+                NDF_0_300++;
+            }
+            else break;
+        }
+        nsigma_0_300 = sqrt(2)*TMath::ErfcInverse(TMath::Prob(nsigma_0_300,NDF_0_300));
+        htot_nsigma_300->Fill(nsigma_0_300);
+        nsigma_0_100 = sqrt(2)*TMath::ErfcInverse(TMath::Prob(nsigma_0_100,NDF_0_100));
+        nsigma_100_200 = sqrt(2)*TMath::ErfcInverse(TMath::Prob(nsigma_100_200,NDF_100_200));
+        nsigma_200_300 = sqrt(2)*TMath::ErfcInverse(TMath::Prob(nsigma_200_300,NDF_200_300));
+
+        nsigma_der_0_300 = sqrt(2)*TMath::ErfcInverse(TMath::Prob(nsigma_der_0_300,NDF_0_300));
+        htot_nsigma_der_300->Fill(nsigma_der_0_300);
+        nsigma_der_0_100 = sqrt(2)*TMath::ErfcInverse(TMath::Prob(nsigma_der_0_100,NDF_0_100));
+        nsigma_der_100_200 = sqrt(2)*TMath::ErfcInverse(TMath::Prob(nsigma_der_100_200,NDF_100_200));
+        nsigma_der_200_300 = sqrt(2)*TMath::ErfcInverse(TMath::Prob(nsigma_der_200_300,NDF_200_300));
+
+        for(unsigned uBin=0; uBin<NumBins; uBin++){
+            gData->GetPoint(uBin,mom_val[uBin%2],data_val[uBin%2]);
+            if(mom_val[uBin%2]>kLongMax) continue;
+            data_err[uBin%2] = gData->GetErrorY(uBin);
+            fitData->GetPoint(uBin,mom_val[uBin%2],fit_val[uBin%2]);
+            fitBaseline->GetPoint(uBin,mom_val[uBin%2],bl_val);
+            nsigma_val = (fit_val[uBin%2]-data_val[uBin%2])/data_err[uBin%2];
+            hnsigma->SetBinContent(uBin+1,hnsigma->GetYaxis()->FindBin(nsigma_val),hnsigma->GetBinContent(uBin+1)+1);
+            hnsigma_der->SetBinContent(uBin+1,hnsigma_der->GetYaxis()->FindBin(nsigma_val),hnsigma_der->GetBinContent(uBin+1)+1);
+            hfdata->SetBinContent(uBin+1,hfdata->GetYaxis()->FindBin(fit_val[uBin%2]),hfdata->GetBinContent(uBin+1)+1);
+            hbl->SetBinContent(uBin+1,hbl->GetYaxis()->FindBin(bl_val),hbl->GetBinContent(uBin+1)+1);
+            unsigned WhichBinCurrent[3];
+            GetIterCombo(WhichBinCurrent,Sigma0_Feed,SourceSize,lam_L_genuine);
+            bool OneOfTheBest=false;
+            for(unsigned uMin=0; uMin<Num_MinChi2; uMin++){
+                unsigned WhichBinBest[3];
+                Chi2_300.GetBinCoordinates(Bin_MinChi2[uMin],WhichBinBest);
+                if(WhichBinBest[0]==WhichBinCurrent[0]&&
+                    WhichBinBest[1]==WhichBinCurrent[1]&&
+                    WhichBinBest[2]==WhichBinCurrent[2]) OneOfTheBest=true;
+                //printf(" Solution %u: S0=%u, SZ=%u, lam=%u\n",uMin,WhichBinBest[0],WhichBinBest[1],WhichBinBest[2]);
+            }
+            if(OneOfTheBest){
+                hb_nsigma->SetBinContent(uBin+1,hnsigma->GetYaxis()->FindBin(nsigma_val),hnsigma->GetBinContent(uBin+1)+1);
+                hb_nsigma_der->SetBinContent(uBin+1,hnsigma_der->GetYaxis()->FindBin(nsigma_val),hnsigma_der->GetBinContent(uBin+1)+1);
+                hb_fdata->SetBinContent(uBin+1,hfdata->GetYaxis()->FindBin(fit_val[uBin%2]),hfdata->GetBinContent(uBin+1)+1);
+                hb_bl->SetBinContent(uBin+1,hbl->GetYaxis()->FindBin(bl_val),hbl->GetBinContent(uBin+1)+1);
+            }
+        }
+        hnsigma_0_100->Fill(nsigma_0_100);
+        hnsigma_100_200->Fill(nsigma_100_200);
+        hnsigma_200_300->Fill(nsigma_200_300);
+        hnsigma_0_300->Fill(nsigma_0_300);
+
+        hnsigma_der_0_100->Fill(nsigma_der_0_100);
+        hnsigma_der_100_200->Fill(nsigma_der_100_200);
+        hnsigma_der_200_300->Fill(nsigma_der_200_300);
+        hnsigma_der_0_300->Fill(nsigma_der_0_300);
+
+    }
+
+    DLM_CommonAnaFunctions AnalysisObject;
+    AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
+    TH1F* hData_pL_Stat = AnalysisObject.GetAliceExpCorrFun(DataSample[0],"pLambda","_0",2,false,-1);
+
+    TGraphErrors* ge_Bl = new TGraphErrors();
+    ge_Bl->SetName("ge_Bl");
+    TGraphErrors* ge_Fit = new TGraphErrors();
+    ge_Fit->SetName("ge_Fit");
+    TGraphErrors* ge_SigmaSlice = new TGraphErrors();
+    ge_SigmaSlice->SetName("ge_SigmaSlice");
+    TGraphErrors* ge_SigmaSlice_der = new TGraphErrors();
+    ge_SigmaSlice_der->SetName("ge_SigmaSlice_der");
+
+    TGraphErrors* geb_Bl = new TGraphErrors();
+    geb_Bl->SetName("geb_Bl");
+    TGraphErrors* geb_Fit = new TGraphErrors();
+    geb_Fit->SetName("geb_Fit");
+    TGraphErrors* geb_SigmaSlice = new TGraphErrors();
+    geb_SigmaSlice->SetName("geb_SigmaSlice");
+    TGraphErrors* geb_SigmaSlice_der = new TGraphErrors();
+    geb_SigmaSlice_der->SetName("geb_SigmaSlice_der");
+
+    TF1* fe_Sigma = new TF1("fe_Sigma","[0]",0,300);
+
+    fe_Sigma->SetName("fe_Sigma");
+    for(unsigned uBin=0; uBin<UsedNumBins; uBin++){
+        double MOM = hData_pL_Stat->GetBinCenter(uBin+1);
+        double MinVal,MaxVal,MedVal;
+
+        TH1* hProj;
+
+        hProj = hfdata->ProjectionY("hProj",uBin+1,uBin+1);
+        if(!hProj->Integral()) continue;
+        MedVal = GetCentralInterval(*hProj,0.68,MinVal,MaxVal,true);
+        ge_Fit->SetPoint(uBin,MOM,(MaxVal+MinVal)*0.5);
+        ge_Fit->SetPointError(uBin,0,(MaxVal-MinVal)*0.5);
+        delete hProj;
+
+        hProj = hbl->ProjectionY("hProj",uBin+1,uBin+1);
+        MedVal = GetCentralInterval(*hProj,0.68,MinVal,MaxVal,true);
+        ge_Bl->SetPoint(uBin,MOM,(MaxVal+MinVal)*0.5);
+        ge_Bl->SetPointError(uBin,0,(MaxVal-MinVal)*0.5);
+        delete hProj;
+
+        hProj = hnsigma->ProjectionY("hProj",uBin+1,uBin+1);
+        MedVal = GetCentralInterval(*hProj,0.68,MinVal,MaxVal,true);
+        ge_SigmaSlice->SetPoint(uBin,MOM,(MaxVal+MinVal)*0.5);
+        ge_SigmaSlice->SetPointError(uBin,0,(MaxVal-MinVal)*0.5);
+        delete hProj;
+
+        hProj = hnsigma_der->ProjectionY("hProj",uBin+1,uBin+1);
+        MedVal = GetCentralInterval(*hProj,0.68,MinVal,MaxVal,true);
+        ge_SigmaSlice_der->SetPoint(uBin,MOM,(MaxVal+MinVal)*0.5);
+        ge_SigmaSlice_der->SetPointError(uBin,0,(MaxVal-MinVal)*0.5);
+        delete hProj;
+
+        hProj = hb_fdata->ProjectionY("hProj",uBin+1,uBin+1);
+        if(!hProj->Integral()) continue;
+        MedVal = GetCentralInterval(*hProj,0.68,MinVal,MaxVal,true);
+        geb_Fit->SetPoint(uBin,MOM,(MaxVal+MinVal)*0.5);
+        geb_Fit->SetPointError(uBin,0,(MaxVal-MinVal)*0.5);
+        delete hProj;
+
+        hProj = hb_bl->ProjectionY("hProj",uBin+1,uBin+1);
+        MedVal = GetCentralInterval(*hProj,0.68,MinVal,MaxVal,true);
+        geb_Bl->SetPoint(uBin,MOM,(MaxVal+MinVal)*0.5);
+        geb_Bl->SetPointError(uBin,0,(MaxVal-MinVal)*0.5);
+        delete hProj;
+
+        hProj = hb_nsigma->ProjectionY("hProj",uBin+1,uBin+1);
+        MedVal = GetCentralInterval(*hProj,0.68,MinVal,MaxVal,true);
+        geb_SigmaSlice->SetPoint(uBin,MOM,(MaxVal+MinVal)*0.5);
+        geb_SigmaSlice->SetPointError(uBin,0,(MaxVal-MinVal)*0.5);
+        delete hProj;
+
+        hProj = hb_nsigma_der->ProjectionY("hProj",uBin+1,uBin+1);
+        MedVal = GetCentralInterval(*hProj,0.68,MinVal,MaxVal,true);
+        geb_SigmaSlice_der->SetPoint(uBin,MOM,(MaxVal+MinVal)*0.5);
+        geb_SigmaSlice_der->SetPointError(uBin,0,(MaxVal-MinVal)*0.5);
+        delete hProj;
+
+        fe_Sigma->FixParameter(0,MinNsigma);
+    }
+
+
+    gStyle->SetCanvasPreferGL(1);
+    SetStyle();
+
+    ge_Fit->SetFillColorAlpha(kRed+1,0.40);
+    ge_Fit->SetLineColor(kRed+1);
+    ge_Fit->SetLineWidth(5);
+
+    ge_Bl->SetFillColorAlpha(kCyan+1,0.40);
+    ge_Bl->SetLineColor(kCyan+1);
+    ge_Bl->SetLineWidth(5);
+
+    ge_SigmaSlice->SetFillColorAlpha(kRed+1,0.40);
+    ge_SigmaSlice_der->SetFillColorAlpha(kBlue+1,0.40);
+
+    geb_Fit->SetFillColorAlpha(kRed+1,0.70);
+    geb_Fit->SetLineColor(kRed+1);
+    geb_Fit->SetLineWidth(3);
+
+    geb_Bl->SetFillColorAlpha(kCyan+1,0.70);
+    geb_Bl->SetLineColor(kCyan+1);
+    geb_Bl->SetLineWidth(5);
+
+    geb_SigmaSlice->SetFillColorAlpha(kRed+1,0.70);
+    geb_SigmaSlice_der->SetFillColorAlpha(kBlue+1,0.70);
+
+    fe_Sigma->SetLineColor(kBlack);
+    fe_Sigma->SetLineWidth(3);
+    fe_Sigma->SetLineStyle(2);
+
+    DLM_SubPads* DlmPad = new DLM_SubPads(720,720);
+    DlmPad->AddSubPad(0,1,0.33,1);
+    DlmPad->AddSubPad(0,1,0,0.33);
+    DlmPad->SetMargin(0,0.12,0.02,0.0,0.02);
+    DlmPad->SetMargin(1,0.12,0.02,0.09,0.0);
+    DlmPad->cd(0);
+
+    hData_pL_Stat->SetTitle("; #it{k*} (MeV/#it{c}); #it{C}(#it{k*})");
+    hData_pL_Stat->GetXaxis()->SetRangeUser(0, 456);
+    hData_pL_Stat->GetXaxis()->SetNdivisions(505);
+    hData_pL_Stat->GetYaxis()->SetRangeUser(0.9, 2.0);
+    hData_pL_Stat->SetFillColor(kGray+1);
+    SetStyleHisto2(hData_pL_Stat,2,0);
+    //hData_pL_Stat->GetYaxis()->SetTitleOffset(1.0);
+    hData_pL_Stat->Draw();
+
+    //TFile* DataSystFile = new TFile("/home/dmihaylov/CernBox/CatsFiles/ExpData/ALICE_pp_13TeV_HM/Sample10HM/Systematics_pL.root");
+    //TH1F* DataSystHisto = (TH1F*)DataSystFile->Get("SystErrRel");
+    //TGraphErrors *Tgraph_syserror = DrawSystematicError_FAST(hData_pL_Stat, DataSystHisto, NULL, 3);
+    TGraphErrors *Tgraph_syserror = (TGraphErrors*)gdata_toterr->Clone("Tgraph_syserror");
+    for(unsigned uBin=0; uBin<Tgraph_syserror->GetN(); uBin++){
+        double tot_err,stat_err,syst_err,k_err,Ck_val;
+        double xVal,yVal;
+        Ck_val = hData_pL_Stat->GetBinContent(uBin+1);
+        k_err = Tgraph_syserror->GetErrorX(uBin);
+        tot_err = Tgraph_syserror->GetErrorY(uBin);
+        stat_err = hData_pL_Stat->GetBinError(uBin+1);
+        syst_err = tot_err>stat_err?sqrt(tot_err*tot_err-stat_err*stat_err):0;
+        Tgraph_syserror->GetPoint(uBin,xVal,yVal);
+        Tgraph_syserror->SetPoint(uBin,xVal,Ck_val);
+        Tgraph_syserror->SetPointError(uBin,k_err,syst_err);
+    }
+    Tgraph_syserror->SetLineColor(kWhite);
+    //baselineLL->Draw("same");
+    //if(!DataOnly){
+    ge_Bl->Draw("3 same");
+    ge_Fit->Draw("3 same");
+
+    geb_Bl->Draw("3 same");
+    geb_Fit->Draw("3L same");
+    //}
+    hData_pL_Stat->Draw("same");
+
+    Tgraph_syserror->SetFillColorAlpha(kBlack, 0.4);
+    Tgraph_syserror->Draw("2 same");
+    //hData->Draw("pe same");
+
+    TString LegendSource_line1 = SourceName1[0];
+
+    unsigned NumRows=4;
+    TGraph DummyLegendEntry;
+    DummyLegendEntry.SetName("DummyLegendEntry");
+    DummyLegendEntry.SetLineColor(kWhite);
+    DummyLegendEntry.SetMarkerColor(kWhite);
+    TGraph DummyLegendEntry2;
+    DummyLegendEntry2.SetName("DummyLegendEntry2");
+    DummyLegendEntry2.SetLineColor(kWhite);
+    DummyLegendEntry2.SetMarkerColor(kWhite);
+    TLegend *legend = new TLegend(0.39,0.73-0.055*NumRows,0.73,0.78);//lbrt
+    legend->SetBorderSize(0);
+    legend->SetTextFont(42);
+    legend->SetTextSize(gStyle->GetTextSize()*0.90);
+    TH1F* hCk_Fake;
+    hCk_Fake = (TH1F*)hData_pL_Stat->Clone("hCk_Fake");
+    hCk_Fake->SetName("hCk_Fake");
+    hCk_Fake->SetLineColor(hCk_Fake->GetFillColor());
+
+    legend->AddEntry(hCk_Fake, "p#minus#Lambda #oplus #bar{p}#minus#bar{#Lambda} pairs", "fpe");
+    //if(!DataOnly){
+    legend->AddEntry(ge_Fit,"Femtoscopic fit "+PotName1[uPot],"l");
+    legend->AddEntry(&DummyLegendEntry,PotName2[uPot],"l");
+    legend->AddEntry(ge_Bl,BlName1[uBl],"l");
+    legend->AddEntry(&DummyLegendEntry2,BlName2[uBl],"l");
+    //}
+    legend->Draw("same");
+    TLatex BeamText;
+    BeamText.SetTextSize(gStyle->GetTextSize()*0.90);
+    BeamText.SetNDC(kTRUE);
+    BeamText.DrawLatex(0.40, 0.915, "ALICE work in progress");
+    BeamText.DrawLatex(0.40, 0.860, "high-mult. (0#minus0.17% INEL>0) pp #sqrt{#it{s}} = 13 TeV");
+
+    TLatex BeamTextSource;
+    BeamTextSource.SetTextSize(gStyle->GetTextSize()*0.90);
+    BeamTextSource.SetNDC(kTRUE);
+    BeamTextSource.DrawLatex(0.40, 0.805, LegendSource_line1);
+
+    //INLET -------------------------------------------------------------------------------------------------------------------
+
+    TH1F* DataHisto_Inlet = (TH1F*)hData_pL_Stat->Clone("DataHisto_Inlet");
+    DataHisto_Inlet->SetMarkerSize(hData_pL_Stat->GetMarkerSize()*0.67);
+    DataHisto_Inlet->SetLineWidth(hData_pL_Stat->GetLineWidth()*0.67);
+    DataHisto_Inlet->GetXaxis()->SetTitleSize(hData_pL_Stat->GetXaxis()->GetTitleSize()*1.75);
+    DataHisto_Inlet->GetXaxis()->SetLabelSize(hData_pL_Stat->GetXaxis()->GetLabelSize()*1.75);
+    DataHisto_Inlet->GetXaxis()->SetRangeUser(0, 456);
+    DataHisto_Inlet->GetXaxis()->SetNdivisions(505);
+
+    DataHisto_Inlet->GetYaxis()->SetTitleSize(hData_pL_Stat->GetYaxis()->GetTitleSize()*1.75);
+    DataHisto_Inlet->GetYaxis()->SetLabelSize(hData_pL_Stat->GetYaxis()->GetLabelSize()*1.75);
+    DataHisto_Inlet->GetYaxis()->SetTitleOffset(hData_pL_Stat->GetYaxis()->GetTitleOffset()*0.67);
+    DataHisto_Inlet->GetYaxis()->SetRangeUser(0.98, 1.05);
+
+    TGraph* grFemto_Inlet = (TGraph*)ge_Fit->Clone("grFemto_Inlet");
+    grFemto_Inlet->SetLineWidth(ge_Fit->GetLineWidth()*0.67);
+
+    TGraph* grbFemto_Inlet = (TGraph*)geb_Fit->Clone("grbFemto_Inlet");
+    grbFemto_Inlet->SetLineWidth(geb_Fit->GetLineWidth()*0.67);
+
+    const double fXMinInlet=0.17;
+    const double fYMinInlet=0.12;
+    const double fXMaxInlet=0.97;
+    const double fYMaxInlet=0.50;
+    TPad *inset_pad = new TPad("insert", "insertPad", fXMinInlet, fYMinInlet,
+                                fXMaxInlet, fYMaxInlet);
+    inset_pad->SetTopMargin(0.01);
+    inset_pad->SetRightMargin(0.05);
+    inset_pad->SetBottomMargin(0.28);
+    inset_pad->SetLeftMargin(0.28);
+    inset_pad->SetFillStyle(4000);
+    //if(!DataOnly)
+    inset_pad->Draw();
+    inset_pad->cd();
+    DataHisto_Inlet->Draw();
+    //if(!DataOnly){
+    ge_Bl->Draw("3 same");
+    grFemto_Inlet->Draw("3 same");
+    geb_Bl->Draw("3 same");
+    grbFemto_Inlet->Draw("3 same");
+    //}
+    DataHisto_Inlet->Draw("same");
+    Tgraph_syserror->Draw("2 same");
+
+    DlmPad->cd(1);
+    TH1F* hAxis = new TH1F("hAxis", "hAxis", 456/12, 0, 456);
+    hAxis->SetStats(false);
+    //if(!DataOnly)
+    hAxis->SetTitle("; #it{k*} (MeV/#it{c}); #it{n_{#sigma}}");
+    //else //hAxis->SetTitle("; #it{k*} (MeV/#it{c}); #it{C}(#it{k*})");
+    hAxis->GetXaxis()->SetRangeUser(0, 456);
+    //if(!DataOnly)
+    hAxis->GetYaxis()->SetRangeUser(-6.2,6.2);
+    hAxis->GetXaxis()->SetNdivisions(505);
+    //else hAxis->GetYaxis()->SetRangeUser(0.98, 1.05);
+    //hData->SetTitle("; #it{k*} (MeV/#it{c}); #it{C}(#it{k*})");
+    //hData->GetXaxis()->SetRangeUser(0, 320);
+    //hData->GetYaxis()->SetRangeUser(0.85, 2.3);
+    //hData->SetFillColor(fFillColors[0]);
+    SetStyleHisto2(hAxis,2,0,2);
+    hAxis->GetYaxis()->SetNdivisions(504);
+    //hData->GetYaxis()->SetTitleOffset(1.0);
+    hAxis->Draw("");
+
+    //ge_SigmaSlice->SetFillColorAlpha(kRed+1,0.67);
+    //ge_SigmaSlice->GetYaxis()->SetNdivisions(204);
+    //if(!DataOnly)
+    ge_SigmaSlice->Draw("3 same");
+    geb_SigmaSlice->Draw("3 same");
+    /// a plot of the deviation of the first derivative
+    //ge_SigmaSlice_der->Draw("3 same");
+    //fe_Sigma->Draw("same");
+    //else{
+    //hData_pL_Stat->Draw("same");
+    //Tgraph_syserror->Draw("2 same");
+    //}
+
+    TLatex BeamText_nsigma;
+    BeamText_nsigma.SetTextSize(gStyle->GetTextSize()*1.8);
+    BeamText_nsigma.SetNDC(kTRUE);
+    //BeamText_nsigma.DrawLatex(0.80, 0.90, TString::Format("n_{#sigma} = %.1f",MinNsigma));
+    if(MinChi2>=99.5) BeamText_nsigma.DrawLatex(0.673, 0.90, TString::Format("#chi^{2}/NDF = %.0f/%i = %.1f",MinChi2,MinNdf,MinChi2/double(MinNdf)));
+    else BeamText_nsigma.DrawLatex(0.688, 0.90, TString::Format("#chi^{2}/NDF = %.0f/%i = %.1f",MinChi2,MinNdf,MinChi2/double(MinNdf)));
+    TLatex BeamText_nsigma_info;
+    BeamText_nsigma_info.SetTextSize(gStyle->GetTextSize()*1.2);
+    BeamText_nsigma_info.SetNDC(kTRUE);
+    //BeamText_nsigma_info.DrawLatex(0.80, 0.83, TString::Format("k*#in[0, 300] MeV/#it{c}"));
+    BeamText_nsigma_info.DrawLatex(0.73, 0.83, TString::Format("k*#in[0, 300] MeV/#it{c}, n_{#sigma} = %.1f",MinNsigma));
+
+    DlmPad->GetCanvas()->SaveAs(OutputFolder+TString::Format("DlmPad_%s_%s.pdf",PotDescr[uPot].Data(),BlDescr[uBl].Data()));
+
+    delete hnsigma;
+    delete hb_nsigma;
+    delete hnsigma_0_300;
+    delete hnsigma_0_100;
+    delete hnsigma_100_200;
+    delete hnsigma_200_300;
+    delete htot_nsigma_300;
+    delete hnsigma_der;
+    delete hb_nsigma_der;
+    delete hnsigma_der_0_300;
+    delete hnsigma_der_0_100;
+    delete hnsigma_der_100_200;
+    delete hnsigma_der_200_300;
+    delete htot_nsigma_der_300;
+    delete hfdata;
+    delete hbl;
+    delete hb_fdata;
+    delete hb_bl;
+
+    delete ge_SigmaSlice;
+    delete ge_SigmaSlice_der;
+    delete geb_SigmaSlice;
+    delete geb_SigmaSlice_der;
+    delete fe_Sigma;
+
+    delete hData_pL_Stat;
+    delete ge_Bl;
+    delete ge_Fit;
+    delete geb_Bl;
+    delete geb_Fit;
+    delete hAxis;
+    delete hCk_Fake;
+    delete legend;
+    delete DataHisto_Inlet;
+    delete grFemto_Inlet;
+    delete grbFemto_Inlet;
+    delete inset_pad;
+    delete DlmPad;
+
+    delete [] Bin_MinChi2;
+
+    //delete [] Chi2_300;
+    //delete [] NDF_300;
+    //delete [] NSIGMA_300;
+    delete [] IncludePot;
+    delete [] IncludeBl;
+    delete [] BlFlag;
+    delete [] BlName1;
+    delete [] BlName2;
+    delete [] BlDescr;
+    delete [] PotName1;
+    delete [] PotName2;
+    delete [] PotFlag;
+    delete [] PotDescr;
+    delete [] SourceName1;
+    //delete [] Chi2Ndf;
+    delete hdata_toterr;
+    delete gdata_toterr;
+    delete plambdaTree;
+
+
+    delete InputFile;
+}
+*/
 //compare the NLO results for the computation including s and d waves for:
 //NLO(13/19) cut off (500/550/600/650)
 //make a ratio plot to compare all results to NLO19 600
@@ -8710,6 +9707,7 @@ void CompareChiralNLO_pLambda(){
     delete [] dlmChiral;
 
 }
+
 
 double Fit_pLambda_Splines_Cusp(double* xVal, double* pars){
     double& Mom = *xVal;
@@ -9552,7 +10550,7 @@ printf("PLAMBDA_1_MAIN\n");
 //pLambda_Spline_Fit_Test2();
 //pLambda_Spline_Fit_Unfold2(12);
 
-//Plot_pL_SystematicsMay2020(atoi(argv[1]),atoi(argv[2]),argv[3],argv[4]);
+Plot_pL_SystematicsMay2020(atoi(argv[1]),atoi(argv[2]),argv[3],argv[4]);
 
 //Plot_pL_SystematicsMay2020(-1,0,
 //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/220520_Levy/GaussOnly/",
@@ -9573,9 +10571,9 @@ printf("PLAMBDA_1_MAIN\n");
 //Plot_pL_SystematicsMay2020(2);
 //STUPED_TEST();
 //CompareChiralNLO_pLambda();
-pL_SystematicsMay2020(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]), atoi(argv[6]), atoi(argv[7]),
-"/home/dmihaylov/CernBox/CatsFiles",
-"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/");
+//pL_SystematicsMay2020(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]), atoi(argv[6]), atoi(argv[7]),
+//"/home/dmihaylov/CernBox/CatsFiles",
+//"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/");
 //pL_SystematicsMay2020(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]), atoi(argv[6]), atoi(argv[7]),
 //                      argv[8],argv[9]);
 //pL_SystematicsMay2020(1, 9, 11600, 0, 64,
