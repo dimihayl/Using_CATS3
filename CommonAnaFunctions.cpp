@@ -2569,7 +2569,11 @@ void DLM_CommonAnaFunctions::GetPurities_L(const TString& DataSample, const int&
     }
     else if(DataSample=="pp13TeV_HM_March19"||DataSample=="pp13TeV_HM_Dec19"||DataSample=="pp13TeV_HM_RotPhiDec19"){
         //printf("\033[1;33mWARNING:\033[0m pp13TeV_HM_March19 is not available yet!\n");
-        PurityLambda = 0.9595;
+        if(Variation==0) PurityLambda = 0.9595;//the original value for the preliminaries
+        else if(Variation==1) PurityLambda = 0.936;//spline fits 4th June 2020
+        else if(Variation==2) PurityLambda = 0.936-0.006;//with uncertainties
+        else if(Variation==3) PurityLambda = 0.936+0.006;//with uncertainties
+        else PurityLambda = 0.9595;
     }
     else if(DataSample=="pPb5TeV_Run2paper"){
         PurityLambda = 0.937761;
@@ -2792,6 +2796,9 @@ void DLM_CommonAnaFunctions::SetUpLambdaPars_pp(const TString& DataSample, const
 //2 is pXim->pL
 //3 is the flat feeddown
 //4 is missid
+//Variation_L 4 digits
+//the last two digits are passed to the variations of the fraction (last digit is for Lambda, the second to last for Xi)
+//the first two digits are passed to the purities.
 void DLM_CommonAnaFunctions::SetUpLambdaPars_pL(const TString& DataSample, const int& Variation_p, const int& Variation_L, double* lambda_pars){
     double Purities_p[4];
     double Fraction_p[4];
@@ -2799,8 +2806,8 @@ void DLM_CommonAnaFunctions::SetUpLambdaPars_pL(const TString& DataSample, const
     double Fraction_L[5];
     GetPurities_p(DataSample,Variation_p,Purities_p);
     GetFractions_p(DataSample,Variation_p,Fraction_p);
-    GetPurities_L(DataSample,Variation_L,Purities_L);
-    GetFractions_L(DataSample,Variation_L,Fraction_L);
+    GetPurities_L(DataSample,Variation_L/100,Purities_L);
+    GetFractions_L(DataSample,Variation_L%100,Fraction_L);
     lambda_pars[0] =    Purities_p[0]*Fraction_p[0]*Purities_L[0]*Fraction_L[0];
     lambda_pars[1] =    Purities_p[0]*Fraction_p[0]*Purities_L[1]*Fraction_L[1];
     lambda_pars[2] =    Purities_p[0]*Fraction_p[0]*Purities_L[2]*Fraction_L[2];

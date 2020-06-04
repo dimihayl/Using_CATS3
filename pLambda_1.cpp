@@ -31,6 +31,8 @@
 #include "DLM_SubPads.h"
 #include "DLM_Sort.h"
 #include "DLM_Integration.h"
+#include "DLM_RootWrapper.h"
+#include "DLM_Histo.h"
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -6971,8 +6973,8 @@ void pL_SystematicsMay2020(unsigned SEED, unsigned BASELINE_VAR, int POT_VAR, in
     TString DataSample = "pp13TeV_HM_Dec19";
     //TString DataSample = "pp13TeV_HM_RotPhiDec19";
     //TString SourceDescription = "Gauss";
-    //TString SourceDescription = "McGauss_ResoTM";
-    TString SourceDescription = "McLevy_ResoTM";
+    TString SourceDescription = "McGauss_ResoTM";
+    //TString SourceDescription = "McLevy_ResoTM";
 
     TString OutFileName = TString::Format("Output_%s_POT%i_BL%i_SIG%i_%u.root",DataSample.Data(),POT_VAR,BASELINE_VAR,Sigma0_Feed,SEED);
     TFile* OutputFile = new TFile(TString(OutputFolder)+OutFileName,"recreate");
@@ -7223,8 +7225,11 @@ void pL_SystematicsMay2020(unsigned SEED, unsigned BASELINE_VAR, int POT_VAR, in
         int WhichProtonVar = rangen.Integer(3);
         if(DefaultVariation||FitSyst==false) WhichProtonVar = 0;
         int WhichLambdaVar = rangen.Integer(5);
-
         if(DefaultVariation||FitSyst==false) WhichLambdaVar = 0;
+
+        if(DefaultVariation||FitSyst==false) WhichLambdaVar += 100;//the new purities
+        else WhichLambdaVar += 100*(1+rangen.Integer(3));//new purities with variations
+
         AnalysisObject.SetUpLambdaPars_pL(DataSample,WhichProtonVar,WhichLambdaVar,lam_pL);
         AnalysisObject.SetUpLambdaPars_pXim(DataSample,0,0,lam_pXim);
 
@@ -9610,18 +9615,18 @@ else if((SourceAlpha<1.59||SourceAlpha>1.61)&&WhichSourceAlpha==2) continue;
 void CompareChiralNLO_pLambda(){
 
     const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/CompareChiralNLO_pLambda/";
-    const unsigned NumTypes = 2;
+    const unsigned NumTypes = 3;
     const unsigned NumCutOff = 4;
     int* CutOff = new int [NumCutOff];
     CutOff[0]=500; CutOff[1]=550; CutOff[2]=600; CutOff[3]=650;
     int* LineStyle = new int [NumCutOff];
     LineStyle[0]=2; LineStyle[1]=3; LineStyle[2]=1; LineStyle[3]=4;
     TString* TypeName = new TString [NumTypes];
-    TypeName[0] = "NLO13"; TypeName[1] = "NLO19";
+    TypeName[0] = "NLO13"; TypeName[1] = "NLO19"; TypeName[2] = "LO13";
     int* Type = new int [NumTypes];
     Type[0]=0; Type[1]=1;
     int* LineColor = new int [NumTypes];
-    LineColor[0] = kRed+2; LineColor[1] = kAzure+7;
+    LineColor[0] = kRed+2; LineColor[1] = kAzure+7; LineColor[2] = kGreen+1;
     const int DefType=1;
     const int DefCutOff=2;
 
@@ -9662,7 +9667,9 @@ void CompareChiralNLO_pLambda(){
             DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
             CATS Kitty;
             Kitty.SetMomBins(NumMomBins,kMin,kMax);
-            AnalysisObject.SetUpCats_pL(Kitty,"Chiral_Coupled_SPD","Gauss",Type[uType]*10000+1*1000+CutOff[uCutOff],0);
+            if(TypeName[uType].Contains("NLO")) AnalysisObject.SetUpCats_pL(Kitty,"Chiral_Coupled_SPD","Gauss",Type[uType]*10000+1*1000+CutOff[uCutOff],0);
+            else if(CutOff[uCutOff]==600) AnalysisObject.SetUpCats_pL(Kitty,"LO_Coupled_S","Gauss",0,0);
+            else continue;
             Kitty.SetNotifications(CATS::nWarning);
             Kitty.KillTheCat();
 
@@ -9676,6 +9683,7 @@ void CompareChiralNLO_pLambda(){
 
     for(unsigned uType=0; uType<NumTypes; uType++){
         for(unsigned uCutOff=0; uCutOff<NumCutOff; uCutOff++){
+            if(CutOff[uCutOff]!=600&&!(TypeName[uType].Contains("NLO"))) continue;
             dlmChiralRatio[uType][uCutOff] /= dlmChiral[DefType][DefCutOff];
             for(unsigned uBin=0; uBin<NumMomBins; uBin++){
                 gChiral[uType][uCutOff].SetPoint(uBin,
@@ -10541,16 +10549,941 @@ void ParametrizeSmearMatrix1_pL(){
     delete fOutput;
 }
 
+
+//for each potential/BL/Sigma variation:
+// * find out the chi2 for any of the different r,α,λ,ω variations
+// * printout the best chi2 FOR ALL potentials/BL/Sigma, and use it as a baseline to compare all other hypothesis, assuming 4 fit parameters
+// * printout the nsigma for each potential,BL,Sigma var, and also for each specific r,α,λ,ω
+// * these are many combinations, to reduce the output when presenting, just print:
+//      * by how much a specific value for each r,α,λ,ω observables are excluded (for given hypothesis)
+void pLambda_Study_Hypotheses(){
+    TString FolderName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/290520_Levy/";
+    TString BaseInputName = "Merged_pp13TeV_HM_Dec19_";
+
+    enum BLTYPE              { pol0s,pol1s,pol2s,pol3s,dpol2s,dpol3s,dpol4s,pol2e,pol3e,dpol2e,dpol3e,dpol4e };
+    //const bool IncludeBl[] = { true, true, true, false,false, true,  false, false,false,false, true,  false};
+    const unsigned NumBaselines = 8;
+    int* BlFlag = new int [NumBaselines];
+    bool* IncludeBl = new bool [NumBaselines];
+    BlFlag[0] = pol0s; IncludeBl[0] = false;
+    BlFlag[1] = pol1s; IncludeBl[1] = false;
+    BlFlag[2] = pol2s; IncludeBl[2] = false;
+    BlFlag[3] = dpol2s; IncludeBl[3] = false;
+    BlFlag[4] = pol3e; IncludeBl[4] = false;
+    BlFlag[5] = dpol3s; IncludeBl[5] = false;
+    BlFlag[6] = dpol3e; IncludeBl[6] = true;
+    BlFlag[7] = dpol4e; IncludeBl[7] = false;
+    TString* BlName1 = new TString [NumBaselines+1];
+    TString* BlName2 = new TString [NumBaselines+1];
+    TString* BlDescr = new TString [NumBaselines+1];
+    for(unsigned uBl=0; uBl<=NumBaselines; uBl++) BlName1[uBl] = "";
+    for(unsigned uBl=0; uBl<=NumBaselines; uBl++) BlName2[uBl] = "";
+
+    BlName1[0] = "Constant baseline";
+    BlName2[0] = "Standard fit range";
+    BlDescr[0] = "pol0s";
+
+    BlName1[1] = "Linear baseline";
+    BlName2[1] = "Standard fit range";
+    BlDescr[1] = "pol1s";
+
+    BlName1[2] = "Quadratic baseline";
+    BlName2[2] = "Standard fit range";
+    BlDescr[2] = "pol2s";
+
+    BlName1[3] = "Quadratic baseline (constrained)";
+    BlName2[3] = "Standard fit range";
+    BlDescr[3] = "dpol2s";
+
+    BlName1[4] = "Cubic baseline";
+    BlName2[4] = "Extended fit range";
+    BlDescr[4] = "pol3e";
+
+    BlName1[5] = "Cubic baseline (constrained)";
+    BlName2[5] = "Standard fit range";
+    BlDescr[5] = "dpol3s";
+
+    BlName1[6] = "Cubic baseline (constrained)";
+    BlName2[6] = "Extended fit range";
+    BlDescr[6] = "dpol3e";
+
+    BlName1[7] = "Quartic baseline (constrained)";
+    BlName2[7] = "Extended fit range";
+    BlDescr[7] = "dpol4e";
+
+    BlName1[8] = "All baselines";
+    BlName2[8] = "";
+    BlDescr[8] = "AllBl";
+
+    const unsigned NumPotVars = 8;
+    TString* PotName1 = new TString [NumPotVars+1];
+    PotName1[0] = "NLO13 (500)";
+    PotName1[1] = "NLO13 (550)";
+    PotName1[2] = "NLO13 (600)";
+    PotName1[3] = "NLO13 (650)";
+    PotName1[4] = "NLO19 (500)";
+    PotName1[5] = "NLO19 (550)";
+    PotName1[6] = "NLO19 (600)";
+    PotName1[7] = "NLO19 (650)";
+    PotName1[8] = "NLO13/19 (500-650)";
+    TString* PotName2 = new TString [NumPotVars+1];
+    for(unsigned uPot=0; uPot<=NumPotVars; uPot++) PotName2[uPot] = "s,d waves";
+    int* PotFlag = new int [NumPotVars];
+    bool* IncludePot = new bool [NumPotVars];
+    PotFlag[0] = 1500; IncludePot[0] = true;
+    PotFlag[1] = 1550; IncludePot[1] = true;
+    PotFlag[2] = 1600; IncludePot[2] = true;
+    PotFlag[3] = 1650; IncludePot[3] = true;
+    PotFlag[4] = 11500; IncludePot[4] = true;
+    PotFlag[5] = 11550; IncludePot[5] = true;
+    PotFlag[6] = 11600; IncludePot[6] = true;
+    PotFlag[7] = 11650; IncludePot[7] = true;
+    TString* PotDescr = new TString [NumPotVars+1];
+    PotDescr[0] = "NLO13-500";
+    PotDescr[1] = "NLO13-550";
+    PotDescr[2] = "NLO13-600";
+    PotDescr[3] = "NLO13-650";
+    PotDescr[4] = "NLO19-500";
+    PotDescr[5] = "NLO19-550";
+    PotDescr[6] = "NLO19-600";
+    PotDescr[7] = "NLO19-650";
+    PotDescr[8] = "NLO";
+
+    const unsigned NumSigVars = 3;
+    int* SigFlag = new int [NumSigVars];
+    bool* IncludeSig = new bool [NumSigVars];
+    SigFlag[0] = 0; IncludeSig[0] = true;
+    SigFlag[1] = 1; IncludeSig[1] = true;
+    SigFlag[2] = 2; IncludeSig[2] = true;
+    TString* SigName1 = new TString [NumSigVars+1];
+    SigName1[0] = "Flat";
+    SigName1[1] = "#chiEFT (NLO)";
+    SigName1[2] = "ESC 16";
+    SigName1[3] = "All #Sigma models";
+    TString* SigDescr = new TString [NumSigVars+1];
+    SigDescr[0] = "Flat";
+    SigDescr[1] = "chEFT";
+    SigDescr[2] = "ESC16";
+    SigDescr[3] = "AllSigma";
+
+    const unsigned NumFitPars = 4;
+    DLM_Histo<float> dlm_chi2;
+    DLM_Histo<float> dlm_ndf;
+
+
+    dlm_chi2.SetUp(3+NumFitPars);
+    dlm_chi2.SetUp(0,8,-0.5,4.5);//pot
+    dlm_chi2.SetUp(1,1,-0.5,0.5);//bl
+    dlm_chi2.SetUp(2,3,-0.5,2.5);//sig
+    dlm_chi2.SetUp(3,5,0.92,1.12);//r
+    dlm_chi2.SetUp(4,5,1.55,2.05);//α
+    dlm_chi2.SetUp(5,5,0.405,0.505);//λ
+    dlm_chi2.SetUp(6,5,0.19,0.47);//ω
+    dlm_chi2.Initialize();
+    dlm_chi2.SetBinContentAll(1e6);
+
+    dlm_ndf.SetUp(3+NumFitPars);
+    dlm_ndf.SetUp(0,8,-0.5,4.5);//pot
+    dlm_ndf.SetUp(1,1,-0.5,0.5);//bl
+    dlm_ndf.SetUp(2,3,-0.5,2.5);//sig
+    dlm_ndf.SetUp(3,5,0.92,1.12);//r
+    dlm_ndf.SetUp(4,5,1.55,2.05);//α
+    dlm_ndf.SetUp(5,5,0.405,0.505);//λ
+    dlm_ndf.SetUp(6,5,0.19,0.47);//ω
+    dlm_ndf.Initialize();
+    dlm_ndf.SetBinContentAll(1);
+
+    unsigned* WhichBin = new unsigned [3+NumFitPars];
+    unsigned WhichTotBin;
+    for(unsigned uPot=0; uPot<NumPotVars; uPot++){
+        bool BinCentersAreOkay = false;
+        if(!IncludePot[uPot]) continue;
+        WhichBin[uPot] = uPot;
+        for(unsigned uBl=0; uBl<NumBaselines; uBl++){
+            if(!IncludeBl[uBl]) continue;
+            WhichBin[uBl] = uBl;
+            for(unsigned uSig=0; uSig<NumSigVars; uSig++){
+                if(!IncludeSig[uSig]) continue;
+
+                DLM_Histo<float> dlmPBS_chi2;
+                DLM_Histo<float> dlmPBS_ndf;
+                DLM_Histo<float> dlmPBS_num;
+
+                dlmPBS_chi2.SetUp(NumFitPars);
+                dlmPBS_chi2.SetUp(0,5,0.92,1.12);//r
+                dlmPBS_chi2.SetUp(1,5,1.55,2.05);//α
+                dlmPBS_chi2.SetUp(2,5,0.405,0.505);//λ
+                dlmPBS_chi2.SetUp(3,5,0.19,0.47);//ω
+                dlmPBS_chi2.Initialize();
+                dlmPBS_chi2.SetBinContentAll(1e6);
+
+                dlmPBS_ndf.SetUp(NumFitPars);
+                dlmPBS_ndf.SetUp(0,5,0.92,1.12);//r
+                dlmPBS_ndf.SetUp(1,5,1.55,2.05);//α
+                dlmPBS_ndf.SetUp(2,5,0.405,0.505);//λ
+                dlmPBS_ndf.SetUp(3,5,0.19,0.47);//ω
+                dlmPBS_ndf.Initialize();
+                dlmPBS_ndf.SetBinContentAll(1);
+
+                dlmPBS_num.SetUp(NumFitPars);
+                dlmPBS_num.SetUp(0,5,0.92,1.12);//r
+                dlmPBS_num.SetUp(1,5,1.55,2.05);//α
+                dlmPBS_num.SetUp(2,5,0.405,0.505);//λ
+                dlmPBS_num.SetUp(3,5,0.19,0.47);//ω
+                dlmPBS_num.Initialize();
+                dlmPBS_num.SetBinContentAll(1);
+
+                WhichBin[uSig] = uSig;
+                TFile* fInput = new TFile(FolderName+BaseInputName+
+                                TString::Format("POT%i_BL%i_SIG%i.root",PotFlag[uPot],BlFlag[uBl],SigFlag[uSig]),"read");
+                TTree* plambdaTree = (TTree*)fInput->Get("plambdaTree");
+
+                TGraphErrors* gData = NULL;TGraphErrors* fitData = NULL;TGraphErrors* fitFemto = NULL;TGraphErrors* fitGenuine = NULL;
+                TGraphErrors* fitSignal_pL = NULL;TGraphErrors* fitSignal_pL_pS0 = NULL;TGraphErrors* fitSignal_pL_pXim = NULL;TGraphErrors* fitBaseline = NULL;
+                TString* DataSample = NULL;TString* SourceDescription = NULL;
+                unsigned SEED;unsigned BASELINE_VAR;int POT_VAR;
+                bool DataSyst;bool FitSyst;bool Bootstrap;
+                float SourceSize;float SourceAlpha;float CuspWeight;float CkConv;float CkCutOff;
+                float Norm;float pp1;float pp2;float pp3;float pp4;
+                float kFemtoMin;float kFemtoMax;float kLongMin;float kLongMax;
+                float lam_L_genuine;float lam_L_Sig0;float lam_L_Xim;float lam_L_Flat;
+                float lam_S0_genuine;float lam_S0_Flat;float lam_Xim_genuine;float lam_Xim_Flat;
+                float pval;unsigned WhichData;bool DefaultVariation;int Sigma0_Feed;int Xim_Feed;
+
+                plambdaTree->SetBranchAddress("gData",&gData);
+                plambdaTree->SetBranchAddress("fitData",&fitData);
+                plambdaTree->SetBranchAddress("fitFemto",&fitFemto);
+                plambdaTree->SetBranchAddress("fitGenuine",&fitGenuine);
+                plambdaTree->SetBranchAddress("fitSignal_pL",&fitSignal_pL);
+                plambdaTree->SetBranchAddress("fitSignal_pL_pS0",&fitSignal_pL_pS0);
+                plambdaTree->SetBranchAddress("fitSignal_pL_pXim",&fitSignal_pL_pXim);
+                plambdaTree->SetBranchAddress("fitBaseline",&fitBaseline);
+                plambdaTree->SetBranchAddress("DataSample",&DataSample);
+                plambdaTree->SetBranchAddress("SourceDescription",&SourceDescription);
+                plambdaTree->SetBranchAddress("SEED",&SEED);
+                plambdaTree->SetBranchAddress("BASELINE_VAR",&BASELINE_VAR);
+                plambdaTree->SetBranchAddress("POT_VAR",&POT_VAR);
+                plambdaTree->SetBranchAddress("Sigma0_Feed",&Sigma0_Feed);
+                plambdaTree->SetBranchAddress("Xim_Feed",&Xim_Feed);
+                plambdaTree->SetBranchAddress("DataSyst",&DataSyst);
+                plambdaTree->SetBranchAddress("FitSyst", &FitSyst);//
+                plambdaTree->SetBranchAddress("Bootstrap", &Bootstrap);//
+                plambdaTree->SetBranchAddress("SourceSize",&SourceSize);
+                plambdaTree->SetBranchAddress("SourceAlpha",&SourceAlpha);
+                plambdaTree->SetBranchAddress("CuspWeight",&CuspWeight);
+                plambdaTree->SetBranchAddress("CkCutOff",&CkCutOff);
+                plambdaTree->SetBranchAddress("CkConv",&CkConv);
+                plambdaTree->SetBranchAddress("Norm",&Norm);
+                plambdaTree->SetBranchAddress("pp1",&pp1);
+                plambdaTree->SetBranchAddress("pp2",&pp2);
+                plambdaTree->SetBranchAddress("pp3",&pp3);
+                plambdaTree->SetBranchAddress("pp4",&pp4);
+                plambdaTree->SetBranchAddress("kFemtoMin",&kFemtoMin);
+                plambdaTree->SetBranchAddress("kFemtoMax",&kFemtoMax);
+                plambdaTree->SetBranchAddress("kLongMin",&kLongMin);
+                plambdaTree->SetBranchAddress("kLongMax",&kLongMax);
+                plambdaTree->SetBranchAddress("lam_L_genuine",&lam_L_genuine);
+                plambdaTree->SetBranchAddress("lam_L_Sig0",&lam_L_Sig0);
+                plambdaTree->SetBranchAddress("lam_L_Flat",&lam_L_Flat);
+                plambdaTree->SetBranchAddress("lam_S0_genuine",&lam_S0_genuine);
+                plambdaTree->SetBranchAddress("lam_S0_Flat",&lam_S0_Flat);
+                plambdaTree->SetBranchAddress("lam_Xim_genuine",&lam_Xim_genuine);
+                plambdaTree->SetBranchAddress("lam_Xim_Flat",&lam_Xim_Flat);
+                plambdaTree->SetBranchAddress("WhichData",&WhichData);
+                plambdaTree->SetBranchAddress("pval",&pval);
+                plambdaTree->SetBranchAddress("DefaultVariation",&DefaultVariation);
+
+                const unsigned NumEntries = plambdaTree->GetEntries();
+
+                for(unsigned uEntry=0; uEntry<NumEntries; uEntry++){
+                    plambdaTree->GetEntry(uEntry);
+                    //if(!BinCentersAreOkay){
+                        dlm_chi2.SetBinCenter(3,dlm_chi2.GetBin(3,SourceSize),SourceSize);
+                        dlm_chi2.SetBinCenter(4,dlm_chi2.GetBin(4,SourceAlpha),SourceAlpha);
+                        dlm_chi2.SetBinCenter(5,dlm_chi2.GetBin(5,lam_L_genuine),lam_L_genuine);
+                        dlm_chi2.SetBinCenter(6,dlm_chi2.GetBin(6,CuspWeight),CuspWeight);
+
+                        dlmPBS_chi2.SetBinCenter(0,dlmPBS_chi2.GetBin(0,SourceSize),SourceSize);
+                        dlmPBS_chi2.SetBinCenter(1,dlmPBS_chi2.GetBin(1,SourceAlpha),SourceAlpha);
+                        dlmPBS_chi2.SetBinCenter(2,dlmPBS_chi2.GetBin(2,lam_L_genuine),lam_L_genuine);
+                        dlmPBS_chi2.SetBinCenter(3,dlmPBS_chi2.GetBin(3,CuspWeight),CuspWeight);
+
+                        dlmPBS_ndf.SetBinCenter(0,dlmPBS_ndf.GetBin(0,SourceSize),SourceSize);
+                        dlmPBS_ndf.SetBinCenter(1,dlmPBS_ndf.GetBin(1,SourceAlpha),SourceAlpha);
+                        dlmPBS_ndf.SetBinCenter(2,dlmPBS_ndf.GetBin(2,lam_L_genuine),lam_L_genuine);
+                        dlmPBS_ndf.SetBinCenter(3,dlmPBS_ndf.GetBin(3,CuspWeight),CuspWeight);
+
+                        dlmPBS_num.SetBinCenter(0,dlmPBS_num.GetBin(0,SourceSize),SourceSize);
+                        dlmPBS_num.SetBinCenter(1,dlmPBS_num.GetBin(1,SourceAlpha),SourceAlpha);
+                        dlmPBS_num.SetBinCenter(2,dlmPBS_num.GetBin(2,lam_L_genuine),lam_L_genuine);
+                        dlmPBS_num.SetBinCenter(3,dlmPBS_num.GetBin(3,CuspWeight),CuspWeight);
+                    //}
+                    WhichBin[3] = dlm_chi2.GetBin(3,SourceSize);
+                    WhichBin[4] = dlm_chi2.GetBin(4,SourceAlpha);
+                    WhichBin[5] = dlm_chi2.GetBin(5,lam_L_genuine);
+                    WhichBin[6] = dlm_chi2.GetBin(6,CuspWeight);
+
+
+if(WhichBin[5]!=WhichBin[6]) continue;
+//if(WhichBin[3]!=2&&WhichBin[4]!=4) continue;
+if(WhichBin[3]==0||WhichBin[3]==4) continue;
+if(WhichBin[4]!=3) continue;
+if(WhichBin[5]==0||WhichBin[5]==4) continue;
+if(WhichBin[6]==0||WhichBin[6]==4) continue;
+
+                    float Chi2=0;float NDF=0;
+                    double Momentum;double DataValue;double DataErr;double FitValue;
+
+                    for(unsigned uBin=0; uBin<fitData->GetN(); uBin++){
+                        fitData->GetPoint(uBin,Momentum,FitValue);
+                        if(Momentum>300) break;
+                        gData->GetPoint(uBin,Momentum,DataValue);
+                        DataErr = gData->GetErrorY(uBin);
+                        Chi2 += pow((DataValue-FitValue)/DataErr,2.);
+                        NDF++;
+                    }
+
+                    if(dlmPBS_chi2.GetBinContent(&WhichBin[3])==1e6){
+                        dlm_chi2.SetBinContent(WhichBin,Chi2);
+                        dlm_ndf.SetBinContent(WhichBin,NDF);
+
+                        dlmPBS_chi2.SetBinContent(&WhichBin[3],Chi2);
+                        dlmPBS_ndf.SetBinContent(&WhichBin[3],NDF);
+                        dlmPBS_num.SetBinContent(&WhichBin[3],1);
+                    }
+
+                    else{
+                        WhichTotBin = dlm_chi2.GetTotBin(WhichBin);
+                        dlm_chi2.Add(WhichTotBin,Chi2);
+                        dlm_ndf.Add(WhichTotBin,NDF);
+
+                        WhichTotBin = dlmPBS_chi2.GetTotBin(&WhichBin[3]);
+//printf("WhichTotBin=%u %f %f\n",WhichTotBin,Chi2,NDF);
+//printf(" %f ->",dlmPBS_chi2.GetBinContent(WhichTotBin));
+                        dlmPBS_chi2.Add(WhichTotBin,Chi2);
+//printf(" %f / %f = %f\n",dlmPBS_chi2.GetBinContent(WhichTotBin),dlmPBS_num.GetBinContent(WhichTotBin),dlmPBS_chi2.GetBinContent(WhichTotBin)/dlmPBS_num.GetBinContent(WhichTotBin));
+                        dlmPBS_ndf.Add(WhichTotBin,NDF);
+                        dlmPBS_num.Add(WhichTotBin,1.0);
+//usleep(100e3);
+                    }
+
+                }
+
+                dlmPBS_chi2.DivideHistoBinByBin(dlmPBS_num,false);
+                dlmPBS_ndf.DivideHistoBinByBin(dlmPBS_num,false);
+
+                float BestChi2;
+                float BestNdf;
+                unsigned* BestBin = NULL;
+                unsigned* BestWhichBin = new unsigned [NumFitPars];
+                unsigned NumBesties;
+                NumBesties = dlmPBS_chi2.FindMinima(BestChi2,BestBin);
+                dlmPBS_chi2.GetBinCoordinates(BestBin[0],BestWhichBin);
+                BestNdf = dlmPBS_ndf.GetBinContent(BestBin[0]);
+                printf("Mainstream hypothesis:\n  %s p-Λ, %s baseline, %s p-Σ0\n",PotDescr[uPot].Data(),BlDescr[uBl].Data(),SigDescr[uSig].Data());
+                printf("  Best solution: r=%.2f(%u); α=%.2f(%u); λ=%.2f(%u); ω=%.2f(%u)\n",
+                       dlmPBS_chi2.GetBinCenter(0,BestWhichBin[0]),BestWhichBin[0],
+                       dlmPBS_chi2.GetBinCenter(1,BestWhichBin[1]),BestWhichBin[1],
+                       dlmPBS_chi2.GetBinCenter(2,BestWhichBin[2]),BestWhichBin[2],
+                       dlmPBS_chi2.GetBinCenter(3,BestWhichBin[3]),BestWhichBin[3]);
+                printf("    with χ2/NDF = %.1f/%.0f = %.2f\n",BestChi2,BestNdf,BestChi2/BestNdf);
+
+                delete plambdaTree;
+                delete fInput;
+                delete [] BestBin;
+                delete [] BestWhichBin;
+                BinCentersAreOkay = true;
+            }
+        }
+    }
+
+    delete [] BlFlag;
+    delete [] IncludeBl;
+    delete [] BlName1;
+    delete [] BlName2;
+    delete [] BlDescr;
+    delete [] PotDescr;
+    delete [] PotName1;
+    delete [] PotName2;
+    delete [] PotFlag;
+    delete [] IncludePot;
+    delete [] SigFlag;
+    delete [] IncludeSig;
+    delete [] SigName1;
+    delete [] SigDescr;
+    delete [] WhichBin;
+}
+
+void CompareTo_pp(){
+
+    //TString InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/CompareTo_pp/OutFileVarpp.root";
+    TString InputFileName = "/home/dmihaylov/Downloads/OutFileVarpp.root";
+
+    const double kMin=0;
+    //Laura said 200
+    const double kMax=350;
+
+    double Chi2=0;
+    double NDF=0;
+    unsigned NumIter=0;
+
+    const unsigned Which_ModPL = 2;
+    const unsigned Which_PolBL = 2;
+    //0.1915, 0.2014 0.2115 err 0.001
+    //0 is integrated
+    const float Which_lam_ppL = 0.0;
+    //const float Which_lam_ppL = 0.1915;
+    //const float Which_lam_ppL = 0.2014;
+    //const float Which_lam_ppL = 0.2115;
+
+    unsigned ModPL;
+    unsigned PolBL;
+    float lam_ppL;
+
+    TFile* fInput = new TFile(InputFileName,"read");
+    printf("fInput = %p\n",fInput);
+    TTree* AndiTree = (TTree*)fInput->Get("ppTree");
+    TGraph* FitResult = NULL;
+    TH1F* CorrHist = NULL;
+    printf("AndiTree = %p\n",AndiTree);
+    //AndiTree->Print();
+
+	AndiTree->SetBranchAddress("CorrHist",&CorrHist);
+	AndiTree->SetBranchAddress("FitResult",&FitResult);
+	AndiTree->SetBranchAddress("ModPL",&ModPL);
+	AndiTree->SetBranchAddress("PolBL",&PolBL);
+	AndiTree->SetBranchAddress("lam_ppL",&lam_ppL);
+
+	unsigned NumEntries = AndiTree->GetEntries();
+    double CkData;
+    double CkFit;
+    double xAxis;
+    double CkErr;
+    double NumChi2Entries=0;
+
+    printf("Iterating over %u events\n",NumEntries);
+
+	for(unsigned uEntry=0; uEntry<NumEntries; uEntry++){
+        //printf("uEntry=%u\n",uEntry);
+        fInput->cd();
+        AndiTree->GetEntry(uEntry);
+        //printf(" got it!\n");
+        if(ModPL!=Which_ModPL) continue;
+        if(PolBL!=Which_PolBL) continue;
+        if(Which_lam_ppL&&(lam_ppL<Which_lam_ppL-0.001||lam_ppL>Which_lam_ppL+0.001)) continue;
+        //printf(" CorrHist=%p\n",CorrHist);
+        for(unsigned uBin=0; uBin<CorrHist->GetNbinsX(); uBin++){
+            double Momentum = CorrHist->GetBinCenter(uBin+1);
+            if(Momentum>kMax) break;
+            CkData = CorrHist->GetBinContent(uBin+1);
+            CkErr = CorrHist->GetBinError(uBin+1);
+            FitResult->GetPoint(uBin,xAxis,CkFit);
+            if(uEntry==0){
+                printf("%u: k*=%.2f %.3f+/-%.3f vs %.3f\n",uBin,Momentum,CkData,CkErr,CkFit);
+            }
+            Chi2 += pow((CkData-CkFit)/CkErr,2.);
+            NDF++;
+        }
+        NumChi2Entries++;
+	}
+
+    Chi2 /= NumChi2Entries;
+    NDF /= NumChi2Entries;
+    double nsigma = sqrt(2)*TMath::ErfcInverse(TMath::Prob(Chi2,TMath::Nint(NDF)));
+
+    printf("<Chi2/NDF> = %.2f/%.0f = %.2f\n",Chi2,NDF,Chi2/NDF);
+    printf("nsigma = %.2f\n",nsigma);
+
+    delete fInput;
+}
+
+
+double Fit_IMS_Signal(double* xVal, double* pars){
+    double& IM = *xVal;
+    double& Ampl1 = pars[0];
+    double& Mean1 = pars[1];
+    double& Stdv1 = pars[2];
+    double& Ampl2 = pars[3];
+    double Mean2 = pars[4]; if(Mean2==0) Mean2=Mean1;
+    double& Stdv2 = pars[5];
+    return Ampl1*TMath::Gaus(IM,Mean1,Stdv1,1)+Ampl2*TMath::Gaus(IM,Mean2,Stdv2,1);
+}
+double Fit_IMS_Splines(double* xVal, double* pars){
+    double Peak = Fit_IMS_Signal(xVal,pars);
+    double Splines = DLM_FITTER2_FUNCTION_SPLINE3(xVal,&pars[6]);
+    return Splines+Peak;
+}
+double Fit_IMS_Pol2(double* xVal, double* pars){
+    double& x = *xVal;
+    double Peak = Fit_IMS_Signal(xVal,pars);
+    double Pol2 = pars[6]+pars[7]*x+pars[8]*x*x;
+    return Pol2+Peak;
+}
+
+void Purity_vs_kstar(const unsigned& FirstBoot, const unsigned& LastBoot){
+
+    const double kMax = 2400;
+    //const unsigned BootstrapIter = 128;
+    const double pdgLambda = 1115.683;
+    const double imWindow = 4.0;
+
+    TString OutputFileName = TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/"
+                            "pLambda_1/Purity_vs_kstar/fOutput_%u_%u.root",FirstBoot,LastBoot);
+
+
+    TString InputFileName = "/home/dmihaylov/CernBox/CatsFiles_Dimi/pLambda/AnalysisResults_Purity01062020.root";
+    TString DirectoryName = "HMDimiResultsQA0";
+    TString ListName1 = "HMDimiResultsQA0";
+    TString ListName2 = "PairQA";
+    TString ListNamePP = "QA_Particle0_Particle2";
+    TString ListNameAPAP = "QA_Particle1_Particle3";
+    TString HistoNamePP = "MassQA_Particle2_2";
+    TString HistoNameAPAP = "MassQA_Particle3_2";
+
+    TFile* fInput = new TFile(InputFileName,"read");
+    printf("fInput = %p\n",fInput);
+    //fInput->Print();
+    TDirectoryFile* dInput = (TDirectoryFile*)(fInput->FindObjectAny(DirectoryName));
+    printf("dInput = %p\n",dInput);
+    //dInput->ls();
+    TList* lInput1 = NULL;
+    dInput->GetObject(ListName1,lInput1);
+    printf("lInput1 = %p\n",lInput1);
+    //lInput1->ls();
+    TList* lInput2 = (TList*)lInput1->FindObject(ListName2);
+    printf("lInput2 = %p\n",lInput2);
+    TList* lInputPP = (TList*)lInput2->FindObject(ListNamePP);
+    printf("lInputPP = %p\n",lInputPP);
+    lInputPP->ls();
+    TList* lInputAPAP = (TList*)lInput2->FindObject(ListNameAPAP);
+    printf("lInputAPAP = %p\n",lInputAPAP);
+    lInputAPAP->ls();
+    TH2F* hPP_IMS_k = (TH2F*)lInputPP->FindObject(HistoNamePP);
+    printf("hPP_IMS_k = %p\n",hPP_IMS_k);
+    TH2F* hAPAP_IMS_k = (TH2F*)lInputAPAP->FindObject(HistoNameAPAP);
+    printf("hAPAP_IMS_k = %p\n",hAPAP_IMS_k);
+
+    hPP_IMS_k->Sumw2();
+    hAPAP_IMS_k->Sumw2();
+
+    hPP_IMS_k->Rebin2D(8,6);
+    hAPAP_IMS_k->Rebin2D(8,6);
+
+    DLM_Histo<float>* dlm_PP_IMS_k = Convert_TH2F_DlmHisto(hPP_IMS_k);
+//return;
+    DLM_Histo<float>* dlm_APAP_IMS_k = Convert_TH2F_DlmHisto(hAPAP_IMS_k);
+    DLM_Histo<float>* dlm_IMS_k = new DLM_Histo<float>();
+
+    dlm_PP_IMS_k->RescaleAxis(0,1000,false);
+    dlm_PP_IMS_k->RescaleAxis(1,1000,false);
+    dlm_APAP_IMS_k->RescaleAxis(0,1000,false);
+    dlm_APAP_IMS_k->RescaleAxis(1,1000,false);
+
+    dlm_IMS_k->Copy(*dlm_PP_IMS_k);
+    *dlm_IMS_k += *dlm_APAP_IMS_k;
+
+    TH2F* hdimi_PP_IMS_k;
+    hdimi_PP_IMS_k = Convert_DlmHisto_TH2F(dlm_PP_IMS_k,"hdimi_PP_IMS_k");
+
+    TH2F* hdimi_APAP_IMS_k;
+    hdimi_APAP_IMS_k = Convert_DlmHisto_TH2F(dlm_APAP_IMS_k,"hdimi_APAP_IMS_k");
+
+    TH2F* hdimi_IMS_k;
+    hdimi_IMS_k = Convert_DlmHisto_TH2F(dlm_IMS_k,"hdimi_IMS_k");
+
+
+
+    double DefaultValue;
+    double Error;
+    double RandomValue;
+
+    TGraphErrors* gPurity = new TGraphErrors [3];
+    TH2F* hInput;
+    TH1D* hIMS;
+
+    TFile* fOutput = new TFile(OutputFileName,"recreate");
+
+    float Momentum;
+    float Purity;
+    float Chi2;
+    float NDF;
+
+    float Purity_p2;
+    float Chi2_p2;
+    float NDF_p2;
+
+    unsigned Scenario;
+    TGraph gFit;
+    gFit.SetName("gFit");
+    TGraph gBgr;
+    gBgr.SetName("gBgr");
+    TGraphErrors gData;
+    gData.SetName("gData");
+
+    TGraph gFit_p2;
+    gFit_p2.SetName("gFit_p2");
+    TGraph gBgr_p2;
+    gBgr_p2.SetName("gBgr_p2");
+
+    TTree* PurityTree = new TTree("PurityTree","PurityTree");
+    PurityTree->Branch("Scenario", &Scenario, "Scenario/i");
+    PurityTree->Branch("gData","TGraphErrors",&gData,32000,0);//
+    PurityTree->Branch("gFit","TGraph",&gFit,32000,0);//
+    PurityTree->Branch("gBgr","TGraph",&gBgr,32000,0);//
+    PurityTree->Branch("Momentum", &Momentum, "Momentum/F");//
+    PurityTree->Branch("Purity", &Purity, "Purity/F");//
+    PurityTree->Branch("Chi2", &Chi2, "Chi2/F");//
+    PurityTree->Branch("NDF", &NDF, "NDF/F");//
+
+    PurityTree->Branch("gFit_p2","TGraph",&gFit_p2,32000,0);//
+    PurityTree->Branch("gBgr_p2","TGraph",&gBgr_p2,32000,0);//
+    PurityTree->Branch("Purity_p2", &Purity_p2, "Purity/F");//
+    PurityTree->Branch("Chi2_p2", &Chi2_p2, "Chi2/F");//
+    PurityTree->Branch("NDF_p2", &NDF_p2, "NDF/F");//
+
+    fInput->cd();
+
+    //3 scenarios: PP, APAP, Full
+    for(unsigned uSce=0; uSce<3; uSce++){
+printf("uSce=%u\n",uSce);
+        Scenario = uSce;
+        fInput->cd();
+        if(uSce==0) hInput = hdimi_PP_IMS_k;
+        else if(uSce==1) hInput = hdimi_APAP_IMS_k;
+        else hInput = hdimi_IMS_k;
+        for(unsigned uBin=0; uBin<hInput->GetYaxis()->GetNbins(); uBin++){
+            fInput->cd();
+            Momentum = hInput->GetYaxis()->GetBinCenter(uBin+1);
+            if(Momentum>kMax) continue;
+printf(" uBin=%u k*=%.0f MeV\n",uBin,Momentum);
+            for(unsigned uBoot=FirstBoot; uBoot<LastBoot; uBoot++){
+                TRandom3 rangen(uBoot+1);
+//printf("  uBoot=%u\n",uBoot);
+                fInput->cd();
+                hIMS = hInput->ProjectionX("hIMS",uBin+1,uBin+1);
+                const double dataIntegral = hIMS->Integral(hIMS->FindBin(pdgLambda-2.*imWindow),hIMS->FindBin(pdgLambda+2.*imWindow));
+                hIMS->Scale(1.,"width");
+                double IM_min = 1080;
+                double IM_max = hIMS->GetXaxis()->GetBinUpEdge(hIMS->GetNbinsX());
+                for(unsigned uBinIMS=0; uBinIMS<hIMS->GetNbinsX(); uBinIMS++){
+                    fInput->cd();
+                    if(hIMS->GetBinCenter(uBinIMS+1)<IM_min||hIMS->GetBinCenter(uBinIMS+1)>IM_max){
+                        gData.SetPoint(uBinIMS,hIMS->GetBinCenter(uBinIMS+1),0);
+                        gData.SetPointError(uBinIMS,0,0);
+                        continue;
+                    }
+                    if(uBoot){
+                        DefaultValue = hIMS->GetBinContent(uBinIMS+1);
+                        Error = hIMS->GetBinError(uBinIMS+1);
+                        RandomValue = 0;
+                        while(RandomValue<1){
+                            RandomValue = rangen.Gaus(DefaultValue,Error);
+                        }
+                        hIMS->SetBinContent(uBinIMS+1,RandomValue);
+                    }
+                    gData.SetPoint(uBinIMS,hIMS->GetBinCenter(uBinIMS+1),hIMS->GetBinContent(uBinIMS+1));
+                    gData.SetPointError(uBinIMS,0,hIMS->GetBinError(uBinIMS+1));
+                }
+/*
+                const int NumKnots = 9;
+                double* Nodes_x = new double [NumKnots];
+                Nodes_x[0] = IM_min;
+                Nodes_x[1] = 1090;
+                Nodes_x[2] = 1098;
+                Nodes_x[3] = 1106;
+                Nodes_x[4] = 1124;
+                Nodes_x[5] = 1128;
+                Nodes_x[6] = 1132;
+                Nodes_x[7] = 1142;
+                Nodes_x[8] = IM_max;
+*/
+/*
+                const int NumKnots = 6;
+                double* Nodes_x = new double [NumKnots];
+                Nodes_x[0] = IM_min;
+                Nodes_x[1] = 1090;
+                Nodes_x[2] = 1100;
+                Nodes_x[3] = 1130;
+                Nodes_x[4] = 1140;
+                Nodes_x[5] = IM_max;
+*/
+/*
+                const int NumKnots = 9;
+                double* Nodes_x = new double [NumKnots];
+                Nodes_x[0] = IM_min;
+                Nodes_x[1] = 1090;
+                Nodes_x[2] = 1097;
+                Nodes_x[3] = 1104;
+                Nodes_x[4] = pdgLambda;
+                Nodes_x[5] = 1124;
+                Nodes_x[6] = 1130;
+                Nodes_x[7] = 1140;
+                Nodes_x[8] = IM_max;
+*/
+/*
+                const int NumKnots = 8;
+                double* Nodes_x = new double [NumKnots];
+                Nodes_x[0] = IM_min;
+                Nodes_x[1] = 1090;
+                Nodes_x[2] = 1097;
+                Nodes_x[3] = 1104;
+                Nodes_x[4] = 1124;
+                Nodes_x[5] = 1130;
+                Nodes_x[6] = 1140;
+                Nodes_x[7] = IM_max;
+*/
+/*
+                const int NumKnots = 6;
+                double* Nodes_x = new double [NumKnots];
+                Nodes_x[0] = IM_min;
+                Nodes_x[1] = 1090;
+                Nodes_x[2] = 1100;
+                Nodes_x[3] = 1132;
+                Nodes_x[4] = 1140;
+                Nodes_x[5] = IM_max;
+*/
+
+                const int NumKnots = 9;
+                double* Nodes_x = new double [NumKnots];
+                Nodes_x[0] = IM_min;
+                Nodes_x[1] = 1090;
+                Nodes_x[2] = 1104;
+                Nodes_x[3] = 1115;
+                Nodes_x[4] = 1126;
+                Nodes_x[5] = 1130;
+                Nodes_x[6] = 1135;
+                Nodes_x[7] = 1140;
+                Nodes_x[8] = IM_max;
+
+                const int NumKnots_s = 6;
+                double* Nodes_sx = new double [NumKnots_s];
+                Nodes_sx[0] = IM_min;
+                Nodes_sx[1] = 1090;
+                Nodes_sx[2] = 1100;
+                Nodes_sx[3] = 1132;
+                Nodes_sx[4] = 1140;
+                Nodes_sx[5] = IM_max;
+
+/*
+                const int NumKnots_s = 8;
+                double* Nodes_sx = new double [NumKnots_s];
+                Nodes_sx[0] = IM_min;
+                Nodes_sx[1] = 1090;
+                Nodes_sx[2] = 1097;
+                Nodes_sx[3] = 1104;
+                Nodes_sx[4] = 1124;
+                Nodes_sx[5] = 1130;
+                Nodes_sx[6] = 1140;
+                Nodes_sx[7] = IM_max;
+*/
+
+                TF1* fData;
+
+                TF1* fData_def = new TF1("fData_def",Fit_IMS_Splines,IM_min,IM_max,6+3+NumKnots*2);
+                fData_def->SetParameter(0,dataIntegral*0.5);
+                fData_def->SetParLimits(0,0,dataIntegral);
+                fData_def->SetParameter(1,pdgLambda);
+                fData_def->SetParLimits(1,pdgLambda-1.,pdgLambda+1.);
+                fData_def->SetParameter(2,1.);
+                fData_def->SetParLimits(2,0,6);
+
+                fData_def->SetParameter(3,dataIntegral*0.5);
+                fData_def->SetParLimits(3,0,dataIntegral);
+                fData_def->FixParameter(4,0.);
+                fData_def->SetParameter(5,5.);
+                fData_def->SetParLimits(5,0,6);
+
+                fData_def->FixParameter(6,NumKnots);
+                //derivative at the firs knot
+                fData_def->SetParameter(7,-10.);
+                fData_def->SetParLimits(7,-1000,0);
+                fData_def->SetParameter(8,-10.);
+                fData_def->SetParLimits(8,-1000,0);
+
+                for(unsigned uKnot=0; uKnot<NumKnots; uKnot++){
+                    fInput->cd();
+                    double HistVal = hIMS->GetBinContent(hIMS->FindBin(Nodes_x[uKnot]));
+                    double HistErr = hIMS->GetBinError(hIMS->FindBin(Nodes_x[uKnot]));
+                    fData_def->FixParameter(9+uKnot,Nodes_x[uKnot]);
+
+                    if(uKnot==3){
+                        double LOW = hIMS->GetBinContent(hIMS->FindBin(Nodes_x[uKnot-1]));
+                        double UP = hIMS->GetBinContent(hIMS->FindBin(Nodes_x[uKnot+1]));
+                        if(LOW>UP){
+                            UP = LOW;
+                            LOW = hIMS->GetBinContent(hIMS->FindBin(Nodes_x[uKnot+1]));
+                        }
+                        fData_def->SetParameter(9+NumKnots+uKnot,(UP+LOW)*0.5);
+                        fData_def->SetParLimits(9+NumKnots+uKnot,LOW,UP);
+                    }
+                    else{
+                        fData_def->SetParameter(9+NumKnots+uKnot,HistVal);
+                        fData_def->SetParLimits(9+NumKnots+uKnot,HistVal-3.*HistErr,HistVal+3.*HistErr);
+                    }
+
+                    //fData_def->SetParameter(9+NumKnots+uKnot,HistVal);
+                    //fData_def->SetParLimits(9+NumKnots+uKnot,0,HistVal*2);
+                }
+                fData_def->SetNpx(1024);
+
+                TF1* fData_s = new TF1("fData_s",Fit_IMS_Splines,IM_min,IM_max,6+3+NumKnots_s*2);
+                fData_s->SetParameter(0,dataIntegral*0.5);
+                fData_s->SetParLimits(0,0,dataIntegral);
+                fData_s->SetParameter(1,pdgLambda);
+                fData_s->SetParLimits(1,pdgLambda-1.,pdgLambda+1.);
+                fData_s->SetParameter(2,1.);
+                fData_s->SetParLimits(2,0,6);
+
+                fData_s->SetParameter(3,dataIntegral*0.5);
+                fData_s->SetParLimits(3,0,dataIntegral);
+                fData_s->FixParameter(4,0.);
+                fData_s->SetParameter(5,5.);
+                fData_s->SetParLimits(5,0,6);
+
+                fData_s->FixParameter(6,NumKnots_s);
+                //derivative at the firs knot
+                fData_s->SetParameter(7,-10.);
+                fData_s->SetParLimits(7,-1000,0);
+                fData_s->SetParameter(8,-10.);
+                fData_s->SetParLimits(8,-1000,0);
+
+                for(unsigned uKnot=0; uKnot<NumKnots_s; uKnot++){
+                    fInput->cd();
+                    double HistVal = hIMS->GetBinContent(hIMS->FindBin(Nodes_sx[uKnot]));
+                    fData_s->FixParameter(9+uKnot,Nodes_sx[uKnot]);
+                    fData_s->SetParameter(9+NumKnots_s+uKnot,HistVal);
+                    fData_s->SetParLimits(9+NumKnots_s+uKnot,0,HistVal*2);
+                }
+                fData_s->SetNpx(1024);
+
+                TF1* fit_Pol2_DG = new TF1("fit_Pol2_DG",Fit_IMS_Pol2,pdgLambda-25,pdgLambda+25,9);
+                fit_Pol2_DG->SetParameter(0,dataIntegral*0.5);
+                fit_Pol2_DG->SetParLimits(0,0,dataIntegral);
+                fit_Pol2_DG->SetParameter(1,pdgLambda);
+                fit_Pol2_DG->SetParLimits(1,pdgLambda-1.,pdgLambda+1.);
+                fit_Pol2_DG->SetParameter(2,1.);
+                fit_Pol2_DG->SetParLimits(2,0,6);
+
+                fit_Pol2_DG->SetParameter(3,dataIntegral*0.5);
+                fit_Pol2_DG->SetParLimits(3,0,dataIntegral);
+                fit_Pol2_DG->FixParameter(4,0.);
+                fit_Pol2_DG->SetParameter(5,5.);
+                fit_Pol2_DG->SetParLimits(5,0,6);
+
+                fit_Pol2_DG->SetParameter(6,0.);
+                fit_Pol2_DG->SetParameter(7,0.);
+                fit_Pol2_DG->SetParameter(8,0.);
+
+                //hIMS->Fit(fData_def,"Q, S, N, R, M");
+                hIMS->Fit(fData_s,"Q, S, N, R, M");
+                hIMS->Fit(fit_Pol2_DG,"Q, S, N, R, M");
+                Chi2 = fData_s->GetChisquare();
+                NDF = fData_s->GetNDF();
+                Chi2_p2 = fit_Pol2_DG->GetChisquare();
+                NDF_p2 = fit_Pol2_DG->GetNDF();
+                fData = fData_s;
+
+                if(Chi2/NDF>2.0){
+                    hIMS->Fit(fData_def,"Q, S, N, R, M");
+                    Chi2 = fData_def->GetChisquare();
+                    NDF = fData_def->GetNDF();
+                    fData = fData_def;
+                    //printf("    refitting\n");
+                }
+                fData->SetName("fData");
+
+                TF1* fSig = new TF1("fSig",Fit_IMS_Signal,IM_min,IM_max,6);
+                for(unsigned uPar=0; uPar<6; uPar++) fSig->FixParameter(uPar,fData->GetParameter(uPar));
+
+                TF1* fSigPol2 = new TF1("fSigPol2",Fit_IMS_Signal,pdgLambda-25,pdgLambda+25,6);
+                for(unsigned uPar=0; uPar<6; uPar++) fSigPol2->FixParameter(uPar,fit_Pol2_DG->GetParameter(uPar));
+
+                TF1* fPol2 = new TF1("fPol2","[0]+x*[1]+x*x*[2]",pdgLambda-25,pdgLambda+25);
+                for(unsigned uPar=0; uPar<3; uPar++) fPol2->FixParameter(uPar,fit_Pol2_DG->GetParameter(6+uPar));
+
+                for(unsigned uBinIMS=0; uBinIMS<hIMS->GetNbinsX(); uBinIMS++){
+                    fInput->cd();
+                    if(hIMS->GetBinCenter(uBinIMS+1)<IM_min||hIMS->GetBinCenter(uBinIMS+1)>IM_max){
+                        gFit.SetPoint(uBinIMS,hIMS->GetBinCenter(uBinIMS+1),0);
+                        gBgr.SetPoint(uBinIMS,hIMS->GetBinCenter(uBinIMS+1),0);
+                        gFit_p2.SetPoint(uBinIMS,hIMS->GetBinCenter(uBinIMS+1),0);
+                        gBgr_p2.SetPoint(uBinIMS,hIMS->GetBinCenter(uBinIMS+1),0);
+                        continue;
+                    }
+                    gFit.SetPoint(uBinIMS,hIMS->GetBinCenter(uBinIMS+1),fData->Eval(hIMS->GetBinCenter(uBinIMS+1)));
+                    gBgr.SetPoint(uBinIMS,hIMS->GetBinCenter(uBinIMS+1),fData->Eval(hIMS->GetBinCenter(uBinIMS+1))-fSig->Eval(hIMS->GetBinCenter(uBinIMS+1)));
+                    gFit_p2.SetPoint(uBinIMS,hIMS->GetBinCenter(uBinIMS+1),fit_Pol2_DG->Eval(hIMS->GetBinCenter(uBinIMS+1)));
+                    gBgr_p2.SetPoint(uBinIMS,hIMS->GetBinCenter(uBinIMS+1),fit_Pol2_DG->Eval(hIMS->GetBinCenter(uBinIMS+1))-fSigPol2->Eval(hIMS->GetBinCenter(uBinIMS+1)));
+                }
+
+                double Signal = fSig->Integral(pdgLambda-imWindow,pdgLambda+imWindow);
+                double Total = fData->Integral(pdgLambda-imWindow,pdgLambda+imWindow);
+
+                double SignalPol2 = fSigPol2->Integral(pdgLambda-imWindow,pdgLambda+imWindow);
+                double TotalPol2 = fit_Pol2_DG->Integral(pdgLambda-imWindow,pdgLambda+imWindow);
+
+
+                Purity = Signal/Total;
+                Purity_p2 = SignalPol2/TotalPol2;
+                fOutput->cd();
+                PurityTree->Fill();
+
+//printf("  Chi2/NDF = %.0f/%.0f = %.2f\n",Chi2,NDF,Chi2/NDF);
+//printf("  Purity = %.2f\n",Purity*100.);
+//printf("   For pol2:\n");
+//printf("    Chi2/NDF = %.0f/%i = %.2f\n",fit_Pol2_DG->GetChisquare(),fit_Pol2_DG->GetNDF(),fit_Pol2_DG->GetChisquare()/double(fit_Pol2_DG->GetNDF()));
+//printf("    Purity = %.2f\n",SignalPol2/TotalPol2*100.);
+
+                //hIMS->Write();
+                //fData->Write();
+                //fSig->Write();
+                //fit_Pol2_DG->Write();
+                //fSigPol2->Write();
+                //fPol2->Write();
+                //gFit.Write();
+                //gBgr.Write();
+
+                fInput->cd();
+
+                delete fData_def;
+                delete fData_s;
+                delete fSig;
+                delete hIMS;
+                delete fit_Pol2_DG;
+                delete fPol2;
+                delete fSigPol2;
+            }
+        }
+    }
+
+    fOutput->cd();
+    PurityTree->Write();
+
+
+    delete dlm_PP_IMS_k;
+    delete dlm_APAP_IMS_k;
+    delete dlm_IMS_k;
+    delete hdimi_PP_IMS_k;
+    delete hdimi_APAP_IMS_k;
+    delete hdimi_IMS_k;
+    delete [] gPurity;
+    delete fInput;
+    delete fOutput;
+}
+
 int PLAMBDA_1_MAIN(int argc, char *argv[]){
 printf("PLAMBDA_1_MAIN\n");
 
+//Purity_vs_kstar(atoi(argv[1]),atoi(argv[2]));
+//CompareTo_pp();
+//pLambda_Study_Hypotheses();
 //ParametrizeSmearMatrix1_pL();
 
 //pLambda_Spline_Fit_Test();
 //pLambda_Spline_Fit_Test2();
 //pLambda_Spline_Fit_Unfold2(12);
 
-Plot_pL_SystematicsMay2020(atoi(argv[1]),atoi(argv[2]),argv[3],argv[4]);
+//Plot_pL_SystematicsMay2020(atoi(argv[1]),atoi(argv[2]),argv[3],argv[4]);
 
 //Plot_pL_SystematicsMay2020(-1,0,
 //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/220520_Levy/GaussOnly/",
@@ -10571,9 +11504,15 @@ Plot_pL_SystematicsMay2020(atoi(argv[1]),atoi(argv[2]),argv[3],argv[4]);
 //Plot_pL_SystematicsMay2020(2);
 //STUPED_TEST();
 //CompareChiralNLO_pLambda();
-//pL_SystematicsMay2020(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]), atoi(argv[6]), atoi(argv[7]),
-//"/home/dmihaylov/CernBox/CatsFiles",
-//"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/");
+
+
+//unsigned SEED, unsigned BASELINE_VAR, int POT_VAR, int Sigma0_Feed,
+                           //bool DataSyst, bool FitSyst, bool Bootstrap, unsigned NumIter,
+                          // const char* CatsFileFolder, const char* OutputFolder
+
+pL_SystematicsMay2020(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]), atoi(argv[6]), atoi(argv[7]), atoi(argv[8]),
+"/home/dmihaylov/CernBox/CatsFiles",
+"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/");
 //pL_SystematicsMay2020(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]), atoi(argv[6]), atoi(argv[7]),
 //                      argv[8],argv[9]);
 //pL_SystematicsMay2020(1, 9, 11600, 0, 64,

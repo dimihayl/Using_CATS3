@@ -1154,6 +1154,7 @@ void pion_core_effect(const bool& randomangle){
     const double ctau_NoLong = (ctau_short*reso_short+ctau_rho*reso_rho+ctau_long*reso_long)/(reso_short+reso_rho+reso_long);
 
     TString OutputFolderName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/Pions/pion_core_effect/";
+    //TString OutputFolderName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/Pions/JerkingOff/";
     TString NameAddOn = "";
     if(randomangle) NameAddOn = "_RA";
     TFile fInput(OutputFolderName+"fOutput"+NameAddOn+".root","recreate");
