@@ -1346,7 +1346,7 @@ void DLM_CommonAnaFunctions::SetUpCats_pL(CATS& Kitty, const TString& POT, const
         NumChannels=4;
     }
     else if(POT=="Chiral_Coupled_SPD"){
-        int CUTOFF = PotVar%1000;
+        int CUTOFF = abs(PotVar%1000);
         int TYPE = PotVar/10000;
         if(PotVar==0){CUTOFF=600;TYPE=0;}
 //printf("PotVar=%i\n",PotVar);

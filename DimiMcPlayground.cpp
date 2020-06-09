@@ -718,7 +718,604 @@ void Correlations_MomentumClasses(unsigned SEED, unsigned NumberOfEvents){
     delete [] Num_ME_Class;
 }
 
+
+
+double DimiNorm_CkTh_Easy(const double& Mom, const double& Ampl, const double& Mean, const double& Stdv){
+    return 1.+Ampl*TMath::Gaus(Mom,Mean,Stdv,false);
+}
+double DimiNorm_CkTh(double* x, double* par){
+    return DimiNorm_CkTh_Easy(*x,par[0],par[1],par[2]);
+}
+double DimiNorm_CkTh_A(double* x, double* par){
+    return (DimiNorm_CkTh(x,par)+par[3]/(1.+exp(-(*x-par[4])/par[5])))-0.5*par[3];
+}
+double DimiNorm_CkTh_B(double* x, double* par){
+    return DimiNorm_CkTh(x,par);
+}
+double DimiNorm_CkTh_AB(double* x, double* par){
+    return par[0]*DimiNorm_CkTh_A(x,&par[1])+(1.-par[0])*DimiNorm_CkTh_B(x,&par[7]);
+}
+
+double DimiNorm_Main(){
+    const double lam_A = 0.6;
+
+    const double mean_A = 0;
+    const double stdv_A = 80;
+    const double ampl_A = 3;
+
+    const double mean_B = 100;
+    const double stdv_B = 400;
+    const double ampl_B = 0.6;
+
+    const double MomentumSpread_A = 600;
+    const double MomentumSpread_B = 600;
+    const double MASS_A = 938;
+    const double MASS_B = 938;
+
+    const unsigned NumIter = 8000000;
+
+    TF1* fCkTh_A = new TF1("fCkTh_A",DimiNorm_CkTh_A,0,4096,6);
+    fCkTh_A->FixParameter(0,ampl_A);
+    fCkTh_A->FixParameter(1,mean_A);
+    fCkTh_A->FixParameter(2,stdv_A);
+    fCkTh_A->FixParameter(3,0.5);
+    fCkTh_A->FixParameter(4,1000);
+    fCkTh_A->FixParameter(5,125);
+    TF1* fCkTh_B = new TF1("fCkTh_B",DimiNorm_CkTh_B,0,4096,3);
+    fCkTh_B->FixParameter(0,ampl_B);
+    fCkTh_B->FixParameter(1,mean_B);
+    fCkTh_B->FixParameter(2,stdv_B);
+    TF1* fCkTh_AB = new TF1("fCkTh_AB",DimiNorm_CkTh_AB,0,4096,10);
+    fCkTh_AB->FixParameter(0,lam_A);
+    for(int iPar=0; iPar<6; iPar++) fCkTh_AB->FixParameter(1+iPar,fCkTh_A->GetParameter(iPar));
+    for(int iPar=0; iPar<3; iPar++) fCkTh_AB->FixParameter(7+iPar,fCkTh_B->GetParameter(iPar));
+
+    TH1F* hSE_A = new TH1F("hSE_A","hSE_A",1024/2,0,4096);
+    TH1F* hME_A = new TH1F("hME_A","hME_A",1024/2,0,4096);
+    TH1F* hSE_B = new TH1F("hSE_B","hSE_B",1024/2,0,4096);
+    TH1F* hME_B = new TH1F("hME_B","hME_B",1024/2,0,4096);
+    TH1F* hSE_AB = new TH1F("hSE_AB","hSE_AB",1024/2,0,4096);
+    TH1F* hME_AB = new TH1F("hME_AB","hME_AB",1024/2,0,4096);
+
+    //purity of the same event
+    TH1F* hSEP_A = new TH1F("hSEP_A","hSEP_A",1024/2,0,4096);
+    TH1F* hMEP_A = new TH1F("hMEP_A","hMEP_A",1024/2,0,4096);
+    TH1F* hCk_PurityCorrFactor;
+    TH1F* hCk_A_PurCorr;
+    TH1F* hCk_B_PurCorr;
+
+
+    //raw correlations
+    TH1F* hCk_A;// = new TH1F("hCk_A","hCk_A",1024,0,4096);
+    TH1F* hCk_B;// = new TH1F("hCk_B","hCk_B",1024,0,4096);
+    TH1F* hCk_AB;// = new TH1F("hCk_AB","hCk_AB",1024,0,4096);
+
+    //normalized at large k
+    TH1F* hCk_Nlarge_A;
+    TH1F* hCk_Nlarge_B;
+    TH1F* hCk_Nlarge_AB;
+
+    //normalized to the total yield
+    TH1F* hCk_Nyield_A;
+    TH1F* hCk_Nyield_B;
+    TH1F* hCk_Nyield_AB;
+
+    TRandom3 rangen(11);
+
+    TLorentzVector P1_A;
+    TLorentzVector P2_A;
+    TLorentzVector P1_B;
+    TLorentzVector P2_B;
+
+    //TLorentzVector Pair_AA;
+    //TLorentzVector Pair_BB;
+    //TLorentzVector Pair_AB[4];
+    double kStar_A;
+    double kStar_B;
+    //double kStar_AB[4];
+
+    double momX,momY,momZ;
+    double NumAcc_A=0;
+    double NumAcc_B=0;
+
+    for(unsigned uIter=0; uIter<NumIter; uIter++){
+        momX = rangen.Gaus(0,MomentumSpread_A);
+        momY = rangen.Gaus(0,MomentumSpread_A);
+        momZ = rangen.Gaus(0,MomentumSpread_A);
+        P1_A.SetXYZM(momX,momY,momZ,MASS_A);
+
+        momX = rangen.Gaus(0,MomentumSpread_A);
+        momY = rangen.Gaus(0,MomentumSpread_A);
+        momZ = rangen.Gaus(0,MomentumSpread_A);
+        P2_A.SetXYZM(momX,momY,momZ,MASS_A);
+
+        momX = rangen.Gaus(0,MomentumSpread_B);
+        momY = rangen.Gaus(0,MomentumSpread_B);
+        momZ = rangen.Gaus(0,MomentumSpread_B);
+        P1_B.SetXYZM(momX,momY,momZ,MASS_B);
+
+        momX = rangen.Gaus(0,MomentumSpread_B);
+        momY = rangen.Gaus(0,MomentumSpread_B);
+        momZ = rangen.Gaus(0,MomentumSpread_B);
+        P2_B.SetXYZM(momX,momY,momZ,MASS_B);
+
+        kStar_A = Compute_kStar(P1_A,P2_A);
+        kStar_B = Compute_kStar(P1_B,P2_B);
+
+        //kStar_AB[0] = Compute_kStar(P1_A,P1_B);
+        //kStar_AB[1] = Compute_kStar(P1_A,P2_B);
+        //kStar_AB[2] = Compute_kStar(P2_A,P1_B);
+        //kStar_AB[3] = Compute_kStar(P2_A,P2_B);
+
+        //fill me with those guys
+        hME_A->Fill(kStar_A);
+        hME_B->Fill(kStar_B);
+        bool TAKE_A = rangen.Uniform()<lam_A;
+        if(TAKE_A){hME_AB->Fill(kStar_A);hMEP_A->Fill(kStar_A);}
+        else{hME_AB->Fill(kStar_B);}
+
+        //randomize again to have more fluctuations
+        momX = rangen.Gaus(0,MomentumSpread_A);
+        momY = rangen.Gaus(0,MomentumSpread_A);
+        momZ = rangen.Gaus(0,MomentumSpread_A);
+        P1_A.SetXYZM(momX,momY,momZ,MASS_A);
+
+        momX = rangen.Gaus(0,MomentumSpread_A);
+        momY = rangen.Gaus(0,MomentumSpread_A);
+        momZ = rangen.Gaus(0,MomentumSpread_A);
+        P2_A.SetXYZM(momX,momY,momZ,MASS_A);
+
+        momX = rangen.Gaus(0,MomentumSpread_B);
+        momY = rangen.Gaus(0,MomentumSpread_B);
+        momZ = rangen.Gaus(0,MomentumSpread_B);
+        P1_B.SetXYZM(momX,momY,momZ,MASS_B);
+
+        momX = rangen.Gaus(0,MomentumSpread_B);
+        momY = rangen.Gaus(0,MomentumSpread_B);
+        momZ = rangen.Gaus(0,MomentumSpread_B);
+        P2_B.SetXYZM(momX,momY,momZ,MASS_B);
+
+        kStar_A = Compute_kStar(P1_A,P2_A);
+        kStar_B = Compute_kStar(P1_B,P2_B);
+
+        //for the se -> simply filter out
+        double RAN_A = rangen.Uniform();
+        double RAN_B = rangen.Uniform();
+        //(ampl_A+1.) is the maximum value of the distribution
+        //double ProbFor_A = DimiNorm_CkTh_Easy(kStar_A,ampl_A,mean_A,stdv_A)/(ampl_A+1.);
+        //double ProbFor_A = (DimiNorm_CkTh_Easy(kStar_A,ampl_A,mean_A,stdv_A)+DimiNorm_CkTh_Easy(kStar_A,ampl_A*0.5,1800,500)-1.)/(ampl_A+1.);
+        double ProbFor_A = (DimiNorm_CkTh_Easy(kStar_A,ampl_A,mean_A,stdv_A)+
+                            1./(1.+exp(-(kStar_A-1000.)/150.)))
+                            /(ampl_A+1.);
+        double ProbFor_B = DimiNorm_CkTh_Easy(kStar_B,ampl_B,mean_B,stdv_B)/(ampl_B+1.);
+        bool ACCEPT_A = ProbFor_A>RAN_A;
+        bool ACCEPT_B = ProbFor_B>RAN_B;
+
+        if(ACCEPT_A){
+            hSE_A->Fill(kStar_A);
+        }
+        if(ACCEPT_B){
+            hSE_B->Fill(kStar_B);
+        }
+
+        //if both are available, fill the histo randomly
+        if(ACCEPT_A&&ACCEPT_B){
+            if(TAKE_A) {hSE_AB->Fill(kStar_A);hSEP_A->Fill(kStar_A);NumAcc_A++;}
+            else {hSE_AB->Fill(kStar_B);NumAcc_B++;}
+        }
+        //one is available, one is not
+        //accept the available one, only if the fraction is biased in the other direction
+        else if(ACCEPT_A&&!ACCEPT_B&&(NumAcc_A/(NumAcc_A+NumAcc_B))<lam_A){
+            //hSE_AB->Fill(kStar_A);hSEP_A->Fill(kStar_A);NumAcc_A++;
+        }
+        else if(!ACCEPT_A&&ACCEPT_B&&(NumAcc_A/(NumAcc_A+NumAcc_B))>lam_A){
+            //hSE_AB->Fill(kStar_A);NumAcc_B++;
+        }
+    }
+
+    printf("The composite Ck has lam_A = %.4f (goal %.4f)\n",NumAcc_A/(NumAcc_A+NumAcc_B),lam_A);
+
+    hSE_A->Sumw2();
+    hSE_B->Sumw2();
+    hSE_AB->Sumw2();
+    hSEP_A->Sumw2();
+    hME_A->Sumw2();
+    hME_B->Sumw2();
+    hME_AB->Sumw2();
+    hMEP_A->Sumw2();
+
+    hSE_A->Scale(1./hSE_A->Integral(),"width");
+    hSE_B->Scale(1./hSE_B->Integral(),"width");
+    hSE_AB->Scale(1./hSE_AB->Integral(),"width");
+    hSEP_A->Scale(1./hSEP_A->Integral(),"width");
+    hME_A->Scale(1./hME_A->Integral(),"width");
+    hME_B->Scale(1./hME_B->Integral(),"width");
+    hME_AB->Scale(1./hME_AB->Integral(),"width");
+    hMEP_A->Scale(1./hMEP_A->Integral(),"width");
+
+    hCk_A = (TH1F*)hSE_A->Clone("hCk_A");
+    hCk_B = (TH1F*)hSE_B->Clone("hCk_B");
+    hCk_AB = (TH1F*)hSE_AB->Clone("hCk_AB");
+
+    hCk_A->Divide(hME_A);
+    hCk_B->Divide(hME_B);
+    hCk_AB->Divide(hME_AB);
+    hSEP_A->Divide(hSE_AB);
+    hMEP_A->Divide(hME_AB);
+
+    hCk_PurityCorrFactor = (TH1F*)hSEP_A->Clone("hCk_PurityCorrFactor");
+    hCk_PurityCorrFactor->Divide(hMEP_A);
+
+    hCk_A_PurCorr = (TH1F*)hCk_AB->Clone("hCk_A_PurCorr");
+    hCk_A_PurCorr->Multiply(hCk_PurityCorrFactor);
+
+    hCk_B_PurCorr = (TH1F*)hCk_AB->Clone("hCk_B_PurCorr");
+    for(unsigned uBin=0; uBin<hCk_AB->GetNbinsX(); uBin++){
+        //printf("k=%.0f\n",hCk_AB->GetBinCenter(uBin+1));
+        double Correction;
+        Correction = 1.-lam_A*hCk_PurityCorrFactor->GetBinContent(uBin+1);
+        Correction /= (1.-lam_A);
+        double CorrectionError = lam_A*hCk_PurityCorrFactor->GetBinError(uBin+1);
+        //printf(" err PCF = %f\n",CorrectionError);
+        CorrectionError /= (1.-lam_A);
+        //printf(" err CE = %f\n",CorrectionError);
+        double OriginalValue = hCk_AB->GetBinContent(uBin+1);
+        double OriginalError = hCk_AB->GetBinError(uBin+1);
+        hCk_B_PurCorr->SetBinContent(uBin+1,OriginalValue*Correction);
+        hCk_B_PurCorr->SetBinError(uBin+1,sqrt(pow(CorrectionError*OriginalError,2.)+
+                                               pow(CorrectionError*OriginalValue,2.)+
+                                               pow(Correction*OriginalError,2.)));
+        //printf(" err OE = %f\n",OriginalError);
+        //printf(" err TE = %f\n",sqrt(pow(CorrectionError*OriginalError,2.)+
+        //                                       pow(CorrectionError*OriginalValue,2.)+
+        //                                       pow(Correction*OriginalError,2.)));
+        //hCk_B_PurCorr->SetBinError(uBin+1,OriginalError);
+    }
+
+    TFile* fOutput = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/DimiMcPlayground/DimiNorm_Main/fOutput.root",
+                               "recreate");
+
+    fCkTh_A->Write();
+    fCkTh_B->Write();
+    fCkTh_AB->Write();
+    hSE_A->Write();
+    hME_A->Write();
+    hCk_A->Write();
+    hSE_B->Write();
+    hME_B->Write();
+    hCk_B->Write();
+    hSE_AB->Write();
+    hME_AB->Write();
+    hCk_AB->Write();
+    hSEP_A->Write();
+    hMEP_A->Write();
+    hCk_PurityCorrFactor->Write();
+    hCk_A_PurCorr->Write();
+    hCk_B_PurCorr->Write();
+
+
+    delete hSE_A;
+    delete hME_A;
+    delete hSE_B;
+    delete hME_B;
+    delete hSE_AB;
+    delete hME_AB;
+    delete hCk_A;
+    delete hCk_B;
+    delete hCk_AB;
+    delete hSEP_A;
+    delete hMEP_A;
+    delete hCk_PurityCorrFactor;
+    delete hCk_A_PurCorr;
+    delete hCk_B_PurCorr;
+    delete fCkTh_A;
+    delete fCkTh_B;
+    delete fCkTh_AB;
+    delete fOutput;
+}
+
+
+double DimiNorm2_CkTh(double *x, double* par){
+    if(*x<1000) return par[0];
+    else if(*x<2000) return par[1];
+    else if(*x<3000) return par[2];
+    else return 0;
+}
+double DimiNorm2_CkThSum(double *x, double* par){
+    return par[0]*DimiNorm2_CkTh(x,&par[1])+(1.-par[0])*DimiNorm2_CkTh(x,&par[4]);
+}
+
+double DimiNorm2_Main(){
+/*
+    const double WindowLength = 1000;
+    const unsigned NumWindows = 3;
+    double* CkVal_A = new double [NumWindows];
+    double* CkVal_B = new double [NumWindows];
+    double* CkVal_AB = new double [NumWindows];
+    const double lam_A = 0.5;
+    TString WindowName[NumWindows+2];
+    WindowName[0] = "Raw";
+    WindowName[1] = "Yield";
+    WindowName[2] = "W0";
+    WindowName[3] = "W1";
+    WindowName[4] = "W2";
+
+    CkVal_A[0] = 3;
+    CkVal_A[1] = 1;
+    CkVal_A[2] = 2;
+
+    CkVal_B[0] = 2;
+    CkVal_B[1] = 2;
+    CkVal_B[2] = 1;
+
+    CkVal_AB[0] = lam_A*CkVal_A[0]+(1-lam_A)*CkVal_B[0];
+    CkVal_AB[1] = lam_A*CkVal_A[1]+(1-lam_A)*CkVal_B[1];
+    CkVal_AB[2] = lam_A*CkVal_A[2]+(1-lam_A)*CkVal_B[2];
+
+    double* Weight_A = new double [NumWindows];
+    double* Weight_B = new double [NumWindows];
+    double Max_A=0;
+    double Max_B=0;
+    for(unsigned uWin=0; uWin<NumWindows; uWin++){
+        if(CkVal_A[uWin]>Max_A) Max_A=CkVal_A[uWin];
+        if(CkVal_B[uWin]>Max_B) Max_B=CkVal_B[uWin];
+    }
+    for(unsigned uWin=0; uWin<NumWindows; uWin++){
+        Weight_A[uWin] = CkVal_A[uWin]/Max_A;
+        Weight_B[uWin] = CkVal_B[uWin]/Max_B;
+    }
+
+    unsigned MEscale_A = 2;
+    unsigned MEscale_B = 1;
+    unsigned MEscale_AB = 3;
+
+    const unsigned NumIterSE = 1000000;
+
+    TFile* fOutput = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/DimiMcPlayground/DimiNorm2_Main/fOutput.root",
+                               "recreate");
+
+    TF1* fCkTh_A = new TF1("fCkTh_A",DimiNorm2_CkTh,0,3000,3);
+    TF1* fCkTh_B = new TF1("fCkTh_B",DimiNorm2_CkTh,0,3000,3);
+    TF1* fCkTh_AB = new TF1("fCkTh_AB",DimiNorm2_CkThSum,0,3000,7);
+
+    fCkTh_A->FixParameter(0,CkVal_A[0]);
+    fCkTh_A->FixParameter(1,CkVal_A[1]);
+    fCkTh_A->FixParameter(2,CkVal_A[2]);
+    fCkTh_B->FixParameter(0,CkVal_B[0]);
+    fCkTh_B->FixParameter(1,CkVal_B[1]);
+    fCkTh_B->FixParameter(2,CkVal_B[2]);
+    fCkTh_AB->FixParameter(0,lam_A);
+    for(unsigned uPar=0; uPar<3; uPar++) fCkTh_AB->FixParameter(1+uPar,fCkTh_A->GetParameter(uPar));
+    for(unsigned uPar=0; uPar<3; uPar++) fCkTh_AB->FixParameter(4+uPar,fCkTh_B->GetParameter(uPar));
+
+    TH1F** hSE_A = new TH1F*[NumWindows+2];//new TH1F("hSE_A","hSE_A",512/2,0,3000);
+    TH1F** hME_A = new TH1F*[NumWindows+2];//new TH1F("hME_A","hME_A",512/2,0,3000);
+    TH1F** hSE_B = new TH1F*[NumWindows+2];//new TH1F("hSE_B","hSE_B",512/2,0,3000);
+    TH1F** hME_B = new TH1F*[NumWindows+2];//new TH1F("hME_B","hME_B",512/2,0,3000);
+    TH1F** hSE_AB = new TH1F*[NumWindows+2];//new TH1F("hSE_AB","hSE_AB",512/2,0,3000);
+    TH1F** hME_AB = new TH1F*[NumWindows+2];//new TH1F("hME_AB","hME_AB",512/2,0,3000);
+    for(unsigned uWin=0; uWin<NumWindows; uWin++){
+        hSE_A[uWin] = new TH1F(TString::Format("hSE_%s_A",WindowName[uWin].Data()),TString::Format("hSE_%s_A",WindowName[uWin].Data()),512/2,0,3000);
+
+    }
+
+    //purity of the same event
+    TH1F* hSEP_A = new TH1F("hSEP_A","hSEP_A",512/2,0,3000);
+    TH1F* hMEP_A = new TH1F("hMEP_A","hMEP_A",512/2,0,3000);
+    TH1F* hCk_PurityCorrFactor;
+    TH1F** hCk_A_PurCorr = new TH1F*[NumWindows+2];
+    TH1F** hCk_B_PurCorr = new TH1F*[NumWindows+2];
+
+
+    //Correlations
+    //normalized at
+    //[0] raw
+    //[1] yield
+    //[2,3,4] to the window 0,1,2
+    TH1F** hCk_A = new TH1F*[NumWindows+2];// = new TH1F("hCk_A","hCk_A",1024,0,4096);
+    TH1F** hCk_B = new TH1F*[NumWindows+2];// = new TH1F("hCk_B","hCk_B",1024,0,4096);
+    TH1F** hCk_AB = new TH1F*[NumWindows+2];// = new TH1F("hCk_AB","hCk_AB",1024,0,4096);
+    //TH1F* hCk_A;
+    //TH1F* hCk_B;
+    //TH1F* hCk_AB;
+
+    TRandom3 rangen(11);
+
+    double RAND_A;
+    double RAND_B;
+    double RAND_AB;
+    bool ACC_A;
+    bool ACC_B;
+    bool ACC_AB;
+
+    for(unsigned uIter=0; uIter<NumIterSE; uIter++){
+        for(unsigned uWin=0; uWin<NumWindows; uWin++){
+            for(unsigned uME=0; uME<MEscale_A; uME++){
+                RAND_A = rangen.Uniform(double(uWin)*1000,double(uWin)*1000+1000);
+                for(unsigned uWin2=0; uWin2<NumWindows+2; uWin2++) hME_A[uWin2]->Fill(RAND_A);
+            }
+            for(unsigned uME=0; uME<MEscale_B; uME++){
+                RAND_B = rangen.Uniform(double(uWin)*1000,double(uWin)*1000+1000);
+                for(unsigned uWin2=0; uWin2<NumWindows+2; uWin2++) hME_B[uWin2]->Fill(RAND_B);
+            }
+            for(unsigned uME=0; uME<MEscale_AB; uME++){
+                RAND_AB = rangen.Uniform(double(uWin)*1000,double(uWin)*1000+1000);
+                for(unsigned uWin2=0; uWin2<NumWindows+2; uWin2++) hME_AB[uWin2]->Fill(RAND_AB);
+            }
+
+            ACC_A = rangen.Uniform()<Weight_A[uWin];
+            ACC_B = rangen.Uniform()<Weight_B[uWin];
+            ACC_AB = rangen.Uniform()<Weight_B[uWin];
+            if(ACC_A){
+                RAND_A = rangen.Uniform(double(uWin)*1000,double(uWin)*1000+1000);
+                for(unsigned uWin2=0; uWin2<NumWindows+2; uWin2++) hSE_A[uWin2]->Fill(RAND_A);
+            }
+            if(ACC_B){
+                RAND_B = rangen.Uniform(double(uWin)*1000,double(uWin)*1000+1000);
+                for(unsigned uWin2=0; uWin2<NumWindows+2; uWin2++) hSE_B[uWin2]->Fill(RAND_B);
+            }
+            if(ACC_AB){
+                RAND_AB = rangen.Uniform(double(uWin)*1000,double(uWin)*1000+1000);
+                for(unsigned uWin2=0; uWin2<NumWindows+2; uWin2++) hSE_AB[uWin2]->Fill(RAND_AB);
+            }
+        }
+    }
+//hSEP_A
+//hSE_A,hSE_B,hSE_AB
+    //printf("The composite Ck has lam_A = %.4f (goal %.4f)\n",NumAcc_A/(NumAcc_A+NumAcc_B),lam_A);
+
+    for(unsigned uWin=0; uWin<NumWindows+2; uWin++){
+        hSE_A[uWin]->Sumw2();
+        hSE_B[uWin]->Sumw2();
+        hSE_AB[uWin]->Sumw2();
+        hME_A[uWin]->Sumw2();
+        hME_B[uWin]->Sumw2();
+        hME_AB[uWin]->Sumw2();
+    }
+
+    hSE_A[1]->Scale(1./hSE_A[1]->Integral(),"width");
+    hSE_A[2]->Scale(1./hSE_A[2]->Integral(1,hSE_A[2]->FindBin(1000)-1,"width"));
+    hSE_A[3]->Scale(1./hSE_A[3]->Integral(hSE_A[3]->FindBin(1000)+1,hSE_A[3]->FindBin(2000)-1,"width"));
+    hSE_A[4]->Scale(1./hSE_A[4]->Integral(hSE_A[4]->FindBin(2000)+1,hSE_A[4]->FindBin(3000)-1,"width"));
+
+    hME_A[2]->Scale(1./hME_A[1]->Integral(),"width");
+    hME_A[2]->Scale(1./hME_A[2]->Integral(1,hME_A[2]->FindBin(1000)-1,"width"));
+    hME_A[3]->Scale(1./hME_A[3]->Integral(hME_A[3]->FindBin(1000)+1,hME_A[3]->FindBin(2000)-1,"width"));
+    hME_A[4]->Scale(1./hME_A[4]->Integral(hME_A[4]->FindBin(2000)+1,hME_A[4]->FindBin(3000)-1,"width"));
+
+    hSE_B[2]->Scale(1./hSE_B[2]->Integral(1,hSE_B[2]->FindBin(1000)-1,"width"));
+    hSE_B[3]->Scale(1./hSE_B[3]->Integral(hSE_B[3]->FindBin(1000)+1,hSE_B[3]->FindBin(2000)-1,"width"));
+    hSE_B[4]->Scale(1./hSE_B[4]->Integral(hSE_B[4]->FindBin(2000)+1,hSE_B[4]->FindBin(3000)-1,"width"));
+
+    hME_B[2]->Scale(1./hME_B[2]->Integral(1,hME_B[2]->FindBin(1000)-1,"width"));
+    hME_B[3]->Scale(1./hME_B[3]->Integral(hME_B[3]->FindBin(1000)+1,hME_B[3]->FindBin(2000)-1,"width"));
+    hME_B[4]->Scale(1./hME_B[4]->Integral(hME_B[4]->FindBin(2000)+1,hME_B[4]->FindBin(3000)-1,"width"));
+
+    hSE_AB[2]->Scale(1./hSE_AB[2]->Integral(1,hSE_AB[2]->FindBin(1000)-1,"width"));
+    hSE_AB[3]->Scale(1./hSE_AB[3]->Integral(hSE_AB[3]->FindBin(1000)+1,hSE_AB[3]->FindBin(2000)-1,"width"));
+    hSE_AB[4]->Scale(1./hSE_AB[4]->Integral(hSE_AB[4]->FindBin(2000)+1,hSE_AB[4]->FindBin(3000)-1,"width"));
+
+    hME_AB[2]->Scale(1./hME_AB[2]->Integral(1,hME_AB[2]->FindBin(1000)-1,"width"));
+    hME_AB[3]->Scale(1./hME_AB[3]->Integral(hME_AB[3]->FindBin(1000)+1,hME_AB[3]->FindBin(2000)-1,"width"));
+    hME_AB[4]->Scale(1./hME_AB[4]->Integral(hME_AB[4]->FindBin(2000)+1,hME_AB[4]->FindBin(3000)-1,"width"));
+
+    hSEP_A = (TH1F*)hSE_AB[0]->Clone("hSEP_A");
+    hMEP_A = (TH1F*)hME_AB[0]->Clone("hMEP_A");
+
+    for(unsigned uWin=0; uWin<NumWindows+2; uWin++){
+        hCk_A[uWin] = (TH1F*)hSE_A[uWin]->Clone(TString::Format("hCk_%s_A",WindowName[uWin].Data(),uWin));
+        hCk_B[uWin] = (TH1F*)hSE_B[uWin]->Clone(TString::Format("hCk_%s_B",WindowName[uWin].Data(),uWin));
+        hCk_AB[uWin] = (TH1F*)hSE_AB[uWin]->Clone(TString::Format("hCk_%s_AB",WindowName[uWin].Data(),uWin));
+    }
+
+    hSEP_A->Sumw2();
+    hMEP_A->Sumw2();
+    for(unsigned uWin=0; uWin<NumWindows+2; uWin++){
+        hCk_A[uWin]->Sumw2();
+        hCk_B[uWin]->Sumw2();
+        hCk_AB[uWin]->Sumw2();
+    }
+
+    for(unsigned uWin=0; uWin<NumWindows+2; uWin++){
+
+    }
+
+    hCk_A[1]->Scale(1./hCk_A->Integral(),"width");
+
+
+    //hSE_A->Scale(1./hSE_A->Integral(),"width");
+    //hSE_B->Scale(1./hSE_B->Integral(),"width");
+    //hSE_AB->Scale(1./hSE_AB->Integral(),"width");
+    //hSEP_A->Scale(1./hSEP_A->Integral(),"width");
+    //hME_A->Scale(1./hME_A->Integral(),"width");
+    //hME_B->Scale(1./hME_B->Integral(),"width");
+    //hME_AB->Scale(1./hME_AB->Integral(),"width");
+    //hMEP_A->Scale(1./hMEP_A->Integral(),"width");
+    hSEP_A->Scale(hSE_AB->Integral()/hSEP_A->Integral());
+    hMEP_A->Scale(hME_AB->Integral()/hMEP_A->Integral());
+
+    for(unsigned uWin=0; uWin<NumWindows+2; uWin++){
+        hCk_A[uWin]->Divide(hME_A);
+        hCk_B[uWin]->Divide(hME_B);
+        hCk_AB[uWin]->Divide(hME_AB);
+    }
+    hSEP_A->Divide(hSE_AB);
+    hMEP_A->Divide(hME_AB);
+
+    hCk_PurityCorrFactor = (TH1F*)hSEP_A->Clone("hCk_PurityCorrFactor");
+    hCk_PurityCorrFactor->Divide(hMEP_A);
+
+    for(unsigned uWin=0; uWin<NumWindows+2; uWin++){
+        hCk_A_PurCorr[uWin] = (TH1F*)hCk_AB[uWin]->Clone(TString::Format("hCk_%s_A_PurCorr",WindowName.Data(),uWin));
+        hCk_A_PurCorr[uWin]->Multiply(hCk_PurityCorrFactor);
+
+        hCk_B_PurCorr[uWin] = (TH1F*)hCk_AB[uWin]->Clone(TString::Format("hCk_%s_B_PurCorr",WindowName.Data(),uWin));
+        for(unsigned uBin=0; uBin<hCk_AB[uWin]->GetNbinsX(); uBin++){
+            //printf("k=%.0f\n",hCk_AB->GetBinCenter(uBin+1));
+            double Correction;
+            Correction = 1.-lam_A*hCk_PurityCorrFactor->GetBinContent(uBin+1);
+            Correction /= (1.-lam_A);
+            double CorrectionError = lam_A*hCk_PurityCorrFactor->GetBinError(uBin+1);
+            CorrectionError /= (1.-lam_A);
+            double OriginalValue = hCk_AB[uWin]->GetBinContent(uBin+1);
+            double OriginalError = hCk_AB[uWin]->GetBinError(uBin+1);
+            hCk_B_PurCorr[uWin]->SetBinContent(uBin+1,OriginalValue*Correction);
+            hCk_B_PurCorr[uWin]->SetBinError(uBin+1,sqrt(pow(CorrectionError*OriginalError,2.)+
+                                                   pow(CorrectionError*OriginalValue,2.)+
+                                                   pow(Correction*OriginalError,2.)));
+        }
+    }
+
+    fCkTh_A->Write();
+    fCkTh_B->Write();
+    fCkTh_AB->Write();
+    hSE_A->Write();
+    hME_A->Write();
+    for(unsigned uWin=0; uWin<NumWindows+2; uWin++) hCk_A[uWin]->Write();
+    hSE_B->Write();
+    hME_B->Write();
+    for(unsigned uWin=0; uWin<NumWindows+2; uWin++) hCk_B[uWin]->Write();
+    hSE_AB->Write();
+    hME_AB->Write();
+    for(unsigned uWin=0; uWin<NumWindows+2; uWin++) hCk_AB[uWin]->Write();
+    hSEP_A->Write();
+    hMEP_A->Write();
+    hCk_PurityCorrFactor->Write();
+    for(unsigned uWin=0; uWin<NumWindows+2; uWin++) hCk_A_PurCorr[uWin]->Write();
+    for(unsigned uWin=0; uWin<NumWindows+2; uWin++) hCk_B_PurCorr[uWin]->Write();
+
+    delete hSE_A;
+    delete hME_A;
+    delete hSE_B;
+    delete hME_B;
+    delete hSE_AB;
+    delete hME_AB;
+    for(unsigned uWin=0; uWin<NumWindows+2; uWin++){
+        delete hCk_A[uWin];
+        delete hCk_B[uWin];
+        delete hCk_AB[uWin];
+        delete hCk_A_PurCorr[uWin];
+        delete hCk_B_PurCorr[uWin];
+    }
+    delete [] hCk_A;
+    delete [] hCk_B;
+    delete [] hCk_AB;
+    delete hSEP_A;
+    delete hMEP_A;
+    delete hCk_PurityCorrFactor;
+    delete [] hCk_A_PurCorr;
+    delete [] hCk_B_PurCorr;
+    delete fCkTh_A;
+    delete fCkTh_B;
+    delete fCkTh_AB;
+    delete fOutput;
+*/
+}
+
+
 int DimiMcPlayground_MAIN(int argc, char *argv[]){
     //McCorrelation6D(atoi(argv[1]),atoi(argv[2]));
-    Correlations_MomentumClasses(11,160000000*8);
+    //Correlations_MomentumClasses(11,160000000*8);
+    //DimiNorm_Main();
+    DimiNorm2_Main();
 }

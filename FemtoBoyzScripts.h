@@ -13,6 +13,7 @@ void SetStyle2(bool graypalette=false, bool title=false);
 void plotMorePreliminaries(const TString system);
 void SetStyleHisto(TH1 *histo, int marker=-1, int color=-1);
 void SetStyleHisto2(TH1 *histo, int marker, int color, double factor=1);
+void SetStyleHisto2a(TH1 *histo, int marker, int color, double factor=1);
 void PlotDimiExclusion_ver1(const TString FolderName, const TString HistoNameEP, const TString FileNameLED, const TString HistoNameLED,
                             const unsigned RebinX, const unsigned RebinY,
                             const TString DataSets);

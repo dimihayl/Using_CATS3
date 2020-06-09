@@ -368,6 +368,28 @@ void SetStyleHisto2(TH1 *histo, int marker, int color, double factor)
     }
 }
 
+//pL HM
+void SetStyleHisto2a(TH1 *histo, int marker, int color, double factor)
+{
+    histo->GetXaxis()->SetLabelSize(0.055*factor);
+    histo->GetXaxis()->SetTitleSize(0.06*factor);
+    histo->GetXaxis()->SetLabelOffset(0.01);
+    histo->GetXaxis()->SetTitleOffset(1.0);
+    histo->GetXaxis()->SetLabelFont(42);
+    histo->GetYaxis()->SetLabelSize(0.055*factor);
+    histo->GetYaxis()->SetTitleSize(0.06*factor);
+    histo->GetYaxis()->SetLabelOffset(0.01);
+    histo->GetYaxis()->SetTitleOffset(1.15/factor);
+    histo->SetMarkerSize(1.25);
+    if(marker>=0){
+        histo->SetLineWidth(2);
+        histo->SetMarkerStyle(fMarkers[marker]);
+    }
+    if(color>=0){
+        histo->SetMarkerColor(fColors[color]);
+        histo->SetLineColor(fColors[color]);
+    }
+}
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 TGraphErrors *DrawSystematicError(TH1F* histexp,TH1F *histerr,double errorwidth)
