@@ -8703,7 +8703,9 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
     const float MinLambda = 0.41;
     const float MaxLambda = 0.47;
     const bool Same_omega_siglam = false;
-    const bool COMPARE_TO_LO = true;
+    //const bool COMPARE_TO_LO = true;
+    bool COMPARE_TO_LO = true;
+    if(WhichPotential==-11600) COMPARE_TO_LO = false;
 
     switch(WhichBaseline){
         case pol0s :    BlName1 = "Constant baseline";
@@ -8808,6 +8810,11 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
                     PotName2 = "s,d waves";
                     PotDescr = "NLO19-650";
                     PotFlag = 11650;
+                    break;//
+        case -11600:PotName1 = "LO13 (600)";
+                    PotName2 = "s,d waves";
+                    PotDescr = "LO13-600";
+                    PotFlag = -11600;
                     break;//
         default :   PotName1 = "Unknown potential";
                     PotName2 = "";
@@ -9523,12 +9530,17 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
     gStyle->SetCanvasPreferGL(1);
     SetStyle();
 
-    fitLoDummy->SetFillColorAlpha(kGreen+1,0.70);
-    fitLoDummy->SetLineColor(kGreen+1);
-    fitLoDummy->SetLineWidth(4);
+    int ColorInteraction = kRed+1;
+    if(WhichPotential==-11600) ColorInteraction = kGreen+1;
 
-    ge_Fit->SetFillColorAlpha(kRed+1,0.40);
-    ge_Fit->SetLineColor(kRed+1);
+    if(fitLoDummy){
+        fitLoDummy->SetFillColorAlpha(kGreen+1,0.70);
+        fitLoDummy->SetLineColor(kGreen+1);
+        fitLoDummy->SetLineWidth(4);
+    }
+
+    ge_Fit->SetFillColorAlpha(ColorInteraction,0.40);
+    ge_Fit->SetLineColor(ColorInteraction);
     ge_Fit->SetLineWidth(5);
 
     ge_Bl->SetFillColorAlpha(kCyan-8,0.40);
@@ -9543,11 +9555,11 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
     ge_Xim->SetLineColor(kOrange+1);
     ge_Xim->SetLineWidth(5);
 
-    ge_SigmaSlice->SetFillColorAlpha(kRed+1,0.40);
+    ge_SigmaSlice->SetFillColorAlpha(ColorInteraction,0.40);
     ge_SigmaSlice_der->SetFillColorAlpha(kBlue+1,0.40);
 
-    geb_Fit->SetFillColorAlpha(kRed+1,0.70);
-    geb_Fit->SetLineColor(kRed+1);
+    geb_Fit->SetFillColorAlpha(ColorInteraction,0.70);
+    geb_Fit->SetLineColor(ColorInteraction);
     geb_Fit->SetLineWidth(3);
 
     geb_Bl->SetFillColorAlpha(kCyan-8,0.70);
@@ -9562,7 +9574,7 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
     geb_Xim->SetLineColor(kOrange+1);
     geb_Xim->SetLineWidth(5);
 
-    geb_SigmaSlice->SetFillColorAlpha(kRed+1,0.70);
+    geb_SigmaSlice->SetFillColorAlpha(ColorInteraction,0.70);
     geb_SigmaSlice_der->SetFillColorAlpha(kBlue+1,0.70);
 
     fe_Sigma->SetLineColor(kBlack);
@@ -9613,7 +9625,7 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
 
     geb_Xim->Draw("3 same");
     geb_Sig->Draw("3 same");
-    fitLoDummy->Draw("3L same");
+    if(fitLoDummy) fitLoDummy->Draw("3L same");
     geb_Bl->Draw("3 same");
     geb_Fit->Draw("3L same");
     //}
@@ -9648,7 +9660,7 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
     legend->AddEntry(hCk_Fake, "p#minus#Lambda #oplus #bar{p}#minus#bar{#Lambda} pairs", "fpe");
     //if(!DataOnly){
     legend->AddEntry(ge_Fit,"Femtoscopic fit "+PotName1,"l");
-    if(COMPARE_TO_LO) legend->AddEntry(fitLoDummy,"Switch to LO13 (600)","l");
+    if(COMPARE_TO_LO&&fitLoDummy) legend->AddEntry(fitLoDummy,"Switch to LO13 (600)","l");
     else legend->AddEntry(&DummyLegendEntry,PotName2,"l");
     //legend->AddEntry(&DummyLegendEntry,PotName3,"l");
     legend->AddEntry(ge_Bl,BlName1,"l");
@@ -9750,7 +9762,7 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
     //grFemto_Inlet->Draw("3 same");
     geb_Xim->Draw("3 same");
     geb_Sig->Draw("3 same");
-    fitLoDummy->Draw("3L same");
+    if(fitLoDummy) fitLoDummy->Draw("3L same");
     geb_Bl->Draw("3 same");
     grbFemto_Inlet->Draw("3 same");
     DataHisto_Inlet->Draw("same");
@@ -9879,7 +9891,7 @@ printf("Delete 2\n");
     delete gdata_toterr;
     delete plambdaTree;
 //printf("Delete 4\n");
-    delete fitLoDummy;
+    if(fitLoDummy) delete fitLoDummy;
     delete InputFile;
 }
 
@@ -11761,10 +11773,10 @@ printf("PLAMBDA_1_MAIN\n");
 
 //POT BL SIG
 Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(atoi(argv[4]))/10.,
-                            "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/040620_Gauss/",
+                            "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/090620_LO_Gauss/",
                             TString::Format("Merged_pp13TeV_HM_Dec19_POT%i_BL%i_SIG%i.root",
                             atoi(argv[1]),atoi(argv[2]),atoi(argv[3])),
-                            "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/040620_Gauss/Plots_LO/");
+                            "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/090620_LO_Gauss/Plots/");
 
 //Plot_pL_SystematicsMay2020_2(2,10,1500,2.0,
 //        "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/040620_Gauss/",
