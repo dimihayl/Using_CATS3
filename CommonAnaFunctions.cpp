@@ -2120,7 +2120,7 @@ void DLM_CommonAnaFunctions::SetUpBinning_pp(const TString& DataSample, unsigned
             return;
         }
     }
-    else if(DataSample=="pp13TeV_HM_March19"||DataSample=="pp13TeV_HM_Dec19"||DataSample=="pp13TeV_HM_RotPhiDec19"){
+    else if(DataSample=="pp13TeV_HM_March19"||DataSample=="pp13TeV_HM_Dec19"||DataSample=="pp13TeV_HM_RotPhiDec19"||DataSample=="pp13TeV_HM_DimiJun20"){
         if(MomBinVar==0){
             kMin=4;
             kStep=4;
@@ -2302,7 +2302,7 @@ void DLM_CommonAnaFunctions::SetUpBinning_pL(const TString& DataSample, unsigned
         FitRegion[2] = MomBins[NumMomBins]+kCoarseStep;//348
         FitRegion[3] = MomBins[NumMomBins]+kCoarseStep*20.;//588
     }
-    else if(DataSample=="pp13TeV_HM_March19"||DataSample=="pp13TeV_HM_Dec19"||DataSample=="pp13TeV_HM_RotPhiDec19"){
+    else if(DataSample=="pp13TeV_HM_March19"||DataSample=="pp13TeV_HM_Dec19"||DataSample=="pp13TeV_HM_RotPhiDec19"||DataSample=="pp13TeV_HM_DimiJun20"){
         if(MomBinVar==0){
             kMin=0;
             kFineMin=336;//272//216
@@ -2533,7 +2533,7 @@ void DLM_CommonAnaFunctions::GetPurities_p(const TString& DataSample, const int&
     if(DataSample=="pp13TeV_MB_Run2paper"){
         PurityProton = 0.989859;
     }
-    else if(DataSample=="pp13TeV_HM_March19"||DataSample=="pp13TeV_HM_Dec19"||DataSample=="pp13TeV_HM_RotPhiDec19"){
+    else if(DataSample=="pp13TeV_HM_March19"||DataSample=="pp13TeV_HM_Dec19"||DataSample=="pp13TeV_HM_RotPhiDec19"||DataSample=="pp13TeV_HM_DimiJun20"){
         PurityProton = 0.9943;
     }
     else if(DataSample=="pPb5TeV_Run2paper"){
@@ -2573,7 +2573,11 @@ void DLM_CommonAnaFunctions::GetPurities_L(const TString& DataSample, const int&
         else if(Variation==1) PurityLambda = 0.936;//spline fits 4th June 2020
         else if(Variation==2) PurityLambda = 0.936-0.006;//with uncertainties
         else if(Variation==3) PurityLambda = 0.936+0.006;//with uncertainties
+        else if(Variation==-1) PurityLambda = 1.0;//use for SB corrected correlations
         else PurityLambda = 0.9595;
+    }
+    else if(DataSample=="pp13TeV_HM_DimiJun20"){
+        PurityLambda = 1.0;//use for SB corrected correlations
     }
     else if(DataSample=="pPb5TeV_Run2paper"){
         PurityLambda = 0.937761;
@@ -2604,7 +2608,7 @@ void DLM_CommonAnaFunctions::GetPurities_Xim(const TString& DataSample, const in
     if(DataSample=="pp13TeV_MB_Run2paper"){
         PurityXim = 0.956;
     }
-    else if(DataSample=="pp13TeV_HM_March19"||DataSample=="pp13TeV_HM_Dec19"||DataSample=="pp13TeV_HM_RotPhiDec19"){
+    else if(DataSample=="pp13TeV_HM_March19"||DataSample=="pp13TeV_HM_Dec19"||DataSample=="pp13TeV_HM_RotPhiDec19"||DataSample=="pp13TeV_HM_DimiJun20"){
         PurityXim = 0.956;
     }
     else if(DataSample=="pPb5TeV_Run2paper"){
@@ -2655,7 +2659,7 @@ void DLM_CommonAnaFunctions::GetFractions_p(const TString& DataSample, const int
         pp_f0 = 0.873;
         pp_f1 = 0.0898;
     }
-    else if(DataSample=="pp13TeV_HM_Dec19"||DataSample=="pp13TeV_HM_RotPhiDec19"){
+    else if(DataSample=="pp13TeV_HM_Dec19"||DataSample=="pp13TeV_HM_RotPhiDec19"||DataSample=="pp13TeV_HM_DimiJun20"){
         pp_f0 = 0.823;
         pp_f1 = 0.125;
     }
@@ -2711,7 +2715,7 @@ void DLM_CommonAnaFunctions::GetFractions_L(const TString& DataSample, const int
         pL_f1 = 0.200336;
         pL_f2 = 0.099328;
     }
-    else if(DataSample=="pp13TeV_HM_March19"||DataSample=="pp13TeV_HM_Dec19"||DataSample=="pp13TeV_HM_RotPhiDec19"){
+    else if(DataSample=="pp13TeV_HM_March19"||DataSample=="pp13TeV_HM_Dec19"||DataSample=="pp13TeV_HM_RotPhiDec19"||DataSample=="pp13TeV_HM_DimiJun20"){
         pL_f0 = 0.576066;
         pL_f1 = 0.192022;
         pL_f2 = 0.115956;
@@ -2859,7 +2863,7 @@ TH2F* DLM_CommonAnaFunctions::GetResolutionMatrix(const TString& DataSample,cons
     if(DataSample=="pp13TeV_MB_Run2paper"){
         FileName = CatsFilesFolder[0]+"/MomentumSmear/ALICE_pp_13TeV.root";
     }
-    else if(DataSample=="pp13TeV_HM_March19"||DataSample=="pp13TeV_HM_Dec19"||DataSample=="pp13TeV_HM_RotPhiDec19"){
+    else if(DataSample=="pp13TeV_HM_March19"||DataSample=="pp13TeV_HM_Dec19"||DataSample=="pp13TeV_HM_RotPhiDec19"||DataSample=="pp13TeV_HM_DimiJun20"){
         FileName = CatsFilesFolder[0]+"/MomentumSmear/ALICE_pp_13TeV.root";
     }
     else if(DataSample=="pPb5TeV_Run2paper"){
@@ -2894,7 +2898,7 @@ TH2F* DLM_CommonAnaFunctions::GetResolutionMatrix(const TString& DataSample,cons
     //and we need to play with the name a little bit, else we are fucked!
     TFile* FileROOT = new TFile(FileName, "read");
     TH2F* histo = (TH2F*)FileROOT->Get(HistoName);
-    if(!histo){printf("\033[1;31mERROR:\033[0m The histo '%s' if file '%s' does not exist\n",HistoName.Data(),FileName.Data());return NULL;}
+    if(!histo){printf("\033[1;31mERROR:\033[0m The histo '%s' in file '%s' does not exist\n",HistoName.Data(),FileName.Data());return NULL;}
     TString Name = histo->GetName();
     gROOT->cd();
     TH2F *histoCopy = (TH2F*)histo->Clone("histoCopy");
@@ -2925,7 +2929,7 @@ TH2F* DLM_CommonAnaFunctions::GetResidualMatrix(const TString&& FinalSystem, con
     }
     TFile* FileROOT = new TFile(FileName, "read");
     TH2F* histo = (TH2F*)FileROOT->Get(HistoName);
-    if(!histo){printf("\033[1;31mERROR:\033[0m The histo '%s' if file '%s' does not exist\n",HistoName.Data(),FileName.Data());return NULL;}
+    if(!histo){printf("\033[1;31mERROR:\033[0m The histo '%s' in file '%s' does not exist\n",HistoName.Data(),FileName.Data());return NULL;}
     TString Name = histo->GetName();
     gROOT->cd();
     TH2F *histoCopy = (TH2F*)histo->Clone("histoCopy");
@@ -3038,6 +3042,22 @@ TH1F* DLM_CommonAnaFunctions::GetAliceExpCorrFun(const TString& DataSample,const
             if(mTbin==-1){
                 FileName = TString::Format(CatsFilesFolder[0]+"/ExpData/ALICE_pp_13TeV_HM/Sample12HM/CFOutput_pXi%s.root",CutVar.Data());
                 HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
+            }
+            else{
+                printf("\033[1;31mERROR:\033[0m The mT bin #%i is not defined for %s (%s)\n",mTbin,DataSample.Data(),System.Data());
+            }
+        }
+        else{
+            printf("\033[1;31mERROR:\033[0m The system '%s' does not exist\n",System.Data());
+        }
+    }
+    //the correlations are obtained with Dimi's code, normalization to the total yield
+    //used for the pLambda paper proposal in June 2020
+    else if(DataSample=="pp13TeV_HM_DimiJun20"){
+        if(System=="pLambda"){
+            if(mTbin==-1){
+                FileName = TString::Format(CatsFilesFolder[0]+"/ExpData/ALICE_pp_13TeV_HM/DimiJun20/Norm240_340/DataSignal/CkSB_pL%s.root",CutVar.Data());
+                HistoName = TString::Format("hCkS_Norm_%.0fMeV",float(iReb+1)*4.);
             }
             else{
                 printf("\033[1;31mERROR:\033[0m The mT bin #%i is not defined for %s (%s)\n",mTbin,DataSample.Data(),System.Data());
@@ -3178,7 +3198,7 @@ TH1F* DLM_CommonAnaFunctions::GetAliceExpCorrFun(const TString& DataSample,const
     TFile* FileROOT = new TFile(FileName, "read");
     if(!FileROOT){printf("\033[1;31mERROR:\033[0m The file '%s' does not exist\n",FileName.Data());return NULL;}
     TH1F* histo = (TH1F*)FileROOT->Get(HistoName);
-    if(!histo){printf("\033[1;31mERROR:\033[0m The histo '%s' if file '%s' does not exist\n",HistoName.Data(),FileName.Data());return NULL;}
+    if(!histo){printf("\033[1;31mERROR:\033[0m The histo '%s' in file '%s' does not exist\n",HistoName.Data(),FileName.Data());return NULL;}
     TString Name = histo->GetName();
     gROOT->cd();
     TH1F *histoCopy = (TH1F*)histo->Clone("histoCopy");
