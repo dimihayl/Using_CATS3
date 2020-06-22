@@ -7575,6 +7575,29 @@ void GetIterCombo040620(unsigned* WhichBin,const float& SourceSize,const float& 
     else if(SourceAlpha<1.95) WhichBin[3] = 3;
     else WhichBin[3] = 4;
 }
+void GetIterCombo170620(unsigned* WhichBin,const float& SourceSize,const float& lam_L_genuine,
+                        const float& CuspWeight, const float& SourceAlpha){
+    if(SourceSize<0.96) WhichBin[0] = 0;
+    else if(SourceSize<1.00) WhichBin[0] = 1;
+    else if(SourceSize<1.04) WhichBin[0] = 2;
+    else if(SourceSize<1.08) WhichBin[0] = 3;
+    else WhichBin[0] = 4;
+    if(lam_L_genuine<0.44) WhichBin[1] = 0;
+    else if(lam_L_genuine<0.46) WhichBin[1] = 1;
+    else if(lam_L_genuine<0.48) WhichBin[1] = 2;
+    else if(lam_L_genuine<0.51) WhichBin[1] = 3;
+    else WhichBin[1] = 4;
+    if(CuspWeight<0.23) WhichBin[2] = 0;
+    else if(CuspWeight<0.30) WhichBin[2] = 1;
+    else if(CuspWeight<0.37) WhichBin[2] = 2;
+    else if(CuspWeight<0.44) WhichBin[2] = 3;
+    else WhichBin[2] = 4;
+    if(SourceAlpha>1.65) WhichBin[3] = 0;
+    else if(SourceAlpha<1.75) WhichBin[3] = 1;
+    else if(SourceAlpha<1.85) WhichBin[3] = 2;
+    else if(SourceAlpha<1.95) WhichBin[3] = 3;
+    else WhichBin[3] = 4;
+}
 /*
 Sigma0_Feed = large (3x)
 SourceSize = large (4x)
@@ -8702,8 +8725,17 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
     const float MaxRad = 1.08;
     const float MinOmega = 0.25;
     const float MaxOmega = 0.45;
-    const float MinLambda = 0.41;
-    const float MaxLambda = 0.47;
+    float MinLambda;
+    float MaxLambda;
+    if(InputFileName.Contains("pp13TeV_HM_DimiJun20")){
+        MinLambda = 0.44;
+        MaxLambda = 0.51;
+    }
+    else{
+        MinLambda = 0.41;
+        MaxLambda = 0.47;
+    }
+
     const bool Same_omega_siglam = false;
     //const bool COMPARE_TO_LO = true;
     bool COMPARE_TO_LO = true;
@@ -8947,7 +8979,7 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
 
     unsigned NumBestSolutions = 0;
     const unsigned Num_SourceSize=5;
-    const unsigned Num_lam_L_genuine=5*3;
+    const unsigned Num_lam_L_genuine=InputFileName.Contains("pp13TeV_HM_DimiJun20")?5:5*3;
     const unsigned Num_CuspWeight=5;
     const unsigned Num_SourceAlpha=5;
 
@@ -9050,20 +9082,38 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
         //NDF_300[uEntry] = 0;
         plambdaTree->GetEntry(uEntry);
         unsigned WhichBin[4];
-        GetIterCombo040620(WhichBin,SourceSize,lam_L_genuine,CuspWeight,SourceAlpha);
-        if(WhichBin[1]/3==0){SigLamFrac=1./3.*1.4;}
-        else if(WhichBin[1]/3==1){SigLamFrac=1./3.*1.2;}
-        else if(WhichBin[1]/3==2){SigLamFrac=1./3.*1.0;}
-        else if(WhichBin[1]/3==3){SigLamFrac=1./3.*0.8;}
-        else {SigLamFrac=1./3.*0.6;}
+        if(*DataSample=="pp13TeV_HM_DimiJun20") GetIterCombo170620(WhichBin,SourceSize,lam_L_genuine,CuspWeight,SourceAlpha);
+        else GetIterCombo040620(WhichBin,SourceSize,lam_L_genuine,CuspWeight,SourceAlpha);
+        if(*DataSample=="pp13TeV_HM_DimiJun20"){
+            if(WhichBin[1]==0){SigLamFrac=1./3.*1.4;}
+            else if(WhichBin[1]==1){SigLamFrac=1./3.*1.2;}
+            else if(WhichBin[1]==2){SigLamFrac=1./3.*1.0;}
+            else if(WhichBin[1]==3){SigLamFrac=1./3.*0.8;}
+            else {SigLamFrac=1./3.*0.6;}
+        }
+        else{
+            if(WhichBin[1]/3==0){SigLamFrac=1./3.*1.4;}
+            else if(WhichBin[1]/3==1){SigLamFrac=1./3.*1.2;}
+            else if(WhichBin[1]/3==2){SigLamFrac=1./3.*1.0;}
+            else if(WhichBin[1]/3==3){SigLamFrac=1./3.*0.8;}
+            else {SigLamFrac=1./3.*0.6;}
+        }
         if(Sigma0_Feed!=SIGMA_FEED) continue;
+//printf("1\n");
         if(BASELINE_VAR!=WhichBaseline) continue;
+//printf("2\n");
         if(POT_VAR!=WhichPotential) continue;
+//printf("3\n");
         if( fabs(SourceAlpha-ValSourceAlpha)>0.01 ) continue;
+//printf("4\n");
         if(SourceSize<MinRad||SourceSize>MaxRad) continue;
+//printf("5\n");
         if(lam_L_genuine<MinLambda||lam_L_genuine>MaxLambda) continue;
+//printf("6\n");
         if(CuspWeight<MinOmega||CuspWeight>MaxOmega) continue;
+//printf("7\n");
         if( fabs(SigLamFrac-CuspWeight)>0.001 && Same_omega_siglam ) continue;
+//printf("8\n");
 //printf(" PROCEED!\n");
         unsigned NumBins = gData->GetN();
         if(UsedNumBins<NumBins) UsedNumBins=NumBins;
@@ -9127,7 +9177,8 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
 
         //unsigned WhichBin[4];
         //GetIterCombo(WhichBin,Sigma0_Feed,SourceSize,lam_L_genuine);
-        GetIterCombo040620(WhichBin,SourceSize,lam_L_genuine,CuspWeight,SourceAlpha);
+        if(*DataSample=="pp13TeV_HM_DimiJun20") GetIterCombo170620(WhichBin,SourceSize,lam_L_genuine,CuspWeight,SourceAlpha);
+        else GetIterCombo040620(WhichBin,SourceSize,lam_L_genuine,CuspWeight,SourceAlpha);
         //if(Num_SourceSize==1) WhichBin[0]=0;
         //if(Num_lam_L_genuine==1) WhichBin[1]=0;
         //if(Num_CuspWeight==1) WhichBin[2]=0;
@@ -9158,7 +9209,7 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
     unsigned Num_MinChi2 = Chi2_300.FindMinima(MinChi2,Bin_MinChi2);
     int MinNdf = TMath::Nint(NDF_300.GetBinContent(Bin_MinChi2[0]));
     float MinNsigma = sqrt(2)*TMath::ErfcInverse(TMath::Prob(MinChi2,MinNdf));
-    //printf("We have %u minima for the chi2=%.2f/%i = %.2f (nsigma = %.2f)\n",Num_MinChi2,MinChi2,MinNdf,MinChi2/float(MinNdf),MinNsigma);
+    printf("We have %u minima for the chi2=%.2f/%i = %.2f (nsigma = %.2f)\n",Num_MinChi2,MinChi2,MinNdf,MinChi2/float(MinNdf),MinNsigma);
     for(unsigned uMin=0; uMin<Num_MinChi2; uMin++){
         unsigned WhichBin[4];
         printf(" Bin_MinChi2=%p\n",Bin_MinChi2);
@@ -9186,12 +9237,22 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
     for(unsigned uEntry=0; uEntry<NumEntries; uEntry++){
         plambdaTree->GetEntry(uEntry);
         unsigned WhichBin[4];
-        GetIterCombo040620(WhichBin,SourceSize,lam_L_genuine,CuspWeight,SourceAlpha);
-        if(WhichBin[1]/3==0){SigLamFrac=1./3.*1.4;}
-        else if(WhichBin[1]/3==1){SigLamFrac=1./3.*1.2;}
-        else if(WhichBin[1]/3==2){SigLamFrac=1./3.*1.0;}
-        else if(WhichBin[1]/3==3){SigLamFrac=1./3.*0.8;}
-        else {SigLamFrac=1./3.*0.6;}
+        if(*DataSample=="pp13TeV_HM_DimiJun20") GetIterCombo170620(WhichBin,SourceSize,lam_L_genuine,CuspWeight,SourceAlpha);
+        else GetIterCombo040620(WhichBin,SourceSize,lam_L_genuine,CuspWeight,SourceAlpha);
+        if(*DataSample=="pp13TeV_HM_DimiJun20"){
+            if(WhichBin[1]==0){SigLamFrac=1./3.*1.4;}
+            else if(WhichBin[1]==1){SigLamFrac=1./3.*1.2;}
+            else if(WhichBin[1]==2){SigLamFrac=1./3.*1.0;}
+            else if(WhichBin[1]==3){SigLamFrac=1./3.*0.8;}
+            else {SigLamFrac=1./3.*0.6;}
+        }
+        else{
+            if(WhichBin[1]/3==0){SigLamFrac=1./3.*1.4;}
+            else if(WhichBin[1]/3==1){SigLamFrac=1./3.*1.2;}
+            else if(WhichBin[1]/3==2){SigLamFrac=1./3.*1.0;}
+            else if(WhichBin[1]/3==3){SigLamFrac=1./3.*0.8;}
+            else {SigLamFrac=1./3.*0.6;}
+        }
         if(Sigma0_Feed!=SIGMA_FEED) continue;
         if(BASELINE_VAR!=WhichBaseline) continue;
         if(POT_VAR!=WhichPotential) continue;
@@ -9200,7 +9261,7 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
         if(lam_L_genuine<MinLambda||lam_L_genuine>MaxLambda) continue;
         if(CuspWeight<MinOmega||CuspWeight>MaxOmega) continue;
         if( fabs(SigLamFrac-CuspWeight)>0.001 && Same_omega_siglam ) continue;
-
+//printf("GO ON\n");
         unsigned NumBins = gData->GetN();
         //the [2] was used for saving the previous bin for the derivative
         double data_val[2];
@@ -9292,7 +9353,8 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
             hsig->SetBinContent(uBin+1,hsig->GetYaxis()->FindBin(sig_val),hsig->GetBinContent(uBin+1)+1);
             hxim->SetBinContent(uBin+1,hxim->GetYaxis()->FindBin(xim_val),hxim->GetBinContent(uBin+1)+1);
             unsigned WhichBinCurrent[4];
-            GetIterCombo040620(WhichBinCurrent,SourceSize,lam_L_genuine,CuspWeight,SourceAlpha);
+            if(*DataSample=="pp13TeV_HM_DimiJun20") GetIterCombo170620(WhichBinCurrent,SourceSize,lam_L_genuine,CuspWeight,SourceAlpha);
+            else GetIterCombo040620(WhichBinCurrent,SourceSize,lam_L_genuine,CuspWeight,SourceAlpha);
             //if(Num_SourceSize==1) WhichBinCurrent[0]=0;
             //if(Num_lam_L_genuine==1) WhichBinCurrent[1]=0;
             //if(Num_CuspWeight==1) WhichBinCurrent[2]=0;
@@ -9308,6 +9370,7 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
                 //printf(" Solution %u: S0=%u, SZ=%u, lam=%u\n",uMin,WhichBinBest[0],WhichBinBest[1],WhichBinBest[2]);
             }
             if(OneOfTheBest){
+//printf("OneOfTheBest\n");
                 hb_nsigma->SetBinContent(uBin+1,hnsigma->GetYaxis()->FindBin(nsigma_val),hnsigma->GetBinContent(uBin+1)+1);
                 hb_nsigma_der->SetBinContent(uBin+1,hnsigma_der->GetYaxis()->FindBin(nsigma_val),hnsigma_der->GetBinContent(uBin+1)+1);
                 hb_fdata->SetBinContent(uBin+1,hfdata->GetYaxis()->FindBin(fit_val[uBin%2]),hfdata->GetBinContent(uBin+1)+1);
@@ -9324,16 +9387,29 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
                 Chi2_300.GetBinCoordinates(Bin_MinChi2[0],WhichBinBest);
                 double PURITIES[5];
                 DLM_CommonAnaFunctions AnaFun;
-                if(WhichBinBest[1]%3==0){AnaFun.GetPurities_L("pp13TeV_HM_Dec19",2,PURITIES);}
-                else if(WhichBinBest[1]%3==1){AnaFun.GetPurities_L("pp13TeV_HM_Dec19",1,PURITIES);}
-                else {AnaFun.GetPurities_L("pp13TeV_HM_Dec19",3,PURITIES);}
+                if(*DataSample=="pp13TeV_HM_DimiJun20"){
+                    AnaFun.GetPurities_L(*DataSample,0,PURITIES);
+
+                    if(WhichBinBest[1]==0){Best_SigLamFrac=1./3.*1.4;}
+                    else if(WhichBinBest[1]==1){Best_SigLamFrac=1./3.*1.2;}
+                    else if(WhichBinBest[1]==2){Best_SigLamFrac=1./3.*1.0;}
+                    else if(WhichBinBest[1]==3){Best_SigLamFrac=1./3.*0.8;}
+                    else {Best_SigLamFrac=1./3.*0.6;}
+                }
+                else{
+                    if(WhichBinBest[1]%3==0){AnaFun.GetPurities_L(*DataSample,2,PURITIES);}
+                    else if(WhichBinBest[1]%3==1){AnaFun.GetPurities_L(*DataSample,1,PURITIES);}
+                    else {AnaFun.GetPurities_L(*DataSample,3,PURITIES);}
+
+                    if(WhichBinBest[1]/3==0){Best_SigLamFrac=1./3.*1.4;}
+                    else if(WhichBinBest[1]/3==1){Best_SigLamFrac=1./3.*1.2;}
+                    else if(WhichBinBest[1]/3==2){Best_SigLamFrac=1./3.*1.0;}
+                    else if(WhichBinBest[1]/3==3){Best_SigLamFrac=1./3.*0.8;}
+                    else {Best_SigLamFrac=1./3.*0.6;}
+                }
                 Best_Purity = PURITIES[0];
 
-                if(WhichBinBest[1]/3==0){Best_SigLamFrac=1./3.*1.4;}
-                else if(WhichBinBest[1]/3==1){Best_SigLamFrac=1./3.*1.2;}
-                else if(WhichBinBest[1]/3==2){Best_SigLamFrac=1./3.*1.0;}
-                else if(WhichBinBest[1]/3==3){Best_SigLamFrac=1./3.*0.8;}
-                else {Best_SigLamFrac=1./3.*0.6;}
+
 //printf("We are the best! (%i, %p)\n",COMPARE_TO_LO,fitLoDummy);
                 if(COMPARE_TO_LO&&!fitLoDummy){
                     //DUMMY LO. Compute the genuine LO, smeared for momentum
@@ -9719,7 +9795,8 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
     //DataHisto_Inlet->GetYaxis()->SetTitleSize(hData_pL_Stat->GetYaxis()->GetTitleSize()*1.75);
     //DataHisto_Inlet->GetYaxis()->SetLabelSize(hData_pL_Stat->GetYaxis()->GetLabelSize()*1.75);
     //DataHisto_Inlet->GetYaxis()->SetTitleOffset(hData_pL_Stat->GetYaxis()->GetTitleOffset()*0.67);
-    DataHisto_Inlet->GetYaxis()->SetRangeUser(0.985, 1.085);
+    if(*DataSample=="pp13TeV_HM_DimiJun20") DataHisto_Inlet->GetYaxis()->SetRangeUser(0.965, 1.065);
+    else DataHisto_Inlet->GetYaxis()->SetRangeUser(0.985, 1.085);
 
     TGraph* grFemto_Inlet = (TGraph*)ge_Fit->Clone("grFemto_Inlet");
     grFemto_Inlet->SetLineWidth(ge_Fit->GetLineWidth()*0.67);
@@ -11310,7 +11387,8 @@ double Fit_IMS_Pol2(double* xVal, double* pars){
     return Pol2+Peak;
 }
 
-void Purity_vs_kstar(const unsigned& FirstBoot, const unsigned& LastBoot){
+//0 is se, 1 is me
+void Purity_vs_kstar(const int& MEflag, const unsigned& FirstBoot, const unsigned& LastBoot){
 
     const double kMax = 2400;
     //const unsigned BootstrapIter = 128;
@@ -11318,9 +11396,11 @@ void Purity_vs_kstar(const unsigned& FirstBoot, const unsigned& LastBoot){
     const double imWindow = 4.0;
 
     TString OutputFileName = TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/"
-                            "pLambda_1/Purity_vs_kstar/Test/fOutput_%u_%u.root",FirstBoot,LastBoot);
+                            "pLambda_1/Purity_vs_kstar/ME_220620/fOutput%s_%u_%u.root",
+                            MEflag?"ME":"SE",FirstBoot,LastBoot);
 
 
+/*
     TString InputFileName = "/home/dmihaylov/CernBox/CatsFiles_Dimi/pLambda/AnalysisResults_Purity01062020.root";
     TString DirectoryName = "HMDimiResultsQA0";
     TString ListName1 = "HMDimiResultsQA0";
@@ -11329,6 +11409,31 @@ void Purity_vs_kstar(const unsigned& FirstBoot, const unsigned& LastBoot){
     TString ListNameAPAP = "QA_Particle1_Particle3";
     TString HistoNamePP = "MassQA_Particle2_2";
     TString HistoNameAPAP = "MassQA_Particle3_2";
+*/
+
+    TString InputFileName;
+    TString DirectoryName;
+    TString ListName1;
+    TString ListName2;
+    TString ListNamePP;
+    TString ListNameAPAP;
+    TString HistoNamePP;
+    TString HistoNameAPAP;
+    InputFileName = "/home/dmihaylov/CernBox/CatsFiles_Dimi/pLambda/AnalysisResults_MEpurity_child1.root";
+    DirectoryName = "HMDimiResultsQAS40";
+    ListName1 = "HMDimiResultsQAS40";
+    ListName2 = "PairQA";
+    ListNamePP = "QA_Particle0_Particle2";
+    ListNameAPAP = "QA_Particle1_Particle3";
+    if(MEflag==0){
+        HistoNamePP = "MassQA_Particle2_2";
+        HistoNameAPAP = "MassQA_Particle3_2";
+    }
+    else{
+        HistoNamePP = "MEMassQA_Particle2_2";
+        HistoNameAPAP = "MEMassQA_Particle3_2";
+    }
+
 
     TFile* fInput = new TFile(InputFileName,"read");
     printf("fInput = %p\n",fInput);
@@ -11723,7 +11828,7 @@ printf(" uBin=%u k*=%.0f MeV\n",uBin,Momentum);
 //printf("   For pol2:\n");
 //printf("    Chi2/NDF = %.0f/%i = %.2f\n",fit_Pol2_DG->GetChisquare(),fit_Pol2_DG->GetNDF(),fit_Pol2_DG->GetChisquare()/double(fit_Pol2_DG->GetNDF()));
 //printf("    Purity = %.2f\n",SignalPol2/TotalPol2*100.);
-
+/*
                 hIMS->Write();
                 fData->Write();
                 fSig->Write();
@@ -11732,7 +11837,7 @@ printf(" uBin=%u k*=%.0f MeV\n",uBin,Momentum);
                 fPol2->Write();
                 gFit.Write();
                 gBgr.Write();
-
+*/
                 fInput->cd();
 
                 delete fData_def;
@@ -11764,7 +11869,7 @@ printf(" uBin=%u k*=%.0f MeV\n",uBin,Momentum);
 int PLAMBDA_1_MAIN(int argc, char *argv[]){
 printf("PLAMBDA_1_MAIN\n");
 
-//Purity_vs_kstar(atoi(argv[1]),atoi(argv[2]));
+Purity_vs_kstar(atoi(argv[1]),atoi(argv[2]),atoi(argv[3]));
 //CompareTo_pp();
 //pLambda_Study_Hypotheses();
 //ParametrizeSmearMatrix1_pL();
@@ -11775,10 +11880,10 @@ printf("PLAMBDA_1_MAIN\n");
 
 //POT BL SIG
 //Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(atoi(argv[4]))/10.,
-//                            "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/090620_LO_Gauss/",
-//                            TString::Format("Merged_pp13TeV_HM_Dec19_POT%i_BL%i_SIG%i.root",
+//                            "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/170620_Gauss_SB/",
+//                            TString::Format("Merged_pp13TeV_HM_DimiJun20_POT%i_BL%i_SIG%i.root",
 //                            atoi(argv[1]),atoi(argv[2]),atoi(argv[3])),
-//                            "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/090620_LO_Gauss/Plots/");
+//                            "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/170620_Gauss_SB/Plots/");
 
 //Plot_pL_SystematicsMay2020_2(2,10,1500,2.0,
 //        "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/040620_Gauss/",
@@ -11816,9 +11921,9 @@ printf("PLAMBDA_1_MAIN\n");
 //unsigned SEED, unsigned BASELINE_VAR, int POT_VAR, int Sigma0_Feed,
                            //bool DataSyst, bool FitSyst, bool Bootstrap, unsigned NumIter,
                           // const char* CatsFileFolder, const char* OutputFolder
-pL_SystematicsMay2020(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]), atoi(argv[6]), atoi(argv[7]), atoi(argv[8]),
-"/home/dmihaylov/CernBox/CatsFiles",
-"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/");
+//pL_SystematicsMay2020(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]), atoi(argv[6]), atoi(argv[7]), atoi(argv[8]),
+//"/home/dmihaylov/CernBox/CatsFiles",
+//"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/");
 //pL_SystematicsMay2020(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]), atoi(argv[6]), atoi(argv[7]),
 //                      argv[8],argv[9]);
 //pL_SystematicsMay2020(1, 9, 11600, 0, 64,
