@@ -6950,6 +6950,11 @@ void pL_SystematicsMay2020(unsigned SEED, unsigned BASELINE_VAR, int POT_VAR, in
                            bool DataSyst, bool FitSyst, bool Bootstrap, unsigned NumIter,
                            const char* CatsFileFolder, const char* OutputFolder){
 
+    //if we go beyond the 1 hour 45 minutes mark, we stop
+    //safety for the batch farm
+    const double TIME_LIMIT = 105;
+    DLM_Timer TIMER_SYST;
+
     //pol(0/1/2/3)s: pol(0/1/2/3) with a small fit range
     //dpol(2/3/4)s: pol(2/3/4) that is flat at zero, with a small fit range (up to c.a. 300 MeV)
     //dpol(2/3/4)e: pol(2/3/4) that is flat at zero, with an extended fit range (up to c.a. 450 MeV)
@@ -7158,6 +7163,10 @@ void pL_SystematicsMay2020(unsigned SEED, unsigned BASELINE_VAR, int POT_VAR, in
     Ck_pXim->Update();
 
     for(unsigned uIter=0; uIter<NumIter; uIter++){
+
+        //in ms
+        long long ExeTime = TIMER_SYST.Stop()/1000.;
+        if(TIME_LIMIT<double(ExeTime)/1000./60.) break;
 
         printf("\r\033[K Progress=%.0f%%",double(uIter)/double(NumIter)*100.);
         cout << flush;
@@ -11866,10 +11875,111 @@ printf(" uBin=%u k*=%.0f MeV\n",uBin,Momentum);
     delete fOutput;
 }
 
+//0 is flat
+//1 is chiral
+//2 is esc
+void FitMC_CompareToData_pL(int pSigma0_flag){
+
+    TString InputFileNameData = "/home/dmihaylov/CernBox/CatsFiles/ExpData/ALICE_pp_13TeV_HM/DimiJun20/Norm240_340/CompareDataMC/Ck_pL_Data.root";
+    TString InputDirNameData = "Binning_12";
+    TString InputHistoNameData = "hCkmult_SUM";
+    TFile* fInputData = new TFile(InputFileNameData,"read");
+    TDirectoryFile* fDirData = (TDirectoryFile*)(fInputData->FindObjectAny(InputDirNameData));
+    printf("fDirData = %p\n",fDirData);
+    //fDirData->ls();
+    TH1D* hInputData = NULL;
+    fDirData->GetObject(InputHistoNameData,hInputData);
+    hInputData->SetName("hInputData");
+    printf("hInputData = %p\n",hInputData);
+
+    TString InputFileNameMc = "/home/dmihaylov/CernBox/CatsFiles/ExpData/ALICE_pp_13TeV_HM/DimiJun20/Norm240_340/CompareDataMC/Ck_pL_Mc.root";
+    TString InputDirNameMc = "Binning_60";
+    TString InputHistoNameMc = "hCkmult_SUM";
+    TFile* fInputMc = new TFile(InputFileNameMc,"read");
+    TDirectoryFile* fDirMc = (TDirectoryFile*)(fInputMc->FindObjectAny(InputDirNameMc));
+    printf("fDirMc = %p\n",fDirMc);
+    //fDirMc->ls();
+    TH1D* hInputMc = NULL;
+    fDirMc->GetObject(InputHistoNameMc,hInputMc);
+    hInputMc->SetName("hInputMc");
+    printf("hInputMc = %p\n",hInputMc);
+
+    TF1* fBaselineData = new TF1("fBaselineData",dimi_pL_May2020_FitterBl,0,500,5);
+
+    //Chiral
+    if(pSigma0_flag==1){
+        fBaselineData->FixParameter(0,1.001);
+        fBaselineData->FixParameter(1,0);
+        fBaselineData->FixParameter(2,164.5);
+        fBaselineData->FixParameter(3,3.206e-10);
+        fBaselineData->FixParameter(4,-1e6);
+    }
+    //ESC16
+    else if(pSigma0_flag==2){
+        fBaselineData->FixParameter(0,0.9904);
+//fBaselineData->FixParameter(0,1.000);
+        fBaselineData->FixParameter(1,0);
+        fBaselineData->FixParameter(2,2.864e-12);
+        fBaselineData->FixParameter(3,2.504e-10);
+        fBaselineData->FixParameter(4,-1e6);
+    }
+    //Flat
+    else{
+        fBaselineData->FixParameter(0,0.9913);
+//fBaselineData->FixParameter(0,1.000);
+        fBaselineData->FixParameter(1,0);
+        fBaselineData->FixParameter(2,1.885e-6);
+        fBaselineData->FixParameter(3,2.354e-10);
+        fBaselineData->FixParameter(4,-1e6);
+    }
+
+
+    TF1* fBaselineMc = new TF1("fBaselineMc",dimi_pL_May2020_FitterBl,0,1000,5);
+    fBaselineMc->SetParameter(0,1.001);
+    fBaselineMc->SetParLimits(0,0.95,1.05);
+    fBaselineMc->FixParameter(1,0);
+    fBaselineMc->SetParameter(2,164.5);
+    fBaselineMc->SetParLimits(2,100,700);
+//fBaselineMc->FixParameter(2,1.885e-6);
+    fBaselineMc->SetParameter(3,3.206e-10);
+    fBaselineMc->SetParLimits(3,1e-11,1e-9);
+    fBaselineMc->FixParameter(4,-1e6);
+
+    TF1* fNormMc = new TF1("fNormMc","[0]",0,300);
+    fNormMc->SetParameter(0,1.001);
+    fNormMc->SetParLimits(0,0.95,1.05);
+
+    hInputData->Fit(fBaselineData, "S, N, R, M");
+    hInputMc->Fit(fBaselineMc, "S, N, R, M");
+    hInputMc->Fit(fNormMc, "S, N, R, M");
+
+    TFile* fOutput = new TFile(
+    TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/FitMC_CompareToData_pL/fOutput_%i.root",pSigma0_flag)
+                               ,"recreate");
+    hInputData->Write();
+    fBaselineData->Write();
+    hInputMc->Write();
+    fBaselineMc->Write();
+    fNormMc->Write();
+
+    delete fBaselineData;
+
+    delete fBaselineMc;
+
+    delete fInputData;
+    delete fInputMc;
+
+    delete fOutput;
+}
+
 int PLAMBDA_1_MAIN(int argc, char *argv[]){
 printf("PLAMBDA_1_MAIN\n");
 
-Purity_vs_kstar(atoi(argv[1]),atoi(argv[2]),atoi(argv[3]));
+FitMC_CompareToData_pL(0);
+FitMC_CompareToData_pL(1);
+FitMC_CompareToData_pL(2);
+
+//Purity_vs_kstar(atoi(argv[1]),atoi(argv[2]),atoi(argv[3]));
 //CompareTo_pp();
 //pLambda_Study_Hypotheses();
 //ParametrizeSmearMatrix1_pL();
@@ -11880,10 +11990,10 @@ Purity_vs_kstar(atoi(argv[1]),atoi(argv[2]),atoi(argv[3]));
 
 //POT BL SIG
 //Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(atoi(argv[4]))/10.,
-//                            "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/170620_Gauss_SB/",
+//                            "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/220620_Gauss_SBL60/",
 //                            TString::Format("Merged_pp13TeV_HM_DimiJun20_POT%i_BL%i_SIG%i.root",
 //                            atoi(argv[1]),atoi(argv[2]),atoi(argv[3])),
-//                            "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/170620_Gauss_SB/Plots/");
+//                            "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/220620_Gauss_SBL60/Plots/");
 
 //Plot_pL_SystematicsMay2020_2(2,10,1500,2.0,
 //        "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/040620_Gauss/",

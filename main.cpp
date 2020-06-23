@@ -4120,6 +4120,11 @@ void ScatParsFromRandPotential(const TString OutputFolder,
     if(ARGV) delete [] ARGV;
 
     long long ExeTime = TIMER.Stop()/1000.;
+//for(unsigned uSec=0; uSec<10; uSec++){
+//    printf("%f\n",double(ExeTime)/1000.);
+//    usleep(1000e3);
+//    ExeTime = TIMER.Stop()/1000.;
+//}
     char* strtime = new char [128];
     ShowTime(ExeTime,strtime,0,true,6);
     printf("The script terminated after: %s\n",strtime);
