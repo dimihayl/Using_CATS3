@@ -3974,6 +3974,79 @@ void Test_pXi_Yukawa(){
 
 }
 
+void QA_pd(){
+    const double SourceSize = 1.2;
+
+    const double kMin=0;
+    const double kMax=130;
+    const unsigned NumMomBins = 26;
+
+    CATSparameters* cPars;
+    cPars = new CATSparameters(CATSparameters::tSource, 1, true);
+    cPars->SetParameter(0, SourceSize);
+    CATS Kitty;
+    Kitty.SetAnaSource(GaussSource, *cPars);
+    Kitty.SetMomBins(NumMomBins,kMin,kMax);
+    Kitty.SetAnaSource(GaussSource, *cPars);
+    Kitty.SetAnaSource(0,SourceSize);
+    Kitty.SetUseAnalyticSource(true);
+    Kitty.SetMomentumDependentSource(false);
+    Kitty.SetThetaDependentSource(false);
+    Kitty.SetExcludeFailedBins(false);
+
+printf("Fuck\n");
+    DLM_Histo<complex<double>>*** ExternalWF=NULL;
+    ExternalWF = Init_pd_Sebastian("/home/dmihaylov/CernBox/CatsFiles/Interaction/pd/Sebastian/",Kitty,1,400);
+    for(unsigned uCh=0; uCh<Kitty.GetNumChannels(); uCh++){
+        Kitty.SetExternalWaveFunction(uCh,0,ExternalWF[0][uCh][0],ExternalWF[1][uCh][0]);
+    }
+printf("WF ready\n");
+    //Kitty.SetChannelWeight(0,0);
+    //Kitty.SetChannelWeight(1,1);
+    Kitty.KillTheCat();
+
+    TFile* OutputFile = new TFile(
+                TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/QA_pd/QA_pd.root"),"recreate");
+printf("File Created\n");
+    TGraph gKitty;
+    gKitty.SetName(TString::Format("gKitty"));
+    gKitty.Set(NumMomBins);
+    for(unsigned uBin=0; uBin<NumMomBins; uBin++){
+        printf("C(%.2f) = %.2f\n",Kitty.GetMomentum(uBin),Kitty.GetCorrFun(uBin));
+        gKitty.SetPoint(uBin,Kitty.GetMomentum(uBin),Kitty.GetCorrFun(uBin));
+    }
+    gKitty.Write();
+
+    TGraph* gWF_Re_D = new TGraph [NumMomBins];
+    TGraph* gWF_Re_Q = new TGraph [NumMomBins];
+    TGraph* gWF_Re_R = new TGraph [NumMomBins];
+    for(unsigned uBin=0; uBin<NumMomBins; uBin++){
+        unsigned COUNTER=0;
+        gWF_Re_D[uBin].SetName(TString::Format("gWF_Re_D_%.0f",Kitty.GetMomentum(uBin)));
+        gWF_Re_Q[uBin].SetName(TString::Format("gWF_Re_Q_%.0f",Kitty.GetMomentum(uBin)));
+        gWF_Re_R[uBin].SetName(TString::Format("gWF_Re_R_%.0f",Kitty.GetMomentum(uBin)));
+        for(double RAD=0.05; RAD<100; RAD+=0.05){
+            gWF_Re_D[uBin].SetPoint(COUNTER,RAD,abs(Kitty.EvalRadialWaveFunction(uBin,0,0,RAD,true)));
+            gWF_Re_Q[uBin].SetPoint(COUNTER,RAD,abs(Kitty.EvalRadialWaveFunction(uBin,1,0,RAD,true)));
+            gWF_Re_R[uBin].SetPoint(COUNTER,RAD,abs(Kitty.EvalReferenceRadialWF(uBin,0,RAD,true)));
+
+            COUNTER++;
+        }
+        gWF_Re_D[uBin].Write();
+        gWF_Re_Q[uBin].Write();
+        gWF_Re_R[uBin].Write();
+    }
+
+
+    CleanUpWfHisto(Kitty,ExternalWF);
+
+    delete [] gWF_Re_D;
+    delete [] gWF_Re_Q;
+    delete [] gWF_Re_R;
+    delete OutputFile;
+    delete cPars;
+}
+
 int main(int argc, char *argv[])
 {
 
@@ -3994,6 +4067,7 @@ int main(int argc, char *argv[])
         strcpy(ARGV[iARG],argv[iARG]);
     }
 
+    //QA_pd();
     //pipi_test();
     //TestRandom();
     //pp_in_txtfile();

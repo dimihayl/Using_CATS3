@@ -5752,6 +5752,9 @@ double dimi_pL_Schleching_Fitter(double* x, double* par){
     double FEMTO = pLambda_1_Dec->EvalCk(MOM);
     return dimi_pL_Schleching_FitterBl(x,&par[4])*FEMTO;
 }
+
+//if par[0]==-1e6 : use splines
+//else
 //par[0] is an overall normalization
 //than we have a pol4 = p0*(1+p1*k+p2*k^2+p3*k^4+p4*k^4), which has 3 free arguments and the following properties
 //par4!=0 (pol4 flat at 0)
@@ -5767,35 +5770,44 @@ double dimi_pL_Schleching_Fitter(double* x, double* par){
 double dimi_pL_May2020_FitterBl(double* x, double* par){
     double& k = *x;
     double& p0 = par[0];
-    double p1;
-    double p2;
-    double p3;
-    double p4;
-    if(par[4]!=-1e6){
-        p4 = par[3];
-        p3 = -4./3.*(par[1]+par[2])*p4;
-        p2 = 2.*par[1]*par[2]*p4;
-        p1 = 0;
+    //splines
+    if(p0==-1e6){
+        //double Spline = DLM_FITTER2_FUNCTION_SPLINE3(x,&par[1]);
+        //printf("hi %f\n",Spline);
+        return DLM_FITTER2_FUNCTION_SPLINE3(x,&par[1]);
     }
-    else if(par[3]!=-1e6){
-        p4 = 0;
-        p3 = par[3];
-        p2 = -1.5*(par[1]+par[2])*p3;
-        p1 = 3.*par[1]*par[2]*p3;
-    }
-    else if(par[2]!=-1e6){
-        p4 = 0;
-        p3 = 0;
-        p2 = par[2];
-        p1 = -2.*par[1]*p2;
-    }
+    //constrained polynomials
     else{
-        p4 = 0;
-        p3 = 0;
-        p2 = 0;
-        p1 = par[1];
+        double p1;
+        double p2;
+        double p3;
+        double p4;
+        if(par[4]!=-1e6){
+            p4 = par[3];
+            p3 = -4./3.*(par[1]+par[2])*p4;
+            p2 = 2.*par[1]*par[2]*p4;
+            p1 = 0;
+        }
+        else if(par[3]!=-1e6){
+            p4 = 0;
+            p3 = par[3];
+            p2 = -1.5*(par[1]+par[2])*p3;
+            p1 = 3.*par[1]*par[2]*p3;
+        }
+        else if(par[2]!=-1e6){
+            p4 = 0;
+            p3 = 0;
+            p2 = par[2];
+            p1 = -2.*par[1]*p2;
+        }
+        else{
+            p4 = 0;
+            p3 = 0;
+            p2 = 0;
+            p1 = par[1];
+        }
+        return p0*(1.+p1*k+p2*pow(k,2)+p3*pow(k,3)+p4*pow(k,4));
     }
-    return p0*(1.+p1*k+p2*pow(k,2)+p3*pow(k,3)+p4*pow(k,4));
 }
 double dimi_pL_May2020_FitterFemto(double* x, double* par){
     double& MOM = *x;
@@ -6962,7 +6974,8 @@ void pL_SystematicsMay2020(unsigned SEED, unsigned BASELINE_VAR, int POT_VAR, in
 ///The current choice:
 /// as cross check: pol0s,pol1s,pol2s,dpol2s,pol3e
 /// as systematics: dpol3s,dpol3e,dpol4e
-    enum BLTYPE { pol0s,pol1s,pol2s,pol3s,dpol2s,dpol3s,dpol4s,pol2e,pol3e,dpol2e,dpol3e,dpol4e };
+/// for fun: spl1 (splines at 0-48-96-192-288-432)
+    enum BLTYPE { pol0s,pol1s,pol2s,pol3s,dpol2s,dpol3s,dpol4s,pol2e,pol3e,dpol2e,dpol3e,dpol4e,spl1 };
 
     // new syst: pLambda(1.55):   low 0.853396 mean 0.877717 up 0.90239
     //the values below is for the updated epos version of the source
@@ -7035,6 +7048,8 @@ void pL_SystematicsMay2020(unsigned SEED, unsigned BASELINE_VAR, int POT_VAR, in
     float lam_Xim_Flat;
     float pval;
     unsigned WhichData;
+    float SBl;//fraction of left sideband
+    float SBpur;//the purity of the sample, used for the correction with sidebands
     bool DefaultVariation;
     //int Sigma0_Feed;
     int Xim_Feed;
@@ -7086,6 +7101,8 @@ void pL_SystematicsMay2020(unsigned SEED, unsigned BASELINE_VAR, int POT_VAR, in
     plambdaTree->Branch("lam_Xim_genuine", &lam_Xim_genuine, "lam_Xim_genuine/F");
     plambdaTree->Branch("lam_Xim_Flat", &lam_Xim_Flat, "lam_Xim_Flat/F");
     plambdaTree->Branch("WhichData", &WhichData, "WhichData/i");
+    plambdaTree->Branch("SBl", &SBl, "SBl/F");
+    plambdaTree->Branch("SBpur", &SBpur, "SBpur/F");
     plambdaTree->Branch("pval", &pval, "pval/F");
     plambdaTree->Branch("DefaultVariation", &DefaultVariation, "DefaultVariation/O");
 
@@ -7176,7 +7193,7 @@ void pL_SystematicsMay2020(unsigned SEED, unsigned BASELINE_VAR, int POT_VAR, in
         unsigned WhichFemtoRange = rangen.Integer(3);
         if(DefaultVariation||FitSyst==false) WhichFemtoRange = 0;
         unsigned WhichFitRange;
-        if(BASELINE_VAR<pol2e||BASELINE_VAR>dpol4e) WhichFitRange=50;
+        if(BASELINE_VAR<pol2e||BASELINE_VAR>spl1) WhichFitRange=50;
         //for the Dimi baseline, fit to larger range
         else WhichFitRange = 51+WhichFemtoRange;
 
@@ -7303,9 +7320,34 @@ Xim_Feed = 1;
 //printf(" CkDec_pSigma0 = %f\n",CkDec_pSigma0->EvalCk(366));
 //printf(" CkDec_pXim = %f\n",CkDec_pXim->EvalCk(366));
 
-        WhichData = rangen.Integer(45);
-        if(DefaultVariation||DataSyst==false) WhichData = 0;
-        TString DataVar = TString::Format("_%i",WhichData);
+        TString DataVar;
+        //here we have new file naming, which allows for additional variations,
+        //namely for the sideband correction, we can change the purity and the left-right SB fraction
+        if(DataSample=="pp13TeV_HM_DimiJun20"){
+            //data set variation
+            WhichData = rangen.Integer(45);
+            //purity variation (significant at the level of the stat. uncertainties)
+            unsigned WhichSBpur = rangen.Integer(2);
+            //fraction L:R variation (found insignificant)
+            unsigned WhichSBl = rangen.Integer(2);
+            if(WhichSBpur==0){//double Gaussian IM peak
+                SBpur = 0.953;
+                if(WhichSBl==0){SBl=0.520;}//fit left/right in the LambdaWindow
+                else{SBl=0.554;}//fit left/right outside of the LambdaWindow (width==LambdaWindow, so like 4 MeV)
+            }
+            else{//triple Gaussian IM peak
+                SBpur = 0.963;
+                if(WhichSBl==0){SBl=0.529;}
+                else{SBl=0.574;}
+            }
+            DataVar = TString::Format("L%.0f_SL4_SR6_P%.0f_%i",SBl,SBpur,WhichData);
+        }
+        else{
+            WhichData = rangen.Integer(45);
+            if(DefaultVariation||DataSyst==false) WhichData = 0;
+            DataVar = TString::Format("_%i",WhichData);
+        }
+
         //TH1F* hData_pL = AnalysisObject.GetAliceExpCorrFun(DataSample,"pLambda","_0",1,false,-1);
         TH1F* hData = AnalysisObject.GetAliceExpCorrFun(DataSample,"pLambda",DataVar,2,false,-1);
         if(Bootstrap&&!DefaultVariation){
@@ -7319,7 +7361,16 @@ Xim_Feed = 1;
         pLambda_1_Dec = CkDec_pL;
         pLambda_1_Cat = &AB_pL;
 
-        TF1* fData = new TF1("fData",dimi_pL_May2020_Fitter,FitRegion_pL[0],FitRegion_pL[3],10);
+        const int NumKnots = 6;
+        // = new double [NumKnots];
+        const double Nodes_x[] = {0.,48.,96.,192.,288.,432.};
+        //1 norm/flag, than whatever number of parameters
+        const unsigned NumBlPars = BASELINE_VAR==spl1?1+3+NumKnots*2:5;
+        //5 default pars, outside of the BL and norm
+        const unsigned NumFemtoPars = 5;
+        const unsigned NumFitPars = NumFemtoPars+NumBlPars;
+
+        TF1* fData = new TF1("fData",dimi_pL_May2020_Fitter,FitRegion_pL[0],FitRegion_pL[3],NumFitPars);
 
         //modify the source rad such as to represent the 2 particle radius (NOT Nolan)
         //in this way the maximum of the S(r) stays more or less at the same location
@@ -7346,15 +7397,22 @@ Xim_Feed = 1;
         //cutoff
         fData->FixParameter(3,CkCutOff);
 
-        if(BASELINE_VAR<dpol2e||BASELINE_VAR>dpol4e){
+        ///is the logic inverted???
+        if(BASELINE_VAR<dpol2e||BASELINE_VAR>spl1){
+        //if(BASELINE_VAR>=dpol2e&&BASELINE_VAR<=spl1){
             fData->SetParameter(4,CkConv);
             fData->SetParLimits(4,500,1000);
         }
         else fData->FixParameter(4,CkConv);
 
         //norm
-        fData->SetParameter(5,1);
-        fData->SetParLimits(5,0.5,2.0);
+        if(BASELINE_VAR==spl1){
+            fData->FixParameter(5,-1e6);
+        }
+        else{
+            fData->SetParameter(5,1);
+            fData->SetParLimits(5,0.5,2.0);
+        }
 
         if(BASELINE_VAR==pol0s){
             for(int i=7; i<=9; i++) fData->FixParameter(i,-1e6);
@@ -7395,15 +7453,35 @@ Xim_Feed = 1;
             fData->SetParameter(8,0);
             fData->SetParLimits(8,-1e-6,1e-6);
         }
-        //intended for dpol4e
-        else{
-            fData->SetParameter(6,0);
-            fData->SetParLimits(6,-100000,400);
-            fData->SetParameter(7,275);
-            fData->SetParLimits(7,100,1000);
+        //
+        else if(BASELINE_VAR==dpol4e){
+            //fData->SetParameter(6,0);
+            //fData->SetParLimits(6,-100000,400);
+            //fData->SetParameter(7,275);
+            //fData->SetParLimits(7,100,1000);
+            //fData->SetParameter(8,0);
+            //fData->SetParLimits(8,-1e-7,1e-7);
+            fData->SetParameter(6,90);
+            fData->SetParLimits(6,0,180);
+            fData->SetParameter(7,240);
+            fData->SetParLimits(7,180,360);
             fData->SetParameter(8,0);
-            fData->SetParLimits(8,-1e-7,1e-7);
+            fData->SetParLimits(8,-1e-6,1e-6);
             fData->FixParameter(9,1);
+        }
+        //spl1
+        else{
+            fData->FixParameter(6,NumKnots);
+            //derivative at the firs knot
+            fData->FixParameter(7,0);
+            fData->SetParameter(8,0);
+            fData->SetParLimits(8,-1e-3,1e-3);
+            for(unsigned uKnot=0; uKnot<NumKnots; uKnot++){
+                double HistVal = hData->GetBinContent(hData->FindBin(Nodes_x[uKnot]));
+                fData->FixParameter(6+3+uKnot,Nodes_x[uKnot]);
+                fData->SetParameter(6+3+NumKnots+uKnot,HistVal);
+                fData->SetParLimits(6+3+NumKnots+uKnot,0,HistVal*2);
+            }
         }
 
         hData->Fit(fData,"Q, S, N, R, M");
@@ -7430,11 +7508,11 @@ Xim_Feed = 1;
 
         pval = fData->GetProb();
 
-        TF1* fBaseline = new TF1("fBaseline",dimi_pL_May2020_FitterBl,FitRegion_pL[0],FitRegion_pL[3],5);
-        for(unsigned uPar=0; uPar<5; uPar++) fBaseline->FixParameter(uPar,fData->GetParameter(5+uPar));
+        TF1* fBaseline = new TF1("fBaseline",dimi_pL_May2020_FitterBl,FitRegion_pL[0],FitRegion_pL[3],NumBlPars);
+        for(unsigned uPar=0; uPar<NumBlPars; uPar++) fBaseline->FixParameter(uPar,fData->GetParameter(NumFemtoPars+uPar));
 
-        TF1* fFemto = new TF1("fFemto",dimi_pL_May2020_FitterFemto,FitRegion_pL[0],FitRegion_pL[3],5);
-        for(unsigned uPar=0; uPar<5; uPar++) fFemto->FixParameter(uPar,fData->GetParameter(uPar));
+        TF1* fFemto = new TF1("fFemto",dimi_pL_May2020_FitterFemto,FitRegion_pL[0],FitRegion_pL[3],NumFemtoPars);
+        for(unsigned uPar=0; uPar<NumFemtoPars; uPar++) fFemto->FixParameter(uPar,fData->GetParameter(uPar));
 
         for(unsigned uBin=0; uBin<hData->GetNbinsX(); uBin++){
 
@@ -7640,9 +7718,10 @@ void Plot_pL_SystematicsMay2020(const int& SIGMA_FEED, const int& WhichSourceAlp
     else OutputFolder = InputFolder;
     /// as cross check: pol0s,pol1s,pol2s,dpol2s,pol3e
     /// as systematics: dpol3s,dpol3e,dpol4e
-    enum BLTYPE              { pol0s,pol1s,pol2s,pol3s,dpol2s,dpol3s,dpol4s,pol2e,pol3e,dpol2e,dpol3e,dpol4e };
+    /// for fun: spl1 (splines at 0-48-96-192-288-432)
+    enum BLTYPE              { pol0s,pol1s,pol2s,pol3s,dpol2s,dpol3s,dpol4s,pol2e,pol3e,dpol2e,dpol3e,dpol4e,spl1 };
     //const bool IncludeBl[] = { true, true, true, false,false, true,  false, false,false,false, true,  false};
-    const unsigned NumBaselines = 8;
+    const unsigned NumBaselines = 9;
     int* BlFlag = new int [NumBaselines];
     bool* IncludeBl = new bool [NumBaselines];
     BlFlag[0] = pol0s; IncludeBl[0] = true;
@@ -7653,6 +7732,7 @@ void Plot_pL_SystematicsMay2020(const int& SIGMA_FEED, const int& WhichSourceAlp
     BlFlag[5] = dpol3s; IncludeBl[5] = true;
     BlFlag[6] = dpol3e; IncludeBl[6] = true;
     BlFlag[7] = dpol4e; IncludeBl[7] = false;
+    BlFlag[8] = spl1; IncludeBl[8] = false;
     TString* BlName1 = new TString [NumBaselines+1];
     TString* BlName2 = new TString [NumBaselines+1];
     TString* BlDescr = new TString [NumBaselines+1];
@@ -7691,9 +7771,13 @@ void Plot_pL_SystematicsMay2020(const int& SIGMA_FEED, const int& WhichSourceAlp
     BlName2[7] = "Extended fit range";
     BlDescr[7] = "dpol4e";
 
-    BlName1[8] = "All baselines";
-    BlName2[8] = "";
-    BlDescr[8] = "AllBl";
+    BlName1[8] = "Spline (type 1)";
+    BlName2[8] = "Extended fit range";
+    BlDescr[8] = "spl1";
+
+    BlName1[9] = "All baselines";
+    BlName2[9] = "";
+    BlDescr[9] = "AllBl";
 
     const unsigned NumPotVars = 9;
     TString* PotName1 = new TString [NumPotVars+1];
@@ -8726,7 +8810,7 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
                                   const float& ValSourceAlpha,
                                   TString InputFolder, TString InputFileName, TString OutputFolder){
 
-    enum BLTYPE              { pol0s,pol1s,pol2s,pol3s,dpol2s,dpol3s,dpol4s,pol2e,pol3e,dpol2e,dpol3e,dpol4e };
+    enum BLTYPE { pol0s,pol1s,pol2s,pol3s,dpol2s,dpol3s,dpol4s,pol2e,pol3e,dpol2e,dpol3e,dpol4e,spl1 };
     TString BlName1;
     TString BlName2;
     TString BlDescr;
@@ -8747,7 +8831,7 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
 
     const bool Same_omega_siglam = false;
     //const bool COMPARE_TO_LO = true;
-    bool COMPARE_TO_LO = true;
+    bool COMPARE_TO_LO = false;
     if(WhichPotential==-11600) COMPARE_TO_LO = false;
 
     switch(WhichBaseline){
@@ -8798,6 +8882,10 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
         case dpol4e :   BlName1 = "Quartic baseline (constrained)";
                         BlName2 = "Extended fit range";
                         BlDescr = "dpol4e";
+                        break;
+        case spl1   :   BlName1 = "Spline baseline (1)";
+                        BlName2 = "Extended fit range";
+                        BlDescr = "spl1";
                         break;
         default :       BlName1 = "Unknown baseline";
                         BlName2 = "";
@@ -8932,6 +9020,8 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
     float lam_Xim_Flat;
     float pval;
     unsigned WhichData;
+    float SBl;
+    float SBpur;
     bool DefaultVariation;
     int Sigma0_Feed;
     int Xim_Feed;
@@ -8976,6 +9066,8 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
 	plambdaTree->SetBranchAddress("lam_Xim_genuine",&lam_Xim_genuine);
 	plambdaTree->SetBranchAddress("lam_Xim_Flat",&lam_Xim_Flat);
 	plambdaTree->SetBranchAddress("WhichData",&WhichData);
+    plambdaTree->SetBranchAddress("SBl", &SBl);
+    plambdaTree->SetBranchAddress("SBpur", &SBpur);
 	plambdaTree->SetBranchAddress("pval",&pval);
 	plambdaTree->SetBranchAddress("DefaultVariation",&DefaultVariation);
 
@@ -9350,6 +9442,7 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
             data_err[uBin%2] = gData->GetErrorY(uBin);
             fitData->GetPoint(uBin,mom_val[uBin%2],fit_val[uBin%2]);
             fitBaseline->GetPoint(uBin,mom_val[uBin%2],bl_val);
+//printf("uBin=%u; mom_val=%f; bl_val=%f\n",uBin,mom_val[uBin%2],bl_val);
             fitSignal_pL_pS0->GetPoint(uBin,mom_val[uBin%2],sig_val);
             sig_val *= bl_val;
             fitSignal_pL_pXim->GetPoint(uBin,mom_val[uBin%2],xim_val);
@@ -9582,6 +9675,8 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
 
         hProj = hb_bl->ProjectionY("hProj",uBin+1,uBin+1);
         MedVal = GetCentralInterval(*hProj,0.68,MinVal,MaxVal,true);
+//printf("uBin=%u; MOM=%f; MedVal=%f; MinVal=%f; MaxVal=%f\n",
+//       uBin,MOM,MedVal,MinVal,MaxVal);
         geb_Bl->SetPoint(uBin,MOM,(MaxVal+MinVal)*0.5);
         geb_Bl->SetPointError(uBin,0,(MaxVal-MinVal)*0.5);
         delete hProj;
@@ -9710,12 +9805,15 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
     //ge_Bl->Draw("3 same");
     //ge_Fit->Draw("3 same");
 
-    geb_Xim->Draw("3 same");
-    geb_Sig->Draw("3 same");
+    geb_Xim->Draw("3L same");
+    geb_Sig->Draw("3L same");
+
     if(fitLoDummy) fitLoDummy->Draw("3L same");
-    geb_Bl->Draw("3 same");
+
+    geb_Bl->Draw("3L same");
     geb_Fit->Draw("3L same");
     //}
+
     hData_pL_Stat->Draw("same");
 
     Tgraph_syserror->SetFillColorAlpha(kBlack, 0.4);
@@ -9904,6 +10002,14 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
 
     DlmPad->GetCanvas()->SaveAs(OutputFolder+TString::Format("DlmPad_%s_%s_%s_%i.pdf",PotDescr.Data(),BlDescr.Data(),SigDescr.Data(),
                                                              TMath::Nint(ValSourceAlpha*10.)));
+
+TFile dummyOutput(OutputFolder+"dummyOutput.root","recreate");
+geb_Xim->Write();
+geb_Sig->Write();
+geb_Bl->Write();
+geb_Fit->Write();
+hData_pL_Stat->Write();
+
 printf("Delete\n");
     delete hnsigma;
     delete hb_nsigma;
@@ -11389,6 +11495,24 @@ double Fit_IMS_Splines(double* xVal, double* pars){
     double Splines = DLM_FITTER2_FUNCTION_SPLINE3(xVal,&pars[6]);
     return Splines+Peak;
 }
+double Fit_IMS_Signal3(double* xVal, double* pars){
+    double& IM = *xVal;
+    double& Ampl1 = pars[0];
+    double& Mean1 = pars[1];
+    double& Stdv1 = pars[2];
+    double& Ampl2 = pars[3];
+    double Mean2 = pars[4]; if(Mean2==0) Mean2=Mean1;
+    double& Stdv2 = pars[5];
+    double& Ampl3 = pars[6];
+    double Mean3 = pars[7]; if(Mean3==0) Mean3=Mean1;
+    double& Stdv3 = pars[8];
+    return Ampl1*TMath::Gaus(IM,Mean1,Stdv1,1)+Ampl2*TMath::Gaus(IM,Mean2,Stdv2,1)+Ampl3*TMath::Gaus(IM,Mean3,Stdv3,1);
+}
+double Fit_IMS_Splines3(double* xVal, double* pars){
+    double Peak = Fit_IMS_Signal3(xVal,pars);
+    double Splines = DLM_FITTER2_FUNCTION_SPLINE3(xVal,&pars[9]);
+    return Splines+Peak;
+}
 double Fit_IMS_Pol2(double* xVal, double* pars){
     double& x = *xVal;
     double Peak = Fit_IMS_Signal(xVal,pars);
@@ -11398,14 +11522,18 @@ double Fit_IMS_Pol2(double* xVal, double* pars){
 
 //0 is se, 1 is me
 void Purity_vs_kstar(const int& MEflag, const unsigned& FirstBoot, const unsigned& LastBoot){
-
-    const double kMax = 2400;
+//PurityTree->Draw("Purity:Momentum>>h2(20,0,480,64,0.94, 0.98)", "Scenario==2", "COLZ")
+    //const double ME_yield_bias = 17;
+    const double kMax = 48;
     //const unsigned BootstrapIter = 128;
     const double pdgLambda = 1115.683;
     const double imWindow = 4.0;
 
+    const int RebinKstar = 6;
+    const int RebinIMS = 8;
+
     TString OutputFileName = TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/"
-                            "pLambda_1/Purity_vs_kstar/ME_220620/fOutput%s_%u_%u.root",
+                            "pLambda_1/Purity_vs_kstar/Test/fOutput%s_%u_%u.root",
                             MEflag?"ME":"SE",FirstBoot,LastBoot);
 
 
@@ -11428,7 +11556,14 @@ void Purity_vs_kstar(const int& MEflag, const unsigned& FirstBoot, const unsigne
     TString ListNameAPAP;
     TString HistoNamePP;
     TString HistoNameAPAP;
-    InputFileName = "/home/dmihaylov/CernBox/CatsFiles_Dimi/pLambda/AnalysisResults_MEpurity_child1.root";
+    //used to get the number of single lambdas
+    TString ListNameV0_1;
+    TString ListNameV0_2;
+    TString HistoName_V0IMS;
+    TString ListNameAV0_1;
+    TString ListNameAV0_2;
+    TString HistoName_AV0IMS;
+    InputFileName = "/home/dmihaylov/CernBox/CatsFiles_Dimi/pLambda/AnalysisResults_MEpurity.root";
     DirectoryName = "HMDimiResultsQAS40";
     ListName1 = "HMDimiResultsQAS40";
     ListName2 = "PairQA";
@@ -11442,7 +11577,12 @@ void Purity_vs_kstar(const int& MEflag, const unsigned& FirstBoot, const unsigne
         HistoNamePP = "MEMassQA_Particle2_2";
         HistoNameAPAP = "MEMassQA_Particle3_2";
     }
-
+    ListNameV0_1 = "HMDimiv0CutsS40";
+    ListNameV0_2 = "v0Cuts";
+    HistoName_V0IMS = "InvMassPt";
+    ListNameAV0_1 = "HMDimiAntiv0CutsS40";
+    ListNameAV0_2 = "v0Cuts";
+    HistoName_AV0IMS = "InvMassPt";
 
     TFile* fInput = new TFile(InputFileName,"read");
     printf("fInput = %p\n",fInput);
@@ -11467,11 +11607,33 @@ void Purity_vs_kstar(const int& MEflag, const unsigned& FirstBoot, const unsigne
     TH2F* hAPAP_IMS_k = (TH2F*)lInputAPAP->FindObject(HistoNameAPAP);
     printf("hAPAP_IMS_k = %p\n",hAPAP_IMS_k);
 
+    dInput = NULL;
+    lInput1 = NULL;
+    lInput2 = NULL;
+    dInput = (TDirectoryFile*)(fInput->FindObjectAny(ListNameV0_1));
+    dInput->GetObject(ListNameV0_1,lInput1);
+    lInput2 = (TList*)lInput1->FindObject(ListNameV0_2);
+    TH1F* hV0IMS = (TH1F*)lInput2->FindObject(HistoName_V0IMS);
+    const double NumV0 = hV0IMS->Integral();
+
+    dInput = NULL;
+    lInput1 = NULL;
+    lInput2 = NULL;
+    dInput = (TDirectoryFile*)(fInput->FindObjectAny(ListNameAV0_1));
+    dInput->GetObject(ListNameAV0_1,lInput1);
+    lInput2 = (TList*)lInput1->FindObject(ListNameAV0_2);
+    TH1F* hAV0IMS = (TH1F*)lInput2->FindObject(HistoName_AV0IMS);
+    const double NumAV0 = hAV0IMS->Integral();
+
+    const double ME_yield_bias = (hPP_IMS_k->Integral()+hAPAP_IMS_k->Integral())/(NumV0+NumAV0);
+    //const double ME_yield_bias = 1;
+    printf("ME_yield_bias = %f\n",ME_yield_bias);
+
     hPP_IMS_k->Sumw2();
     hAPAP_IMS_k->Sumw2();
 
-    hPP_IMS_k->Rebin2D(8,6);
-    hAPAP_IMS_k->Rebin2D(8,6);
+    hPP_IMS_k->Rebin2D(RebinIMS,RebinKstar);
+    hAPAP_IMS_k->Rebin2D(RebinIMS,RebinKstar);
 
     DLM_Histo<float>* dlm_PP_IMS_k = Convert_TH2F_DlmHisto(hPP_IMS_k);
 //return;
@@ -11501,7 +11663,7 @@ void Purity_vs_kstar(const int& MEflag, const unsigned& FirstBoot, const unsigne
     double Error;
     double RandomValue;
 
-    TGraphErrors* gPurity = new TGraphErrors [3];
+    //TGraphErrors* gPurity = new TGraphErrors [3];
     TH2F* hInput;
     TH1D* hIMS;
 
@@ -11565,10 +11727,22 @@ printf(" uBin=%u k*=%.0f MeV\n",uBin,Momentum);
 //printf("  uBoot=%u\n",uBoot);
                 fInput->cd();
                 hIMS = hInput->ProjectionX("hIMS",uBin+1,uBin+1);
+                //adjust the uncertainty based on the discrepancy between the number of single particles and particles in the ME
+                for(unsigned uBinIMS=0; uBinIMS<hIMS->GetNbinsX(); uBinIMS++){
+                    if(!MEflag) break;
+                    hIMS->SetBinError(uBinIMS+1,hIMS->GetBinError(uBinIMS+1)*sqrt(ME_yield_bias));
+                    if(hIMS->GetBinCenter(uBinIMS+1)>1106&&hIMS->GetBinCenter(uBinIMS+1)<1126){
+                        hIMS->SetBinError(uBinIMS+1,hIMS->GetBinContent(uBinIMS+1)*2);
+                    }
+                }
                 const double dataIntegral = hIMS->Integral(hIMS->FindBin(pdgLambda-2.*imWindow),hIMS->FindBin(pdgLambda+2.*imWindow));
                 hIMS->Scale(1.,"width");
-                double IM_min = 1080;
-                double IM_max = hIMS->GetXaxis()->GetBinUpEdge(hIMS->GetNbinsX());
+                ///used for the PAG presentation
+                //double IM_min = 1080;
+                //double IM_max = hIMS->GetXaxis()->GetBinUpEdge(hIMS->GetNbinsX());
+                double IM_min = 1092;
+                double IM_max = 1140;
+
                 for(unsigned uBinIMS=0; uBinIMS<hIMS->GetNbinsX(); uBinIMS++){
                     fInput->cd();
                     if(hIMS->GetBinCenter(uBinIMS+1)<IM_min||hIMS->GetBinCenter(uBinIMS+1)>IM_max){
@@ -11647,6 +11821,8 @@ printf(" uBin=%u k*=%.0f MeV\n",uBin,Momentum);
                 Nodes_x[5] = IM_max;
 */
 
+/*
+///the one used for the PAG presentation
                 const int NumKnots = 9;
                 double* Nodes_x = new double [NumKnots];
                 Nodes_x[0] = IM_min;
@@ -11667,6 +11843,26 @@ printf(" uBin=%u k*=%.0f MeV\n",uBin,Momentum);
                 Nodes_sx[3] = 1132;
                 Nodes_sx[4] = 1140;
                 Nodes_sx[5] = IM_max;
+*/
+
+//1084-1092-1098-1104-1110-1116-1122-1128-1134-1140-1146
+//1084-1098-1110-1122-1134-1146
+//1104-1128
+                const int NumKnots = 6;
+                double* Nodes_x = new double [NumKnots];
+                Nodes_x[0] = IM_min;
+                Nodes_x[1] = 1098;
+                Nodes_x[2] = 1104;
+                Nodes_x[3] = 1128;
+                Nodes_x[4] = 1134;
+                Nodes_x[5] = IM_max;
+
+                const int NumKnots_s = 4;
+                double* Nodes_sx = new double [NumKnots_s];
+                Nodes_sx[0] = IM_min;
+                Nodes_sx[1] = 1104;
+                Nodes_sx[2] = 1128;
+                Nodes_sx[3] = IM_max;
 
 /*
                 const int NumKnots_s = 8;
@@ -11697,19 +11893,27 @@ printf(" uBin=%u k*=%.0f MeV\n",uBin,Momentum);
                 fData_def->SetParameter(5,5.);
                 fData_def->SetParLimits(5,0,6);
 
+fData_def->FixParameter(0,0);
+fData_def->FixParameter(1,1);
+fData_def->FixParameter(2,1);
+fData_def->FixParameter(3,0);
+fData_def->FixParameter(4,1);
+fData_def->FixParameter(5,1);
+
                 fData_def->FixParameter(6,NumKnots);
                 //derivative at the firs knot
                 fData_def->SetParameter(7,-10.);
-                fData_def->SetParLimits(7,-1000,0);
+                fData_def->SetParLimits(7,-100000,100000);
                 fData_def->SetParameter(8,-10.);
-                fData_def->SetParLimits(8,-1000,0);
+                fData_def->SetParLimits(8,-100000,100000);
 
                 for(unsigned uKnot=0; uKnot<NumKnots; uKnot++){
                     fInput->cd();
                     double HistVal = hIMS->GetBinContent(hIMS->FindBin(Nodes_x[uKnot]));
                     double HistErr = hIMS->GetBinError(hIMS->FindBin(Nodes_x[uKnot]));
+                    //if(MEflag==1) HistErr *= sqrt(ME_yield_bias);
                     fData_def->FixParameter(9+uKnot,Nodes_x[uKnot]);
-
+/*
                     if(uKnot==3){
                         double LOW = hIMS->GetBinContent(hIMS->FindBin(Nodes_x[uKnot-1]));
                         double UP = hIMS->GetBinContent(hIMS->FindBin(Nodes_x[uKnot+1]));
@@ -11724,9 +11928,32 @@ printf(" uBin=%u k*=%.0f MeV\n",uBin,Momentum);
                         fData_def->SetParameter(9+NumKnots+uKnot,HistVal);
                         fData_def->SetParLimits(9+NumKnots+uKnot,HistVal-3.*HistErr,HistVal+3.*HistErr);
                     }
-
-                    //fData_def->SetParameter(9+NumKnots+uKnot,HistVal);
-                    //fData_def->SetParLimits(9+NumKnots+uKnot,0,HistVal*2);
+*/
+/*
+                    if(Nodes_x[uKnot]>=1110&&Nodes_x[uKnot]<=1122){
+                        double LOW = hIMS->GetBinContent(hIMS->FindBin(1106));
+                        double UP = hIMS->GetBinContent(hIMS->FindBin(1126));
+                        if(LOW>UP){
+                            LOW = hIMS->GetBinContent(hIMS->FindBin(1126));
+                            UP = hIMS->GetBinContent(hIMS->FindBin(1106));
+                        }
+                        fData_def->SetParameter(9+NumKnots+uKnot,(UP+LOW)*0.5);
+                        fData_def->SetParLimits(9+NumKnots+uKnot,(UP+LOW)*0.45,(UP+LOW)*0.55);
+                    }
+*/
+/*
+                    if(uKnot==5){
+                        double LOW = hIMS->GetBinContent(hIMS->FindBin(1106));
+                        double UP = hIMS->GetBinContent(hIMS->FindBin(1126));
+                          fData_def->FixParameter(9+NumKnots+uKnot,(UP+LOW)*0.5);
+                    }
+                    else{
+                        fData_def->SetParameter(9+NumKnots+uKnot,HistVal);
+                        fData_def->SetParLimits(9+NumKnots+uKnot,0,2.*HistVal);
+                    }
+*/
+                    fData_def->SetParameter(9+NumKnots+uKnot,HistVal);
+                    fData_def->SetParLimits(9+NumKnots+uKnot,0,HistVal*2);
                 }
                 fData_def->SetNpx(1024);
 
@@ -11744,12 +11971,19 @@ printf(" uBin=%u k*=%.0f MeV\n",uBin,Momentum);
                 fData_s->SetParameter(5,5.);
                 fData_s->SetParLimits(5,0,6);
 
+fData_s->FixParameter(0,0);
+fData_s->FixParameter(1,1);
+fData_s->FixParameter(2,1);
+fData_s->FixParameter(3,0);
+fData_s->FixParameter(4,1);
+fData_s->FixParameter(5,1);
+
                 fData_s->FixParameter(6,NumKnots_s);
                 //derivative at the firs knot
                 fData_s->SetParameter(7,-10.);
-                fData_s->SetParLimits(7,-1000,0);
+                fData_s->SetParLimits(7,-100000,100000);
                 fData_s->SetParameter(8,-10.);
-                fData_s->SetParLimits(8,-1000,0);
+                fData_s->SetParLimits(8,-100000,100000);
 
                 for(unsigned uKnot=0; uKnot<NumKnots_s; uKnot++){
                     fInput->cd();
@@ -11788,7 +12022,7 @@ printf(" uBin=%u k*=%.0f MeV\n",uBin,Momentum);
                 fData = fData_s;
 
                 if(Chi2/NDF>2.0){
-                    hIMS->Fit(fData_def,"Q, S, N, R, M");
+                    hIMS->Fit(fData_def,"S, N, R, M");
                     Chi2 = fData_def->GetChisquare();
                     NDF = fData_def->GetNDF();
                     fData = fData_def;
@@ -11837,7 +12071,7 @@ printf(" uBin=%u k*=%.0f MeV\n",uBin,Momentum);
 //printf("   For pol2:\n");
 //printf("    Chi2/NDF = %.0f/%i = %.2f\n",fit_Pol2_DG->GetChisquare(),fit_Pol2_DG->GetNDF(),fit_Pol2_DG->GetChisquare()/double(fit_Pol2_DG->GetNDF()));
 //printf("    Purity = %.2f\n",SignalPol2/TotalPol2*100.);
-/*
+
                 hIMS->Write();
                 fData->Write();
                 fSig->Write();
@@ -11846,7 +12080,7 @@ printf(" uBin=%u k*=%.0f MeV\n",uBin,Momentum);
                 fPol2->Write();
                 gFit.Write();
                 gBgr.Write();
-*/
+
                 fInput->cd();
 
                 delete fData_def;
@@ -11870,10 +12104,575 @@ printf(" uBin=%u k*=%.0f MeV\n",uBin,Momentum);
     delete hdimi_PP_IMS_k;
     delete hdimi_APAP_IMS_k;
     delete hdimi_IMS_k;
-    delete [] gPurity;
+    //delete [] gPurity;
     delete fInput;
     delete fOutput;
 }
+
+
+//do a prefit
+//MEflag 0 is se, 1 is me
+//SIGflag 1-2-3 is single/double/triple Gaussian
+void Purity_vs_kstar_2(const int& MEflag, const int& SIGflag, const unsigned& FirstBoot, const unsigned& LastBoot){
+//PurityTree->Draw("Purity:Momentum>>h2(20,0,480,64,0.94, 0.98)", "Scenario==2", "COLZ")
+    //const double ME_yield_bias = 17;
+    //const double kMax = 3000;
+    const double kMax = 960;
+    //const unsigned BootstrapIter = 128;
+    const double pdgLambda = 1115.683;
+    const double imWindow = 4.0;
+
+    const int RebinKstar = 3;
+    const int RebinIMS = MEflag?4:8;
+
+    TString OutputFileName = TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/"
+                            "pLambda_1/Purity_vs_kstar/Test/fOutput%s_G%i_%u_%u.root",
+                            MEflag?"ME":"SE",SIGflag,FirstBoot,LastBoot);
+
+
+/*
+    TString InputFileName = "/home/dmihaylov/CernBox/CatsFiles_Dimi/pLambda/AnalysisResults_Purity01062020.root";
+    TString DirectoryName = "HMDimiResultsQA0";
+    TString ListName1 = "HMDimiResultsQA0";
+    TString ListName2 = "PairQA";
+    TString ListNamePP = "QA_Particle0_Particle2";
+    TString ListNameAPAP = "QA_Particle1_Particle3";
+    TString HistoNamePP = "MassQA_Particle2_2";
+    TString HistoNameAPAP = "MassQA_Particle3_2";
+*/
+
+    TString InputFileName;
+    TString DirectoryName;
+    TString ListName1;
+    TString ListName2;
+    TString ListNamePP;
+    TString ListNameAPAP;
+    TString HistoNamePP;
+    TString HistoNameAPAP;
+    //used to get the number of single lambdas
+    TString ListNameV0_1;
+    TString ListNameV0_2;
+    TString HistoName_V0IMS;
+    TString ListNameAV0_1;
+    TString ListNameAV0_2;
+    TString HistoName_AV0IMS;
+    InputFileName = "/home/dmihaylov/CernBox/CatsFiles_Dimi/pLambda/AnalysisResults_MEpurity.root";
+    DirectoryName = "HMDimiResultsQAS40";
+    ListName1 = "HMDimiResultsQAS40";
+    ListName2 = "PairQA";
+    ListNamePP = "QA_Particle0_Particle2";
+    ListNameAPAP = "QA_Particle1_Particle3";
+    if(MEflag==0){
+        HistoNamePP = "MassQA_Particle2_2";
+        HistoNameAPAP = "MassQA_Particle3_2";
+    }
+    else{
+        HistoNamePP = "MEMassQA_Particle2_2";
+        HistoNameAPAP = "MEMassQA_Particle3_2";
+    }
+    ListNameV0_1 = "HMDimiv0CutsS40";
+    ListNameV0_2 = "v0Cuts";
+    HistoName_V0IMS = "InvMassPt";
+    ListNameAV0_1 = "HMDimiAntiv0CutsS40";
+    ListNameAV0_2 = "v0Cuts";
+    HistoName_AV0IMS = "InvMassPt";
+
+    TFile* fInput = new TFile(InputFileName,"read");
+    printf("fInput = %p\n",fInput);
+    //fInput->Print();
+    TDirectoryFile* dInput = (TDirectoryFile*)(fInput->FindObjectAny(DirectoryName));
+    printf("dInput = %p\n",dInput);
+    //dInput->ls();
+    TList* lInput1 = NULL;
+    dInput->GetObject(ListName1,lInput1);
+    printf("lInput1 = %p\n",lInput1);
+    //lInput1->ls();
+    TList* lInput2 = (TList*)lInput1->FindObject(ListName2);
+    printf("lInput2 = %p\n",lInput2);
+    TList* lInputPP = (TList*)lInput2->FindObject(ListNamePP);
+    printf("lInputPP = %p\n",lInputPP);
+    lInputPP->ls();
+    TList* lInputAPAP = (TList*)lInput2->FindObject(ListNameAPAP);
+    printf("lInputAPAP = %p\n",lInputAPAP);
+    lInputAPAP->ls();
+    TH2F* hPP_IMS_k = (TH2F*)lInputPP->FindObject(HistoNamePP);
+    printf("hPP_IMS_k = %p\n",hPP_IMS_k);
+    TH2F* hAPAP_IMS_k = (TH2F*)lInputAPAP->FindObject(HistoNameAPAP);
+    printf("hAPAP_IMS_k = %p\n",hAPAP_IMS_k);
+
+    dInput = NULL;
+    lInput1 = NULL;
+    lInput2 = NULL;
+    dInput = (TDirectoryFile*)(fInput->FindObjectAny(ListNameV0_1));
+    dInput->GetObject(ListNameV0_1,lInput1);
+    lInput2 = (TList*)lInput1->FindObject(ListNameV0_2);
+    TH1F* hV0IMS = (TH1F*)lInput2->FindObject(HistoName_V0IMS);
+    const double NumV0 = hV0IMS->Integral();
+
+    dInput = NULL;
+    lInput1 = NULL;
+    lInput2 = NULL;
+    dInput = (TDirectoryFile*)(fInput->FindObjectAny(ListNameAV0_1));
+    dInput->GetObject(ListNameAV0_1,lInput1);
+    lInput2 = (TList*)lInput1->FindObject(ListNameAV0_2);
+    TH1F* hAV0IMS = (TH1F*)lInput2->FindObject(HistoName_AV0IMS);
+    const double NumAV0 = hAV0IMS->Integral();
+
+    //const double ME_yield_bias = (hPP_IMS_k->Integral()+hAPAP_IMS_k->Integral())/(NumV0+NumAV0);
+const double ME_yield_bias = 1;
+    printf("ME_yield_bias = %f\n",ME_yield_bias);
+
+    hPP_IMS_k->Sumw2();
+    hAPAP_IMS_k->Sumw2();
+
+    hPP_IMS_k->Rebin2D(RebinIMS,RebinKstar);
+    hAPAP_IMS_k->Rebin2D(RebinIMS,RebinKstar);
+
+    DLM_Histo<float>* dlm_PP_IMS_k = Convert_TH2F_DlmHisto(hPP_IMS_k);
+//return;
+    DLM_Histo<float>* dlm_APAP_IMS_k = Convert_TH2F_DlmHisto(hAPAP_IMS_k);
+    DLM_Histo<float>* dlm_IMS_k = new DLM_Histo<float>();
+
+    dlm_PP_IMS_k->RescaleAxis(0,1000,false);
+    dlm_PP_IMS_k->RescaleAxis(1,1000,false);
+    dlm_APAP_IMS_k->RescaleAxis(0,1000,false);
+    dlm_APAP_IMS_k->RescaleAxis(1,1000,false);
+
+    dlm_IMS_k->Copy(*dlm_PP_IMS_k);
+    *dlm_IMS_k += *dlm_APAP_IMS_k;
+
+    TH2F* hdimi_PP_IMS_k;
+    hdimi_PP_IMS_k = Convert_DlmHisto_TH2F(dlm_PP_IMS_k,"hdimi_PP_IMS_k");
+
+    TH2F* hdimi_APAP_IMS_k;
+    hdimi_APAP_IMS_k = Convert_DlmHisto_TH2F(dlm_APAP_IMS_k,"hdimi_APAP_IMS_k");
+
+    TH2F* hdimi_IMS_k;
+    hdimi_IMS_k = Convert_DlmHisto_TH2F(dlm_IMS_k,"hdimi_IMS_k");
+
+
+
+    double DefaultValue;
+    double Error;
+    double RandomValue;
+
+    //TGraphErrors* gPurity = new TGraphErrors [3];
+    TH2F* hInput;
+    TH1D* hIMS;
+
+    TFile* fOutput = new TFile(OutputFileName,"recreate");
+
+    float Momentum;
+    float Purity;
+    float Chi2;
+    float NDF;
+    //the fraction of SBleft or right
+    //in the mass window of the lambda
+    float SBleft;
+    float SBleftOut;
+
+    float Purity_p2;
+    float Chi2_p2;
+    float NDF_p2;
+
+    unsigned Scenario;
+    TGraph gFit;
+    gFit.SetName("gFit");
+    TGraph gBgr;
+    gBgr.SetName("gBgr");
+    TGraphErrors gData;
+    gData.SetName("gData");
+
+    TGraph gFit_p2;
+    gFit_p2.SetName("gFit_p2");
+    TGraph gBgr_p2;
+    gBgr_p2.SetName("gBgr_p2");
+
+    TTree* PurityTree = new TTree("PurityTree","PurityTree");
+    PurityTree->Branch("Scenario", &Scenario, "Scenario/i");
+    PurityTree->Branch("gData","TGraphErrors",&gData,32000,0);//
+    PurityTree->Branch("gFit","TGraph",&gFit,32000,0);//
+    PurityTree->Branch("gBgr","TGraph",&gBgr,32000,0);//
+    PurityTree->Branch("Momentum", &Momentum, "Momentum/F");//
+    PurityTree->Branch("Purity", &Purity, "Purity/F");//
+    PurityTree->Branch("SBleft", &SBleft, "SBleft/F");//
+    PurityTree->Branch("SBleftOut", &SBleftOut, "SBleftOut/F");//
+    PurityTree->Branch("Chi2", &Chi2, "Chi2/F");//
+    PurityTree->Branch("NDF", &NDF, "NDF/F");//
+
+    PurityTree->Branch("gFit_p2","TGraph",&gFit_p2,32000,0);//
+    PurityTree->Branch("gBgr_p2","TGraph",&gBgr_p2,32000,0);//
+    PurityTree->Branch("Purity_p2", &Purity_p2, "Purity/F");//
+    PurityTree->Branch("Chi2_p2", &Chi2_p2, "Chi2/F");//
+    PurityTree->Branch("NDF_p2", &NDF_p2, "NDF/F");//
+
+
+    const unsigned NumMomBins = TMath::Nint(kMax/hdimi_IMS_k->GetYaxis()->GetBinWidth(1));
+    const double MinPur = 0.9;
+    const double MaxPur = 1.0;
+    const unsigned NumPurBins = 1024;
+    const double MinSBl = 0.0;
+    const double MaxSBl = 1.0;
+    const unsigned NumSBlBins = 1024;
+    TH2F* hPurMom = new TH2F("hPurMom","hPurMom",NumMomBins,0,kMax,NumPurBins,MinPur,MaxPur);
+    //the fraction of left SB taken by integrating half of the peak region
+    TH2F* hSBlMom = new TH2F("hSBlMom","hSBlMom",NumMomBins,0,kMax,NumSBlBins,MinSBl,MaxSBl);
+    //the fraction of left SB by integrating just outside the peak region (4-8 MeV)
+    TH2F* hSBlOutMom = new TH2F("hSBlOutMom","hSBlOutMom",NumMomBins,0,kMax,NumSBlBins,MinSBl,MaxSBl);
+
+    fInput->cd();
+
+    //3 scenarios: PP, APAP, Full
+    for(unsigned uSce=2; uSce<3; uSce++){
+printf("uSce=%u\n",uSce);
+        Scenario = uSce;
+        fInput->cd();
+        if(uSce==0) hInput = hdimi_PP_IMS_k;
+        else if(uSce==1) hInput = hdimi_APAP_IMS_k;
+        else hInput = hdimi_IMS_k;
+        for(unsigned uBin=0; uBin<hInput->GetYaxis()->GetNbins(); uBin++){
+            fInput->cd();
+            Momentum = hInput->GetYaxis()->GetBinCenter(uBin+1);
+            if(Momentum>kMax) continue;
+printf(" uBin=%u k*=%.0f MeV\n",uBin,Momentum);
+            for(unsigned uBoot=FirstBoot; uBoot<LastBoot; uBoot++){
+                TRandom3 rangen(uBoot+1);
+                fInput->cd();
+                hIMS = hInput->ProjectionX("hIMS",uBin+1,uBin+1);
+                //adjust the uncertainty based on the discrepancy between the number of single particles and particles in the ME
+                for(unsigned uBinIMS=0; uBinIMS<hIMS->GetNbinsX(); uBinIMS++){
+                    hIMS->SetBinError(uBinIMS+1,hIMS->GetBinError(uBinIMS+1)*sqrt(ME_yield_bias));
+                }
+                const double dataIntegral = hIMS->Integral(hIMS->FindBin(pdgLambda-2.*imWindow),hIMS->FindBin(pdgLambda+2.*imWindow));
+                hIMS->Scale(1./dataIntegral,"width");
+    ///delete
+                TH1D* hIMS_Prefit = (TH1D*)hIMS->Clone("hIMS_Prefit");
+                for(unsigned uBinIMS=0; uBinIMS<hIMS_Prefit->GetNbinsX(); uBinIMS++){
+                    if(hIMS_Prefit->GetBinCenter(uBinIMS+1)>1104&&hIMS_Prefit->GetBinCenter(uBinIMS+1)<1128){
+                        hIMS_Prefit->SetBinError(uBinIMS+1,hIMS_Prefit->GetBinContent(uBinIMS+1)*2);
+                    }
+                }
+                ///used for the PAG presentation
+                //double IM_min = 1080;
+                //double IM_max = hIMS->GetXaxis()->GetBinUpEdge(hIMS->GetNbinsX());
+                double IM_min = 1088;
+                double IM_max = 1144;
+
+                for(unsigned uBinIMS=0; uBinIMS<hIMS->GetNbinsX(); uBinIMS++){
+                    fInput->cd();
+                    if(hIMS->GetBinCenter(uBinIMS+1)<IM_min||hIMS->GetBinCenter(uBinIMS+1)>IM_max){
+                        gData.SetPoint(uBinIMS,hIMS->GetBinCenter(uBinIMS+1),0);
+                        gData.SetPointError(uBinIMS,0,0);
+                        continue;
+                    }
+                    if(uBoot){
+                        DefaultValue = hIMS->GetBinContent(uBinIMS+1);
+                        Error = hIMS->GetBinError(uBinIMS+1);
+                        RandomValue = 0;
+                        while(RandomValue<=0&&DefaultValue>0){
+                            RandomValue = rangen.Gaus(DefaultValue,Error);
+                        }
+                        hIMS->SetBinContent(uBinIMS+1,RandomValue);
+                    }
+                    gData.SetPoint(uBinIMS,hIMS->GetBinCenter(uBinIMS+1),hIMS->GetBinContent(uBinIMS+1));
+                    gData.SetPointError(uBinIMS,0,hIMS->GetBinError(uBinIMS+1));
+                }
+
+//1084-1092-1098-1104-1110-1116-1122-1128-1134-1140-1146
+//1084-1098-1110-1122-1134-1146
+//1104-1128
+//1088-1094-1100-1106-1126-1132-1138-1144
+//1084-1092-1100-1108-1124-1134-1142-1150
+                const int NumKnots = 8;
+                double* Nodes_x = new double [NumKnots];
+                //Nodes_x[0] = IM_min;
+                //Nodes_x[1] = 1098;
+                //Nodes_x[2] = 1104;
+                //Nodes_x[3] = 1128;
+                //Nodes_x[4] = 1134;
+                //Nodes_x[5] = IM_max;
+                Nodes_x[0] = IM_min;
+                Nodes_x[1] = 1094;
+                Nodes_x[2] = 1100;
+                Nodes_x[3] = 1106;
+                Nodes_x[4] = 1126;
+                Nodes_x[5] = 1132;
+                Nodes_x[6] = 1138;
+                Nodes_x[7] = IM_max;
+
+                TF1* fLinearLow = new TF1("fLinearLow","[0]+[1]*x",IM_min-3,IM_min+3);
+                TF1* fLinearUp = new TF1("fLinearUp","[0]+[1]*x",IM_max-3,IM_max+3);
+                hIMS->Fit(fLinearLow,"Q, S, N, R, M");
+                hIMS->Fit(fLinearUp,"Q, S, N, R, M");
+
+                TF1* fData;
+
+                TF1* fData_def = new TF1("fData_def",Fit_IMS_Splines3,IM_min,IM_max,9+3+NumKnots*2);
+                fData_def->FixParameter(0,0);
+                fData_def->FixParameter(1,pdgLambda);
+                fData_def->FixParameter(2,1.);
+                fData_def->FixParameter(3,0);
+                fData_def->FixParameter(4,0);
+                fData_def->FixParameter(5,5.);
+                fData_def->FixParameter(6,0);
+                fData_def->FixParameter(7,0);
+                fData_def->FixParameter(8,5.);
+
+                fData_def->FixParameter(9,NumKnots);
+                //derivative at the firs knot
+                //fData_def->SetParameter(10,-0.01);
+                //fData_def->SetParLimits(10,-10,10);
+                //fData_def->SetParameter(11,-0.01);
+                //fData_def->SetParLimits(11,-10,10);
+
+                fData_def->FixParameter(10,fLinearLow->GetParameter(1));
+                fData_def->FixParameter(11,fLinearUp->GetParameter(1));
+
+
+                for(unsigned uKnot=0; uKnot<NumKnots; uKnot++){
+                    fInput->cd();
+                    double HistVal = hIMS->GetBinContent(hIMS->FindBin(Nodes_x[uKnot]));
+                    double HistErr = hIMS->GetBinError(hIMS->FindBin(Nodes_x[uKnot]));
+                    //if(MEflag==1) HistErr *= sqrt(ME_yield_bias);
+                    fData_def->FixParameter(12+uKnot,Nodes_x[uKnot]);
+
+                    fData_def->SetParameter(12+NumKnots+uKnot,HistVal);
+                    fData_def->SetParLimits(12+NumKnots+uKnot,0,HistVal*2);
+                }
+                fData_def->SetNpx(1024);
+
+                TF1* fit_Pol2_DG = new TF1("fit_Pol2_DG",Fit_IMS_Pol2,pdgLambda-25,pdgLambda+25,9);
+                fit_Pol2_DG->SetParameter(0,1.*0.5);
+                fit_Pol2_DG->SetParLimits(0,0,1.);
+                fit_Pol2_DG->SetParameter(1,pdgLambda);
+                fit_Pol2_DG->SetParLimits(1,pdgLambda-1.,pdgLambda+1.);
+                fit_Pol2_DG->SetParameter(2,1.);
+                fit_Pol2_DG->SetParLimits(2,0,6);
+
+                fit_Pol2_DG->SetParameter(3,1.*0.5);
+                fit_Pol2_DG->SetParLimits(3,0,1.);
+                fit_Pol2_DG->FixParameter(4,0.);
+                fit_Pol2_DG->SetParameter(5,5.);
+                fit_Pol2_DG->SetParLimits(5,0,6);
+
+                fit_Pol2_DG->SetParameter(6,0.);
+                fit_Pol2_DG->SetParameter(7,0.);
+                fit_Pol2_DG->SetParameter(8,0.);
+
+                hIMS_Prefit->Fit(fData_def,"Q, S, N, R, M");
+
+
+                double PAR_VAL;
+                double PAR_ERR;
+                for(unsigned uPar=0; uPar<9+3+NumKnots*2; uPar++){
+                    PAR_VAL = fData_def->GetParameter(uPar);
+                    fData_def->FixParameter(uPar,PAR_VAL);
+                }
+
+
+                double PeakFrac = 1./double(SIGflag);
+                fData_def->SetParameter(0,1.0*PeakFrac);
+                fData_def->SetParLimits(0,0,1.0);
+                fData_def->SetParameter(1,pdgLambda);
+                fData_def->SetParLimits(1,pdgLambda-1.,pdgLambda+1.);
+                fData_def->SetParameter(2,1.5);
+                fData_def->SetParLimits(2,0.75,8);
+
+                fData_def->SetParameter(3,1.0*PeakFrac);
+                fData_def->SetParLimits(3,0,1.0);
+                fData_def->SetParameter(4,pdgLambda);
+                fData_def->SetParLimits(4,pdgLambda-1.,pdgLambda+1.);
+                fData_def->SetParameter(5,3.);
+                fData_def->SetParLimits(5,0.75,8);
+
+                fData_def->SetParameter(6,1.0*PeakFrac);
+                fData_def->SetParLimits(6,0,1.0);
+                fData_def->SetParameter(7,pdgLambda);
+                fData_def->SetParLimits(7,pdgLambda-1.,pdgLambda+1.);
+                fData_def->SetParameter(8,4.5);
+                fData_def->SetParLimits(8,0.75,8);
+
+                if(SIGflag<3){
+                    fData_def->FixParameter(6,0);
+                    fData_def->FixParameter(7,0);
+                    fData_def->FixParameter(8,1);
+                }
+                if(SIGflag<2){
+                    fData_def->FixParameter(3,0);
+                    fData_def->FixParameter(4,0);
+                    fData_def->FixParameter(5,1);
+                }
+
+            //fData_def->FixParameter(6,0);
+            //fData_def->FixParameter(7,0);
+            //fData_def->FixParameter(8,1);
+
+                //we keep the first and last knot fixed from the prefit
+                for(unsigned uKnot=2; uKnot<NumKnots-2; uKnot++){
+                    fInput->cd();
+
+                    PAR_VAL = fData_def->GetParameter(12+NumKnots+uKnot);
+                    PAR_ERR = fabs(PAR_VAL)*0.2;
+                    fData_def->SetParameter(12+NumKnots+uKnot,PAR_VAL);
+                    fData_def->SetParLimits(12+NumKnots+uKnot,PAR_VAL-PAR_ERR,PAR_VAL+PAR_ERR);
+                }
+
+                hIMS->Fit(fit_Pol2_DG,"Q, S, N, R, M");
+                hIMS->Fit(fData_def,"Q, S, N, R, M");
+                Chi2 = fData_def->GetChisquare();
+                NDF = fData_def->GetNDF();
+                fData = fData_def;
+
+                fData->SetName("fData");
+
+                TF1* fSig = new TF1("fSig",Fit_IMS_Signal3,IM_min,IM_max,9);
+                for(unsigned uPar=0; uPar<9; uPar++) fSig->FixParameter(uPar,fData->GetParameter(uPar));
+
+                TF1* fSigPol2 = new TF1("fSigPol2",Fit_IMS_Signal,pdgLambda-25,pdgLambda+25,6);
+                for(unsigned uPar=0; uPar<6; uPar++) fSigPol2->FixParameter(uPar,fit_Pol2_DG->GetParameter(uPar));
+
+                TF1* fPol2 = new TF1("fPol2","[0]+x*[1]+x*x*[2]",pdgLambda-25,pdgLambda+25);
+                for(unsigned uPar=0; uPar<3; uPar++) fPol2->FixParameter(uPar,fit_Pol2_DG->GetParameter(6+uPar));
+
+                for(unsigned uBinIMS=0; uBinIMS<hIMS->GetNbinsX(); uBinIMS++){
+                    fInput->cd();
+                    if(hIMS->GetBinCenter(uBinIMS+1)<IM_min||hIMS->GetBinCenter(uBinIMS+1)>IM_max){
+                        gFit.SetPoint(uBinIMS,hIMS->GetBinCenter(uBinIMS+1),0);
+                        gBgr.SetPoint(uBinIMS,hIMS->GetBinCenter(uBinIMS+1),0);
+                        gFit_p2.SetPoint(uBinIMS,hIMS->GetBinCenter(uBinIMS+1),0);
+                        gBgr_p2.SetPoint(uBinIMS,hIMS->GetBinCenter(uBinIMS+1),0);
+                        continue;
+                    }
+                    gFit.SetPoint(uBinIMS,hIMS->GetBinCenter(uBinIMS+1),fData->Eval(hIMS->GetBinCenter(uBinIMS+1)));
+                    gBgr.SetPoint(uBinIMS,hIMS->GetBinCenter(uBinIMS+1),fData->Eval(hIMS->GetBinCenter(uBinIMS+1))-fSig->Eval(hIMS->GetBinCenter(uBinIMS+1)));
+                    gFit_p2.SetPoint(uBinIMS,hIMS->GetBinCenter(uBinIMS+1),fit_Pol2_DG->Eval(hIMS->GetBinCenter(uBinIMS+1)));
+                    gBgr_p2.SetPoint(uBinIMS,hIMS->GetBinCenter(uBinIMS+1),fit_Pol2_DG->Eval(hIMS->GetBinCenter(uBinIMS+1))-fSigPol2->Eval(hIMS->GetBinCenter(uBinIMS+1)));
+                }
+
+                double Signal = fSig->Integral(pdgLambda-imWindow,pdgLambda+imWindow);
+                double SignalLeft = fSig->Integral(pdgLambda-imWindow,pdgLambda);
+                double SignalLeftOut = fSig->Integral(pdgLambda-2.*imWindow,pdgLambda-imWindow);
+                double SignalRightOut = fSig->Integral(pdgLambda+imWindow,pdgLambda+2.*imWindow);
+                double Total = fData->Integral(pdgLambda-imWindow,pdgLambda+imWindow);
+                double TotalLeft = fData->Integral(pdgLambda-imWindow,pdgLambda);
+                double TotalLeftOut = fData->Integral(pdgLambda-2.*imWindow,pdgLambda-imWindow);
+                double TotalRightOut = fData->Integral(pdgLambda+imWindow,pdgLambda+2.*imWindow);
+
+                double SignalPol2 = fSigPol2->Integral(pdgLambda-imWindow,pdgLambda+imWindow);
+                double TotalPol2 = fit_Pol2_DG->Integral(pdgLambda-imWindow,pdgLambda+imWindow);
+
+
+                Purity = Signal/Total;
+                Purity_p2 = SignalPol2/TotalPol2;
+                SBleft = (TotalLeft-SignalLeft)/(Total-Signal);
+                SBleftOut = (TotalLeftOut-SignalLeftOut)/(TotalLeftOut-SignalLeftOut+TotalRightOut-SignalRightOut);
+                fOutput->cd();
+                PurityTree->Fill();
+                hPurMom->Fill(Momentum,Purity);
+                hSBlMom->Fill(Momentum,SBleft);
+                hSBlOutMom->Fill(Momentum,SBleftOut);
+
+//printf("  Chi2/NDF = %.0f/%.0f = %.2f\n",Chi2,NDF,Chi2/NDF);
+//printf("  Purity = %.2f\n",Purity*100.);
+//printf("   For pol2:\n");
+//printf("    Chi2/NDF = %.0f/%i = %.2f\n",fit_Pol2_DG->GetChisquare(),fit_Pol2_DG->GetNDF(),fit_Pol2_DG->GetChisquare()/double(fit_Pol2_DG->GetNDF()));
+//printf("    Purity = %.2f\n",SignalPol2/TotalPol2*100.);
+/*
+                hIMS->Write();
+                hIMS_Prefit->Write();
+                fData->Write();
+                fSig->Write();
+                fit_Pol2_DG->Write();
+                fSigPol2->Write();
+                fPol2->Write();
+                gFit.Write();
+                gBgr.Write();
+*/
+                fInput->cd();
+
+                delete fData_def;
+                delete fSig;
+                delete hIMS;
+                delete hIMS_Prefit;
+                delete fit_Pol2_DG;
+                delete fPol2;
+                delete fSigPol2;
+                delete fLinearLow;
+                delete fLinearUp;
+            }
+        }
+    }
+
+    TH1F* hPurity = new TH1F("hPurity","hPurity",NumMomBins,0,kMax);
+    TH1F* hSBl = new TH1F("hSBl","hSBl",NumMomBins,0,kMax);
+    TH1F* hSBlOut = new TH1F("hSBlOut","hSBlOut",NumMomBins,0,kMax);
+    for(unsigned uMomBin=0; uMomBin<NumMomBins; uMomBin++){
+        TH1D* hProj = hPurMom->ProjectionY("hProj",uMomBin+1,uMomBin+1);
+        double yMean = hProj->GetMean();
+        double yStddev = hProj->GetStdDev();
+        hPurity->SetBinContent(uMomBin+1,yMean);
+        hPurity->SetBinError(uMomBin+1,yStddev);
+        delete hProj;
+
+        hProj = hSBlMom->ProjectionY("hProj",uMomBin+1,uMomBin+1);
+        yMean = hProj->GetMean();
+        yStddev = hProj->GetStdDev();
+        hSBl->SetBinContent(uMomBin+1,yMean);
+        hSBl->SetBinError(uMomBin+1,yStddev);
+        delete hProj;
+
+        hProj = hSBlOutMom->ProjectionY("hProj",uMomBin+1,uMomBin+1);
+        yMean = hProj->GetMean();
+        yStddev = hProj->GetStdDev();
+        hSBlOut->SetBinContent(uMomBin+1,yMean);
+        hSBlOut->SetBinError(uMomBin+1,yStddev);
+        delete hProj;
+    }
+
+    fOutput->cd();
+    PurityTree->Write();
+    hPurity->Write();
+    hPurMom->Write();
+    hSBl->Write();
+    hSBlMom->Write();
+    hSBlOut->Write();
+    hSBlOutMom->Write();
+
+    delete dlm_PP_IMS_k;
+    delete dlm_APAP_IMS_k;
+    delete dlm_IMS_k;
+    delete hdimi_PP_IMS_k;
+    delete hdimi_APAP_IMS_k;
+    delete hdimi_IMS_k;
+    //delete [] gPurity;
+    delete hPurity;
+    delete hSBl;
+    delete hSBlOut;
+    delete hPurMom;
+    delete hSBlMom;
+    delete hSBlOutMom;
+    delete fInput;
+    delete fOutput;
+}
+/*
+void DimiPurityCorrected_pL(){
+
+    TString NameSeFile;
+    TString NameMeFile;
+    TString NamePurHisto;
+
+    TString NameDataFile;
+
+    TH1F* hPurSe;
+    TH1F* hPurMe;
+    TH1F* hCorrCs;
+    TH1F* hCorrCb;
+    TH1F* hData;
+    TH1F* hCs;
+    TH1F* hCb;
+
+}
+*/
 
 //0 is flat
 //1 is chiral
@@ -11975,11 +12774,11 @@ void FitMC_CompareToData_pL(int pSigma0_flag){
 int PLAMBDA_1_MAIN(int argc, char *argv[]){
 printf("PLAMBDA_1_MAIN\n");
 
-FitMC_CompareToData_pL(0);
-FitMC_CompareToData_pL(1);
-FitMC_CompareToData_pL(2);
+//FitMC_CompareToData_pL(0);
+//FitMC_CompareToData_pL(1);
+//FitMC_CompareToData_pL(2);
 
-//Purity_vs_kstar(atoi(argv[1]),atoi(argv[2]),atoi(argv[3]));
+Purity_vs_kstar_2(atoi(argv[1]),atoi(argv[2]),atoi(argv[3]),atoi(argv[4]));
 //CompareTo_pp();
 //pLambda_Study_Hypotheses();
 //ParametrizeSmearMatrix1_pL();
@@ -11990,10 +12789,11 @@ FitMC_CompareToData_pL(2);
 
 //POT BL SIG
 //Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(atoi(argv[4]))/10.,
-//                            "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/220620_Gauss_SBL60/",
+//                            "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/",
 //                            TString::Format("Merged_pp13TeV_HM_DimiJun20_POT%i_BL%i_SIG%i.root",
 //                            atoi(argv[1]),atoi(argv[2]),atoi(argv[3])),
-//                            "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/220620_Gauss_SBL60/Plots/");
+                            //"Output_pp13TeV_HM_DimiJun20_POT11600_BL12_SIG1_1.root",
+//                            "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/Plots/");
 
 //Plot_pL_SystematicsMay2020_2(2,10,1500,2.0,
 //        "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/040620_Gauss/",
