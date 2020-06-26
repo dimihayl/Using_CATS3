@@ -7340,7 +7340,7 @@ Xim_Feed = 1;
                 if(WhichSBl==0){SBl=0.529;}
                 else{SBl=0.574;}
             }
-            DataVar = TString::Format("L%.0f_SL4_SR6_P%.0f_%i",SBl,SBpur,WhichData);
+            DataVar = TString::Format("L%.0f_SL4_SR6_P%.0f_%i",SBl*100.,SBpur*100.,WhichData);
         }
         else{
             WhichData = rangen.Integer(45);
