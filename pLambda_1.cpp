@@ -6965,6 +6965,8 @@ void pL_SystematicsMay2020(unsigned SEED, unsigned BASELINE_VAR, int POT_VAR, in
     //if we go beyond the 1 hour 45 minutes mark, we stop
     //safety for the batch farm
     const double TIME_LIMIT = 105;
+    //do extra variations
+    const bool ExtendedSyst = false;
     DLM_Timer TIMER_SYST;
 
     //pol(0/1/2/3)s: pol(0/1/2/3) with a small fit range
@@ -7208,7 +7210,7 @@ void pL_SystematicsMay2020(unsigned SEED, unsigned BASELINE_VAR, int POT_VAR, in
         //1 is 27% (20% lower, kind of compatible with experiment)
         //2 is 40% (20% larger)
         //3 is free fit in the range [17%, 50%]
-        unsigned WhichCuspStrength = rangen.Integer(5);
+        unsigned WhichCuspStrength = rangen.Integer(ExtendedSyst?5:3);
         if(DefaultVariation||FitSyst==false) WhichCuspStrength = 0;
 //0.2,0.267,0.333,0.4,0.467
         switch(WhichCuspStrength){
@@ -7223,7 +7225,7 @@ void pL_SystematicsMay2020(unsigned SEED, unsigned BASELINE_VAR, int POT_VAR, in
         //this parameter only plays a role for the extended fit range
         CkConv = 700;
 
-        unsigned WhichSourceRad = rangen.Integer(5);
+        unsigned WhichSourceRad = rangen.Integer(ExtendedSyst?5:3);
         if(DefaultVariation||FitSyst==false) {WhichSourceRad=0;}
         //if(DefaultVariation) SourceRad = SourceSize;
         //else SourceRad = rangen.Gaus(SourceSize,SourceSizeErr);
@@ -7252,10 +7254,10 @@ void pL_SystematicsMay2020(unsigned SEED, unsigned BASELINE_VAR, int POT_VAR, in
 
         int WhichProtonVar = rangen.Integer(3);
         if(DefaultVariation||FitSyst==false) WhichProtonVar = 0;
-        int WhichLambdaVar = rangen.Integer(5);
+        int WhichLambdaVar = rangen.Integer(ExtendedSyst?5:3);
         if(DefaultVariation||FitSyst==false) WhichLambdaVar = 0;
 
-        if(DefaultVariation||FitSyst==false) WhichLambdaVar += 100;//the new purities
+        if(DefaultVariation||FitSyst==false||ExtendedSyst) WhichLambdaVar += 100;//the new purities
         else WhichLambdaVar += 100*(1+rangen.Integer(3));//new purities with variations
 
         AnalysisObject.SetUpLambdaPars_pL(DataSample,WhichProtonVar,WhichLambdaVar,lam_pL);
@@ -7285,9 +7287,10 @@ void pL_SystematicsMay2020(unsigned SEED, unsigned BASELINE_VAR, int POT_VAR, in
         else if(Sigma0_Feed==1) Ck_pS0 = Ck_pS0_Chiral;
         else Ck_pS0 = Ck_pS0_ESC16;
 
-        Xim_Feed = rangen.Integer(2);
+        //Xim_Feed = rangen.Integer(2);
+        Xim_Feed = 1;
         if(DefaultVariation||FitSyst==false) Xim_Feed=1;
-Xim_Feed = 1;
+
         DLM_Ck* Ck_pXiminus;
         if(Xim_Feed==0) Ck_pXiminus = NULL;
         else Ck_pXiminus = Ck_pXim;
@@ -9592,7 +9595,10 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
 
     DLM_CommonAnaFunctions AnalysisObject;
     AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
-    TH1F* hData_pL_Stat = AnalysisObject.GetAliceExpCorrFun(DataSample[0],"pLambda","_0",2,false,-1);
+    TH1F* hData_pL_Stat;
+    if(DataSample[0]=="pp13TeV_HM_DimiJun20") hData_pL_Stat = AnalysisObject.GetAliceExpCorrFun(DataSample[0],"pLambda","L57_SL4_SR6_P96_0",2,false,-1);
+    else hData_pL_Stat = AnalysisObject.GetAliceExpCorrFun(DataSample[0],"pLambda","_0",2,false,-1);
+
 
     TGraphErrors* ge_Bl = new TGraphErrors();
     ge_Bl->SetName("ge_Bl");
@@ -12778,7 +12784,7 @@ printf("PLAMBDA_1_MAIN\n");
 //FitMC_CompareToData_pL(1);
 //FitMC_CompareToData_pL(2);
 
-Purity_vs_kstar_2(atoi(argv[1]),atoi(argv[2]),atoi(argv[3]),atoi(argv[4]));
+//Purity_vs_kstar_2(atoi(argv[1]),atoi(argv[2]),atoi(argv[3]),atoi(argv[4]));
 //CompareTo_pp();
 //pLambda_Study_Hypotheses();
 //ParametrizeSmearMatrix1_pL();
@@ -12788,12 +12794,12 @@ Purity_vs_kstar_2(atoi(argv[1]),atoi(argv[2]),atoi(argv[3]),atoi(argv[4]));
 //pLambda_Spline_Fit_Unfold2(12);
 
 //POT BL SIG
-//Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(atoi(argv[4]))/10.,
-//                            "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/",
-//                            TString::Format("Merged_pp13TeV_HM_DimiJun20_POT%i_BL%i_SIG%i.root",
-//                            atoi(argv[1]),atoi(argv[2]),atoi(argv[3])),
+Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(atoi(argv[4]))/10.,
+                            "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/260620_SB/",
+                            TString::Format("Merged_pp13TeV_HM_DimiJun20_POT%i_BL%i_SIG%i.root",
+                            atoi(argv[1]),atoi(argv[2]),atoi(argv[3])),
                             //"Output_pp13TeV_HM_DimiJun20_POT11600_BL12_SIG1_1.root",
-//                            "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/Plots/");
+                            "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/260620_SB/Plots/");
 
 //Plot_pL_SystematicsMay2020_2(2,10,1500,2.0,
 //        "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/040620_Gauss/",

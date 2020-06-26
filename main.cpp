@@ -4001,12 +4001,12 @@ printf("Fuck\n");
         Kitty.SetExternalWaveFunction(uCh,0,ExternalWF[0][uCh][0],ExternalWF[1][uCh][0]);
     }
 printf("WF ready\n");
-    //Kitty.SetChannelWeight(0,0);
-    //Kitty.SetChannelWeight(1,1);
+    Kitty.SetChannelWeight(0,0);
+    Kitty.SetChannelWeight(1,1);
     Kitty.KillTheCat();
 
     TFile* OutputFile = new TFile(
-                TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/QA_pd/QA_pd.root"),"recreate");
+                TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/QA_pd/QA_pd_Q.root"),"recreate");
 printf("File Created\n");
     TGraph gKitty;
     gKitty.SetName(TString::Format("gKitty"));
