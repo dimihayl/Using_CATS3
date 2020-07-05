@@ -21,6 +21,7 @@ const double Mass_K0 = 497.648;
 const double Mass_p = 938.272;
 const double Mass_L = 1115.683;
 const double Mass_Xim = 1321.7;
+const double Mass_Xi0 = 1314.86;
 const double MassOmega = 1672.45;
 
 
@@ -69,6 +70,7 @@ public:
     //  "pXim_Lattice" (the first version)
     //  "pXim_HALQCD1" (the second version, THE ONE TO USE)
     void SetUpCats_pXim(CATS& Kitty, const TString& POT, const TString& SOURCE, const int& PotVar=0, const int& SourceVar=0);
+    void SetUpCats_pXi0(CATS& Kitty, const TString& POT, const TString& SOURCE, const int& PotVar=0, const int& SourceVar=0);
     void SetUpCats_pOmegam(CATS& Kitty, const TString& POT, const TString& SOURCE, const int& PotVar=0, const int& SourceVar=0);
 
     DLM_Ck* SetUpLednicky_pL(const unsigned& NumMomBins, const double* MomBins,  const TString& POT);

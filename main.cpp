@@ -4047,6 +4047,29 @@ printf("File Created\n");
     delete cPars;
 }
 
+void pL_lampar(){
+
+    for(unsigned uVarSL=0; uVarSL<5; uVarSL++){
+        for(unsigned uVarXI=0; uVarXI<2; uVarXI++){
+            double lampar[5];
+            DLM_CommonAnaFunctions AnalysisObject;
+            AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
+            AnalysisObject.SetUpLambdaPars_pL("pp13TeV_HM_DimiJun20",0,uVarSL+10*(3*uVarXI),lampar);
+            printf("%u %u:\n",uVarSL,uVarXI);
+            printf(" genuine: %.4f\n",lampar[0]*100.);
+            printf(" pSigma0: %.4f\n",lampar[1]*100.);
+            printf("   (S:L): %.4f\n",lampar[1]/lampar[0]);
+            printf("    pXim: %.4f\n",lampar[2]*100.);
+            printf("    pXi0: %.4f\n",lampar[2]*100.);
+            printf("  (XI:LS): %.4f\n",2.*lampar[2]/(lampar[0]+lampar[1]));
+            printf("    flat: %.4f\n",lampar[3]*100.-lampar[2]*100.);
+            printf("   misid: %.4f\n",lampar[4]*100.);
+            printf("     sum: %.4f\n",(lampar[0]+lampar[1]+lampar[2]+lampar[3]+lampar[4])*100.);
+        }
+    }
+
+}
+
 int main(int argc, char *argv[])
 {
 
@@ -4067,6 +4090,7 @@ int main(int argc, char *argv[])
         strcpy(ARGV[iARG],argv[iARG]);
     }
 
+    //pL_lampar();
     //QA_pd();
     //pipi_test();
     //TestRandom();

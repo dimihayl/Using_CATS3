@@ -1365,6 +1365,13 @@ void DLM_CommonAnaFunctions::SetUpCats_pL(CATS& Kitty, const TString& POT, const
         cPotPars3S1 = new CATSparameters(CATSparameters::tPotential,8,true); cPotPars3S1->SetParameters(PotPars3S1);
         NumChannels=2;
     }
+    else if(POT=="UsmaniFit"){
+        double PotPars1S0[4]={0,2137,0.5,0.2};
+        double PotPars3S1[4]={1,2137,0.5,0.2};
+        cPotPars1S0 = new CATSparameters(CATSparameters::tPotential,4,true); cPotPars1S0->SetParameters(PotPars1S0);
+        cPotPars3S1 = new CATSparameters(CATSparameters::tPotential,4,true); cPotPars3S1->SetParameters(PotPars3S1);
+        NumChannels=2;
+    }
     else{
         printf("\033[1;31mERROR:\033[0m Non-existing pp potential '%s'\n",POT.Data());
         goto CLEAN_SetUpCats_pL;
@@ -1388,7 +1395,9 @@ void DLM_CommonAnaFunctions::SetUpCats_pL(CATS& Kitty, const TString& POT, const
             Kitty.SetChannelWeight(uCh, uCh%2==0?0.25:0.75);
         }
 
-        if(cPotPars1S0&&uCh==0)Kitty.SetShortRangePotential(uCh,0,fDlmPot,*cPotPars1S0);
+        if(POT=="UsmaniFit"&&cPotPars1S0&&uCh==0)Kitty.SetShortRangePotential(uCh,0,UsmaniFit,*cPotPars1S0);
+        else if(POT=="UsmaniFit"&&cPotPars3S1&&uCh==1)Kitty.SetShortRangePotential(uCh,0,UsmaniFit,*cPotPars3S1);
+        else if(cPotPars1S0&&uCh==0)Kitty.SetShortRangePotential(uCh,0,fDlmPot,*cPotPars1S0);
         else if(cPotPars3S1&&uCh==1) Kitty.SetShortRangePotential(uCh,0,fDlmPot,*cPotPars3S1);
         else if(ExternalWF){
             //for(unsigned uMomBin=0; uMomBin<Kitty.GetNumMomBins(); uMomBin++){
@@ -1741,6 +1750,17 @@ void DLM_CommonAnaFunctions::SetUpCats_pXim(CATS& Kitty, const TString& POT, con
         cPotParsI1S0 = new CATSparameters(CATSparameters::tPotential,9,true); cPotParsI1S0->SetParameters(PotParsI1S0);
         cPotParsI1S1 = new CATSparameters(CATSparameters::tPotential,9,true); cPotParsI1S1->SetParameters(PotParsI1S1);
     }
+    else if(POT=="pXim_HALQCDPaper2020"){
+        //#,#,POT_ID,POT_FLAG,t_tot,t1,t2,s,l,j
+        double PotParsI0S0[9]={pXim_HALQCDPaper2020,POTFLAG,0,-1,1,0,0,0,0};
+        double PotParsI0S1[9]={pXim_HALQCDPaper2020,POTFLAG,0,-1,1,1,0,1,0};
+        double PotParsI1S0[9]={pXim_HALQCDPaper2020,POTFLAG,1,1,1,0,0,0,0};
+        double PotParsI1S1[9]={pXim_HALQCDPaper2020,POTFLAG,1,1,1,1,0,1,0};
+        cPotParsI0S0 = new CATSparameters(CATSparameters::tPotential,9,true); cPotParsI0S0->SetParameters(PotParsI0S0);
+        cPotParsI0S1 = new CATSparameters(CATSparameters::tPotential,9,true); cPotParsI0S1->SetParameters(PotParsI0S1);
+        cPotParsI1S0 = new CATSparameters(CATSparameters::tPotential,9,true); cPotParsI1S0->SetParameters(PotParsI1S0);
+        cPotParsI1S1 = new CATSparameters(CATSparameters::tPotential,9,true); cPotParsI1S1->SetParameters(PotParsI1S1);
+    }
     else{
         printf("\033[1;31mERROR:\033[0m Non-existing pp potential '%s'\n",POT.Data());
         goto CLEAN_SetUpCats_pXim;
@@ -1781,6 +1801,95 @@ void DLM_CommonAnaFunctions::SetUpCats_pXim(CATS& Kitty, const TString& POT, con
     if(cPotParsI1S0){delete cPotParsI1S0; cPotParsI1S0=NULL;}
     if(cPotParsI1S1){delete cPotParsI1S1; cPotParsI1S1=NULL;}
 }
+
+void DLM_CommonAnaFunctions::SetUpCats_pXi0(CATS& Kitty, const TString& POT, const TString& SOURCE, const int& PotVar, const int& SourceVar){
+
+    double POTFLAG;
+    switch(PotVar){
+        case 11: POTFLAG=11; break;
+        case 12: POTFLAG=12; break;
+        case 13: POTFLAG=13; break;
+        case -11: POTFLAG=-11; break;
+        case -12: POTFLAG=-12; break;
+        case -13: POTFLAG=-13; break;
+        default: POTFLAG=12; break;
+    }
+
+    CATSparameters* cPars = NULL;
+    CATSparameters* pPars = NULL;
+
+    CATSparameters* cPotParsI1S0 = NULL;
+    CATSparameters* cPotParsI1S1 = NULL;
+
+    if(SOURCE=="Gauss"){
+        cPars = new CATSparameters(CATSparameters::tSource,1,true);
+        cPars->SetParameter(0,1.2);
+        Kitty.SetAnaSource(GaussSource, *cPars);
+        Kitty.SetUseAnalyticSource(true);
+    }
+    else if(SOURCE=="Cauchy"){
+        cPars = new CATSparameters(CATSparameters::tSource,1,true);
+        cPars->SetParameter(0,1.2);
+        Kitty.SetAnaSource(CauchySource, *cPars);
+        Kitty.SetUseAnalyticSource(true);
+    }
+    else{
+        printf("\033[1;31mERROR:\033[0m Non-existing source '%s'\n",SOURCE.Data());
+        goto CLEAN_SetUpCats_pXi0;
+    }
+
+    if(POT=="pXim_Lattice"){
+        //#,#,POT_ID,POT_FLAG,t_tot,t1,t2,s,l,j
+        double PotParsI1S0[9]={pXim_Lattice,6,1,1,1,0,0,0,0};
+        double PotParsI1S1[9]={pXim_Lattice,6,1,1,1,1,0,1,0};
+        cPotParsI1S0 = new CATSparameters(CATSparameters::tPotential,9,true); cPotParsI1S0->SetParameters(PotParsI1S0);
+        cPotParsI1S1 = new CATSparameters(CATSparameters::tPotential,9,true); cPotParsI1S1->SetParameters(PotParsI1S1);
+    }
+    else if(POT=="pXim_HALQCD1"){
+        //#,#,POT_ID,POT_FLAG,t_tot,t1,t2,s,l,j
+        double PotParsI1S0[9]={pXim_HALQCD1,POTFLAG,1,1,1,0,0,0,0};
+        double PotParsI1S1[9]={pXim_HALQCD1,POTFLAG,1,1,1,1,0,1,0};
+        cPotParsI1S0 = new CATSparameters(CATSparameters::tPotential,9,true); cPotParsI1S0->SetParameters(PotParsI1S0);
+        cPotParsI1S1 = new CATSparameters(CATSparameters::tPotential,9,true); cPotParsI1S1->SetParameters(PotParsI1S1);
+    }
+    else if(POT=="pXim_HALQCDPaper2020"){
+        //#,#,POT_ID,POT_FLAG,t_tot,t1,t2,s,l,j
+        double PotParsI1S0[9]={pXim_HALQCDPaper2020,POTFLAG,1,1,1,0,0,0,0};
+        double PotParsI1S1[9]={pXim_HALQCDPaper2020,POTFLAG,1,1,1,1,0,1,0};
+        cPotParsI1S0 = new CATSparameters(CATSparameters::tPotential,9,true); cPotParsI1S0->SetParameters(PotParsI1S0);
+        cPotParsI1S1 = new CATSparameters(CATSparameters::tPotential,9,true); cPotParsI1S1->SetParameters(PotParsI1S1);
+    }
+    else{
+        printf("\033[1;31mERROR:\033[0m Non-existing pp potential '%s'\n",POT.Data());
+        goto CLEAN_SetUpCats_pXi0;
+    }
+    Kitty.SetMomentumDependentSource(false);
+    Kitty.SetThetaDependentSource(false);
+    Kitty.SetExcludeFailedBins(false);
+
+    Kitty.SetQ1Q2(0);
+    Kitty.SetPdgId(2212, 3322);
+    Kitty.SetRedMass( (Mass_p*Mass_Xi0)/(Mass_p+Mass_Xi0) );
+
+    Kitty.SetNumChannels(2);
+    Kitty.SetNumPW(0,1);
+    Kitty.SetNumPW(1,1);
+    Kitty.SetSpin(0,0);
+    Kitty.SetSpin(1,1);
+    Kitty.SetChannelWeight(0, 1./4.);
+    Kitty.SetChannelWeight(1, 3./4.);
+
+    if(cPotParsI1S0) Kitty.SetShortRangePotential(0,0,fDlmPot,*cPotParsI1S0);
+    if(cPotParsI1S1) Kitty.SetShortRangePotential(1,0,fDlmPot,*cPotParsI1S1);
+
+    CLEAN_SetUpCats_pXi0: ;
+    if(cPars){delete cPars; cPars=NULL;}
+    if(pPars){delete pPars; pPars=NULL;}
+    //if(CleverLevy){delete CleverLevy; CleverLevy=NULL;}
+    if(cPotParsI1S0){delete cPotParsI1S0; cPotParsI1S0=NULL;}
+    if(cPotParsI1S1){delete cPotParsI1S1; cPotParsI1S1=NULL;}
+}
+
 
 void DLM_CommonAnaFunctions::SetUpCats_pOmegam(CATS& Kitty, const TString& POT, const TString& SOURCE, const int& PotVar, const int& SourceVar){
     CATSparameters* cPars = NULL;
@@ -2685,11 +2794,15 @@ void DLM_CommonAnaFunctions::GetFractions_p(const TString& DataSample, const int
 }
 //Variation -> use the two digits
 //first digit->Modify_SigL
-//second digit->Modify_XiL
+//second digit->Modify_XiL+3*Modify_PrimFrac
 //0 -> default; 1 = -20%; 2 = +20%
 void DLM_CommonAnaFunctions::GetFractions_L(const TString& DataSample, const int& Variation, double* Fractions){
     double Modify_SigL=1;
     double Modify_XiL=1;
+    //the amount of prim lambdas depends on pT, at low pT (and k*)
+    //the fraction could be lower. You can modify it here. This is by how much the PrimLambda fractional yield is reduced,
+    //compared to the value at the average pT
+    double Modify_PrimFrac=1;
     switch(Variation%10){
 //the new values will be 0.6,0.84,1.2,1.44
 //to keep consistency maybe just use 0.6,0.8,1.0,1.2,1.4
@@ -2701,15 +2814,20 @@ void DLM_CommonAnaFunctions::GetFractions_L(const TString& DataSample, const int
         case 4 : Modify_SigL=1.4; break;
         default : Modify_SigL=1; break;
     }
-    switch(Variation/10){
+    switch((Variation/10)%3){
         case 0 : Modify_XiL=1; break;
         case 1 : Modify_XiL=0.8;break;
         case 2 : Modify_XiL=1.2; break;
         default : Modify_XiL=1; break;
     }
+    switch((Variation/10)/3){
+        case 0 : Modify_PrimFrac=1; break;
+        case 1 : Modify_PrimFrac=0.95;break;
+        default : Modify_PrimFrac=1; break;
+    }
     double pL_f0;//fraction of primary Lambdas
     double pL_f1;//fraction of Sigma0
-    double pL_f2;//fractions of Xi0/m
+    double pL_f2;//fractions of Xi0/m (each)
     if(DataSample=="pp13TeV_MB_Run2paper"){
         pL_f0 = 0.601008;
         pL_f1 = 0.200336;
@@ -2736,6 +2854,13 @@ void DLM_CommonAnaFunctions::GetFractions_L(const TString& DataSample, const int
         pL_f1 = 0.0;
         pL_f2 = 0.0;
     }
+
+    if(pL_f2){
+        pL_f0 *= Modify_PrimFrac;
+        pL_f1 *= Modify_PrimFrac;
+        pL_f2 = (1.-pL_f0-pL_f1)*0.5;
+    }
+
     double SigLambdaPrimDir = pL_f0+pL_f1;
     //ratio between sigma0 feed down and primary lambdas. By default this should be 1:3
     double arrayPercSigLambda=pL_f1/pL_f0*Modify_SigL;
@@ -2745,7 +2870,7 @@ void DLM_CommonAnaFunctions::GetFractions_L(const TString& DataSample, const int
     //0 is primary
     //1 is from Sigma0
     //2 is is from Xim
-    //3 is is the flat feeddown
+    //3 is is the flat feeddown (it should be just xi0, i.e. == xim)
     //4 is for the missid
     Fractions[0] = SigLambdaPrimDir*FracOfLambda;
     Fractions[1] = SigLambdaPrimDir*(1.-FracOfLambda);
@@ -2771,7 +2896,7 @@ void DLM_CommonAnaFunctions::GetFractions_Xim(const TString& DataSample, const i
     Fractions[0] = 1.-3.*Xim1530_to_Xim-Omegam_to_Xim*OmegamXim_BR;
     Fractions[1] = Xim1530_to_Xim;
     Fractions[2] = Omegam_to_Xim*OmegamXim_BR;
-    Fractions[3] = 1.-Fractions[2]-Fractions[1];
+    Fractions[3] = 1.-Fractions[2]-Fractions[1]-Fractions[0];
     Fractions[4] = 1.;
 }
 //0 is primary
@@ -2795,6 +2920,7 @@ void DLM_CommonAnaFunctions::SetUpLambdaPars_pp(const TString& DataSample, const
     //}
     //printf("SUM: %.1f\n------------\n",SUM);
 }
+
 //0 is primary
 //1 is pSigma0->pL
 //2 is pXim->pL
@@ -2920,6 +3046,10 @@ TH2F* DLM_CommonAnaFunctions::GetResidualMatrix(const TString&& FinalSystem, con
     }
     else if(FinalSystem=="pLambda"&&InitialSystem=="pXim"){
         HistoName = "hRes_pL_pXim";
+    }
+    else if(FinalSystem=="pLambda"&&InitialSystem=="pXi0"){
+        FileName = CatsFilesFolder[0]+"/DecaySmear/pXi0_pL.root";
+        HistoName = "pXi0_pL";
     }
     else if(FinalSystem=="pXim"&&InitialSystem=="pXim1530"){
         HistoName = "hRes_pXim_pXim1530";
