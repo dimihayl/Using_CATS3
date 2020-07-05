@@ -7256,7 +7256,7 @@ void pL_SystematicsMay2020(unsigned SEED, unsigned BASELINE_VAR, int POT_VAR, in
         //this parameter only plays a role for the extended fit range
         unsigned WhichCkConv = rangen.Integer(3);
         if(BASELINE_VAR<pol2e||BASELINE_VAR>spl1) WhichCkConv=0;
-        if(DefaultVariation||FitSyst==false) WhichCkConv=0;
+        if(DefaultVariation||FitSyst==false||!ExtendedSyst) WhichCkConv=0;
         switch(WhichCkConv){
             case 0 : CkConv = 700; break;
             case 1 : CkConv = 500; break;
@@ -8933,6 +8933,9 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
     const float MaxRad = 1.08;
     const float MinOmega = 0.25;
     const float MaxOmega = 0.45;
+    const float MinCkConv = 600;
+    const float MaxCkConv = 800;
+    const float FractionOfSolutions = 1./4.;
 
     const bool Same_omega_siglam = false;
     //const bool COMPARE_TO_LO = true;
@@ -9308,6 +9311,8 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
     unsigned UsedNumBins = 0;
     float SigLamFrac;
     float XiSigLamFrac;
+    TRandom3 rangenfrac1(121);
+    TRandom3 rangenfrac2(121);
     for(unsigned uEntry=0; uEntry<NumEntries; uEntry++){
         //Chi2_300[uEntry] = 1e6;
         //NDF_300[uEntry] = 0;
@@ -9329,12 +9334,17 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
         if( fabs(SourceAlpha-ValSourceAlpha)>0.01 ) continue;
 //printf("4\n");
         if(SourceSize<MinRad||SourceSize>MaxRad) continue;
+        if(CkConv<MinCkConv||CkConv>MaxCkConv) continue;
 //printf("5\n");
         //if(lam_L_genuine<MinLambda||lam_L_genuine>MaxLambda) continue;
 //printf("6\n");
         if(CuspWeight<MinOmega||CuspWeight>MaxOmega) continue;
 //printf("7\n");
         if( fabs(SigLamFrac-CuspWeight)>0.001 && Same_omega_siglam ) continue;
+        if(rangenfrac1.Uniform()>FractionOfSolutions) continue;
+//if(uEntry<20){
+//    printf("uEntry=%u\n",uEntry);
+//}
 //printf("8\n");
 //printf(" PROCEED!\n");
         unsigned NumBins = gData->GetN();
@@ -9432,14 +9442,14 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
     unsigned Num_MinChi2 = Chi2_300.FindMinima(MinChi2,Bin_MinChi2);
     int MinNdf = TMath::Nint(NDF_300.GetBinContent(Bin_MinChi2[0]));
     float MinNsigma = sqrt(2)*TMath::ErfcInverse(TMath::Prob(MinChi2,MinNdf));
-    printf("We have %u minima for the chi2=%.2f/%i = %.2f (nsigma = %.2f)\n",Num_MinChi2,MinChi2,MinNdf,MinChi2/float(MinNdf),MinNsigma);
+    //printf("We have %u minima for the chi2=%.2f/%i = %.2f (nsigma = %.2f)\n",Num_MinChi2,MinChi2,MinNdf,MinChi2/float(MinNdf),MinNsigma);
     for(unsigned uMin=0; uMin<Num_MinChi2; uMin++){
         unsigned WhichBin[7];
-        printf(" Bin_MinChi2=%p\n",Bin_MinChi2);
-        printf(" Bin_MinChi2[0]=%u\n",Bin_MinChi2[0]);
+        //printf(" Bin_MinChi2=%p\n",Bin_MinChi2);
+        //printf(" Bin_MinChi2[0]=%u\n",Bin_MinChi2[0]);
         Chi2_300.GetBinCoordinates(Bin_MinChi2[uMin],WhichBin);
-        printf(" Solution %u: SZ=%u, SBP=%u, S:L=%u, XI:LS=%u, CW=%u, SA=%u, CC=%u\n",
-               uMin,WhichBin[0],WhichBin[1],WhichBin[2],WhichBin[3],WhichBin[4],WhichBin[5],WhichBin[6]);
+        //printf(" Solution %u: SZ=%u, SBP=%u, S:L=%u, XI:LS=%u, CW=%u, SA=%u, CC=%u\n",
+        //       uMin,WhichBin[0],WhichBin[1],WhichBin[2],WhichBin[3],WhichBin[4],WhichBin[5],WhichBin[6]);
     }
 
     double nsigma_300_max;
@@ -9474,10 +9484,15 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
         if(POT_VAR!=WhichPotential) continue;
         if( fabs(SourceAlpha-ValSourceAlpha)>0.01 ) continue;
         if(SourceSize<MinRad||SourceSize>MaxRad) continue;
+        if(CkConv<MinCkConv||CkConv>MaxCkConv) continue;
 //printf("%f %f %f\n",MinLambda,lam_L_genuine,MaxLambda);
         //if(lam_L_genuine<MinLambda||lam_L_genuine>MaxLambda) continue;
         if(CuspWeight<MinOmega||CuspWeight>MaxOmega) continue;
         if( fabs(SigLamFrac-CuspWeight)>0.001 && Same_omega_siglam ) continue;
+        if(rangenfrac2.Uniform()>FractionOfSolutions) continue;
+//if(uEntry<20){
+//    printf("uEntry=%u\n",uEntry);
+//}
 //printf("GO ON\n");
         unsigned NumBins = gData->GetN();
         //the [2] was used for saving the previous bin for the derivative
@@ -9602,8 +9617,8 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
                     WhichBinBest[5]==WhichBinCurrent[5] &&
                     WhichBinBest[6]==WhichBinCurrent[6]
                     ) OneOfTheBest=true;
-                if(!uBin) printf(" Solution %u: SZ=%u, SBP=%u, S:L=%u, XI:LS=%u, CW=%u, SA=%u, CC=%u\n",uMin,
-                WhichBinBest[0],WhichBinBest[1],WhichBinBest[2],WhichBinBest[3],WhichBinBest[4],WhichBinBest[5],WhichBinBest[6]);
+                //if(!uBin) printf(" Solution %u: SZ=%u, SBP=%u, S:L=%u, XI:LS=%u, CW=%u, SA=%u, CC=%u\n",uMin,
+                //WhichBinBest[0],WhichBinBest[1],WhichBinBest[2],WhichBinBest[3],WhichBinBest[4],WhichBinBest[5],WhichBinBest[6]);
 
                 //best purity iteration -> use to plot the data
                 //if(WhichBinBest[1]==WhichBinCurrent[1]){
@@ -9639,6 +9654,7 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
                 hb_xim->SetBinContent(uBin+1,hxim->GetYaxis()->FindBin(xim_val),hxim->GetBinContent(uBin+1)+1);
                 hb_xi0->SetBinContent(uBin+1,hxi0->GetYaxis()->FindBin(xi0_val),hxi0->GetBinContent(uBin+1)+1);
                 hb_xi->SetBinContent(uBin+1,hxi->GetYaxis()->FindBin(xi_val),hxi->GetBinContent(uBin+1)+1);
+/*
 if(!uBin){
     printf("pp2 = %f\n",pp2);
     printf("r = %f\n",SourceSize);
@@ -9649,8 +9665,8 @@ if(!uBin){
     printf("SA = %f\n",SourceAlpha);
     printf("CC = %f\n",CkConv);
 }
-
 printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
+*/
                 Best_SourceSize = SourceSize;
                 Best_SourceAlpha = SourceAlpha;
                 Best_CuspWeight = CuspWeight;
@@ -13227,11 +13243,11 @@ printf("PLAMBDA_1_MAIN\n");
 
 //POT BL SIG
 Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(atoi(argv[4]))/10.,
-                            "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/",
-                            //TString::Format("Merged_pp13TeV_HM_DimiJun20_POT%i_BL%i_SIG%i.root",
-                            //atoi(argv[1]),atoi(argv[2]),atoi(argv[3])),
-                            "UpdatedSyst040720.root",
-                            "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/Plots/");
+                            "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/050720_Xi0/HighStat/",
+                            TString::Format("Merged_pp13TeV_HM_DimiJun20_POT%i_BL%i_SIG%i.root",
+                            atoi(argv[1]),atoi(argv[2]),atoi(argv[3])),
+                            //"UpdatedSyst040720.root",
+                            "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/050720_Xi0/HighStat/Plots/");
 
 //Plot_pL_SystematicsMay2020_2(2,10,1500,2.0,
 //        "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/040620_Gauss/",
