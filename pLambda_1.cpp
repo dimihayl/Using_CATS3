@@ -10256,12 +10256,72 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
     DlmPad->GetCanvas()->SaveAs(OutputFolder+TString::Format("DlmPad_%s_%s_%s_%i.pdf",PotDescr.Data(),BlDescr.Data(),SigDescr.Data(),
                                                              TMath::Nint(ValSourceAlpha*10.)));
 
-TFile dummyOutput(OutputFolder+"dummyOutput.root","recreate");
-geb_Xim->Write();
-geb_Sig->Write();
-geb_Bl->Write();
-geb_Fit->Write();
-hData_pL_Stat->Write();
+    float MinChi2NDF = MinChi2/double(MinNdf);
+
+    TFile* InfoFile = NULL;
+    TTree* InfoTree = NULL;
+    char* InfoFileName = new char [512];
+    strcpy(InfoFileName,OutputFolder.Data());
+    strcat(InfoFileName,"Info.root");
+    int InfoFileStatus = file_status(InfoFileName);
+    //the file does not exist
+    if(InfoFileStatus==0){
+        InfoFile = new TFile(InfoFileName,"recreate");
+        InfoTree = new TTree("InfoTree","InfoTree");
+        InfoTree->Branch("BASELINE_VAR", &BASELINE_VAR, "BASELINE_VAR/i");//
+        InfoTree->Branch("POT_VAR", &POT_VAR, "POT_VAR/I");//
+        InfoTree->Branch("Sigma0_Feed", &Sigma0_Feed, "Sigma0_Feed/I");//
+        InfoTree->Branch("MinChi2NDF", &MinChi2NDF, "MinChi2NDF/F");
+        InfoTree->Branch("MinNsigma", &MinNsigma, "MinNsigma/F");
+        InfoTree->Branch("Best_SourceSize", &Best_SourceSize, "Best_SourceSize/F");
+        InfoTree->Branch("Best_SourceAlpha", &Best_SourceAlpha, "Best_SourceAlpha/F");
+        InfoTree->Branch("Best_Purity", &Best_Purity, "Best_Purity/F");
+        InfoTree->Branch("Best_lam_L_genuine", &Best_lam_L_genuine, "Best_lam_L_genuine/F");
+        InfoTree->Branch("Best_SigLamFrac", &Best_SigLamFrac, "Best_SigLamFrac/F");
+        InfoTree->Branch("Best_XiSigLamFrac", &Best_XiSigLamFrac, "Best_XiSigLamFrac/F");
+        InfoTree->Branch("Best_CuspWeight", &Best_CuspWeight, "Best_CuspWeight/F");
+        InfoTree->Branch("Best_CkConv", &Best_CkConv, "Best_CkConv/F");
+    }
+    else{
+        DLM_Timer FileTimer;
+        long long FileWaitTime;//in micros
+        //we wait until the file is closed. If this is not the case in 10s => error
+        while(InfoFileStatus==-1&&FileWaitTime<10e6){
+            //sleep for 10 ms
+            usleep(10e3);
+            FileWaitTime = FileTimer.Stop();
+            InfoFileStatus = file_status(InfoFileName);
+        }
+        if(InfoFileStatus==-1){
+            printf("\033[1;31mERROR:\033[0m Waited more than 10s to close the file %s\n",InfoFileName);
+            abort();
+        }
+
+        InfoFile = new TFile(InfoFileName,"update");
+        InfoTree = (TTree*)InfoFile->Get("InfoTree");
+        InfoTree->SetBranchAddress("BASELINE_VAR",&BASELINE_VAR);
+        InfoTree->SetBranchAddress("POT_VAR",&POT_VAR);
+        InfoTree->SetBranchAddress("Sigma0_Feed",&Sigma0_Feed);
+        InfoTree->SetBranchAddress("MinChi2NDF",&MinChi2NDF);
+        InfoTree->SetBranchAddress("MinNsigma",&MinNsigma);
+        InfoTree->SetBranchAddress("Best_SourceSize",&Best_SourceSize);
+        InfoTree->SetBranchAddress("Best_SourceAlpha",&Best_SourceAlpha);
+        InfoTree->SetBranchAddress("Best_Purity",&Best_Purity);
+        InfoTree->SetBranchAddress("Best_lam_L_genuine",&Best_lam_L_genuine);
+        InfoTree->SetBranchAddress("Best_SigLamFrac",&Best_SigLamFrac);
+        InfoTree->SetBranchAddress("Best_XiSigLamFrac",&Best_XiSigLamFrac);
+        InfoTree->SetBranchAddress("Best_CuspWeight",&Best_CuspWeight);
+        InfoTree->SetBranchAddress("Best_CkConv",&Best_CkConv);
+    }
+
+    InfoTree->Fill();
+
+    //geb_Xim->Write();
+    //geb_Sig->Write();
+    //geb_Bl->Write();
+    //geb_Fit->Write();
+    //hData_pL_Stat->Write();
+    InfoTree->Write("",TObject::kOverwrite);
 
 printf("Delete\n");
     delete hnsigma;
@@ -10340,6 +10400,151 @@ printf("Delete 2\n");
 //printf("Delete 4\n");
     if(fitLoDummy) delete fitLoDummy;
     delete InputFile;
+    delete [] InfoFileName;
+    if(InfoFileStatus==0){
+        delete InfoTree;
+    }
+    if(InfoFile) {delete InfoFile; InfoFile=NULL;}
+}
+
+//with the chi2 from the Info.root of the above function
+void MakeLATEXtable(TString InputFolder){
+    TString OutputFileName = InputFolder+"Chi2LaTeX.tex";
+
+    char* InfoFileName = new char [512];
+    strcpy(InfoFileName,InputFolder.Data());
+    strcat(InfoFileName,"Info.root");
+
+    const unsigned NumLamVars = 9;
+    TString* PotName_pL = new TString [NumLamVars];
+    PotName_pL[0] = "LO13-600";
+    PotName_pL[1] = "NLO13-500";
+    PotName_pL[2] = "NLO13-550";
+    PotName_pL[3] = "NLO13-600";
+    PotName_pL[4] = "NLO13-650";
+    PotName_pL[5] = "NLO19-500";
+    PotName_pL[6] = "NLO19-550";
+    PotName_pL[7] = "NLO19-600";
+    PotName_pL[8] = "NLO19-650";
+
+    int* PotFlag_pL = new int [NumLamVars];
+    PotFlag_pL[0] = -11600;
+    PotFlag_pL[1] = 1500;
+    PotFlag_pL[2] = 1550;
+    PotFlag_pL[3] = 1600;
+    PotFlag_pL[4] = 1650;
+    PotFlag_pL[5] = 11500;
+    PotFlag_pL[6] = 11550;
+    PotFlag_pL[7] = 11600;
+    PotFlag_pL[8] = 11650;
+
+    //const unsigned NumSigVars = 3;
+    //TString* PotName_pS0 = new TString [NumSigVars];
+    //PotName_pS0[0] = "\\pmb{\\chiEFT}";
+    //PotName_pS0[1] = "ESC16";
+    //PotName_pS0[2] = "Flat";
+    //int* PotFlag_pS0 = new int [NumSigVars];
+    //PotFlag_pS0[0] = 1;
+    //PotFlag_pS0[1] = 2;
+    //PotFlag_pS0[2] = 0;
+
+    unsigned BASELINE_VAR;
+    int POT_VAR;
+    int Sigma0_Feed;
+    float MinChi2NDF;
+    float MinNsigma;
+    float Best_SourceSize;
+    float Best_SourceAlpha;
+    float Best_Purity;
+    float Best_lam_L_genuine;
+    float Best_SigLamFrac;
+    float Best_XiSigLamFrac;
+    float Best_CuspWeight;
+    float Best_CkConv;
+
+    TFile* InfoFile = new TFile(InfoFileName,"read");
+    TTree* InfoTree = (TTree*)InfoFile->Get("InfoTree");
+    InfoTree->SetBranchAddress("BASELINE_VAR",&BASELINE_VAR);
+    InfoTree->SetBranchAddress("POT_VAR",&POT_VAR);
+    InfoTree->SetBranchAddress("Sigma0_Feed",&Sigma0_Feed);
+    InfoTree->SetBranchAddress("MinChi2NDF",&MinChi2NDF);
+    InfoTree->SetBranchAddress("MinNsigma",&MinNsigma);
+    InfoTree->SetBranchAddress("Best_SourceSize",&Best_SourceSize);
+    InfoTree->SetBranchAddress("Best_SourceAlpha",&Best_SourceAlpha);
+    InfoTree->SetBranchAddress("Best_Purity",&Best_Purity);
+    InfoTree->SetBranchAddress("Best_lam_L_genuine",&Best_lam_L_genuine);
+    InfoTree->SetBranchAddress("Best_SigLamFrac",&Best_SigLamFrac);
+    InfoTree->SetBranchAddress("Best_XiSigLamFrac",&Best_XiSigLamFrac);
+    InfoTree->SetBranchAddress("Best_CuspWeight",&Best_CuspWeight);
+    InfoTree->SetBranchAddress("Best_CkConv",&Best_CkConv);
+    unsigned NumEntries = InfoTree->GetEntries();
+
+    FILE *fptr;
+    fptr=fopen(OutputFileName.Data(),"w");
+    fprintf(fptr,"\\begin{table} \n");
+    fprintf(fptr,"\\begin{center} \n");
+    fprintf(fptr,"\\begin{tabular}{r|c|c|c|} \n");
+    fprintf(fptr,"\\hline \\hline \n");
+    fprintf(fptr,"$\\text{p--}\\Sigma^0$ ($\\rightarrow$)& \\pmb{$\\chi$EFT} & ESC16 & Flat \\\\ $\\text{p--}\\Lambda$ ($\\downarrow$) & & & \\\\ \n");
+    fprintf(fptr,"\\hline \n");
+    //char* buffer = new char [512];
+    for(unsigned upL=0; upL<NumLamVars; upL++){
+        float val_chiral_cubic=0;
+        float val_esc16_cubic=0;
+        float val_flat_cubic=0;
+        float val_chiral_const=0;
+        float val_esc16_const=0;
+        float val_flat_const=0;
+        for(unsigned uEntry=0; uEntry<NumEntries; uEntry++){
+            InfoTree->GetEntry(uEntry);
+            if(POT_VAR!=PotFlag_pL[upL]) continue;
+            if(Sigma0_Feed==0&&BASELINE_VAR==0){
+                val_flat_const = MinChi2NDF;
+            }
+            else if(Sigma0_Feed==0&&BASELINE_VAR==10){
+                val_flat_cubic = MinChi2NDF;
+            }
+            else if(Sigma0_Feed==1&&BASELINE_VAR==0){
+                val_chiral_const = MinChi2NDF;
+            }
+            else if(Sigma0_Feed==1&&BASELINE_VAR==10){
+                val_chiral_cubic = MinChi2NDF;
+            }
+            else if(Sigma0_Feed==2&&BASELINE_VAR==0){
+                val_esc16_const = MinChi2NDF;
+            }
+            else if(Sigma0_Feed==2&&BASELINE_VAR==10){
+                val_esc16_cubic = MinChi2NDF;
+            }
+        }
+
+        if(PotFlag_pL[upL]==11600) fprintf(fptr,"\\pmb{");
+        fprintf(fptr,"%s",PotName_pL[upL].Data());
+        if(PotFlag_pL[upL]==11600) fprintf(fptr,"}");
+        fprintf(fptr," & %.1f (%.1f) & %.1f (%.1f) & %.1f (%.1f)",
+                val_chiral_cubic,val_chiral_const,
+                val_esc16_cubic,val_esc16_const,
+                val_flat_cubic,val_flat_const);
+        fprintf(fptr," \\\\ \n");
+    }
+    fprintf(fptr,"\\hline \\hline \n");
+    fprintf(fptr,"\\end{tabular} \n");
+    fprintf(fptr,"\\caption{Values of $\\chi^2/$NDF for the different interaction hypotheses "
+            "of $\\text{p--}\\Lambda$ and $\\text{p--}\\Sigma^0$, evaluated for $k^{*}\\in[0,300]~$MeV. "
+            "The default values correspond to the fit with a cubic baseline, the values in brackets represent the results from using a constant baseline. "
+            "The default model (in bold) is the $\\chi$EFT NLO calculation, at a cutoff of 600~MeV. } \n");
+    fprintf(fptr,"\\label{tab:chi2_2020} \n");
+    fprintf(fptr,"\\end{center} \n");
+    fprintf(fptr,"\\end{table} \n");
+
+    if(fptr) fclose(fptr);
+
+    delete [] PotName_pL;
+    //delete [] PotName_pS0;
+    delete [] PotFlag_pL;
+    //delete [] PotFlag_pS0;
+    delete [] InfoFileName;
+    delete InfoFile;
 }
 
 
@@ -10886,12 +11091,26 @@ printf(" 8\n");
 printf(" 9\n");
 }
 
-void pLambda_Spline_Fit_Unfold2(const double& BinWidth){
+//the story so far:
+//if I use pp SE matrix, pp ME matrix or pLambda matrix I get essentially the same result
+//if I use the original coarse pL (10MeV) SE matrix, I get deviation below 30 MeV (the unfolded Ck sits higher)
+//and around the cusp I get some fluctuating bins.
+//Conclusion: the coarse binning and low statistics in the old matrix was introducing a bit of bias... use the ME pL matrix instead!
+
+//the idea of this function:
+//model the theory Ck with spline. Fit the correlation (including smearing) to find out a somewhat smooth initial theory Ck that fits the problem
+//than iterate over all bins, where you take bin N and N+X bins and bootstrap the theory solution randomly, transforming it back to the smeared data.
+//if the description is better => accept the solution. A problem was that the solution often wandered off very much away from the original fit,
+//leading to weird spikes. To avoid this, and additional constraint is that within each block of fitted bins, the maximum deviation (bin-by-bin)
+//between the new smeared function and the original function should be larger than the maximum deviation between the original theory fit and the
+//bootstraped solution. This way, the bootstraped solution is forced to remain close to the original fit value.
+void pLambda_Spline_Fit_Unfold2(const double& BinWidth, const TString& DataVariation, const TString& OutputFolder){
 
     const double kMin=0;
-    const double kMax=540;
+    double kMax=540;
     //const unsigned NumMomBins=45;//12MeV
     const unsigned NumMomBins=TMath::Nint(kMax/BinWidth);//4MeV
+    kMax = double(NumMomBins)*BinWidth;
 
     //0,60,120,180,240,320,400,500,600
     const int NumKnots = 20;
@@ -10919,7 +11138,8 @@ void pLambda_Spline_Fit_Unfold2(const double& BinWidth){
     Nodes_x[19] = kMax;
 
     DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
-    TH1F* hData_pL = AnalysisObject.GetAliceExpCorrFun("pp13TeV_HM_Dec19","pLambda","_0",TMath::Nint(BinWidth/4)-1,false,-1);
+    //TH1F* hData_pL = AnalysisObject.GetAliceExpCorrFun("pp13TeV_HM_Dec19","pLambda","_0",TMath::Nint(BinWidth/4)-1,false,-1);
+    TH1F* hData_pL = AnalysisObject.GetAliceExpCorrFun("pp13TeV_HM_DimiJun20","pLambda",DataVariation.Data(),TMath::Nint(BinWidth/4)-1,false,-1);
 
     TF1* fit_pL_RAW = new TF1("fit_pL_RAW",pLambda_Spline_CkFitRAW,kMin,kMax,3+NumKnots*2);
     fit_pL_RAW->FixParameter(0,NumKnots);
@@ -10938,7 +11158,10 @@ void pLambda_Spline_Fit_Unfold2(const double& BinWidth){
 
     DLM_Ck* Ck_pL = new DLM_Ck(3+NumKnots*2,0,NumMomBins,kMin,kMax,pLambda_Spline_Ck);
     //Ck_pL->SetSourcePar(0,ResidualSourceSize);
-    TH2F* hResolution_pL = AnalysisObject.GetResolutionMatrix("pp13TeV_HM_Dec19","pLambda");
+    //TH2F* hResolution_pL = AnalysisObject.GetResolutionMatrix("pp13TeV_HM_Dec19","pLambda");
+    TH2F* hResolution_pL = AnalysisObject.GetResolutionMatrix("pp13TeV_HM_DimiJun20","pLambda");
+//TH2F* hResolution_pL = AnalysisObject.GetResolutionMatrix("pp13TeV_HM_Dec19","pp");
+//TH2F* hResolution_pL = AnalysisObject.GetResolutionMatrix("pp13TeV_HM_DimiJun20","pp");
     DLM_CkDecomposition* CkDec_pL = new DLM_CkDecomposition("pLambda",0,*Ck_pL,hResolution_pL);
     pLambda_Spline_CkFit_CKDEC = CkDec_pL;
 
@@ -11141,17 +11364,25 @@ RandomValue=OriginalValue;
     Ck_Best->Update(true);
     CkDec_Best->Update(true);
 
-    TFile fOutput(TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Unfolding/Test1/pLambda_Spline_Fit_Unfold2_%.0f.root",BinWidth),
-                  "recreate");
+//    TFile fOutput(TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Unfolding/Test1/pLambda_Spline_Fit_Unfold2_%.0f.root",BinWidth),
+//                  "recreate");
+
+    TString OriginalName = hData_pL->GetName();
+    hData_pL->SetName(OriginalName+"_Original");
+    fit_pL_RAW->SetName(OriginalName+"_fit_pL_RAW");
+    fit_pL->SetName(OriginalName+"_fit_pL");
+
+    TFile fOutput(OutputFolder+TString::Format("CkSB_pL_%s_Unfolded.root",DataVariation.Data()),"update");
 
     TGraph CkTheoryFit;
-    CkTheoryFit.SetName("CkTheoryFit");
+    CkTheoryFit.SetName(OriginalName+"_TheoryFit");
     TGraph CkSmearedFit;
-    CkSmearedFit.SetName("CkSmearedFit");
+    CkSmearedFit.SetName(OriginalName+"_SmearedFit");
     TGraph CkTheoryBest;
-    CkTheoryBest.SetName("CkTheoryBest");
+    //this is the histogram to use
+    CkTheoryBest.SetName(OriginalName);
     TGraph CkSmearedBest;
-    CkSmearedBest.SetName("CkSmearedBest");
+    CkSmearedBest.SetName(OriginalName+"_Smeared");
     for(unsigned uBin=0; uBin<NumMomBins; uBin++){
         double MOM = Ck_pL->GetBinCenter(0,uBin);
         CkTheoryFit.SetPoint(uBin,MOM,Ck_pL->GetBinContent(uBin));
@@ -13220,6 +13451,139 @@ void EffectOfpXi0(TString DataSet){
 
 }
 
+void CreateFineBinnedResoMatrix_pp(){
+    const TString InputFileName = "/home/dmihaylov/CernBox/CatsFiles/ExpData/ALICE_pp_13TeV_HM_MCnano/AnalysisResults.root";
+    const TString OutputFileName = "/home/dmihaylov/CernBox/CatsFiles/MomentumSmear/ALICE_pp_13TeV_MEpp.root";
+    const TString DirectoryName = "HMBBarResultsQA8";
+    const TString ListName1 = "HMBBarResultsQA8";
+    const TString ListName2 = "PairQA";
+    const TString ListNamePP = "QA_Particle0_Particle0";
+    const TString ListNameAPAP = "QA_Particle1_Particle1";
+    const TString HistoNamePP = "MomentumResolutionME_Particle0_Particle0";
+    const TString HistoNameAPAP = "MomentumResolutionME_Particle1_Particle1";
+
+    TFile* fInput = new TFile(InputFileName,"read");
+    printf("fInput = %p\n",fInput);
+    TDirectoryFile* dInput = (TDirectoryFile*)(fInput->FindObjectAny(DirectoryName));
+    printf("dInput = %p\n",dInput);
+    //dInput->ls();
+    TList* lInput1 = NULL;
+    dInput->GetObject(ListName1,lInput1);
+    printf("lInput1 = %p\n",lInput1);
+    //lInput1->ls();
+    TList* lInput2 = (TList*)lInput1->FindObject(ListName2);
+    printf("lInput2 = %p\n",lInput2);
+
+
+    TList* lInputPP = (TList*)lInput2->FindObject(ListNamePP);
+    printf("lInputPP = %p\n",lInputPP);
+    lInputPP->ls();
+
+    TList* lInputAPAP = (TList*)lInput2->FindObject(ListNameAPAP);
+    printf("lInputAPAP = %p\n",lInputAPAP);
+    lInputAPAP->ls();
+
+    TH2F* hPP_RESO = (TH2F*)lInputPP->FindObject(HistoNamePP);
+    printf("hPP_RESO = %p\n",hPP_RESO);
+    TH2F* hAPAP_RESO = (TH2F*)lInputAPAP->FindObject(HistoNameAPAP);
+    printf("hAPAP_RESO = %p\n",hAPAP_RESO);
+
+    const unsigned NumMomBins = hPP_RESO->GetXaxis()->GetNbins();
+    double kMin_MeV = hPP_RESO->GetXaxis()->GetBinLowEdge(1)*1000.;
+    double kMax_MeV = hPP_RESO->GetXaxis()->GetBinUpEdge(NumMomBins)*1000.;
+
+    TFile* f_RESO_pp_MeV = new TFile(OutputFileName,"recreate");
+
+    TH2F* h_RESO_pp_MeV = new TH2F("h_RESO_pp_MeV","h_RESO_pp_MeV",
+                                   NumMomBins,kMin_MeV,kMax_MeV,NumMomBins,kMin_MeV,kMax_MeV);
+
+    double Val_PP, Val_APAP, Val;
+    double Err_PP, Err_APAP, Err;
+
+    for(unsigned uMomBinX=0; uMomBinX<NumMomBins; uMomBinX++){
+        for(unsigned uMomBinY=0; uMomBinY<NumMomBins; uMomBinY++){
+            Val_PP = hPP_RESO->GetBinContent(uMomBinX+1,uMomBinY+1);
+            Val_APAP = hAPAP_RESO->GetBinContent(uMomBinX+1,uMomBinY+1);
+            Err_PP = sqrt(Val_PP);
+            Err_APAP = sqrt(Val_APAP);
+            h_RESO_pp_MeV->SetBinContent(uMomBinX+1,uMomBinY+1,Val_PP+Val_APAP);
+            h_RESO_pp_MeV->SetBinError(uMomBinX+1,uMomBinY+1,sqrt(Err_PP*Err_PP+Err_APAP*Err_APAP));
+        }
+    }
+
+    h_RESO_pp_MeV->Write();
+
+    delete h_RESO_pp_MeV;
+    delete f_RESO_pp_MeV;
+}
+
+void CreateFineBinnedResoMatrix_pL(){
+    const TString InputFileName = "/home/dmihaylov/CernBox/CatsFiles/ExpData/ALICE_pp_13TeV_HM_MCnano/AnalysisResults.root";
+    const TString OutputFileName = "/home/dmihaylov/CernBox/CatsFiles/MomentumSmear/ALICE_pp_13TeV_MEpL.root";
+    const TString DirectoryName = "HMBBarResultsQA8";
+    const TString ListName1 = "HMBBarResultsQA8";
+    const TString ListName2 = "PairQA";
+    const TString ListNamePP = "QA_Particle0_Particle2";
+    const TString ListNameAPAP = "QA_Particle1_Particle3";
+    const TString HistoNamePP = "MomentumResolutionME_Particle0_Particle2";
+    const TString HistoNameAPAP = "MomentumResolutionME_Particle1_Particle3";
+
+    TFile* fInput = new TFile(InputFileName,"read");
+    printf("fInput = %p\n",fInput);
+    TDirectoryFile* dInput = (TDirectoryFile*)(fInput->FindObjectAny(DirectoryName));
+    printf("dInput = %p\n",dInput);
+    //dInput->ls();
+    TList* lInput1 = NULL;
+    dInput->GetObject(ListName1,lInput1);
+    printf("lInput1 = %p\n",lInput1);
+    //lInput1->ls();
+    TList* lInput2 = (TList*)lInput1->FindObject(ListName2);
+    printf("lInput2 = %p\n",lInput2);
+
+
+    TList* lInputPP = (TList*)lInput2->FindObject(ListNamePP);
+    printf("lInputPP = %p\n",lInputPP);
+    lInputPP->ls();
+
+    TList* lInputAPAP = (TList*)lInput2->FindObject(ListNameAPAP);
+    printf("lInputAPAP = %p\n",lInputAPAP);
+    lInputAPAP->ls();
+
+    TH2F* hPP_RESO = (TH2F*)lInputPP->FindObject(HistoNamePP);
+    printf("hPP_RESO = %p\n",hPP_RESO);
+    TH2F* hAPAP_RESO = (TH2F*)lInputAPAP->FindObject(HistoNameAPAP);
+    printf("hAPAP_RESO = %p\n",hAPAP_RESO);
+
+    const unsigned NumMomBins = hPP_RESO->GetXaxis()->GetNbins();
+    double kMin_MeV = hPP_RESO->GetXaxis()->GetBinLowEdge(1)*1000.;
+    double kMax_MeV = hPP_RESO->GetXaxis()->GetBinUpEdge(NumMomBins)*1000.;
+
+    TFile* f_RESO_pL_MeV = new TFile(OutputFileName,"recreate");
+
+    TH2F* h_RESO_pL_MeV = new TH2F("h_RESO_pL_MeV","h_RESO_pL_MeV",
+                                   NumMomBins,kMin_MeV,kMax_MeV,NumMomBins,kMin_MeV,kMax_MeV);
+
+    double Val_PP, Val_APAP, Val;
+    double Err_PP, Err_APAP, Err;
+
+    for(unsigned uMomBinX=0; uMomBinX<NumMomBins; uMomBinX++){
+        for(unsigned uMomBinY=0; uMomBinY<NumMomBins; uMomBinY++){
+            Val_PP = hPP_RESO->GetBinContent(uMomBinX+1,uMomBinY+1);
+            Val_APAP = hAPAP_RESO->GetBinContent(uMomBinX+1,uMomBinY+1);
+            Err_PP = sqrt(Val_PP);
+            Err_APAP = sqrt(Val_APAP);
+            h_RESO_pL_MeV->SetBinContent(uMomBinX+1,uMomBinY+1,Val_PP+Val_APAP);
+            h_RESO_pL_MeV->SetBinError(uMomBinX+1,uMomBinY+1,sqrt(Err_PP*Err_PP+Err_APAP*Err_APAP));
+        }
+    }
+
+    h_RESO_pL_MeV->Write();
+
+    delete h_RESO_pL_MeV;
+    delete f_RESO_pL_MeV;
+}
+
+
 int PLAMBDA_1_MAIN(int argc, char *argv[]){
 printf("PLAMBDA_1_MAIN\n");
 
@@ -13237,17 +13601,24 @@ printf("PLAMBDA_1_MAIN\n");
 //pLambda_Study_Hypotheses();
 //ParametrizeSmearMatrix1_pL();
 
+//CreateFineBinnedResoMatrix_pp();
+//CreateFineBinnedResoMatrix_pL();
 //pLambda_Spline_Fit_Test();
 //pLambda_Spline_Fit_Test2();
-//pLambda_Spline_Fit_Unfold2(12);
+//pLambda_Spline_Fit_Unfold2(12,"L53_SL4_SR6_P96_0","/home/dmihaylov/CernBox/CatsFiles/ExpData/ALICE_pp_13TeV_HM/DimiJun20/Norm240_340/DataSignal/Unfolded/ppMatrix/");
+pLambda_Spline_Fit_Unfold2(atoi(argv[1]),"L53_SL4_SR6_P96_0",
+                           TString::Format("/home/dmihaylov/CernBox/CatsFiles/ExpData/ALICE_pp_13TeV_HM/DimiJun20/Norm240_340/DataSignal/Unfolded%s",argv[2]));
+
 
 //POT BL SIG
-Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(atoi(argv[4]))/10.,
-                            "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/050720_Xi0/HighStat/",
-                            TString::Format("Merged_pp13TeV_HM_DimiJun20_POT%i_BL%i_SIG%i.root",
-                            atoi(argv[1]),atoi(argv[2]),atoi(argv[3])),
-                            //"UpdatedSyst040720.root",
-                            "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/050720_Xi0/HighStat/Plots/");
+//Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(atoi(argv[4]))/10.,
+//                            "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/050720_Xi0/",
+//                            TString::Format("Merged_pp13TeV_HM_DimiJun20_POT%i_BL%i_SIG%i.root",
+//                            atoi(argv[1]),atoi(argv[2]),atoi(argv[3])),
+//                            //"UpdatedSyst040720.root",
+//                            "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/050720_Xi0/Plots/");
+//MakeLATEXtable("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/050720_Xi0/Plots/");
+
 
 //Plot_pL_SystematicsMay2020_2(2,10,1500,2.0,
 //        "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/040620_Gauss/",

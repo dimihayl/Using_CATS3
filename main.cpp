@@ -4090,6 +4090,7 @@ int main(int argc, char *argv[])
         strcpy(ARGV[iARG],argv[iARG]);
     }
 
+    //cout << file_status("/home/dmihaylov/Dudek_Ubuntu/pNb_cosThCM_0_1.root") << endl;
     //pL_lampar();
     //QA_pd();
     //pipi_test();

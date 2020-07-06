@@ -2986,10 +2986,12 @@ TH2F* DLM_CommonAnaFunctions::GetResolutionMatrix(const TString& DataSample,cons
     TString FileName;
     TString HistoName;
 
+
     if(DataSample=="pp13TeV_MB_Run2paper"){
         FileName = CatsFilesFolder[0]+"/MomentumSmear/ALICE_pp_13TeV.root";
     }
     else if(DataSample=="pp13TeV_HM_March19"||DataSample=="pp13TeV_HM_Dec19"||DataSample=="pp13TeV_HM_RotPhiDec19"||DataSample=="pp13TeV_HM_DimiJun20"){
+        //N.B. special rule for pp and pLambda below
         FileName = CatsFilesFolder[0]+"/MomentumSmear/ALICE_pp_13TeV.root";
     }
     else if(DataSample=="pPb5TeV_Run2paper"){
@@ -3007,6 +3009,7 @@ TH2F* DLM_CommonAnaFunctions::GetResolutionMatrix(const TString& DataSample,cons
         HistoName = "hSigmaMeV_Proton_Proton";
     }
     else if(System=="pLambda"){
+        //N.B. special rule for pp and pLambda below
         HistoName = "hSigmaMeV_Proton_Lambda";
     }
     else if(System=="LambdaLambda"){
@@ -3018,6 +3021,18 @@ TH2F* DLM_CommonAnaFunctions::GetResolutionMatrix(const TString& DataSample,cons
     else{
         printf("\033[1;31mERROR:\033[0m The system '%s' does not exist\n",System.Data());
     }
+
+
+
+    if(DataSample=="pp13TeV_HM_DimiJun20"&&System=="pp"){
+        FileName = CatsFilesFolder[0]+"/MomentumSmear/ALICE_pp_13TeV_MEpp.root";
+        HistoName = "h_RESO_pp_MeV";
+    }
+    if(DataSample=="pp13TeV_HM_DimiJun20"&&System=="pLambda"){
+        FileName = CatsFilesFolder[0]+"/MomentumSmear/ALICE_pp_13TeV_MEpL.root";
+        HistoName = "h_RESO_pL_MeV";
+    }
+
     ///FUCKING ROOT SUCKS!!!!!! SUCK MY COCK!!!! SUCK IT YOU BITCH!!!!!!!!!!
     //so we need to copy our histogram, as else we lose it when we delete the file
     //and we need to change to the "central" root directory, as else histoCopy will also be lost
