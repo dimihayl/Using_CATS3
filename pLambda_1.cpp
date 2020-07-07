@@ -11108,8 +11108,9 @@ printf(" 9\n");
 //else : bootstrap the data
 //we use all seeds from SEEDmin to < SEEDmin+NumIter
 //for a new computation, make sure the output file is deleted by hand (otherwise it just accumulates statistics)
-void pLambda_Spline_Fit_Unfold2(const double& BinWidth, const TString& DataVariation, const TString& OutputFolder,
-                                const unsigned& SEEDmin, const unsigned& NumIter){
+void pLambda_Spline_Fit_Unfold2(const unsigned& SEEDmin, const unsigned& NumIter,
+                                const double& BinWidth, const TString& DataVariation,
+                                const char* CatsFileFolder, const TString& OutputFolder){
 
     const double kMin=0;
     double kMax=540;
@@ -11142,7 +11143,7 @@ void pLambda_Spline_Fit_Unfold2(const double& BinWidth, const TString& DataVaria
     Nodes_x[18] = 500;
     Nodes_x[19] = kMax;
 
-    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
+    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder(CatsFileFolder);
     //TH1F* hData_pL = AnalysisObject.GetAliceExpCorrFun("pp13TeV_HM_Dec19","pLambda","_0",TMath::Nint(BinWidth/4)-1,false,-1);
     TH1F* hData_pL = AnalysisObject.GetAliceExpCorrFun("pp13TeV_HM_DimiJun20","pLambda",DataVariation.Data(),TMath::Nint(BinWidth/4)-1,false,-1);
     TString OriginalName = hData_pL->GetName();
@@ -11210,7 +11211,7 @@ void pLambda_Spline_Fit_Unfold2(const double& BinWidth, const TString& DataVaria
         CkDec_pL->Update();
 
         //printf("About to fit hData_boot\n");
-        hData_boot->Fit(fit_pL,"S, N, R, M");
+        hData_boot->Fit(fit_pL,"Q, S, N, R, M");
         //printf("chi2/ndf = %.2f / %i\n",fit_pL->GetChisquare(),fit_pL->GetNDF());
         //printf("prob = %.4f\n",fit_pL->GetProb());
         //printf("nsigma = %.2f\n",sqrt(2)*TMath::ErfcInverse(fit_pL->GetProb()));
@@ -11248,6 +11249,7 @@ void pLambda_Spline_Fit_Unfold2(const double& BinWidth, const TString& DataVaria
         }
 
         for(unsigned uBF=0; uBF<NumBackAndForth; uBF++){
+            printf(" uBF = %u (%u)\n",uBF,NumBackAndForth);
             for(unsigned uBin=0; uBin<2*Ck_Sample->GetNbins(); uBin++){
                 //we iterate twice, from below and from above.
                 //The second iteration is for 'polishing',
@@ -11260,6 +11262,7 @@ void pLambda_Spline_Fit_Unfold2(const double& BinWidth, const TString& DataVaria
         //if(!Polishing) continue;
                 const unsigned MaxStepsWithoutImprovement = (!Polishing)?MaxStepsWithoutImprovement1:MaxStepsWithoutImprovement2;
                 for(unsigned uED=1*unsigned(Polishing); uED<ErrorDepth+1*unsigned(Polishing); uED++){
+                    printf("  uED = %u (%u)\n",uBF,ErrorDepth+1*unsigned(Polishing));
                     double Scale = pow(0.5,double(uED));
                     StepsWithoutImprovement=0;
                     unsigned uBin_From =(!Polishing)?WhichBin:WhichBin-BinDepth+1;
@@ -11388,7 +11391,7 @@ void pLambda_Spline_Fit_Unfold2(const double& BinWidth, const TString& DataVaria
     */
 
     //create ones and rewrite on each iter
-        TString OutputFileName = OutputFolder+TString::Format("CkSB_pL_%s_SingleUnfolded.root",DataVariation.Data());
+        TString OutputFileName = OutputFolder+TString::Format("CkSB_pL_%s_Unfolded.root",DataVariation.Data());
         TH2F* CkBootstrap = NULL;
         TH2F* CkTheoryFit = NULL;
         TH2F* CkSmearedFit = NULL;
@@ -13732,9 +13735,11 @@ printf("PLAMBDA_1_MAIN\n");
 //pLambda_Spline_Fit_Test();
 //pLambda_Spline_Fit_Test2();
 //pLambda_Spline_Fit_Unfold2(12,"L53_SL4_SR6_P96_0","/home/dmihaylov/CernBox/CatsFiles/ExpData/ALICE_pp_13TeV_HM/DimiJun20/Norm240_340/DataSignal/Unfolded/ppMatrix/");
-pLambda_Spline_Fit_Unfold2(atoi(argv[1]),"L53_SL4_SR6_P96_0",
-                           TString::Format("/home/dmihaylov/CernBox/CatsFiles/ExpData/ALICE_pp_13TeV_HM/DimiJun20/Norm240_340/DataSignal/Unfolded%s",argv[2]),
-                           atoi(argv[3]),atoi(argv[4]));
+//const unsigned& SEEDmin, const unsigned& NumIter,
+//                                const double& BinWidth, const TString& DataVariation,
+//                                const char* CatsFileFolder, const TString& OutputFolder
+pLambda_Spline_Fit_Unfold2(0,2,12,"L53_SL4_SR6_P96_0","/home/dmihaylov/CernBox/CatsFiles",
+                           "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Unfolding/");
 
 
 //POT BL SIG ALPHA(20)

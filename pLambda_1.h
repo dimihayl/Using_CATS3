@@ -15,8 +15,9 @@ void pL_SystematicsHM(const TString& OutputFolder, const int& WhichConfiguration
 void pL_SystematicsMay2020(unsigned SEED, unsigned BASELINE_VAR, int POT_VAR, int Sigma0_Feed,
                            bool DataSyst, bool FitSyst, bool Bootstrap, unsigned NumIter,
                            const char* CatsFileFolder, const char* OutputFolder);
-void pLambda_Spline_Fit_Unfold2(const double& BinWidth, const TString& DataVariation, const TString& OutputFolder,
-                                const unsigned& SEEDmin, const unsigned& NumIter);
+void pLambda_Spline_Fit_Unfold2(const unsigned& SEEDmin, const unsigned& NumIter,
+                                const double& BinWidth, const TString& DataVariation,
+                                const char* CatsFileFolder, const TString& OutputFolder);
 
 int PLAMBDA_1_MAIN(int argc, char *argv[]);
 
