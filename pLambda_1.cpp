@@ -11262,7 +11262,6 @@ void pLambda_Spline_Fit_Unfold2(const unsigned& SEEDmin, const unsigned& NumIter
         //if(!Polishing) continue;
                 const unsigned MaxStepsWithoutImprovement = (!Polishing)?MaxStepsWithoutImprovement1:MaxStepsWithoutImprovement2;
                 for(unsigned uED=1*unsigned(Polishing); uED<ErrorDepth+1*unsigned(Polishing); uED++){
-                    printf("  uED = %u (%u)\n",uBF,ErrorDepth+1*unsigned(Polishing));
                     double Scale = pow(0.5,double(uED));
                     StepsWithoutImprovement=0;
                     unsigned uBin_From =(!Polishing)?WhichBin:WhichBin-BinDepth+1;
