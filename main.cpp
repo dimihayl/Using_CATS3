@@ -4070,6 +4070,53 @@ void pL_lampar(){
 
 }
 
+void TestLedniShit(){
+    const unsigned NumMomBins = 10;
+    const double kMin = 0;
+    const double kMax = 240;
+    //object for the parameters to be used by the source function
+    CATSparameters SOURCE_PARS(CATSparameters::tSource, 2, true);
+    //set the source size to 1.2 fm
+    SOURCE_PARS.SetParameter(0, 1.2);
+    //here we define the DLM_Ck object for the Lednicky interaction. The arguments are:
+    //#source parameters, #interaction parameters, k min, k max, pointer to the function to be used
+    DLM_Ck Ck_Lednicky(1, 4, NumMomBins, kMin, kMax, Lednicky_SingletTriplet);
+    //set the source and interaction (potential) parameters.
+    //for the interaction we have used the scattering lengths (pars 0 and 2) and the effective ranges (1 and 3)
+    //for the Usmani potential.
+    Ck_Lednicky.SetSourcePar(0, SOURCE_PARS.GetParameter(0));
+    Ck_Lednicky.SetPotPar(0, 2.88);
+    Ck_Lednicky.SetPotPar(1, 2.92);
+    Ck_Lednicky.SetPotPar(2, 1.66);
+    Ck_Lednicky.SetPotPar(3, 3.78);
+    Ck_Lednicky.Update();
+
+
+    //object for the parameters to be used by the source function
+    CATSparameters SOURCE_PARS_2(CATSparameters::tSource, 2, true);
+    //set the source size to 1.2 fm
+    SOURCE_PARS_2.SetParameter(0, 1.2);
+    //here we define the DLM_Ck object for the Lednicky interaction. The arguments are:
+    //#source parameters, #interaction parameters, k min, k max, pointer to the function to be used
+    DLM_Ck Ck_Lednicky_2(1, 6, NumMomBins, kMin, kMax, Lednicky_2channel);
+    //set the source and interaction (potential) parameters.
+    //for the interaction we have used the scattering lengths (pars 0 and 2) and the effective ranges (1 and 3)
+    //for the Usmani potential.
+    Ck_Lednicky_2.SetSourcePar(0, SOURCE_PARS_2.GetParameter(0));
+    Ck_Lednicky_2.SetPotPar(0, 2.88);
+    Ck_Lednicky_2.SetPotPar(1, 2.92);
+    Ck_Lednicky_2.SetPotPar(2, 1.66);
+    Ck_Lednicky_2.SetPotPar(3, 3.78);
+    Ck_Lednicky_2.SetPotPar(4, 0.25);
+    Ck_Lednicky_2.SetPotPar(5, 0.75);
+    Ck_Lednicky_2.Update();
+/*
+    for(){
+
+    }
+*/
+}
+
 int main(int argc, char *argv[])
 {
 
@@ -4090,6 +4137,7 @@ int main(int argc, char *argv[])
         strcpy(ARGV[iARG],argv[iARG]);
     }
 
+    //TestLedniShit();
     //cout << file_status("/home/dmihaylov/Dudek_Ubuntu/pNb_cosThCM_0_1.root") << endl;
     //pL_lampar();
     //QA_pd();

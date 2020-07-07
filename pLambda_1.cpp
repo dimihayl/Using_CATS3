@@ -11104,7 +11104,12 @@ printf(" 9\n");
 //leading to weird spikes. To avoid this, and additional constraint is that within each block of fitted bins, the maximum deviation (bin-by-bin)
 //between the new smeared function and the original function should be larger than the maximum deviation between the original theory fit and the
 //bootstraped solution. This way, the bootstraped solution is forced to remain close to the original fit value.
-void pLambda_Spline_Fit_Unfold2(const double& BinWidth, const TString& DataVariation, const TString& OutputFolder){
+//if the SEED is zero : NO bootstrap
+//else : bootstrap the data
+//we use all seeds from SEEDmin to < SEEDmin+NumIter
+//for a new computation, make sure the output file is deleted by hand (otherwise it just accumulates statistics)
+void pLambda_Spline_Fit_Unfold2(const double& BinWidth, const TString& DataVariation, const TString& OutputFolder,
+                                const unsigned& SEEDmin, const unsigned& NumIter){
 
     const double kMin=0;
     double kMax=540;
@@ -11140,274 +11145,395 @@ void pLambda_Spline_Fit_Unfold2(const double& BinWidth, const TString& DataVaria
     DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
     //TH1F* hData_pL = AnalysisObject.GetAliceExpCorrFun("pp13TeV_HM_Dec19","pLambda","_0",TMath::Nint(BinWidth/4)-1,false,-1);
     TH1F* hData_pL = AnalysisObject.GetAliceExpCorrFun("pp13TeV_HM_DimiJun20","pLambda",DataVariation.Data(),TMath::Nint(BinWidth/4)-1,false,-1);
-
-    TF1* fit_pL_RAW = new TF1("fit_pL_RAW",pLambda_Spline_CkFitRAW,kMin,kMax,3+NumKnots*2);
-    fit_pL_RAW->FixParameter(0,NumKnots);
-    //derivative at the firs knot
-    fit_pL_RAW->FixParameter(1,0);
-    fit_pL_RAW->SetParameter(2,0);
-    fit_pL_RAW->SetParLimits(2,-1e-3,1e-3);
-    for(unsigned uKnot=0; uKnot<NumKnots; uKnot++){
-        double HistVal = hData_pL->GetBinContent(hData_pL->FindBin(Nodes_x[uKnot]));
-        fit_pL_RAW->FixParameter(3+uKnot,Nodes_x[uKnot]);
-        fit_pL_RAW->SetParameter(3+NumKnots+uKnot,HistVal);
-        fit_pL_RAW->SetParLimits(3+NumKnots+uKnot,0,HistVal*2);
-    }
-    fit_pL_RAW->SetNpx(1024);
-    hData_pL->Fit(fit_pL_RAW,"S, N, R, M");
-
-    DLM_Ck* Ck_pL = new DLM_Ck(3+NumKnots*2,0,NumMomBins,kMin,kMax,pLambda_Spline_Ck);
-    //Ck_pL->SetSourcePar(0,ResidualSourceSize);
-    //TH2F* hResolution_pL = AnalysisObject.GetResolutionMatrix("pp13TeV_HM_Dec19","pLambda");
-    TH2F* hResolution_pL = AnalysisObject.GetResolutionMatrix("pp13TeV_HM_DimiJun20","pLambda");
-//TH2F* hResolution_pL = AnalysisObject.GetResolutionMatrix("pp13TeV_HM_Dec19","pp");
-//TH2F* hResolution_pL = AnalysisObject.GetResolutionMatrix("pp13TeV_HM_DimiJun20","pp");
-    DLM_CkDecomposition* CkDec_pL = new DLM_CkDecomposition("pLambda",0,*Ck_pL,hResolution_pL);
-    pLambda_Spline_CkFit_CKDEC = CkDec_pL;
-
-    TF1* fit_pL = new TF1("fit_pL",pLambda_Spline_CkFit,kMin,kMax,3+NumKnots*2);
-    fit_pL->FixParameter(0,NumKnots);
-    //derivative at the firs knot
-    fit_pL->FixParameter(1,0);
-    fit_pL->SetParameter(2,0);
-    fit_pL->SetParLimits(2,-1e-3,1e-3);
-    for(unsigned uKnot=0; uKnot<NumKnots; uKnot++){
-        double HistVal = hData_pL->GetBinContent(hData_pL->FindBin(Nodes_x[uKnot]));
-        fit_pL->FixParameter(3+uKnot,Nodes_x[uKnot]);
-        fit_pL->SetParameter(3+NumKnots+uKnot,HistVal);
-        fit_pL->SetParLimits(3+NumKnots+uKnot,0,HistVal*2);
-    }
-    //fit_pL->SetNpx(1024);
-
-    for(unsigned uPar=0; uPar<CkDec_pL->GetCk()->GetNumSourcePar(); uPar++){
-        CkDec_pL->GetCk()->SetSourcePar(uPar,fit_pL->GetParameter(uPar));
-    }
-    CkDec_pL->Update();
-/*
-    fit_pL->FixParameter(2,4.40780e-04);
-    fit_pL->FixParameter(17,1.80905e+00);
-    fit_pL->FixParameter(18,1.40193e+00);
-    fit_pL->FixParameter(19,1.07477e+00);
-    fit_pL->FixParameter(20,1.00639e+00);
-    fit_pL->FixParameter(21,9.95137e-01);
-    fit_pL->FixParameter(22,9.97896e-01);
-    fit_pL->FixParameter(23,1.01072e+00);
-    fit_pL->FixParameter(24,1.02107e+00);
-    fit_pL->FixParameter(25,1.00231e+00);
-    fit_pL->FixParameter(26,9.96539e-01);
-    fit_pL->FixParameter(27,9.97430e-01);
-    fit_pL->FixParameter(28,1.00232e+00);
-    fit_pL->FixParameter(29,1.01892e+00);
-    fit_pL->FixParameter(30,1.04452e+00);
-*/
-
-/*
-    fit_pL->FixParameter(2,-9.11020e-05);
-    fit_pL->FixParameter(23,1.98991e+00);
-    fit_pL->FixParameter(24,1.70533e+00);
-    fit_pL->FixParameter(25,1.40248e+00);
-    fit_pL->FixParameter(26,1.22321e+00);
-    fit_pL->FixParameter(27,1.09141e+00);
-    fit_pL->FixParameter(28,1.02434e+00);
-    fit_pL->FixParameter(29,1.00807e+00);
-    fit_pL->FixParameter(30,1.00241e+00);
-    fit_pL->FixParameter(31,9.96692e-01);
-    fit_pL->FixParameter(32,9.92581e-01);
-    fit_pL->FixParameter(33,1.00169e+00);
-    fit_pL->FixParameter(34,1.00422e+00);
-    fit_pL->FixParameter(35,1.02475e+00);
-    fit_pL->FixParameter(36,1.00174e+00);
-    fit_pL->FixParameter(37,9.95549e-01);
-    fit_pL->FixParameter(38,9.97832e-01);
-    fit_pL->FixParameter(39,1.00178e+00);
-    fit_pL->FixParameter(40,1.01083e+00);
-    fit_pL->FixParameter(41,1.01849e+00);
-    fit_pL->FixParameter(42,1.02501e+00);
-*/
-
-    hData_pL->Fit(fit_pL,"S, N, R, M");
-    printf("chi2/ndf = %.2f / %i\n",fit_pL->GetChisquare(),fit_pL->GetNDF());
-    printf("prob = %.4f\n",fit_pL->GetProb());
-    printf("nsigma = %.2f\n",sqrt(2)*TMath::ErfcInverse(fit_pL->GetProb()));
-
-    TRandom3 rangen(11);
-    //TH1F* hData_Unfolded = (TH1F*)hData_pL->Clone("hData_Unfolded");
-    DLM_Ck* Ck_Unfolded = new DLM_Ck(0,0,NumMomBins,kMin,kMax,NULL);
-    DLM_CkDecomposition* CkDec_Unfolded = new DLM_CkDecomposition("pLambda",0,*Ck_Unfolded,hResolution_pL);
-
-    double BestChi2=1e6;
-    double BestChi2_Data=1e6;
-    double BestChi2_BinData=1e6;
-    DLM_Ck* Ck_Best = new DLM_Ck(0,0,NumMomBins,kMin,kMax,NULL);
-    DLM_Ck* Ck_Sample = new DLM_Ck(0,0,NumMomBins,kMin,kMax,NULL);
-    DLM_CkDecomposition* CkDec_Best = new DLM_CkDecomposition("pLambda",0,*Ck_Best,hResolution_pL);
-//64.5, 64.6 for the fast round
-// New best fit: Chi2=85.568 (48.694+36.875) at uED=3 for the pLambda_Spline_Fit_Unfold2_TEST1_Chi2All.root
-    const unsigned NumBackAndForth = 2;
-    const unsigned MaxStepsWithoutImprovement1 = 32;
-    const unsigned MaxStepsWithoutImprovement2 = 16;
-    unsigned StepsWithoutImprovement=0;
-    const unsigned ErrorDepth = 3;
-    const unsigned BinDepth = TMath::Nint(60./BinWidth);
-
-    double OriginalValue;
-    double Error;
-    double RandomValue;
-    //bootstrap the sampling histogram ones, to avoid a bias in the chi2 determination (where the original solution is used as a benchmark)
-    for(unsigned uBin=0; uBin<Ck_Sample->GetNbins(); uBin++){
-        OriginalValue = Ck_pL->GetBinContent(uBin);
-        Error = hData_pL->GetBinError(uBin+1);
-        RandomValue = rangen.Gaus(OriginalValue,Error);
-RandomValue=OriginalValue;
-///
-        Ck_Sample->SetBinContent(uBin,RandomValue);
-    }
-
-    for(unsigned uBF=0; uBF<NumBackAndForth; uBF++){
-        for(unsigned uBin=0; uBin<2*Ck_Sample->GetNbins(); uBin++){
-            //we iterate twice, from below and from above.
-            //The second iteration is for 'polishing',
-            //which is performed for fewer iterations, but higher depth
-            bool Polishing = uBin>=Ck_Sample->GetNbins();
-            unsigned WhichBin = (!Polishing)?uBin:2*Ck_Sample->GetNbins()-uBin-1;
-            if(!Polishing&&WhichBin>Ck_Sample->GetNbins()-BinDepth) continue;
-            if(Polishing&&WhichBin<BinDepth-1) continue;
-            printf("WhichBin=%u\n",WhichBin);
-    //if(!Polishing) continue;
-            const unsigned MaxStepsWithoutImprovement = (!Polishing)?MaxStepsWithoutImprovement1:MaxStepsWithoutImprovement2;
-            for(unsigned uED=1*unsigned(Polishing); uED<ErrorDepth+1*unsigned(Polishing); uED++){
-                double Scale = pow(0.5,double(uED));
-                StepsWithoutImprovement=0;
-                unsigned uBin_From =(!Polishing)?WhichBin:WhichBin-BinDepth+1;
-                unsigned uBin_To = (!Polishing)?WhichBin+BinDepth:WhichBin+1;
-                while(StepsWithoutImprovement<MaxStepsWithoutImprovement){
-                    Ck_Unfolded[0].Copy(Ck_Sample[0]);
-                    //we iterate over the desired bin range and bootstrap a bit
-                    for(    unsigned uBin2=uBin_From; uBin2<uBin_To; uBin2++)
-                            //unsigned uBin2=WhichBin;
-                            //(!Polishing)?uBin2<WhichBin+BinDepth:uBin2>WhichBin-BinDepth;
-                            //(!Polishing)?uBin2++:uBin2--)
-                                {
-    //printf(" uBin2=%u\n",uBin2);
-    //usleep(50e3);
-                        OriginalValue = Ck_Sample->GetBinContent(WhichBin);
-                        Error = hData_pL->GetBinError(WhichBin+1);
-                        if(StepsWithoutImprovement%2) RandomValue = rangen.Uniform(OriginalValue-0.5*Error*Scale,OriginalValue+0.5*Error*Scale);
-                        //half of the time we allow for a larger spread
-                        else RandomValue = rangen.Gaus(OriginalValue,Error*Scale);
-                        Ck_Unfolded->SetBinContent(WhichBin,RandomValue);
-                    }
-                    Ck_Unfolded->Update(true);
-                    CkDec_Unfolded->Update(true);
-                    double Chi2=0;
-                    double Chi2_Data=0;
-                    double Chi2_Fit=0;
-                    double Momentum;
-                    double CkValCorrected;
-                    double CkValData;
-                    double Error;
-                    double Chi2_BinData;
-                    double Chi2_BinFit;
-                    double Chi2_BinDataMax=0;
-                    double Chi2_BinFitMax=0;
-                    double Ndf=0;
-                    for(unsigned uBin=0; uBin<hData_pL->GetNbinsX(); uBin++){
-                        Momentum = hData_pL->GetBinCenter(uBin+1);
-                        if(Momentum<kMin) continue;
-                        if(Momentum>kMax) break;
-                        CkValCorrected = CkDec_Unfolded->EvalCk(Momentum);
-                        CkValData = hData_pL->GetBinContent(uBin+1);
-                        Error = hData_pL->GetBinError(uBin+1);
-                        //folded - current solution vs data
-                        Chi2_BinData = pow((CkValData-CkValCorrected)/(Error),2.);
-                        //unfolded - current solution vs fit
-                        Chi2_BinFit = pow((Ck_Unfolded->GetBinContent(uBin)-Ck_pL->GetBinContent(uBin))/(Error),2.);
-    //printf(" uBin=%u: Chi2_BinData=%.2f; Chi2_BinFit=%.2f for an Error of %.4f\n",uBin,Chi2_BinData,Chi2_BinFit,Error);
-    //printf(" Data %.4f; Corrected=%.4f; Fit %.4f; Unfolded %.4f\n",CkValData,CkValCorrected,Ck_pL->GetBinContent(uBin),Ck_Unfolded->GetBinContent(uBin));
-                        Chi2 += Chi2_BinData;
-                        Chi2 += Chi2_BinFit;
-                        Chi2_Data += Chi2_BinData;
-                        Chi2_Fit += Chi2_BinFit;
-                        if(uBin>=uBin_From&&uBin<uBin_To){
-                            if(Chi2_BinData>Chi2_BinDataMax) Chi2_BinDataMax=Chi2_BinData;
-                            if(Chi2_BinFit>Chi2_BinFitMax) Chi2_BinFitMax=Chi2_BinFit;
-                        }
-                        Ndf++;
-    ///
-                    }
-
-                    //if(Chi2<BestChi2&&Chi2_Data<BestChi2_Data){
-                    //if(Chi2_Data<BestChi2_Data){
-                    //if(Chi2_Data<BestChi2_Data&&(Chi2_Fit)/double(NumMomBins)<=1.0){
-                    //the idea: on the first iteration, make the solution close to the expectation (find the desired global min)
-                    //          on the next iterations, loosen up the condition to explore local minima
-                    if(Chi2_Data<BestChi2_Data&&Chi2_BinFitMax<=double(uBF+1)*Chi2_BinDataMax){
-                    //if(Chi2_BinDataMax<BestChi2_BinData){
-                        BestChi2=Chi2;
-                        BestChi2_Data=Chi2_Data;
-                        BestChi2_BinData=Chi2_BinDataMax;
-                        Ck_Best[0].Copy(Ck_Unfolded[0]);
-                        Ck_Sample[0].Copy(Ck_Unfolded[0]);
-                        StepsWithoutImprovement=0;
-                        printf(" New best fit: Chi2=%.3f (%.3f+%.3f) at uED=%u\n",Chi2,Chi2_Data,Chi2_Fit,uED);
-                        printf("  Chi2 Max (%.2f %.2f)\n",Chi2_BinDataMax,Chi2_BinFitMax);
-                    }
-                    else{
-                        //printf(" Current fit: Chi2=%.2f at uED=%u\n",Chi2,uED);
-                        StepsWithoutImprovement++;
-                    }
-                }//while
-            }//uED
-        }//uBin
-    }//uBF
-
-    Ck_Best->Update(true);
-    CkDec_Best->Update(true);
-
-//    TFile fOutput(TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Unfolding/Test1/pLambda_Spline_Fit_Unfold2_%.0f.root",BinWidth),
-//                  "recreate");
-
     TString OriginalName = hData_pL->GetName();
-    hData_pL->SetName(OriginalName+"_Original");
-    fit_pL_RAW->SetName(OriginalName+"_fit_pL_RAW");
-    fit_pL->SetName(OriginalName+"_fit_pL");
+    for(unsigned uSeed=SEEDmin; uSeed<SEEDmin+NumIter; uSeed++){
+        printf("uSeed = %u (%u)\n",uSeed,SEEDmin+NumIter);
+        TRandom3 rangen(uSeed+1);//avoid zero
+        double OriginalValue;
+        double Error;
+        double RandomValue;
+        /*
+        TF1* fit_pL_RAW = new TF1("fit_pL_RAW",pLambda_Spline_CkFitRAW,kMin,kMax,3+NumKnots*2);
+        fit_pL_RAW->FixParameter(0,NumKnots);
+        //derivative at the firs knot
+        fit_pL_RAW->FixParameter(1,0);
+        fit_pL_RAW->SetParameter(2,0);
+        fit_pL_RAW->SetParLimits(2,-1e-3,1e-3);
+        for(unsigned uKnot=0; uKnot<NumKnots; uKnot++){
+            double HistVal = hData_pL->GetBinContent(hData_pL->FindBin(Nodes_x[uKnot]));
+            fit_pL_RAW->FixParameter(3+uKnot,Nodes_x[uKnot]);
+            fit_pL_RAW->SetParameter(3+NumKnots+uKnot,HistVal);
+            fit_pL_RAW->SetParLimits(3+NumKnots+uKnot,0,HistVal*2);
+        }
+        fit_pL_RAW->SetNpx(1024);
+        printf("About to fit hData_pL\n");
+        hData_pL->Fit(fit_pL_RAW,"S, N, R, M");
+        printf("hData_pL was fitted!\n");
+        */
 
-    TFile fOutput(OutputFolder+TString::Format("CkSB_pL_%s_Unfolded.root",DataVariation.Data()),"update");
+        TH1F *hData_boot = (TH1F*)hData_pL->Clone("hData_boot");
+        for(unsigned uBin=0; uBin<NumMomBins; uBin++){
+            OriginalValue = hData_pL->GetBinContent(uBin+1);
+            Error = hData_pL->GetBinError(uBin+1);
+            if(uSeed) RandomValue = rangen.Gaus(OriginalValue,Error);
+            else RandomValue = OriginalValue;
+            hData_boot->SetBinContent(uBin+1,RandomValue);
+            hData_boot->SetBinError(uBin+1,Error);
+        }
 
-    TGraph CkTheoryFit;
-    CkTheoryFit.SetName(OriginalName+"_TheoryFit");
-    TGraph CkSmearedFit;
-    CkSmearedFit.SetName(OriginalName+"_SmearedFit");
-    TGraph CkTheoryBest;
-    //this is the histogram to use
-    CkTheoryBest.SetName(OriginalName);
-    TGraph CkSmearedBest;
-    CkSmearedBest.SetName(OriginalName+"_Smeared");
-    for(unsigned uBin=0; uBin<NumMomBins; uBin++){
-        double MOM = Ck_pL->GetBinCenter(0,uBin);
-        CkTheoryFit.SetPoint(uBin,MOM,Ck_pL->GetBinContent(uBin));
-        CkSmearedFit.SetPoint(uBin,MOM,CkDec_pL->EvalCk(MOM));
-        CkTheoryBest.SetPoint(uBin,MOM,Ck_Best->GetBinContent(uBin));
-        CkSmearedBest.SetPoint(uBin,MOM,CkDec_Best->EvalCk(MOM));
+        DLM_Ck* Ck_pL = new DLM_Ck(3+NumKnots*2,0,NumMomBins,kMin,kMax,pLambda_Spline_Ck);
+        //Ck_pL->SetSourcePar(0,ResidualSourceSize);
+        //TH2F* hResolution_pL = AnalysisObject.GetResolutionMatrix("pp13TeV_HM_Dec19","pLambda");
+        TH2F* hResolution_pL = AnalysisObject.GetResolutionMatrix("pp13TeV_HM_DimiJun20","pLambda");
+    //TH2F* hResolution_pL = AnalysisObject.GetResolutionMatrix("pp13TeV_HM_Dec19","pp");
+    //TH2F* hResolution_pL = AnalysisObject.GetResolutionMatrix("pp13TeV_HM_DimiJun20","pp");
+        DLM_CkDecomposition* CkDec_pL = new DLM_CkDecomposition("pLambda",0,*Ck_pL,hResolution_pL);
+        pLambda_Spline_CkFit_CKDEC = CkDec_pL;
+
+        TF1* fit_pL = new TF1("fit_pL",pLambda_Spline_CkFit,kMin,kMax,3+NumKnots*2);
+        fit_pL->FixParameter(0,NumKnots);
+        //derivative at the firs knot
+        fit_pL->FixParameter(1,0);
+        fit_pL->SetParameter(2,0);
+        fit_pL->SetParLimits(2,-1e-3,1e-3);
+        for(unsigned uKnot=0; uKnot<NumKnots; uKnot++){
+            double HistVal = hData_boot->GetBinContent(hData_boot->FindBin(Nodes_x[uKnot]));
+            fit_pL->FixParameter(3+uKnot,Nodes_x[uKnot]);
+            fit_pL->SetParameter(3+NumKnots+uKnot,HistVal);
+            fit_pL->SetParLimits(3+NumKnots+uKnot,0,HistVal*2);
+        }
+        //fit_pL->SetNpx(1024);
+
+        for(unsigned uPar=0; uPar<CkDec_pL->GetCk()->GetNumSourcePar(); uPar++){
+            CkDec_pL->GetCk()->SetSourcePar(uPar,fit_pL->GetParameter(uPar));
+        }
+        CkDec_pL->Update();
+
+        //printf("About to fit hData_boot\n");
+        hData_boot->Fit(fit_pL,"S, N, R, M");
+        //printf("chi2/ndf = %.2f / %i\n",fit_pL->GetChisquare(),fit_pL->GetNDF());
+        //printf("prob = %.4f\n",fit_pL->GetProb());
+        //printf("nsigma = %.2f\n",sqrt(2)*TMath::ErfcInverse(fit_pL->GetProb()));
+
+
+        //TH1F* hData_Unfolded = (TH1F*)hData_boot->Clone("hData_Unfolded");
+        DLM_Ck* Ck_Unfolded = new DLM_Ck(0,0,NumMomBins,kMin,kMax,NULL);
+        DLM_CkDecomposition* CkDec_Unfolded = new DLM_CkDecomposition("pLambda",0,*Ck_Unfolded,hResolution_pL);
+
+        double BestChi2=1e6;
+        double BestChi2_Data=1e6;
+        double BestChi2_BinData=1e6;
+        DLM_Ck* Ck_Best = new DLM_Ck(0,0,NumMomBins,kMin,kMax,NULL);
+        DLM_Ck* Ck_Sample = new DLM_Ck(0,0,NumMomBins,kMin,kMax,NULL);
+        DLM_CkDecomposition* CkDec_Best = new DLM_CkDecomposition("pLambda",0,*Ck_Best,hResolution_pL);
+    //64.5, 64.6 for the fast round
+    // New best fit: Chi2=85.568 (48.694+36.875) at uED=3 for the pLambda_Spline_Fit_Unfold2_TEST1_Chi2All.root
+        const unsigned NumBackAndForth = 2;
+        const unsigned MaxStepsWithoutImprovement1 = 32;
+        const unsigned MaxStepsWithoutImprovement2 = 16;
+        unsigned StepsWithoutImprovement=0;
+        const unsigned ErrorDepth = 3;
+        const unsigned BinDepth = TMath::Nint(60./BinWidth);
+
+
+        //bootstrap the sampling histogram ones, to avoid a bias in the chi2 determination (where the original solution is used as a benchmark)
+        for(unsigned uBin=0; uBin<Ck_Sample->GetNbins(); uBin++){
+            OriginalValue = Ck_pL->GetBinContent(uBin);
+            //Error = hData_boot->GetBinError(uBin+1);
+            //RandomValue = rangen.Gaus(OriginalValue,Error);
+//what the hell is this??
+    RandomValue=OriginalValue;
+    ///
+            Ck_Sample->SetBinContent(uBin,RandomValue);
+        }
+
+        for(unsigned uBF=0; uBF<NumBackAndForth; uBF++){
+            for(unsigned uBin=0; uBin<2*Ck_Sample->GetNbins(); uBin++){
+                //we iterate twice, from below and from above.
+                //The second iteration is for 'polishing',
+                //which is performed for fewer iterations, but higher depth
+                bool Polishing = uBin>=Ck_Sample->GetNbins();
+                unsigned WhichBin = (!Polishing)?uBin:2*Ck_Sample->GetNbins()-uBin-1;
+                if(!Polishing&&WhichBin>Ck_Sample->GetNbins()-BinDepth) continue;
+                if(Polishing&&WhichBin<BinDepth-1) continue;
+                ///printf("WhichBin=%u\n",WhichBin);
+        //if(!Polishing) continue;
+                const unsigned MaxStepsWithoutImprovement = (!Polishing)?MaxStepsWithoutImprovement1:MaxStepsWithoutImprovement2;
+                for(unsigned uED=1*unsigned(Polishing); uED<ErrorDepth+1*unsigned(Polishing); uED++){
+                    double Scale = pow(0.5,double(uED));
+                    StepsWithoutImprovement=0;
+                    unsigned uBin_From =(!Polishing)?WhichBin:WhichBin-BinDepth+1;
+                    unsigned uBin_To = (!Polishing)?WhichBin+BinDepth:WhichBin+1;
+                    while(StepsWithoutImprovement<MaxStepsWithoutImprovement){
+                        Ck_Unfolded[0].Copy(Ck_Sample[0]);
+                        //we iterate over the desired bin range and bootstrap a bit
+                        for(    unsigned uBin2=uBin_From; uBin2<uBin_To; uBin2++)
+                                //unsigned uBin2=WhichBin;
+                                //(!Polishing)?uBin2<WhichBin+BinDepth:uBin2>WhichBin-BinDepth;
+                                //(!Polishing)?uBin2++:uBin2--)
+                                    {
+        //printf(" uBin2=%u\n",uBin2);
+        //usleep(50e3);
+                            OriginalValue = Ck_Sample->GetBinContent(WhichBin);
+                            Error = hData_boot->GetBinError(WhichBin+1);
+                            if(StepsWithoutImprovement%2) RandomValue = rangen.Uniform(OriginalValue-0.5*Error*Scale,OriginalValue+0.5*Error*Scale);
+                            //half of the time we allow for a larger spread
+                            else RandomValue = rangen.Gaus(OriginalValue,Error*Scale);
+                            Ck_Unfolded->SetBinContent(WhichBin,RandomValue);
+                        }
+                        Ck_Unfolded->Update(true);
+                        CkDec_Unfolded->Update(true);
+                        double Chi2=0;
+                        double Chi2_Data=0;
+                        double Chi2_Fit=0;
+                        double Momentum;
+                        double CkValCorrected;
+                        double CkValData;
+                        double Error;
+                        double Chi2_BinData;
+                        double Chi2_BinFit;
+                        double Chi2_BinDataMax=0;
+                        double Chi2_BinFitMax=0;
+                        double Ndf=0;
+                        for(unsigned uBin=0; uBin<hData_boot->GetNbinsX(); uBin++){
+                            Momentum = hData_boot->GetBinCenter(uBin+1);
+                            if(Momentum<kMin) continue;
+                            if(Momentum>kMax) break;
+                            CkValCorrected = CkDec_Unfolded->EvalCk(Momentum);
+                            CkValData = hData_boot->GetBinContent(uBin+1);
+                            Error = hData_boot->GetBinError(uBin+1);
+                            //folded - current solution vs data
+                            Chi2_BinData = pow((CkValData-CkValCorrected)/(Error),2.);
+                            //unfolded - current solution vs fit
+                            Chi2_BinFit = pow((Ck_Unfolded->GetBinContent(uBin)-Ck_pL->GetBinContent(uBin))/(Error),2.);
+        //printf(" uBin=%u: Chi2_BinData=%.2f; Chi2_BinFit=%.2f for an Error of %.4f\n",uBin,Chi2_BinData,Chi2_BinFit,Error);
+        //printf(" Data %.4f; Corrected=%.4f; Fit %.4f; Unfolded %.4f\n",CkValData,CkValCorrected,Ck_pL->GetBinContent(uBin),Ck_Unfolded->GetBinContent(uBin));
+                            Chi2 += Chi2_BinData;
+                            Chi2 += Chi2_BinFit;
+                            Chi2_Data += Chi2_BinData;
+                            Chi2_Fit += Chi2_BinFit;
+                            if(uBin>=uBin_From&&uBin<uBin_To){
+                                if(Chi2_BinData>Chi2_BinDataMax) Chi2_BinDataMax=Chi2_BinData;
+                                if(Chi2_BinFit>Chi2_BinFitMax) Chi2_BinFitMax=Chi2_BinFit;
+                            }
+                            Ndf++;
+        ///
+                        }
+
+                        //if(Chi2<BestChi2&&Chi2_Data<BestChi2_Data){
+                        //if(Chi2_Data<BestChi2_Data){
+                        //if(Chi2_Data<BestChi2_Data&&(Chi2_Fit)/double(NumMomBins)<=1.0){
+                        //the idea: on the first iteration, make the solution close to the expectation (find the desired global min)
+                        //          on the next iterations, loosen up the condition to explore local minima
+                        if(Chi2_Data<BestChi2_Data&&Chi2_BinFitMax<=double(uBF+1)*Chi2_BinDataMax){
+                        //if(Chi2_BinDataMax<BestChi2_BinData){
+                            BestChi2=Chi2;
+                            BestChi2_Data=Chi2_Data;
+                            BestChi2_BinData=Chi2_BinDataMax;
+                            Ck_Best[0].Copy(Ck_Unfolded[0]);
+                            Ck_Sample[0].Copy(Ck_Unfolded[0]);
+                            StepsWithoutImprovement=0;
+                            ///printf(" New best fit: Chi2=%.3f (%.3f+%.3f) at uED=%u\n",Chi2,Chi2_Data,Chi2_Fit,uED);
+                            ///printf("  Chi2 Max (%.2f %.2f)\n",Chi2_BinDataMax,Chi2_BinFitMax);
+                        }
+                        else{
+                            //printf(" Current fit: Chi2=%.2f at uED=%u\n",Chi2,uED);
+                            StepsWithoutImprovement++;
+                        }
+                    }//while
+                }//uED
+            }//uBin
+        }//uBF
+
+        //printf("Ending soon:\n");
+
+        Ck_Best->Update(true);
+        CkDec_Best->Update(true);
+
+    //    TFile fOutput(TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Unfolding/Test1/pLambda_Spline_Fit_Unfold2_%.0f.root",BinWidth),
+    //                  "recreate");
+
+
+        hData_pL->SetName(OriginalName+"_Original");
+        //fit_pL_RAW->SetName(OriginalName+"_fit_pL_RAW");
+        fit_pL->SetName(OriginalName+"_fit_pL");
+
+
+    /*
+        TGraph CkTheoryFit;
+        CkTheoryFit.SetName(OriginalName+"_TheoryFit");
+        TGraph CkSmearedFit;
+        CkSmearedFit.SetName(OriginalName+"_SmearedFit");
+        TGraph CkTheoryBest;
+        //this is the histogram to use
+        CkTheoryBest.SetName(OriginalName);
+        TGraph CkSmearedBest;
+        CkSmearedBest.SetName(OriginalName+"_Smeared");
+        for(unsigned uBin=0; uBin<NumMomBins; uBin++){
+            double MOM = Ck_pL->GetBinCenter(0,uBin);
+            CkTheoryFit.SetPoint(uBin,MOM,Ck_pL->GetBinContent(uBin));
+            CkSmearedFit.SetPoint(uBin,MOM,CkDec_pL->EvalCk(MOM));
+            CkTheoryBest.SetPoint(uBin,MOM,Ck_Best->GetBinContent(uBin));
+            CkSmearedBest.SetPoint(uBin,MOM,CkDec_Best->EvalCk(MOM));
+        }
+    //printf("The hard part is done\n");
+    //usleep(5e6);
+        hData_pL->Write();
+        fit_pL_RAW->Write();
+        fit_pL->Write();
+        CkTheoryFit.Write();
+        CkSmearedFit.Write();
+        CkTheoryBest.Write();
+        CkSmearedBest.Write();
+    */
+
+    //create ones and rewrite on each iter
+        TString OutputFileName = OutputFolder+TString::Format("CkSB_pL_%s_SingleUnfolded.root",DataVariation.Data());
+        TH2F* CkBootstrap = NULL;
+        TH2F* CkTheoryFit = NULL;
+        TH2F* CkSmearedFit = NULL;
+        TH2F* CkTheoryBest = NULL;
+        TH2F* CkSmearedBest = NULL;
+
+        TH1F* hCkBootstrap = NULL;
+        TH1F* hCkTheoryFit = NULL;
+        TH1F* hCkSmearedFit = NULL;
+        TH1F* hCkTheoryBest = NULL;
+        TH1F* hCkSmearedBest = NULL;
+
+        TH1D* hProj = NULL;
+
+        //printf("file_status:\n");
+
+        int InfoFileStatus = file_status(OutputFileName.Data());
+        DLM_Timer FileTimer;
+        long long FileWaitTime=0;//in micros
+        //we wait until the file is closed. If this is not the case in 10s => error
+        while(InfoFileStatus==-1&&FileWaitTime<10e6){
+            //sleep for 10 ms
+            usleep(10e3);
+            FileWaitTime = FileTimer.Stop();
+            InfoFileStatus = file_status(OutputFileName.Data());
+        }
+
+        if(InfoFileStatus==-1){
+            printf("\033[1;31mERROR:\033[0m Waited more than 10s to close the file %s\n",OutputFileName.Data());
+            abort();
+        }
+
+        //printf("InfoFileStatus: %i\n",InfoFileStatus);
+
+        TFile* fOutput = new TFile(OutputFileName,"update");
+        //printf("fOutput: %p\n",fOutput);
+        //the file does not exist => create the histograms
+        if(InfoFileStatus==0){
+            CkBootstrap = new TH2F(OriginalName+"_Bootstrap2D",OriginalName+"_Bootstrap2D",NumMomBins,kMin,kMax,8192,0.5,3);
+            CkTheoryFit = new TH2F(OriginalName+"_TheoryFit2D",OriginalName+"_TheoryFit2D",NumMomBins,kMin,kMax,8192,0.5,3);
+            CkSmearedFit = new TH2F(OriginalName+"_SmearedFit2D",OriginalName+"_SmearedFit2D",NumMomBins,kMin,kMax,8192,0.5,3);
+            CkTheoryBest = new TH2F(OriginalName+"_2D",OriginalName+"_2D",NumMomBins,kMin,kMax,8192,0.5,3);
+            CkSmearedBest = new TH2F(OriginalName+"_Smeared2D",OriginalName+"_Smeared2D",NumMomBins,kMin,kMax,8192,0.5,3);
+
+            hCkBootstrap = (TH1F*)hData_pL->Clone(OriginalName+"_Bootstrap");
+            hCkTheoryFit = (TH1F*)hData_pL->Clone(OriginalName+"_TheoryFit");
+            hCkSmearedFit = (TH1F*)hData_pL->Clone(OriginalName+"_SmearedFit");
+            hCkTheoryBest = (TH1F*)hData_pL->Clone(OriginalName);
+            hCkSmearedBest = (TH1F*)hData_pL->Clone(OriginalName+"_Smeared");
+        }
+        else{
+            CkBootstrap = (TH2F*)fOutput->Get(OriginalName+"_Bootstrap2D");
+            CkTheoryFit = (TH2F*)fOutput->Get(OriginalName+"_TheoryFit2D");
+            CkSmearedFit = (TH2F*)fOutput->Get(OriginalName+"_SmearedFit2D");
+            CkTheoryBest = (TH2F*)fOutput->Get(OriginalName+"_2D");
+            CkSmearedBest = (TH2F*)fOutput->Get(OriginalName+"_Smeared2D");
+
+            hCkBootstrap = (TH1F*)fOutput->Get(OriginalName+"_Bootstrap");
+            hCkTheoryFit = (TH1F*)fOutput->Get(OriginalName+"_TheoryFit");
+            hCkSmearedFit = (TH1F*)fOutput->Get(OriginalName+"_SmearedFit");
+            hCkTheoryBest = (TH1F*)fOutput->Get(OriginalName);
+            hCkSmearedBest = (TH1F*)fOutput->Get(OriginalName+"_Smeared");
+        }
+        //printf("Histos are setup\n");
+        for(unsigned uBin=0; uBin<NumMomBins; uBin++){
+            double MOM = Ck_pL->GetBinCenter(0,uBin);
+    //printf(" MOM=%.0f\n",MOM);
+    //printf(" CkBootstrap=%p\n",CkBootstrap);
+            CkBootstrap->Fill(MOM,hData_boot->GetBinContent(uBin+1));
+    //printf(" CkTheoryFit=%p\n",CkTheoryFit);
+            CkTheoryFit->Fill(MOM,Ck_pL->GetBinContent(uBin));
+    //printf(" CkSmearedFit=%p\n",CkSmearedFit);
+            CkSmearedFit->Fill(MOM,CkDec_pL->EvalCk(MOM));
+    //printf(" CkTheoryBest=%p\n",CkTheoryBest);
+            CkTheoryBest->Fill(MOM,Ck_Best->GetBinContent(uBin));
+    //printf(" CkSmearedBest=%p\n",CkSmearedBest);
+            CkSmearedBest->Fill(MOM,CkDec_Best->EvalCk(MOM));
+    //printf(" hProj...\n");
+            hProj = CkBootstrap->ProjectionY("hProj",uBin+1,uBin+1);
+            hCkBootstrap->SetBinContent(uBin+1,hProj->GetMean());
+            hCkBootstrap->SetBinError(uBin+1,hProj->GetStdDev());
+            delete hProj;
+
+            hProj = CkTheoryFit->ProjectionY("hProj",uBin+1,uBin+1);
+            hCkTheoryFit->SetBinContent(uBin+1,hProj->GetMean());
+            hCkTheoryFit->SetBinError(uBin+1,hProj->GetStdDev());
+            delete hProj;
+
+            hProj = CkSmearedFit->ProjectionY("hProj",uBin+1,uBin+1);
+            hCkSmearedFit->SetBinContent(uBin+1,hProj->GetMean());
+            hCkSmearedFit->SetBinError(uBin+1,hProj->GetStdDev());
+            delete hProj;
+
+            hProj = CkTheoryBest->ProjectionY("hProj",uBin+1,uBin+1);
+            hCkTheoryBest->SetBinContent(uBin+1,hProj->GetMean());
+            hCkTheoryBest->SetBinError(uBin+1,hProj->GetStdDev());
+            delete hProj;
+
+            hProj = CkSmearedBest->ProjectionY("hProj",uBin+1,uBin+1);
+            hCkSmearedBest->SetBinContent(uBin+1,hProj->GetMean());
+            hCkSmearedBest->SetBinError(uBin+1,hProj->GetStdDev());
+            delete hProj;
+
+        }
+//printf("About to write:\n");
+        if(uSeed==SEEDmin) hData_pL->Write("",TObject::kOverwrite);
+        CkBootstrap->Write("",TObject::kOverwrite);
+        CkTheoryFit->Write("",TObject::kOverwrite);
+        CkSmearedFit->Write("",TObject::kOverwrite);
+        CkTheoryBest->Write("",TObject::kOverwrite);
+        CkSmearedBest->Write("",TObject::kOverwrite);
+        hCkBootstrap->Write("",TObject::kOverwrite);
+        hCkTheoryFit->Write("",TObject::kOverwrite);
+        hCkSmearedFit->Write("",TObject::kOverwrite);
+        hCkTheoryBest->Write("",TObject::kOverwrite);
+        hCkSmearedBest->Write("",TObject::kOverwrite);
+//printf("About to delete:\n");
+        if(InfoFileStatus==0){
+            delete CkBootstrap;
+            delete CkTheoryFit;
+            delete CkSmearedFit;
+            delete CkTheoryBest;
+            delete CkSmearedBest;
+            delete hCkBootstrap;
+            delete hCkTheoryFit;
+            delete hCkSmearedFit;
+            delete hCkTheoryBest;
+            delete hCkSmearedBest;
+        }
+//printf("About to delete fOutput:\n");
+        delete fOutput;
+//printf("About to delete rest:\n");
+        //delete fit_pL_RAW;
+        delete Ck_pL;
+        delete CkDec_pL;
+        delete fit_pL;
+        delete Ck_Unfolded;
+        delete Ck_Best;
+        delete Ck_Sample;
+        delete hData_boot;
+//printf("COMPLETE!\n");
     }
-//printf("The hard part is done\n");
-//usleep(5e6);
-    hData_pL->Write();
-    fit_pL_RAW->Write();
-    fit_pL->Write();
-    CkTheoryFit.Write();
-    CkSmearedFit.Write();
-    CkTheoryBest.Write();
-    CkSmearedBest.Write();
 
     delete [] Nodes_x;
-    delete fit_pL_RAW;
-    delete Ck_pL;
-    delete CkDec_pL;
-    delete fit_pL;
-    delete Ck_Unfolded;
-    delete Ck_Best;
-    delete Ck_Sample;
+    delete hData_pL;
 }
 
 
@@ -11456,7 +11582,7 @@ void ParametrizeSmearMatrix1_pL(){
     printf("hReso = %p\n",hReso);
     //hReso->Sumw2();
 
-    TH1D* hProj = hReso->ProjectionY(TString::Format("hReso"),1,1);;
+    TH1D* hProj = hReso->ProjectionY(TString::Format("hReso"),1,1);
     TF1* fProj = new TF1(TString::Format("fReso"),FitSmearMatrixRaw,0,1000,3);
     fProj->SetNpx(1024);
     float Amplitude;
@@ -13607,16 +13733,17 @@ printf("PLAMBDA_1_MAIN\n");
 //pLambda_Spline_Fit_Test2();
 //pLambda_Spline_Fit_Unfold2(12,"L53_SL4_SR6_P96_0","/home/dmihaylov/CernBox/CatsFiles/ExpData/ALICE_pp_13TeV_HM/DimiJun20/Norm240_340/DataSignal/Unfolded/ppMatrix/");
 pLambda_Spline_Fit_Unfold2(atoi(argv[1]),"L53_SL4_SR6_P96_0",
-                           TString::Format("/home/dmihaylov/CernBox/CatsFiles/ExpData/ALICE_pp_13TeV_HM/DimiJun20/Norm240_340/DataSignal/Unfolded%s",argv[2]));
+                           TString::Format("/home/dmihaylov/CernBox/CatsFiles/ExpData/ALICE_pp_13TeV_HM/DimiJun20/Norm240_340/DataSignal/Unfolded%s",argv[2]),
+                           atoi(argv[3]),atoi(argv[4]));
 
 
-//POT BL SIG
+//POT BL SIG ALPHA(20)
 //Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(atoi(argv[4]))/10.,
-//                            "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/050720_Xi0/",
+//                            "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/060720_MEsmear/Test/",
 //                            TString::Format("Merged_pp13TeV_HM_DimiJun20_POT%i_BL%i_SIG%i.root",
 //                            atoi(argv[1]),atoi(argv[2]),atoi(argv[3])),
 //                            //"UpdatedSyst040720.root",
-//                            "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/050720_Xi0/Plots/");
+//                            "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/060720_MEsmear/Test/Plots/");
 //MakeLATEXtable("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/050720_Xi0/Plots/");
 
 
