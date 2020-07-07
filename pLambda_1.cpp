@@ -11112,6 +11112,10 @@ void pLambda_Spline_Fit_Unfold2(const unsigned& SEEDmin, const unsigned& NumIter
                                 const double& BinWidth, const TString& DataVariation,
                                 const char* CatsFileFolder, const TString& OutputFolder){
 
+    //if true, the output is saved in a separate file for each seed
+    //the 1D histograms are not filled, however if we run with
+    ///NumIter==0 => we will only compute the 1D histos without adding anything new
+    //bool SafeFileOpening = true;
     const double kMin=0;
     double kMax=540;
     //const unsigned NumMomBins=45;//12MeV
@@ -11390,23 +11394,26 @@ void pLambda_Spline_Fit_Unfold2(const unsigned& SEEDmin, const unsigned& NumIter
     */
 
     //create ones and rewrite on each iter
-        TString OutputFileName = OutputFolder+TString::Format("CkSB_pL_%s_Unfolded.root",DataVariation.Data());
+        TString OutputFileName;
+        //if(SafeFileOpening)
+            OutputFileName = OutputFolder+TString::Format("CkSB_pL_%s_Unfolded_%u.root",DataVariation.Data(),uSeed);
+        //else OutputFileName = OutputFolder+TString::Format("CkSB_pL_%s_Unfolded.root",DataVariation.Data());
+
         TH2F* CkBootstrap = NULL;
         TH2F* CkTheoryFit = NULL;
         TH2F* CkSmearedFit = NULL;
         TH2F* CkTheoryBest = NULL;
         TH2F* CkSmearedBest = NULL;
 
-        TH1F* hCkBootstrap = NULL;
-        TH1F* hCkTheoryFit = NULL;
-        TH1F* hCkSmearedFit = NULL;
-        TH1F* hCkTheoryBest = NULL;
-        TH1F* hCkSmearedBest = NULL;
-
-        TH1D* hProj = NULL;
+        //TH1F* hCkBootstrap = NULL;
+        //TH1F* hCkTheoryFit = NULL;
+        //TH1F* hCkSmearedFit = NULL;
+        //TH1F* hCkTheoryBest = NULL;
+        //TH1F* hCkSmearedBest = NULL;
+        //TH1D* hProj = NULL;
 
         //printf("file_status:\n");
-
+/*
         int InfoFileStatus = file_status(OutputFileName.Data());
         DLM_Timer FileTimer;
         long long FileWaitTime=0;//in micros
@@ -11422,38 +11429,40 @@ void pLambda_Spline_Fit_Unfold2(const unsigned& SEEDmin, const unsigned& NumIter
             printf("\033[1;31mERROR:\033[0m Waited more than 10s to close the file %s\n",OutputFileName.Data());
             abort();
         }
-
+*/
         //printf("InfoFileStatus: %i\n",InfoFileStatus);
 
         TFile* fOutput = new TFile(OutputFileName,"update");
         //printf("fOutput: %p\n",fOutput);
         //the file does not exist => create the histograms
-        if(InfoFileStatus==0){
+        //if(InfoFileStatus==0){
             CkBootstrap = new TH2F(OriginalName+"_Bootstrap2D",OriginalName+"_Bootstrap2D",NumMomBins,kMin,kMax,8192,0.5,3);
             CkTheoryFit = new TH2F(OriginalName+"_TheoryFit2D",OriginalName+"_TheoryFit2D",NumMomBins,kMin,kMax,8192,0.5,3);
             CkSmearedFit = new TH2F(OriginalName+"_SmearedFit2D",OriginalName+"_SmearedFit2D",NumMomBins,kMin,kMax,8192,0.5,3);
             CkTheoryBest = new TH2F(OriginalName+"_2D",OriginalName+"_2D",NumMomBins,kMin,kMax,8192,0.5,3);
             CkSmearedBest = new TH2F(OriginalName+"_Smeared2D",OriginalName+"_Smeared2D",NumMomBins,kMin,kMax,8192,0.5,3);
 
-            hCkBootstrap = (TH1F*)hData_pL->Clone(OriginalName+"_Bootstrap");
-            hCkTheoryFit = (TH1F*)hData_pL->Clone(OriginalName+"_TheoryFit");
-            hCkSmearedFit = (TH1F*)hData_pL->Clone(OriginalName+"_SmearedFit");
-            hCkTheoryBest = (TH1F*)hData_pL->Clone(OriginalName);
-            hCkSmearedBest = (TH1F*)hData_pL->Clone(OriginalName+"_Smeared");
-        }
-        else{
-            CkBootstrap = (TH2F*)fOutput->Get(OriginalName+"_Bootstrap2D");
-            CkTheoryFit = (TH2F*)fOutput->Get(OriginalName+"_TheoryFit2D");
-            CkSmearedFit = (TH2F*)fOutput->Get(OriginalName+"_SmearedFit2D");
-            CkTheoryBest = (TH2F*)fOutput->Get(OriginalName+"_2D");
-            CkSmearedBest = (TH2F*)fOutput->Get(OriginalName+"_Smeared2D");
+            //hCkBootstrap = (TH1F*)hData_pL->Clone(OriginalName+"_Bootstrap");
+            //hCkTheoryFit = (TH1F*)hData_pL->Clone(OriginalName+"_TheoryFit");
+            //hCkSmearedFit = (TH1F*)hData_pL->Clone(OriginalName+"_SmearedFit");
+            //hCkTheoryBest = (TH1F*)hData_pL->Clone(OriginalName);
+            //hCkSmearedBest = (TH1F*)hData_pL->Clone(OriginalName+"_Smeared");
+        //}
+        //else{
+            //CkBootstrap = (TH2F*)fOutput->Get(OriginalName+"_Bootstrap2D");
+            //CkTheoryFit = (TH2F*)fOutput->Get(OriginalName+"_TheoryFit2D");
+            //CkSmearedFit = (TH2F*)fOutput->Get(OriginalName+"_SmearedFit2D");
+            //CkTheoryBest = (TH2F*)fOutput->Get(OriginalName+"_2D");
+            //CkSmearedBest = (TH2F*)fOutput->Get(OriginalName+"_Smeared2D");
 
-            hCkBootstrap = (TH1F*)fOutput->Get(OriginalName+"_Bootstrap");
-            hCkTheoryFit = (TH1F*)fOutput->Get(OriginalName+"_TheoryFit");
-            hCkSmearedFit = (TH1F*)fOutput->Get(OriginalName+"_SmearedFit");
-            hCkTheoryBest = (TH1F*)fOutput->Get(OriginalName);
-            hCkSmearedBest = (TH1F*)fOutput->Get(OriginalName+"_Smeared");
-        }
+            //if(!SafeFileOpening){
+            //    hCkBootstrap = (TH1F*)fOutput->Get(OriginalName+"_Bootstrap");
+            //    hCkTheoryFit = (TH1F*)fOutput->Get(OriginalName+"_TheoryFit");
+            //    hCkSmearedFit = (TH1F*)fOutput->Get(OriginalName+"_SmearedFit");
+            //    hCkTheoryBest = (TH1F*)fOutput->Get(OriginalName);
+            //    hCkSmearedBest = (TH1F*)fOutput->Get(OriginalName+"_Smeared");
+            //}
+        //}
         //printf("Histos are setup\n");
         for(unsigned uBin=0; uBin<NumMomBins; uBin++){
             double MOM = Ck_pL->GetBinCenter(0,uBin);
@@ -11469,57 +11478,65 @@ void pLambda_Spline_Fit_Unfold2(const unsigned& SEEDmin, const unsigned& NumIter
     //printf(" CkSmearedBest=%p\n",CkSmearedBest);
             CkSmearedBest->Fill(MOM,CkDec_Best->EvalCk(MOM));
     //printf(" hProj...\n");
-            hProj = CkBootstrap->ProjectionY("hProj",uBin+1,uBin+1);
-            hCkBootstrap->SetBinContent(uBin+1,hProj->GetMean());
-            hCkBootstrap->SetBinError(uBin+1,hProj->GetStdDev());
-            delete hProj;
+            /*
+            if(!SafeFileOpening){
+                hProj = CkBootstrap->ProjectionY("hProj",uBin+1,uBin+1);
+                hCkBootstrap->SetBinContent(uBin+1,hProj->GetMean());
+                hCkBootstrap->SetBinError(uBin+1,hProj->GetStdDev());
+                delete hProj;
 
-            hProj = CkTheoryFit->ProjectionY("hProj",uBin+1,uBin+1);
-            hCkTheoryFit->SetBinContent(uBin+1,hProj->GetMean());
-            hCkTheoryFit->SetBinError(uBin+1,hProj->GetStdDev());
-            delete hProj;
+                hProj = CkTheoryFit->ProjectionY("hProj",uBin+1,uBin+1);
+                hCkTheoryFit->SetBinContent(uBin+1,hProj->GetMean());
+                hCkTheoryFit->SetBinError(uBin+1,hProj->GetStdDev());
+                delete hProj;
 
-            hProj = CkSmearedFit->ProjectionY("hProj",uBin+1,uBin+1);
-            hCkSmearedFit->SetBinContent(uBin+1,hProj->GetMean());
-            hCkSmearedFit->SetBinError(uBin+1,hProj->GetStdDev());
-            delete hProj;
+                hProj = CkSmearedFit->ProjectionY("hProj",uBin+1,uBin+1);
+                hCkSmearedFit->SetBinContent(uBin+1,hProj->GetMean());
+                hCkSmearedFit->SetBinError(uBin+1,hProj->GetStdDev());
+                delete hProj;
 
-            hProj = CkTheoryBest->ProjectionY("hProj",uBin+1,uBin+1);
-            hCkTheoryBest->SetBinContent(uBin+1,hProj->GetMean());
-            hCkTheoryBest->SetBinError(uBin+1,hProj->GetStdDev());
-            delete hProj;
+                hProj = CkTheoryBest->ProjectionY("hProj",uBin+1,uBin+1);
+                hCkTheoryBest->SetBinContent(uBin+1,hProj->GetMean());
+                hCkTheoryBest->SetBinError(uBin+1,hProj->GetStdDev());
+                delete hProj;
 
-            hProj = CkSmearedBest->ProjectionY("hProj",uBin+1,uBin+1);
-            hCkSmearedBest->SetBinContent(uBin+1,hProj->GetMean());
-            hCkSmearedBest->SetBinError(uBin+1,hProj->GetStdDev());
-            delete hProj;
-
+                hProj = CkSmearedBest->ProjectionY("hProj",uBin+1,uBin+1);
+                hCkSmearedBest->SetBinContent(uBin+1,hProj->GetMean());
+                hCkSmearedBest->SetBinError(uBin+1,hProj->GetStdDev());
+                delete hProj;
+            }
+            */
         }
 //printf("About to write:\n");
-        if(uSeed==SEEDmin) hData_pL->Write("",TObject::kOverwrite);
+        //if(uSeed==SEEDmin) hData_pL->Write("",TObject::kOverwrite);
         CkBootstrap->Write("",TObject::kOverwrite);
         CkTheoryFit->Write("",TObject::kOverwrite);
         CkSmearedFit->Write("",TObject::kOverwrite);
         CkTheoryBest->Write("",TObject::kOverwrite);
         CkSmearedBest->Write("",TObject::kOverwrite);
-        hCkBootstrap->Write("",TObject::kOverwrite);
-        hCkTheoryFit->Write("",TObject::kOverwrite);
-        hCkSmearedFit->Write("",TObject::kOverwrite);
-        hCkTheoryBest->Write("",TObject::kOverwrite);
-        hCkSmearedBest->Write("",TObject::kOverwrite);
+        /*
+        if(!SafeFileOpening||InfoFileStatus==0){
+            hCkBootstrap->Write("",TObject::kOverwrite);
+            hCkTheoryFit->Write("",TObject::kOverwrite);
+            hCkSmearedFit->Write("",TObject::kOverwrite);
+            hCkTheoryBest->Write("",TObject::kOverwrite);
+            hCkSmearedBest->Write("",TObject::kOverwrite);
+        }
+        */
+
 //printf("About to delete:\n");
-        if(InfoFileStatus==0){
+        //if(InfoFileStatus==0){
             delete CkBootstrap;
             delete CkTheoryFit;
             delete CkSmearedFit;
             delete CkTheoryBest;
             delete CkSmearedBest;
-            delete hCkBootstrap;
-            delete hCkTheoryFit;
-            delete hCkSmearedFit;
-            delete hCkTheoryBest;
-            delete hCkSmearedBest;
-        }
+            //delete hCkBootstrap;
+            //delete hCkTheoryFit;
+            //delete hCkSmearedFit;
+            //delete hCkTheoryBest;
+            //delete hCkSmearedBest;
+        //}
 //printf("About to delete fOutput:\n");
         delete fOutput;
 //printf("About to delete rest:\n");
@@ -11536,6 +11553,82 @@ void pLambda_Spline_Fit_Unfold2(const unsigned& SEEDmin, const unsigned& NumIter
 
     delete [] Nodes_x;
     delete hData_pL;
+}
+
+void UpdateUnfoldFile(const char* CatsFileFolder, const TString& InputFileName, const int& BinWidth, const TString& DataVariation){
+
+    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder(CatsFileFolder);
+    //TH1F* hData_pL = AnalysisObject.GetAliceExpCorrFun("pp13TeV_HM_Dec19","pLambda","_0",TMath::Nint(BinWidth/4)-1,false,-1);
+    TH1F* hData_pL = AnalysisObject.GetAliceExpCorrFun("pp13TeV_HM_DimiJun20","pLambda",DataVariation.Data(),TMath::Nint(float(BinWidth)/4.)-1,false,-1);
+    TString OriginalName = hData_pL->GetName();
+    hData_pL->SetName(OriginalName+"_Original");
+
+    TFile* fOutput = new TFile(InputFileName,"update");
+
+    //fOutput->ls();
+    TH2F* CkBootstrap=NULL;
+    TH2F* CkTheoryFit=NULL;
+    TH2F* CkSmearedFit=NULL;
+    TH2F* CkTheoryBest=NULL;
+    TH2F* CkSmearedBest=NULL;
+
+    TH1F* hCkBootstrap=NULL;
+    TH1F* hCkTheoryFit=NULL;
+    TH1F* hCkSmearedFit=NULL;
+    TH1F* hCkTheoryBest=NULL;
+    TH1F* hCkSmearedBest=NULL;
+
+    CkBootstrap = (TH2F*)fOutput->Get(OriginalName+"_Bootstrap2D");
+    CkTheoryFit = (TH2F*)fOutput->Get(OriginalName+"_TheoryFit2D");
+    CkSmearedFit = (TH2F*)fOutput->Get(OriginalName+"_SmearedFit2D");
+    CkTheoryBest = (TH2F*)fOutput->Get(OriginalName+"_2D");
+    CkSmearedBest = (TH2F*)fOutput->Get(OriginalName+"_Smeared2D");
+
+    hCkBootstrap = (TH1F*)hData_pL->Clone(OriginalName+"_Bootstrap");
+    hCkTheoryFit = (TH1F*)hData_pL->Clone(OriginalName+"_TheoryFit");
+    hCkSmearedFit = (TH1F*)hData_pL->Clone(OriginalName+"_SmearedFit");
+    hCkTheoryBest = (TH1F*)hData_pL->Clone(OriginalName);
+    hCkSmearedBest = (TH1F*)hData_pL->Clone(OriginalName+"_Smeared");
+
+    const unsigned NumMomBins = CkTheoryBest->GetXaxis()->GetNbins();
+    TH1D* hProj;
+
+    for(unsigned uBin=0; uBin<NumMomBins; uBin++){
+        hProj = CkBootstrap->ProjectionY("hProj",uBin+1,uBin+1);
+        hCkBootstrap->SetBinContent(uBin+1,hProj->GetMean());
+        hCkBootstrap->SetBinError(uBin+1,hProj->GetStdDev());
+        delete hProj;
+
+        hProj = CkTheoryFit->ProjectionY("hProj",uBin+1,uBin+1);
+        hCkTheoryFit->SetBinContent(uBin+1,hProj->GetMean());
+        hCkTheoryFit->SetBinError(uBin+1,hProj->GetStdDev());
+        delete hProj;
+
+        hProj = CkSmearedFit->ProjectionY("hProj",uBin+1,uBin+1);
+        hCkSmearedFit->SetBinContent(uBin+1,hProj->GetMean());
+        hCkSmearedFit->SetBinError(uBin+1,hProj->GetStdDev());
+        delete hProj;
+
+        hProj = CkTheoryBest->ProjectionY("hProj",uBin+1,uBin+1);
+        hCkTheoryBest->SetBinContent(uBin+1,hProj->GetMean());
+        hCkTheoryBest->SetBinError(uBin+1,hProj->GetStdDev());
+        delete hProj;
+
+        hProj = CkSmearedBest->ProjectionY("hProj",uBin+1,uBin+1);
+        hCkSmearedBest->SetBinContent(uBin+1,hProj->GetMean());
+        hCkSmearedBest->SetBinError(uBin+1,hProj->GetStdDev());
+        delete hProj;
+    }
+
+    hData_pL->Write("",TObject::kOverwrite);
+    hCkBootstrap->Write("",TObject::kOverwrite);
+    hCkTheoryFit->Write("",TObject::kOverwrite);
+    hCkSmearedFit->Write("",TObject::kOverwrite);
+    hCkTheoryBest->Write("",TObject::kOverwrite);
+    hCkSmearedBest->Write("",TObject::kOverwrite);
+
+    delete hData_pL;
+    delete fOutput;
 }
 
 
@@ -13737,8 +13830,11 @@ printf("PLAMBDA_1_MAIN\n");
 //const unsigned& SEEDmin, const unsigned& NumIter,
 //                                const double& BinWidth, const TString& DataVariation,
 //                                const char* CatsFileFolder, const TString& OutputFolder
-pLambda_Spline_Fit_Unfold2(0,2,12,"L53_SL4_SR6_P96_0","/home/dmihaylov/CernBox/CatsFiles",
-                           "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Unfolding/");
+//pLambda_Spline_Fit_Unfold2(atoi(argv[1]),atoi(argv[2]),atoi(argv[3]),"L53_SL4_SR6_P96_0","/home/dmihaylov/CernBox/CatsFiles",
+//                           "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Unfolding/");
+UpdateUnfoldFile("/home/dmihaylov/CernBox/CatsFiles",
+                 "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Unfolding/CkSB_pL_L53_SL4_SR6_P96_0_Unfolded.root",
+                 20,"L53_SL4_SR6_P96_0");
 
 
 //POT BL SIG ALPHA(20)
