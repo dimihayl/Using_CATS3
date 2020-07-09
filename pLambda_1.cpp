@@ -7396,7 +7396,7 @@ void pL_SystematicsMay2020(unsigned SEED, unsigned BASELINE_VAR, int POT_VAR, in
         TString DataVar;
         //here we have new file naming, which allows for additional variations,
         //namely for the sideband correction, we can change the purity and the left-right SB fraction
-        if(DataSample=="pp13TeV_HM_DimiJun20"){
+        if(DataSample=="pp13TeV_HM_DimiJun20"||DataSample=="pp13TeV_HM_DimiJul20"){
             //data set variation
             WhichData = rangen.Integer(45);
             //purity variation (significant at the level of the stat. uncertainties)
