@@ -7002,10 +7002,10 @@ void pL_SystematicsMay2020(unsigned SEED, unsigned BASELINE_VAR, int POT_VAR, in
     //TString DataSample = "pp13TeV_HM_RotPhiDec19";
     TString DataSample;
     //N.B. for this data we do not have the unfolded version
-    if(Data_Type%10==0) TString DataSample = "pp13TeV_HM_Dec19";
+    if(Data_Type%10==0) DataSample = "pp13TeV_HM_Dec19";
     //corrected for SB, folded
-    else if(Data_Type%10==1&&Data_Type/10==0) TString DataSample = "pp13TeV_HM_DimiJun20";
-    else TString DataSample = "pp13TeV_HM_DimiJul20";
+    else if(Data_Type%10==1&&Data_Type/10==0) DataSample = "pp13TeV_HM_DimiJun20";
+    else DataSample = "pp13TeV_HM_DimiJul20";
 
     //TString SourceDescription = "Gauss";
     TString SourceDescription = "McGauss_ResoTM";
