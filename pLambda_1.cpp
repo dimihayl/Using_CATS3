@@ -11109,6 +11109,7 @@ printf(" 9\n");
 //we use all seeds from SEEDmin to < SEEDmin+NumIter
 //for a new computation, make sure the output file is deleted by hand (otherwise it just accumulates statistics)
 void pLambda_Spline_Fit_Unfold2(const unsigned& SEEDmin, const unsigned& NumIter, const unsigned& TimeLimit,
+                                const double& Perfect_chi2ndf, const double& VeryGood_chi2ndf, const double& Unacceptable_chi2ndf,
                                 const double& BinWidth, const TString& DataVariation,
                                 const char* CatsFileFolder, const TString& OutputFolder){
 
@@ -11130,11 +11131,11 @@ void pLambda_Spline_Fit_Unfold2(const unsigned& SEEDmin, const unsigned& NumIter
     DLM_Timer JobTime;
 
     //if you reach such a chi2, ignore all other constraints and terminate
-    const double Perfect_chi2ndf = 0.1;
+    //const double Perfect_chi2ndf = 0.1;
     //similar as the perfect one, however this condition is only verified at the end of each polishing run
-    const double VeryGood_chi2ndf = 0.2;
+    //const double VeryGood_chi2ndf = 0.2;
     //any solution above that limit will be rejected
-    const double Unacceptable_chi2ndf = 0.6;
+    //const double Unacceptable_chi2ndf = 0.6;
 
     //if it takes too long, we will settle for this one
     //const double Okayish_chi2ndf = 0.4;
@@ -11290,12 +11291,18 @@ void pLambda_Spline_Fit_Unfold2(const unsigned& SEEDmin, const unsigned& NumIter
         //afterwards, it represents the remaining time, minus the expected time needed for the remaining iterations,
         //based on the average run time so far. This is in case we do good on time
         double MaxTime = NumIterDone?TimeRemaining-AvgIterTime*NumIterRemain:AvgTimePerSeedRemaining;
+        //in case we are doing bad on average, we try to give some extra bonus on the current runs,
+        //by increasing by up to 33% the allowed run time
+        double BonusFactor = Avg_chi2ndf/VeryGood_chi2ndf;
+        if(BonusFactor<1) BonusFactor=1;
+        if(BonusFactor>1.33) BonusFactor=1.33;
         //if we do bad on time, the upper definition can lead to very very small max time.
         //if too small, we set the max time to its 'minimal' max time, which is the average time remaining per iter
-        if(MaxTime<AvgTimePerSeedRemaining) MaxTime = AvgTimePerSeedRemaining;
+        if(MaxTime<AvgTimePerSeedRemaining*BonusFactor) MaxTime = AvgTimePerSeedRemaining*BonusFactor;
 
         //double MaxTime = NumIterDone?TimeRemaining/(NumIterDone+1.):AvgTimePerSeedRemaining;
         double AllowedTime = AvgTimePerSeedRemaining+BufferTime;
+        AllowedTime *= BonusFactor;
         if(AllowedTime>MaxTime) AllowedTime=MaxTime;
         PatienceMax = (long long)(AllowedTime);
         PatienceForPerfection = (long long)(AvgTimePerSeedRemaining);
@@ -11550,22 +11557,26 @@ void pLambda_Spline_Fit_Unfold2(const unsigned& SEEDmin, const unsigned& NumIter
             //but we are above the average iteration time
             //if(f_chi2ndf<Avg_chi2ndf&&double(ExeTime)>AvgTimePerSeedRemaining){
 //printf("%f %f\n",f_chi2ndf,Avg_chi2ndf);
+
+            //terminate ASAP
             if(f_chi2ndf<Perfect_chi2ndf){
                 ShowTime(ExeTime,strtime,2,true,5);
                 printf("  Perfect solution found at %s\n",strtime);
                 break;
             }
+            //terminate regardless of the time
             if(f_chi2ndf<VeryGood_chi2ndf){
                 ShowTime(ExeTime,strtime,2,true,5);
                 printf("  Very good solution found at %s\n",strtime);
                 break;
             }
-            if(f_chi2ndf<Avg_chi2ndf){
+            //terminate if we are slow. If we are fast, try to get to a very good solution
+            if(f_chi2ndf<Avg_chi2ndf&&double(ExeTime)>AvgTimePerSeedRemaining&&double(ExeTime)>AvgIterTime){
                 ShowTime(ExeTime,strtime,2,true,5);
                 printf("  Good solution found at %s\n",strtime);
                 break;
             }
-            //end if we have exceeded the time limit
+            //terminate ASAP if we have exceeded the time limit
             if(ExeTime>PatienceMax){
                 ShowTime(ExeTime,strtime,2,true,5);
                 printf("  Over the time limit at %s\n",strtime);
@@ -14108,11 +14119,11 @@ printf("PLAMBDA_1_MAIN\n");
 //const unsigned& SEEDmin, const unsigned& NumIter,
 //                                const double& BinWidth, const TString& DataVariation,
 //                                const char* CatsFileFolder, const TString& OutputFolder
-pLambda_Spline_Fit_Unfold2(atoi(argv[1]),atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),"L53_SL4_SR6_P96_0","/home/dmihaylov/CernBox/CatsFiles",
-                           "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Unfolding/Test4/");
-//UpdateUnfoldFile("/home/dmihaylov/CernBox/CatsFiles",
-//                 "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Unfolding/Test4/QA.root",
-//                 20,"L53_SL4_SR6_P96_0");
+//pLambda_Spline_Fit_Unfold2(atoi(argv[1]),atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),"L53_SL4_SR6_P96_0","/home/dmihaylov/CernBox/CatsFiles",
+//                           "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Unfolding/Test4/");
+UpdateUnfoldFile("/home/dmihaylov/CernBox/CatsFiles",
+                 "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Unfolding/Test4/QA.root",
+                 12,"L53_SL4_SR6_P96_0");
 
 
 //POT BL SIG ALPHA(20)
