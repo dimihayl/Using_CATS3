@@ -11131,6 +11131,8 @@ void pLambda_Spline_Fit_Unfold2(const unsigned& SEEDmin, const unsigned& NumIter
 
     //if you reach such a chi2, ignore all other constraints and terminate
     const double Perfect_chi2ndf = 0.1;
+    //similar as the perfect one, however this condition is only verified at the end of each polishing run
+    const double VeryGood_chi2ndf = 0.2;
     //any solution above that limit will be rejected
     const double Unacceptable_chi2ndf = 0.6;
 
@@ -11551,6 +11553,11 @@ void pLambda_Spline_Fit_Unfold2(const unsigned& SEEDmin, const unsigned& NumIter
             if(f_chi2ndf<Perfect_chi2ndf){
                 ShowTime(ExeTime,strtime,2,true,5);
                 printf("  Perfect solution found at %s\n",strtime);
+                break;
+            }
+            if(f_chi2ndf<VeryGood_chi2ndf){
+                ShowTime(ExeTime,strtime,2,true,5);
+                printf("  Very good solution found at %s\n",strtime);
                 break;
             }
             if(f_chi2ndf<Avg_chi2ndf){
