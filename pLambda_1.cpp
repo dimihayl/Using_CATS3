@@ -6961,7 +6961,12 @@ graph_FitMAX[5].Write();
 //the radius is fixed, and we use the latest Core+Reso
 /// if the SEED<100 we take the default iteration first
 //i.e. to avoid the default iteration, use SEED>=100
-void pL_SystematicsMay2020(unsigned SEED, unsigned BASELINE_VAR, int POT_VAR, int Sigma0_Feed,
+//Data type digits: 321
+//1: corrected for SB (0/1 for no/yes)
+//2: unfolded (0/1 for no/yes)
+//3: corrected for flat feed and misid (0/1 for no/yes) -> done on the fly at the PLOTTING, no actual corrected datasets are available
+//   3 is not used by this function at all
+void pL_SystematicsMay2020(unsigned SEED, unsigned BASELINE_VAR, int POT_VAR, int Sigma0_Feed, int Data_Type,
                            bool DataSyst, bool FitSyst, bool Bootstrap, unsigned NumIter,
                            const char* CatsFileFolder, const char* OutputFolder){
 
@@ -6995,7 +7000,12 @@ void pL_SystematicsMay2020(unsigned SEED, unsigned BASELINE_VAR, int POT_VAR, in
 
     //TString DataSample = "pp13TeV_HM_Dec19";
     //TString DataSample = "pp13TeV_HM_RotPhiDec19";
-    TString DataSample = "pp13TeV_HM_DimiJun20";
+    TString DataSample;
+    //N.B. for this data we do not have the unfolded version
+    if(Data_Type%10==0) TString DataSample = "pp13TeV_HM_Dec19";
+    //corrected for SB, folded
+    else if(Data_Type%10==1&&Data_Type/10==0) TString DataSample = "pp13TeV_HM_DimiJun20";
+    else TString DataSample = "pp13TeV_HM_DimiJul20";
 
     //TString SourceDescription = "Gauss";
     TString SourceDescription = "McGauss_ResoTM";
@@ -11844,7 +11854,9 @@ void pLambda_Spline_Fit_Unfold2(const unsigned& SEEDmin, const unsigned& NumIter
     delete [] ctext3;
 }
 
-void UpdateUnfoldFile(const char* CatsFileFolder, const TString& InputFileName, const int& BinWidth, const TString& DataVariation){
+void UpdateUnfoldFile(const char* CatsFileFolder, const TString& InputFolderName,
+                      const TString& InputFileName, const TString& DataVariation,
+                      const int& BinWidth){
 
     DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder(CatsFileFolder);
     //TH1F* hData_pL = AnalysisObject.GetAliceExpCorrFun("pp13TeV_HM_Dec19","pLambda","_0",TMath::Nint(BinWidth/4)-1,false,-1);
@@ -11852,7 +11864,7 @@ void UpdateUnfoldFile(const char* CatsFileFolder, const TString& InputFileName, 
     TString OriginalName = hData_pL->GetName();
     hData_pL->SetName(OriginalName+"_Original");
 
-    TFile* fOutput = new TFile(InputFileName,"update");
+    TFile* fOutput = new TFile(InputFolderName+InputFileName,"update");
 
     //fOutput->ls();
     TH2F* CkBootstrap=NULL;
@@ -14121,9 +14133,14 @@ printf("PLAMBDA_1_MAIN\n");
 //                                const char* CatsFileFolder, const TString& OutputFolder
 //pLambda_Spline_Fit_Unfold2(atoi(argv[1]),atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),"L53_SL4_SR6_P96_0","/home/dmihaylov/CernBox/CatsFiles",
 //                           "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Unfolding/Test4/");
-UpdateUnfoldFile("/home/dmihaylov/CernBox/CatsFiles",
-                 "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Unfolding/Test4/QA.root",
-                 12,"L53_SL4_SR6_P96_0");
+//UpdateUnfoldFile("/home/dmihaylov/CernBox/CatsFiles",
+//                 "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Unfolding/Test4/QA.root",
+//                 12,"L53_SL4_SR6_P96_0");
+//cout << argv[1] << endl;
+//cout << argv[2] << endl;
+//cout << argv[3] << endl;
+//cout << argv[4] << endl;
+UpdateUnfoldFile(argv[1],argv[2],argv[3],argv[4],atoi(argv[5]));
 
 
 //POT BL SIG ALPHA(20)

@@ -2229,7 +2229,8 @@ void DLM_CommonAnaFunctions::SetUpBinning_pp(const TString& DataSample, unsigned
             return;
         }
     }
-    else if(DataSample=="pp13TeV_HM_March19"||DataSample=="pp13TeV_HM_Dec19"||DataSample=="pp13TeV_HM_RotPhiDec19"||DataSample=="pp13TeV_HM_DimiJun20"){
+    else if(DataSample=="pp13TeV_HM_March19"||DataSample=="pp13TeV_HM_Dec19"||DataSample=="pp13TeV_HM_RotPhiDec19"
+            ||DataSample=="pp13TeV_HM_DimiJun20"||DataSample=="pp13TeV_HM_DimiJul20"){
         if(MomBinVar==0){
             kMin=4;
             kStep=4;
@@ -2411,7 +2412,8 @@ void DLM_CommonAnaFunctions::SetUpBinning_pL(const TString& DataSample, unsigned
         FitRegion[2] = MomBins[NumMomBins]+kCoarseStep;//348
         FitRegion[3] = MomBins[NumMomBins]+kCoarseStep*20.;//588
     }
-    else if(DataSample=="pp13TeV_HM_March19"||DataSample=="pp13TeV_HM_Dec19"||DataSample=="pp13TeV_HM_RotPhiDec19"||DataSample=="pp13TeV_HM_DimiJun20"){
+    else if(DataSample=="pp13TeV_HM_March19"||DataSample=="pp13TeV_HM_Dec19"||DataSample=="pp13TeV_HM_RotPhiDec19"
+            ||DataSample=="pp13TeV_HM_DimiJun20"||DataSample=="pp13TeV_HM_DimiJul20"){
         if(MomBinVar==0){
             kMin=0;
             kFineMin=336;//272//216
@@ -2642,7 +2644,8 @@ void DLM_CommonAnaFunctions::GetPurities_p(const TString& DataSample, const int&
     if(DataSample=="pp13TeV_MB_Run2paper"){
         PurityProton = 0.989859;
     }
-    else if(DataSample=="pp13TeV_HM_March19"||DataSample=="pp13TeV_HM_Dec19"||DataSample=="pp13TeV_HM_RotPhiDec19"||DataSample=="pp13TeV_HM_DimiJun20"){
+    else if(DataSample=="pp13TeV_HM_March19"||DataSample=="pp13TeV_HM_Dec19"||DataSample=="pp13TeV_HM_RotPhiDec19"
+            ||DataSample=="pp13TeV_HM_DimiJun20"||DataSample=="pp13TeV_HM_DimiJul20"){
         PurityProton = 0.9943;
     }
     else if(DataSample=="pPb5TeV_Run2paper"){
@@ -2685,7 +2688,7 @@ void DLM_CommonAnaFunctions::GetPurities_L(const TString& DataSample, const int&
         else if(Variation==-1) PurityLambda = 1.0;//use for SB corrected correlations
         else PurityLambda = 0.9595;
     }
-    else if(DataSample=="pp13TeV_HM_DimiJun20"){
+    else if(DataSample=="pp13TeV_HM_DimiJun20"||DataSample=="pp13TeV_HM_DimiJul20"){
         PurityLambda = 1.0;//use for SB corrected correlations
     }
     else if(DataSample=="pPb5TeV_Run2paper"){
@@ -2717,7 +2720,8 @@ void DLM_CommonAnaFunctions::GetPurities_Xim(const TString& DataSample, const in
     if(DataSample=="pp13TeV_MB_Run2paper"){
         PurityXim = 0.956;
     }
-    else if(DataSample=="pp13TeV_HM_March19"||DataSample=="pp13TeV_HM_Dec19"||DataSample=="pp13TeV_HM_RotPhiDec19"||DataSample=="pp13TeV_HM_DimiJun20"){
+    else if(DataSample=="pp13TeV_HM_March19"||DataSample=="pp13TeV_HM_Dec19"||DataSample=="pp13TeV_HM_RotPhiDec19"
+            ||DataSample=="pp13TeV_HM_DimiJun20"||DataSample=="pp13TeV_HM_DimiJul20"){
         PurityXim = 0.956;
     }
     else if(DataSample=="pPb5TeV_Run2paper"){
@@ -2768,7 +2772,8 @@ void DLM_CommonAnaFunctions::GetFractions_p(const TString& DataSample, const int
         pp_f0 = 0.873;
         pp_f1 = 0.0898;
     }
-    else if(DataSample=="pp13TeV_HM_Dec19"||DataSample=="pp13TeV_HM_RotPhiDec19"||DataSample=="pp13TeV_HM_DimiJun20"){
+    else if(DataSample=="pp13TeV_HM_Dec19"||DataSample=="pp13TeV_HM_RotPhiDec19"
+            ||DataSample=="pp13TeV_HM_DimiJun20"||DataSample=="pp13TeV_HM_DimiJul20"){
         pp_f0 = 0.823;
         pp_f1 = 0.125;
     }
@@ -2833,7 +2838,8 @@ void DLM_CommonAnaFunctions::GetFractions_L(const TString& DataSample, const int
         pL_f1 = 0.200336;
         pL_f2 = 0.099328;
     }
-    else if(DataSample=="pp13TeV_HM_March19"||DataSample=="pp13TeV_HM_Dec19"||DataSample=="pp13TeV_HM_RotPhiDec19"||DataSample=="pp13TeV_HM_DimiJun20"){
+    else if(DataSample=="pp13TeV_HM_March19"||DataSample=="pp13TeV_HM_Dec19"||DataSample=="pp13TeV_HM_RotPhiDec19"
+            ||DataSample=="pp13TeV_HM_DimiJun20"||DataSample=="pp13TeV_HM_DimiJul20"){
         pL_f0 = 0.576066;
         pL_f1 = 0.192022;
         pL_f2 = 0.115956;
@@ -2990,7 +2996,8 @@ TH2F* DLM_CommonAnaFunctions::GetResolutionMatrix(const TString& DataSample,cons
     if(DataSample=="pp13TeV_MB_Run2paper"){
         FileName = CatsFilesFolder[0]+"/MomentumSmear/ALICE_pp_13TeV.root";
     }
-    else if(DataSample=="pp13TeV_HM_March19"||DataSample=="pp13TeV_HM_Dec19"||DataSample=="pp13TeV_HM_RotPhiDec19"||DataSample=="pp13TeV_HM_DimiJun20"){
+    else if(DataSample=="pp13TeV_HM_March19"||DataSample=="pp13TeV_HM_Dec19"||DataSample=="pp13TeV_HM_RotPhiDec19"
+            ||DataSample=="pp13TeV_HM_DimiJun20"||DataSample=="pp13TeV_HM_DimiJul20"){
         //N.B. special rule for pp and pLambda below
         FileName = CatsFilesFolder[0]+"/MomentumSmear/ALICE_pp_13TeV.root";
     }
@@ -3024,11 +3031,11 @@ TH2F* DLM_CommonAnaFunctions::GetResolutionMatrix(const TString& DataSample,cons
 
 
 
-    if(DataSample=="pp13TeV_HM_DimiJun20"&&System=="pp"){
+    if((DataSample=="pp13TeV_HM_DimiJun20"||DataSample=="pp13TeV_HM_DimiJul20")&&System=="pp"){
         FileName = CatsFilesFolder[0]+"/MomentumSmear/ALICE_pp_13TeV_MEpp.root";
         HistoName = "h_RESO_pp_MeV";
     }
-    if(DataSample=="pp13TeV_HM_DimiJun20"&&System=="pLambda"){
+    if((DataSample=="pp13TeV_HM_DimiJun20"||DataSample=="pp13TeV_HM_DimiJul20")&&System=="pLambda"){
         FileName = CatsFilesFolder[0]+"/MomentumSmear/ALICE_pp_13TeV_MEpL.root";
         HistoName = "h_RESO_pL_MeV";
     }
@@ -3197,11 +3204,25 @@ TH1F* DLM_CommonAnaFunctions::GetAliceExpCorrFun(const TString& DataSample,const
         }
     }
     //the correlations are obtained with Dimi's code, normalization to the total yield
-    //used for the pLambda paper proposal in June 2020
+    //used for the pLambda paper proposal in June 2020, sideband corrected (folded)
     else if(DataSample=="pp13TeV_HM_DimiJun20"){
         if(System=="pLambda"){
             if(mTbin==-1){
                 FileName = TString::Format(CatsFilesFolder[0]+"/ExpData/ALICE_pp_13TeV_HM/DimiJun20/Norm240_340/DataSignal/CkSB_pL_%s.root",CutVar.Data());
+                HistoName = TString::Format("hCkS_Norm_%.0fMeV",float(iReb+1)*4.);
+            }
+            else{
+                printf("\033[1;31mERROR:\033[0m The mT bin #%i is not defined for %s (%s)\n",mTbin,DataSample.Data(),System.Data());
+            }
+        }
+        else{
+            printf("\033[1;31mERROR:\033[0m The system '%s' does not exist\n",System.Data());
+        }
+    }
+    else if(DataSample=="pp13TeV_HM_DimiJul20"){
+        if(System=="pLambda"){
+            if(mTbin==-1){
+                FileName = TString::Format(CatsFilesFolder[0]+"/ExpData/ALICE_pp_13TeV_HM/DimiJun20/Norm240_340/DataSignal/Unfolded/090720/CkSB_pL_%s.root",CutVar.Data());
                 HistoName = TString::Format("hCkS_Norm_%.0fMeV",float(iReb+1)*4.);
             }
             else{
