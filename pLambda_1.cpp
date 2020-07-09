@@ -11108,9 +11108,12 @@ printf(" 9\n");
 //else : bootstrap the data
 //we use all seeds from SEEDmin to < SEEDmin+NumIter
 //for a new computation, make sure the output file is deleted by hand (otherwise it just accumulates statistics)
-void pLambda_Spline_Fit_Unfold2(const unsigned& SEEDmin, const unsigned& NumIter,
+void pLambda_Spline_Fit_Unfold2(const unsigned& SEEDmin, const unsigned& NumIter, const unsigned& TimeLimit,
                                 const double& BinWidth, const TString& DataVariation,
                                 const char* CatsFileFolder, const TString& OutputFolder){
+
+    //PUT FALST FOR THE BATCH FARM
+    const bool PC_OUTPUT = false;
 
     //if true, the output is saved in a separate file for each seed
     //the 1D histograms are not filled, however if we run with
@@ -11121,8 +11124,34 @@ void pLambda_Spline_Fit_Unfold2(const unsigned& SEEDmin, const unsigned& NumIter
     //const unsigned NumMomBins=45;//12MeV
     const unsigned NumMomBins=TMath::Nint(kMax/BinWidth);//4MeV
     kMax = double(NumMomBins)*BinWidth;
+    const bool PrePreFit = false;
+    const long long JobTimeLimit = TimeLimit*60;
+    bool TerminateASAP = false;
+    DLM_Timer JobTime;
 
-    //0,60,120,180,240,320,400,500,600
+    //if you reach such a chi2, ignore all other constraints and terminate
+    const double Perfect_chi2ndf = 0.1;
+    //any solution above that limit will be rejected
+    const double Unacceptable_chi2ndf = 0.6;
+
+    //if it takes too long, we will settle for this one
+    //const double Okayish_chi2ndf = 0.4;
+    double Avg_chi2ndf=0;
+    //the time (in seconds) beyond which we settle for Okayish_chi2ndf;
+    long long PatienceForPerfection;
+    //whatever we have after that much time, we take
+    long long PatienceMax;
+    const unsigned NumBackAndForth = 8;//this is a maximum value
+    const unsigned MaxStepsWithoutImprovement1 = 24;//32
+    const unsigned MaxStepsWithoutImprovement2 = 12;//16
+    const unsigned ErrorDepth = 3;//3
+    const unsigned BinDepth = TMath::Nint(60./BinWidth);
+
+    char* strtime = new char [128];
+    char* ctext1 = new char [128];
+    char* ctext2 = new char [128];
+    char* ctext3 = new char [128];
+
     const int NumKnots = 20;
     double* Nodes_x = new double [NumKnots];
     Nodes_x[0] = kMin;
@@ -11140,7 +11169,7 @@ void pLambda_Spline_Fit_Unfold2(const unsigned& SEEDmin, const unsigned& NumIter
     Nodes_x[12] = 278;
     Nodes_x[13] = 290;
     Nodes_x[14] = 302;
-    Nodes_x[15] = 326;
+    //Nodes_x[15] = 326;
     Nodes_x[15] = 350;
     Nodes_x[16] = 400;
     Nodes_x[17] = 450;
@@ -11151,75 +11180,172 @@ void pLambda_Spline_Fit_Unfold2(const unsigned& SEEDmin, const unsigned& NumIter
     //TH1F* hData_pL = AnalysisObject.GetAliceExpCorrFun("pp13TeV_HM_Dec19","pLambda","_0",TMath::Nint(BinWidth/4)-1,false,-1);
     TH1F* hData_pL = AnalysisObject.GetAliceExpCorrFun("pp13TeV_HM_DimiJun20","pLambda",DataVariation.Data(),TMath::Nint(BinWidth/4)-1,false,-1);
     TString OriginalName = hData_pL->GetName();
+
+    TF1* fit_pL_RAW = new TF1("fit_pL_RAW",pLambda_Spline_CkFitRAW,kMin,kMax,3+NumKnots*2);
+    fit_pL_RAW->FixParameter(0,NumKnots);
+    //derivative at the firs knot
+    fit_pL_RAW->FixParameter(1,0);
+    fit_pL_RAW->SetParameter(2,0);
+    fit_pL_RAW->SetParLimits(2,-1e-3,1e-3);
+    for(unsigned uKnot=0; uKnot<NumKnots; uKnot++){
+        double HistVal = hData_pL->GetBinContent(hData_pL->FindBin(Nodes_x[uKnot]));
+        fit_pL_RAW->FixParameter(3+uKnot,Nodes_x[uKnot]);
+        fit_pL_RAW->SetParameter(3+NumKnots+uKnot,HistVal);
+        fit_pL_RAW->SetParLimits(3+NumKnots+uKnot,0,HistVal*2);
+    }
+    fit_pL_RAW->SetNpx(1024);
+    //printf("About to fit hData_pL\n");
+    hData_pL->Fit(fit_pL_RAW,"Q, S, N, R, M");
+    //printf("hData_pL was fitted!\n");
+
+    double f_chi2 = fit_pL_RAW->GetChisquare();
+    int f_ndf = fit_pL_RAW->GetNumberFitPoints();
+    double f_chi2ndf = f_chi2/double(f_ndf);
+    double f_pval = TMath::Prob(f_chi2,f_ndf);
+    double f_ns = sqrt(2)*TMath::ErfcInverse(f_pval+1e-32);
+    printf("Pre-fit (folded):\n");
+    printf(" chi2/ndf = %.1f/%i\n",f_chi2,f_ndf);
+    //printf(" pval = %.4f\n",f_pval);
+    //printf(" nsigma = %.2f\n",f_ns);
+
+
+    DLM_Ck* Ck_pL = new DLM_Ck(3+NumKnots*2,0,NumMomBins,kMin,kMax,pLambda_Spline_Ck);
+    //Ck_pL->SetSourcePar(0,ResidualSourceSize);
+    //TH2F* hResolution_pL = AnalysisObject.GetResolutionMatrix("pp13TeV_HM_Dec19","pLambda");
+    TH2F* hResolution_pL = AnalysisObject.GetResolutionMatrix("pp13TeV_HM_DimiJun20","pLambda");
+//TH2F* hResolution_pL = AnalysisObject.GetResolutionMatrix("pp13TeV_HM_Dec19","pp");
+//TH2F* hResolution_pL = AnalysisObject.GetResolutionMatrix("pp13TeV_HM_DimiJun20","pp");
+    DLM_CkDecomposition* CkDec_pL = new DLM_CkDecomposition("pLambda",0,*Ck_pL,hResolution_pL);
+    pLambda_Spline_CkFit_CKDEC = CkDec_pL;
+
+    TF1* fit_pL = new TF1("fit_pL",pLambda_Spline_CkFit,kMin,kMax,3+NumKnots*2);
+    fit_pL->FixParameter(0,NumKnots);
+    //derivative at the firs knot
+    fit_pL->FixParameter(1,0);
+    fit_pL->SetParameter(2,0);
+    fit_pL->SetParLimits(2,-1e-3,1e-3);
+    for(unsigned uKnot=0; uKnot<NumKnots; uKnot++){
+        double HistVal = hData_pL->GetBinContent(hData_pL->FindBin(Nodes_x[uKnot]));
+        fit_pL->FixParameter(3+uKnot,Nodes_x[uKnot]);
+        fit_pL->SetParameter(3+NumKnots+uKnot,HistVal);
+        fit_pL->SetParLimits(3+NumKnots+uKnot,0,HistVal*2);
+    }
+    //fit_pL->SetNpx(1024);
+
+    for(unsigned uPar=0; uPar<CkDec_pL->GetCk()->GetNumSourcePar(); uPar++){
+        CkDec_pL->GetCk()->SetSourcePar(uPar,fit_pL->GetParameter(uPar));
+    }
+    CkDec_pL->Update();
+
+    //printf("About to fit hData_pL\n");
+    hData_pL->Fit(fit_pL,"Q, S, N, R, M");
+    f_chi2 = fit_pL->GetChisquare();
+    f_ndf = fit_pL->GetNumberFitPoints();
+    f_chi2ndf = f_chi2/double(f_ndf);
+    f_pval = TMath::Prob(f_chi2,f_ndf);
+    f_ns = sqrt(2)*TMath::ErfcInverse(f_pval+1e-32);
+    printf("Pre-fit (unfolded):\n");
+    printf(" chi2/ndf = %.1f/%i\n",f_chi2,f_ndf);
+    //printf(" pval = %.4f\n",f_pval);
+    //printf(" nsigma = %.2f\n",f_ns);
+
+    //2 on the first attempt, 4 when we retry
+    bool AcceptSolution = (f_chi2ndf<3);
+    if(!AcceptSolution){
+        delete Ck_pL;
+        delete CkDec_pL;
+        delete fit_pL;
+        delete [] Nodes_x;
+        printf("REJECTED (pre-fit)\n\n");
+        return;
+    }
+
+    printf("\nProceeding to the bootstraping and polishing:\n\n");
+
+    double IterTime = 0;
+
     for(unsigned uSeed=SEEDmin; uSeed<SEEDmin+NumIter; uSeed++){
-        printf("uSeed = %u (%u)\n",uSeed,SEEDmin+NumIter);
+        bool TerminateIter = false;
+        DLM_Timer ComputingTime;
+        printf(" uSeed = %u (%u)\n",uSeed,SEEDmin+NumIter);
+        TH1F* Chi2Ndf_Unfold = new TH1F("Chi2Ndf_Unfold","Chi2Ndf_Unfold",128,0,Unacceptable_chi2ndf);
+        TH1F* CPU_Unfold = new TH1F("CPU_Unfold","CPU_Unfold",128,0,4.*double(JobTimeLimit)/double(NumIter)/60.);
+        TH2F* Chi2Ndf_CPU_Unfold = new TH2F("Chi2Ndf_CPU_Unfold","Chi2Ndf_CPU_Unfold",
+                                            128,0,Unacceptable_chi2ndf,
+                                            128,0,4.*double(JobTimeLimit)/double(NumIter)/60.);
+        long long TotalTime = JobTime.Stop()/1000000.;
+        double TimeRemaining = double(JobTimeLimit-TotalTime);
+        double IterRemaining = double(SEEDmin+NumIter-uSeed);
+        double AvgTimePerSeedRemaining = TimeRemaining/IterRemaining;
+        double NumIterDone = double(uSeed-SEEDmin);//completed iterations (not counting the current)
+        double NumIterRemain = double(SEEDmin+NumIter-uSeed-1);//remaining iteration (not counting the current)
+        double AvgIterTime = NumIterDone?IterTime/NumIterDone:0;
+        //a bonus that we add to the remaining average time, based on the difference between the
+        //remaining avg. and the current average time. If we are bad on time, this bonus becomes negative
+        //and serves as a regulator to bring us back on schedule
+        double BufferTime = AvgTimePerSeedRemaining-AvgIterTime;
+        //the maximum allowed time is: on the first iter, the average
+        //afterwards, it represents the remaining time, minus the expected time needed for the remaining iterations,
+        //based on the average run time so far. This is in case we do good on time
+        double MaxTime = NumIterDone?TimeRemaining-AvgIterTime*NumIterRemain:AvgTimePerSeedRemaining;
+        //if we do bad on time, the upper definition can lead to very very small max time.
+        //if too small, we set the max time to its 'minimal' max time, which is the average time remaining per iter
+        if(MaxTime<AvgTimePerSeedRemaining) MaxTime = AvgTimePerSeedRemaining;
+
+        //double MaxTime = NumIterDone?TimeRemaining/(NumIterDone+1.):AvgTimePerSeedRemaining;
+        double AllowedTime = AvgTimePerSeedRemaining+BufferTime;
+        if(AllowedTime>MaxTime) AllowedTime=MaxTime;
+        PatienceMax = (long long)(AllowedTime);
+        PatienceForPerfection = (long long)(AvgTimePerSeedRemaining);
+        ShowTime(PatienceMax,strtime,2,true,5);
+        printf("  Time limit: %s\n",strtime);
+
+        //ShowTime((long long)(TimeRemaining),strtime,2,true,5);
+        //printf("    TR: %s\n",strtime);
+        //ShowTime((long long)(AvgTimePerSeedRemaining),strtime,2,true,5);
+        //printf("  AITR: %s\n",strtime);
+        //ShowTime((long long)(AvgIterTime),strtime,2,true,5);
+        //printf("   AIT: %s\n",strtime);
+        //ShowTime((long long)(BufferTime),strtime,2,true,5);
+        //printf("  BUFF: %s\n",strtime);
+        //ShowTime((long long)(MaxTime),strtime,2,true,5);
+        //printf("   MAX: %s\n",strtime);
+
         TRandom3 rangen(uSeed+1);//avoid zero
         double OriginalValue;
+        double OriginalValueMin;
+        double OriginalValueMax;
         double Error;
         double RandomValue;
-        /*
-        TF1* fit_pL_RAW = new TF1("fit_pL_RAW",pLambda_Spline_CkFitRAW,kMin,kMax,3+NumKnots*2);
-        fit_pL_RAW->FixParameter(0,NumKnots);
-        //derivative at the firs knot
-        fit_pL_RAW->FixParameter(1,0);
-        fit_pL_RAW->SetParameter(2,0);
-        fit_pL_RAW->SetParLimits(2,-1e-3,1e-3);
-        for(unsigned uKnot=0; uKnot<NumKnots; uKnot++){
-            double HistVal = hData_pL->GetBinContent(hData_pL->FindBin(Nodes_x[uKnot]));
-            fit_pL_RAW->FixParameter(3+uKnot,Nodes_x[uKnot]);
-            fit_pL_RAW->SetParameter(3+NumKnots+uKnot,HistVal);
-            fit_pL_RAW->SetParLimits(3+NumKnots+uKnot,0,HistVal*2);
-        }
-        fit_pL_RAW->SetNpx(1024);
-        printf("About to fit hData_pL\n");
-        hData_pL->Fit(fit_pL_RAW,"S, N, R, M");
-        printf("hData_pL was fitted!\n");
-        */
+        double RandomMean;
+        double MOM;
 
         TH1F *hData_boot = (TH1F*)hData_pL->Clone("hData_boot");
         for(unsigned uBin=0; uBin<NumMomBins; uBin++){
-            OriginalValue = hData_pL->GetBinContent(uBin+1);
+            MOM = hData_pL->GetBinCenter(uBin+1);
+            OriginalValueMin = hData_pL->GetBinContent(uBin+1);
+            OriginalValueMax = fit_pL_RAW->Eval(MOM);
+            if(OriginalValueMax<OriginalValueMin){
+                OriginalValue = OriginalValueMin;
+                OriginalValueMin = OriginalValueMax;
+                OriginalValueMax = OriginalValue;
+            }
             Error = hData_pL->GetBinError(uBin+1);
-            if(uSeed) RandomValue = rangen.Gaus(OriginalValue,Error);
-            else RandomValue = OriginalValue;
+            //if(uSeed) RandomValue = rangen.Gaus(OriginalValue,Error);
+            //else RandomValue = OriginalValue;
+            //this is not so trivial. If I bootstrap from the data, I get more difficult to fit solutions (kind of normal,
+            //as we add fluctuations on top of the already fluctuating data points), if we sample from the best fit things look better,
+            //apart from just near the cusp, where some points look to be fluctuating away from the data by too much.
+            //THE SOLUTION: pre-bootstrap from a uniform distribution between the data and the fit solution, which is than used as
+            //the mean value for the actual bootstrap
+            if(uSeed){
+                RandomMean = rangen.Uniform(OriginalValueMin,OriginalValueMax);
+                RandomValue = rangen.Gaus(RandomMean,Error);
+            }
+            else RandomValue = hData_pL->GetBinContent(uBin+1);
             hData_boot->SetBinContent(uBin+1,RandomValue);
             hData_boot->SetBinError(uBin+1,Error);
         }
-
-        DLM_Ck* Ck_pL = new DLM_Ck(3+NumKnots*2,0,NumMomBins,kMin,kMax,pLambda_Spline_Ck);
-        //Ck_pL->SetSourcePar(0,ResidualSourceSize);
-        //TH2F* hResolution_pL = AnalysisObject.GetResolutionMatrix("pp13TeV_HM_Dec19","pLambda");
-        TH2F* hResolution_pL = AnalysisObject.GetResolutionMatrix("pp13TeV_HM_DimiJun20","pLambda");
-    //TH2F* hResolution_pL = AnalysisObject.GetResolutionMatrix("pp13TeV_HM_Dec19","pp");
-    //TH2F* hResolution_pL = AnalysisObject.GetResolutionMatrix("pp13TeV_HM_DimiJun20","pp");
-        DLM_CkDecomposition* CkDec_pL = new DLM_CkDecomposition("pLambda",0,*Ck_pL,hResolution_pL);
-        pLambda_Spline_CkFit_CKDEC = CkDec_pL;
-
-        TF1* fit_pL = new TF1("fit_pL",pLambda_Spline_CkFit,kMin,kMax,3+NumKnots*2);
-        fit_pL->FixParameter(0,NumKnots);
-        //derivative at the firs knot
-        fit_pL->FixParameter(1,0);
-        fit_pL->SetParameter(2,0);
-        fit_pL->SetParLimits(2,-1e-3,1e-3);
-        for(unsigned uKnot=0; uKnot<NumKnots; uKnot++){
-            double HistVal = hData_boot->GetBinContent(hData_boot->FindBin(Nodes_x[uKnot]));
-            fit_pL->FixParameter(3+uKnot,Nodes_x[uKnot]);
-            fit_pL->SetParameter(3+NumKnots+uKnot,HistVal);
-            fit_pL->SetParLimits(3+NumKnots+uKnot,0,HistVal*2);
-        }
-        //fit_pL->SetNpx(1024);
-
-        for(unsigned uPar=0; uPar<CkDec_pL->GetCk()->GetNumSourcePar(); uPar++){
-            CkDec_pL->GetCk()->SetSourcePar(uPar,fit_pL->GetParameter(uPar));
-        }
-        CkDec_pL->Update();
-
-        //printf("About to fit hData_boot\n");
-        hData_boot->Fit(fit_pL,"Q, S, N, R, M");
-        //printf("chi2/ndf = %.2f / %i\n",fit_pL->GetChisquare(),fit_pL->GetNDF());
-        //printf("prob = %.4f\n",fit_pL->GetProb());
-        //printf("nsigma = %.2f\n",sqrt(2)*TMath::ErfcInverse(fit_pL->GetProb()));
-
 
         //TH1F* hData_Unfolded = (TH1F*)hData_boot->Clone("hData_Unfolded");
         DLM_Ck* Ck_Unfolded = new DLM_Ck(0,0,NumMomBins,kMin,kMax,NULL);
@@ -11227,18 +11353,18 @@ void pLambda_Spline_Fit_Unfold2(const unsigned& SEEDmin, const unsigned& NumIter
 
         double BestChi2=1e6;
         double BestChi2_Data=1e6;
+        double BestChi2_Fit=1e6;
         double BestChi2_BinData=1e6;
+        double BestNDF=0;
         DLM_Ck* Ck_Best = new DLM_Ck(0,0,NumMomBins,kMin,kMax,NULL);
         DLM_Ck* Ck_Sample = new DLM_Ck(0,0,NumMomBins,kMin,kMax,NULL);
         DLM_CkDecomposition* CkDec_Best = new DLM_CkDecomposition("pLambda",0,*Ck_Best,hResolution_pL);
     //64.5, 64.6 for the fast round
     // New best fit: Chi2=85.568 (48.694+36.875) at uED=3 for the pLambda_Spline_Fit_Unfold2_TEST1_Chi2All.root
-        const unsigned NumBackAndForth = 2;
-        const unsigned MaxStepsWithoutImprovement1 = 32;
-        const unsigned MaxStepsWithoutImprovement2 = 16;
+
+
         unsigned StepsWithoutImprovement=0;
-        const unsigned ErrorDepth = 3;
-        const unsigned BinDepth = TMath::Nint(60./BinWidth);
+
 
 
         //bootstrap the sampling histogram ones, to avoid a bias in the chi2 determination (where the original solution is used as a benchmark)
@@ -11253,18 +11379,31 @@ void pLambda_Spline_Fit_Unfold2(const unsigned& SEEDmin, const unsigned& NumIter
         }
 
         for(unsigned uBF=0; uBF<NumBackAndForth; uBF++){
-            printf(" uBF = %u (%u)\n",uBF,NumBackAndForth);
+            sprintf(ctext1,"   uBF = %u (%u)",uBF,NumBackAndForth);
+            strcpy(ctext2,"");
+            strcpy(ctext3,"");
+            cout << ctext1 << flush;
+            bool REFRESHED_INFO = false;
             for(unsigned uBin=0; uBin<2*Ck_Sample->GetNbins(); uBin++){
                 //we iterate twice, from below and from above.
                 //The second iteration is for 'polishing',
                 //which is performed for fewer iterations, but higher depth
                 bool Polishing = uBin>=Ck_Sample->GetNbins();
+                //keep track of time, in case we exceed our limit, terminate asap
+                TotalTime = JobTime.Stop()/1000000.;
+                if(TotalTime>JobTimeLimit){
+                    TerminateASAP = true;
+                    break;
+                }
+
                 unsigned WhichBin = (!Polishing)?uBin:2*Ck_Sample->GetNbins()-uBin-1;
                 if(!Polishing&&WhichBin>Ck_Sample->GetNbins()-BinDepth) continue;
                 if(Polishing&&WhichBin<BinDepth-1) continue;
                 ///printf("WhichBin=%u\n",WhichBin);
         //if(!Polishing) continue;
-                const unsigned MaxStepsWithoutImprovement = (!Polishing)?MaxStepsWithoutImprovement1:MaxStepsWithoutImprovement2;
+                unsigned MaxStepsWithoutImprovement = (!Polishing)?MaxStepsWithoutImprovement1:MaxStepsWithoutImprovement2;
+                //if we are in a tough spot, increase the MaxSteps
+                MaxStepsWithoutImprovement *= (uBF/2+1);
                 for(unsigned uED=1*unsigned(Polishing); uED<ErrorDepth+1*unsigned(Polishing); uED++){
                     double Scale = pow(0.5,double(uED));
                     StepsWithoutImprovement=0;
@@ -11333,23 +11472,138 @@ void pLambda_Spline_Fit_Unfold2(const unsigned& SEEDmin, const unsigned& NumIter
                         //          on the next iterations, loosen up the condition to explore local minima
                         if(Chi2_Data<BestChi2_Data&&Chi2_BinFitMax<=double(uBF+1)*Chi2_BinDataMax){
                         //if(Chi2_BinDataMax<BestChi2_BinData){
+                            sprintf(ctext3," --> %.1f",Chi2_Data);
+                            if(PC_OUTPUT){
+                                printf("\r\033[K%s%s%s",ctext1,ctext2,ctext3);
+                                cout << flush;
+                            }
+                            if(!REFRESHED_INFO){
+                                sprintf(ctext2," χ2 = %.1f",Chi2_Data);
+                                if(!PC_OUTPUT) cout << ctext2 << flush;
+                                REFRESHED_INFO = true;
+                            }
                             BestChi2=Chi2;
                             BestChi2_Data=Chi2_Data;
                             BestChi2_BinData=Chi2_BinDataMax;
+                            BestChi2_Fit=Chi2_Fit;
+                            BestNDF=Ndf;
                             Ck_Best[0].Copy(Ck_Unfolded[0]);
                             Ck_Sample[0].Copy(Ck_Unfolded[0]);
                             StepsWithoutImprovement=0;
                             ///printf(" New best fit: Chi2=%.3f (%.3f+%.3f) at uED=%u\n",Chi2,Chi2_Data,Chi2_Fit,uED);
                             ///printf("  Chi2 Max (%.2f %.2f)\n",Chi2_BinDataMax,Chi2_BinFitMax);
+
+                            if(BestChi2_Data/BestNDF<Perfect_chi2ndf){
+                                TerminateIter = true;
+                                break;
+                            }
+                            long long ExeTime = ComputingTime.Stop()/1000000.;
+                            if(ExeTime>PatienceMax){
+                                TerminateIter = true;
+                                break;
+                            }
                         }
                         else{
                             //printf(" Current fit: Chi2=%.2f at uED=%u\n",Chi2,uED);
                             StepsWithoutImprovement++;
                         }
                     }//while
+                    if(TerminateIter) break;
                 }//uED
+                if(TerminateIter) break;
             }//uBin
+            long long ExeTime = ComputingTime.Stop()/1000000.;
+            f_chi2 = BestChi2_Data;
+            f_ndf = NumMomBins;
+            f_chi2ndf = f_chi2/double(f_ndf);
+            f_pval = TMath::Prob(f_chi2,f_ndf);
+            f_ns = sqrt(2)*TMath::ErfcInverse(f_pval+1e-32);
+
+            if(!REFRESHED_INFO){
+                sprintf(ctext2," χ2 = %.1f",f_chi2);
+                cout << ctext2 << flush;
+                REFRESHED_INFO = true;
+            }
+            if(PC_OUTPUT){printf("\r\033[K%s%s",ctext1,ctext2);}
+            printf(" --> %.1f\n",f_chi2);
+/*
+            if(f_chi2ndf<Perfect_chi2ndf){
+                ShowTime(ExeTime,strtime,2,true,5);
+                printf("  Perfect solution found at %s\n",strtime);
+                break;
+            }
+            if(f_chi2ndf<Okayish_chi2ndf && ExeTime>PatienceForPerfection){
+                ShowTime(ExeTime,strtime,2,true,5);
+                printf("  Okayish solution found at %s\n",strtime);
+                break;
+            }
+            if(ExeTime>PatienceMax){
+                ShowTime(ExeTime,strtime,2,true,5);
+                printf("  Over the time limit at %s\n",strtime);
+                break;
+            }
+*/
+
+            //end if we have a better chi2 than the current average,
+            //but we are above the average iteration time
+            //if(f_chi2ndf<Avg_chi2ndf&&double(ExeTime)>AvgTimePerSeedRemaining){
+//printf("%f %f\n",f_chi2ndf,Avg_chi2ndf);
+            if(f_chi2ndf<Perfect_chi2ndf){
+                ShowTime(ExeTime,strtime,2,true,5);
+                printf("  Perfect solution found at %s\n",strtime);
+                break;
+            }
+            if(f_chi2ndf<Avg_chi2ndf){
+                ShowTime(ExeTime,strtime,2,true,5);
+                printf("  Good solution found at %s\n",strtime);
+                break;
+            }
+            //end if we have exceeded the time limit
+            if(ExeTime>PatienceMax){
+                ShowTime(ExeTime,strtime,2,true,5);
+                printf("  Over the time limit at %s\n",strtime);
+                break;
+            }
+
+
+            TotalTime = JobTime.Stop()/1000000.;
+            if(TotalTime>JobTimeLimit){
+                ShowTime(TotalTime,strtime,2,true,5);
+                printf("  Time limit exceeded. Terminating at %s\n",strtime);
+                TerminateASAP = true;
+                break;
+            }
         }//uBF
+
+        long long ExeTime = ComputingTime.Stop()/1000000.;
+        Avg_chi2ndf = (Avg_chi2ndf*NumIterDone+f_chi2ndf)/(NumIterDone+1);
+        IterTime += ExeTime;
+        Chi2Ndf_Unfold->Fill(f_chi2ndf);
+        CPU_Unfold->Fill(double(ExeTime)/60.);
+        Chi2Ndf_CPU_Unfold->Fill(f_chi2ndf,double(ExeTime)/60.);
+
+        printf("  Final fit quality:\n");
+        printf("   chi2/ndf = %.2f/%i (%.2f)\n",f_chi2,f_ndf,Avg_chi2ndf*f_ndf);
+        //printf("   pval = %.4f\n",f_pval);
+        //printf("   nsigma = %.3f\n",f_ns);
+
+        AcceptSolution = (f_chi2ndf<Unacceptable_chi2ndf);
+        if(!AcceptSolution){
+            //delete Ck_pL;
+            //delete CkDec_pL;
+            //delete fit_pL;
+            delete Ck_Unfolded;
+            delete CkDec_Unfolded;
+            delete Ck_Best;
+            delete Ck_Sample;
+            delete CkDec_Best;
+            delete hData_boot;
+            printf(" REJECTED\n\n");
+            continue;
+        }
+        else{
+            printf(" ACCEPTED\n\n");
+        }
 
         //printf("Ending soon:\n");
 
@@ -11361,7 +11615,7 @@ void pLambda_Spline_Fit_Unfold2(const unsigned& SEEDmin, const unsigned& NumIter
 
 
         hData_pL->SetName(OriginalName+"_Original");
-        //fit_pL_RAW->SetName(OriginalName+"_fit_pL_RAW");
+        fit_pL_RAW->SetName(OriginalName+"_fit_pL_RAW");
         fit_pL->SetName(OriginalName+"_fit_pL");
 
 
@@ -11514,6 +11768,11 @@ void pLambda_Spline_Fit_Unfold2(const unsigned& SEEDmin, const unsigned& NumIter
         CkSmearedFit->Write("",TObject::kOverwrite);
         CkTheoryBest->Write("",TObject::kOverwrite);
         CkSmearedBest->Write("",TObject::kOverwrite);
+
+        Chi2Ndf_Unfold->Write("",TObject::kOverwrite);
+        CPU_Unfold->Write("",TObject::kOverwrite);
+        Chi2Ndf_CPU_Unfold->Write("",TObject::kOverwrite);
+
         /*
         if(!SafeFileOpening||InfoFileStatus==0){
             hCkBootstrap->Write("",TObject::kOverwrite);
@@ -11526,11 +11785,14 @@ void pLambda_Spline_Fit_Unfold2(const unsigned& SEEDmin, const unsigned& NumIter
 
 //printf("About to delete:\n");
         //if(InfoFileStatus==0){
-            delete CkBootstrap;
-            delete CkTheoryFit;
-            delete CkSmearedFit;
-            delete CkTheoryBest;
-            delete CkSmearedBest;
+        delete CkBootstrap;
+        delete CkTheoryFit;
+        delete CkSmearedFit;
+        delete CkTheoryBest;
+        delete CkSmearedBest;
+        delete Chi2Ndf_Unfold;
+        delete CPU_Unfold;
+        delete Chi2Ndf_CPU_Unfold;
             //delete hCkBootstrap;
             //delete hCkTheoryFit;
             //delete hCkSmearedFit;
@@ -11540,19 +11802,28 @@ void pLambda_Spline_Fit_Unfold2(const unsigned& SEEDmin, const unsigned& NumIter
 //printf("About to delete fOutput:\n");
         delete fOutput;
 //printf("About to delete rest:\n");
-        //delete fit_pL_RAW;
-        delete Ck_pL;
-        delete CkDec_pL;
-        delete fit_pL;
+
         delete Ck_Unfolded;
+        delete CkDec_Unfolded;
         delete Ck_Best;
+        delete CkDec_Best;
         delete Ck_Sample;
         delete hData_boot;
-//printf("COMPLETE!\n");
-    }
 
+        if(TerminateASAP) break;
+//printf("COMPLETE!\n");
+    }//uSeed
+
+    delete fit_pL_RAW;
+    delete fit_pL;
+    delete Ck_pL;
+    delete CkDec_pL;
     delete [] Nodes_x;
     delete hData_pL;
+    delete [] strtime;
+    delete [] ctext1;
+    delete [] ctext2;
+    delete [] ctext3;
 }
 
 void UpdateUnfoldFile(const char* CatsFileFolder, const TString& InputFileName, const int& BinWidth, const TString& DataVariation){
@@ -13830,11 +14101,11 @@ printf("PLAMBDA_1_MAIN\n");
 //const unsigned& SEEDmin, const unsigned& NumIter,
 //                                const double& BinWidth, const TString& DataVariation,
 //                                const char* CatsFileFolder, const TString& OutputFolder
-//pLambda_Spline_Fit_Unfold2(atoi(argv[1]),atoi(argv[2]),atoi(argv[3]),"L53_SL4_SR6_P96_0","/home/dmihaylov/CernBox/CatsFiles",
-//                           "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Unfolding/");
-UpdateUnfoldFile("/home/dmihaylov/CernBox/CatsFiles",
-                 "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Unfolding/CkSB_pL_L53_SL4_SR6_P96_0_Unfolded.root",
-                 20,"L53_SL4_SR6_P96_0");
+pLambda_Spline_Fit_Unfold2(atoi(argv[1]),atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),"L53_SL4_SR6_P96_0","/home/dmihaylov/CernBox/CatsFiles",
+                           "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Unfolding/Test4/");
+//UpdateUnfoldFile("/home/dmihaylov/CernBox/CatsFiles",
+//                 "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Unfolding/Test4/QA.root",
+//                 20,"L53_SL4_SR6_P96_0");
 
 
 //POT BL SIG ALPHA(20)

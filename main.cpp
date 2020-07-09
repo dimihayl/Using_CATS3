@@ -4117,6 +4117,21 @@ void TestLedniShit(){
 */
 }
 
+void CkHisto_test(){
+    //10 bins, 0-100 MeV
+    DLM_Ck* CkTest = new DLM_Ck(10,0,100);
+
+    for(unsigned uBin=0; uBin<10; uBin++){
+        CkTest->SetBinContent(uBin,uBin*uBin);
+    }
+
+    printf(" CkTest->Eval(5)=%.2f\n",CkTest->Eval(5));
+    printf(" CkTest->Eval(50)=%.2f\n",CkTest->Eval(50));
+    printf(" CkTest->Eval(95)=%.2f\n",CkTest->Eval(95));
+
+    delete CkTest;
+}
+
 int main(int argc, char *argv[])
 {
 
@@ -4136,6 +4151,8 @@ int main(int argc, char *argv[])
         ARGV[iARG] = new char [128];
         strcpy(ARGV[iARG],argv[iARG]);
     }
+
+    //CkHisto_test();
 
     //TestLedniShit();
     //cout << file_status("/home/dmihaylov/Dudek_Ubuntu/pNb_cosThCM_0_1.root") << endl;
