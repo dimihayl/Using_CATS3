@@ -5720,6 +5720,7 @@ void STUPED_TEST(){
 
 DLM_CkDecomposition* pLambda_1_Dec;
 CATS* pLambda_1_Cat;
+CATS* pLambda_1_CatFine;
 
 //parameters:
 //[0] = source size
@@ -5814,6 +5815,7 @@ double dimi_pL_May2020_FitterBl(double* x, double* par){
 }
 double dimi_pL_May2020_FitterFemto(double* x, double* par){
     double& MOM = *x;
+    const bool FINE = (MOM>264&&MOM<300);
 
     pLambda_1_Cat->SetChannelWeight(7,1./4.*par[2]);//1S0 SN(s) -> LN(s)
     pLambda_1_Cat->SetChannelWeight(8,3./4.*par[2]);//3S1 SN(s) -> LN(s)
@@ -5826,9 +5828,70 @@ double dimi_pL_May2020_FitterFemto(double* x, double* par){
     }
     pLambda_1_Cat->KillTheCat();
     pLambda_1_Dec->GetCk()->SetCutOff(par[3],par[4]);
-    pLambda_1_Dec->Update(true);
 
-    return pLambda_1_Dec->EvalCk(MOM);
+    //just around the cusp, we make the integrated bin value
+    //we ASSUME there is no smearing effect present, so this works well only for unfolded data
+
+    if(FINE){
+//printf("FINE:\n");
+        pLambda_1_CatFine->SetChannelWeight(7,1./4.*par[2]);//1S0 SN(s) -> LN(s)
+        pLambda_1_CatFine->SetChannelWeight(8,3./4.*par[2]);//3S1 SN(s) -> LN(s)
+        pLambda_1_CatFine->SetChannelWeight(10,3./4.*par[2]);//3S1 SN(d) -> LN(s)
+        pLambda_1_CatFine->SetChannelWeight(13,3./20.*par[2]);//3D1 SN(d) -> LN(d)
+        pLambda_1_CatFine->SetChannelWeight(15,3./20.*par[2]);//3D1 SN(s) -> LN(d)
+        pLambda_1_CatFine->SetAnaSource(0,par[0],true);
+        if(pLambda_1_CatFine->GetNumSourcePars()>1){
+            pLambda_1_CatFine->SetAnaSource(1,par[1],true);
+        }
+        pLambda_1_CatFine->KillTheCat();
+
+        const unsigned NumIntSteps = 7;
+        const double IntWidth = 6;
+        //only for the bin near the cusp, we make the avg. bin value based on multiple evaluation points, else its the bin center
+        const unsigned NumAvgSteps = 9;
+
+        double CkGenuine_Fine=0;
+        double mom_val;
+        //+/- this value, so 1/2 bin width. Should work approx. for different (but similar, say 8-16 MeV) binning as well.
+        const double AvgRange = 6;
+        const double AvgStep = (2.*AvgRange)/double(NumAvgSteps-1);
+        for(unsigned uBin=0; uBin<NumAvgSteps; uBin++){
+            mom_val = (MOM-AvgRange)+double(uBin)*AvgStep;
+            CkGenuine_Fine += pLambda_1_CatFine->EvalCorrFun(mom_val);
+        }
+        //up to know, this is the genuine Ck, without any feed-down etc
+        CkGenuine_Fine /= double(NumAvgSteps);
+        //we will use the result from the full decomposition, to estimate the effect of the feeddown.
+        //here the assumption (should be super good) is that apart from the cusp, all other contributions are
+        //linear inside the bin in question
+        pLambda_1_Dec->Update(true,true);
+
+        //this is the contribution (C-1) from non-genuine stuff, scaled for lambda parameters
+        double SignalNonGenuine = pLambda_1_Dec->EvalSignal(MOM)-pLambda_1_Dec->EvalSignalMain(MOM);
+        //this is the same observable, but for the Genuine part
+        double SignalGenuineFine = (CkGenuine_Fine-1.)*pLambda_1_Dec->GetLambdaMain();
+//double SignalGenuine = (pLambda_1_Cat->EvalCorrFun(MOM)-1.)*pLambda_1_Dec->GetLambdaMain();
+//double LambdaMain = pLambda_1_Dec->GetLambdaMain();
+//DLM_Ck WTF_CK(pLambda_1_Cat->GetNumSourcePars(),0,*pLambda_1_Cat);
+//WTF_CK.Update(true);
+//printf(" QA Ck:\n");
+//printf("  C(%.0f) = %.4f\n",MOM,pLambda_1_Dec->EvalCk(MOM));
+//printf("  Ck = %.4f\n",pLambda_1_Dec->GetCk()->Eval(MOM));
+//printf("   CL = %.4f -> %.4f\n",pLambda_1_Dec->EvalSignalMain(MOM)+LambdaMain,(pLambda_1_Dec->EvalSignalMain(MOM)+LambdaMain)/LambdaMain);
+//printf("  CATS = %.4f -> %.4f\n",pLambda_1_Cat->EvalCorrFun(MOM)*LambdaMain,pLambda_1_Cat->EvalCorrFun(MOM));
+//printf("  WTF_CK = %.4f\n",WTF_CK.Eval(MOM));
+//printf(" QA (%.0f):\n",MOM);
+//printf("  Default value: %.4f\n",pLambda_1_Dec->EvalCk(MOM));
+//printf("       QA value: %.4f\n",SignalGenuine+SignalNonGenuine+1.);
+//printf("  Refined value: %.4f\n",SignalGenuineFine+SignalNonGenuine+1.);
+//usleep(200e3);
+
+        return SignalGenuineFine+SignalNonGenuine+1.;
+    }
+    else{
+        pLambda_1_Dec->Update(true);
+        return pLambda_1_Dec->EvalCk(MOM);
+    }
 }
 double dimi_pL_May2020_Fitter(double* x, double* par){
     return dimi_pL_May2020_FitterFemto(x,par)*dimi_pL_May2020_FitterBl(x,&par[5]);
@@ -7163,6 +7226,31 @@ void pL_SystematicsMay2020(unsigned SEED, unsigned BASELINE_VAR, int POT_VAR, in
     AB_pL.SetNotifications(CATS::nError);
     AB_pL.KillTheCat();
 
+    const unsigned NumFineBins = 25;//it works out like that if we want 1.5 MeV step size, as defined above in the fit function
+    const double FineValueMin = 264;
+    const double FineValueMax = 300;
+    const double FineWidth = (FineValueMax-FineValueMin)/double(NumFineBins-1);
+    CATS ABF_pL;
+    ABF_pL.SetMomBins(NumFineBins,FineValueMin-FineWidth*0.5,FineValueMax+FineWidth*0.5);
+    AnalysisObject.SetUpCats_pL(ABF_pL,"Chiral_Coupled_SPD",SourceDescription,POT_VAR,202);//NLO_Coupled_S
+
+    CuspWeight = 0.33;//0.54
+    if(abs(POT_VAR)>1000){
+        ABF_pL.SetChannelWeight(7,1./4.*CuspWeight);//1S0 SN(s) -> LN(s)
+        ABF_pL.SetChannelWeight(8,3./4.*CuspWeight);//3S1 SN(s) -> LN(s)
+        ABF_pL.SetChannelWeight(10,3./4.*CuspWeight);//3S1 SN(d) -> LN(s)
+        ABF_pL.SetChannelWeight(13,3./20.*CuspWeight);//3D1 SN(d) -> LN(d)
+        ABF_pL.SetChannelWeight(15,3./20.*CuspWeight);//3D1 SN(s) -> LN(d)
+    }
+
+    ABF_pL.SetAnaSource(0,1.4);
+    if(SourceDescription.Contains("Mc")){
+        ABF_pL.SetAnaSource(0,1.10);//c.a. 10% smaller compared to p-p due to the mT scaling
+        ABF_pL.SetAnaSource(1,SourceAlpha);
+    }
+    ABF_pL.SetNotifications(CATS::nError);
+    ABF_pL.KillTheCat();
+
     //usmani fit = 1
     const unsigned PotFitPar = POT_VAR==101?1:0;
     Ck_pL = new DLM_Ck(AB_pL.GetNumSourcePars(),PotFitPar,AB_pL,NumBinsCk,0,MaxBinValCk);
@@ -7443,6 +7531,7 @@ void pL_SystematicsMay2020(unsigned SEED, unsigned BASELINE_VAR, int POT_VAR, in
 
         pLambda_1_Dec = CkDec_pL;
         pLambda_1_Cat = &AB_pL;
+        pLambda_1_CatFine = &ABF_pL;
 
         const int NumKnots = 6;
         // = new double [NumKnots];
@@ -7649,7 +7738,7 @@ printf("\n");
     delete Ck_pXi0;
     delete Ck_pS0_Chiral;
     delete Ck_pS0_ESC16;
-    delete hResolution_pL;
+    if(hResolution_pL){delete hResolution_pL;hResolution_pL=NULL;}
     delete hResidual_pL_pSigma0;
     delete hResidual_pL_pXim;
     delete hResidual_pL_pXi0;
@@ -8939,13 +9028,15 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
     TString BlName1;
     TString BlName2;
     TString BlDescr;
-    const float MinRad = 0.96;
+    const float MinRad = 0.96;//0.96
     const float MaxRad = 1.08;
-    const float MinOmega = 0.25;
+    const float MinOmega = 0.35;//0.25
     const float MaxOmega = 0.45;
     const float MinCkConv = 600;
     const float MaxCkConv = 800;
-    const float FractionOfSolutions = 1./4.;
+    //const float Use_SBpur = 0.963;
+    const float Use_SBpur = 0.0;
+    const float FractionOfSolutions = 1.;
 
     const bool Same_omega_siglam = false;
     //const bool COMPARE_TO_LO = true;
@@ -9231,7 +9322,8 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
     AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
     TH1F* hData_pL_Stat;
     //if(DataSample[0]=="pp13TeV_HM_DimiJun20")
-    hData_pL_Stat = AnalysisObject.GetAliceExpCorrFun("pp13TeV_HM_DimiJun20","pLambda",TString::Format("L%.0f_SL4_SR6_P%.0f_0",0.529*100,0.963*100),2,false,-1);
+    //hData_pL_Stat = AnalysisObject.GetAliceExpCorrFun("pp13TeV_HM_DimiJun20","pLambda",TString::Format("L%.0f_SL4_SR6_P%.0f_0",0.529*100,0.963*100),2,false,-1);
+    hData_pL_Stat = NULL;
     //else hData_pL_Stat = AnalysisObject.GetAliceExpCorrFun(DataSample[0],"pLambda","_0",2,false,-1);
 
     TH2F* hnsigma = new TH2F("hnsigma","hnsigma",MaxNumBins,0,MaxNumBins,2048,-32,32);
@@ -9327,11 +9419,14 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
         //Chi2_300[uEntry] = 1e6;
         //NDF_300[uEntry] = 0;
         plambdaTree->GetEntry(uEntry);
+        if(!hData_pL_Stat){
+            hData_pL_Stat = AnalysisObject.GetAliceExpCorrFun(DataSample[0],"pLambda",TString::Format("L%.0f_SL4_SR6_P%.0f_0",0.529*100,0.963*100),2,false,-1);
+        }
         SigLamFrac=lam_L_Sig0/lam_L_genuine;
         XiSigLamFrac=(lam_L_Xi0+lam_L_Xim)/(lam_L_genuine+lam_L_Sig0);
         unsigned WhichBin[7];
         //if(*DataSample=="pp13TeV_HM_DimiJun20") GetIterCombo170620(WhichBin,SourceSize,lam_L_genuine,CuspWeight,SourceAlpha);
-        if(*DataSample=="pp13TeV_HM_DimiJun20") GetIterCombo040720(WhichBin,SourceSize,SBpur,SigLamFrac,XiSigLamFrac,CuspWeight,SourceAlpha,CkConv);
+        if(*DataSample=="pp13TeV_HM_DimiJun20"||*DataSample=="pp13TeV_HM_DimiJul20") GetIterCombo040720(WhichBin,SourceSize,SBpur,SigLamFrac,XiSigLamFrac,CuspWeight,SourceAlpha,CkConv);
         else {printf("big trouble, the function will not work unless you checkout an older version (before 4th July 2020\n)"); abort();}
         //else GetIterCombo040620(WhichBin,SourceSize,lam_L_genuine,CuspWeight,SourceAlpha);
 
@@ -9345,6 +9440,7 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
 //printf("4\n");
         if(SourceSize<MinRad||SourceSize>MaxRad) continue;
         if(CkConv<MinCkConv||CkConv>MaxCkConv) continue;
+        if(Use_SBpur&&fabs(Use_SBpur-SBpur)>0.001) continue;
 //printf("5\n");
         //if(lam_L_genuine<MinLambda||lam_L_genuine>MaxLambda) continue;
 //printf("6\n");
@@ -9495,6 +9591,7 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
         if( fabs(SourceAlpha-ValSourceAlpha)>0.01 ) continue;
         if(SourceSize<MinRad||SourceSize>MaxRad) continue;
         if(CkConv<MinCkConv||CkConv>MaxCkConv) continue;
+        if(Use_SBpur&&fabs(Use_SBpur-SBpur)>0.001) continue;
 //printf("%f %f %f\n",MinLambda,lam_L_genuine,MaxLambda);
         //if(lam_L_genuine<MinLambda||lam_L_genuine>MaxLambda) continue;
         if(CuspWeight<MinOmega||CuspWeight>MaxOmega) continue;
@@ -10163,7 +10260,7 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
     //DataHisto_Inlet->GetYaxis()->SetTitleSize(hData_pL_Stat->GetYaxis()->GetTitleSize()*1.75);
     //DataHisto_Inlet->GetYaxis()->SetLabelSize(hData_pL_Stat->GetYaxis()->GetLabelSize()*1.75);
     //DataHisto_Inlet->GetYaxis()->SetTitleOffset(hData_pL_Stat->GetYaxis()->GetTitleOffset()*0.67);
-    if(*DataSample=="pp13TeV_HM_DimiJun20") DataHisto_Inlet->GetYaxis()->SetRangeUser(0.965, 1.065);
+    if(*DataSample=="pp13TeV_HM_DimiJun20"||*DataSample=="pp13TeV_HM_DimiJul20") DataHisto_Inlet->GetYaxis()->SetRangeUser(0.965, 1.065);
     else DataHisto_Inlet->GetYaxis()->SetRangeUser(0.985, 1.085);
 
     TGraph* grFemto_Inlet = (TGraph*)ge_Fit->Clone("grFemto_Inlet");
@@ -14140,16 +14237,22 @@ printf("PLAMBDA_1_MAIN\n");
 //cout << argv[2] << endl;
 //cout << argv[3] << endl;
 //cout << argv[4] << endl;
-UpdateUnfoldFile(argv[1],argv[2],argv[3],argv[4],atoi(argv[5]));
+//UpdateUnfoldFile(argv[1],argv[2],argv[3],argv[4],atoi(argv[5]));
 
-
+//const int& SIGMA_FEED,const int& WhichBaseline,
+//const int& WhichPotential,const float& ValSourceAlpha,
+//TString InputFolder, TString InputFileName, TString OutputFolder
 //POT BL SIG ALPHA(20)
-//Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(atoi(argv[4]))/10.,
-//                            "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/060720_MEsmear/Test/",
-//                            TString::Format("Merged_pp13TeV_HM_DimiJun20_POT%i_BL%i_SIG%i.root",
-//                            atoi(argv[1]),atoi(argv[2]),atoi(argv[3])),
-//                            //"UpdatedSyst040720.root",
-//                            "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/060720_MEsmear/Test/Plots/");
+
+Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(atoi(argv[4]))/10.,
+                            //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/100720_Unfolded/",
+                            //TString::Format("Merged_pp13TeV_HM_DimiJul20_POT%i_BL%i_SIG%i.root",
+                            //atoi(argv[1]),atoi(argv[2]),atoi(argv[3])),
+                            "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/",
+                            "UnfoldRefine_pp13TeV_HM_DimiJul20_POT11600_BL10_SIG1.root",
+                            //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/100720_Unfolded/Plots/"
+                            "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/"
+                            );
 //MakeLATEXtable("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/050720_Xi0/Plots/");
 
 
@@ -14186,12 +14289,13 @@ UpdateUnfoldFile(argv[1],argv[2],argv[3],argv[4],atoi(argv[5]));
 //CompareChiralNLO_pLambda();
 
 
-//unsigned SEED, unsigned BASELINE_VAR, int POT_VAR, int Sigma0_Feed,
+//unsigned SEED, unsigned BASELINE_VAR, int POT_VAR, int Sigma0_Feed, int Data_Type,
                            //bool DataSyst, bool FitSyst, bool Bootstrap, unsigned NumIter,
                           // const char* CatsFileFolder, const char* OutputFolder
-//pL_SystematicsMay2020(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]), atoi(argv[6]), atoi(argv[7]), atoi(argv[8]),
+//pL_SystematicsMay2020(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]), atoi(argv[6]), atoi(argv[7]), atoi(argv[8]), atoi(argv[9]),
 //"/home/dmihaylov/CernBox/CatsFiles",
 //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/");
+
 //pL_SystematicsMay2020(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]), atoi(argv[6]), atoi(argv[7]),
 //                      argv[8],argv[9]);
 //pL_SystematicsMay2020(1, 9, 11600, 0, 64,

@@ -3031,13 +3031,17 @@ TH2F* DLM_CommonAnaFunctions::GetResolutionMatrix(const TString& DataSample,cons
 
 
 
-    if((DataSample=="pp13TeV_HM_DimiJun20"||DataSample=="pp13TeV_HM_DimiJul20")&&System=="pp"){
+    if(DataSample=="pp13TeV_HM_DimiJun20"&&System=="pp"){
         FileName = CatsFilesFolder[0]+"/MomentumSmear/ALICE_pp_13TeV_MEpp.root";
         HistoName = "h_RESO_pp_MeV";
     }
-    if((DataSample=="pp13TeV_HM_DimiJun20"||DataSample=="pp13TeV_HM_DimiJul20")&&System=="pLambda"){
+    if(DataSample=="pp13TeV_HM_DimiJun20"&&System=="pLambda"){
         FileName = CatsFilesFolder[0]+"/MomentumSmear/ALICE_pp_13TeV_MEpL.root";
         HistoName = "h_RESO_pL_MeV";
+    }
+    //this is the unfolded data
+    if(DataSample=="pp13TeV_HM_DimiJul20"){
+        return NULL;
     }
 
     ///FUCKING ROOT SUCKS!!!!!! SUCK MY COCK!!!! SUCK IT YOU BITCH!!!!!!!!!!
