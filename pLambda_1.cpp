@@ -7354,7 +7354,7 @@ void pL_SystematicsMay2020(unsigned SEED, unsigned BASELINE_VAR, int POT_VAR, in
         //this parameter only plays a role for the extended fit range
         unsigned WhichCkConv = rangen.Integer(3);
         if(BASELINE_VAR<pol2e||BASELINE_VAR>spl1) WhichCkConv=0;
-        if(DefaultVariation||FitSyst==false||!ExtendedSyst) WhichCkConv=0;
+        if(DefaultVariation||FitSyst==false) WhichCkConv=0;
         switch(WhichCkConv){
             case 0 : CkConv = 700; break;
             case 1 : CkConv = 500; break;
@@ -9022,7 +9022,7 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
                                   const int& WhichBaseline,
                                   const int& WhichPotential,
                                   const float& ValSourceAlpha,
-                                  TString InputFolder, TString InputFileName, TString OutputFolder){
+                                  TString InputFolder, TString InputFileName, TString OutputFolder, const int& WhichDataSet=-1){
 
     enum BLTYPE { pol0s,pol1s,pol2s,pol3s,dpol2s,dpol3s,dpol4s,pol2e,pol3e,dpol2e,dpol3e,dpol4e,spl1 };
     TString BlName1;
@@ -9036,6 +9036,8 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
     const float MaxCkConv = 800;
     //const float Use_SBpur = 0.963;
     const float Use_SBpur = 0.0;
+    const int MinGoodCut = -10;
+    const int MaxGoodCut = 5;
     const float FractionOfSolutions = 1.;
 
     const bool Same_omega_siglam = false;
@@ -9045,7 +9047,78 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
     //3 digits  #1 = plot the sum of both
     //          #2 = plot xim
     //          #3 = plot xi0
-    int XI_PLOT = 111;
+    const int XI_PLOT = 100;
+    const bool PlotLines = false;
+    const bool DefaultBinValue = false;
+    int* GoodCutVar = new int [45];
+    //for(unsigned uCut=0; uCut<45; uCut++) GoodCutVar[uCut] = 25;
+    //exclude all (12) cut vars with an yield change of more than 10%
+    GoodCutVar[0] = 0;
+    GoodCutVar[1] = -15;
+    GoodCutVar[2] = -15;
+    GoodCutVar[3] = -10;
+    GoodCutVar[4] = -10;
+    GoodCutVar[5] = 5;
+    GoodCutVar[6] = -10;
+    GoodCutVar[7] = -5;
+    GoodCutVar[8] = 10;
+    GoodCutVar[9] = -10;
+    GoodCutVar[10] = 5;
+    GoodCutVar[11] = -15;
+    GoodCutVar[12] = 5;
+    GoodCutVar[13] = -5;
+    GoodCutVar[14] = 5;
+    GoodCutVar[15] = -25;
+    GoodCutVar[16] = 5;
+    GoodCutVar[17] = -5;
+    GoodCutVar[18] = -1;
+    GoodCutVar[19] = -15;
+    GoodCutVar[20] = 10;
+    GoodCutVar[21] = -5;
+    GoodCutVar[22] = 5;
+    GoodCutVar[23] = -10;
+    GoodCutVar[24] = -5;
+    GoodCutVar[25] = 5;
+    GoodCutVar[26] = -20;
+    GoodCutVar[27] = -10;
+    GoodCutVar[28] = -10;
+    GoodCutVar[29] = -5;
+    GoodCutVar[30] = -5;
+    GoodCutVar[31] = 10;
+    GoodCutVar[32] = -20;
+    GoodCutVar[33] = -15;
+    GoodCutVar[34] = -10;
+    GoodCutVar[35] = -5;
+    GoodCutVar[36] = -15;
+    GoodCutVar[37] = -1;
+    GoodCutVar[38] = -15;
+    GoodCutVar[39] = 1;
+    GoodCutVar[40] = -15;
+    GoodCutVar[41] = -5;
+    GoodCutVar[42] = -25;
+    GoodCutVar[43] = -10;
+    GoodCutVar[44] = -5;
+    if(WhichDataSet>=0){
+        for(unsigned uCut=0; uCut<45; uCut++){
+            GoodCutVar[uCut] = 1000000;
+        }
+        GoodCutVar[WhichDataSet] = MinGoodCut;
+    }
+
+    //GoodCutVar[1] = false;
+    //GoodCutVar[2] = false;
+    //GoodCutVar[11] = false;
+    //GoodCutVar[15] = false;
+    //GoodCutVar[19] = false;
+    //GoodCutVar[26] = false;
+    //GoodCutVar[32] = false;
+    //GoodCutVar[33] = false;
+    //GoodCutVar[36] = false;
+    //GoodCutVar[38] = false;
+    //GoodCutVar[40] = false;
+    //GoodCutVar[42] = false;
+
+
 
     switch(WhichBaseline){
         case pol0s :    BlName1 = "Constant baseline";
@@ -9447,6 +9520,7 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
         if(CuspWeight<MinOmega||CuspWeight>MaxOmega) continue;
 //printf("7\n");
         if( fabs(SigLamFrac-CuspWeight)>0.001 && Same_omega_siglam ) continue;
+        if(GoodCutVar[WhichData]<MinGoodCut||GoodCutVar[WhichData]>MaxGoodCut) continue;
         if(rangenfrac1.Uniform()>FractionOfSolutions) continue;
 //if(uEntry<20){
 //    printf("uEntry=%u\n",uEntry);
@@ -9585,6 +9659,25 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
         //else GetIterCombo040620(WhichBin,SourceSize,lam_L_genuine,CuspWeight,SourceAlpha);
         GetIterCombo040720(WhichBin,SourceSize,SBpur,SigLamFrac,XiSigLamFrac,CuspWeight,SourceAlpha,CkConv);
 
+        unsigned NumBins = gData->GetN();
+        for(unsigned uBin=0; uBin<NumBins; uBin++){
+            if(GoodCutVar[WhichData]<MinGoodCut||GoodCutVar[WhichData]>MaxGoodCut) break;
+            if(uBin>=MaxNumBins) break;
+            double xVal,yVal,yErr;
+            gData->GetPoint(uBin,xVal,yVal);
+            yErr = gData->GetErrorY(uBin);
+            //the data is only plotted for the default iter (no bootstrap)
+            if(DefaultVariation){
+                hData_pL_Stat->SetBinContent(uBin+1,yVal);
+                hData_pL_Stat->SetBinError(uBin+1,yErr);
+            }
+            //the error is computed based on all iterations
+            //we include the purity variations in the systematics, to avoid a
+            //model dependent representation of the data!
+            gdata_toterr->SetPoint(uBin,xVal,yVal);
+            hdata_toterr->Fill(double(uBin)+0.5,yVal);
+        }
+
         if(Sigma0_Feed!=SIGMA_FEED) continue;
         if(BASELINE_VAR!=WhichBaseline) continue;
         if(POT_VAR!=WhichPotential) continue;
@@ -9596,12 +9689,13 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
         //if(lam_L_genuine<MinLambda||lam_L_genuine>MaxLambda) continue;
         if(CuspWeight<MinOmega||CuspWeight>MaxOmega) continue;
         if( fabs(SigLamFrac-CuspWeight)>0.001 && Same_omega_siglam ) continue;
+        if(GoodCutVar[WhichData]<MinGoodCut||GoodCutVar[WhichData]>MaxGoodCut) continue;
         if(rangenfrac2.Uniform()>FractionOfSolutions) continue;
 //if(uEntry<20){
 //    printf("uEntry=%u\n",uEntry);
 //}
 //printf("GO ON\n");
-        unsigned NumBins = gData->GetN();
+
         //the [2] was used for saving the previous bin for the derivative
         double data_val[2];
         double data_err[2];
@@ -9730,21 +9824,7 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
                 //best purity iteration -> use to plot the data
                 //if(WhichBinBest[1]==WhichBinCurrent[1]){
                     //for(unsigned uEntry=0; uEntry<NumEntries; uEntry++){
-                    double xVal,yVal,yErr;
-                    if(uBin<MaxNumBins){
-                        gData->GetPoint(uBin,xVal,yVal);
-                        yErr = gData->GetErrorY(uBin);
-                        //the data is only plotted for the default iter (no bootstrap)
-                        if(DefaultVariation){
-                            hData_pL_Stat->SetBinContent(uBin+1,yVal);
-                            hData_pL_Stat->SetBinError(uBin+1,yErr);
-                        }
-                        //the error is computed based on all iterations
-                        //we include the purity variations in the systematics, to avoid a
-                        //model dependent representation of the data!
-                        gdata_toterr->SetPoint(uBin,xVal,yVal);
-                        hdata_toterr->Fill(double(uBin)+0.5,yVal);
-                    }
+/// initially the syst err on the data was computed here
                     //}
                 //}
             }
@@ -10131,34 +10211,33 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
     hData_pL_Stat->GetYaxis()->SetRangeUser(0.9, 2.0);
     hData_pL_Stat->SetFillColor(kGray+1);
     SetStyleHisto2a(hData_pL_Stat,2,0);
-    //hData_pL_Stat->GetYaxis()->SetTitleOffset(1.0);
-    hData_pL_Stat->Draw();
 
-    //TFile* DataSystFile = new TFile("/home/dmihaylov/CernBox/CatsFiles/ExpData/ALICE_pp_13TeV_HM/Sample10HM/Systematics_pL.root");
-    //TH1F* DataSystHisto = (TH1F*)DataSystFile->Get("SystErrRel");
-    //TGraphErrors *Tgraph_syserror = DrawSystematicError_FAST(hData_pL_Stat, DataSystHisto, NULL, 3);
     TGraphErrors *Tgraph_syserror = (TGraphErrors*)gdata_toterr->Clone("Tgraph_syserror");
     for(unsigned uBin=0; uBin<Tgraph_syserror->GetN(); uBin++){
         double tot_err,stat_err,syst_err,k_err,Ck_val;
         double xVal,yVal;
-        Ck_val = hData_pL_Stat->GetBinContent(uBin+1);
+        gdata_toterr->GetPoint(uBin,xVal,yVal);
+        if(DefaultBinValue) Ck_val = hData_pL_Stat->GetBinContent(uBin+1);
+        else Ck_val = yVal;
         k_err = Tgraph_syserror->GetErrorX(uBin);
         tot_err = Tgraph_syserror->GetErrorY(uBin);
         stat_err = hData_pL_Stat->GetBinError(uBin+1);
         syst_err = tot_err>stat_err?sqrt(tot_err*tot_err-stat_err*stat_err):0;
+//syst_err=tot_err;
+
+        hData_pL_Stat->SetBinContent(uBin+1,Ck_val);
+        hData_pL_Stat->SetBinError(uBin+1,stat_err);
+
         Tgraph_syserror->GetPoint(uBin,xVal,yVal);
         Tgraph_syserror->SetPoint(uBin,xVal,Ck_val);
         Tgraph_syserror->SetPointError(uBin,k_err,syst_err);
     }
     Tgraph_syserror->SetLineColor(kWhite);
-    //baselineLL->Draw("same");
-    //if(!DataOnly){
-    //ge_Xim->Draw("3 same");
-    //ge_Sig->Draw("3 same");
-    //ge_Bl->Draw("3 same");
-    //ge_Fit->Draw("3 same");
 
-    if(XI_PLOT%100) geb_Xim->Draw("3L same");
+
+    hData_pL_Stat->Draw();
+    TString DrawOptions = PlotLines?"3L same":"3 same";
+    if(XI_PLOT%100) geb_Xim->Draw("3L same");//3L to put a line
     if((XI_PLOT/10)%10 && fitSignal_pL_pXi0) geb_Xi0->Draw("3L same");
     if(XI_PLOT/100) geb_Xi->Draw("3L same");
     geb_Sig->Draw("3L same");
@@ -10304,13 +10383,13 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
     //ge_Sig->Draw("3 same");
     //ge_Bl->Draw("3 same");
     //grFemto_Inlet->Draw("3 same");
-    if(XI_PLOT%100) geb_Xim->Draw("3L same");
-    if((XI_PLOT/10)%10) geb_Xi0->Draw("3L same");
-    if(XI_PLOT/100) geb_Xi->Draw("3L same");
-    geb_Sig->Draw("3L same");
-    if(fitLoDummy) fitLoDummy->Draw("3L same");
-    geb_Bl->Draw("3L same");
-    grbFemto_Inlet->Draw("3 same");
+    if(XI_PLOT%100) geb_Xim->Draw(DrawOptions);
+    if((XI_PLOT/10)%10) geb_Xi0->Draw(DrawOptions);
+    if(XI_PLOT/100) geb_Xi->Draw(DrawOptions);
+    geb_Sig->Draw(DrawOptions);
+    if(fitLoDummy) fitLoDummy->Draw(DrawOptions);
+    geb_Bl->Draw(DrawOptions);
+    grbFemto_Inlet->Draw(DrawOptions);
     DataHisto_Inlet->Draw("same");
     Tgraph_syserror->Draw("2 same");
 
@@ -10338,7 +10417,7 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
     //ge_SigmaSlice->GetYaxis()->SetNdivisions(204);
     //if(!DataOnly)
     //ge_SigmaSlice->Draw("3 same");
-    geb_SigmaSlice->Draw("3L same");
+    geb_SigmaSlice->Draw(DrawOptions);
     /// a plot of the deviation of the first derivative
     //ge_SigmaSlice_der->Draw("3 same");
     //fe_Sigma->Draw("same");
@@ -10360,8 +10439,12 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
     ////BeamText_nsigma_info.DrawLatex(0.80, 0.83, TString::Format("k*#in[0, 300] MeV/#it{c}"));
     //BeamText_nsigma_info.DrawLatex(0.73, 0.83, TString::Format("k*#in[0, 300] MeV/#it{c}, n_{#sigma} = %.1f",MinNsigma));
 
-    DlmPad->GetCanvas()->SaveAs(OutputFolder+TString::Format("DlmPad_%s_%s_%s_%i.pdf",PotDescr.Data(),BlDescr.Data(),SigDescr.Data(),
+    if(WhichDataSet<0)
+        DlmPad->GetCanvas()->SaveAs(OutputFolder+TString::Format("DlmPad_%s_%s_%s_%i.pdf",PotDescr.Data(),BlDescr.Data(),SigDescr.Data(),
                                                              TMath::Nint(ValSourceAlpha*10.)));
+    else
+        DlmPad->GetCanvas()->SaveAs(OutputFolder+TString::Format("DlmPad_%s_%s_%s_%i_DS%i.pdf",PotDescr.Data(),BlDescr.Data(),SigDescr.Data(),
+                                                             TMath::Nint(ValSourceAlpha*10.),WhichDataSet));
 
     float MinChi2NDF = MinChi2/double(MinNdf);
 
@@ -10508,6 +10591,7 @@ printf("Delete 2\n");
     if(fitLoDummy) delete fitLoDummy;
     delete InputFile;
     delete [] InfoFileName;
+    delete [] GoodCutVar;
     if(InfoFileStatus==0){
         delete InfoTree;
     }
@@ -14245,15 +14329,16 @@ printf("PLAMBDA_1_MAIN\n");
 //POT BL SIG ALPHA(20)
 
 Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(atoi(argv[4]))/10.,
-                            //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/100720_Unfolded/",
-                            //TString::Format("Merged_pp13TeV_HM_DimiJul20_POT%i_BL%i_SIG%i.root",
-                            //atoi(argv[1]),atoi(argv[2]),atoi(argv[3])),
-                            "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/",
-                            "UnfoldRefine_pp13TeV_HM_DimiJul20_POT11600_BL10_SIG1.root",
-                            //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/100720_Unfolded/Plots/"
-                            "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/"
+                            "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/100720_Unfolded/",
+                            TString::Format("Merged_pp13TeV_HM_DimiJul20_POT%i_BL%i_SIG%i.root",
+                            atoi(argv[1]),atoi(argv[2]),atoi(argv[3])),
+                            //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/",
+                            //"UnfoldRefine_pp13TeV_HM_DimiJul20_POT11600_BL10_SIG1.root",
+                            "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/100720_Unfolded/Plots/",
+                            //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/"
+                            atoi(argv[5])///REMOVE FOR THE OLD PLOTS
                             );
-//MakeLATEXtable("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/050720_Xi0/Plots/");
+//MakeLATEXtable("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/100720_Unfolded/Plots/");
 
 
 //Plot_pL_SystematicsMay2020_2(2,10,1500,2.0,

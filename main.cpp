@@ -4135,9 +4135,9 @@ void CkHisto_test(){
 int main(int argc, char *argv[])
 {
 
-    TFile* f1 = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Temp/temp.root","recreate");
-    TNtuple* nt1 = new TNtuple("nt1","nt1",
-                                "UITERfirst:UITERlast:f0Inv:d0:Chi2fit:NDFfit:Chi2refit:dChi2:dChi2Ndf");
+    //TFile* f1 = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Temp/temp.root","recreate");
+    //TNtuple* nt1 = new TNtuple("nt1","nt1",
+    //                            "UITERfirst:UITERlast:f0Inv:d0:Chi2fit:NDFfit:Chi2refit:dChi2:dChi2Ndf");
 
     //omp_set_dynamic(0);     // Explicitly disable dynamic teams
     //omp_set_num_threads(1); // Use 4 threads for all consecutive parallel regions
@@ -4295,8 +4295,8 @@ void ScatParsFromRandPotential(const TString OutputFolder,
 
     delete [] strtime;
 
-    delete nt1;
-    delete f1;
+    //delete nt1;
+    //delete f1;
     return 0;
 }
 
