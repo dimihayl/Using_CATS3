@@ -31,6 +31,7 @@
 #include "TGenPhaseSpace.h"
 #include "TString.h"
 #include "TList.h"
+#include "TROOT.h"
 
 void pp_CompareToNorfolk(){
     const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/OtherTasks/pp_CompareToNorfolk/Reid/FAST/";
@@ -6142,4 +6143,3 @@ int OTHERTASKS(int narg, char** ARGS){
     //printf(" w(%.2f) = %.4f\n",RAD,Evaluate_d_w(RAD));
 
 }
-

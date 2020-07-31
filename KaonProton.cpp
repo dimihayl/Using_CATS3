@@ -25,6 +25,8 @@
 #include "TPaveText.h"
 #include "TStyle.h"
 #include "TRandom3.h"
+#include "TROOT.h"
+
 
 //without the coulomb interaction!
 void AnitKaonProton_PhaseShiftsAndWaveFunctions(){
