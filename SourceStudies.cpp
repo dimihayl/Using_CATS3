@@ -24,7 +24,7 @@
 //Gaussian and Gaussian+Reso sources
 void CompareCkAndSr(){
 
-    const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/SourceStudies/CompareCkAndSr/Test/";
+    const TString OutputFolder = "/mnt/Ubuntu_Data/CernBox/Sync/Plots/SourcePaper/PLB_Review2/";
 
     //const double R_core = 1.00;
     //const double R_pp = 1.32;
@@ -33,6 +33,8 @@ void CompareCkAndSr(){
     const double R_core = 1.20;
     const double R_pp = 1.280;
     const double R_pL = 1.414;
+    //works only for p-p at the moment
+    const bool Use_3body = true;
 
     const unsigned kNumBins=100;
     const double kMin = 0;
@@ -46,7 +48,7 @@ void CompareCkAndSr(){
     rDummy.SetUp(0,rNumBins,rMin,rMax);
     rDummy.Initialize();
 
-    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
+    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/mnt/Ubuntu_Data/CernBox/Sync/CatsFiles");
 
     CATS AB_pp;
     AB_pp.SetMomBins(kNumBins,kMin,kMax);
@@ -77,18 +79,21 @@ void CompareCkAndSr(){
     }
 
     //AnalysisObject.SetUpCats_pp(AB_pp,"AV18","McGauss_Reso");
-    AnalysisObject.SetUpCats_pp(AB_pp,"AV18","McGauss_ResoTM",0,202);
-    AB_pp.SetAnaSource(0,R_core);
-    AB_pp.KillTheCat();
+    CATS AB_pp_Epos;
+printf("Set up p-p EPOS source...\n");
+    AnalysisObject.SetUpCats_pp(AB_pp_Epos,"AV18","McGauss_ResoTM",0,Use_3body?204:202);
+printf("Done!\n");
+    AB_pp_Epos.SetAnaSource(0,R_core);
+    AB_pp_Epos.KillTheCat();
     TGraph gCk_pp_CoreReso; gCk_pp_CoreReso.SetName("gCk_pp_CoreReso"); gCk_pp_CoreReso.Set(kNumBins);
     for(unsigned uBin=0; uBin<kNumBins; uBin++){
-        gCk_pp_CoreReso.SetPoint(uBin,AB_pp.GetMomentum(uBin),AB_pp.GetCorrFun(uBin));
+        gCk_pp_CoreReso.SetPoint(uBin,AB_pp_Epos.GetMomentum(uBin),AB_pp_Epos.GetCorrFun(uBin));
     }
     TGraph gSr_pp_CoreReso; gSr_pp_CoreReso.SetName("gSr_pp_CoreReso"); gSr_pp_CoreReso.Set(kNumBins);
     for(unsigned uBin=0; uBin<rNumBins; uBin++){
         double RAD = rDummy.GetBinCenter(0,uBin);
         //gSr_pp_CoreReso.SetPoint(uBin,rDummy.GetBinCenter(0,uBin),AB_pp.EvaluateTheSource(0,rDummy.GetBinCenter(0,uBin),0)/(4.*TMath::Pi()*RAD*RAD));
-        gSr_pp_CoreReso.SetPoint(uBin,rDummy.GetBinCenter(0,uBin),AB_pp.EvaluateTheSource(0,rDummy.GetBinCenter(0,uBin),0));
+        gSr_pp_CoreReso.SetPoint(uBin,rDummy.GetBinCenter(0,uBin),AB_pp_Epos.EvaluateTheSource(0,rDummy.GetBinCenter(0,uBin),0));
     }
 
     CATS AB_pL;

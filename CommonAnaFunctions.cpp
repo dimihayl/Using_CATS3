@@ -220,7 +220,7 @@ void DLM_CommonAnaFunctions::SetUpCats_pp(CATS& Kitty, const TString& POT, const
             CleverMcLevyResoTM[0].AddBGT_RP(490./1362.*1.65,-1.);
             CleverMcLevyResoTM[0].AddBGT_RR(490./1362.*1.65,-1.,490./1362.*1.65,1.,-1.);
         }
-        //EPOS, 2 is with fixed mass, 3 is with EPOS mass
+        //EPOS, 2 is with fixed mass, 3 is with EPOS mass, 4 is 3 body with fixed mass, 5 is 3 body with EPOS mass
         else{
 //printf("Hello 2\n");
             const double k_CutOff = int(int(SourceVar)/10)*10.;
@@ -239,7 +239,10 @@ void DLM_CommonAnaFunctions::SetUpCats_pp(CATS& Kitty, const TString& POT, const
             double RanVal2;
             double RanVal3;
 
-            TFile* F_EposDisto_p_pReso = new TFile(CatsFilesFolder[0]+"/Source/EposAngularDist/EposDisto_p_pReso.root");
+            TFile* F_EposDisto_p_pReso;
+            if(SourceVar%100==4||SourceVar%100==5) F_EposDisto_p_pReso = new TFile(CatsFilesFolder[0]+"/Source/EposAngularDist/Epos3body_p_pReso_3body.root");
+            else F_EposDisto_p_pReso = new TFile(CatsFilesFolder[0]+"/Source/EposAngularDist/EposDisto_p_pReso.root");
+//printf("F_EposDisto_p_pReso=%p (%s)\n",F_EposDisto_p_pReso,TString(CatsFilesFolder[0]+"/Source/EposAngularDist/Epos3body_p_pReso_3body.root").Data());
             TNtuple* T_EposDisto_p_pReso = (TNtuple*)F_EposDisto_p_pReso->Get("InfoTuple_ClosePairs");
             unsigned N_EposDisto_p_pReso = T_EposDisto_p_pReso->GetEntries();
             T_EposDisto_p_pReso->SetBranchAddress("k_D",&k_D);
@@ -266,7 +269,10 @@ void DLM_CommonAnaFunctions::SetUpCats_pp(CATS& Kitty, const TString& POT, const
             }
             delete F_EposDisto_p_pReso;
 
-            TFile* F_EposDisto_pReso_pReso = new TFile(CatsFilesFolder[0]+"/Source/EposAngularDist/EposDisto_pReso_pReso.root");
+            TFile* F_EposDisto_pReso_pReso;
+            if(SourceVar%100==4||SourceVar%100==5) F_EposDisto_p_pReso = new TFile(CatsFilesFolder[0]+"/Source/EposAngularDist/Epos3body_pReso_pReso_3body.root");
+            else F_EposDisto_p_pReso = new TFile(CatsFilesFolder[0]+"/Source/EposAngularDist/EposDisto_pReso_pReso.root");
+//printf("F_EposDisto_p_pReso=%p (%s)\n",F_EposDisto_p_pReso,TString(CatsFilesFolder[0]+"/Source/EposAngularDist/Epos3body_pReso_pReso_3body.root").Data());
             TNtuple* T_EposDisto_pReso_pReso = (TNtuple*)F_EposDisto_pReso_pReso->Get("InfoTuple_ClosePairs");
             unsigned N_EposDisto_pReso_pReso = T_EposDisto_pReso_pReso->GetEntries();
             T_EposDisto_pReso_pReso->SetBranchAddress("k_D",&k_D);
@@ -2825,6 +2831,8 @@ void DLM_CommonAnaFunctions::GetFractions_L(const TString& DataSample, const int
         case 2 : Modify_XiL=1.2; break;
         default : Modify_XiL=1; break;
     }
+    //this only works assuming zero material
+    //do not use for newer interations!
     switch((Variation/10)/3){
         case 0 : Modify_PrimFrac=1; break;
         case 1 : Modify_PrimFrac=0.95;break;
@@ -2833,34 +2841,42 @@ void DLM_CommonAnaFunctions::GetFractions_L(const TString& DataSample, const int
     double pL_f0;//fraction of primary Lambdas
     double pL_f1;//fraction of Sigma0
     double pL_f2;//fractions of Xi0/m (each)
+    double pL_fm;//fraction of material
     if(DataSample=="pp13TeV_MB_Run2paper"){
         pL_f0 = 0.601008;
         pL_f1 = 0.200336;
         pL_f2 = 0.099328;
+        pL_fm = 0;
     }
     else if(DataSample=="pp13TeV_HM_March19"||DataSample=="pp13TeV_HM_Dec19"||DataSample=="pp13TeV_HM_RotPhiDec19"
             ||DataSample=="pp13TeV_HM_DimiJun20"||DataSample=="pp13TeV_HM_DimiJul20"){
         pL_f0 = 0.576066;
         pL_f1 = 0.192022;
         pL_f2 = 0.115956;
+        pL_fm = 0.0;
     }
     else if(DataSample=="pPb5TeV_Run2paper"){
         pL_f0 = 0.521433;
         pL_f1 = 0.173811;
         pL_f2 = 0.152378;
+        pL_fm = 0.0;
     }
     else if(DataSample=="pPb5TeV_CPR_Mar19"){
         pL_f0 = 0.521433;
         pL_f1 = 0.173811;
         pL_f2 = 0.152378;
+        pL_fm = 0.0;
     }
     else{
         printf("\033[1;31mERROR:\033[0m The data sample '%s' does not exist\n",DataSample.Data());
         pL_f0 = 1.0;
         pL_f1 = 0.0;
         pL_f2 = 0.0;
+        pL_fm = 0.0;
     }
 
+    //this only works assuming zero material
+    //do not use for newer interations!
     if(pL_f2){
         pL_f0 *= Modify_PrimFrac;
         pL_f1 *= Modify_PrimFrac;
@@ -2877,6 +2893,8 @@ void DLM_CommonAnaFunctions::GetFractions_L(const TString& DataSample, const int
     //1 is from Sigma0
     //2 is is from Xim
     //3 is is the flat feeddown (it should be just xi0, i.e. == xim)
+    //  remark: up to Aug 2020, the material contribution, c.a. 1% was distributed amount ALL other
+    //  entries, primary, feed etc. Actually it would make most sence to put it as an additional flat contribution!
     //4 is for the missid
     Fractions[0] = SigLambdaPrimDir*FracOfLambda;
     Fractions[1] = SigLambdaPrimDir*(1.-FracOfLambda);

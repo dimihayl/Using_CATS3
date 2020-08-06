@@ -4070,7 +4070,8 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
     //const double kNormMax = 0.600;
     //const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/ReferenceSampleStudy_1/";
     //const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/AngleStudy_3/";
-    const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/Max/";
+    //const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/Max/";
+    const TString OutputFolder = "$CERN_BOX/CatsFiles/Source/EposAngularDist/";
     const unsigned NumMomBins = DataSetDescr=="pp"?400:DataSetDescr=="pLambda"?200:DataSetDescr=="pXim"?200:200;
     const TString OutFileBaseName = OutputFolder+TranModDescr+"_"+DataSetDescr;
     //const TString InputFileName = DataSetDescr=="pp"?TransportFile_pp_Alice:DataSetDescr=="pLambda"?TransportFile_pL_Alice:
@@ -4096,8 +4097,8 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
     else if(DataSetDescr=="p_Kaon"||DataSetDescr=="p_KaonReso"||DataSetDescr=="pReso_KaonReso")
         InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/Kaons/pKch_64.f19";
     else
-        InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp200/pp200_pResoLamReso_Oct2019_4PI_ReducedWeights.f19";
-
+        //InputFileName = "$PATH_NX1/scratch6/dmihaylov/OutputEPOS/13TeV/EPOS_LBF_pp200/pp200_pResoLamReso_Oct2019_4PI_ReducedWeights.f19";
+        InputFileName = "/home/dimihayl/Mount/nx1/scratch6/dmihaylov/OutputEPOS/13TeV/EPOS_LBF_pp200/pp200_pResoLamReso_Oct2019_4PI_ReducedWeights.f19";
 //
     //AvgResoMass = 1.354190 for VER2, around 1.38 for the first version. Basically VER2 has inly ior==0 reso
     //const TString InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp80/pp80_pReso_PRIM_4PI_VER2.f19";
@@ -4152,7 +4153,9 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
 
         UseResoInfo = true;
     }
-    else if(DataSetDescr=="p_pReso"){
+    else if(DataSetDescr=="p_pReso"||DataSetDescr=="p_pReso_3body"){
+        bool Use_3body = DataSetDescr.Contains("3body");
+
         pdgID[0] = 2212;
         pdgID[1] = 0;
         Original_eposID[0] = 1120;
@@ -4167,19 +4170,21 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
 
         DaughterMassP2[0] = Mass_p*0.001;
         DaughterMassP2[1] = Mass_pic*0.001;
-        DaughterMassP2[2] = -1;
+        DaughterMassP2[2] = Use_3body?Mass_pic*0.001:-1;
         DaughterMassP2[3] = -1;
 
         ResoMass[0] = -1;
         ResoMass[1] = 1.36;
 
-        FractionsNbody[0] = 1;
-        FractionsNbody[1] = 0;
+        FractionsNbody[0] = Use_3body?0.99:1;
+        FractionsNbody[1] = Use_3body?0.01:0;
         FractionsNbody[2] = 0;
 
         UseResoInfo = true;
     }
-    else if(DataSetDescr=="pReso_pReso"){
+    else if(DataSetDescr=="pReso_pReso"||DataSetDescr=="pReso_pReso_3body"){
+        bool Use_3body = DataSetDescr.Contains("3body");
+
         pdgID[0] = 0;
         pdgID[1] = 0;
         Original_eposID[0] = 1120;
@@ -4189,19 +4194,19 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
 
         DaughterMassP1[0] = Mass_p*0.001;
         DaughterMassP1[1] = Mass_pic*0.001;
-        DaughterMassP1[2] = -1;
+        DaughterMassP1[2] = Use_3body?Mass_pic*0.001:-1;;
         DaughterMassP1[3] = -1;
 
         DaughterMassP2[0] = Mass_p*0.001;
         DaughterMassP2[1] = Mass_pic*0.001;
-        DaughterMassP2[2] = -1;
+        DaughterMassP2[2] = Use_3body?Mass_pic*0.001:-1;;
         DaughterMassP2[3] = -1;
 
         ResoMass[0] = 1.36;
         ResoMass[1] = 1.36;
 
-        FractionsNbody[0] = 1;
-        FractionsNbody[1] = 0;
+        FractionsNbody[0] = Use_3body?0.99:1;
+        FractionsNbody[1] = Use_3body?0.01:0;
         FractionsNbody[2] = 0;
 
         UseResoInfo = true;
@@ -4661,7 +4666,6 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
         UseResoInfo = false;
     }
 
-
     FractionsNbodyC[0] = FractionsNbody[0];
     FractionsNbodyC[1] = FractionsNbodyC[0]+FractionsNbody[1];
     FractionsNbodyC[2] = FractionsNbodyC[1]+FractionsNbody[2];
@@ -4973,14 +4977,14 @@ hResoMass->Fill(KittyParticle.GetMass()*1000.);
 
             ///correct the mass
             if(pid1<10&&ParticleOriginal1.GetMass()<DaughterMassP1[0]+DaughterMassP1[1]){
-printf("ParticleOriginal1.GetMass() = %f\n",ParticleOriginal1.GetMass());
+//printf("ParticleOriginal1.GetMass() = %f\n",ParticleOriginal1.GetMass());
                 ParticleOriginal1.SetMass(ResoMass[0]);
                 ParticleOriginal1.Set(ParticleOriginal1.GetT(),ParticleOriginal1.GetX(),ParticleOriginal1.GetY(),ParticleOriginal1.GetZ(),
                                       sqrt(ResoMass[0]*ResoMass[0]+ParticleOriginal1.GetP2()),
                                       ParticleOriginal1.GetPx(),ParticleOriginal1.GetPy(),ParticleOriginal1.GetPz());
             }
             if(pid2<10&&ParticleOriginal2.GetMass()<DaughterMassP2[0]+DaughterMassP2[1]){
-printf("ParticleOriginal2.GetMass() = %f\n",ParticleOriginal2.GetMass());
+//printf("ParticleOriginal2.GetMass() = %f\n",ParticleOriginal2.GetMass());
                 ParticleOriginal2.SetMass(ResoMass[1]);
                 ParticleOriginal2.Set(ParticleOriginal2.GetT(),ParticleOriginal2.GetX(),ParticleOriginal2.GetY(),ParticleOriginal2.GetZ(),
                                       sqrt(ResoMass[1]*ResoMass[1]+ParticleOriginal2.GetP2()),
@@ -6235,7 +6239,8 @@ int MIXEDEVENTS(int narg, char** ARGS){
     //ReferenceSampleStudy_2("ForMax","p_KaonReso");
     //ReferenceSampleStudy_2("ForMax","pReso_KaonReso");
 
-    SE_for_Vale("pL");
+
+    //SE_for_Vale("pL");
 
 
     //CorrFromEpos("Core",1);
@@ -6300,6 +6305,11 @@ int MIXEDEVENTS(int narg, char** ARGS){
     //ReferenceSampleStudy_2("EposDisto","Lam_Lam");
     //ReferenceSampleStudy_2("EposDisto","Lam_LamReso");
     //ReferenceSampleStudy_2("EposDisto","LamReso_LamReso");
+
+    //ReferenceSampleStudy_2("Epos2body","p_pReso");
+    //ReferenceSampleStudy_2("Epos3body","p_pReso_3body");
+    ReferenceSampleStudy_2("Epos3body","pReso_pReso_3body");
+
     //dEta_dPhi_Ck_QS("QS", "pp", true);
     //CompareReferenceSamples("pp");
     //CompareSameMixedEventToBoltzmann();
@@ -6308,4 +6318,3 @@ int MIXEDEVENTS(int narg, char** ARGS){
     //updated version of the previous one, done from scratch to avoid bugs
     //DifferentTechniquesVer1("pp");
 }
-
