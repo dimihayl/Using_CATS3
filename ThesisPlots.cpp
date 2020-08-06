@@ -2216,21 +2216,33 @@ double FitSmearMatrix(double* x, double* par){
 }
 
 void pp_MomReso(){
-    TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/PhD_Thesis/Pictures/Matrices/";
-    TString FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/ResolutionMatrices/Sample6_MeV_compact.root";
-    TString HistoName = "hSigmaMeV_Proton_Proton";
+    //TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/PhD_Thesis/Pictures/Matrices/";
+    //TString FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pp_13TeV/ResolutionMatrices/Sample6_MeV_compact.root";
+    //TString HistoName = "hSigmaMeV_Proton_Proton";
+
+    //TString OutputFolder = "/home/dmihaylov/CernBox/CatsFiles/MomentumSmear/NicePlots/";
+    //TString FileName = "/home/dmihaylov/CernBox/CatsFiles/MomentumSmear/ALICE_pp_13TeV.root";
+    //TString HistoName = "hSigmaMeV_Proton_Lambda";
+
+    TString OutputFolder = "/home/dmihaylov/CernBox/CatsFiles/MomentumSmear/NicePlots/";
+    TString FileName = "/home/dmihaylov/CernBox/CatsFiles/MomentumSmear/ALICE_pp_13TeV_MEpL.root";
+    TString HistoName = "h_RESO_pL_MeV";
 
     //original histo
     TFile InputFile(FileName,"read");
     TH2F* hOriginal = (TH2F*)InputFile.Get(HistoName);
     if(!hOriginal) {printf("!hOriginal\n"); return;}
+    //hOriginal->Rebin2D(10,10);
     const unsigned NumTotBins = hOriginal->GetXaxis()->GetNbins();
     const unsigned FirstBin = hOriginal->GetXaxis()->FindBin(double(0));
-    const unsigned LastBin = hOriginal->GetXaxis()->FindBin(double(499));
+    //const unsigned LastBin = hOriginal->GetXaxis()->FindBin(double(499));
+    const unsigned LastBin = hOriginal->GetXaxis()->FindBin(double(249));
     const double kMin = hOriginal->GetXaxis()->GetBinLowEdge(FirstBin);
     const double kMax = hOriginal->GetXaxis()->GetBinUpEdge(LastBin);
     const unsigned NumMomBins = LastBin-FirstBin+1;
-    const double Rescale = 5;
+    //const double Rescale = 5;
+    const double Rescale = 1;
+
 
     const double SourceSize = 1.5;
     const double NumCatsBins = 80;
@@ -2395,7 +2407,8 @@ void pp_MomReso(){
     TH1F* hAxisProf = new TH1F("hAxisProf","hAxisProf",128,0,128);
     SetStyleAxis_2(hAxisProf);
     hAxisProf->GetYaxis()->SetRangeUser(0.0, 0.11);
-    hAxisProf->GetXaxis()->SetTitle("k* (p#minusp) (MeV)");
+    //hAxisProf->GetXaxis()->SetTitle("k* (p#minusp) (MeV)");
+    hAxisProf->GetXaxis()->SetTitle("k* (p#minus#Lambda) (MeV)");
     hAxisProf->GetYaxis()->SetTitle("dN/dk* (1/MeV)");
     TCanvas* cProf = new TCanvas(TString::Format("cProf"), TString::Format("cProf"), 1);
     cProf->cd(0); cProf->SetCanvasSize(1280, 720); cProf->SetMargin(0.15,0.05,0.2,0.05);//lrbt

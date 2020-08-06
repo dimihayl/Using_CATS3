@@ -24,7 +24,7 @@
 //Gaussian and Gaussian+Reso sources
 void CompareCkAndSr(){
 
-    const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/SourceStudies/CompareCkAndSr/March2020/";
+    const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/SourceStudies/CompareCkAndSr/Test/";
 
     //const double R_core = 1.00;
     //const double R_pp = 1.32;
