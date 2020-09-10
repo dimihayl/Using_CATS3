@@ -240,7 +240,7 @@ void DLM_CommonAnaFunctions::SetUpCats_pp(CATS& Kitty, const TString& POT, const
             double RanVal3;
 
             TFile* F_EposDisto_p_pReso;
-            if(SourceVar%100==4||SourceVar%100==5) F_EposDisto_p_pReso = new TFile(CatsFilesFolder[0]+"/Source/EposAngularDist/Epos3body_p_pReso_3body.root");
+            if(SourceVar%100==4||SourceVar%100==5) F_EposDisto_p_pReso = new TFile(CatsFilesFolder[0]+"/Source/EposAngularDist/Only3body_p_pReso_3body.root");
             else F_EposDisto_p_pReso = new TFile(CatsFilesFolder[0]+"/Source/EposAngularDist/EposDisto_p_pReso.root");
 //printf("F_EposDisto_p_pReso=%p (%s)\n",F_EposDisto_p_pReso,TString(CatsFilesFolder[0]+"/Source/EposAngularDist/Epos3body_p_pReso_3body.root").Data());
             TNtuple* T_EposDisto_p_pReso = (TNtuple*)F_EposDisto_p_pReso->Get("InfoTuple_ClosePairs");
@@ -270,8 +270,8 @@ void DLM_CommonAnaFunctions::SetUpCats_pp(CATS& Kitty, const TString& POT, const
             delete F_EposDisto_p_pReso;
 
             TFile* F_EposDisto_pReso_pReso;
-            if(SourceVar%100==4||SourceVar%100==5) F_EposDisto_p_pReso = new TFile(CatsFilesFolder[0]+"/Source/EposAngularDist/Epos3body_pReso_pReso_3body.root");
-            else F_EposDisto_p_pReso = new TFile(CatsFilesFolder[0]+"/Source/EposAngularDist/EposDisto_pReso_pReso.root");
+            if(SourceVar%100==4||SourceVar%100==5) F_EposDisto_pReso_pReso = new TFile(CatsFilesFolder[0]+"/Source/EposAngularDist/Only3body_pReso_pReso_3body.root");
+            else F_EposDisto_pReso_pReso = new TFile(CatsFilesFolder[0]+"/Source/EposAngularDist/EposDisto_pReso_pReso.root");
 //printf("F_EposDisto_p_pReso=%p (%s)\n",F_EposDisto_p_pReso,TString(CatsFilesFolder[0]+"/Source/EposAngularDist/Epos3body_pReso_pReso_3body.root").Data());
             TNtuple* T_EposDisto_pReso_pReso = (TNtuple*)F_EposDisto_pReso_pReso->Get("InfoTuple_ClosePairs");
             unsigned N_EposDisto_pReso_pReso = T_EposDisto_pReso_pReso->GetEntries();

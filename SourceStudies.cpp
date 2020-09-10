@@ -8,6 +8,9 @@
 #include "DLM_Histo.h"
 #include "DLM_Random.h"
 #include "FemtoBoyzScripts.h"
+#include "DLM_SubPads.h"
+#include "DLM_RootWrapper.h"
+
 
 #include "TFile.h"
 #include "TGraph.h"
@@ -43,10 +46,11 @@ void CompareCkAndSr(){
     const unsigned rNumBins=100;
     const double rMin = 0;
     const double rMax = 10;
-    DLM_Histo<double> rDummy;
+    DLM_Histo<float> rDummy;
     rDummy.SetUp(1);
     rDummy.SetUp(0,rNumBins,rMin,rMax);
     rDummy.Initialize();
+    TH1F* hSr_pp_CoreReso = Convert_DlmHisto_TH1F(&rDummy,"hSr_pp_CoreReso");
 
     DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/mnt/Ubuntu_Data/CernBox/Sync/CatsFiles");
 
@@ -80,6 +84,7 @@ void CompareCkAndSr(){
 
     //AnalysisObject.SetUpCats_pp(AB_pp,"AV18","McGauss_Reso");
     CATS AB_pp_Epos;
+    AB_pp_Epos.SetMomBins(kNumBins,kMin,kMax);
 printf("Set up p-p EPOS source...\n");
     AnalysisObject.SetUpCats_pp(AB_pp_Epos,"AV18","McGauss_ResoTM",0,Use_3body?204:202);
 printf("Done!\n");
@@ -92,9 +97,17 @@ printf("Done!\n");
     TGraph gSr_pp_CoreReso; gSr_pp_CoreReso.SetName("gSr_pp_CoreReso"); gSr_pp_CoreReso.Set(kNumBins);
     for(unsigned uBin=0; uBin<rNumBins; uBin++){
         double RAD = rDummy.GetBinCenter(0,uBin);
+        double SVAL = AB_pp_Epos.EvaluateTheSource(0,rDummy.GetBinCenter(0,uBin),0);
         //gSr_pp_CoreReso.SetPoint(uBin,rDummy.GetBinCenter(0,uBin),AB_pp.EvaluateTheSource(0,rDummy.GetBinCenter(0,uBin),0)/(4.*TMath::Pi()*RAD*RAD));
-        gSr_pp_CoreReso.SetPoint(uBin,rDummy.GetBinCenter(0,uBin),AB_pp_Epos.EvaluateTheSource(0,rDummy.GetBinCenter(0,uBin),0));
+        gSr_pp_CoreReso.SetPoint(uBin,rDummy.GetBinCenter(0,uBin),SVAL);
+        hSr_pp_CoreReso->SetBinContent(uBin+1,SVAL);
+        hSr_pp_CoreReso->SetBinError(uBin+1,0.1*(0.1-0.283*SVAL));
     }
+    TF1* fPP_Gauss = new TF1(TString::Format("fPP_Gauss"),GaussSourceTF1,rMin,rMax,1);
+    fPP_Gauss->SetParameter(0,1.0);
+    fPP_Gauss->SetParLimits(0,0.5,2.0);
+    hSr_pp_CoreReso->Fit(fPP_Gauss,"S, N, R, M");
+    printf("pp effective Gaussian source size: %.3f fm\n",fPP_Gauss->GetParameter(0));
 
     CATS AB_pL;
     AB_pL.SetMomBins(kNumBins,kMin,kMax);
@@ -124,19 +137,21 @@ printf("Done!\n");
         gSr_pL_Core.SetPoint(uBin,RAD,AB_pL.EvaluateTheSource(0,rDummy.GetBinCenter(0,uBin),0));
     }
 
-    //AnalysisObject.SetUpCats_pL(AB_pL,"NLO_Coupled_S","McGauss_Reso");
-    AnalysisObject.SetUpCats_pL(AB_pL,"NLO_Coupled_S","McGauss_ResoTM",0,202);
-    AB_pL.SetAnaSource(0,R_core);
-    AB_pL.KillTheCat();
+    CATS AB_pL_Epos;
+    AB_pL_Epos.SetMomBins(kNumBins,kMin,kMax);
+    //AnalysisObject.SetUpCats_pL(AB_pL_Epos,"NLO_Coupled_S","McGauss_Reso");
+    AnalysisObject.SetUpCats_pL(AB_pL_Epos,"NLO_Coupled_S","McGauss_ResoTM",0,202);
+    AB_pL_Epos.SetAnaSource(0,R_core);
+    AB_pL_Epos.KillTheCat();
     TGraph gCk_pL_CoreReso; gCk_pL_CoreReso.SetName("gCk_pL_CoreReso"); gCk_pL_CoreReso.Set(kNumBins);
     for(unsigned uBin=0; uBin<kNumBins; uBin++){
-        gCk_pL_CoreReso.SetPoint(uBin,AB_pL.GetMomentum(uBin),AB_pL.GetCorrFun(uBin));
+        gCk_pL_CoreReso.SetPoint(uBin,AB_pL_Epos.GetMomentum(uBin),AB_pL_Epos.GetCorrFun(uBin));
     }
     TGraph gSr_pL_CoreReso; gSr_pL_CoreReso.SetName("gSr_pL_CoreReso"); gSr_pL_CoreReso.Set(kNumBins);
     for(unsigned uBin=0; uBin<rNumBins; uBin++){
         double RAD = rDummy.GetBinCenter(0,uBin);
-        //gSr_pL_CoreReso.SetPoint(uBin,rDummy.GetBinCenter(0,uBin),AB_pL.EvaluateTheSource(0,rDummy.GetBinCenter(0,uBin),0)/(4.*TMath::Pi()*RAD*RAD));
-        gSr_pL_CoreReso.SetPoint(uBin,rDummy.GetBinCenter(0,uBin),AB_pL.EvaluateTheSource(0,rDummy.GetBinCenter(0,uBin),0));
+        //gSr_pL_CoreReso.SetPoint(uBin,rDummy.GetBinCenter(0,uBin),AB_pL_Epos.EvaluateTheSource(0,rDummy.GetBinCenter(0,uBin),0)/(4.*TMath::Pi()*RAD*RAD));
+        gSr_pL_CoreReso.SetPoint(uBin,rDummy.GetBinCenter(0,uBin),AB_pL_Epos.EvaluateTheSource(0,rDummy.GetBinCenter(0,uBin),0));
     }
 
     gSr_pp_Core.SetLineWidth(3);
@@ -184,6 +199,8 @@ printf("Done!\n");
 
     gSr_pp_Core.Write();
     gSr_pp_CoreReso.Write();
+    hSr_pp_CoreReso->Write();
+    fPP_Gauss->Write();
     gSr_pp_Gauss.Write();
     gSr_pL_Core.Write();
     gSr_pL_CoreReso.Write();
@@ -1190,9 +1207,229 @@ Tau2 = 4.69;
 //void CreateSourceLookUp(const TString& System, const ){
 
 //}
+void Compare_2_vs_3_body(){
+  TString InputFolder_2body = "/mnt/Ubuntu_Data/CernBox/Sync/Plots/SourcePaper/PLB_Review2/2body/";
+  TString InputFolder_3body = "/mnt/Ubuntu_Data/CernBox/Sync/Plots/SourcePaper/PLB_Review2/3body/";
+  TString OutputFolder = "/mnt/Ubuntu_Data/CernBox/Sync/Plots/SourcePaper/PLB_Review2/";
+
+  TGraph* gS2;
+  TGraph* gS3;
+  TGraph* gC2;
+  TGraph* gC3;
+  TGraph* gSG2;
+
+  TGraph* gSG2spike = new TGraph();
+  gSG2spike->SetName("gSG2spike");
+
+  TGraph* gS2spike = new TGraph();
+  gS2spike->SetName("gS2spike");
+  TGraph* gS3spike = new TGraph();
+  gS3spike->SetName("gS3spike");
+
+  TGraph* gSratio = new TGraph();
+  gSratio->SetName("gSratio");
+  TGraph* gCratio = new TGraph();
+  gCratio->SetName("gCratio");
+
+
+
+  TFile* file2 = new TFile(InputFolder_2body+"fOut.root","read");
+  gS2 = (TGraph*)file2->Get("gSr_pp_CoreReso");
+  gSG2 = (TGraph*)file2->Get("gSr_pp_Gauss");
+  gC2 = (TGraph*)file2->Get("gCk_pp_CoreReso");
+
+  TFile* file3 = new TFile(InputFolder_3body+"fOut.root","read");
+  gS3 = (TGraph*)file3->Get("gSr_pp_CoreReso");
+  gC3 = (TGraph*)file3->Get("gCk_pp_CoreReso");
+
+  double xval3, yval3;
+  double xval2, yval2;
+  double xval2G, yval2G;
+  for(unsigned uBin=0; uBin<gS2->GetN(); uBin++){
+    gS2->GetPoint(uBin,xval2,yval2);
+    gS3->GetPoint(uBin,xval3,yval3);
+    gSG2->GetPoint(uBin,xval2G,yval2G);
+    gS2spike->SetPoint(uBin,xval2,yval2/(4.*TMath::Pi()*xval2*xval2));
+    gSG2spike->SetPoint(uBin,xval2G,yval2G/(4.*TMath::Pi()*xval2G*xval2G));
+    gS3spike->SetPoint(uBin,xval3,yval3/(4.*TMath::Pi()*xval3*xval3));
+    gSratio->SetPoint(uBin,xval2,yval3/yval2);
+  }
+  for(unsigned uBin=0; uBin<gC2->GetN(); uBin++){
+    gC2->GetPoint(uBin,xval2,yval2);
+    gC3->GetPoint(uBin,xval3,yval3);
+    gCratio->SetPoint(uBin,xval2,yval3/yval2);
+  }
+
+  TH1F* hC_axis = new TH1F("hC_axis","hC_axis",128,0,200);
+  hC_axis->SetStats(false);
+  hC_axis->SetTitle("; #it{k*} (MeV/#it{c}); #it{C}(#it{k*})");
+  hC_axis->GetXaxis()->SetRangeUser(0, 200);
+  hC_axis->GetXaxis()->SetNdivisions(505);
+  hC_axis->GetYaxis()->SetRangeUser(-0.1, 4.5);
+  for(unsigned uBin=0; uBin<128; uBin++) hC_axis->SetBinContent(uBin+1,1);
+  SetStyleHisto2a(hC_axis,2,0);
+
+  DLM_SubPads* DlmPad_Ck = new DLM_SubPads(720,1080);
+  DlmPad_Ck->AddSubPad(0,1,0.5,1);
+  DlmPad_Ck->AddSubPad(0,1,0.25,0.5);
+  DlmPad_Ck->AddSubPad(0,1,0.,0.25);
+  DlmPad_Ck->SetMargin(0,0.14,0.02,0.0,0.02);
+  DlmPad_Ck->SetMargin(1,0.14,0.02,0.0,0.0);
+  DlmPad_Ck->SetMargin(2,0.14,0.02,0.07,0.0);
+  DlmPad_Ck->cd(0);
+  hC_axis->Draw();
+  gC2->SetLineWidth(6);
+  gC2->SetLineStyle(1);
+  gC2->SetLineColor(kBlue);
+  gC2->Draw("same,C");
+  gC3->SetLineWidth(4);
+  gC3->SetLineStyle(1);
+  gC3->SetLineColor(kRed);
+  gC3->Draw("same,C");
+
+  //INLET -------------------------------------------------------------------------------------------------------------------
+
+  TH1F* hC_Inlet = (TH1F*)hC_axis->Clone("hC_Inlet");
+  hC_Inlet->SetStats(false);
+  hC_Inlet->SetMarkerSize(hC_axis->GetMarkerSize()*0.67);
+  hC_Inlet->SetLineWidth(hC_axis->GetLineWidth()*0.67);
+  hC_Inlet->GetXaxis()->SetRangeUser(0, 200);
+  SetStyleHisto2a(hC_Inlet,2,0,2);
+  hC_Inlet->GetXaxis()->SetNdivisions(505);
+  hC_Inlet->GetYaxis()->SetNdivisions(205);
+  hC_Inlet->GetYaxis()->SetRangeUser(0.91, 1.00);
+
+  DlmPad_Ck->cd(1);
+  hC_Inlet->Draw();
+  gC2->Draw("same,C");
+  gC3->Draw("same,C");
+
+
+  TH1F* hC_Rat = new TH1F("hC_Rat", "hC_Rat", 128, 0, 200);
+  hC_Rat->SetStats(false);
+  hC_Rat->GetXaxis()->SetRangeUser(0, 200);
+  hC_Rat->SetTitle("; #it{k*} (MeV/#it{c}); Ratio");
+  hC_Rat->GetYaxis()->SetRangeUser(0.985,1.015);
+  hC_Rat->GetXaxis()->SetNdivisions(505);
+  for(unsigned uBin=0; uBin<128; uBin++) hC_Rat->SetBinContent(uBin+1,1);
+  SetStyleHisto2a(hC_Rat,2,0,2);
+  hC_Rat->GetYaxis()->SetNdivisions(504);
+
+  DlmPad_Ck->cd(2);
+  hC_Rat->Draw("");
+  gCratio->SetLineColor(kBlue+2);
+  gCratio->SetLineWidth(6);
+  gCratio->Draw("same,C");
+
+  DlmPad_Ck->GetCanvas()->SaveAs(OutputFolder+"DlmPad_Ck.pdf");
+
+
+
+
+  TH1F* hS_axis = new TH1F("hS_axis","hS_axis",128,0,10);
+  hS_axis->SetStats(false);
+  hS_axis->SetTitle("; #it{r*} (fm); 4#pir*^{2}#it{S(r*)} (1/fm)");
+  hS_axis->GetXaxis()->SetRangeUser(0, 10);
+  hS_axis->GetXaxis()->SetNdivisions(505);
+  hS_axis->GetYaxis()->SetRangeUser(0.001, 1);
+  for(unsigned uBin=0; uBin<128; uBin++) hS_axis->SetBinContent(uBin+1,1);
+  SetStyleHisto2a(hS_axis,2,0);
+
+  DLM_SubPads* DlmPad_Sr = new DLM_SubPads(720,1080);
+  DlmPad_Sr->AddSubPad(0,1,0.5,1);
+  DlmPad_Sr->AddSubPad(0,1,0.25,0.5);
+  DlmPad_Sr->AddSubPad(0,1,0.,0.25);
+  DlmPad_Sr->SetMargin(0,0.14,0.02,0.0,0.02);
+  DlmPad_Sr->SetMargin(1,0.14,0.02,0.0,0.0);
+  DlmPad_Sr->SetMargin(2,0.14,0.02,0.07,0.0);
+  DlmPad_Sr->cd(0);
+  DlmPad_Sr->SetLogy(0);
+  hS_axis->Draw();
+
+  gSG2->SetLineWidth(3);
+  gSG2->SetLineColor(kBlack);
+  gSG2->SetLineStyle(1);
+  gSG2->Draw("same,C");
+  gS2->SetLineWidth(6);
+  gS2->SetLineStyle(1);
+  gS2->SetLineColor(kBlue);
+  gS2->Draw("same,C");
+  gS3->SetLineWidth(4);
+  gS3->SetLineStyle(1);
+  gS3->SetLineColor(kRed);
+  gS3->Draw("same,C");
+
+  //INLET -------------------------------------------------------------------------------------------------------------------
+
+  TH1F* hS_Inlet = (TH1F*)hS_axis->Clone("hS_Inlet");
+  hS_Inlet->SetStats(false);
+  hS_Inlet->SetTitle("; #it{r*} (fm); #it{S(r*)} (1/fm)^{3}");
+  hS_Inlet->SetMarkerSize(hS_axis->GetMarkerSize()*0.67);
+  hS_Inlet->SetLineWidth(hS_axis->GetLineWidth()*0.67);
+  hS_Inlet->GetXaxis()->SetRangeUser(0, 10);
+  SetStyleHisto2a(hS_Inlet,2,0,2);
+  hS_Inlet->GetXaxis()->SetNdivisions(505);
+  hS_Inlet->GetYaxis()->SetNdivisions(205);
+  hS_Inlet->GetYaxis()->SetRangeUser(5e-7, 0.2);
+
+  DlmPad_Sr->cd(1);
+  DlmPad_Sr->SetLogy(1);
+  hS_Inlet->Draw();
+  gSG2spike->SetLineWidth(6);
+  gSG2spike->SetLineStyle(1);
+  gSG2spike->SetLineColor(kBlack);
+  gSG2spike->Draw("same,C");
+  gS2spike->SetLineWidth(6);
+  gS2spike->SetLineColor(kBlue);
+  gS2spike->Draw("same,C");
+  gS3spike->SetLineWidth(4);
+  gS3spike->SetLineColor(kRed);
+  gS3spike->Draw("same,C");
+
+
+  TH1F* hS_Rat = new TH1F("hS_Rat", "hS_Rat", 128, 0, 10);
+  hS_Rat->SetStats(false);
+  hS_Rat->GetXaxis()->SetRangeUser(0, 10);
+  hS_Rat->SetTitle("; #it{r*} (fm); Ratio");
+  hS_Rat->GetYaxis()->SetRangeUser(0.945,1.055);
+  hS_Rat->GetXaxis()->SetNdivisions(505);
+  for(unsigned uBin=0; uBin<128; uBin++) hS_Rat->SetBinContent(uBin+1,0);
+  SetStyleHisto2a(hS_Rat,2,0,2);
+  hS_Rat->GetYaxis()->SetNdivisions(504);
+
+  DlmPad_Sr->cd(2);
+  hS_Rat->Draw("");
+  gSratio->SetLineColor(kBlue+2);
+  gSratio->SetLineWidth(6);
+  gSratio->Draw("same,C");
+
+  DlmPad_Sr->GetCanvas()->SaveAs(OutputFolder+"DlmPad_Sr.pdf");
+
+
+
+
+
+  TFile* fOut = new TFile(OutputFolder+"Compare_2_vs_3_body.root","recreate");
+  gS2->Write();
+  gS3->Write();
+  gSratio->Write();
+  gC2->Write();
+  gC3->Write();
+  gCratio->Write();
+
+
+  delete hC_axis;
+  delete gCratio;
+  delete gSratio;
+  delete file2;
+  delete file3;
+  delete fOut;
+}
 
 int SOURCESTUDIES(int narg, char** ARGS){
     CompareCkAndSr();
+    //Compare_2_vs_3_body();
+
     //ConvertThetaAngleHisto("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/AngleStudy_1/DimiPhi_pp.root","h_rkAngle_Mom2",400,600);
     //AverageResoApprox_pp();
     //AverageResoApprox_pL();

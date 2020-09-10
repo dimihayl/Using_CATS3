@@ -102,7 +102,7 @@ TH1F* pL_CleverRebin(TH1F* hData_pL, const unsigned& NumMomBins_pL, const double
 
 void Fit_pp_pL(const TString& DataSample, const TString& SourceType, const TString& FittingMode_pp, const TString& FittingMode_pL){
 
-    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
+    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/mnt/Ubuntu_Data/CernBox/Sync/CatsFiles");
 
     const TString OutputFolder = TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pp_pL/Test/");
 
@@ -1556,7 +1556,7 @@ void pL_SystematicsHM(const TString& OutputFolder, const int& WhichConfiguration
     printf("Iter: %i -> %i\n",FirstIter,LastIter);
     printf("Fraction: %i\n",OnlyFraction);
     printf("Seed: %i\n",RANDOMSEED);
-    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
+    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/mnt/Ubuntu_Data/CernBox/Sync/CatsFiles");
     int NumSourceVars;
     int NumSourceScaleVars;
     int NumSourceStabilityVars;
@@ -3025,7 +3025,7 @@ void pp_SystematicsHM(const TString& OutputFolder, const int& WhichConfiguration
     printf("Iter: %i -> %i\n",FirstIter,LastIter);
     printf("Fraction: %i\n",OnlyFraction);
     printf("Seed: %i\n",RANDOMSEED);
-    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
+    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/mnt/Ubuntu_Data/CernBox/Sync/CatsFiles");
     int NumSourceVars;
     int NumSourceScaleVars;
     int NumSourceStabilityVars;
@@ -5531,7 +5531,7 @@ void ComputeDataSystematics(){
 
 void Sigma0_To_Lambda(){
 
-    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
+    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/mnt/Ubuntu_Data/CernBox/Sync/CatsFiles");
     const TString DataSample = "pp13TeV_HM_March19";
     const TString SourceType = "Gauss";
     int VARIATIONS[10];
@@ -5687,7 +5687,7 @@ void Sigma0_To_Lambda(){
 }
 
 void STUPED_TEST(){
-    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
+    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/mnt/Ubuntu_Data/CernBox/Sync/CatsFiles");
 
     int VARIATIONS[6];
         VARIATIONS[0] = 10;
@@ -6032,7 +6032,7 @@ void pL_SchlechingSystematics(const unsigned SEED, const unsigned NumVars_PerBL,
     }
 
 
-    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
+    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/mnt/Ubuntu_Data/CernBox/Sync/CatsFiles");
     AnalysisObject.SetUpBinning_pL(DataSample,uDummy,MomBins_pL,FitRegion_pL,0,0);
 
     DLM_Ck* Ck_pSigma0 = new DLM_Ck(1,0,NumBinsCk,0,MaxBinValCk,Lednicky_gauss_Sigma0);
@@ -6544,7 +6544,7 @@ void pL_SchlechingPlots(const TString InputFileName){
     Ck_Dummy = new DLM_Ck(0,0,AB_Dummy,NumBinsCk,0,MaxBinValCk);
 
     TString DataSample = "pp13TeV_HM_Dec19";
-    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
+    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/mnt/Ubuntu_Data/CernBox/Sync/CatsFiles");
     AnalysisObject.SetUpBinning_pL(DataSample,uDummy,MomBins_pL,FitRegion_pL,0,0);
 
 
@@ -8617,7 +8617,7 @@ else if((SourceAlpha<1.59||SourceAlpha>1.61)&&WhichSourceAlpha==2) continue;
             }
 
             DLM_CommonAnaFunctions AnalysisObject;
-            AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
+            AnalysisObject.SetCatsFilesFolder("/mnt/Ubuntu_Data/CernBox/Sync/CatsFiles");
             TH1F* hData_pL_Stat = AnalysisObject.GetAliceExpCorrFun(DataSample[0],"pLambda","_0",2,false,-1);
 
             TGraphErrors* ge_Bl = new TGraphErrors();
@@ -8789,7 +8789,7 @@ else if((SourceAlpha<1.59||SourceAlpha>1.61)&&WhichSourceAlpha==2) continue;
             //hData_pL_Stat->GetYaxis()->SetTitleOffset(1.0);
             hData_pL_Stat->Draw();
 
-            //TFile* DataSystFile = new TFile("/home/dmihaylov/CernBox/CatsFiles/ExpData/ALICE_pp_13TeV_HM/Sample10HM/Systematics_pL.root");
+            //TFile* DataSystFile = new TFile("/mnt/Ubuntu_Data/CernBox/Sync/CatsFiles/ExpData/ALICE_pp_13TeV_HM/Sample10HM/Systematics_pL.root");
             //TH1F* DataSystHisto = (TH1F*)DataSystFile->Get("SystErrRel");
             //TGraphErrors *Tgraph_syserror = DrawSystematicError_FAST(hData_pL_Stat, DataSystHisto, NULL, 3);
             TGraphErrors *Tgraph_syserror = (TGraphErrors*)gdata_toterr->Clone("Tgraph_syserror");
@@ -9056,6 +9056,7 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
     if(PaperPlots&&WhichPotential==1600) COMPARE_TO_LO = true;
     else if(PaperPlots) COMPARE_TO_LO = false;
     if(WhichPotential==-11600) COMPARE_TO_LO = false;
+COMPARE_TO_LO = false;
     //3 digits  #1 = plot the sum of both
     //          #2 = plot xim
     //          #3 = plot xi0
@@ -9392,7 +9393,7 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
     const unsigned Num_CkConv=3;
 
     DLM_CommonAnaFunctions AnalysisObject;
-    AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
+    AnalysisObject.SetCatsFilesFolder("/mnt/Ubuntu_Data/CernBox/Sync/CatsFiles");
     TH1F* hData_pL_Stat;
     //if(DataSample[0]=="pp13TeV_HM_DimiJun20")
     //hData_pL_Stat = AnalysisObject.GetAliceExpCorrFun("pp13TeV_HM_DimiJun20","pLambda",TString::Format("L%.0f_SL4_SR6_P%.0f_0",0.529*100,0.963*100),2,false,-1);
@@ -9898,7 +9899,7 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
                     DLM_Ck* Ck_pL;
                     AB_pL.SetMomBins(32,0,384);
                     DLM_CommonAnaFunctions AnalysisObject;
-                    AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
+                    AnalysisObject.SetCatsFilesFolder("/mnt/Ubuntu_Data/CernBox/Sync/CatsFiles");
                     TH2F* hResolution_pL = AnalysisObject.GetResolutionMatrix(*DataSample,"pLambda");//pp13TeV_HM_Dec19
                     AnalysisObject.SetUpCats_pL(AB_pL,"Chiral_Coupled_SPD","McGauss_ResoTM",-11600,202);//NLO_Coupled_S
 
@@ -10548,11 +10549,15 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
 
     InfoTree->Fill();
 
-    //geb_Xim->Write();
-    //geb_Sig->Write();
-    //geb_Bl->Write();
-    //geb_Fit->Write();
-    //hData_pL_Stat->Write();
+    geb_Xim->Write();
+    geb_Sig->Write();
+    geb_Bl->Write();
+    geb_Fit->Write();
+    hData_pL_Stat->Write();
+    Tgraph_syserror->Write();
+    gRelStatError.Write();
+    gRelSystError.Write();
+    geb_SigmaSlice->Write();
     InfoTree->Write("",TObject::kOverwrite);
 
     TH2F* HB_BL = (TH2F*)hb_bl->Clone("HB_BL");
@@ -10660,6 +10665,307 @@ printf("Delete 2\n");
     }
     if(InfoFile) {delete InfoFile; InfoFile=NULL;}
 }
+
+void Quick_pLambda_plotter(){
+
+	TString OutputFolder = "/mnt/Ubuntu_Data/CernBox/Sync/pLambda/100720_Unfolded/PlotsERC/";
+
+	TGraphErrors* gfit1;
+	TGraphErrors* gfit2;
+	TGraphErrors* gfit3;
+
+	TGraphErrors* gnsig1;
+	TGraphErrors* gnsig2;
+	TGraphErrors* gnsig3;
+
+	TH1F* hData_pL_Stat;
+	TGraphErrors *Tgraph_syserror;
+	TGraphErrors *gRelStatError;
+	TGraphErrors *gRelSystError;
+
+    //geb_Xim->Write();
+    //geb_Sig->Write();
+    //geb_Bl->Write();
+    //geb_Fit->Write();
+    //hData_pL_Stat->Write();
+	//Tgraph_syserror->Write();
+	//gRelStatError.Write();
+	//gRelSystError.Write();
+
+	TString InputFileName1 = "/mnt/Ubuntu_Data/CernBox/Sync/pLambda/100720_Unfolded/PlotsERC/Info500.root";
+	TFile* InputFile1 = new TFile(InputFileName1,"read");
+	gfit1 = (TGraphErrors*)InputFile1->Get("geb_Fit");
+	gnsig1 = (TGraphErrors*)InputFile1->Get("geb_SigmaSlice");
+	hData_pL_Stat = (TH1F*)InputFile1->Get("hCkS_Norm_12MeV");
+	Tgraph_syserror = (TGraphErrors*)InputFile1->Get("Tgraph_syserror");
+	gRelStatError = (TGraphErrors*)InputFile1->Get("gRelStatError");
+	gRelSystError = (TGraphErrors*)InputFile1->Get("gRelSystError");
+  printf("%p\n",gfit1);
+  printf("%p\n",gnsig1);
+  printf("%p\n",hData_pL_Stat);
+	//
+	TString InputFileName2 = "/mnt/Ubuntu_Data/CernBox/Sync/pLambda/100720_Unfolded/PlotsERC/Info650.root";
+	TFile* InputFile2 = new TFile(InputFileName2,"read");
+	gfit2 = (TGraphErrors*)InputFile2->Get("geb_Fit");
+	gnsig2 = (TGraphErrors*)InputFile2->Get("geb_SigmaSlice");
+	//
+	TString InputFileName3 = "/mnt/Ubuntu_Data/CernBox/Sync/pLambda/100720_Unfolded/PlotsERC/Info600.root";
+	TFile* InputFile3 = new TFile(InputFileName3,"read");
+	gfit3 = (TGraphErrors*)InputFile3->Get("geb_Fit");
+	gnsig3 = (TGraphErrors*)InputFile3->Get("geb_SigmaSlice");
+	//
+
+    DLM_SubPads* DlmPad = new DLM_SubPads(720,1080);
+    DlmPad->AddSubPad(0,1,0.5,1);
+    DlmPad->AddSubPad(0,1,0.25,0.5);
+    DlmPad->AddSubPad(0,1,0.,0.25);
+    DlmPad->SetMargin(0,0.14,0.02,0.0,0.02);
+    DlmPad->SetMargin(1,0.14,0.02,0.0,0.0);
+    DlmPad->SetMargin(2,0.14,0.02,0.07,0.0);
+    DlmPad->cd(0);
+
+    hData_pL_Stat->SetStats(false);
+/*
+    hData_pL_Stat->SetTitle("; #it{k*} (MeV/#it{c}); #it{C}(#it{k*})");
+    hData_pL_Stat->GetXaxis()->SetRangeUser(0, 456);
+    hData_pL_Stat->GetXaxis()->SetNdivisions(505);
+    hData_pL_Stat->GetYaxis()->SetRangeUser(0.9, 2.0);
+    hData_pL_Stat->SetFillColor(kGray+1);
+    SetStyleHisto2a(hData_pL_Stat,2,0);
+
+    TGraph gRelStatError;
+    gRelStatError.SetName("gRelStatError");
+    TGraph gRelSystError;
+    gRelSystError.SetName("gRelSystError");
+    TGraphErrors DUMMY_FORCE_ROOT_HAVE_SAME_COLORS_PDFPNF;
+    for(unsigned uBin=0; uBin<Tgraph_syserror->GetN(); uBin++){
+        double tot_err,stat_err,syst_err,k_err,Ck_val;
+        double xVal,yVal;
+        gdata_toterr->GetPoint(uBin,xVal,yVal);
+        if(DefaultBinValue) Ck_val = hData_pL_Stat->GetBinContent(uBin+1);
+        else Ck_val = yVal;
+        k_err = Tgraph_syserror->GetErrorX(uBin);
+        tot_err = Tgraph_syserror->GetErrorY(uBin);
+        stat_err = hData_pL_Stat->GetBinError(uBin+1);
+        syst_err = tot_err>stat_err?sqrt(tot_err*tot_err-stat_err*stat_err):0;
+
+        hData_pL_Stat->SetBinContent(uBin+1,Ck_val);
+        hData_pL_Stat->SetBinError(uBin+1,stat_err);
+
+        Tgraph_syserror->GetPoint(uBin,xVal,yVal);
+        Tgraph_syserror->SetPoint(uBin,xVal,Ck_val);
+        Tgraph_syserror->SetPointError(uBin,k_err,syst_err);
+
+        gRelStatError.SetPoint(uBin,xVal,stat_err/Ck_val*100.);
+        gRelSystError.SetPoint(uBin,xVal,syst_err/Ck_val*100.);
+        DUMMY_FORCE_ROOT_HAVE_SAME_COLORS_PDFPNF.SetPoint(uBin,xVal,-1);
+    }
+    gRelStatError.SetLineColor(kBlack);
+    gRelStatError.SetLineWidth(6);
+    gRelStatError.SetMarkerColor(kBlack);
+    gRelStatError.SetMarkerStyle(0);
+    gRelStatError.SetMarkerSize(0);
+
+    gRelSystError.SetLineColor(kGray+1);
+    gRelSystError.SetLineWidth(6);
+    gRelSystError.SetMarkerColor(kGray+1);
+    gRelSystError.SetMarkerStyle(21);
+    gRelSystError.SetMarkerSize(1.6);
+
+    DUMMY_FORCE_ROOT_HAVE_SAME_COLORS_PDFPNF.SetFillColorAlpha(ColorInteraction,0.70);
+    DUMMY_FORCE_ROOT_HAVE_SAME_COLORS_PDFPNF.SetLineColor(ColorInteraction);
+    DUMMY_FORCE_ROOT_HAVE_SAME_COLORS_PDFPNF.SetLineWidth(3);
+
+    Tgraph_syserror->SetLineColor(kWhite);
+*/
+//InputFile1->cd();
+    hData_pL_Stat->Draw();
+    //TString DrawOptions = PlotLines?"3L same":"3 same";
+	TString DrawOptions = "3 same";
+
+  gfit1->SetFillColorAlpha(kBlue+1,0.70);
+  gfit1->SetLineColor(kBlue+1);
+  gfit1->SetLineWidth(3);
+
+  gfit2->SetFillColorAlpha(kYellow+1,0.70);
+  gfit2->SetLineColor(kYellow+1);
+  gfit2->SetLineWidth(3);
+
+  gfit3->SetFillColorAlpha(kRed+1,0.70);
+  gfit3->SetLineColor(kRed+1);
+  gfit3->SetLineWidth(3);
+
+  gnsig1->SetFillColorAlpha(kBlue+1,0.70);
+  gnsig1->SetLineColor(kBlue+1);
+  gnsig1->SetLineWidth(3);
+
+  gnsig2->SetFillColorAlpha(kYellow+1,0.70);
+  gnsig2->SetLineColor(kYellow+1);
+  gnsig2->SetLineWidth(3);
+
+  gnsig3->SetFillColorAlpha(kRed+1,0.70);
+  gnsig3->SetLineColor(kRed+1);
+  gnsig3->SetLineWidth(3);
+
+
+
+	gfit1->Draw("3L same");
+//return;
+	gfit2->Draw("3L same");
+	gfit3->Draw("3L same");
+    hData_pL_Stat->Draw("same");
+
+    Tgraph_syserror->SetFillColorAlpha(kBlack, 0.4);
+    Tgraph_syserror->Draw("2 same");
+
+    TString LegendSource_line1 = "source name";
+
+    unsigned NumRows=5;
+    TGraph DummyLegendEntry;
+    DummyLegendEntry.SetName("DummyLegendEntry");
+    DummyLegendEntry.SetLineColor(kWhite);
+    DummyLegendEntry.SetMarkerColor(kWhite);
+    TGraph DummyLegendEntry2;
+    DummyLegendEntry2.SetName("DummyLegendEntry2");
+    DummyLegendEntry2.SetLineColor(kWhite);
+    DummyLegendEntry2.SetMarkerColor(kWhite);
+    const float TextLeft = 0.32;
+    const float TextTop = 0.90;
+    TLegend *legend;
+    //if(PaperPlots) legend = new TLegend(TextLeft-0.01,0.73-0.064*NumRows,0.73,TextTop-0.135);//lbrt
+    legend = new TLegend(TextLeft-0.01,0.73-0.054*NumRows,0.73,TextTop-0.135);//lbrt
+    legend->SetBorderSize(0);
+    legend->SetTextFont(42);
+    legend->SetTextSize(gStyle->GetTextSize()*0.90);
+    TH1F* hCk_Fake;
+    hCk_Fake = (TH1F*)hData_pL_Stat->Clone("hCk_Fake");
+    hCk_Fake->SetName("hCk_Fake");
+    hCk_Fake->SetLineColor(hCk_Fake->GetFillColor());
+
+    legend->AddEntry(hCk_Fake, "p#minus#Lambda #oplus #bar{p}#minus#bar{#Lambda} pairs", "fpe");
+    legend->AddEntry(gfit3, "NLO19-600");
+    legend->AddEntry(gfit1, "NLO19-500");
+    legend->AddEntry(gfit2, "NLO19-650");
+/*
+    if(!DataOnly){
+        legend->AddEntry(ge_Fit,TString::Format("Fit %s",PotName1.Data()),"l");
+        if(COMPARE_TO_LO&&fitLoDummy) legend->AddEntry(fitLoDummy,"LO13 (600)","l");
+        else if(!PaperPlots) legend->AddEntry(&DummyLegendEntry,PotName2,"l");
+        else legend->AddEntry(&DummyLegendEntry," ","l");
+        //legend->AddEntry(&DummyLegendEntry,PotName3,"l");
+        legend->AddEntry(ge_Bl,BlName1,"l");
+        legend->AddEntry(ge_Sig,SigName1,"l");
+        if(XI_PLOT/100) legend->AddEntry(ge_Xi,XiName1,"l");
+        else if(XI_PLOT==10) legend->AddEntry(ge_Xi0,Xi0Name1,"l");
+        else if(XI_PLOT==1) legend->AddEntry(ge_Xim,XimName1,"l");
+    }
+    else{
+        legend->AddEntry(&gRelStatError,TString::Format("Statistical uncertainty"),"l");
+        legend->AddEntry(&gRelSystError,TString::Format("Systematic uncertainty"),"p");
+    }
+*/
+    legend->Draw("same");
+    TLatex BeamText;
+    BeamText.SetTextSize(gStyle->GetTextSize()*0.90);
+    BeamText.SetNDC(kTRUE);
+    //if(!PaperPlots)
+	BeamText.DrawLatex(TextLeft, TextTop, "ALICE work in progress");
+    //else BeamText.DrawLatex(TextLeft, TextTop, "ALICE");
+    BeamText.DrawLatex(TextLeft, TextTop-0.055, "high-mult. (0#minus0.17% INEL>0) pp #sqrt{#it{s}} = 13 TeV");
+
+    TLatex BeamTextSource;
+    BeamTextSource.SetTextSize(gStyle->GetTextSize()*0.90);
+    BeamTextSource.SetNDC(kTRUE);
+    //if(!PaperPlots)
+	//BeamTextSource.DrawLatex(TextLeft, TextTop-0.11, LegendSource_line1);
+
+    TLatex BeamTextHypCaption;
+    BeamTextHypCaption.SetTextSize(gStyle->GetTextSize()*0.90);
+    BeamTextHypCaption.SetNDC(kTRUE);
+    //if(!PaperPlots)
+	//BeamTextHypCaption.DrawLatex(TextLeft+0.05, TextTop-0.49, "Best fit hypothesis:");
+
+    //TLatex BeamTextHyp;
+    //BeamTextHyp.SetTextSize(gStyle->GetTextSize()*0.80);
+    //BeamTextHyp.SetNDC(kTRUE);
+    //if(!PaperPlots) BeamTextHyp.DrawLatex(TextLeft+0.1, TextTop-0.54, TString::Format("#chi^{2}/NDF = %.0f/%i = %.1f; n_{#sigma} = %.1f",MinChi2,MinNdf,MinChi2/double(MinNdf),MinNsigma));
+    //if(!PaperPlots) BeamTextHyp.DrawLatex(TextLeft+0.1, TextTop-0.59, TString::Format("r_{core} = %.2f fm",Best_SourceSize));
+    //if(!PaperPlots) BeamTextHyp.DrawLatex(TextLeft+0.1, TextTop-0.64, TString::Format("P(#Lambda) = %.1f%% (#lambda=%.1f%%)",Best_Purity*100,Best_lam_L_genuine*100));
+    //if(Same_omega_siglam){
+    //    if(!PaperPlots) BeamTextHyp.DrawLatex(TextLeft+0.1, TextTop-0.69, TString::Format("#Sigma^{0}:#Lambda = #omega = %.2f; #Xi:(#Lambda+#Sigma^{0}) = %.2f",Best_SigLamFrac,Best_XiSigLamFrac));
+    //}
+    //else{
+    //    if(!PaperPlots) BeamTextHyp.DrawLatex(TextLeft+0.1, TextTop-0.69, TString::Format("#Sigma^{0}:#Lambda = %.2f; #omega = %.2f;  #Xi:(#Lambda+#Sigma^{0}) = %.2f",Best_SigLamFrac,Best_CuspWeight,Best_XiSigLamFrac));
+    //}
+    //if(!PaperPlots) BeamTextHyp.DrawLatex(TextLeft+0.1, TextTop-0.74, TString::Format("k*_{c} = %.0f MeV",Best_CkConv));
+
+    //INLET -------------------------------------------------------------------------------------------------------------------
+
+    TH1F* DataHisto_Inlet = (TH1F*)hData_pL_Stat->Clone("DataHisto_Inlet");
+    DataHisto_Inlet->SetMarkerSize(hData_pL_Stat->GetMarkerSize()*0.67);
+    DataHisto_Inlet->SetLineWidth(hData_pL_Stat->GetLineWidth()*0.67);
+    DataHisto_Inlet->GetXaxis()->SetRangeUser(0, 456);
+    SetStyleHisto2a(DataHisto_Inlet,2,0,2);
+    DataHisto_Inlet->GetXaxis()->SetNdivisions(505);
+    DataHisto_Inlet->GetYaxis()->SetNdivisions(205);
+
+	DataHisto_Inlet->GetYaxis()->SetRangeUser(0.965, 1.065);
+
+    TGraph* grbFemto_Inlet1 = (TGraph*)gfit1->Clone("grbFemto_Inlet1");
+    grbFemto_Inlet1->SetLineWidth(gfit1->GetLineWidth()*0.67);
+    TGraph* grbFemto_Inlet2 = (TGraph*)gfit2->Clone("grbFemto_Inlet2");
+    grbFemto_Inlet2->SetLineWidth(gfit2->GetLineWidth()*0.67);
+    TGraph* grbFemto_Inlet3 = (TGraph*)gfit3->Clone("grbFemto_Inlet3");
+    grbFemto_Inlet3->SetLineWidth(gfit3->GetLineWidth()*0.67);
+
+    DlmPad->cd(1);
+    DataHisto_Inlet->SetStats(false);
+    DataHisto_Inlet->Draw();
+	grbFemto_Inlet1->Draw(DrawOptions);
+	grbFemto_Inlet2->Draw(DrawOptions);
+	grbFemto_Inlet3->Draw(DrawOptions);
+    DataHisto_Inlet->Draw("same");
+    Tgraph_syserror->Draw("2 same");
+
+    DlmPad->cd(2);
+    TH1F* hAxis = new TH1F("hAxis", "hAxis", 456/12, 0, 456);
+    hAxis->SetStats(false);
+    hAxis->GetXaxis()->SetRangeUser(0, 456);
+    //if(!DataOnly){
+        hAxis->SetTitle("; #it{k*} (MeV/#it{c}); #it{n_{#sigma}}");
+        //else //hAxis->SetTitle("; #it{k*} (MeV/#it{c}); #it{C}(#it{k*})");
+        hAxis->GetYaxis()->SetRangeUser(-6.2,6.2);
+    //}
+    //else{
+    //    DlmPad->SetLogy(2);
+    //    DlmPad->SetGridy(2);
+    //    hAxis->SetTitle("; #it{k*} (MeV/#it{c}); #Delta#it{C}/#it{C} (%)");
+    //    hAxis->GetYaxis()->SetRangeUser(0.06,6);
+    //}
+    hAxis->GetXaxis()->SetNdivisions(505);
+    SetStyleHisto2a(hAxis,2,0,2);
+    hAxis->GetYaxis()->SetNdivisions(504);
+    hAxis->Draw("");
+    //if(!DataOnly){
+		gnsig1->Draw(DrawOptions);
+		gnsig2->Draw(DrawOptions);
+		gnsig3->Draw(DrawOptions);
+	//}
+    //else{
+    //    DUMMY_FORCE_ROOT_HAVE_SAME_COLORS_PDFPNF.Draw(DrawOptions);
+    //    gRelStatError.Draw("L same");
+    //    gRelSystError.Draw("P same");
+    //}
+
+    //if(WhichDataSet<0)
+        DlmPad->GetCanvas()->SaveAs(OutputFolder+TString::Format("DlmQPad.pdf"));
+    //else
+    //    DlmPad->GetCanvas()->SaveAs(OutputFolder+TString::Format("DlmQPad%s_%s_%s_%s_%i_DS%i.pdf",DataOnly?"Data":"",PotDescr.Data(),BlDescr.Data(),SigDescr.Data(),
+    //                                                         TMath::Nint(ValSourceAlpha*10.),WhichDataSet));
+
+}
+
+
 
 //with the chi2 from the Info.root of the above function
 //Compact = no ESC16
@@ -10881,7 +11187,7 @@ void CompareChiralNLO_pLambda(){
             gChiralRatio[uType][uCutOff].SetLineColor(LineColor[uType]);
             gChiralRatio[uType][uCutOff].SetLineStyle(LineStyle[uCutOff]);
 
-            DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
+            DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/mnt/Ubuntu_Data/CernBox/Sync/CatsFiles");
             CATS Kitty;
             Kitty.SetMomBins(NumMomBins,kMin,kMax);
             if(TypeName[uType].Contains("NLO")) AnalysisObject.SetUpCats_pL(Kitty,"Chiral_Coupled_SPD","Gauss",Type[uType]*10000+1*1000+CutOff[uCutOff],0);
@@ -10945,7 +11251,7 @@ double Fit_pLambda_Splines_Cusp(double* xVal, double* pars){
 }
 
 void pLambda_Spline_Fit_Test(){
-    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
+    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/mnt/Ubuntu_Data/CernBox/Sync/CatsFiles");
     TH1F* hData_pL = AnalysisObject.GetAliceExpCorrFun("pp13TeV_HM_Dec19","pLambda","_0",0,false,-1);
     //0,60,120,180,240,320,400,500,600
     const int NumKnots = 14;
@@ -11011,7 +11317,7 @@ double pLambda_Spline_CkFitRAW(double* xVal, double* pars){
 
 
 void pLambda_Spline_Fit_Test2(){
-    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
+    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/mnt/Ubuntu_Data/CernBox/Sync/CatsFiles");
     TH1F* hData_pL = AnalysisObject.GetAliceExpCorrFun("pp13TeV_HM_Dec19","pLambda","_0",0,false,-1);
     //0,60,120,180,240,320,400,500,600
     const int NumKnots = 14;
@@ -11109,7 +11415,7 @@ void pLambda_Spline_Fit_Unfold1(){
     Nodes_x[12] = 500;
     Nodes_x[13] = kMax;
 
-    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
+    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/mnt/Ubuntu_Data/CernBox/Sync/CatsFiles");
     TH1F* hData_pL = AnalysisObject.GetAliceExpCorrFun("pp13TeV_HM_Dec19","pLambda","_0",1,false,-1);
 
     TF1* fit_pL_RAW = new TF1("fit_pL_RAW",pLambda_Spline_CkFitRAW,kMin,kMax,3+NumKnots*2);
@@ -12241,7 +12547,7 @@ double FitSmearMatrixRaw(double* x, double* par){
 //
 void ParametrizeSmearMatrix1_pL(){
 
-    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
+    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/mnt/Ubuntu_Data/CernBox/Sync/CatsFiles");
     TH2F* hReso = AnalysisObject.GetResolutionMatrix("pp13TeV_HM_Dec19","pLambda");
     printf("hReso = %p\n",hReso);
     //hReso->Sumw2();
@@ -12814,7 +13120,7 @@ void Purity_vs_kstar(const int& MEflag, const unsigned& FirstBoot, const unsigne
 
 
 /*
-    TString InputFileName = "/home/dmihaylov/CernBox/CatsFiles_Dimi/pLambda/AnalysisResults_Purity01062020.root";
+    TString InputFileName = "/mnt/Ubuntu_Data/CernBox/Sync/CatsFiles_Dimi/pLambda/AnalysisResults_Purity01062020.root";
     TString DirectoryName = "HMDimiResultsQA0";
     TString ListName1 = "HMDimiResultsQA0";
     TString ListName2 = "PairQA";
@@ -12839,7 +13145,7 @@ void Purity_vs_kstar(const int& MEflag, const unsigned& FirstBoot, const unsigne
     TString ListNameAV0_1;
     TString ListNameAV0_2;
     TString HistoName_AV0IMS;
-    InputFileName = "/home/dmihaylov/CernBox/CatsFiles_Dimi/pLambda/AnalysisResults_MEpurity.root";
+    InputFileName = "/mnt/Ubuntu_Data/CernBox/Sync/CatsFiles_Dimi/pLambda/AnalysisResults_MEpurity.root";
     DirectoryName = "HMDimiResultsQAS40";
     ListName1 = "HMDimiResultsQAS40";
     ListName2 = "PairQA";
@@ -13409,7 +13715,7 @@ void Purity_vs_kstar_2(const int& MEflag, const int& SIGflag, const unsigned& Fi
 
 
 /*
-    TString InputFileName = "/home/dmihaylov/CernBox/CatsFiles_Dimi/pLambda/AnalysisResults_Purity01062020.root";
+    TString InputFileName = "/mnt/Ubuntu_Data/CernBox/Sync/CatsFiles_Dimi/pLambda/AnalysisResults_Purity01062020.root";
     TString DirectoryName = "HMDimiResultsQA0";
     TString ListName1 = "HMDimiResultsQA0";
     TString ListName2 = "PairQA";
@@ -13434,7 +13740,7 @@ void Purity_vs_kstar_2(const int& MEflag, const int& SIGflag, const unsigned& Fi
     TString ListNameAV0_1;
     TString ListNameAV0_2;
     TString HistoName_AV0IMS;
-    InputFileName = "/home/dmihaylov/CernBox/CatsFiles_Dimi/pLambda/AnalysisResults_MEpurity.root";
+    InputFileName = "/mnt/Ubuntu_Data/CernBox/Sync/CatsFiles_Dimi/pLambda/AnalysisResults_MEpurity.root";
     DirectoryName = "HMDimiResultsQAS40";
     ListName1 = "HMDimiResultsQAS40";
     ListName2 = "PairQA";
@@ -13977,7 +14283,7 @@ void DimiPurityCorrected_pL(){
 //2 is esc
 void FitMC_CompareToData_pL(int pSigma0_flag){
 
-    TString InputFileNameData = "/home/dmihaylov/CernBox/CatsFiles/ExpData/ALICE_pp_13TeV_HM/DimiJun20/Norm240_340/CompareDataMC/Ck_pL_Data.root";
+    TString InputFileNameData = "/mnt/Ubuntu_Data/CernBox/Sync/CatsFiles/ExpData/ALICE_pp_13TeV_HM/DimiJun20/Norm240_340/CompareDataMC/Ck_pL_Data.root";
     TString InputDirNameData = "Binning_12";
     TString InputHistoNameData = "hCkmult_SUM";
     TFile* fInputData = new TFile(InputFileNameData,"read");
@@ -13989,7 +14295,7 @@ void FitMC_CompareToData_pL(int pSigma0_flag){
     hInputData->SetName("hInputData");
     printf("hInputData = %p\n",hInputData);
 
-    TString InputFileNameMc = "/home/dmihaylov/CernBox/CatsFiles/ExpData/ALICE_pp_13TeV_HM/DimiJun20/Norm240_340/CompareDataMC/Ck_pL_Mc.root";
+    TString InputFileNameMc = "/mnt/Ubuntu_Data/CernBox/Sync/CatsFiles/ExpData/ALICE_pp_13TeV_HM/DimiJun20/Norm240_340/CompareDataMC/Ck_pL_Mc.root";
     TString InputDirNameMc = "Binning_60";
     TString InputHistoNameMc = "hCkmult_SUM";
     TFile* fInputMc = new TFile(InputFileNameMc,"read");
@@ -14070,7 +14376,7 @@ void FitMC_CompareToData_pL(int pSigma0_flag){
 }
 
 void LambdaPars(TString DataSet){
-    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
+    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/mnt/Ubuntu_Data/CernBox/Sync/CatsFiles");
 
     double Purity_p[5];
     AnalysisObject.GetPurities_p(DataSet, 0, Purity_p);
@@ -14153,7 +14459,7 @@ void EffectOfLambdaKaon(){
 
 void FeedDown_pXi0_pL(const int& SEED, const int& NumIter){
     DLM_DecayMatrix DECM;
-    DECM.SetFileName(TString::Format("/home/dmihaylov/CernBox/CatsFiles/DecaySmear/pXi0_pL_RS%i.root",SEED));
+    DECM.SetFileName(TString::Format("/mnt/Ubuntu_Data/CernBox/Sync/CatsFiles/DecaySmear/pXi0_pL_RS%i.root",SEED));
     DECM.SetHistoName("pXi0_pL");
     DECM.SetBins(1024,0,1024);
     DECM.SetNumDaughters1(1);
@@ -14223,7 +14529,7 @@ void EffectOfpXi0(TString DataSet){
     Ck_pXi0.SetSourcePar(0,1.0);
     Ck_pXi0.Update();
 
-    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
+    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/mnt/Ubuntu_Data/CernBox/Sync/CatsFiles");
     TH2F* hRes_pXi0 = AnalysisObject.GetResidualMatrix("pLambda","pXi0");
     double lam_pXim[5];
     AnalysisObject.SetUpLambdaPars_pXim(DataSet,0,0,lam_pXim);
@@ -14262,8 +14568,8 @@ void EffectOfpXi0(TString DataSet){
 }
 
 void CreateFineBinnedResoMatrix_pp(){
-    const TString InputFileName = "/home/dmihaylov/CernBox/CatsFiles/ExpData/ALICE_pp_13TeV_HM_MCnano/AnalysisResults.root";
-    const TString OutputFileName = "/home/dmihaylov/CernBox/CatsFiles/MomentumSmear/ALICE_pp_13TeV_MEpp.root";
+    const TString InputFileName = "/mnt/Ubuntu_Data/CernBox/Sync/CatsFiles/ExpData/ALICE_pp_13TeV_HM_MCnano/AnalysisResults.root";
+    const TString OutputFileName = "/mnt/Ubuntu_Data/CernBox/Sync/CatsFiles/MomentumSmear/ALICE_pp_13TeV_MEpp.root";
     const TString DirectoryName = "HMBBarResultsQA8";
     const TString ListName1 = "HMBBarResultsQA8";
     const TString ListName2 = "PairQA";
@@ -14328,8 +14634,8 @@ void CreateFineBinnedResoMatrix_pp(){
 }
 
 void CreateFineBinnedResoMatrix_pL(){
-    const TString InputFileName = "/home/dmihaylov/CernBox/CatsFiles/ExpData/ALICE_pp_13TeV_HM_MCnano/AnalysisResults.root";
-    const TString OutputFileName = "/home/dmihaylov/CernBox/CatsFiles/MomentumSmear/ALICE_pp_13TeV_MEpL.root";
+    const TString InputFileName = "/mnt/Ubuntu_Data/CernBox/Sync/CatsFiles/ExpData/ALICE_pp_13TeV_HM_MCnano/AnalysisResults.root";
+    const TString OutputFileName = "/mnt/Ubuntu_Data/CernBox/Sync/CatsFiles/MomentumSmear/ALICE_pp_13TeV_MEpL.root";
     const TString DirectoryName = "HMBBarResultsQA8";
     const TString ListName1 = "HMBBarResultsQA8";
     const TString ListName2 = "PairQA";
@@ -14420,13 +14726,13 @@ printf("PLAMBDA_1_MAIN\n");
 //CreateFineBinnedResoMatrix_pL();
 //pLambda_Spline_Fit_Test();
 //pLambda_Spline_Fit_Test2();
-//pLambda_Spline_Fit_Unfold2(12,"L53_SL4_SR6_P96_0","/home/dmihaylov/CernBox/CatsFiles/ExpData/ALICE_pp_13TeV_HM/DimiJun20/Norm240_340/DataSignal/Unfolded/ppMatrix/");
+//pLambda_Spline_Fit_Unfold2(12,"L53_SL4_SR6_P96_0","/mnt/Ubuntu_Data/CernBox/Sync/CatsFiles/ExpData/ALICE_pp_13TeV_HM/DimiJun20/Norm240_340/DataSignal/Unfolded/ppMatrix/");
 //const unsigned& SEEDmin, const unsigned& NumIter,
 //                                const double& BinWidth, const TString& DataVariation,
 //                                const char* CatsFileFolder, const TString& OutputFolder
-//pLambda_Spline_Fit_Unfold2(atoi(argv[1]),atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),"L53_SL4_SR6_P96_0","/home/dmihaylov/CernBox/CatsFiles",
+//pLambda_Spline_Fit_Unfold2(atoi(argv[1]),atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),"L53_SL4_SR6_P96_0","/mnt/Ubuntu_Data/CernBox/Sync/CatsFiles",
 //                           "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Unfolding/Test4/");
-//UpdateUnfoldFile("/home/dmihaylov/CernBox/CatsFiles",
+//UpdateUnfoldFile("/mnt/Ubuntu_Data/CernBox/Sync/CatsFiles",
 //                 "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Unfolding/Test4/QA.root",
 //                 12,"L53_SL4_SR6_P96_0");
 //cout << argv[1] << endl;
@@ -14440,18 +14746,23 @@ printf("PLAMBDA_1_MAIN\n");
 //TString InputFolder, TString InputFileName, TString OutputFolder
 //POT BL SIG ALPHA(20)
 
+
+//Quick_pLambda_plotter();
+//return 0;
+
 Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(atoi(argv[4]))/10.,
-                            "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/100720_Unfolded/",
+                            ///home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/100720_Unfolded/
+                            "/mnt/Ubuntu_Data/CernBox/Sync/pLambda/100720_Unfolded/",
                             TString::Format("Merged_pp13TeV_HM_DimiJul20_POT%i_BL%i_SIG%i.root",
                             atoi(argv[1]),atoi(argv[2]),atoi(argv[3])),
                             //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/",
                             //"UnfoldRefine_pp13TeV_HM_DimiJul20_POT11600_BL10_SIG1.root",
-                            "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/100720_Unfolded/PaperPlots/",
+                            "/mnt/Ubuntu_Data/CernBox/Sync/pLambda/100720_Unfolded/LauraErc/",
                             //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/"
                             atoi(argv[5])///REMOVE FOR THE OLD PLOTS
                             );
 //MakeLATEXtable("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/100720_Unfolded/Plots/",true);
-
+return 0;
 
 //Plot_pL_SystematicsMay2020_2(2,10,1500,2.0,
 //        "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/040620_Gauss/",
@@ -14490,7 +14801,7 @@ Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(at
                            //bool DataSyst, bool FitSyst, bool Bootstrap, unsigned NumIter,
                           // const char* CatsFileFolder, const char* OutputFolder
 //pL_SystematicsMay2020(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]), atoi(argv[6]), atoi(argv[7]), atoi(argv[8]), atoi(argv[9]),
-//"/home/dmihaylov/CernBox/CatsFiles",
+//"/mnt/Ubuntu_Data/CernBox/Sync/CatsFiles",
 //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/");
 
 //pL_SystematicsMay2020(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]), atoi(argv[6]), atoi(argv[7]),
@@ -14577,7 +14888,7 @@ return 0;
     VARIATIONS[4] = 580;//kc
     VARIATIONS[5] = -1;//mT
 
-    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
+    DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/mnt/Ubuntu_Data/CernBox/Sync/CatsFiles");
     const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pL/TEMP/";
     //Fit_pL(OutputFolder,"pp13TeV_HM_March19", "Gauss", false, "NLO_Coupled_S","Longbaseline",VARIATIONS);
     //Fit_pL(OutputFolder,"pp13TeV_HM_March19", "McGauss_Reso", false, "NLO_Coupled_S","Longbaseline",VARIATIONS);
@@ -14673,7 +14984,7 @@ return 0;
                  "pPb5TeV_Run2paper","Gauss","Norm","Norm",
                  "LO_Coupled_S", "NLO_Coupled_S",
                  "Gauss source fixed to p-p", "",
-                 1, 0, "/home/dmihaylov/CernBox/pPb/Systematics/C2totalsysPL.root"
+                 1, 0, "/mnt/Ubuntu_Data/CernBox/Sync/pPb/Systematics/C2totalsysPL.root"
                  );
 
     Fit_pp_pL("pPb5TeV_Run2paper","McGauss_Reso","Norm","Norm");
@@ -14681,7 +14992,7 @@ return 0;
                  "pPb5TeV_Run2paper","McGauss_Reso","Norm","Norm",
                  "LO_Coupled_S", "NLO_Coupled_S",
                  "Gauss core fixed to p-p", "",
-                 1, 0, "/home/dmihaylov/CernBox/pPb/Systematics/C2totalsysPL.root"
+                 1, 0, "/mnt/Ubuntu_Data/CernBox/Sync/pPb/Systematics/C2totalsysPL.root"
                  );
 
     Fit_pp_pL("pPb5TeV_Run2paper","McLevyNolan_Reso","Norm","Norm");
@@ -14689,7 +15000,7 @@ return 0;
                  "pPb5TeV_Run2paper","McLevyNolan_Reso","Norm","Norm",
                  "LO_Coupled_S", "NLO_Coupled_S",
                  "Levy core fixed to p-p", "",
-                 1, 0, "/home/dmihaylov/CernBox/pPb/Systematics/C2totalsysPL.root"
+                 1, 0, "/mnt/Ubuntu_Data/CernBox/Sync/pPb/Systematics/C2totalsysPL.root"
                  );
 */
 /*
@@ -14698,7 +15009,7 @@ return 0;
                  "pPb5TeV_CPR_Mar19","Gauss","Norm","Norm",
                  "LO_Coupled_S", "NLO_Coupled_S",
                  "Gauss source fixed to p-p (1.41 fm)", "",
-                 1, 0, "/home/dmihaylov/CernBox/SystematicsAndCalib/pPbRun2_MB_StreamFIX/C2totalsysPL.root"
+                 1, 0, "/mnt/Ubuntu_Data/CernBox/Sync/SystematicsAndCalib/pPbRun2_MB_StreamFIX/C2totalsysPL.root"
                  );
 */
 /*
@@ -14707,7 +15018,7 @@ return 0;
                  "pPb5TeV_CPR_Mar19","McGauss_Reso","Norm","Norm",
                  "LO_Coupled_S", "NLO_Coupled_S",
                  "Gauss core fixed to p-p", "",
-                 1, 0, "/home/dmihaylov/CernBox/SystematicsAndCalib/pPbRun2_MB_StreamFIX/C2totalsysPL.root"
+                 1, 0, "/mnt/Ubuntu_Data/CernBox/Sync/SystematicsAndCalib/pPbRun2_MB_StreamFIX/C2totalsysPL.root"
                  );
 */
 /*
@@ -14716,7 +15027,7 @@ return 0;
                  "pPb5TeV_CPR_Mar19","McLevyNolan_Reso","Norm","Norm",
                  "LO_Coupled_S", "NLO_Coupled_S",
                  "Levy core fixed to p-p", "",
-                 1, 0, "/home/dmihaylov/CernBox/SystematicsAndCalib/pPbRun2_MB_StreamFIX/C2totalsysPL.root"
+                 1, 0, "/mnt/Ubuntu_Data/CernBox/Sync/SystematicsAndCalib/pPbRun2_MB_StreamFIX/C2totalsysPL.root"
                  );
 */
 

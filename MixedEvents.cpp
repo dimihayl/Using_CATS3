@@ -4124,6 +4124,9 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
 
     //see the comment at ResoInfo
     bool UseResoInfo = true;
+    //the minumum mass of the resonances required to perform a multi body decay
+    //the fractions refer only to resonances of above that mass!!!
+    double MultiBodyThreshold = 0;
 
     //p-p correlation
     if(DataSetDescr=="p_p"){
@@ -4176,9 +4179,14 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
         ResoMass[0] = -1;
         ResoMass[1] = 1.36;
 
-        FractionsNbody[0] = Use_3body?0.99:1;
-        FractionsNbody[1] = Use_3body?0.01:0;
+        //refers only to guys above MultiBodyThreshold
+        //these numbers come from the idea of having a total of 1% of all resonances
+        //have a 3-body decay, by trial and mistake I found that 2.3% of the resonances
+        //with mass above 1400 MeV consition do the job.
+        FractionsNbody[0] = Use_3body?0.955:1;
+        FractionsNbody[1] = Use_3body?0.045:0;
         FractionsNbody[2] = 0;
+        MultiBodyThreshold = 1.4;
 
         UseResoInfo = true;
     }
@@ -4205,9 +4213,14 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
         ResoMass[0] = 1.36;
         ResoMass[1] = 1.36;
 
-        FractionsNbody[0] = Use_3body?0.99:1;
-        FractionsNbody[1] = Use_3body?0.01:0;
+        //refers only to guys above MultiBodyThreshold
+        //these numbers come from the idea of having a total of 1% of all resonances
+        //have a 3-body decay, by trial and mistake I found that 2.3% of the resonances
+        //with mass above 1400 MeV consition do the job.
+        FractionsNbody[0] = Use_3body?0.977:1;
+        FractionsNbody[1] = Use_3body?0.023:0;
         FractionsNbody[2] = 0;
+        MultiBodyThreshold = 1.4;
 
         UseResoInfo = true;
     }
@@ -4751,6 +4764,7 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
     TH2F* h_AngleRCP2_P1P2_D   = new TH2F("h_AngleRCP2_P1P2_D","h_AngleRCP2_P1P2_D",64,0,Pi,64,0,Pi);
 
     TH1F* hResoMass = new TH1F("hResoMass","hResoMass",4096,0,4096);
+    TH1I* hNbody = new TH1I("hNbody","hNbody",8,-0.5,7.5);
 
     TFile* fOut = new TFile(OutFileBaseName+".root","recreate");
     //TFile* fOut = new TFile(OutFileBaseName+"_REPICK.root","recreate");
@@ -5128,10 +5142,11 @@ hResoMass->Fill(KittyParticle.GetMass()*1000.);
             int CrashCounted = 0;
 
             //decide how many body decay we have
-            int NbodyDecayP1;
+            int NbodyDecayP1=2;
             double NbodyRandomP1;
-            double TotalDaughterMassP1 = TLV_P1.M()*2.;
-            while(TotalDaughterMassP1>TLV_P1.M()){
+            double TotalDaughterMassP1 = 1e6;
+            //int iterc = 0;
+            while(TotalDaughterMassP1>TLV_P1.M()&&TLV_P1.M()>MultiBodyThreshold){
                 NbodyRandomP1 = rangen.Uniform();
                 for(int inb=2; inb<=4; inb++){
                     if(NbodyRandomP1<=FractionsNbodyC[inb-2]){NbodyDecayP1=inb; break;}
@@ -5144,12 +5159,19 @@ hResoMass->Fill(KittyParticle.GetMass()*1000.);
                     printf("WTF!!!!\n");
                     printf(" 1) %f > %f\n",TotalDaughterMassP1,TLV_P1.M());
                 }
+                //iterc++;
+                //if(iterc>100000){
+                //  printf("stuck: TLV_P1.M()=%f (%f)\n",TLV_P1.M(),TotalDaughterMassP1);
+                //  usleep(250e3);
+                //}
             }
+            //printf("hi: TLV_P1.M()=%f (%f)\n",TLV_P1.M(),TotalDaughterMassP1);
+            //usleep(125e3);
 
-            int NbodyDecayP2;
+            int NbodyDecayP2=2;
             double NbodyRandomP2;
-            double TotalDaughterMassP2 = TLV_P2.M()*2.;
-            while(TotalDaughterMassP2>TLV_P2.M()){
+            double TotalDaughterMassP2 = 1e6;
+            while(TotalDaughterMassP2>TLV_P2.M()&&TLV_P2.M()>MultiBodyThreshold){
                 NbodyRandomP2 = rangen.Uniform();
                 for(int inb=2; inb<=4; inb++){
                     if(NbodyRandomP2<=FractionsNbodyC[inb-2]){NbodyDecayP2=inb; break;}
@@ -5163,6 +5185,17 @@ hResoMass->Fill(KittyParticle.GetMass()*1000.);
                     printf(" 2) %f > %f\n",TotalDaughterMassP2,TLV_P2.M());
                 }
             }
+
+            //this could only happen for 2 body decays, when the condition was forced by MultiBodyThreshold
+            if(TotalDaughterMassP1==1e6){
+              TotalDaughterMassP1 = DaughterMassP1[0]+DaughterMassP1[1];
+            }
+            if(TotalDaughterMassP2==1e6){
+              TotalDaughterMassP2 = DaughterMassP2[0]+DaughterMassP2[1];
+            }
+
+            hNbody->Fill(NbodyDecayP1);
+            hNbody->Fill(NbodyDecayP2);
 
             if(eventRan1) eventRan1->SetDecay(TLV_P1, NbodyDecayP1, DaughterMassP1);
             if(eventRan2) eventRan2->SetDecay(TLV_P2, NbodyDecayP2, DaughterMassP2);
@@ -5758,6 +5791,7 @@ printf("d2 = %f(%.3f,%.3f) r %f(%.3f,%.3f)\n",DaughterOriginal2.GetP(),DaughterO
     h_AngleRCP1_P1P2_D->Write();
     h_AngleRCP2_P1P2_D->Write();
     hResoMass->Write();
+    hNbody->Write();
     //InfoTuple->Write();
     InfoTuple_ClosePairs->Write();
 
@@ -5805,6 +5839,7 @@ printf("d2 = %f(%.3f,%.3f) r %f(%.3f,%.3f)\n",DaughterOriginal2.GetP(),DaughterO
     delete h_AngleRCP1_P1P2_D;
     delete h_AngleRCP2_P1P2_D;
     delete hResoMass;
+    delete hNbody;
     delete InfoTuple;
     delete InfoTuple_ClosePairs;
     //delete h_kkAngle_Mom2;
@@ -6307,8 +6342,8 @@ int MIXEDEVENTS(int narg, char** ARGS){
     //ReferenceSampleStudy_2("EposDisto","LamReso_LamReso");
 
     //ReferenceSampleStudy_2("Epos2body","p_pReso");
-    //ReferenceSampleStudy_2("Epos3body","p_pReso_3body");
-    ReferenceSampleStudy_2("Epos3body","pReso_pReso_3body");
+    //ReferenceSampleStudy_2("Only3body","p_pReso_3body");
+    ReferenceSampleStudy_2("Only3body","pReso_pReso_3body");
 
     //dEta_dPhi_Ck_QS("QS", "pp", true);
     //CompareReferenceSamples("pp");
