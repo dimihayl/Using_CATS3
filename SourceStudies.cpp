@@ -1210,16 +1210,20 @@ Tau2 = 4.69;
 void Compare_2_vs_3_body(){
   TString InputFolder_2body = "/mnt/Ubuntu_Data/CernBox/Sync/Plots/SourcePaper/PLB_Review2/2body/";
   TString InputFolder_3body = "/mnt/Ubuntu_Data/CernBox/Sync/Plots/SourcePaper/PLB_Review2/3body/";
-  TString OutputFolder = "/mnt/Ubuntu_Data/CernBox/Sync/Plots/SourcePaper/PLB_Review2/";
+  TString OutputFolder = "/mnt/Ubuntu_Data/CernBox/Sync/Plots/SourcePaper/PLB_Review2a/";
 
   TGraph* gS2;
   TGraph* gS3;
   TGraph* gC2;
   TGraph* gC3;
   TGraph* gSG2;
+  TGraph* gCORE;
 
   TGraph* gSG2spike = new TGraph();
   gSG2spike->SetName("gSG2spike");
+
+  TGraph* gCOREspike = new TGraph();
+  gCOREspike->SetName("gCOREspike");
 
   TGraph* gS2spike = new TGraph();
   gS2spike->SetName("gS2spike");
@@ -1236,6 +1240,7 @@ void Compare_2_vs_3_body(){
   TFile* file2 = new TFile(InputFolder_2body+"fOut.root","read");
   gS2 = (TGraph*)file2->Get("gSr_pp_CoreReso");
   gSG2 = (TGraph*)file2->Get("gSr_pp_Gauss");
+  gCORE = (TGraph*)file2->Get("gSr_pp_Core");
   gC2 = (TGraph*)file2->Get("gCk_pp_CoreReso");
 
   TFile* file3 = new TFile(InputFolder_3body+"fOut.root","read");
@@ -1245,12 +1250,15 @@ void Compare_2_vs_3_body(){
   double xval3, yval3;
   double xval2, yval2;
   double xval2G, yval2G;
+  double xvalC, yvalC;
   for(unsigned uBin=0; uBin<gS2->GetN(); uBin++){
     gS2->GetPoint(uBin,xval2,yval2);
     gS3->GetPoint(uBin,xval3,yval3);
     gSG2->GetPoint(uBin,xval2G,yval2G);
+    gCORE->GetPoint(uBin,xvalC,yvalC);
     gS2spike->SetPoint(uBin,xval2,yval2/(4.*TMath::Pi()*xval2*xval2));
     gSG2spike->SetPoint(uBin,xval2G,yval2G/(4.*TMath::Pi()*xval2G*xval2G));
+    gCOREspike->SetPoint(uBin,xvalC,yvalC/(4.*TMath::Pi()*xvalC*xvalC));
     gS3spike->SetPoint(uBin,xval3,yval3/(4.*TMath::Pi()*xval3*xval3));
     gSratio->SetPoint(uBin,xval2,yval3/yval2);
   }
@@ -1350,6 +1358,10 @@ void Compare_2_vs_3_body(){
   gSG2->SetLineColor(kBlack);
   gSG2->SetLineStyle(1);
   gSG2->Draw("same,C");
+  gCORE->SetLineWidth(6);
+  gCORE->SetLineStyle(2);
+  gCORE->SetLineColor(kBlack);
+  gCORE->Draw("same,C");
   gS2->SetLineWidth(6);
   gS2->SetLineStyle(1);
   gS2->SetLineColor(kBlue);
@@ -1357,6 +1369,19 @@ void Compare_2_vs_3_body(){
   gS3->SetLineWidth(4);
   gS3->SetLineStyle(1);
   gS3->SetLineColor(kRed);
+  gS3->Draw("same,C");
+
+  DLM_SubPads* DlmPad_Sr2 = new DLM_SubPads(720,720);
+  DlmPad_Sr2->AddSubPad(0,1,0.35,1);
+  DlmPad_Sr2->AddSubPad(0,1,0.,0.35);
+  DlmPad_Sr2->SetMargin(0,0.14,0.02,0.0,0.02);
+  DlmPad_Sr2->SetMargin(1,0.14,0.02,0.09,0.0);
+  DlmPad_Sr2->cd(0);
+  DlmPad_Sr2->SetLogy(0);
+  hS_axis->Draw();
+  gSG2->Draw("same,C");
+  gCORE->Draw("same,C");
+  gS2->Draw("same,C");
   gS3->Draw("same,C");
 
   //INLET -------------------------------------------------------------------------------------------------------------------
@@ -1379,6 +1404,10 @@ void Compare_2_vs_3_body(){
   gSG2spike->SetLineStyle(1);
   gSG2spike->SetLineColor(kBlack);
   gSG2spike->Draw("same,C");
+  gCOREspike->SetLineWidth(6);
+  gCOREspike->SetLineStyle(2);
+  gCOREspike->SetLineColor(kBlack);
+  gCOREspike->Draw("same,C");
   gS2spike->SetLineWidth(6);
   gS2spike->SetLineColor(kBlue);
   gS2spike->Draw("same,C");
@@ -1402,10 +1431,14 @@ void Compare_2_vs_3_body(){
   gSratio->SetLineColor(kBlue+2);
   gSratio->SetLineWidth(6);
   gSratio->Draw("same,C");
-
   DlmPad_Sr->GetCanvas()->SaveAs(OutputFolder+"DlmPad_Sr.pdf");
 
-
+  DlmPad_Sr2->cd(1);
+  hS_Rat->Draw("");
+  gSratio->SetLineColor(kBlue+2);
+  gSratio->SetLineWidth(6);
+  gSratio->Draw("same,C");
+  DlmPad_Sr2->GetCanvas()->SaveAs(OutputFolder+"DlmPad_Sr2.pdf");
 
 
 
@@ -1427,8 +1460,8 @@ void Compare_2_vs_3_body(){
 }
 
 int SOURCESTUDIES(int narg, char** ARGS){
-    CompareCkAndSr();
-    //Compare_2_vs_3_body();
+    //CompareCkAndSr();
+    Compare_2_vs_3_body();
 
     //ConvertThetaAngleHisto("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/AngleStudy_1/DimiPhi_pp.root","h_rkAngle_Mom2",400,600);
     //AverageResoApprox_pp();
