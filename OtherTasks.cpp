@@ -6100,6 +6100,11 @@ void SmearNonFlatCorrelation(){
     delete hResolution;
 }
 
+void Georgios_LXi_ResoTest(){
+
+
+}
+
 int OTHERTASKS(int narg, char** ARGS){
     //pp_CompareToNorfolk();
     //pp_pL_CorrectedMC_EXP();
@@ -6136,7 +6141,8 @@ int OTHERTASKS(int narg, char** ARGS){
     //pXi_Bug_vs_True_Potential(3,"I1S1");
     //MemBugHunt();
     //DlmHistoMemBugHunt();
-    SmearNonFlatCorrelation();
+    //SmearNonFlatCorrelation();
+    Georgios_LXi_ResoTest();
 
     //const double RAD = 5.11;
     //printf("u(%.2f) = %.4f\n",RAD,Evaluate_d_u(RAD));

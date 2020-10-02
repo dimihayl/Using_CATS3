@@ -18,6 +18,7 @@ const double Mass_pi0 = 134.9766;
 const double Mass_pic = 139.57018;
 const double Mass_Kch = 493.677;
 const double Mass_K0 = 497.648;
+const double Mass_phi = 1019.461;
 const double Mass_p = 938.272;
 const double Mass_L = 1115.683;
 const double Mass_Xim = 1321.7;
@@ -151,5 +152,3 @@ private:
 */
 
 #endif
-
-

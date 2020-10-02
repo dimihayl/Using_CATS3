@@ -4220,8 +4220,8 @@ printf("%.3f\n",lambdapars[4]*100.);
     //GENBOD(argc,ARGV);
     //GerhardMAIN(argc,ARGV);
     //Main_pSigma();
-    //MIXEDEVENTS(argc,ARGV);
-    SOURCESTUDIES(argc,ARGV);
+    MIXEDEVENTS(argc,ARGV);
+    //SOURCESTUDIES(argc,ARGV);
     //KAONPROTON_MAIN(argc,ARGV);
     //UNFOLD_MAIN(argc,ARGV);
     //OTHERTASKS(argc,ARGV);
@@ -4299,6 +4299,3 @@ void ScatParsFromRandPotential(const TString OutputFolder,
     //delete f1;
     return 0;
 }
-
-
-

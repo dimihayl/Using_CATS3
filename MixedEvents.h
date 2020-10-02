@@ -13,7 +13,7 @@ const TString TransportFile_pL_Hades =
 const TString TransportFile_pp_Alice_small =
 "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/Scratch9_OSCAR1997_14641LrzProtonFiles.f19";
 const TString TransportFile_pp_Alice =
-"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/Scratch9_OSCAR1997_AllLrzProtonFiles.f19";
+"/home/dimihayl/Mount/nx3/scratch9/dmihaylov/Temp/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/Scratch9_OSCAR1997_AllLrzProtonFiles.f19";
 const TString TransportFile_pp_AliceCore100Corona50 =
 "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/Scratch9_OSCAR1997_16KiLrzProtonFiles_Core100Corona50.f19";
 const TString TransportFile_pp_AliceCore0Corona100 =
@@ -39,4 +39,3 @@ private:
 
 
 #endif // MIXEDEVENTS_H
-

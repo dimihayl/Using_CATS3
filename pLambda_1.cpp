@@ -9028,7 +9028,7 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
                                   const int& WhichPotential,
                                   const float& ValSourceAlpha,
                                   TString InputFolder, TString InputFileName, TString OutputFolder, const int& WhichDataSet=-1){
-
+printf("debug\n");
     //if false, we have much more info on the plots
     //if true: as intended for the paper (cleaner)
     const bool PaperPlots = true;
@@ -10962,6 +10962,211 @@ void Quick_pLambda_plotter(){
     //else
     //    DlmPad->GetCanvas()->SaveAs(OutputFolder+TString::Format("DlmQPad%s_%s_%s_%s_%i_DS%i.pdf",DataOnly?"Data":"",PotDescr.Data(),BlDescr.Data(),SigDescr.Data(),
     //                                                         TMath::Nint(ValSourceAlpha*10.),WhichDataSet));
+
+}
+
+void Quick_pLambda_plotter_NLO13_vs_LO13(){
+
+	TString OutputFolder = "/mnt/Ubuntu_Data/CernBox/Sync/pLambda/100720_Unfolded/Laura_Review/";
+
+	TGraphErrors* gfit1;
+	TGraphErrors* gfit2;
+
+	TH1F* hData_pL_Stat;
+	TGraphErrors *Tgraph_syserror;
+	TGraphErrors *gRelStatError;
+	TGraphErrors *gRelSystError;
+
+	TString InputFileName1 = "/mnt/Ubuntu_Data/CernBox/Sync/pLambda/100720_Unfolded/Laura_Review/InfoNLO13.root";
+	TFile* InputFile1 = new TFile(InputFileName1,"read");
+	gfit1 = (TGraphErrors*)InputFile1->Get("geb_Fit");
+	hData_pL_Stat = (TH1F*)InputFile1->Get("hCkS_Norm_12MeV");
+	Tgraph_syserror = (TGraphErrors*)InputFile1->Get("Tgraph_syserror");
+	gRelStatError = (TGraphErrors*)InputFile1->Get("gRelStatError");
+	gRelSystError = (TGraphErrors*)InputFile1->Get("gRelSystError");
+  printf("%p\n",gfit1);
+  printf("%p\n",hData_pL_Stat);
+	//
+	TString InputFileName2 = "/mnt/Ubuntu_Data/CernBox/Sync/pLambda/100720_Unfolded/Laura_Review/InfoLO13.root";
+	TFile* InputFile2 = new TFile(InputFileName2,"read");
+	gfit2 = (TGraphErrors*)InputFile2->Get("geb_Fit");
+	//
+
+  DLM_SubPads* DlmPad = new DLM_SubPads(1280,960);
+  DlmPad->AddSubPad(0,1,0,1);
+  DlmPad->SetMargin(0,0.14,0.02,0.13,0.02);//lrbt
+  DlmPad->cd(0);
+
+  hData_pL_Stat->SetStats(false);
+
+  hData_pL_Stat->Draw();
+
+	TString DrawOptions = "3 same";
+
+  gfit1->SetFillColorAlpha(kRed+1,0.70);
+  gfit1->SetLineColor(kRed+1);
+  gfit1->SetLineWidth(3);
+
+  gfit2->SetFillColorAlpha(kGreen+1,0.70);
+  gfit2->SetLineColor(kGreen+1);
+  gfit2->SetLineWidth(3);
+
+	gfit1->Draw("3L same");
+	gfit2->Draw("3L same");
+  hData_pL_Stat->Draw("same");
+
+  Tgraph_syserror->SetFillColorAlpha(kBlack, 0.4);
+  Tgraph_syserror->Draw("2 same");
+
+  TString LegendSource_line1 = "source name";
+
+  unsigned NumRows=3;
+  TGraph DummyLegendEntry;
+  DummyLegendEntry.SetName("DummyLegendEntry");
+  DummyLegendEntry.SetLineColor(kWhite);
+  DummyLegendEntry.SetMarkerColor(kWhite);
+  TGraph DummyLegendEntry2;
+  DummyLegendEntry2.SetName("DummyLegendEntry2");
+  DummyLegendEntry2.SetLineColor(kWhite);
+  DummyLegendEntry2.SetMarkerColor(kWhite);
+  const float TextLeft = 0.32;
+  const float TextTop = 0.93;
+  TLegend *legend;
+  //if(PaperPlots) legend = new TLegend(TextLeft-0.01,0.73-0.064*NumRows,0.73,TextTop-0.135);//lbrt
+  legend = new TLegend(TextLeft-0.01,0.74-0.050*NumRows,0.73,TextTop-0.095);//lbrt
+  legend->SetBorderSize(0);
+  legend->SetTextFont(42);
+  legend->SetTextSize(gStyle->GetTextSize()*0.85);
+  TH1F* hCk_Fake;
+  hCk_Fake = (TH1F*)hData_pL_Stat->Clone("hCk_Fake");
+  hCk_Fake->SetName("hCk_Fake");
+  hCk_Fake->SetLineColor(hCk_Fake->GetFillColor());
+
+  legend->AddEntry(hCk_Fake, "p#minus#Lambda #oplus #bar{p}#minus#bar{#Lambda} pairs", "fpe");
+  legend->AddEntry(gfit1, "NLO13-600");
+  legend->AddEntry(gfit2, "LO13-600");
+
+  legend->Draw("same");
+  TLatex BeamText;
+  BeamText.SetTextSize(gStyle->GetTextSize()*0.90);
+  BeamText.SetNDC(kTRUE);
+	BeamText.DrawLatex(TextLeft, TextTop, "ALICE work in progress");
+  BeamText.DrawLatex(TextLeft, TextTop-0.055, "high-mult. (0#minus0.17% INEL>0) pp #sqrt{#it{s}} = 13 TeV");
+
+  TLatex BeamTextSource;
+  BeamTextSource.SetTextSize(gStyle->GetTextSize()*0.90);
+  BeamTextSource.SetNDC(kTRUE);
+
+  TLatex BeamTextHypCaption;
+  BeamTextHypCaption.SetTextSize(gStyle->GetTextSize()*0.90);
+  BeamTextHypCaption.SetNDC(kTRUE);
+
+
+
+///////////////////////////
+
+//INLET -------------------------------------------------------------------------------------------------------------------
+
+  TH1F* DataHisto_Inlet = (TH1F*)hData_pL_Stat->Clone("DataHisto_Inlet");
+  DataHisto_Inlet->SetMarkerSize(hData_pL_Stat->GetMarkerSize()*0.67);
+  DataHisto_Inlet->SetLineWidth(hData_pL_Stat->GetLineWidth()*0.67);
+  DataHisto_Inlet->GetXaxis()->SetTitleSize(hData_pL_Stat->GetXaxis()->GetTitleSize()*1.75);
+  DataHisto_Inlet->GetXaxis()->SetLabelSize(hData_pL_Stat->GetXaxis()->GetLabelSize()*1.75);
+  DataHisto_Inlet->GetXaxis()->SetRangeUser(100, 336);
+  DataHisto_Inlet->GetXaxis()->SetNdivisions(505);
+
+  DataHisto_Inlet->GetYaxis()->SetTitleSize(hData_pL_Stat->GetYaxis()->GetTitleSize()*1.75);
+  DataHisto_Inlet->GetYaxis()->SetLabelSize(hData_pL_Stat->GetYaxis()->GetLabelSize()*1.75);
+  DataHisto_Inlet->GetYaxis()->SetTitleOffset(hData_pL_Stat->GetYaxis()->GetTitleOffset()*0.67);
+  DataHisto_Inlet->GetYaxis()->SetRangeUser(0.97, 1.025);
+
+  //TGraph* grFemto_Inlet = (TGraph*)graph_FitMAX[NumBlTypes].Clone("grFemto_Inlet");
+  //grFemto_Inlet->SetLineWidth(graph_FitMAX[NumBlTypes].GetLineWidth()*0.67);
+
+  const double fXMinInlet=0.30;
+  const double fYMinInlet=0.21;
+  const double fXMaxInlet=0.95;
+  const double fYMaxInlet=0.59;
+  TPad *inset_pad = new TPad("insert", "insertPad", fXMinInlet, fYMinInlet,
+                           fXMaxInlet, fYMaxInlet);
+  inset_pad->SetTopMargin(0.01);
+  inset_pad->SetRightMargin(0.05);
+  inset_pad->SetBottomMargin(0.28);
+  inset_pad->SetLeftMargin(0.28);
+  inset_pad->SetFillStyle(4000);
+  inset_pad->Draw();
+  inset_pad->cd();
+  DataHisto_Inlet->Draw();
+
+  gfit1->Draw("3 same");
+	gfit2->Draw("3 same");
+  Tgraph_syserror->Draw("2 same");
+
+
+///////////////////////////////
+
+
+    //INLET -------------------------------------------------------------------------------------------------------------------
+/*
+  TH1F* DataHisto_Inlet = (TH1F*)hData_pL_Stat->Clone("DataHisto_Inlet");
+  DataHisto_Inlet->SetMarkerSize(hData_pL_Stat->GetMarkerSize()*0.67);
+  DataHisto_Inlet->SetLineWidth(hData_pL_Stat->GetLineWidth()*0.67);
+  DataHisto_Inlet->GetXaxis()->SetRangeUser(0, 456);
+  SetStyleHisto2a(DataHisto_Inlet,2,0,2);
+  DataHisto_Inlet->GetXaxis()->SetNdivisions(505);
+  DataHisto_Inlet->GetYaxis()->SetNdivisions(205);
+
+	DataHisto_Inlet->GetYaxis()->SetRangeUser(0.965, 1.065);
+
+    TGraph* grbFemto_Inlet1 = (TGraph*)gfit1->Clone("grbFemto_Inlet1");
+    grbFemto_Inlet1->SetLineWidth(gfit1->GetLineWidth()*0.67);
+    TGraph* grbFemto_Inlet2 = (TGraph*)gfit2->Clone("grbFemto_Inlet2");
+    grbFemto_Inlet2->SetLineWidth(gfit2->GetLineWidth()*0.67);
+    TGraph* grbFemto_Inlet3 = (TGraph*)gfit3->Clone("grbFemto_Inlet3");
+    grbFemto_Inlet3->SetLineWidth(gfit3->GetLineWidth()*0.67);
+
+    DlmPad->cd(1);
+    DataHisto_Inlet->SetStats(false);
+    DataHisto_Inlet->Draw();
+	grbFemto_Inlet1->Draw(DrawOptions);
+	grbFemto_Inlet2->Draw(DrawOptions);
+	grbFemto_Inlet3->Draw(DrawOptions);
+    DataHisto_Inlet->Draw("same");
+    Tgraph_syserror->Draw("2 same");
+
+    DlmPad->cd(2);
+    TH1F* hAxis = new TH1F("hAxis", "hAxis", 456/12, 0, 456);
+    hAxis->SetStats(false);
+    hAxis->GetXaxis()->SetRangeUser(0, 456);
+    //if(!DataOnly){
+        hAxis->SetTitle("; #it{k*} (MeV/#it{c}); #it{n_{#sigma}}");
+        //else //hAxis->SetTitle("; #it{k*} (MeV/#it{c}); #it{C}(#it{k*})");
+        hAxis->GetYaxis()->SetRangeUser(-6.2,6.2);
+    //}
+    //else{
+    //    DlmPad->SetLogy(2);
+    //    DlmPad->SetGridy(2);
+    //    hAxis->SetTitle("; #it{k*} (MeV/#it{c}); #Delta#it{C}/#it{C} (%)");
+    //    hAxis->GetYaxis()->SetRangeUser(0.06,6);
+    //}
+    hAxis->GetXaxis()->SetNdivisions(505);
+    SetStyleHisto2a(hAxis,2,0,2);
+    hAxis->GetYaxis()->SetNdivisions(504);
+    hAxis->Draw("");
+    //if(!DataOnly){
+		gnsig1->Draw(DrawOptions);
+		gnsig2->Draw(DrawOptions);
+		gnsig3->Draw(DrawOptions);
+	//}
+    //else{
+    //    DUMMY_FORCE_ROOT_HAVE_SAME_COLORS_PDFPNF.Draw(DrawOptions);
+    //    gRelStatError.Draw("L same");
+    //    gRelSystError.Draw("P same");
+    //}
+*/
+
+  DlmPad->GetCanvas()->SaveAs(OutputFolder+TString::Format("DlmGhettoPlot.pdf"));
+
 
 }
 
@@ -14748,8 +14953,9 @@ printf("PLAMBDA_1_MAIN\n");
 
 
 //Quick_pLambda_plotter();
-//return 0;
-
+Quick_pLambda_plotter_NLO13_vs_LO13();
+return 0;
+//printf("hello\n");
 Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(atoi(argv[4]))/10.,
                             ///home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/100720_Unfolded/
                             "/mnt/Ubuntu_Data/CernBox/Sync/pLambda/100720_Unfolded/",
@@ -14757,7 +14963,7 @@ Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(at
                             atoi(argv[1]),atoi(argv[2]),atoi(argv[3])),
                             //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/",
                             //"UnfoldRefine_pp13TeV_HM_DimiJul20_POT11600_BL10_SIG1.root",
-                            "/mnt/Ubuntu_Data/CernBox/Sync/pLambda/100720_Unfolded/LauraErc/",
+                            "/mnt/Ubuntu_Data/CernBox/Sync/pLambda/100720_Unfolded/Laura_Review/",
                             //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/"
                             atoi(argv[5])///REMOVE FOR THE OLD PLOTS
                             );

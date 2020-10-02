@@ -13,9 +13,11 @@
 #include "DLM_RootWrapper.h"
 #include "DLM_CkModels.h"
 #include "CommonAnaFunctions.h"
+#include "EnvVars.h"
 
 #include "TString.h"
 #include "TGraph.h"
+#include "TGraphErrors.h"
 #include "TH1F.h"
 #include "TH2F.h"
 #include "TRandom3.h"
@@ -25,7 +27,7 @@
 #include "TLegend.h"
 #include "TGaxis.h"
 #include "TPaveText.h"
-
+#include "TROOT.h"
 
 void SetStyleAxis_1(TH1F* hAxis){
     hAxis->SetStats(false);
@@ -2539,6 +2541,482 @@ void pp_MomReso(){
     delete hAxisProf;
 }
 
+
+void QuantumBaseline(){
+
+  printf("Executing QuantumBaseline()\n");
+  printf("  CernBox folder: %s\n",GetCernBoxDimi());
+
+  TString OutputFolder = TString::Format("%s/Plots/PhDThesis/QuantumBaseline/",GetCernBoxDimi());
+  TString OutputFileName = OutputFolder+"QuantumBaseline.root";
+  const unsigned NumSpecies = 10;
+  TString* SpeciesName = new TString[NumSpecies];
+  TString* SpeciesLegend = new TString[NumSpecies];
+  SpeciesName[0] = "pp"; SpeciesLegend[0] = "p-p";
+  SpeciesName[1] = "pL"; SpeciesLegend[1] = "p-#Lambda";
+  SpeciesName[2] = "pXi"; SpeciesLegend[2] = "p-#Xi";
+  SpeciesName[3] = "pOmega"; SpeciesLegend[3] = "p-#Omega";
+  SpeciesName[4] = "LL"; SpeciesLegend[4] = "#Lambda-#Lambda";
+  SpeciesName[5] = "pAp"; SpeciesLegend[5] = "p-#bar{p}";
+  SpeciesName[6] = "pAL"; SpeciesLegend[6] = "p-#bar{#Lambda}";
+  SpeciesName[7] = "pAXi"; SpeciesLegend[7] = "p-#bar{#Xi}";
+  SpeciesName[8] = "pAOmega"; SpeciesLegend[8] = "p-#bar{#Omega}";
+  SpeciesName[9] = "LAL"; SpeciesLegend[9] = "#Lambda-#bar{#Lambda}";
+
+  TString* DataFolder = new TString[NumSpecies];
+  DataFolder[0] = TString::Format("%s/CatsFiles/ExpData/pp13TeV_HM_Baseline/MyResults_Vale/Fast_BBar/Data/",GetCernBoxDimi());
+  //DataFolder[0] = TString::Format("%s/ALICE_pp_13TeV/Sample9/";
+  DataFolder[1] = TString::Format("%s/CatsFiles/ExpData/pp13TeV_HM_Baseline/MyResults_Vale/Fast_BBar/Data/",GetCernBoxDimi());
+  DataFolder[2] = TString::Format("%s/CatsFiles/ExpData/pp13TeV_HM_Baseline/MyResults_Vale/Fast_BBar/Data/",GetCernBoxDimi());
+  DataFolder[3] = TString::Format("%s/CatsFiles/ExpData/pp13TeV_HM_Baseline/pOmega_1/",GetCernBoxDimi());
+  DataFolder[4] = TString::Format("%s/CatsFiles/ExpData/pp13TeV_HM_Baseline/MyResults_Vale/Fast_BBar/Data/",GetCernBoxDimi());
+  DataFolder[5] = TString::Format("%s/CatsFiles/ExpData/pp13TeV_HM_Baseline/MyResults_Vale/Fast_BBar/Data/",GetCernBoxDimi());
+  DataFolder[6] = TString::Format("%s/CatsFiles/ExpData/pp13TeV_HM_Baseline/MyResults_Vale/Fast_BBar/Data/",GetCernBoxDimi());
+  DataFolder[7] = TString::Format("%s/CatsFiles/ExpData/pp13TeV_HM_Baseline/MyResults_Vale/Fast_BBar/Data/",GetCernBoxDimi());
+  DataFolder[8] = TString::Format("%s/CatsFiles/ExpData/pp13TeV_HM_Baseline/pOmega_1/",GetCernBoxDimi());
+  DataFolder[9] = TString::Format("%s/CatsFiles/ExpData/pp13TeV_HM_Baseline/MyResults_Vale/Fast_BBar/Data/",GetCernBoxDimi());
+
+  TString* McFolder = new TString[NumSpecies];
+  McFolder[0] = TString::Format("%s/CatsFiles/ExpData/pp13TeV_HM_Baseline/MyResults_Vale/Fast_BBar/Trains_MCAOD/Norm018028/",GetCernBoxDimi());
+  McFolder[1] = TString::Format("%s/CatsFiles/ExpData/pp13TeV_HM_Baseline/MyResults_Vale/Fast_BBar/Trains_MCAOD/Norm018028/",GetCernBoxDimi());
+  McFolder[2] = TString::Format("%s/CatsFiles/ExpData/pp13TeV_HM_Baseline/MyResults_Vale/Fast_BBar/Trains_MCAOD/Norm018028/",GetCernBoxDimi());
+  McFolder[3] = TString::Format("%s/CatsFiles/ExpData/pp13TeV_HM_Baseline/pOmega_1/",GetCernBoxDimi());
+  McFolder[4] = TString::Format("%s/CatsFiles/ExpData/pp13TeV_HM_Baseline/MyResults_Vale/Fast_BBar/Trains_MCAOD/Norm018028/",GetCernBoxDimi());
+  McFolder[5] = TString::Format("%s/CatsFiles/ExpData/pp13TeV_HM_Baseline/MyResults_Vale/Fast_BBar/Trains_MCAOD/Norm018028/",GetCernBoxDimi());
+  McFolder[6] = TString::Format("%s/CatsFiles/ExpData/pp13TeV_HM_Baseline/MyResults_Vale/Fast_BBar/Trains_MCAOD/Norm018028/",GetCernBoxDimi());
+  McFolder[7] = TString::Format("%s/CatsFiles/ExpData/pp13TeV_HM_Baseline/MyResults_Vale/Fast_BBar/Trains_MCAOD/Norm018028/",GetCernBoxDimi());
+  McFolder[8] = TString::Format("%s/CatsFiles/ExpData/pp13TeV_HM_Baseline/pOmega_1/",GetCernBoxDimi());
+  McFolder[9] = TString::Format("%s/CatsFiles/ExpData/pp13TeV_HM_Baseline/MyResults_Vale/Fast_BBar/Trains_MCAOD/Norm018028/",GetCernBoxDimi());
+
+  TString* DataFile = new TString[NumSpecies];
+  DataFile[0] = "CFOutput_pp_8.root";
+  //DataFile[0] = "CFOutput_pp.root";
+  DataFile[1] = "CFOutput_pL_8.root";
+  DataFile[2] = "CFOutput_pXi_8.root";
+  DataFile[3] = "outmTsyst.root";
+  DataFile[4] = "CFOutput_LL_8.root";
+  DataFile[5] = "CFOutput_pAp_8.root";
+  DataFile[6] = "CFOutput_pAL_8.root";
+  DataFile[7] = "CFOutput_pAXi_8.root";
+  DataFile[8] = "outmTpantiomega.root";
+  DataFile[9] = "CFOutput_LAL_8.root";
+
+  TString* McFile = new TString[NumSpecies];
+  McFile[0] = "CFOutput_pp_8.root";
+  McFile[1] = "CFOutput_pL_8.root";
+  McFile[2] = "CFOutput_pXi_8.root";
+  McFile[3] = "outmTsyst.root";
+  McFile[4] = "CFOutput_LL_8.root";
+  McFile[5] = "CFOutput_pAp_8.root";
+  McFile[6] = "CFOutput_pAL_8.root";
+  McFile[7] = "CFOutput_pAXi_8.root";
+  McFile[8] = "outmTpantiomega.root";
+  McFile[9] = "CFOutput_LAL_8.root";
+
+  TString* DataHisto = new TString[NumSpecies];
+  DataHisto[0] = "hCk_ReweightedMeV_0";
+  DataHisto[1] = "hCk_ReweightedMeV_0";
+  DataHisto[2] = "hCk_ReweightedMeV_0";
+  DataHisto[3] = "CF";
+  DataHisto[4] = "hCk_ReweightedMeV_0";
+  DataHisto[5] = "hCk_ReweightedMeV_0";
+  DataHisto[6] = "hCk_ReweightedMeV_0";
+  DataHisto[7] = "hCk_ReweightedMeV_0";
+  DataHisto[8] = "CF";
+  DataHisto[9] = "hCk_ReweightedMeV_0";
+
+
+  TString* McHisto = new TString[NumSpecies];
+  McHisto[0] = "hCk_ReweightedMeV_0";
+  McHisto[1] = "hCk_ReweightedMeV_0";
+  McHisto[2] = "hCk_ReweightedMeV_0";
+  McHisto[3] = "CF";
+  McHisto[4] = "hCk_ReweightedMeV_0";
+  McHisto[5] = "hCk_ReweightedMeV_0";
+  McHisto[6] = "hCk_ReweightedMeV_0";
+  McHisto[7] = "hCk_ReweightedMeV_0";
+  McHisto[8] = "CF";
+  McHisto[9] = "hCk_ReweightedMeV_0";
+
+  int* RescaleFactor = new int[NumSpecies];
+  RescaleFactor[0] = 1;//pp
+  RescaleFactor[1] = 2;//pL
+  RescaleFactor[2] = 2;//pXi
+  RescaleFactor[3] = 4;//pOmega
+  RescaleFactor[4] = 2;//LL
+  RescaleFactor[5] = 1;
+  RescaleFactor[6] = 1;
+  RescaleFactor[7] = 2;
+  RescaleFactor[8] = 4;
+  RescaleFactor[9] = 2;
+
+  int* RescaleSeMeAxis = new int[NumSpecies];
+  RescaleSeMeAxis[0] = 1000;
+  RescaleSeMeAxis[1] = 1000;
+  RescaleSeMeAxis[2] = 1000;
+  RescaleSeMeAxis[3] = 1;
+  RescaleSeMeAxis[4] = 1000;
+  RescaleSeMeAxis[5] = 1000;
+  RescaleSeMeAxis[6] = 1000;
+  RescaleSeMeAxis[7] = 1000;
+  RescaleSeMeAxis[8] = 1;
+  RescaleSeMeAxis[9] = 1000;
+
+  double* NormFrom = new double[NumSpecies];
+  double* NormTo = new double[NumSpecies];
+  NormFrom[0] = 200; NormTo[0] = 400;
+  NormFrom[1] = 200; NormTo[1] = 400;
+  NormFrom[2] = 200; NormTo[2] = 400;
+  NormFrom[3] = 200; NormTo[3] = 400;
+  NormFrom[4] = 200; NormTo[4] = 400;
+  NormFrom[5] = 1000; NormTo[5] = 2000;
+  NormFrom[6] = 1000; NormTo[6] = 2000;
+  NormFrom[7] = 1000; NormTo[7] = 2000;
+  NormFrom[8] = 1000; NormTo[8] = 2000;
+  NormFrom[9] = 1000; NormTo[9] = 2000;
+
+  const double fitmin = 600;
+  const double fitmax = 1600;
+  double* FitFrom = new double[NumSpecies];
+  double* FitTo = new double[NumSpecies];
+  FitFrom[0] = fitmin; FitTo[0] = fitmax;
+  FitFrom[1] = fitmin; FitTo[1] = fitmax;
+  FitFrom[2] = fitmin; FitTo[2] = fitmax;
+  FitFrom[3] = 0; FitTo[3] = 0;
+  FitFrom[4] = fitmin; FitTo[4] = fitmax;
+  FitFrom[5] = 0; FitTo[5] = 0;
+  FitFrom[6] = 0; FitTo[6] = 0;
+  FitFrom[7] = 0; FitTo[7] = 0;
+  FitFrom[8] = 0; FitTo[8] = 0;
+  FitFrom[9] = 0; FitTo[9] = 0;
+
+  double Purity_p[5];
+  double Purity_L[5];
+  double Purity_Xim[5];
+  double Frac_p[5];
+  double Frac_L[5];
+  double Frac_Xim[5];
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.GetPurities_p("pp13TeV_HM_Dec19",0,Purity_p);
+  AnalysisObject.GetPurities_L("pp13TeV_HM_Dec19",0,Purity_L);
+  AnalysisObject.GetPurities_Xim("pp13TeV_HM_Dec19",0,Purity_Xim);
+
+  AnalysisObject.GetFractions_p("pp13TeV_HM_Dec19",0,Frac_p);
+  AnalysisObject.GetFractions_L("pp13TeV_HM_Dec19",0,Frac_L);
+  AnalysisObject.GetFractions_Xim("pp13TeV_HM_Dec19",0,Frac_Xim);
+
+  TH1F** hCkPlot = new TH1F* [NumSpecies];
+  TF1** fQuantumBaseline = new TF1* [NumSpecies];
+  //scan the r0 to make it a common fit parameter
+  TF1** fClumsyFit = new TF1* [NumSpecies];
+  TF1** fBestClumsyFit = new TF1* [NumSpecies];
+
+  for(unsigned uSpec=0; uSpec<NumSpecies; uSpec++){
+    printf("Opening file %s%s\n",DataFolder[uSpec].Data(),DataFile[uSpec].Data());
+    TFile* datafile = new TFile(DataFolder[uSpec]+DataFile[uSpec],"read");
+    TH1F* hCk_tmp = (TH1F*)datafile->Get(DataHisto[uSpec]);
+    hCk_tmp->Rebin(RescaleFactor[uSpec]);
+    hCk_tmp->Scale(1./double(RescaleFactor[uSpec]));
+    TF1* fNorm = new TF1("fNorm", "[0]",NormFrom[uSpec],NormTo[uSpec]);
+    hCk_tmp->Fit(fNorm,"Q, S, N, R, M");
+    hCk_tmp->Scale(1./fNorm->GetParameter(0));
+    //OutputFile->cd();
+    gROOT->cd();
+    hCkPlot[uSpec] = (TH1F*)hCk_tmp->Clone(TString::Format("hCkPlot_%s",SpeciesName[uSpec].Data()));
+    //hCkPlot[uSpec] = NULL;
+    //datafile->cd();
+    delete fNorm;
+    delete datafile;
+  }
+
+  gROOT->cd();
+  for(unsigned uSpec=0; uSpec<NumSpecies; uSpec++){
+    fQuantumBaseline[uSpec] = new TF1(TString::Format("fQuantumBaseline_%s",SpeciesName[uSpec].Data()),
+                                "[0]*(1.+[1]*x)*(1.-[2]*exp(-x*x*[3]*[3]/197.327/197.327))",FitFrom[uSpec],FitTo[uSpec]);
+    fQuantumBaseline[uSpec]->SetParameter(0,1.);
+    fQuantumBaseline[uSpec]->SetParameter(1,-1e-5);
+    fQuantumBaseline[uSpec]->SetParameter(2,0.2);
+    fQuantumBaseline[uSpec]->SetParameter(3,0.3);
+    fQuantumBaseline[uSpec]->SetParLimits(3,0.25,0.35);
+    if(FitFrom[uSpec]==FitTo[uSpec]) continue;
+    hCkPlot[uSpec]->Fit(fQuantumBaseline[uSpec],"Q, S, N, R, M");
+    printf("For the %s system:\n",SpeciesName[uSpec].Data());
+    printf("    N = %.3f +/- %.3f\n",fQuantumBaseline[uSpec]->GetParameter(0),fQuantumBaseline[uSpec]->GetParError(0));
+    printf("   p1 = %.3e +/- %.3e 1/MeV\n",fQuantumBaseline[uSpec]->GetParameter(1),fQuantumBaseline[uSpec]->GetParError(1));
+    double Strength = fQuantumBaseline[uSpec]->GetParameter(2);
+    double StrengthErr = fQuantumBaseline[uSpec]->GetParError(2);
+    double Purity;
+    double PrimFrac;
+    if(uSpec==0){Purity=Purity_p[0]*Purity_p[0];PrimFrac=Frac_p[0]*Frac_p[0];}
+    if(uSpec==1){Purity=Purity_p[0]*Purity_L[0];PrimFrac=Frac_p[0]*Frac_L[0];}
+    if(uSpec==2){Purity=Purity_p[0]*Purity_Xim[0];PrimFrac=Frac_p[0]*Frac_Xim[0];}
+    if(uSpec==4){Purity=Purity_L[0]*Purity_L[0];PrimFrac=Frac_L[0]*Frac_L[0];}
+    printf("    A = %.3f +/- %.3f\n",Strength,StrengthErr);
+    printf("  A/P = %.3f +/- %.3f\n",Strength/Purity,StrengthErr/Purity);
+    printf("  A/PF = %.3f +/- %.3f\n",Strength/Purity/PrimFrac,StrengthErr/Purity/PrimFrac);
+    printf("   r0 = %.3f +/- %.3f fm\n",fQuantumBaseline[uSpec]->GetParameter(3),fQuantumBaseline[uSpec]->GetParError(3));
+
+    fClumsyFit[uSpec] = new TF1(TString::Format("fClumsyFit_%s",SpeciesName[uSpec].Data()),
+                                "[0]*(1.+[1]*x)*(1.-[2]*exp(-x*x*[3]*[3]/197.327/197.327))",FitFrom[uSpec],FitTo[uSpec]);
+    fClumsyFit[uSpec]->SetParameter(0,fQuantumBaseline[uSpec]->GetParameter(0));
+    fClumsyFit[uSpec]->SetParameter(1,fQuantumBaseline[uSpec]->GetParameter(1));
+    fClumsyFit[uSpec]->SetParameter(2,fQuantumBaseline[uSpec]->GetParameter(2));
+
+    fBestClumsyFit[uSpec] = new TF1(TString::Format("fBestClumsyFit_%s",SpeciesName[uSpec].Data()),
+                                "[0]*(1.+[1]*x)*(1.-[2]*exp(-x*x*[3]*[3]/197.327/197.327))",FitFrom[uSpec],FitTo[uSpec]);
+  }
+
+  const double Min_r0 = 0.20;
+  const double Max_r0 = 0.40;
+  const double Step_r0 = 0.01;
+  double BestChi2 = 1e6;
+  double Best_r0 = 0;
+  for(double dr0=Min_r0; dr0<=Max_r0+1e-6; dr0+=Step_r0){
+    double TotChi2 = 0;
+    //printf("CLUMSY FITTER for r0=%.3f:\n",dr0);
+    for(unsigned uSpec=0; uSpec<NumSpecies; uSpec++){
+      //printf("    Clumsy fitting %s\n",SpeciesName[uSpec].Data());
+      if(FitFrom[uSpec]==FitTo[uSpec]) continue;
+      fClumsyFit[uSpec]->FixParameter(3,dr0);
+      hCkPlot[uSpec]->Fit(fClumsyFit[uSpec],"Q, S, N, R, M");
+      TotChi2 += fClumsyFit[uSpec]->GetChisquare();
+      //printf("    chi2 = %.0f\n",fClumsyFit[uSpec]->GetChisquare());
+    }
+    //printf("  TotChi2 = %.0f\n",TotChi2);
+    if(TotChi2<BestChi2) {
+      BestChi2=TotChi2; Best_r0=dr0;
+      for(unsigned uSpec=0; uSpec<NumSpecies; uSpec++){
+        if(FitFrom[uSpec]==FitTo[uSpec]) continue;
+        fBestClumsyFit[uSpec]->SetParameter(0,fClumsyFit[uSpec]->GetParameter(0));
+        fBestClumsyFit[uSpec]->SetParError(0,fClumsyFit[uSpec]->GetParError(0));
+        fBestClumsyFit[uSpec]->SetParameter(1,fClumsyFit[uSpec]->GetParameter(1));
+        fBestClumsyFit[uSpec]->SetParError(1,fClumsyFit[uSpec]->GetParError(1));
+        fBestClumsyFit[uSpec]->SetParameter(2,fClumsyFit[uSpec]->GetParameter(2));
+        fBestClumsyFit[uSpec]->SetParError(2,fClumsyFit[uSpec]->GetParError(2));
+        fBestClumsyFit[uSpec]->SetParameter(3,fClumsyFit[uSpec]->GetParameter(3));
+        fBestClumsyFit[uSpec]->SetParError(3,fClumsyFit[uSpec]->GetParError(3));
+      }
+    }
+  }
+  printf("Best r0 = %.2f with chi2 = %.0f\n",Best_r0,BestChi2);
+  for(unsigned uSpec=0; uSpec<NumSpecies; uSpec++){
+    if(FitFrom[uSpec]==FitTo[uSpec]) continue;
+
+    double Strength = fBestClumsyFit[uSpec]->GetParameter(2);
+    double StrengthErr = fBestClumsyFit[uSpec]->GetParError(2);
+    double Purity;
+    double PrimFrac;
+    if(uSpec==0){Purity=Purity_p[0]*Purity_p[0];PrimFrac=Frac_p[0]*Frac_p[0];}
+    if(uSpec==1){Purity=Purity_p[0]*Purity_L[0];PrimFrac=Frac_p[0]*Frac_L[0];}
+    if(uSpec==2){Purity=Purity_p[0]*Purity_Xim[0];PrimFrac=Frac_p[0]*Frac_Xim[0];}
+    if(uSpec==4){Purity=Purity_L[0]*Purity_L[0];PrimFrac=Frac_L[0]*Frac_L[0];}
+    printf("    A = %.3f +/- %.3f\n",Strength,StrengthErr);
+    printf("  A/P = %.3f +/- %.3f\n",Strength/Purity,StrengthErr/Purity);
+    printf("  A/PF = %.3f +/- %.3f\n",Strength/Purity/PrimFrac,StrengthErr/Purity/PrimFrac);
+
+  }
+
+
+  TFile* OutputFile = new TFile(OutputFileName,"recreate");
+  OutputFile->cd();
+  for(unsigned uSpec=0; uSpec<NumSpecies; uSpec++){
+    if(hCkPlot[uSpec]) hCkPlot[uSpec]->Write();
+    if(fQuantumBaseline[uSpec]) fQuantumBaseline[uSpec]->Write();
+    if(fBestClumsyFit[uSpec]) fBestClumsyFit[uSpec]->Write();
+  }
+
+  for(unsigned uSpec=0; uSpec<NumSpecies; uSpec++){
+    if(hCkPlot[uSpec]) delete hCkPlot[uSpec];
+    if(fQuantumBaseline[uSpec]) delete fQuantumBaseline[uSpec];
+    if(fClumsyFit[uSpec]) delete fClumsyFit[uSpec];
+    if(fBestClumsyFit[uSpec]) delete fBestClumsyFit[uSpec];
+  }
+  delete [] hCkPlot;
+  delete [] fQuantumBaseline;
+  delete [] fClumsyFit;
+  delete [] fBestClumsyFit;
+  delete [] NormFrom;
+  delete [] NormTo;
+  printf("Ending QuantumBaseline\n");
+}
+
+void EPOS_QS_PLOT(){
+
+  //strength QS_s of 0,0.2 and 0.4
+  TString EposInputFile0 = TString::Format("%s/MixedEvents/dEta_dPhi_Ck_QS/QS0_pp_1.3eta.root",GetFemtoOutputFolder());
+  TString EposInputFile2 = TString::Format("%s/MixedEvents/dEta_dPhi_Ck_QS/QS2_pp_1.3eta.root",GetFemtoOutputFolder());
+  TString EposInputFile4 = TString::Format("%s/MixedEvents/dEta_dPhi_Ck_QS/QS4_pp_1.3eta.root",GetFemtoOutputFolder());
+  TString HistoInputName = "hCphiQsRs";
+  TGraphErrors Polish_HM_Data;
+
+  Polish_HM_Data.SetPoint(0,-1.286,0.984);
+  Polish_HM_Data.SetPoint(1,-1.077,0.965);
+  Polish_HM_Data.SetPoint(2,-0.873,0.938);
+  Polish_HM_Data.SetPoint(3,-0.637,0.909);
+  Polish_HM_Data.SetPoint(4,-0.44,0.899);
+  Polish_HM_Data.SetPoint(5,-0.212,0.888);
+  Polish_HM_Data.SetPoint(6,0.0,0.903);
+  Polish_HM_Data.SetPoint(7,0.22,0.889);
+  Polish_HM_Data.SetPoint(8,0.44,0.896);
+  Polish_HM_Data.SetPoint(9,0.64,0.911);
+  Polish_HM_Data.SetPoint(10,0.86,0.934);
+  Polish_HM_Data.SetPoint(11,1.08,0.958);
+  Polish_HM_Data.SetPoint(12,1.3,0.985);
+  Polish_HM_Data.SetPoint(13,1.519,1.006);
+  Polish_HM_Data.SetPoint(14,1.739,1.026);
+  Polish_HM_Data.SetPoint(15,1.96,1.047);
+  Polish_HM_Data.SetPoint(16,2.172,1.056);
+  Polish_HM_Data.SetPoint(17,2.424,1.069);
+  Polish_HM_Data.SetPoint(18,2.613,1.084);
+  Polish_HM_Data.SetPoint(19,2.817,1.092);
+  Polish_HM_Data.SetPoint(20,3.053,1.092);
+  Polish_HM_Data.SetPoint(21,3.234,1.092);
+  Polish_HM_Data.SetPoint(22,3.478,1.087);
+  Polish_HM_Data.SetPoint(23,3.691,1.084);
+  Polish_HM_Data.SetPoint(24,3.895,1.073);
+  Polish_HM_Data.SetPoint(25,4.115,1.057);
+  Polish_HM_Data.SetPoint(26,4.328,1.045);
+  Polish_HM_Data.SetPoint(27,4.54,1.026);
+  Polish_HM_Data.SetPoint(28,4.772,1.007);
+
+  Polish_HM_Data.SetPoint(0,-1.286,0.984);
+  Polish_HM_Data.SetPoint(1,-1.077,0.965);
+  Polish_HM_Data.SetPoint(2,-0.873,0.938);
+  Polish_HM_Data.SetPoint(3,-0.637,0.909);
+  Polish_HM_Data.SetPoint(4,-0.44,0.899);
+  Polish_HM_Data.SetPoint(5,-0.212,0.888);
+  Polish_HM_Data.SetPoint(6,0.008,0.903);
+  Polish_HM_Data.SetPoint(7,0.213,0.889);
+  Polish_HM_Data.SetPoint(8,0.425,0.896);
+  Polish_HM_Data.SetPoint(9,0.661,0.911);
+  Polish_HM_Data.SetPoint(10,0.874,0.934);
+  Polish_HM_Data.SetPoint(11,1.094,0.958);
+  Polish_HM_Data.SetPoint(12,1.299,0.985);
+  Polish_HM_Data.SetPoint(13,1.519,1.006);
+  Polish_HM_Data.SetPoint(14,1.739,1.026);
+  Polish_HM_Data.SetPoint(15,1.96,1.047);
+  Polish_HM_Data.SetPoint(16,2.172,1.056);
+  Polish_HM_Data.SetPoint(17,2.424,1.069);
+  Polish_HM_Data.SetPoint(18,2.613,1.084);
+  Polish_HM_Data.SetPoint(19,2.817,1.092);
+  Polish_HM_Data.SetPoint(20,3.053,1.092);
+  Polish_HM_Data.SetPoint(21,3.234,1.092);
+  Polish_HM_Data.SetPoint(22,3.478,1.087);
+  Polish_HM_Data.SetPoint(23,3.691,1.084);
+  Polish_HM_Data.SetPoint(24,3.895,1.073);
+  Polish_HM_Data.SetPoint(25,4.115,1.057);
+  Polish_HM_Data.SetPoint(26,4.328,1.045);
+  Polish_HM_Data.SetPoint(27,4.54,1.026);
+  Polish_HM_Data.SetPoint(28,4.772,1.007);
+
+  for(unsigned uPts=0; uPts<Polish_HM_Data.GetN(); uPts++){
+    Polish_HM_Data.SetPointError(uPts,0.22,0.015);
+  }
+
+  TFile* fEpos0 = new TFile(EposInputFile0,"read");
+  TH1F* hEpos0 = (TH1F*)fEpos0->Get(HistoInputName);
+  TGraph gEpos0;
+  for(unsigned uBin=0; uBin<hEpos0->GetNbinsX(); uBin++){
+    gEpos0.SetPoint(uBin,hEpos0->GetBinCenter(uBin+1),hEpos0->GetBinContent(uBin+1));
+  }
+
+  TFile* fEpos2 = new TFile(EposInputFile2,"read");
+  TH1F* hEpos2 = (TH1F*)fEpos2->Get(HistoInputName);
+  TGraph gEpos2;
+  for(unsigned uBin=0; uBin<hEpos2->GetNbinsX(); uBin++){
+    gEpos2.SetPoint(uBin,hEpos2->GetBinCenter(uBin+1),hEpos2->GetBinContent(uBin+1));
+  }
+
+  TFile* fEpos4 = new TFile(EposInputFile4,"read");
+  TH1F* hEpos4 = (TH1F*)fEpos4->Get(HistoInputName);
+  TGraph gEpos4;
+  for(unsigned uBin=0; uBin<hEpos4->GetNbinsX(); uBin++){
+    gEpos4.SetPoint(uBin,hEpos4->GetBinCenter(uBin+1),hEpos4->GetBinContent(uBin+1));
+  }
+
+  TH1F* hAxis = new TH1F("hAxis", "hAxis", 128, -1.4, 4.8);
+  hAxis->SetStats(false);
+  hAxis->SetTitle("");
+  hAxis->GetXaxis()->SetTitle("#Delta#varphi");
+  hAxis->GetXaxis()->SetTitleSize(0.06);
+  hAxis->GetXaxis()->SetLabelSize(0.06);
+  hAxis->GetXaxis()->SetTitleOffset(1.2);
+  hAxis->GetXaxis()->SetLabelOffset(0.02);
+
+  hAxis->GetYaxis()->SetTitle("C(#Delta#varphi)");
+  hAxis->GetYaxis()->SetRangeUser(0.85, 1.15);
+  hAxis->GetYaxis()->SetTitleSize(0.06);
+  hAxis->GetYaxis()->SetLabelSize(0.06);
+  hAxis->GetYaxis()->SetTitleOffset(0.90);
+
+  Polish_HM_Data.SetName("Polish_HM_Data");
+  Polish_HM_Data.SetFillColorAlpha(kBlue+3,0.3);
+  Polish_HM_Data.SetLineColor(kBlue+3);
+  Polish_HM_Data.SetLineWidth(0);
+
+  gEpos0.SetName("gEpos0");
+  gEpos0.SetLineColor(kBlack);
+  gEpos0.SetLineWidth(8);
+  hEpos0->SetLineColor(kBlack);
+  hEpos0->SetLineWidth(3);
+  hEpos0->SetMarkerColor(kBlack);
+
+  gEpos2.SetName("gEpos2");
+  gEpos2.SetLineColor(kRed+1);
+  gEpos2.SetLineWidth(8);
+  hEpos2->SetLineColor(kRed+1);
+  hEpos2->SetLineWidth(3);
+  hEpos2->SetMarkerColor(kRed+1);
+
+  gEpos4.SetName("gEpos3");
+  gEpos4.SetLineColor(kGreen+1);
+  gEpos4.SetLineWidth(8);
+  hEpos4->SetLineColor(kGreen+1);
+  hEpos4->SetLineWidth(3);
+  hEpos4->SetMarkerColor(kGreen+1);
+
+  TLegend* lLegend = new TLegend(0.67,0.18,0.90,0.41);//lbrt
+  lLegend->SetName(TString::Format("lLegend"));
+  lLegend->SetTextSize(0.04);
+  lLegend->SetBorderSize(0);
+  lLegend->AddEntry(&Polish_HM_Data,"ALICE preliminary");
+  lLegend->AddEntry(hEpos0,"EPOS default");
+  lLegend->AddEntry(hEpos2,"EPOS A=0.2");
+  lLegend->AddEntry(hEpos4,"EPOS A=0.4");
+
+  TCanvas* cEpos = new TCanvas("cEpos", "cEpos", 1);
+  cEpos->cd(0);
+  cEpos->SetCanvasSize(1280, 720);
+  cEpos->SetMargin(0.12,0.05,0.15,0.05);//lrbt
+  cEpos->SetGrid();
+
+  hAxis->Draw("axis");
+  Polish_HM_Data.Draw("3 same");
+  //gEpos4.Draw("C same");
+  //gEpos0.Draw("C same");
+  //gEpos2.Draw("C same");
+  hEpos4->Draw("same");
+  hEpos0->Draw("same");
+  hEpos2->Draw("same");
+  lLegend->Draw("same");
+
+  cEpos->SaveAs(TString::Format("%s/Plots/PhDThesis/QuantumBaseline/cEpos_QS.png",GetCernBoxDimi()));
+
+  delete lLegend;
+  delete hEpos0;
+  delete hEpos2;
+  delete hEpos4;
+  delete fEpos0;
+  delete fEpos2;
+  delete fEpos4;
+}
+
+
+
+
+
+
+
 int THESIS_PLOTS(int narg, char** ARGS){
     //ToyPotentials_PS_WF_CF();
     //ComparePionPion(0);
@@ -2549,5 +3027,8 @@ int THESIS_PLOTS(int narg, char** ARGS){
     //Ck_pp_Decomposition();
     //ModifiedPoisson();
     //pL_Feed();
-    pp_MomReso();
+    //pp_MomReso();
+    QuantumBaseline();
+    //EPOS_QS_PLOT();
+
 }

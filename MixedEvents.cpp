@@ -9,7 +9,7 @@
 #include "DLM_CkDecomposition.h"
 #include "DLM_Fitters.h"
 #include "DLM_Histo.h"
-
+#include "EnvVars.h"
 
 #include "math.h"
 #include <iostream>
@@ -1022,7 +1022,7 @@ printf("hNkSeDimiPhi_Mult->Integral()=%e\n",hNkSeDimiPhi_Mult->Integral());
 
 void dEta_dPhi_Ck_QS(const TString& TranModDescr, const TString& DataSetDescr, const bool& ALICE_acc){
     const double QS_r = 0.3;
-    const double QS_s = 0.25;
+    const double QS_s = 0.4;
 
     const double kMin = DataSetDescr=="pp"?0:DataSetDescr=="pLambda"?0:DataSetDescr=="pXim"?0:0;
     const double kMax = DataSetDescr=="pp"?6:DataSetDescr=="pLambda"?6:DataSetDescr=="pXim"?6:6;
@@ -1035,7 +1035,7 @@ void dEta_dPhi_Ck_QS(const TString& TranModDescr, const TString& DataSetDescr, c
     const double etaMin = -1.5;
     const double etaMax = 1.5;
 
-    const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/dEta_dPhi_Ck_QS/";
+    const TString OutputFolder = TString::Format("%s/MixedEvents/dEta_dPhi_Ck_QS/",GetFemtoOutputFolder());
     const unsigned NumMomBins = DataSetDescr=="pp"?300:DataSetDescr=="pLambda"?240:DataSetDescr=="pXim"?120:120;
     const unsigned NumPhiBins = NumMomBins;
     const unsigned NumEtaBins = NumMomBins;
@@ -1177,13 +1177,13 @@ void dEta_dPhi_Ck_QS(const TString& TranModDescr, const TString& DataSetDescr, c
                 continue; //don't save this particle if it is of the wrong type
 
             //ALICE ACCEPTANCE
-            if( (ALICE_acc&&KittyParticle.GetP()>0.4&&fabs(KittyParticle.GetPseudoRap())<0.8) || !ALICE_acc ){
+            if( (ALICE_acc&&KittyParticle.GetP()>0.4&&fabs(KittyParticle.GetPseudoRap())<1.3) || !ALICE_acc ){
                 KittyEvent->AddParticle(KittyParticle);
                 KittyEventLab->AddParticle(KittyParticle);
             }
             //for(int iDepth=0; iDepth<8; iDepth++){
             KittyParticleRs.RotateMomPhi(rangen.Uniform(2.*TMath::Pi()));
-            if( (ALICE_acc&&KittyParticleRs.GetP()>0.4&&fabs(KittyParticleRs.GetPseudoRap())<0.8) || !ALICE_acc ){
+            if( (ALICE_acc&&KittyParticleRs.GetP()>0.4&&fabs(KittyParticleRs.GetPseudoRap())<1.3) || !ALICE_acc ){
                 KittyEventRs->AddParticle(KittyParticleRs);
                 KittyEventRsLab->AddParticle(KittyParticleRs);
             }
@@ -4071,7 +4071,7 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
     //const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/ReferenceSampleStudy_1/";
     //const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/AngleStudy_3/";
     //const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/Max/";
-    const TString OutputFolder = "$CERN_BOX/CatsFiles/Source/EposAngularDist/";
+    const TString OutputFolder = "$CERNBOX_DIMI/CatsFiles/Source/EposAngularDist/";
     const unsigned NumMomBins = DataSetDescr=="pp"?400:DataSetDescr=="pLambda"?200:DataSetDescr=="pXim"?200:200;
     const TString OutFileBaseName = OutputFolder+TranModDescr+"_"+DataSetDescr;
     //const TString InputFileName = DataSetDescr=="pp"?TransportFile_pp_Alice:DataSetDescr=="pLambda"?TransportFile_pL_Alice:
@@ -4085,7 +4085,7 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
     //const TString InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp200/pp200_pReso_Oct2019_4PI.f19";
 
     TString InputFileName;
-    if(DataSetDescr.Contains("Xim")||DataSetDescr.Contains("Omega"))
+    if( (DataSetDescr.Contains("Xim")||DataSetDescr.Contains("Omega"))&&!DataSetDescr.Contains("Lam"))
         InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp200/pp200_pResoXimOmega_Oct2019_4PI_ReducedWeights.f19";
     else if(DataSetDescr=="Lam_Lam"||DataSetDescr=="Lam_LamReso"||DataSetDescr=="LamReso_LamReso")
         InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp200/pp200_LamResoLamReso_Oct2019_4PI_ReducedWeights.f19";
@@ -4096,6 +4096,10 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
         //InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/Max/300320_width50_omegaNo.root";
     else if(DataSetDescr=="p_Kaon"||DataSetDescr=="p_KaonReso"||DataSetDescr=="pReso_KaonReso")
         InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/Kaons/pKch_64.f19";
+    else if(DataSetDescr=="p_Phi"||DataSetDescr=="pReso_Phi")
+        InputFileName = "/home/dimihayl/Mount/nx3/scratch6/dmihaylov/OutputEPOS/13TeV/EPOS_20200121/pPhi_All.f19";
+    else if(DataSetDescr=="Lam_Xim"||DataSetDescr=="LamReso_Xim")
+      InputFileName = "/home/dimihayl/Mount/nx3/scratch6/dmihaylov/OutputEPOS/13TeV/EPOS_20200121/LamXi_All.f19";
     else
         //InputFileName = "$PATH_NX1/scratch6/dmihaylov/OutputEPOS/13TeV/EPOS_LBF_pp200/pp200_pResoLamReso_Oct2019_4PI_ReducedWeights.f19";
         InputFileName = "/home/dimihayl/Mount/nx1/scratch6/dmihaylov/OutputEPOS/13TeV/EPOS_LBF_pp200/pp200_pResoLamReso_Oct2019_4PI_ReducedWeights.f19";
@@ -4677,6 +4681,116 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
         FractionsNbody[2] = 0.0;
 
         UseResoInfo = false;
+    }
+    //pPhi correlation
+    else if(DataSetDescr=="p_Phi"){
+        pdgID[0] = 2212;
+        pdgID[1] = 333;
+        Original_eposID[0] = 1120;
+        Original_eposID[1] = 331;
+        Original_pdgID[0] = 2212;
+        Original_pdgID[1] = 333;
+
+        DaughterMassP1[0] = -1;
+        DaughterMassP1[1] = -1;
+        DaughterMassP1[2] = -1;
+        DaughterMassP1[3] = -1;
+
+        DaughterMassP2[0] = -1;
+        DaughterMassP2[1] = -1;
+        DaughterMassP2[2] = -1;
+        DaughterMassP2[3] = -1;
+
+        ResoMass[0] = -1;
+        ResoMass[1] = -1;
+
+        FractionsNbody[0] = 1.0;
+        FractionsNbody[1] = 0.0;
+        FractionsNbody[2] = 0.0;
+
+        UseResoInfo = true;
+    }
+    else if(DataSetDescr=="pReso_Phi"){
+        pdgID[0] = 0;
+        pdgID[1] = 333;
+        Original_eposID[0] = 1120;
+        Original_eposID[1] = 331;
+        Original_pdgID[0] = 2212;
+        Original_pdgID[1] = 333;
+
+        DaughterMassP1[0] = Mass_p*0.001;
+        DaughterMassP1[1] = Mass_pic*0.001;
+        DaughterMassP1[2] = -1;
+        DaughterMassP1[3] = -1;
+
+        DaughterMassP2[0] = -1;
+        DaughterMassP2[1] = -1;
+        DaughterMassP2[2] = -1;
+        DaughterMassP2[3] = -1;
+
+        ResoMass[0] = 1.36;
+        ResoMass[1] = -1;
+
+        FractionsNbody[0] = 1.0;
+        FractionsNbody[1] = 0.0;
+        FractionsNbody[2] = 0.0;
+
+        UseResoInfo = true;
+    }
+    //LamXim correlation
+    else if(DataSetDescr=="Lam_Xim"){
+        pdgID[0] = 3122;
+        pdgID[1] = 3312;
+        Original_eposID[0] = 2130;
+        Original_eposID[1] = 2330;
+        Original_pdgID[0] = 3122;
+        Original_pdgID[1] = 3312;
+
+        DaughterMassP1[0] = -1;
+        DaughterMassP1[1] = -1;
+        DaughterMassP1[2] = -1;
+        DaughterMassP1[3] = -1;
+
+        DaughterMassP2[0] = -1;
+        DaughterMassP2[1] = -1;
+        DaughterMassP2[2] = -1;
+        DaughterMassP2[3] = -1;
+
+        ResoMass[0] = -1;
+        ResoMass[1] = -1;
+
+        FractionsNbody[0] = 1.0;
+        FractionsNbody[1] = 0.0;
+        FractionsNbody[2] = 0.0;
+
+        UseResoInfo = true;
+    }
+    else if(DataSetDescr=="LamReso_Xim"){
+        pdgID[0] = 0;
+        pdgID[1] = 3312;
+        Original_eposID[0] = 2130;
+        Original_eposID[1] = 2330;
+        Original_pdgID[0] = 3122;
+        Original_pdgID[1] = 3312;
+
+        DaughterMassP1[0] = Mass_L*0.001;
+        DaughterMassP1[1] = Mass_pic*0.001;
+        DaughterMassP1[2] = -1;
+        DaughterMassP1[3] = -1;
+
+        DaughterMassP2[0] = -1;
+        DaughterMassP2[1] = -1;
+        DaughterMassP2[2] = -1;
+        DaughterMassP2[3] = -1;
+
+        ResoMass[0] = 1.46;
+        ResoMass[1] = -1;
+
+        FractionsNbody[0] = 1.0;
+        FractionsNbody[1] = 0.0;
+        FractionsNbody[2] = 0.0;
+
+        UseResoInfo = true;
     }
 
     FractionsNbodyC[0] = FractionsNbody[0];
@@ -6343,9 +6457,11 @@ int MIXEDEVENTS(int narg, char** ARGS){
 
     //ReferenceSampleStudy_2("Epos2body","p_pReso");
     //ReferenceSampleStudy_2("Only3body","p_pReso_3body");
-    ReferenceSampleStudy_2("Only3body","pReso_pReso_3body");
+    //ReferenceSampleStudy_2("Only3body","pReso_pReso_3body");
+    //ReferenceSampleStudy_2("Epos","pReso_Phi");
+    //ReferenceSampleStudy_2("Epos","LamReso_Xim");
 
-    //dEta_dPhi_Ck_QS("QS", "pp", true);
+    dEta_dPhi_Ck_QS("QS", "pp", true);
     //CompareReferenceSamples("pp");
     //CompareSameMixedEventToBoltzmann();
     //RatioBetweenLevy();
