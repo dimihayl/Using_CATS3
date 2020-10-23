@@ -9032,6 +9032,7 @@ printf("debug\n");
     //if false, we have much more info on the plots
     //if true: as intended for the paper (cleaner)
     const bool PaperPlots = true;
+    const bool WorkInProgress = true;
     const bool DataOnly = false;
 
     enum BLTYPE { pol0s,pol1s,pol2s,pol3s,dpol2s,dpol3s,dpol4s,pol2e,pol3e,dpol2e,dpol3e,dpol4e,spl1 };
@@ -9052,7 +9053,7 @@ printf("debug\n");
 
     const bool Same_omega_siglam = PaperPlots?false:false;
     //const bool COMPARE_TO_LO = true;
-    bool COMPARE_TO_LO = false;
+    bool COMPARE_TO_LO = true;
     if(PaperPlots&&WhichPotential==1600) COMPARE_TO_LO = true;
     else if(PaperPlots) COMPARE_TO_LO = false;
     if(WhichPotential==-11600) COMPARE_TO_LO = false;
@@ -10150,6 +10151,7 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
     gStyle->SetCanvasPreferGL(1);
     SetStyle();
 
+    //TColor SigmaColor(6000,132,112,255);
     int ColorInteraction = kRed+1;
     if(WhichPotential==-11600) ColorInteraction = kGreen+1;
 
@@ -10159,59 +10161,59 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
         fitLoDummy->SetLineWidth(4);
     }
 
-    ge_Fit->SetFillColorAlpha(ColorInteraction,0.40);
+    ge_Fit->SetFillColorAlpha(ColorInteraction,0.70);
     ge_Fit->SetLineColor(ColorInteraction);
     ge_Fit->SetLineWidth(5);
 
-    ge_Bl->SetFillColorAlpha(kCyan-8,0.40);
-    ge_Bl->SetLineColor(kCyan-8);
+    ge_Bl->SetFillColorAlpha(kGray+1,0.70);//kCyan-8
+    ge_Bl->SetLineColor(kGray+1);//kCyan-8
     ge_Bl->SetLineWidth(5);
 
-    ge_Sig->SetFillColorAlpha(kTeal,0.40);
-    ge_Sig->SetLineColor(kTeal);
+    ge_Sig->SetFillColorAlpha(kBlue-7,0.70);//kTeal
+    ge_Sig->SetLineColor(kBlue-7);//kTeal
     ge_Sig->SetLineWidth(5);
 
-    ge_Xim->SetFillColorAlpha(kOrange+2,0.40);
+    ge_Xim->SetFillColorAlpha(kOrange+2,0.70);
     ge_Xim->SetLineColor(kOrange+2);
     ge_Xim->SetLineWidth(5);
     ge_Xim->SetLineStyle(2);
 
 
-    ge_Xi0->SetFillColorAlpha(kOrange+2,0.40);
+    ge_Xi0->SetFillColorAlpha(kOrange+2,0.70);
     ge_Xi0->SetLineColor(kOrange+2);
     ge_Xi0->SetLineWidth(5);
     ge_Xi0->SetLineStyle(5);
 
-    ge_Xi->SetFillColorAlpha(kOrange+1,0.40);
+    ge_Xi->SetFillColorAlpha(kOrange+1,0.70);
     ge_Xi->SetLineColor(kOrange+1);
     ge_Xi->SetLineWidth(5);
 
-    ge_SigmaSlice->SetFillColorAlpha(ColorInteraction,0.40);
-    ge_SigmaSlice_der->SetFillColorAlpha(kBlue+1,0.40);
+    ge_SigmaSlice->SetFillColorAlpha(ColorInteraction,0.70);
+    ge_SigmaSlice_der->SetFillColorAlpha(kBlue+1,0.70);
 
     geb_Fit->SetFillColorAlpha(ColorInteraction,0.70);
     geb_Fit->SetLineColor(ColorInteraction);
     geb_Fit->SetLineWidth(3);
 
-    geb_Bl->SetFillColorAlpha(kCyan-8,0.70);
-    geb_Bl->SetLineColor(kCyan-8);
+    geb_Bl->SetFillColorAlpha(kGray+1,0.70);//kCyan-8
+    geb_Bl->SetLineColor(kGray+1);//kCyan-8
     geb_Bl->SetLineWidth(5);
 
-    geb_Sig->SetFillColorAlpha(kTeal,0.70);
-    geb_Sig->SetLineColor(kTeal);
+    geb_Sig->SetFillColorAlpha(kBlue-7,0.70);//kTeal
+    geb_Sig->SetLineColor(kBlue-7);//kTeal
     geb_Sig->SetLineWidth(5);
 
-    geb_Xim->SetFillColorAlpha(kOrange+2,0.40);
+    geb_Xim->SetFillColorAlpha(kOrange+2,0.70);
     geb_Xim->SetLineColor(kOrange+2);
     geb_Xim->SetLineWidth(5);
     geb_Xim->SetLineStyle(2);
 
-    geb_Xi0->SetFillColorAlpha(kOrange+2,0.40);
+    geb_Xi0->SetFillColorAlpha(kOrange+2,0.70);
     geb_Xi0->SetLineColor(kOrange+2);
     geb_Xi0->SetLineWidth(5);
     geb_Xi0->SetLineStyle(5);
 
-    geb_Xi->SetFillColorAlpha(kOrange+1,0.40);
+    geb_Xi->SetFillColorAlpha(kOrange+1,0.70);
     geb_Xi->SetLineColor(kOrange+1);
     geb_Xi->SetLineWidth(5);
 
@@ -10360,7 +10362,7 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
     TLatex BeamText;
     BeamText.SetTextSize(gStyle->GetTextSize()*0.90);
     BeamText.SetNDC(kTRUE);
-    if(!PaperPlots) BeamText.DrawLatex(TextLeft, TextTop, "ALICE work in progress");
+    if(!PaperPlots||WorkInProgress) BeamText.DrawLatex(TextLeft, TextTop, "ALICE work in progress");
     else BeamText.DrawLatex(TextLeft, TextTop, "ALICE");
     BeamText.DrawLatex(TextLeft, TextTop-0.055, "high-mult. (0#minus0.17% INEL>0) pp #sqrt{#it{s}} = 13 TeV");
 
@@ -14953,8 +14955,8 @@ printf("PLAMBDA_1_MAIN\n");
 
 
 //Quick_pLambda_plotter();
-Quick_pLambda_plotter_NLO13_vs_LO13();
-return 0;
+//Quick_pLambda_plotter_NLO13_vs_LO13();
+//return 0;
 //printf("hello\n");
 Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(atoi(argv[4]))/10.,
                             ///home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/100720_Unfolded/
@@ -14963,7 +14965,7 @@ Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(at
                             atoi(argv[1]),atoi(argv[2]),atoi(argv[3])),
                             //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/",
                             //"UnfoldRefine_pp13TeV_HM_DimiJul20_POT11600_BL10_SIG1.root",
-                            "/mnt/Ubuntu_Data/CernBox/Sync/pLambda/100720_Unfolded/Laura_Review/",
+                            "/mnt/Ubuntu_Data/CernBox/Sync/pLambda/100720_Unfolded/TG9/",
                             //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/"
                             atoi(argv[5])///REMOVE FOR THE OLD PLOTS
                             );
