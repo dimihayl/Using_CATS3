@@ -12,6 +12,7 @@
 #include "DLM_CkDecomp.h"
 #include "DLM_RootWrapper.h"
 #include "DLM_CkModels.h"
+#include "DLM_Fitters.h"
 #include "CommonAnaFunctions.h"
 #include "EnvVars.h"
 
@@ -28,6 +29,8 @@
 #include "TGaxis.h"
 #include "TPaveText.h"
 #include "TROOT.h"
+
+DLM_CkDecomposition* CKDEC_FIT_PP;
 
 void SetStyleAxis_1(TH1F* hAxis){
     hAxis->SetStats(false);
@@ -3011,7 +3014,261 @@ void EPOS_QS_PLOT(){
   delete fEpos4;
 }
 
+//if par[0]==-1e6 : use splines
+//else
+//par[0] is an overall normalization
+//than we have a pol4 = p0*(1+p1*k+p2*k^2+p3*k^4+p4*k^4), which has 3 free arguments and the following properties
+//par4!=0 (pol4 flat at 0)
+//	par1,par2 the two extrema, par3 is the p4, par4 is dummy
+//par4==0&&par3!=0 (pol3)
+//	par1,par2 the two extrema, par3 is p3
+//par4==0&&par3==0&&par2!=0 (pol2)
+//	par1 is the extrema, par2 is p2
+//par4==0&&par3==0&&par2==0&&par1!=0 (pol1)
+//	par1 is p1
+//to avoid problems with a starting parameter of zero, to switch the order of the par we use -1e6 as a value
+//a Mathematica computation of the equations is in your Femto folder
+double ThesisFitterBl_pp(double* x, double* par){
+    double& k = *x;
+    double& p0 = par[0];
+    //splines
+    if(p0==-1e6){
+        //double Spline = DLM_FITTER2_FUNCTION_SPLINE3(x,&par[1]);
+        //printf("hi %f\n",Spline);
+        return DLM_FITTER2_FUNCTION_SPLINE3(x,&par[1]);
+    }
+    //constrained polynomials
+    else{
+        double p1;
+        double p2;
+        double p3;
+        double p4;
+        if(par[4]!=-1e6){
+            p4 = par[3];
+            p3 = -4./3.*(par[1]+par[2])*p4;
+            p2 = 2.*par[1]*par[2]*p4;
+            p1 = 0;
+        }
+        else if(par[3]!=-1e6){
+            p4 = 0;
+            p3 = par[3];
+            p2 = -1.5*(par[1]+par[2])*p3;
+            p1 = 3.*par[1]*par[2]*p3;
+        }
+        else if(par[2]!=-1e6){
+            p4 = 0;
+            p3 = 0;
+            p2 = par[2];
+            p1 = -2.*par[1]*p2;
+        }
+        else{
+            p4 = 0;
+            p3 = 0;
+            p2 = 0;
+            p1 = par[1];
+        }
+        return p0*(1.+p1*k+p2*pow(k,2)+p3*pow(k,3)+p4*pow(k,4));
+    }
+}
+double ThesisFitterFemto_pp(double* x, double* par){
+    double& MOM = *x;
+    CKDEC_FIT_PP->GetCk()->SetSourcePar(0,par[0]);
+    CKDEC_FIT_PP->Update(true,true);
+    return CKDEC_FIT_PP->EvalCk(MOM);
+}
+double ThesisFitter_pp(double* x, double* par){
+    return ThesisFitterFemto_pp(x,par)*ThesisFitterBl_pp(x,&par[1]);
+}
+double SimplePol4_ppFit(double* x, double* par){
+    double& MOM = *x;
+    return ThesisFitterFemto_pp(x,par)*par[1]*(1.+par[2]*MOM+par[3]*MOM*MOM+par[4]*MOM*MOM*MOM+par[5]*MOM*MOM*MOM*MOM);
+}
 
+
+void Fit_pp(){
+  double* MomBins_pp = NULL;
+  double* FitRegion_pp = NULL;
+  unsigned NumMomBins_pp;
+  TString DataSample = "pp13TeV_HM_Dec19";
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
+  AnalysisObject.SetUpBinning_pp(DataSample,NumMomBins_pp,MomBins_pp,FitRegion_pp);
+  double lam_pp[5];
+  double lam_pL[5];
+  AnalysisObject.SetUpLambdaPars_pp(DataSample,0,lam_pp);
+  AnalysisObject.SetUpLambdaPars_pL(DataSample,0,0,lam_pL);
+
+  TH2F* hResolution_pp = AnalysisObject.GetResolutionMatrix(DataSample,"pp");
+  TH2F* hResidual_pp_pL = AnalysisObject.GetResidualMatrix("pp","pLambda");
+
+  TString SourceDescriptionG = "Gauss";
+  TString SourceDescriptionR = "McGauss_ResoTM";
+
+  CATS AB_pL;
+  DLM_Ck* Ck_pL;
+  AB_pL.SetMomBins(NumMomBins_pp,MomBins_pp);
+  AnalysisObject.SetUpCats_pL(AB_pL,"Usmani","Gauss");
+  AB_pL.SetAnaSource(0,1.25);
+  AB_pL.KillTheCat();
+  AB_pL.SetNotifications(CATS::nWarning);
+  Ck_pL = new DLM_Ck(AB_pL.GetNumSourcePars(),0,AB_pL);
+  Ck_pL->Update();
+  DLM_CkDecomposition CkDec_pL("pLambda",2,*Ck_pL,NULL);
+  CkDec_pL.AddContribution(2,lam_pL[1]+lam_pL[2]+lam_pL[3],DLM_CkDecomposition::cFeedDown);
+  CkDec_pL.AddContribution(3,lam_pL[4],DLM_CkDecomposition::cFake);//0.03
+
+  CATS ABG_pp;
+  DLM_Ck* CkG_pp;
+  ABG_pp.SetMomBins(NumMomBins_pp,MomBins_pp);
+  AnalysisObject.SetUpCats_pp(ABG_pp,"AV18",SourceDescriptionG,0,0);
+
+  ABG_pp.SetAnaSource(0,1.28);
+  if(SourceDescriptionG.Contains("Mc")){
+      ABG_pp.SetAnaSource(0,1.20);
+      ABG_pp.SetAnaSource(1,2.0);
+  }
+  //AB_pp.SetAnaSource(1,2.0);
+  //AB_pp.SetNotifications(CATS::nWarning);
+  ABG_pp.SetEpsilonConv(4e-8);
+  ABG_pp.SetEpsilonProp(4e-8);
+  ABG_pp.KillTheCat();
+  ABG_pp.SetNotifications(CATS::nWarning);
+  CkG_pp = new DLM_Ck(ABG_pp.GetNumSourcePars(),0,ABG_pp);
+  CkG_pp->Update();
+
+  CATS ABR_pp;
+  DLM_Ck* CkR_pp;
+  ABR_pp.SetMomBins(NumMomBins_pp,MomBins_pp);
+  //AnalysisObject.SetUpCats_pp(AB_pp,"AV18","Gauss",0,0);//McLevyNolan_Reso
+  AnalysisObject.SetUpCats_pp(ABR_pp,"AV18",SourceDescriptionR,0,202);//McLevyNolan_Reso
+
+  ABR_pp.SetAnaSource(0,1.3);
+  if(SourceDescriptionR.Contains("Mc")){
+      ABR_pp.SetAnaSource(0,1.20);
+      ABR_pp.SetAnaSource(1,2.0);
+  }
+  //AB_pp.SetAnaSource(1,2.0);
+  //AB_pp.SetNotifications(CATS::nWarning);
+  ABR_pp.SetEpsilonConv(4e-8);
+  ABR_pp.SetEpsilonProp(4e-8);
+  ABR_pp.KillTheCat();
+  ABR_pp.SetNotifications(CATS::nWarning);
+  CkR_pp = new DLM_Ck(ABR_pp.GetNumSourcePars(),0,ABR_pp);
+  CkR_pp->Update();
+
+  TH1F* hData_pp = AnalysisObject.GetAliceExpCorrFun(DataSample,"pp","_0",0,false,-1);
+
+  TString OutputFolder = TString::Format("%s/Plots/PhDThesis/ppFits/",GetCernBoxDimi());
+  TString OutFileName = "ppFit.root";
+  TFile* OutputFile = new TFile(OutputFolder+OutFileName,"recreate");
+  hData_pp->Write();
+/*
+  DLM_CkDecomposition CkDecG_pp("pp",3,*CkG_pp,hResolution_pp);
+
+  CkDecG_pp.AddContribution(0,lam_pp[1],DLM_CkDecomposition::cFeedDown,&CkDec_pL,hResidual_pp_pL);
+  CkDecG_pp.AddContribution(1,lam_pp[2],DLM_CkDecomposition::cFeedDown);
+  CkDecG_pp.AddContribution(2,lam_pp[3],DLM_CkDecomposition::cFake);
+
+  CkDecG_pp.Update();
+  CkDec_pL.Update();
+
+  DLM_CkDecomposition CkDecR_pp("pp",3,*CkR_pp,hResolution_pp);
+
+  CkDecR_pp.AddContribution(0,lam_pp[1],DLM_CkDecomposition::cFeedDown,&CkDec_pL,hResidual_pp_pL);
+  CkDecR_pp.AddContribution(1,lam_pp[2],DLM_CkDecomposition::cFeedDown);
+  CkDecR_pp.AddContribution(2,lam_pp[3],DLM_CkDecomposition::cFake);
+
+  CkDecR_pp.Update();
+  CkDec_pL.Update();
+
+  const double FitMin = 0;
+  const double FitMax = 376;
+
+  CKDEC_FIT_PP = &CkDecG_pp;
+  OutputFile->cd();
+  TF1* fitG_pp = new TF1("fitG_pp",SimplePol4_ppFit,FitMin,FitMax,6);//ThesisFitter_pp,SimplePol4_ppFit
+  fitG_pp->SetParameter(0,1.25);
+  fitG_pp->SetParLimits(0,1.1,1.4);
+  fitG_pp->SetParameter(1,1.0);//norm
+  fitG_pp->SetParLimits(1,0.8,1.2);
+  fitG_pp->SetParameter(2,50);//extremum 1
+  fitG_pp->SetParLimits(2,-100000,200);
+  fitG_pp->SetParameter(3,300);//extremum 2
+  fitG_pp->SetParLimits(3,0,600);
+  fitG_pp->SetParameter(4,0);//pol3
+  fitG_pp->SetParLimits(4,-1e-6,1e6);
+  fitG_pp->FixParameter(5,0);
+
+
+  //fitG_pp->FixParameter(2,0);
+  fitG_pp->SetParameter(2,0);
+  fitG_pp->SetParLimits(2,-1e-3,1e-3);
+
+  //fitG_pp->FixParameter(3,0);
+  fitG_pp->SetParameter(3,0);
+  fitG_pp->SetParLimits(3,-1e-5,1e-5);
+
+  //fitG_pp->FixParameter(4,0);
+  fitG_pp->SetParameter(4,0);
+  fitG_pp->SetParLimits(4,-1e-7,1e-7);
+
+  //fitG_pp->FixParameter(5,0);
+  fitG_pp->SetParameter(5,0);
+  fitG_pp->SetParLimits(5,-1e-9,1e-9);
+
+
+  //hData_pp->Fit(fitG_pp,"S, N, R, M");
+  printf("Gaussian source %.3f+/-%.3f fm\n",fitG_pp->GetParameter(0),fitG_pp->GetParError(0));
+  printf(" chi2/ndf = %.0f/%i = %.2f\n",fitG_pp->GetChisquare(),fitG_pp->GetNDF(),fitG_pp->GetChisquare()/double(fitG_pp->GetNDF()));
+
+  CKDEC_FIT_PP = &CkDecR_pp;
+  OutputFile->cd();
+  TF1* fitR_pp = new TF1("fitR_pp",SimplePol4_ppFit,FitMin,FitMax,6);//ThesisFitter_pp,SimplePol4_ppFit
+  fitR_pp->SetParameter(0,1.0);
+  fitR_pp->SetParLimits(0,0.9,1.1);
+  fitR_pp->SetParameter(1,1.0);//norm
+  fitR_pp->SetParLimits(1,0.8,1.2);
+  fitR_pp->SetParameter(2,50);//extremum 1
+  fitR_pp->SetParLimits(2,-100000,200);
+  fitR_pp->SetParameter(3,300);//extremum 2
+  fitR_pp->SetParLimits(3,0,600);
+  fitR_pp->SetParameter(4,0);//pol3
+  fitR_pp->SetParLimits(4,-1e-6,1e6);
+  fitR_pp->FixParameter(5,0);
+
+  fitR_pp->FixParameter(2,0);
+  fitR_pp->FixParameter(3,0);
+  fitR_pp->FixParameter(4,0);
+  fitR_pp->FixParameter(5,0);
+
+  //hData_pp->Fit(fitR_pp,"S, N, R, M");
+  printf("Gaussian core %.3f+/-%.3f fm\n",fitR_pp->GetParameter(0),fitR_pp->GetParError(0));
+*/
+  TGraph gTheoG;
+  gTheoG.SetName("gTheoG");
+  for(unsigned uBin=0; uBin<ABG_pp.GetNumMomBins(); uBin++){
+    gTheoG.SetPoint(uBin,ABG_pp.GetMomentum(uBin),ABG_pp.GetCorrFun(uBin));
+  }
+
+  TGraph gTheoR;
+  gTheoR.SetName("gTheoR");
+  for(unsigned uBin=0; uBin<ABR_pp.GetNumMomBins(); uBin++){
+    gTheoR.SetPoint(uBin,ABR_pp.GetMomentum(uBin),ABR_pp.GetCorrFun(uBin));
+  }
+
+  TGraph gTheoGR;
+  gTheoGR.SetName("gTheoGR");
+  for(unsigned uBin=0; uBin<ABR_pp.GetNumMomBins(); uBin++){
+    gTheoGR.SetPoint(uBin,ABR_pp.GetMomentum(uBin),ABG_pp.GetCorrFun(uBin)/ABR_pp.GetCorrFun(uBin));
+  }
+
+  OutputFile->cd();
+  //fitG_pp->Write();
+  //fitR_pp->Write();
+  gTheoG.Write();
+  gTheoR.Write();
+  gTheoGR.Write();
+}
 
 
 
@@ -3028,7 +3285,9 @@ int THESIS_PLOTS(int narg, char** ARGS){
     //ModifiedPoisson();
     //pL_Feed();
     //pp_MomReso();
-    QuantumBaseline();
+    //QuantumBaseline();
+    Fit_pp();
     //EPOS_QS_PLOT();
 
+    return 0;
 }

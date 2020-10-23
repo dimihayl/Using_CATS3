@@ -26,6 +26,7 @@
 #include "DLM_CkModels.h"
 #include "CommonAnaFunctions.h"
 #include "DLM_Fitters.h"
+#include "EnvVars.h"
 
 #include "DLM_HistoAnalysis.h"
 #include "DLM_SubPads.h"
@@ -9042,6 +9043,7 @@ printf("debug\n");
     const float MinRad = PaperPlots?0.96:0.96;//0.96
     const float MaxRad = PaperPlots?1.08:1.08;
     const float MinOmega = PaperPlots?0.35:0.35;//0.25
+//const float MinOmega = PaperPlots?0.25:0.25;//0.25
     const float MaxOmega = PaperPlots?0.45:0.45;
     const float MinCkConv = PaperPlots?600:600;
     const float MaxCkConv = PaperPlots?800:800;
@@ -9394,7 +9396,7 @@ COMPARE_TO_LO = false;
     const unsigned Num_CkConv=3;
 
     DLM_CommonAnaFunctions AnalysisObject;
-    AnalysisObject.SetCatsFilesFolder("/mnt/Ubuntu_Data/CernBox/Sync/CatsFiles");
+    AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
     TH1F* hData_pL_Stat;
     //if(DataSample[0]=="pp13TeV_HM_DimiJun20")
     //hData_pL_Stat = AnalysisObject.GetAliceExpCorrFun("pp13TeV_HM_DimiJun20","pLambda",TString::Format("L%.0f_SL4_SR6_P%.0f_0",0.529*100,0.963*100),2,false,-1);
@@ -9507,7 +9509,7 @@ COMPARE_TO_LO = false;
         if(*DataSample=="pp13TeV_HM_DimiJun20"||*DataSample=="pp13TeV_HM_DimiJul20") GetIterCombo040720(WhichBin,SourceSize,SBpur,SigLamFrac,XiSigLamFrac,CuspWeight,SourceAlpha,CkConv);
         else {printf("big trouble, the function will not work unless you checkout an older version (before 4th July 2020\n)"); abort();}
         //else GetIterCombo040620(WhichBin,SourceSize,lam_L_genuine,CuspWeight,SourceAlpha);
-
+//printf("0\n");
         if(Sigma0_Feed!=SIGMA_FEED) continue;
 //printf("1\n");
         if(BASELINE_VAR!=WhichBaseline) continue;
@@ -9900,7 +9902,7 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
                     DLM_Ck* Ck_pL;
                     AB_pL.SetMomBins(32,0,384);
                     DLM_CommonAnaFunctions AnalysisObject;
-                    AnalysisObject.SetCatsFilesFolder("/mnt/Ubuntu_Data/CernBox/Sync/CatsFiles");
+                    AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
                     TH2F* hResolution_pL = AnalysisObject.GetResolutionMatrix(*DataSample,"pLambda");//pp13TeV_HM_Dec19
                     AnalysisObject.SetUpCats_pL(AB_pL,"Chiral_Coupled_SPD","McGauss_ResoTM",-11600,202);//NLO_Coupled_S
 
@@ -14958,17 +14960,18 @@ printf("PLAMBDA_1_MAIN\n");
 //Quick_pLambda_plotter_NLO13_vs_LO13();
 //return 0;
 //printf("hello\n");
+
 Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(atoi(argv[4]))/10.,
                             ///home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/100720_Unfolded/
-                            "/mnt/Ubuntu_Data/CernBox/Sync/pLambda/100720_Unfolded/",
+                            TString::Format("%s/pLambda/Bootstrap_Test1/Syst_DataVar_FitVar_NoBoot/",GetCernBoxDimi()),
                             TString::Format("Merged_pp13TeV_HM_DimiJul20_POT%i_BL%i_SIG%i.root",
                             atoi(argv[1]),atoi(argv[2]),atoi(argv[3])),
                             //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/",
                             //"UnfoldRefine_pp13TeV_HM_DimiJul20_POT11600_BL10_SIG1.root",
-                            "/mnt/Ubuntu_Data/CernBox/Sync/pLambda/100720_Unfolded/TG9/",
+                            TString::Format("%s/pLambda/Bootstrap_Test1/Syst_DataVar_FitVar_NoBoot/",GetCernBoxDimi()),
                             //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/"
                             atoi(argv[5])///REMOVE FOR THE OLD PLOTS
-                            );
+                          );
 //MakeLATEXtable("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/100720_Unfolded/Plots/",true);
 return 0;
 
@@ -15008,9 +15011,9 @@ return 0;
 //unsigned SEED, unsigned BASELINE_VAR, int POT_VAR, int Sigma0_Feed, int Data_Type,
                            //bool DataSyst, bool FitSyst, bool Bootstrap, unsigned NumIter,
                           // const char* CatsFileFolder, const char* OutputFolder
-//pL_SystematicsMay2020(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]), atoi(argv[6]), atoi(argv[7]), atoi(argv[8]), atoi(argv[9]),
-//"/mnt/Ubuntu_Data/CernBox/Sync/CatsFiles",
-//"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/");
+pL_SystematicsMay2020(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]), atoi(argv[6]), atoi(argv[7]), atoi(argv[8]), atoi(argv[9]),
+TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data(),
+TString::Format("%s/pLambda/Bootstrap_Test1/Syst_DataVar_FitVar_Boot/",GetCernBoxDimi()).Data());
 
 //pL_SystematicsMay2020(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]), atoi(argv[6]), atoi(argv[7]),
 //                      argv[8],argv[9]);
