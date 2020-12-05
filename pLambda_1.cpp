@@ -4221,9 +4221,9 @@ printf("DimiStatEff_pL.GetNbins()=%u\n",DimiStatEff_pL.GetNbins());
     lLegend->SetTextSize(0.04);
     lLegend->SetBorderSize(0);
     if(mTStat_pp)lLegend->AddEntry(mTStat_pp,"p#minusp (AV18)");
-    lLegend->AddEntry(&mTSyst_pL_LO,"p#minus#Lambda (LO)");
-    lLegend->AddEntry(&mTSyst_pL_NLO,"p#minus#Lambda (NLO)");
-    //if(mT_pXim)lLegend->AddEntry(mT_pXim,"p#minus#Xi^{#minus} (HAL QCD)");
+    lLegend->AddEntry(&mTSyst_pL_LO,"p#minus #Lambda (LO)");
+    lLegend->AddEntry(&mTSyst_pL_NLO,"p#minus #Lambda (NLO)");
+    //if(mT_pXim)lLegend->AddEntry(mT_pXim,"p#minus #Xi^{#minus} (HAL QCD)");
 
     TCanvas* cmT = new TCanvas("cmT", "cmT", 1);
     cmT->cd(0); cmT->SetCanvasSize(1920/2, 1080/2); cmT->SetMargin(0.15,0.05,0.2,0.05);//lrbt
@@ -4274,8 +4274,8 @@ printf("DimiStatEff_pL.GetNbins()=%u\n",DimiStatEff_pL.GetNbins());
     lLegend_TOT->SetTextSize(0.04);
     lLegend_TOT->SetBorderSize(0);
     if(mTStat_pp)lLegend_TOT->AddEntry(mTStat_pp,"p#minusp (AV18)");
-    lLegend_TOT->AddEntry(&mTSyst_pL,"p#minus#Lambda (LO,NLO,Usmani)");
-    //if(mT_pXim)lLegend->AddEntry(mT_pXim,"p#minus#Xi^{#minus} (HAL QCD)");
+    lLegend_TOT->AddEntry(&mTSyst_pL,"p#minus #Lambda (LO,NLO,Usmani)");
+    //if(mT_pXim)lLegend->AddEntry(mT_pXim,"p#minus #Xi^{#minus} (HAL QCD)");
 
     TCanvas* cmT_TOT = new TCanvas("cmT_TOT", "cmT_TOT", 1);
     cmT_TOT->cd(0); cmT_TOT->SetCanvasSize(1920/2, 1080/2); cmT_TOT->SetMargin(0.15,0.05,0.2,0.05);//lrbt
@@ -5080,9 +5080,9 @@ printf("DimiStatEff_pL.GetNbins()=%u\n",DimiStatEff_pL.GetNbins());
     lLegend->SetTextSize(0.04);
     lLegend->SetBorderSize(0);
     lLegend->AddEntry(&mTStat_pp,"p#minusp (AV18)");
-    lLegend->AddEntry(&mTSyst_pL_LO,"p#minus#Lambda (LO)");
-    lLegend->AddEntry(&mTSyst_pL_NLO,"p#minus#Lambda (NLO)");
-    //if(mT_pXim)lLegend->AddEntry(mT_pXim,"p#minus#Xi^{#minus} (HAL QCD)");
+    lLegend->AddEntry(&mTSyst_pL_LO,"p#minus #Lambda (LO)");
+    lLegend->AddEntry(&mTSyst_pL_NLO,"p#minus #Lambda (NLO)");
+    //if(mT_pXim)lLegend->AddEntry(mT_pXim,"p#minus #Xi^{#minus} (HAL QCD)");
 
     TCanvas* cmT = new TCanvas("cmT", "cmT", 1);
     cmT->cd(0); cmT->SetCanvasSize(1920/2, 1080/2); cmT->SetMargin(0.15,0.05,0.2,0.05);//lrbt
@@ -5132,8 +5132,8 @@ printf("DimiStatEff_pL.GetNbins()=%u\n",DimiStatEff_pL.GetNbins());
     lLegend_TOT->SetTextSize(0.04);
     lLegend_TOT->SetBorderSize(0);
     lLegend_TOT->AddEntry(&mTStat_pp,"p#minusp (AV18)");
-    lLegend_TOT->AddEntry(&mTSyst_pL,"p#minus#Lambda (LO,NLO,Usmani)");
-    //if(mT_pXim)lLegend->AddEntry(mT_pXim,"p#minus#Xi^{#minus} (HAL QCD)");
+    lLegend_TOT->AddEntry(&mTSyst_pL,"p#minus #Lambda (LO,NLO,Usmani)");
+    //if(mT_pXim)lLegend->AddEntry(mT_pXim,"p#minus #Xi^{#minus} (HAL QCD)");
 
     TCanvas* cmT_TOT = new TCanvas("cmT_TOT", "cmT_TOT", 1);
     cmT_TOT->cd(0); cmT_TOT->SetCanvasSize(1920/2, 1080/2); cmT_TOT->SetMargin(0.15,0.05,0.2,0.05);//lrbt
@@ -5246,9 +5246,9 @@ printf("DimiStatEff_pL.GetNbins()=%u\n",DimiStatEff_pL.GetNbins());
     lLegendSor1->SetTextSize(0.04);
     lLegendSor1->SetBorderSize(0);
     lLegendSor1->AddEntry(&mTStat_pp,"p#minusp (AV18)");
-    lLegendSor1->AddEntry(&mTSyst_pL_LO,"p#minus#Lambda (LO)");
-    lLegendSor1->AddEntry(&mTSyst_pL_NLO,"p#minus#Lambda (NLO)");
-    //if(mT_pXim)lLegendSor1->AddEntry(mT_pXim,"p#minus#Xi^{#minus} (HAL QCD)");
+    lLegendSor1->AddEntry(&mTSyst_pL_LO,"p#minus #Lambda (LO)");
+    lLegendSor1->AddEntry(&mTSyst_pL_NLO,"p#minus #Lambda (NLO)");
+    //if(mT_pXim)lLegendSor1->AddEntry(mT_pXim,"p#minus #Xi^{#minus} (HAL QCD)");
 
     TCanvas* cmTSor1 = new TCanvas("cmTSor1", "cmTSor1", 1);
     cmTSor1->cd(0); cmTSor1->SetCanvasSize(1920/2, 1080/2); cmTSor1->SetMargin(0.15,0.05,0.2,0.05);//lrbt
@@ -5298,8 +5298,8 @@ printf("DimiStatEff_pL.GetNbins()=%u\n",DimiStatEff_pL.GetNbins());
     lLegendSor1_TOT->SetTextSize(0.04);
     lLegendSor1_TOT->SetBorderSize(0);
     lLegendSor1_TOT->AddEntry(&mTStatSor1_pp,"p#minusp (AV18)");
-    lLegendSor1_TOT->AddEntry(&mTSystSor1_pL,"p#minus#Lambda (LO,NLO,Usmani)");
-    //if(mT_pXim)lLegend->AddEntry(mT_pXim,"p#minus#Xi^{#minus} (HAL QCD)");
+    lLegendSor1_TOT->AddEntry(&mTSystSor1_pL,"p#minus #Lambda (LO,NLO,Usmani)");
+    //if(mT_pXim)lLegend->AddEntry(mT_pXim,"p#minus #Xi^{#minus} (HAL QCD)");
 
     TCanvas* cmTSor1_TOT = new TCanvas("cmTSor1_TOT", "cmTSor1_TOT", 1);
     cmTSor1_TOT->cd(0); cmTSor1_TOT->SetCanvasSize(1920/2, 1080/2); cmTSor1_TOT->SetMargin(0.15,0.05,0.2,0.05);//lrbt
@@ -6896,7 +6896,7 @@ graph_FitMAX[5].Write();
     hCk_Fake->SetName("hCk_Fake");
     hCk_Fake->SetLineColor(hCk_Fake->GetFillColor());
 
-    legend->AddEntry(hCk_Fake, "p#minus#Lambda #oplus #bar{p}#minus#bar{#Lambda} pairs", "fpe");
+    legend->AddEntry(hCk_Fake, "p#minus #Lambda #oplus #bar{p}#minus #bar{#Lambda} pairs", "fpe");
     if(!DataOnly){
     legend->AddEntry(&graph_FitMAX[NumBlTypes],"Femtoscopic fit (NLO)","l");
     legend->AddEntry(&graph_BlMAX[NumBlTypes],"Baseline","l");
@@ -6906,7 +6906,7 @@ graph_FitMAX[5].Write();
     BeamText.SetTextSize(gStyle->GetTextSize()*0.90);
     BeamText.SetNDC(kTRUE);
     BeamText.DrawLatex(0.40, 0.915, "ALICE work in progress");
-    BeamText.DrawLatex(0.40, 0.860, "high-mult. (0#minus0.17% INEL>0) pp #sqrt{#it{s}} = 13 TeV");
+    BeamText.DrawLatex(0.40, 0.860, "high-mult. (0#minus 0.17% INEL>0) pp #sqrt{#it{s}} = 13 TeV");
 
     TLatex BeamTextSource;
     BeamTextSource.SetTextSize(gStyle->GetTextSize()*0.90);
@@ -7038,7 +7038,7 @@ void pL_SystematicsMay2020(unsigned SEED, unsigned BASELINE_VAR, int POT_VAR, in
     //safety for the batch farm
     const double TIME_LIMIT = 110;
     //do extra variations
-    const bool ExtendedSyst = false;
+    const bool ExtendedSyst = true;
     DLM_Timer TIMER_SYST;
 
     //pol(0/1/2/3)s: pol(0/1/2/3) with a small fit range
@@ -7053,8 +7053,9 @@ void pL_SystematicsMay2020(unsigned SEED, unsigned BASELINE_VAR, int POT_VAR, in
 
     // new syst: pLambda(1.55):   low 0.853396 mean 0.877717 up 0.90239
     //the values below is for the updated epos version of the source
-    const float SourceSize = (1.05676+0.980842)*0.5;
     const float SourceSizeErr = (1.05676-0.980842)*0.5;
+    const float SourceSize = (1.05676+0.980842)*0.5+2.*SourceSizeErr;
+
     float SourceAlpha = 2.0;
 
     double ResidualSourceSizeSigma0=1.25;
@@ -7402,9 +7403,9 @@ void pL_SystematicsMay2020(unsigned SEED, unsigned BASELINE_VAR, int POT_VAR, in
         if(DefaultVariation||FitSyst==false) WhichLambdaVar += 10*(0+3.*0.);
         else WhichLambdaVar += 10*(0+3.*rangen.Integer(2));
 
+        //has no effect if you run with the data that is SB corrected
         if(DefaultVariation||FitSyst==false||!ExtendedSyst) WhichLambdaVar += 100;//the new purities
         else WhichLambdaVar += 100*(1+rangen.Integer(3));//new purities with variations
-
 
         AnalysisObject.SetUpLambdaPars_pL(DataSample,WhichProtonVar,WhichLambdaVar,lam_pL);
         AnalysisObject.SetUpLambdaPars_pXim(DataSample,0,0,lam_pXim);
@@ -7415,6 +7416,7 @@ void pL_SystematicsMay2020(unsigned SEED, unsigned BASELINE_VAR, int POT_VAR, in
         lam_L_Xi0 = lam_pL[2];
         lam_L_Flat = lam_pL[3]-lam_L_Xi0;
 
+        //has no effect in fact (not used)
         int WhichSigmaVar = rangen.Integer(3);
         if(DefaultVariation||FitSyst==false) WhichSigmaVar = 0;
         switch(WhichSigmaVar){
@@ -8345,7 +8347,8 @@ else if((SourceAlpha<1.59||SourceAlpha>1.61)&&WhichSourceAlpha==2) continue;
                         nsigma_der_200_300 += nsigma_der_val*nsigma_der_val;
                         NDF_200_300++;
                     }
-                    if(mom_val[uBin%2]<=300){
+//CAREFUL, BY DEFAULT 300
+                    if(mom_val[uBin%2]<=100){
                         nsigma_0_300 += nsigma_val*nsigma_val;
                         nsigma_der_0_300 += nsigma_der_val*nsigma_der_val;
                         NDF_0_300++;
@@ -8841,7 +8844,7 @@ else if((SourceAlpha<1.59||SourceAlpha>1.61)&&WhichSourceAlpha==2) continue;
             hCk_Fake->SetName("hCk_Fake");
             hCk_Fake->SetLineColor(hCk_Fake->GetFillColor());
 
-            legend->AddEntry(hCk_Fake, "p#minus#Lambda #oplus #bar{p}#minus#bar{#Lambda} pairs", "fpe");
+            legend->AddEntry(hCk_Fake, "p#minus #Lambda #oplus #bar{p}#minus #bar{#Lambda} pairs", "fpe");
             //if(!DataOnly){
             legend->AddEntry(ge_Fit,"Femtoscopic fit "+PotName1[uPot],"l");
             legend->AddEntry(&DummyLegendEntry,PotName2[uPot],"l");
@@ -8853,7 +8856,7 @@ else if((SourceAlpha<1.59||SourceAlpha>1.61)&&WhichSourceAlpha==2) continue;
             BeamText.SetTextSize(gStyle->GetTextSize()*0.90);
             BeamText.SetNDC(kTRUE);
             BeamText.DrawLatex(0.40, 0.915, "ALICE work in progress");
-            BeamText.DrawLatex(0.40, 0.860, "high-mult. (0#minus0.17% INEL>0) pp #sqrt{#it{s}} = 13 TeV");
+            BeamText.DrawLatex(0.40, 0.860, "high-mult. (0#minus 0.17% INEL>0) pp #sqrt{#it{s}} = 13 TeV");
 
             TLatex BeamTextSource;
             BeamTextSource.SetTextSize(gStyle->GetTextSize()*0.90);
@@ -9029,10 +9032,11 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
                                   const int& WhichPotential,
                                   const float& ValSourceAlpha,
                                   TString InputFolder, TString InputFileName, TString OutputFolder, const int& WhichDataSet=-1){
-printf("debug\n");
-    //if false, we have much more info on the plots
-    //if true: as intended for the paper (cleaner)
-    const bool PaperPlots = true;
+//printf("debug\n");
+    //if 0, we have much more info on the plots
+    //if 1: as intended for the paper (cleaner)
+    //if 2: as intended for the thesis
+    const int PlotsType = 1;
     const bool WorkInProgress = true;
     const bool DataOnly = false;
 
@@ -9040,32 +9044,32 @@ printf("debug\n");
     TString BlName1;
     TString BlName2;
     TString BlDescr;
-    const float MinRad = PaperPlots?0.96:0.96;//0.96
-    const float MaxRad = PaperPlots?1.08:1.08;
-    const float MinOmega = PaperPlots?0.35:0.35;//0.25
-//const float MinOmega = PaperPlots?0.25:0.25;//0.25
-    const float MaxOmega = PaperPlots?0.45:0.45;
-    const float MinCkConv = PaperPlots?600:600;
-    const float MaxCkConv = PaperPlots?800:800;
+    const float MinRad = PlotsType?0.96:0.96;//0.96
+    const float MaxRad = PlotsType?1.08:1.08;
+    const float MinOmega = PlotsType?0.35:0.35;//0.25
+//const float MinOmega = PlotsType?0.25:0.25;//0.25
+    const float MaxOmega = PlotsType?0.45:0.45;
+    const float MinCkConv = PlotsType?600:600;
+    const float MaxCkConv = PlotsType?800:800;
     //const float Use_SBpur = 0.963;
-    const float Use_SBpur = PaperPlots?0.963:0.0;
-    const int MinGoodCut = PaperPlots?-100:-100;
-    const int MaxGoodCut = PaperPlots?100:100;
-    const float FractionOfSolutions = PaperPlots?1.:1.;
+    const float Use_SBpur = PlotsType?0.963:0.0;
+    const int MinGoodCut = PlotsType?-100:-100;
+    const int MaxGoodCut = PlotsType?100:100;
+    const float FractionOfSolutions = PlotsType?1.:1.;
 
-    const bool Same_omega_siglam = PaperPlots?false:false;
+    const bool Same_omega_siglam = PlotsType?false:false;
     //const bool COMPARE_TO_LO = true;
     bool COMPARE_TO_LO = true;
-    if(PaperPlots&&WhichPotential==1600) COMPARE_TO_LO = true;
-    else if(PaperPlots) COMPARE_TO_LO = false;
+    if(PlotsType&&WhichPotential==1600) COMPARE_TO_LO = true;
+    else if(PlotsType) COMPARE_TO_LO = false;
     if(WhichPotential==-11600) COMPARE_TO_LO = false;
-COMPARE_TO_LO = false;
+//COMPARE_TO_LO = false;
     //3 digits  #1 = plot the sum of both
     //          #2 = plot xim
     //          #3 = plot xi0
-    const int XI_PLOT = PaperPlots?100:100;
-    const bool PlotLines = PaperPlots?false:false;
-    const bool DefaultBinValue = PaperPlots?true:true;
+    const int XI_PLOT = PlotsType?100:100;
+    const bool PlotLines = PlotsType?false:false;
+    const bool DefaultBinValue = PlotsType?true:true;
     int* GoodCutVar = new int [45];
     //for(unsigned uCut=0; uCut<45; uCut++) GoodCutVar[uCut] = 25;
     //exclude all (12) cut vars with an yield change of more than 10%
@@ -9187,9 +9191,9 @@ COMPARE_TO_LO = false;
     TString PotDescr;
     TString SigDescr;
     TString SigName1;
-    TString XimName1 = "Residual p#minus#Xi^{#minus}: HAL QCD";
-    TString Xi0Name1 = "Residual p#minus#Xi^{0}: HAL QCD";
-    TString XiName1 = "Residual p#minus#Xi^{#minus}#oplusp#minus#Xi^{0}: HAL QCD";
+    TString XimName1 = "Residual p#minus #Xi^{#minus}: HAL QCD";
+    TString Xi0Name1 = "Residual p#minus #Xi^{0}: HAL QCD";
+    TString XiName1 = "Residual p#minus #Xi^{#minus}#oplusp#minus #Xi^{0}: HAL QCD";
     int PotFlag;
     switch(WhichPotential){
         case 1500 : PotName1 = "NLO13 (500)";
@@ -9253,19 +9257,19 @@ COMPARE_TO_LO = false;
                     break;
     }
     switch(SIGMA_FEED){
-        case 0 :    PotName3 = "Residual p#minus#Sigma^{0}: Flat";
+        case 0 :    PotName3 = "Residual p#minus #Sigma^{0}: Flat";
                     SigDescr = "SigmaFlat";
                     SigName1 = PotName3;
                     break;
-        case 1 :    PotName3 = "Residual p#minus#Sigma^{0}: #chiEFT";
+        case 1 :    PotName3 = "Residual p#minus #Sigma^{0}: #chiEFT";
                     SigDescr = "SigmaChiral";
                     SigName1 = PotName3;
                     break;
-        case 2 :    PotName3 = "Residual p#minus#Sigma^{0}: ESC16";
+        case 2 :    PotName3 = "Residual p#minus #Sigma^{0}: ESC16";
                     SigDescr = "SigmaESC16";
                     SigName1 = PotName3;
                     break;
-        default :   PotName3 = "Residual p#minus#Sigma^{0}: unknown";
+        default :   PotName3 = "Residual p#minus #Sigma^{0}: unknown";
                     SigDescr = "Unknown";
                     SigName1 = PotName3;
                     break;
@@ -9500,14 +9504,19 @@ COMPARE_TO_LO = false;
         //NDF_300[uEntry] = 0;
         plambdaTree->GetEntry(uEntry);
         if(!hData_pL_Stat){
-            hData_pL_Stat = AnalysisObject.GetAliceExpCorrFun(DataSample[0],"pLambda",TString::Format("L%.0f_SL4_SR6_P%.0f_0",0.529*100,0.963*100),2,false,-1);
+            if(*DataSample=="pp13TeV_HM_DimiJun20"||*DataSample=="pp13TeV_HM_DimiJul20")
+              hData_pL_Stat = AnalysisObject.GetAliceExpCorrFun(DataSample[0],"pLambda",TString::Format("L%.0f_SL4_SR6_P%.0f_0",0.529*100,0.963*100),2,false,-1);
+            else
+              hData_pL_Stat = AnalysisObject.GetAliceExpCorrFun(DataSample[0],"pLambda",TString::Format("_0"),2,false,-1);
         }
         SigLamFrac=lam_L_Sig0/lam_L_genuine;
         XiSigLamFrac=(lam_L_Xi0+lam_L_Xim)/(lam_L_genuine+lam_L_Sig0);
         unsigned WhichBin[7];
         //if(*DataSample=="pp13TeV_HM_DimiJun20") GetIterCombo170620(WhichBin,SourceSize,lam_L_genuine,CuspWeight,SourceAlpha);
-        if(*DataSample=="pp13TeV_HM_DimiJun20"||*DataSample=="pp13TeV_HM_DimiJul20") GetIterCombo040720(WhichBin,SourceSize,SBpur,SigLamFrac,XiSigLamFrac,CuspWeight,SourceAlpha,CkConv);
-        else {printf("big trouble, the function will not work unless you checkout an older version (before 4th July 2020\n)"); abort();}
+        if(*DataSample=="pp13TeV_HM_DimiJun20"||*DataSample=="pp13TeV_HM_DimiJul20") {}//GetIterCombo040720(WhichBin,SourceSize,SBpur,SigLamFrac,XiSigLamFrac,CuspWeight,SourceAlpha,CkConv);
+        else {printf("WARNING trouble, the function MIGHT not work unless you checkout an older version (before 4th July 2020\n)"); //abort();
+        }
+        GetIterCombo040720(WhichBin,SourceSize,SBpur,SigLamFrac,XiSigLamFrac,CuspWeight,SourceAlpha,CkConv);
         //else GetIterCombo040620(WhichBin,SourceSize,lam_L_genuine,CuspWeight,SourceAlpha);
 //printf("0\n");
         if(Sigma0_Feed!=SIGMA_FEED) continue;
@@ -10154,12 +10163,20 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
     SetStyle();
 
     //TColor SigmaColor(6000,132,112,255);
-    int ColorInteraction = kRed+1;
-    if(WhichPotential==-11600) ColorInteraction = kGreen+1;
+    int ColorNLO13 = kRed;//+1
+    int ColorNLO19 = kCyan;
+    int ColorLO13 = kGreen;//+1
+    int ColorSigmaNLO = kAzure;//kBlue-7 or //kTeal
+    int ColorXiLattice = kPink+1;//kOrange+2 or +1
+    int ColorBaseline = kGray+1;//kGray+1
+
+    int ColorInteraction =  WhichPotential<0?ColorLO13:
+                            WhichPotential<10000?ColorNLO13:ColorNLO19;
+    //if(WhichPotential==-11600) ColorInteraction = kGreen;
 
     if(fitLoDummy){
-        fitLoDummy->SetFillColorAlpha(kGreen+1,0.70);
-        fitLoDummy->SetLineColor(kGreen+1);
+        fitLoDummy->SetFillColorAlpha(ColorLO13,0.70);
+        fitLoDummy->SetLineColor(ColorLO13);
         fitLoDummy->SetLineWidth(4);
     }
 
@@ -10167,27 +10184,27 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
     ge_Fit->SetLineColor(ColorInteraction);
     ge_Fit->SetLineWidth(5);
 
-    ge_Bl->SetFillColorAlpha(kGray+1,0.70);//kCyan-8
-    ge_Bl->SetLineColor(kGray+1);//kCyan-8
+    ge_Bl->SetFillColorAlpha(ColorBaseline,0.70);//kCyan-8
+    ge_Bl->SetLineColor(ColorBaseline);//kCyan-8
     ge_Bl->SetLineWidth(5);
 
-    ge_Sig->SetFillColorAlpha(kBlue-7,0.70);//kTeal
-    ge_Sig->SetLineColor(kBlue-7);//kTeal
+    ge_Sig->SetFillColorAlpha(ColorSigmaNLO,0.70);//kTeal
+    ge_Sig->SetLineColor(ColorSigmaNLO);//kTeal
     ge_Sig->SetLineWidth(5);
 
-    ge_Xim->SetFillColorAlpha(kOrange+2,0.70);
-    ge_Xim->SetLineColor(kOrange+2);
+    ge_Xim->SetFillColorAlpha(ColorXiLattice,0.70);
+    ge_Xim->SetLineColor(ColorXiLattice);
     ge_Xim->SetLineWidth(5);
     ge_Xim->SetLineStyle(2);
 
 
-    ge_Xi0->SetFillColorAlpha(kOrange+2,0.70);
-    ge_Xi0->SetLineColor(kOrange+2);
+    ge_Xi0->SetFillColorAlpha(ColorXiLattice,0.70);
+    ge_Xi0->SetLineColor(ColorXiLattice);
     ge_Xi0->SetLineWidth(5);
     ge_Xi0->SetLineStyle(5);
 
-    ge_Xi->SetFillColorAlpha(kOrange+1,0.70);
-    ge_Xi->SetLineColor(kOrange+1);
+    ge_Xi->SetFillColorAlpha(ColorXiLattice,0.70);
+    ge_Xi->SetLineColor(ColorXiLattice);
     ge_Xi->SetLineWidth(5);
 
     ge_SigmaSlice->SetFillColorAlpha(ColorInteraction,0.70);
@@ -10197,26 +10214,26 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
     geb_Fit->SetLineColor(ColorInteraction);
     geb_Fit->SetLineWidth(3);
 
-    geb_Bl->SetFillColorAlpha(kGray+1,0.70);//kCyan-8
-    geb_Bl->SetLineColor(kGray+1);//kCyan-8
+    geb_Bl->SetFillColorAlpha(ColorBaseline,0.70);//kCyan-8
+    geb_Bl->SetLineColor(ColorBaseline);//kCyan-8
     geb_Bl->SetLineWidth(5);
 
-    geb_Sig->SetFillColorAlpha(kBlue-7,0.70);//kTeal
-    geb_Sig->SetLineColor(kBlue-7);//kTeal
+    geb_Sig->SetFillColorAlpha(ColorSigmaNLO,0.70);//kTeal
+    geb_Sig->SetLineColor(ColorSigmaNLO);//kTeal
     geb_Sig->SetLineWidth(5);
 
-    geb_Xim->SetFillColorAlpha(kOrange+2,0.70);
-    geb_Xim->SetLineColor(kOrange+2);
+    geb_Xim->SetFillColorAlpha(ColorXiLattice,0.70);
+    geb_Xim->SetLineColor(ColorXiLattice);
     geb_Xim->SetLineWidth(5);
     geb_Xim->SetLineStyle(2);
 
-    geb_Xi0->SetFillColorAlpha(kOrange+2,0.70);
-    geb_Xi0->SetLineColor(kOrange+2);
+    geb_Xi0->SetFillColorAlpha(ColorXiLattice,0.70);
+    geb_Xi0->SetLineColor(ColorXiLattice);
     geb_Xi0->SetLineWidth(5);
     geb_Xi0->SetLineStyle(5);
 
-    geb_Xi->SetFillColorAlpha(kOrange+1,0.70);
-    geb_Xi->SetLineColor(kOrange+1);
+    geb_Xi->SetFillColorAlpha(ColorXiLattice,0.70);
+    geb_Xi->SetLineColor(ColorXiLattice);
     geb_Xi->SetLineWidth(5);
 
     geb_SigmaSlice->SetFillColorAlpha(ColorInteraction,0.70);
@@ -10328,7 +10345,7 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
     const float TextLeft = 0.32;
     const float TextTop = 0.90;
     TLegend *legend;
-    if(PaperPlots) legend = new TLegend(TextLeft-0.01,0.73-0.064*NumRows,0.73,TextTop-0.135);//lbrt
+    if(PlotsType) legend = new TLegend(TextLeft-0.01,0.73-0.064*NumRows,0.73,TextTop-0.135);//lbrt
     else legend = new TLegend(TextLeft-0.01,0.73-0.054*NumRows,0.73,TextTop-0.135);//lbrt
     legend->SetBorderSize(0);
     legend->SetTextFont(42);
@@ -10338,12 +10355,12 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
     hCk_Fake->SetName("hCk_Fake");
     hCk_Fake->SetLineColor(hCk_Fake->GetFillColor());
 
-    legend->AddEntry(hCk_Fake, "p#minus#Lambda #oplus #bar{p}#minus#bar{#Lambda} pairs", "fpe");
+    legend->AddEntry(hCk_Fake, "p#minus #Lambda #oplus #bar{p}#minus #bar{#Lambda} pairs", "fpe");
     if(!DataOnly){
         //legend->AddEntry(ge_Fit,TString::Format("Fit %s   #chi^{2}_{ndf} = %.1f",PotName1.Data(),MinChi2/double(MinNdf)),"l");
         legend->AddEntry(ge_Fit,TString::Format("Fit %s",PotName1.Data()),"l");
         if(COMPARE_TO_LO&&fitLoDummy) legend->AddEntry(fitLoDummy,"LO13 (600)","l");
-        else if(!PaperPlots) legend->AddEntry(&DummyLegendEntry,PotName2,"l");
+        else if(!PlotsType) legend->AddEntry(&DummyLegendEntry,PotName2,"l");
         else legend->AddEntry(&DummyLegendEntry," ","l");
         //legend->AddEntry(&DummyLegendEntry,PotName3,"l");
         legend->AddEntry(ge_Bl,BlName1,"l");
@@ -10359,39 +10376,38 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
     //legend->AddEntry(&DummyLegendEntry2,BlName2,"l");
     //}
 
-
-    legend->Draw("same");
+    if(PlotsType!=2 || WhichPotential==11600) legend->Draw("same");
     TLatex BeamText;
     BeamText.SetTextSize(gStyle->GetTextSize()*0.90);
     BeamText.SetNDC(kTRUE);
-    if(!PaperPlots||WorkInProgress) BeamText.DrawLatex(TextLeft, TextTop, "ALICE work in progress");
+    if(!PlotsType||WorkInProgress) BeamText.DrawLatex(TextLeft, TextTop, "ALICE work in progress");
     else BeamText.DrawLatex(TextLeft, TextTop, "ALICE");
-    BeamText.DrawLatex(TextLeft, TextTop-0.055, "high-mult. (0#minus0.17% INEL>0) pp #sqrt{#it{s}} = 13 TeV");
+    BeamText.DrawLatex(TextLeft, TextTop-0.055, "high-mult. (0#minus 0.17% INEL>0) pp #sqrt{#it{s}} = 13 TeV");
 
     TLatex BeamTextSource;
     BeamTextSource.SetTextSize(gStyle->GetTextSize()*0.90);
     BeamTextSource.SetNDC(kTRUE);
-    if(!PaperPlots) BeamTextSource.DrawLatex(TextLeft, TextTop-0.11, LegendSource_line1);
+    if(!PlotsType) BeamTextSource.DrawLatex(TextLeft, TextTop-0.11, LegendSource_line1);
 
     TLatex BeamTextHypCaption;
     BeamTextHypCaption.SetTextSize(gStyle->GetTextSize()*0.90);
     BeamTextHypCaption.SetNDC(kTRUE);
-    if(!PaperPlots) BeamTextHypCaption.DrawLatex(TextLeft+0.05, TextTop-0.49, "Best fit hypothesis:");
+    if(!PlotsType) BeamTextHypCaption.DrawLatex(TextLeft+0.05, TextTop-0.49, "Best fit hypothesis:");
 
     TLatex BeamTextHyp;
     BeamTextHyp.SetTextSize(gStyle->GetTextSize()*0.80);
     BeamTextHyp.SetNDC(kTRUE);
     //BeamTextHyp.DrawLatex(0.45, 0.35, TString::Format("For k*#in[0, 300] MeV/#it{c}:"));
-    if(!PaperPlots) BeamTextHyp.DrawLatex(TextLeft+0.1, TextTop-0.54, TString::Format("#chi^{2}/NDF = %.0f/%i = %.1f; n_{#sigma} = %.1f",MinChi2,MinNdf,MinChi2/double(MinNdf),MinNsigma));
-    if(!PaperPlots) BeamTextHyp.DrawLatex(TextLeft+0.1, TextTop-0.59, TString::Format("r_{core} = %.2f fm",Best_SourceSize));
-    if(!PaperPlots) BeamTextHyp.DrawLatex(TextLeft+0.1, TextTop-0.64, TString::Format("P(#Lambda) = %.1f%% (#lambda=%.1f%%)",Best_Purity*100,Best_lam_L_genuine*100));
+    if(!PlotsType) BeamTextHyp.DrawLatex(TextLeft+0.1, TextTop-0.54, TString::Format("#chi^{2}/NDF = %.0f/%i = %.1f; n_{#sigma} = %.1f",MinChi2,MinNdf,MinChi2/double(MinNdf),MinNsigma));
+    if(!PlotsType) BeamTextHyp.DrawLatex(TextLeft+0.1, TextTop-0.59, TString::Format("r_{core} = %.2f fm",Best_SourceSize));
+    if(!PlotsType) BeamTextHyp.DrawLatex(TextLeft+0.1, TextTop-0.64, TString::Format("P(#Lambda) = %.1f%% (#lambda=%.1f%%)",Best_Purity*100,Best_lam_L_genuine*100));
     if(Same_omega_siglam){
-        if(!PaperPlots) BeamTextHyp.DrawLatex(TextLeft+0.1, TextTop-0.69, TString::Format("#Sigma^{0}:#Lambda = #omega = %.2f; #Xi:(#Lambda+#Sigma^{0}) = %.2f",Best_SigLamFrac,Best_XiSigLamFrac));
+        if(!PlotsType) BeamTextHyp.DrawLatex(TextLeft+0.1, TextTop-0.69, TString::Format("#Sigma^{0}:#Lambda = #omega = %.2f; #Xi:(#Lambda+#Sigma^{0}) = %.2f",Best_SigLamFrac,Best_XiSigLamFrac));
     }
     else{
-        if(!PaperPlots) BeamTextHyp.DrawLatex(TextLeft+0.1, TextTop-0.69, TString::Format("#Sigma^{0}:#Lambda = %.2f; #omega = %.2f;  #Xi:(#Lambda+#Sigma^{0}) = %.2f",Best_SigLamFrac,Best_CuspWeight,Best_XiSigLamFrac));
+        if(!PlotsType) BeamTextHyp.DrawLatex(TextLeft+0.1, TextTop-0.69, TString::Format("#Sigma^{0}:#Lambda = %.2f; #omega = %.2f;  #Xi:(#Lambda+#Sigma^{0}) = %.2f",Best_SigLamFrac,Best_CuspWeight,Best_XiSigLamFrac));
     }
-    if(!PaperPlots) BeamTextHyp.DrawLatex(TextLeft+0.1, TextTop-0.74, TString::Format("k*_{c} = %.0f MeV",Best_CkConv));
+    if(!PlotsType) BeamTextHyp.DrawLatex(TextLeft+0.1, TextTop-0.74, TString::Format("k*_{c} = %.0f MeV",Best_CkConv));
 
     //INLET -------------------------------------------------------------------------------------------------------------------
 
@@ -10836,7 +10852,7 @@ void Quick_pLambda_plotter(){
     const float TextLeft = 0.32;
     const float TextTop = 0.90;
     TLegend *legend;
-    //if(PaperPlots) legend = new TLegend(TextLeft-0.01,0.73-0.064*NumRows,0.73,TextTop-0.135);//lbrt
+    //if(PlotsType) legend = new TLegend(TextLeft-0.01,0.73-0.064*NumRows,0.73,TextTop-0.135);//lbrt
     legend = new TLegend(TextLeft-0.01,0.73-0.054*NumRows,0.73,TextTop-0.135);//lbrt
     legend->SetBorderSize(0);
     legend->SetTextFont(42);
@@ -10846,7 +10862,7 @@ void Quick_pLambda_plotter(){
     hCk_Fake->SetName("hCk_Fake");
     hCk_Fake->SetLineColor(hCk_Fake->GetFillColor());
 
-    legend->AddEntry(hCk_Fake, "p#minus#Lambda #oplus #bar{p}#minus#bar{#Lambda} pairs", "fpe");
+    legend->AddEntry(hCk_Fake, "p#minus #Lambda #oplus #bar{p}#minus #bar{#Lambda} pairs", "fpe");
     legend->AddEntry(gfit3, "NLO19-600");
     legend->AddEntry(gfit1, "NLO19-500");
     legend->AddEntry(gfit2, "NLO19-650");
@@ -10854,7 +10870,7 @@ void Quick_pLambda_plotter(){
     if(!DataOnly){
         legend->AddEntry(ge_Fit,TString::Format("Fit %s",PotName1.Data()),"l");
         if(COMPARE_TO_LO&&fitLoDummy) legend->AddEntry(fitLoDummy,"LO13 (600)","l");
-        else if(!PaperPlots) legend->AddEntry(&DummyLegendEntry,PotName2,"l");
+        else if(!PlotsType) legend->AddEntry(&DummyLegendEntry,PotName2,"l");
         else legend->AddEntry(&DummyLegendEntry," ","l");
         //legend->AddEntry(&DummyLegendEntry,PotName3,"l");
         legend->AddEntry(ge_Bl,BlName1,"l");
@@ -10872,36 +10888,36 @@ void Quick_pLambda_plotter(){
     TLatex BeamText;
     BeamText.SetTextSize(gStyle->GetTextSize()*0.90);
     BeamText.SetNDC(kTRUE);
-    //if(!PaperPlots)
+    //if(!PlotsType)
 	BeamText.DrawLatex(TextLeft, TextTop, "ALICE work in progress");
     //else BeamText.DrawLatex(TextLeft, TextTop, "ALICE");
-    BeamText.DrawLatex(TextLeft, TextTop-0.055, "high-mult. (0#minus0.17% INEL>0) pp #sqrt{#it{s}} = 13 TeV");
+    BeamText.DrawLatex(TextLeft, TextTop-0.055, "high-mult. (0#minus 0.17% INEL>0) pp #sqrt{#it{s}} = 13 TeV");
 
     TLatex BeamTextSource;
     BeamTextSource.SetTextSize(gStyle->GetTextSize()*0.90);
     BeamTextSource.SetNDC(kTRUE);
-    //if(!PaperPlots)
+    //if(!PlotsType)
 	//BeamTextSource.DrawLatex(TextLeft, TextTop-0.11, LegendSource_line1);
 
     TLatex BeamTextHypCaption;
     BeamTextHypCaption.SetTextSize(gStyle->GetTextSize()*0.90);
     BeamTextHypCaption.SetNDC(kTRUE);
-    //if(!PaperPlots)
+    //if(!PlotsType)
 	//BeamTextHypCaption.DrawLatex(TextLeft+0.05, TextTop-0.49, "Best fit hypothesis:");
 
     //TLatex BeamTextHyp;
     //BeamTextHyp.SetTextSize(gStyle->GetTextSize()*0.80);
     //BeamTextHyp.SetNDC(kTRUE);
-    //if(!PaperPlots) BeamTextHyp.DrawLatex(TextLeft+0.1, TextTop-0.54, TString::Format("#chi^{2}/NDF = %.0f/%i = %.1f; n_{#sigma} = %.1f",MinChi2,MinNdf,MinChi2/double(MinNdf),MinNsigma));
-    //if(!PaperPlots) BeamTextHyp.DrawLatex(TextLeft+0.1, TextTop-0.59, TString::Format("r_{core} = %.2f fm",Best_SourceSize));
-    //if(!PaperPlots) BeamTextHyp.DrawLatex(TextLeft+0.1, TextTop-0.64, TString::Format("P(#Lambda) = %.1f%% (#lambda=%.1f%%)",Best_Purity*100,Best_lam_L_genuine*100));
+    //if(!PlotsType) BeamTextHyp.DrawLatex(TextLeft+0.1, TextTop-0.54, TString::Format("#chi^{2}/NDF = %.0f/%i = %.1f; n_{#sigma} = %.1f",MinChi2,MinNdf,MinChi2/double(MinNdf),MinNsigma));
+    //if(!PlotsType) BeamTextHyp.DrawLatex(TextLeft+0.1, TextTop-0.59, TString::Format("r_{core} = %.2f fm",Best_SourceSize));
+    //if(!PlotsType) BeamTextHyp.DrawLatex(TextLeft+0.1, TextTop-0.64, TString::Format("P(#Lambda) = %.1f%% (#lambda=%.1f%%)",Best_Purity*100,Best_lam_L_genuine*100));
     //if(Same_omega_siglam){
-    //    if(!PaperPlots) BeamTextHyp.DrawLatex(TextLeft+0.1, TextTop-0.69, TString::Format("#Sigma^{0}:#Lambda = #omega = %.2f; #Xi:(#Lambda+#Sigma^{0}) = %.2f",Best_SigLamFrac,Best_XiSigLamFrac));
+    //    if(!PlotsType) BeamTextHyp.DrawLatex(TextLeft+0.1, TextTop-0.69, TString::Format("#Sigma^{0}:#Lambda = #omega = %.2f; #Xi:(#Lambda+#Sigma^{0}) = %.2f",Best_SigLamFrac,Best_XiSigLamFrac));
     //}
     //else{
-    //    if(!PaperPlots) BeamTextHyp.DrawLatex(TextLeft+0.1, TextTop-0.69, TString::Format("#Sigma^{0}:#Lambda = %.2f; #omega = %.2f;  #Xi:(#Lambda+#Sigma^{0}) = %.2f",Best_SigLamFrac,Best_CuspWeight,Best_XiSigLamFrac));
+    //    if(!PlotsType) BeamTextHyp.DrawLatex(TextLeft+0.1, TextTop-0.69, TString::Format("#Sigma^{0}:#Lambda = %.2f; #omega = %.2f;  #Xi:(#Lambda+#Sigma^{0}) = %.2f",Best_SigLamFrac,Best_CuspWeight,Best_XiSigLamFrac));
     //}
-    //if(!PaperPlots) BeamTextHyp.DrawLatex(TextLeft+0.1, TextTop-0.74, TString::Format("k*_{c} = %.0f MeV",Best_CkConv));
+    //if(!PlotsType) BeamTextHyp.DrawLatex(TextLeft+0.1, TextTop-0.74, TString::Format("k*_{c} = %.0f MeV",Best_CkConv));
 
     //INLET -------------------------------------------------------------------------------------------------------------------
 
@@ -11036,7 +11052,7 @@ void Quick_pLambda_plotter_NLO13_vs_LO13(){
   const float TextLeft = 0.32;
   const float TextTop = 0.93;
   TLegend *legend;
-  //if(PaperPlots) legend = new TLegend(TextLeft-0.01,0.73-0.064*NumRows,0.73,TextTop-0.135);//lbrt
+  //if(PlotsType) legend = new TLegend(TextLeft-0.01,0.73-0.064*NumRows,0.73,TextTop-0.135);//lbrt
   legend = new TLegend(TextLeft-0.01,0.74-0.050*NumRows,0.73,TextTop-0.095);//lbrt
   legend->SetBorderSize(0);
   legend->SetTextFont(42);
@@ -11046,7 +11062,7 @@ void Quick_pLambda_plotter_NLO13_vs_LO13(){
   hCk_Fake->SetName("hCk_Fake");
   hCk_Fake->SetLineColor(hCk_Fake->GetFillColor());
 
-  legend->AddEntry(hCk_Fake, "p#minus#Lambda #oplus #bar{p}#minus#bar{#Lambda} pairs", "fpe");
+  legend->AddEntry(hCk_Fake, "p#minus #Lambda #oplus #bar{p}#minus #bar{#Lambda} pairs", "fpe");
   legend->AddEntry(gfit1, "NLO13-600");
   legend->AddEntry(gfit2, "LO13-600");
 
@@ -11055,7 +11071,7 @@ void Quick_pLambda_plotter_NLO13_vs_LO13(){
   BeamText.SetTextSize(gStyle->GetTextSize()*0.90);
   BeamText.SetNDC(kTRUE);
 	BeamText.DrawLatex(TextLeft, TextTop, "ALICE work in progress");
-  BeamText.DrawLatex(TextLeft, TextTop-0.055, "high-mult. (0#minus0.17% INEL>0) pp #sqrt{#it{s}} = 13 TeV");
+  BeamText.DrawLatex(TextLeft, TextTop-0.055, "high-mult. (0#minus 0.17% INEL>0) pp #sqrt{#it{s}} = 13 TeV");
 
   TLatex BeamTextSource;
   BeamTextSource.SetTextSize(gStyle->GetTextSize()*0.90);
@@ -11180,9 +11196,11 @@ void Quick_pLambda_plotter_NLO13_vs_LO13(){
 //Compact = no ESC16
 void MakeLATEXtable(TString InputFolder, bool Compact=false){
     TString OutputFileName;
+    TString OutputFileNameNsig;
     if(Compact) OutputFileName = InputFolder+"Chi2LaTeX_compact.tex";
     else OutputFileName = InputFolder+"Chi2LaTeX_full.tex";
-
+    if(Compact) OutputFileNameNsig = InputFolder+"nSigLaTeX_compact.tex";
+    else OutputFileNameNsig = InputFolder+"nSigLaTeX_full.tex";
 
     char* InfoFileName = new char [512];
     strcpy(InfoFileName,InputFolder.Data());
@@ -11199,6 +11217,8 @@ void MakeLATEXtable(TString InputFolder, bool Compact=false){
     PotName_pL[6] = "NLO19-550";
     PotName_pL[7] = "NLO19-600";
     PotName_pL[8] = "NLO19-650";
+    double BestChi2_const = 1e6;
+    double BestChi2_cubic = 1e6;
 
     int* PotFlag_pL = new int [NumLamVars];
     PotFlag_pL[0] = -11600;
@@ -11224,6 +11244,8 @@ void MakeLATEXtable(TString InputFolder, bool Compact=false){
     unsigned BASELINE_VAR;
     int POT_VAR;
     int Sigma0_Feed;
+//! hard coded for 12 MeV bins up to 300 MeV
+    const float NDF = 8;
     float MinChi2NDF;
     float MinNsigma;
     float Best_SourceSize;
@@ -11270,7 +11292,6 @@ void MakeLATEXtable(TString InputFolder, bool Compact=false){
         fprintf(fptr,"$\\text{p--}\\Sigma^0$ ($\\rightarrow$)& \\pmb{$\\chi$EFT} & ESC16 & Flat \\\\ $\\text{p--}\\Lambda$ ($\\downarrow$) & & & \\\\ \n");
         fprintf(fptr,"\\hline \n");
     }
-
 
     //char* buffer = new char [512];
     for(unsigned upL=0; upL<NumLamVars; upL++){
@@ -11319,6 +11340,12 @@ void MakeLATEXtable(TString InputFolder, bool Compact=false){
         }
 
         fprintf(fptr," \\\\ \n");
+
+        if(BestChi2_const>val_chiral_const*NDF) BestChi2_const=val_chiral_const*NDF;
+        if(BestChi2_const>val_flat_const*NDF) BestChi2_const=val_flat_const*NDF;
+
+        if(BestChi2_cubic>val_chiral_cubic*NDF) BestChi2_cubic=val_chiral_cubic*NDF;
+        if(BestChi2_cubic>val_flat_cubic*NDF) BestChi2_cubic=val_flat_cubic*NDF;
     }
     fprintf(fptr,"\\hline \\hline \n");
     fprintf(fptr,"\\end{tabular} \n");
@@ -11331,6 +11358,132 @@ void MakeLATEXtable(TString InputFolder, bool Compact=false){
     fprintf(fptr,"\\end{table} \n");
 
     if(fptr) fclose(fptr);
+
+    printf("BestChi2_const = %.1f (%.1f)\n",BestChi2_const,BestChi2_const/NDF);
+    printf("BestChi2_cubic = %.1f (%.1f)\n",BestChi2_cubic,BestChi2_cubic/NDF);
+
+
+    fptr=fopen(OutputFileNameNsig.Data(),"w");
+    if(Compact){
+        fprintf(fptr,"\\begin{table} \n");
+        fprintf(fptr,"\\begin{center} \n");
+        fprintf(fptr,"\\begin{tabular}{r|c|c|} \n");
+        fprintf(fptr,"\\hline \\hline \n");
+        fprintf(fptr,"$\\text{p--}\\Sigma^0$ ($\\rightarrow$)& \\pmb{$\\chi$EFT} & Flat \\\\ $\\text{p--}\\Lambda$ ($\\downarrow$) & & \\\\ \n");
+        fprintf(fptr,"\\hline \n");
+    }
+    else{
+        fprintf(fptr,"\\begin{table} \n");
+        fprintf(fptr,"\\begin{center} \n");
+        fprintf(fptr,"\\begin{tabular}{r|c|c|c|} \n");
+        fprintf(fptr,"\\hline \\hline \n");
+        fprintf(fptr,"$\\text{p--}\\Sigma^0$ ($\\rightarrow$)& \\pmb{$\\chi$EFT} & ESC16 & Flat \\\\ $\\text{p--}\\Lambda$ ($\\downarrow$) & & & \\\\ \n");
+        fprintf(fptr,"\\hline \n");
+    }
+
+    //char* buffer = new char [512];
+    for(unsigned upL=0; upL<NumLamVars; upL++){
+        float val_chiral_cubic=0;
+        float val_esc16_cubic=0;
+        float val_flat_cubic=0;
+        float val_chiral_const=0;
+        float val_esc16_const=0;
+        float val_flat_const=0;
+
+        float nsig_chiral_cubic=0;
+        float nsig_esc16_cubic=0;
+        float nsig_flat_cubic=0;
+        float nsig_chiral_const=0;
+        float nsig_esc16_const=0;
+        float nsig_flat_const=0;
+
+        for(unsigned uEntry=0; uEntry<NumEntries; uEntry++){
+            InfoTree->GetEntry(uEntry);
+            if(POT_VAR!=PotFlag_pL[upL]) continue;
+            if(Sigma0_Feed==0&&BASELINE_VAR==0){
+                val_flat_const = MinChi2NDF;
+            }
+            else if(Sigma0_Feed==0&&BASELINE_VAR==10){
+                val_flat_cubic = MinChi2NDF;
+            }
+            else if(Sigma0_Feed==1&&BASELINE_VAR==0){
+                val_chiral_const = MinChi2NDF;
+            }
+            else if(Sigma0_Feed==1&&BASELINE_VAR==10){
+                val_chiral_cubic = MinChi2NDF;
+            }
+            else if(Sigma0_Feed==2&&BASELINE_VAR==0){
+                val_esc16_const = MinChi2NDF;
+            }
+            else if(Sigma0_Feed==2&&BASELINE_VAR==10){
+                val_esc16_cubic = MinChi2NDF;
+            }
+        }
+//double nsigma = sqrt(2)*TMath::ErfcInverse(TMath::Prob(Chi2,TMath::Nint(NDF)));
+        double pval;
+
+        pval = TMath::Prob(val_chiral_cubic*NDF-BestChi2_cubic,TMath::Nint(NDF)); if(pval<1e-24)pval=1e-24; if(pval>1)pval=1;
+        nsig_chiral_cubic = sqrt(2)*TMath::ErfcInverse(pval);
+
+        pval = TMath::Prob(val_chiral_const*NDF-BestChi2_const,TMath::Nint(NDF)); if(pval<1e-24)pval=1e-24; if(pval>1)pval=1;
+        nsig_chiral_const = sqrt(2)*TMath::ErfcInverse(pval);
+
+        pval = TMath::Prob(val_esc16_cubic*NDF-BestChi2_cubic,TMath::Nint(NDF)); if(pval<1e-24)pval=1e-24; if(pval>1)pval=1;
+        nsig_esc16_cubic = sqrt(2)*TMath::ErfcInverse(pval);
+
+        pval = TMath::Prob(val_esc16_const*NDF-BestChi2_const,TMath::Nint(NDF)); if(pval<1e-24)pval=1e-24; if(pval>1)pval=1;
+        nsig_esc16_const = sqrt(2)*TMath::ErfcInverse(pval);
+
+        pval = TMath::Prob(val_flat_cubic*NDF-BestChi2_cubic,TMath::Nint(NDF)); if(pval<1e-24)pval=1e-24; if(pval>1)pval=1;
+        nsig_flat_cubic = sqrt(2)*TMath::ErfcInverse(pval);
+
+        pval = TMath::Prob(val_flat_const*NDF-BestChi2_const,TMath::Nint(NDF)); if(pval<1e-24)pval=1e-24; if(pval>1)pval=1;
+        nsig_flat_const = sqrt(2)*TMath::ErfcInverse(pval);
+
+        printf("chiral_cubic:\n");
+        printf("  delta = %.2f\n",val_chiral_cubic*NDF-BestChi2_cubic);
+        printf("  p_val = %.2e\n",TMath::Prob(val_chiral_cubic*NDF-BestChi2_cubic,TMath::Nint(NDF)));
+        printf("  nsig = %.3f\n",nsig_chiral_cubic);
+        printf("chiral_const:\n");
+        printf("  delta = %.2f\n",val_chiral_const*NDF-BestChi2_const);
+        printf("  p_val = %.2e\n",TMath::Prob(val_chiral_const*NDF-BestChi2_const,TMath::Nint(NDF)));
+        printf("  nsig = %.3f\n",nsig_chiral_const);
+        printf("flat_cubic:\n");
+        printf("  delta = %.2f\n",val_flat_cubic*NDF-BestChi2_cubic);
+        printf("  p_val = %.2e\n",TMath::Prob(val_flat_cubic*NDF-BestChi2_cubic,TMath::Nint(NDF)));
+        printf("  nsig = %.3f\n",nsig_flat_cubic);
+        printf("flat_const:\n");
+        printf("  delta = %.2f\n",val_flat_const*NDF-BestChi2_const);
+        printf("  p_val = %.2e\n",TMath::Prob(val_flat_const*NDF-BestChi2_const,TMath::Nint(NDF)));
+        printf("  nsig = %.3f\n",nsig_flat_const);
+
+        if(PotFlag_pL[upL]==11600) fprintf(fptr,"\\pmb{");
+        fprintf(fptr,"%s",PotName_pL[upL].Data());
+        if(PotFlag_pL[upL]==11600) fprintf(fptr,"}");
+        if(Compact){
+            fprintf(fptr," & %.1f (%.1f) & %.1f (%.1f)",
+                    nsig_chiral_cubic,nsig_chiral_const,
+                    nsig_flat_cubic,nsig_flat_const);
+        }
+        else{
+            fprintf(fptr," & %.1f (%.1f) & %.1f (%.1f) & %.1f (%.1f)",
+                    nsig_chiral_cubic,nsig_chiral_const,
+                    nsig_esc16_cubic,nsig_esc16_const,
+                    nsig_flat_cubic,nsig_flat_const);
+        }
+
+        fprintf(fptr," \\\\ \n");
+
+    }
+    fprintf(fptr,"\\hline \\hline \n");
+    fprintf(fptr,"\\end{tabular} \n");
+    fprintf(fptr,"\\caption{Exclusion in $n_{\\sigma}$ for the different interaction hypotheses "
+            "of $\\text{p--}\\Lambda$ and $\\text{p--}\\Sigma^0$. "
+            "The default values correspond to the fit with a cubic baseline, the values in brackets represent the results from using a constant baseline. "
+            "The default model (in bold) is the $\\chi$EFT NLO calculation, at a cutoff of 600~MeV. } \n");
+    fprintf(fptr,"\\label{tab:nsig_2020} \n");
+    fprintf(fptr,"\\end{center} \n");
+    fprintf(fptr,"\\end{table} \n");
 
     delete [] PotName_pL;
     //delete [] PotName_pS0;
@@ -14963,16 +15116,18 @@ printf("PLAMBDA_1_MAIN\n");
 
 Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(atoi(argv[4]))/10.,
                             ///home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/100720_Unfolded/
-                            TString::Format("%s/pLambda/Bootstrap_Test1/Syst_DataVar_FitVar_NoBoot/",GetCernBoxDimi()),
+                            TString::Format("%s/pLambda/100720_Unfolded/",GetCernBoxDimi()),
                             TString::Format("Merged_pp13TeV_HM_DimiJul20_POT%i_BL%i_SIG%i.root",
+                            //TString::Format("Merged_pp13TeV_HM_Dec19_POT%i_BL%i_SIG%i.root",
                             atoi(argv[1]),atoi(argv[2]),atoi(argv[3])),
                             //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/",
                             //"UnfoldRefine_pp13TeV_HM_DimiJul20_POT11600_BL10_SIG1.root",
-                            TString::Format("%s/pLambda/Bootstrap_Test1/Syst_DataVar_FitVar_NoBoot/",GetCernBoxDimi()),
+                            TString::Format("%s/pLambda/100720_Unfolded/PaperPlotsUpdate1/",GetCernBoxDimi()),
                             //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/"
                             atoi(argv[5])///REMOVE FOR THE OLD PLOTS
                           );
-//MakeLATEXtable("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/100720_Unfolded/Plots/",true);
+
+//MakeLATEXtable(TString::Format("%s/pLambda/231020_NoBootstrap/Plots/",GetCernBoxDimi()),true);
 return 0;
 
 //Plot_pL_SystematicsMay2020_2(2,10,1500,2.0,
@@ -15011,9 +15166,9 @@ return 0;
 //unsigned SEED, unsigned BASELINE_VAR, int POT_VAR, int Sigma0_Feed, int Data_Type,
                            //bool DataSyst, bool FitSyst, bool Bootstrap, unsigned NumIter,
                           // const char* CatsFileFolder, const char* OutputFolder
-pL_SystematicsMay2020(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]), atoi(argv[6]), atoi(argv[7]), atoi(argv[8]), atoi(argv[9]),
-TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data(),
-TString::Format("%s/pLambda/Bootstrap_Test1/Syst_DataVar_FitVar_Boot/",GetCernBoxDimi()).Data());
+//pL_SystematicsMay2020(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]), atoi(argv[6]), atoi(argv[7]), atoi(argv[8]), atoi(argv[9]),
+//TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data(),
+//TString::Format("%s/pLambda/Dump/",GetCernBoxDimi()).Data());
 
 //pL_SystematicsMay2020(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]), atoi(argv[6]), atoi(argv[7]),
 //                      argv[8],argv[9]);

@@ -2,6 +2,7 @@
 
 #include <stdlib.h>
 
+#include "FemtoBoyzScripts.h"
 #include "CATS.h"
 #include "CATSconstants.h"
 #include "DLM_Potentials.h"
@@ -16,6 +17,7 @@
 #include "CommonAnaFunctions.h"
 #include "EnvVars.h"
 
+#include "TStyle.h"
 #include "TString.h"
 #include "TGraph.h"
 #include "TGraphErrors.h"
@@ -3271,7 +3273,218 @@ void Fit_pp(){
 }
 
 
+void Compare_pL_models(){
 
+  TString OutputFolder = GetCernBoxDimi();
+  OutputFolder += "/Plots/PhDThesis/pLambda/";
+
+  CATS Kitty_NLO19_600;
+  CATS Kitty_NLO19_500;
+  CATS Kitty_NLO13_600;
+  CATS Kitty_LO13_600;
+  CATS Kitty_pSo_Feed;
+
+  const unsigned NumMomBins = 90;
+  const double kMax = 360;
+
+  Kitty_NLO19_600.SetMomBins(NumMomBins,0,kMax);
+  Kitty_NLO19_500.SetMomBins(NumMomBins,0,kMax);
+  Kitty_NLO13_600.SetMomBins(NumMomBins,0,kMax);
+  Kitty_LO13_600.SetMomBins(NumMomBins,0,kMax);
+  Kitty_pSo_Feed.SetMomBins(NumMomBins,0,kMax);
+
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()));
+  AnalysisObject.SetUpCats_pL(Kitty_NLO19_600,"Chiral_Coupled_SPD","McGauss_ResoTM",11600,202);
+  AnalysisObject.SetUpCats_pL(Kitty_NLO19_500,"Chiral_Coupled_SPD","McGauss_ResoTM",11500,202);
+  AnalysisObject.SetUpCats_pL(Kitty_NLO13_600,"Chiral_Coupled_SPD","McGauss_ResoTM",1600,202);
+  AnalysisObject.SetUpCats_pL(Kitty_LO13_600,"Chiral_Coupled_SPD","McGauss_ResoTM",-11600,202);
+  AnalysisObject.SetUpCats_pS0(Kitty_pSo_Feed,"Chiral","Gauss",0,0);
+
+  const double CuspWeight = 0.33;
+  const double CoreRadius = 1.06;
+  const double SigmaRadius = 1.25;
+  const double lambda_pL = 0.5;
+  const double lambda_pSo = 0.2;
+
+  Kitty_NLO19_600.SetChannelWeight(7,1./4.*CuspWeight);//1S0 SN(s) -> LN(s)
+  Kitty_NLO19_600.SetChannelWeight(8,3./4.*CuspWeight);//3S1 SN(s) -> LN(s)
+  Kitty_NLO19_600.SetChannelWeight(10,3./4.*CuspWeight);//3S1 SN(d) -> LN(s)
+  Kitty_NLO19_600.SetChannelWeight(13,3./20.*CuspWeight);//3D1 SN(d) -> LN(d)
+  Kitty_NLO19_600.SetChannelWeight(15,3./20.*CuspWeight);//3D1 SN(s) -> LN(d)
+
+  Kitty_NLO19_500.SetChannelWeight(7,1./4.*CuspWeight);//1S0 SN(s) -> LN(s)
+  Kitty_NLO19_500.SetChannelWeight(8,3./4.*CuspWeight);//3S1 SN(s) -> LN(s)
+  Kitty_NLO19_500.SetChannelWeight(10,3./4.*CuspWeight);//3S1 SN(d) -> LN(s)
+  Kitty_NLO19_500.SetChannelWeight(13,3./20.*CuspWeight);//3D1 SN(d) -> LN(d)
+  Kitty_NLO19_500.SetChannelWeight(15,3./20.*CuspWeight);//3D1 SN(s) -> LN(d)
+
+  Kitty_NLO13_600.SetChannelWeight(7,1./4.*CuspWeight);//1S0 SN(s) -> LN(s)
+  Kitty_NLO13_600.SetChannelWeight(8,3./4.*CuspWeight);//3S1 SN(s) -> LN(s)
+  Kitty_NLO13_600.SetChannelWeight(10,3./4.*CuspWeight);//3S1 SN(d) -> LN(s)
+  Kitty_NLO13_600.SetChannelWeight(13,3./20.*CuspWeight);//3D1 SN(d) -> LN(d)
+  Kitty_NLO13_600.SetChannelWeight(15,3./20.*CuspWeight);//3D1 SN(s) -> LN(d)
+
+  Kitty_LO13_600.SetChannelWeight(7,1./4.*CuspWeight);//1S0 SN(s) -> LN(s)
+  Kitty_LO13_600.SetChannelWeight(8,3./4.*CuspWeight);//3S1 SN(s) -> LN(s)
+  Kitty_LO13_600.SetChannelWeight(10,3./4.*CuspWeight);//3S1 SN(d) -> LN(s)
+  Kitty_LO13_600.SetChannelWeight(13,3./20.*CuspWeight);//3D1 SN(d) -> LN(d)
+  Kitty_LO13_600.SetChannelWeight(15,3./20.*CuspWeight);//3D1 SN(s) -> LN(d)
+
+  Kitty_NLO19_600.SetAnaSource(0,CoreRadius);//c.a. 10% smaller compared to p-p due to the mT scaling
+  Kitty_NLO19_600.SetAnaSource(1,2.0);
+  Kitty_NLO19_600.KillTheCat();
+
+  Kitty_NLO19_500.SetAnaSource(0,CoreRadius);//c.a. 10% smaller compared to p-p due to the mT scaling
+  Kitty_NLO19_500.SetAnaSource(1,2.0);
+  Kitty_NLO19_500.KillTheCat();
+
+  Kitty_NLO13_600.SetAnaSource(0,CoreRadius);//c.a. 10% smaller compared to p-p due to the mT scaling
+  Kitty_NLO13_600.SetAnaSource(1,2.0);
+  Kitty_NLO13_600.KillTheCat();
+
+  Kitty_LO13_600.SetAnaSource(0,CoreRadius);//c.a. 10% smaller compared to p-p due to the mT scaling
+  Kitty_LO13_600.SetAnaSource(1,2.0);
+  Kitty_LO13_600.KillTheCat();
+
+  Kitty_pSo_Feed.SetAnaSource(0,SigmaRadius);
+  Kitty_pSo_Feed.KillTheCat();
+
+  DLM_Ck Ck_pL(Kitty_NLO19_600.GetNumSourcePars(),0,Kitty_NLO19_600,NumMomBins,0,kMax);
+  Ck_pL.Update();
+  DLM_Ck Ck_pS0(Kitty_pSo_Feed.GetNumSourcePars(),0,Kitty_pSo_Feed,NumMomBins,0,kMax);
+  Ck_pS0.Update();
+  DLM_CkDecomposition CkDec_pS0("pSigma0",0,Ck_pS0,NULL);
+  TH2F* hResidual_pL_pSigma0 = AnalysisObject.GetResidualMatrix("pLambda","pSigma0");
+
+  //TH2F* hResolution_pL = AnalysisObject.GetResolutionMatrix("pp13TeV_HM_Dec19","pLambda");
+  TH1F* hData = AnalysisObject.GetAliceExpCorrFun("pp13TeV_HM_Dec19","pLambda","_0",2,false,-1);
+  DLM_CkDecomposition CkDec_pL("pLambda",2,Ck_pL,NULL);
+  CkDec_pL.AddContribution(0,lambda_pSo,DLM_CkDecomposition::cFeedDown,&CkDec_pS0,hResidual_pL_pSigma0);
+  CkDec_pL.AddContribution(1,1.-lambda_pSo,DLM_CkDecomposition::cFeedDown);
+  CkDec_pS0.Update();
+  CkDec_pL.Update();
+
+  int ColorNLO13 = kRed;//+1
+  int ColorNLO19 = kCyan;
+  int ColorLO13 = kGreen;//+1
+  int ColorNLO19_500 = kCyan+2;
+  int ColorSigma = kAzure;
+
+  gStyle->SetCanvasPreferGL(1);
+  SetStyle();
+
+  TGraphErrors gNLO19_600;
+  gNLO19_600.SetName("gNLO19_600");
+  gNLO19_600.SetLineColor(ColorNLO19);
+  gNLO19_600.SetLineWidth(0);
+  gNLO19_600.SetLineStyle(1);
+  gNLO19_600.SetFillColorAlpha(ColorNLO19,0.60);
+
+  TGraphErrors gNLO13_600;
+  gNLO13_600.SetName("gNLO13_600");
+  gNLO13_600.SetLineColor(ColorNLO13);
+  gNLO13_600.SetLineWidth(3);
+  gNLO13_600.SetLineStyle(1);
+  gNLO13_600.SetFillColorAlpha(ColorNLO13,0.60);
+
+  TGraphErrors gLO13_600;
+  gLO13_600.SetName("gLO13_600");
+  gLO13_600.SetLineColor(ColorLO13);
+  gLO13_600.SetLineWidth(3);
+  gLO13_600.SetLineStyle(1);
+  gLO13_600.SetFillColorAlpha(ColorLO13,0.60);
+
+  TGraphErrors gNLO19_500;
+  gNLO19_500.SetName("gNLO19_500");
+  gNLO19_500.SetLineColor(ColorNLO19_500);
+  gNLO19_500.SetLineWidth(3);
+  gNLO19_500.SetLineStyle(2);
+  gNLO19_500.SetFillColorAlpha(ColorNLO19_500,0.60);
+
+  TGraphErrors gSigmaFeed;
+  gSigmaFeed.SetName("gSigmaFeed");
+  gSigmaFeed.SetLineColor(ColorSigma);
+  gSigmaFeed.SetLineWidth(3);
+  gSigmaFeed.SetLineStyle(3);
+  gSigmaFeed.SetFillColorAlpha(ColorSigma,0.60);
+
+
+  for(unsigned uBin=0; uBin<NumMomBins; uBin++){
+    double MOM = Kitty_NLO19_600.GetMomentum(uBin);
+    gNLO19_600.SetPoint(uBin,MOM,lambda_pL*Kitty_NLO19_600.GetCorrFun(uBin)+1.-lambda_pL);
+    gNLO19_500.SetPoint(uBin,MOM,lambda_pL*Kitty_NLO19_500.GetCorrFun(uBin)+1.-lambda_pL);
+    gNLO13_600.SetPoint(uBin,MOM,lambda_pL*Kitty_NLO13_600.GetCorrFun(uBin)+1.-lambda_pL);
+    gLO13_600.SetPoint(uBin,MOM,lambda_pL*Kitty_LO13_600.GetCorrFun(uBin)+1.-lambda_pL);
+    gSigmaFeed.SetPoint(uBin,MOM,CkDec_pL.EvalSignalChild(0,MOM)+1.);
+
+    gNLO19_600.SetPointError(uBin,0,hData->GetBinError(hData->FindBin(MOM)));
+    gNLO19_500.SetPointError(uBin,0,hData->GetBinError(hData->FindBin(MOM)));
+    gNLO13_600.SetPointError(uBin,0,hData->GetBinError(hData->FindBin(MOM)));
+    gLO13_600.SetPointError(uBin,0,hData->GetBinError(hData->FindBin(MOM)));
+    gSigmaFeed.SetPointError(uBin,0,hData->GetBinError(hData->FindBin(MOM)));
+
+  }
+
+
+  TLegend* myLegend = new TLegend(0.50,0.50,0.95,0.95);//lbrt
+  myLegend->SetName(TString::Format("myLegend"));
+  myLegend->SetTextSize(0.07);
+  myLegend->AddEntry(&gNLO19_600,"p-#Lambda (NLO19-600)");
+  myLegend->AddEntry(&gNLO19_500,"p-#Lambda (NLO19-500)");
+  myLegend->AddEntry(&gNLO13_600,"p-#Lambda (NLO13-600)");
+  myLegend->AddEntry(&gLO13_600,"p-#Lambda (LO-600)");
+  myLegend->AddEntry(&gSigmaFeed,"p-#Sigma^{0}#rightarrowp-#Lambda (NLO19)");
+
+  DLM_SubPads* DlmPad = new DLM_SubPads(1080,1080);
+  DlmPad->AddSubPad(0,1,0.5,1.0);
+  DlmPad->AddSubPad(0,1,0.0,0.5);
+  DlmPad->SetMargin(0,0.14,0.02,0.0,0.02);
+  DlmPad->SetMargin(1,0.14,0.02,0.09,0.0);
+
+  TH1F* hAxisFull = new TH1F("hAxisFull","hAxisFull",NumMomBins,0,kMax);
+  hAxisFull->SetTitle("; #it{k*} (MeV/#it{c}); #it{C}(#it{k*})");
+  hAxisFull->GetXaxis()->SetRangeUser(0, kMax);
+  hAxisFull->GetXaxis()->SetNdivisions(505);
+  hAxisFull->GetYaxis()->SetRangeUser(0.9, 2.1);
+  hAxisFull->SetFillColor(kGray+1);
+  hAxisFull->SetStats(false);
+  SetStyleHisto2(hAxisFull,2,0);
+  SetStyleAxis_2(hAxisFull);
+
+  TH1F* hAxisZoom = new TH1F("hAxisZoom","hAxisZoom",NumMomBins,0,kMax);
+  hAxisZoom->SetTitle("; #it{k*} (MeV/#it{c}); #it{C}(#it{k*})");
+  hAxisZoom->GetXaxis()->SetRangeUser(0, kMax);
+  hAxisZoom->GetXaxis()->SetNdivisions(505);
+  hAxisZoom->GetYaxis()->SetRangeUser(0.96, 1.04);
+  hAxisZoom->SetFillColor(kGray+1);
+  hAxisZoom->SetStats(false);
+  SetStyleHisto2(hAxisZoom,2,0);
+  SetStyleAxis_2(hAxisZoom);
+
+  DlmPad->cd(0);
+  hAxisFull->Draw("axis");
+  gNLO19_600.Draw("3L,same");
+  gNLO13_600.Draw("3L,same");
+  gLO13_600.Draw("3L,same");
+  gNLO19_500.Draw("3L,same");
+  gSigmaFeed.Draw("3L,same");
+  myLegend->Draw("same");
+
+  DlmPad->cd(1);
+  hAxisZoom->Draw("axis");
+  gNLO19_600.Draw("3L,same");
+  gNLO13_600.Draw("3L,same");
+  gLO13_600.Draw("3L,same");
+  gNLO19_500.Draw("3L,same");
+  gSigmaFeed.Draw("3L,same");
+
+  DlmPad->GetCanvas()->SaveAs(OutputFolder+"pL_ChiralModels.pdf");
+
+  delete hAxisFull;
+  delete hAxisZoom;
+
+}
 
 
 int THESIS_PLOTS(int narg, char** ARGS){
@@ -3286,8 +3499,9 @@ int THESIS_PLOTS(int narg, char** ARGS){
     //pL_Feed();
     //pp_MomReso();
     //QuantumBaseline();
-    Fit_pp();
+    //Fit_pp();
     //EPOS_QS_PLOT();
+    Compare_pL_models();
 
     return 0;
 }
