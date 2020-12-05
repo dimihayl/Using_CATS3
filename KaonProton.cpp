@@ -12,10 +12,15 @@
 #include "DLM_WfModel.h"
 
 #include "DLM_SubPads.h"
+#include "EnvVars.h"
+#include "DLM_HistoAnalysis.h"
+
 
 #include "TNtuple.h"
 #include "TString.h"
 #include "TGraph.h"
+#include "TGraphErrors.h"
+#include "TGraphAsymmErrors.h"
 #include "TFile.h"
 #include "TH1F.h"
 #include "TH2F.h"
@@ -2268,15 +2273,204 @@ void SmallerYukiFile(){
     delete [] cdummy;
 }
 
+void PbPb_Paper_CkWithErrors(){
+  const unsigned NumCentBins = 6;
+  double* SourceSize = new double [NumCentBins];
+  double* SourceSizeStat = new double [NumCentBins];
+  double* SourceSizeSystUp = new double [NumCentBins];
+  double* SourceSizeSystDown = new double [NumCentBins];
+
+  SourceSize[0] = 8.88;
+  SourceSizeStat[0] = 0.23;
+  SourceSizeSystUp[0] = 0.51;
+  SourceSizeSystDown[0] = 1.25;
+
+  SourceSize[1] = 8.09;
+  SourceSizeStat[1] = 0.26;
+  SourceSizeSystUp[1] = 0.3;
+  SourceSizeSystDown[1] = 1.09;
+
+  SourceSize[2] = 6.89;
+  SourceSizeStat[2] = 0.24;
+  SourceSizeSystUp[2] = 0.5;
+  SourceSizeSystDown[2] = 0.59;
+
+  SourceSize[3] = 6.43;
+  SourceSizeStat[3] = 0.13;
+  SourceSizeSystUp[3] = 0.23;
+  SourceSizeSystDown[3] = 0.86;
+
+  SourceSize[4] = 5.24;
+  SourceSizeStat[4] = 0.11;
+  SourceSizeSystUp[4] = 0.19;
+  SourceSizeSystDown[4] = 0.52;
+
+  SourceSize[5] = 4.95;
+  SourceSizeStat[5] = 0.14;
+  SourceSizeSystUp[5] = 0.22;
+  SourceSizeSystDown[5] = 0.48;
+
+  CATS KittyTemp;
+  DLM_Histo<complex<double>>*** BINNING=Init_pKminus_Kyoto2019(TString::Format("%s/CatsFiles/Interaction/Tetsuo/Kyoto2019/",GetCernBoxDimi()),KittyTemp,1);
+  const unsigned NumMomBins = BINNING[0][0][0].GetNbins(0);
+  double* MomBins = BINNING[0][0][0].GetBinRange(0);
+  double* MomBinsCenter = BINNING[0][0][0].GetBinCenters(0);
+  printf("NumMomBins=%u\n",NumMomBins);
+  for(unsigned uMomBin=0; uMomBin<NumMomBins; uMomBin++){
+      //printf("%u: %3.f %.3f %.3f\n",uMomBin,MomBins[uMomBin],MomBinsCenter[uMomBin],MomBins[uMomBin+1]);
+  }
+  const unsigned NumMomBinsPaper = 60;
+  const double kMinPaper = 0;
+  const double kMaxPaper = 300;
+  TH1F* hPaper = new TH1F("hPaper","hPaper",NumMomBinsPaper,kMinPaper,kMaxPaper);
+  TH2F** hKyotoBinning = new TH2F* [NumCentBins];
+  TGraphErrors* gKyotoBinning = new TGraphErrors[NumCentBins];
+  TGraph* gKyotoBinningUp = new TGraph[NumCentBins];
+  TGraph* gKyotoBinningDown = new TGraph[NumCentBins];
+  TGraphAsymmErrors* gaKyotoBinning = new TGraphAsymmErrors[NumCentBins];
+  TGraph* gaKyotoBinningUp = new TGraph[NumCentBins];
+  TGraph* gaKyotoBinningDown = new TGraph[NumCentBins];
+  TGraphErrors* gPaperBinning = new TGraphErrors[NumCentBins];
+  TGraphAsymmErrors* gaPaperBinning = new TGraphAsymmErrors[NumCentBins];
+  for(unsigned uCent=0; uCent<NumCentBins; uCent++){
+    hKyotoBinning[uCent] = new TH2F(TString::Format("hKyotoBinning_C%u",uCent),TString::Format("hKyotoBinning_C%u",uCent),NumMomBins,MomBins,1024*512,0,5);
+    gKyotoBinning[uCent].SetName(TString::Format("gKyotoBinning_C%u",uCent));
+    gKyotoBinningUp[uCent].SetName(TString::Format("gKyotoBinningUp_C%u",uCent));
+    gKyotoBinningDown[uCent].SetName(TString::Format("gKyotoBinningDown_C%u",uCent));
+    gaKyotoBinningUp[uCent].SetName(TString::Format("gaKyotoBinningUp_C%u",uCent));
+    gaKyotoBinningDown[uCent].SetName(TString::Format("gaKyotoBinningDown_C%u",uCent));
+    gaKyotoBinning[uCent].SetName(TString::Format("gaKyotoBinning_C%u",uCent));
+    gPaperBinning[uCent].SetName(TString::Format("gPaperBinning_C%u",uCent));
+    gaPaperBinning[uCent].SetName(TString::Format("gaPaperBinning_C%u",uCent));
+  }
+
+  CATSparameters cPars(CATSparameters::tSource,1,true);
+  cPars.SetParameter(0,5.0);
+  CATS KittyFull;
+  KittyFull.SetMomBins(NumMomBins,MomBins,MomBinsCenter);
+  KittyFull.SetAnaSource(GaussSource, cPars);
+  KittyFull.SetUseAnalyticSource(true);
+  DLM_Histo<complex<double>>*** ExternalWF_Full=Init_pKminus_Kyoto2019(TString::Format("%s/CatsFiles/Interaction/Tetsuo/Kyoto2019/",GetCernBoxDimi()),KittyFull,1);
+  for(unsigned uCh=0; uCh<6; uCh++){
+      KittyFull.SetExternalWaveFunction(uCh,0,ExternalWF_Full[0][uCh][0],ExternalWF_Full[1][uCh][0]);
+  }
+  //for channels 1-5 these are the omega weights
+  //KittyFull.SetChannelWeight(WHICH_CHANNEL, WEIGHT);
+  //if you change the weights, kill the cat again
+  KittyFull.KillTheCat();
+  KittyFull.SetNotifications(CATS::nError);
+
+  const unsigned NumBootIter = 128;
+
+  TRandom3 rangen(11);
+  double SS_Value;
+  double SS_Stat;//at first in nsigma
+  double SS_Syst;
+
+  double* Mean = new double [KittyFull.GetNumMomBins()];
+  double* Stdev = new double [KittyFull.GetNumMomBins()];
+
+  TFile fOutput(TString::Format("%s/KaonProton/PbPb_Paper_CkWithErrors/fKyotoCk.root",GetFemtoOutputFolder()),"recreate");
+  for(unsigned uCent=0; uCent<NumCentBins; uCent++){
+    printf("\r\033[K  uCent=%u",uCent);
+    cout << flush;
+    KittyFull.SetAnaSource(0,SourceSize[uCent],false);
+    KittyFull.KillTheCat();
+    for(unsigned uMomBin=0; uMomBin<KittyFull.GetNumMomBins(); uMomBin++){
+      Mean[uMomBin]=0;
+      Stdev[uMomBin]=0;
+    }
+    for(unsigned uBootIter=0; uBootIter<NumBootIter; uBootIter++){
+      //printf("\r\033[K    uBootIter=%u",uBootIter);
+      //cout << flush;
+      SS_Stat = rangen.Gaus();
+      SS_Stat *= SourceSizeStat[uCent];
+      SS_Syst = rangen.Gaus();
+      SS_Syst *= SS_Syst>0?SourceSizeSystUp[uCent]:SourceSizeSystDown[uCent];
+      SS_Value = SourceSize[uCent]+SS_Stat+SS_Syst;
+      KittyFull.SetAnaSource(0,SS_Value,true);
+      KittyFull.KillTheCat();
+      for(unsigned uMomBin=0; uMomBin<KittyFull.GetNumMomBins(); uMomBin++){
+        hKyotoBinning[uCent]->Fill(KittyFull.GetMomentum(uMomBin),KittyFull.GetCorrFun(uMomBin));
+        Mean[uMomBin]+=KittyFull.GetCorrFun(uMomBin);
+        Stdev[uMomBin]+=pow(KittyFull.GetCorrFun(uMomBin),2.);
+      }
+    }
+    for(unsigned uMomBin=0; uMomBin<KittyFull.GetNumMomBins(); uMomBin++){
+      Mean[uMomBin]/=double(NumBootIter);
+      Stdev[uMomBin]/=double(NumBootIter);
+      Stdev[uMomBin] = sqrt(Stdev[uMomBin]-Mean[uMomBin]*Mean[uMomBin]);
+      TH1D* hProjection = hKyotoBinning[uCent]->ProjectionY("hProjection",uMomBin+1,uMomBin+1);
+      double Median,MedUp,MedDown;
+      Median = GetCentralInterval(*hProjection,0.68,MedDown,MedUp,true);
+
+      gKyotoBinning[uCent].SetPoint(uMomBin,KittyFull.GetMomentum(uMomBin),hProjection->GetMean());
+      gKyotoBinning[uCent].SetPointError(uMomBin,0,hProjection->GetStdDev());
+      gKyotoBinningUp[uCent].SetPoint(uMomBin,KittyFull.GetMomentum(uMomBin),hProjection->GetMean()+hProjection->GetStdDev());
+      gKyotoBinningDown[uCent].SetPoint(uMomBin,KittyFull.GetMomentum(uMomBin),hProjection->GetMean()-hProjection->GetStdDev());
+
+      gaKyotoBinning[uCent].SetPoint(uMomBin,KittyFull.GetMomentum(uMomBin),Median);
+      gaKyotoBinning[uCent].SetPointError(uMomBin,0,0,Median-MedDown,MedUp-Median);
+      gaKyotoBinningUp[uCent].SetPoint(uMomBin,KittyFull.GetMomentum(uMomBin),MedUp);
+      gaKyotoBinningDown[uCent].SetPoint(uMomBin,KittyFull.GetMomentum(uMomBin),MedDown);
+      //printf("%f vs %f | %f vs %f\n",Mean[uMomBin],hProjection->GetMean(),Stdev[uMomBin],hProjection->GetStdDev());
+    }
+
+    for(unsigned uPaperBins=0; uPaperBins<NumMomBinsPaper; uPaperBins++){
+      double mom_val = hPaper->GetBinCenter(uPaperBins);
+      double ck_val,ck_up,ck_down;
+      ck_val = gKyotoBinning[uCent].Eval(mom_val);
+      ck_up = gKyotoBinningUp[uCent].Eval(mom_val);
+      ck_down = gKyotoBinningDown[uCent].Eval(mom_val);
+      gPaperBinning[uCent].SetPoint(uPaperBins,mom_val,ck_val);
+      gPaperBinning[uCent].SetPointError(uPaperBins,0,(ck_up-ck_down)*0.5);
+      ck_val = gaKyotoBinning[uCent].Eval(mom_val);
+      ck_up = gaKyotoBinningUp[uCent].Eval(mom_val);
+      ck_down = gaKyotoBinningDown[uCent].Eval(mom_val);
+      gaPaperBinning[uCent].SetPoint(uPaperBins,mom_val,ck_val);
+      gaPaperBinning[uCent].SetPointError(uPaperBins,0,0,ck_val-ck_down,ck_up-ck_val);
+    }
+
+    //hKyotoBinning[uCent]->Write();
+    gKyotoBinning[uCent].Write();
+    gaKyotoBinning[uCent].Write();
+
+    gPaperBinning[uCent].Write();
+    gaPaperBinning[uCent].Write();
+  }
+
+
+  delete [] SourceSize;
+  delete [] SourceSizeStat;
+  delete [] SourceSizeSystUp;
+  delete [] SourceSizeSystDown;
+  delete [] Mean;
+  delete [] Stdev;
+
+  for(unsigned uCent=0; uCent<NumCentBins; uCent++) delete hKyotoBinning[uCent];
+  delete [] hKyotoBinning;
+  delete [] gKyotoBinning;
+  delete [] gKyotoBinningUp;
+  delete [] gKyotoBinningDown;
+  delete [] gaKyotoBinning;
+  delete [] gaKyotoBinningUp;
+  delete [] gaKyotoBinningDown;
+  delete [] gPaperBinning;
+  delete [] gaPaperBinning;
+  delete hPaper;
+}
+
 int KAONPROTON_MAIN(int argc, char *argv[]){
 
     //SmearTest_pKminus();
     //SmallerYukiFile();
 
     //TestKyoto2019(1.2);
-    for(double rad=1; rad<=7.5; rad+=0.5){
-        TestKyoto2019(rad);
-    }
+    //for(double rad=1; rad<=7.5; rad+=0.5){
+    //    TestKyoto2019(rad);
+    //}
+
+    PbPb_Paper_CkWithErrors();
 
     //Toy_pKplus();
     //Toy_pKplus_2();
