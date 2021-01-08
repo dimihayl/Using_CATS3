@@ -3088,13 +3088,14 @@ double SimplePol4_ppFit(double* x, double* par){
 
 
 void Fit_pp(){
-  double* MomBins_pp = NULL;
+  //double* MomBins_pp = NULL;
   double* FitRegion_pp = NULL;
-  unsigned NumMomBins_pp;
+  unsigned NumMomBins_pp=100;
+  double kMax = 400;
   TString DataSample = "pp13TeV_HM_Dec19";
   DLM_CommonAnaFunctions AnalysisObject;
   AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
-  AnalysisObject.SetUpBinning_pp(DataSample,NumMomBins_pp,MomBins_pp,FitRegion_pp);
+  //AnalysisObject.SetUpBinning_pp(DataSample,NumMomBins_pp,MomBins_pp,FitRegion_pp);
   double lam_pp[5];
   double lam_pL[5];
   AnalysisObject.SetUpLambdaPars_pp(DataSample,0,lam_pp);
@@ -3108,7 +3109,7 @@ void Fit_pp(){
 
   CATS AB_pL;
   DLM_Ck* Ck_pL;
-  AB_pL.SetMomBins(NumMomBins_pp,MomBins_pp);
+  AB_pL.SetMomBins(NumMomBins_pp,0,kMax);
   AnalysisObject.SetUpCats_pL(AB_pL,"Usmani","Gauss");
   AB_pL.SetAnaSource(0,1.25);
   AB_pL.KillTheCat();
@@ -3121,7 +3122,7 @@ void Fit_pp(){
 
   CATS ABG_pp;
   DLM_Ck* CkG_pp;
-  ABG_pp.SetMomBins(NumMomBins_pp,MomBins_pp);
+  ABG_pp.SetMomBins(NumMomBins_pp,0,kMax);
   AnalysisObject.SetUpCats_pp(ABG_pp,"AV18",SourceDescriptionG,0,0);
 
   ABG_pp.SetAnaSource(0,1.28);
@@ -3140,7 +3141,7 @@ void Fit_pp(){
 
   CATS ABR_pp;
   DLM_Ck* CkR_pp;
-  ABR_pp.SetMomBins(NumMomBins_pp,MomBins_pp);
+  ABR_pp.SetMomBins(NumMomBins_pp,0,kMax);
   //AnalysisObject.SetUpCats_pp(AB_pp,"AV18","Gauss",0,0);//McLevyNolan_Reso
   AnalysisObject.SetUpCats_pp(ABR_pp,"AV18",SourceDescriptionR,0,202);//McLevyNolan_Reso
 
@@ -3264,12 +3265,87 @@ void Fit_pp(){
     gTheoGR.SetPoint(uBin,ABR_pp.GetMomentum(uBin),ABG_pp.GetCorrFun(uBin)/ABR_pp.GetCorrFun(uBin));
   }
 
+  gTheoG.SetLineColor(kBlue);
+  gTheoG.SetLineWidth(6);
+  gTheoR.SetLineColor(kRed);
+  gTheoR.SetLineWidth(4);
+  gTheoR.SetLineStyle(2);
+  gTheoGR.SetLineColor(kBlack);
+  gTheoGR.SetLineWidth(6);
+
+  TLegend* legend = new TLegend(0.45,0.5,0.95,0.9);//lbrt
+  legend->SetBorderSize(0);
+  legend->SetTextFont(42);
+  legend->SetTextSize(gStyle->GetTextSize()*1.1);
+  legend->AddEntry(&gTheoG, "Gaussian source");
+  legend->AddEntry(&gTheoR, "Resonance source model");
+  legend->AddEntry(&gTheoGR, "Ratio");
+
+  DLM_SubPads* DlmPad = new DLM_SubPads(720,1080);
+  DlmPad->AddSubPad(0,1,0.67,1);
+  DlmPad->AddSubPad(0,1,0.34,0.67);
+  DlmPad->AddSubPad(0,1,0.0,0.34);
+  DlmPad->SetMargin(0,0.14,0.02,0.0,0.02);
+  DlmPad->SetMargin(1,0.14,0.02,0.0,0.0);
+  DlmPad->SetMargin(2,0.14,0.02,0.05,0.0);
+  DlmPad->cd(0);
+
+  TH1F* hCkAxis = new TH1F("hCkAxis","hCkAxis",100,0,400);
+  hCkAxis->SetStats(false);
+  hCkAxis->SetTitle("; #it{k*} (MeV/#it{c}); #it{C}(#it{k*})");
+  hCkAxis->GetXaxis()->SetRangeUser(0, 456);
+  hCkAxis->GetXaxis()->SetNdivisions(505);
+  hCkAxis->GetYaxis()->SetRangeUser(0.55, 4.5);
+  hCkAxis->SetFillColor(kGray+1);
+  SetStyleHisto2a(hCkAxis,2,0);
+
+
+
+  hCkAxis->Draw("axis");
+  gTheoG.Draw("L,same");
+  gTheoR.Draw("L,same");
+  legend->Draw("same");
+
+  DlmPad->cd(1);
+  TH1F* hCkAxisInlet = new TH1F("hCkAxisInlet","hCkAxisInlet",100,0,400);
+  hCkAxisInlet->SetStats(false);
+  hCkAxisInlet->SetTitle("; #it{k*} (MeV/#it{c}); #it{C}(#it{k*})");
+  hCkAxisInlet->GetXaxis()->SetRangeUser(0, 456);
+  hCkAxisInlet->GetXaxis()->SetNdivisions(505);
+  hCkAxisInlet->GetYaxis()->SetRangeUser(0.935, 1.005);
+  hCkAxisInlet->SetFillColor(kGray+1);
+  SetStyleHisto2a(hCkAxisInlet,2,0);
+
+  hCkAxisInlet->Draw("axis");
+  gTheoG.Draw("L,same");
+  gTheoR.Draw("L,same");
+
+  DlmPad->cd(2);
+
+  TH1F* hRatioAxis = new TH1F("hRatioAxis","hRatioAxis",100,0,400);
+  hRatioAxis->SetStats(false);
+  hRatioAxis->SetTitle("; #it{k*} (MeV/#it{c}); Ratio");
+  hRatioAxis->GetXaxis()->SetRangeUser(0, 456);
+  hRatioAxis->GetXaxis()->SetNdivisions(505);
+  hRatioAxis->GetYaxis()->SetRangeUser(0.990, 1.015);
+  hRatioAxis->SetFillColor(kGray+1);
+  SetStyleHisto2a(hRatioAxis,2,0);
+
+
+  hRatioAxis->Draw("axis");
+  gTheoGR.Draw("L,same");
+
+  DlmPad->GetCanvas()->SaveAs(OutputFolder+"JuliHelpsWithResonances.pdf");
+
   OutputFile->cd();
   //fitG_pp->Write();
   //fitR_pp->Write();
   gTheoG.Write();
   gTheoR.Write();
   gTheoGR.Write();
+
+
+  delete DlmPad;
 }
 
 
@@ -3499,9 +3575,9 @@ int THESIS_PLOTS(int narg, char** ARGS){
     //pL_Feed();
     //pp_MomReso();
     //QuantumBaseline();
-    //Fit_pp();
+    Fit_pp();
     //EPOS_QS_PLOT();
-    Compare_pL_models();
+    //Compare_pL_models();
 
     return 0;
 }
