@@ -9037,7 +9037,14 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
     //if 1: as intended for the paper (cleaner)
     //if 2: as intended for the thesis
     const int PlotsType = 1;
-    const bool WorkInProgress = true;
+    int Panel_X = 0;
+    if(PlotsType==1){
+      if(WhichPotential==11600 && SIGMA_FEED==1)Panel_X=0;
+      if(WhichPotential==11600 && SIGMA_FEED==0)Panel_X=1;
+      if(WhichPotential==1600 && SIGMA_FEED==1)Panel_X=2;
+      if(WhichPotential==1600 && SIGMA_FEED==0)Panel_X=3;
+    }
+    const bool WorkInProgress = false;
     const bool DataOnly = false;
 
     enum BLTYPE { pol0s,pol1s,pol2s,pol3s,dpol2s,dpol3s,dpol4s,pol2e,pol3e,dpol2e,dpol3e,dpol4e,spl1 };
@@ -9194,6 +9201,7 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
     TString XimName1 = "Residual p#minus #Xi^{#minus}: HAL QCD";
     TString Xi0Name1 = "Residual p#minus #Xi^{0}: HAL QCD";
     TString XiName1 = "Residual p#minus #Xi^{#minus}#oplusp#minus #Xi^{0}: HAL QCD";
+    if(PlotsType==1) XiName1 = "Residual p#minus #Xi^{#minus}#oplusp#minus #Xi^{0}";
     int PotFlag;
     switch(WhichPotential){
         case 1500 : PotName1 = "NLO13 (500)";
@@ -10160,7 +10168,9 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
 
 
     gStyle->SetCanvasPreferGL(1);
-    SetStyle();
+    if(PlotsType==1) SetStyle_pLambda();
+    else SetStyle();
+
 
     //TColor SigmaColor(6000,132,112,255);
     int ColorNLO13 = kRed;//+1
@@ -10250,9 +10260,17 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
     DlmPad->AddSubPad(0,1,0.5,1);
     DlmPad->AddSubPad(0,1,0.25,0.5);
     DlmPad->AddSubPad(0,1,0.,0.25);
-    DlmPad->SetMargin(0,0.14,0.02,0.0,0.02);
-    DlmPad->SetMargin(1,0.14,0.02,0.0,0.0);
-    DlmPad->SetMargin(2,0.14,0.02,0.07,0.0);
+    if(PlotsType==1){
+      DlmPad->SetMargin(0,0.18,0.02,0.0,0.02);
+      DlmPad->SetMargin(1,0.18,0.02,0.0,0.0);
+      DlmPad->SetMargin(2,0.18,0.02,0.1,0.0);
+    }
+    else{
+      DlmPad->SetMargin(0,0.14,0.02,0.0,0.02);
+      DlmPad->SetMargin(1,0.14,0.02,0.0,0.0);
+      DlmPad->SetMargin(2,0.14,0.02,0.07,0.0);
+    }
+
     DlmPad->cd(0);
 
     hData_pL_Stat->SetTitle("; #it{k*} (MeV/#it{c}); #it{C}(#it{k*})");
@@ -10260,7 +10278,8 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
     hData_pL_Stat->GetXaxis()->SetNdivisions(505);
     hData_pL_Stat->GetYaxis()->SetRangeUser(0.9, 2.0);
     hData_pL_Stat->SetFillColor(kGray+1);
-    SetStyleHisto2a(hData_pL_Stat,2,0);
+    if(PlotsType==1)SetStyleHisto_pLambda(hData_pL_Stat,2,0,1,Panel_X==0?false:true);
+    else SetStyleHisto2a(hData_pL_Stat,2,0);
 
     TGraphErrors *Tgraph_syserror = (TGraphErrors*)gdata_toterr->Clone("Tgraph_syserror");
     TGraph gRelStatError;
@@ -10315,7 +10334,7 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
         if(XI_PLOT%100) geb_Xim->Draw("3L same");//3L to put a line
         if((XI_PLOT/10)%10 && fitSignal_pL_pXi0) geb_Xi0->Draw("3L same");
         if(XI_PLOT/100) geb_Xi->Draw("3L same");
-        geb_Sig->Draw("3L same");
+        if(PlotsType!=1 || SIGMA_FEED!=0) geb_Sig->Draw("3L same");
 
         if(fitLoDummy) fitLoDummy->Draw("3L same");
 
@@ -10345,44 +10364,112 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
     const float TextLeft = 0.32;
     const float TextTop = 0.90;
     TLegend *legend;
-    if(PlotsType) legend = new TLegend(TextLeft-0.01,0.73-0.064*NumRows,0.73,TextTop-0.135);//lbrt
+    if(PlotsType==1 && Panel_X==0) legend = new TLegend(TextLeft+0.01+0.03,TextTop-0.58,0.73,TextTop-0.22);//lbrt
+    else if(PlotsType==1 && Panel_X==1) legend = new TLegend(TextLeft+0.01+0.03,TextTop-0.22,0.73,TextTop+0.02);//lbrt
+    else if(PlotsType==1 && Panel_X==2) legend = new TLegend(TextLeft+0.01+0.03,TextTop-0.22,0.73,TextTop+0.02);//lbrt
+    else if(PlotsType==1 && Panel_X==3) legend = new TLegend(TextLeft+0.01+0.03,TextTop-0.22,0.73,TextTop+0.02);//lbrt
+    else if(PlotsType) legend = new TLegend(TextLeft-0.01,0.73-0.064*NumRows,0.73,TextTop-0.135);//lbrt
     else legend = new TLegend(TextLeft-0.01,0.73-0.054*NumRows,0.73,TextTop-0.135);//lbrt
     legend->SetBorderSize(0);
     legend->SetTextFont(42);
-    legend->SetTextSize(gStyle->GetTextSize()*0.90);
+    if(PlotsType==1) legend->SetTextSize(gStyle->GetTextSize()*1.3);
+    else legend->SetTextSize(gStyle->GetTextSize()*0.90);
+
     TH1F* hCk_Fake;
     hCk_Fake = (TH1F*)hData_pL_Stat->Clone("hCk_Fake");
     hCk_Fake->SetName("hCk_Fake");
     hCk_Fake->SetLineColor(hCk_Fake->GetFillColor());
 
-    legend->AddEntry(hCk_Fake, "p#minus #Lambda #oplus #bar{p}#minus #bar{#Lambda} pairs", "fpe");
-    if(!DataOnly){
-        //legend->AddEntry(ge_Fit,TString::Format("Fit %s   #chi^{2}_{ndf} = %.1f",PotName1.Data(),MinChi2/double(MinNdf)),"l");
+    if(PlotsType==1){
+      if(Panel_X==0){
+        legend->AddEntry(hCk_Fake, "p#minus #Lambda #oplus #bar{p}#minus #bar{#Lambda} pairs", "fpe");
         legend->AddEntry(ge_Fit,TString::Format("Fit %s",PotName1.Data()),"l");
-        if(COMPARE_TO_LO&&fitLoDummy) legend->AddEntry(fitLoDummy,"LO13 (600)","l");
-        else if(!PlotsType) legend->AddEntry(&DummyLegendEntry,PotName2,"l");
-        else legend->AddEntry(&DummyLegendEntry," ","l");
-        //legend->AddEntry(&DummyLegendEntry,PotName3,"l");
-        legend->AddEntry(ge_Bl,BlName1,"l");
         legend->AddEntry(ge_Sig,SigName1,"l");
-        if(XI_PLOT/100) legend->AddEntry(ge_Xi,XiName1,"l");
-        else if(XI_PLOT==10) legend->AddEntry(ge_Xi0,Xi0Name1,"l");
-        else if(XI_PLOT==1) legend->AddEntry(ge_Xim,XimName1,"l");
+      }
+      if(Panel_X==1){
+        legend->AddEntry(ge_Bl,BlName1,"l");
+        legend->AddEntry(ge_Xi,XiName1,"l");
+      }
+      if(Panel_X==2){
+        legend->AddEntry(ge_Fit,TString::Format("Fit %s",PotName1.Data()),"l");
+        legend->AddEntry(fitLoDummy,"LO13 (600)","l");
+      }
     }
     else{
-        legend->AddEntry(&gRelStatError,TString::Format("Statistical uncertainty"),"l");
-        legend->AddEntry(&gRelSystError,TString::Format("Systematic uncertainty"),"p");
+      legend->AddEntry(hCk_Fake, "p#minus #Lambda #oplus #bar{p}#minus #bar{#Lambda} pairs", "fpe");
+      if(!DataOnly){
+          //legend->AddEntry(ge_Fit,TString::Format("Fit %s   #chi^{2}_{ndf} = %.1f",PotName1.Data(),MinChi2/double(MinNdf)),"l");
+          legend->AddEntry(ge_Fit,TString::Format("Fit %s",PotName1.Data()),"l");
+          if(COMPARE_TO_LO&&fitLoDummy) legend->AddEntry(fitLoDummy,"LO13 (600)","l");
+          else if(!PlotsType) legend->AddEntry(&DummyLegendEntry,PotName2,"l");
+          else legend->AddEntry(&DummyLegendEntry," ","l");
+          //legend->AddEntry(&DummyLegendEntry,PotName3,"l");
+          legend->AddEntry(ge_Bl,BlName1,"l");
+          legend->AddEntry(ge_Sig,SigName1,"l");
+          if(XI_PLOT/100) legend->AddEntry(ge_Xi,XiName1,"l");
+          else if(XI_PLOT==10) legend->AddEntry(ge_Xi0,Xi0Name1,"l");
+          else if(XI_PLOT==1) legend->AddEntry(ge_Xim,XimName1,"l");
+      }
+      else{
+          legend->AddEntry(&gRelStatError,TString::Format("Statistical uncertainty"),"l");
+          legend->AddEntry(&gRelSystError,TString::Format("Systematic uncertainty"),"p");
+      }
     }
+
     //legend->AddEntry(&DummyLegendEntry2,BlName2,"l");
     //}
 
-    if(PlotsType!=2 || WhichPotential==11600) legend->Draw("same");
+    const double Panel_L = 0.25;
+    const double Panel_T = 0.85;
+    TLatex Panel_A;
+    Panel_A.SetTextSize(gStyle->GetTextSize()*1.6);
+    Panel_A.SetNDC(kTRUE);
+    Panel_A.SetTextFont(22);
+    if(PlotsType==1 && Panel_X==0) Panel_A.DrawLatex(Panel_L, Panel_T, "a)");
+    if(PlotsType==1 && Panel_X==1) Panel_A.DrawLatex(Panel_L, Panel_T, "b)");
+    if(PlotsType==1 && Panel_X==2) Panel_A.DrawLatex(Panel_L, Panel_T, "c)");
+    if(PlotsType==1 && Panel_X==3) Panel_A.DrawLatex(Panel_L, Panel_T, "d)");
+
+    /*
+    Panel_A.DrawLatex(Panel_L, Panel_T, "a)");
+    TLatex Panel_B;
+    Panel_B.SetTextSize(gStyle->GetTextSize()*1.20);
+    Panel_B.SetNDC(kTRUE);
+    Panel_B.SetTextFont(22);
+    Panel_B.DrawLatex(Panel_L, Panel_T, "b)");
+    TLatex Panel_C;
+    Panel_C.SetTextSize(gStyle->GetTextSize()*1.20);
+    Panel_C.SetNDC(kTRUE);
+    Panel_C.SetTextFont(22);
+    Panel_C.DrawLatex(Panel_L, Panel_T, "c)");
+    TLatex Panel_D;
+    Panel_D.SetTextSize(gStyle->GetTextSize()*1.20);
+    Panel_D.SetNDC(kTRUE);
+    Panel_D.SetTextFont(22);
+    Panel_D.DrawLatex(Panel_L, Panel_T, "d)");
+    */
+
+    if(PlotsType==1){
+      if(Panel_X!=3) legend->Draw("same");
+    }
+    else if(PlotsType!=2 || WhichPotential==11600) legend->Draw("same");
+
     TLatex BeamText;
-    BeamText.SetTextSize(gStyle->GetTextSize()*0.90);
     BeamText.SetNDC(kTRUE);
-    if(!PlotsType||WorkInProgress) BeamText.DrawLatex(TextLeft, TextTop, "ALICE work in progress");
-    else BeamText.DrawLatex(TextLeft, TextTop, "ALICE");
-    BeamText.DrawLatex(TextLeft, TextTop-0.055, "high-mult. (0#minus 0.17% INEL>0) pp #sqrt{#it{s}} = 13 TeV");
+    if(PlotsType==1){
+      if(Panel_X==0){
+        BeamText.SetTextSize(gStyle->GetTextSize()*1.25);
+        BeamText.DrawLatex(TextLeft+0.03, TextTop-0.05, "ALICE");
+        BeamText.DrawLatex(TextLeft+0.03, TextTop-0.19, "high-mult. (0#minus 0.17% INEL>0)");
+        BeamText.DrawLatex(TextLeft+0.03, TextTop-0.12, "pp #sqrt{#it{s}} = 13 TeV");
+      }
+    }
+    else{
+      BeamText.SetTextSize(gStyle->GetTextSize()*0.90);
+      if(!PlotsType||WorkInProgress) BeamText.DrawLatex(TextLeft, TextTop, "ALICE work in progress");
+      else BeamText.DrawLatex(TextLeft, TextTop, "ALICE");
+      BeamText.DrawLatex(TextLeft, TextTop-0.055, "high-mult. (0#minus 0.17% INEL>0) pp #sqrt{#it{s}} = 13 TeV");
+    }
 
     TLatex BeamTextSource;
     BeamTextSource.SetTextSize(gStyle->GetTextSize()*0.90);
@@ -10417,7 +10504,9 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
     //DataHisto_Inlet->GetXaxis()->SetTitleSize(hData_pL_Stat->GetXaxis()->GetTitleSize()*1.75);
     //DataHisto_Inlet->GetXaxis()->SetLabelSize(hData_pL_Stat->GetXaxis()->GetLabelSize()*1.75);
     DataHisto_Inlet->GetXaxis()->SetRangeUser(0, 456);
-    SetStyleHisto2a(DataHisto_Inlet,2,0,2);
+
+    if(PlotsType==1)SetStyleHisto_pLambda(DataHisto_Inlet,2,0,2,Panel_X==0?false:true);
+    else SetStyleHisto2a(DataHisto_Inlet,2,0,2);
     DataHisto_Inlet->GetXaxis()->SetNdivisions(505);
     DataHisto_Inlet->GetYaxis()->SetNdivisions(205);
 
@@ -10468,7 +10557,7 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
         if(XI_PLOT%100) geb_Xim->Draw(DrawOptions);
         if((XI_PLOT/10)%10) geb_Xi0->Draw(DrawOptions);
         if(XI_PLOT/100) geb_Xi->Draw(DrawOptions);
-        geb_Sig->Draw(DrawOptions);
+        if(PlotsType!=1 || SIGMA_FEED!=0) geb_Sig->Draw(DrawOptions);
         if(fitLoDummy) fitLoDummy->Draw("3L same");
         geb_Bl->Draw(DrawOptions);
         grbFemto_Inlet->Draw(DrawOptions);
@@ -10492,7 +10581,8 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
         hAxis->GetYaxis()->SetRangeUser(0.06,6);
     }
     hAxis->GetXaxis()->SetNdivisions(505);
-    SetStyleHisto2a(hAxis,2,0,2);
+    if(PlotsType==1)SetStyleHisto_pLambda(hAxis,2,0,2,Panel_X==0?false:true);
+    else SetStyleHisto2a(hAxis,2,0,2);
     hAxis->GetYaxis()->SetNdivisions(504);
     hAxis->Draw("");
     if(!DataOnly) geb_SigmaSlice->Draw(DrawOptions);
@@ -11197,10 +11287,13 @@ void Quick_pLambda_plotter_NLO13_vs_LO13(){
 void MakeLATEXtable(TString InputFolder, bool Compact=false){
     TString OutputFileName;
     TString OutputFileNameNsig;
+    TString OutputFileNameSigDev;
     if(Compact) OutputFileName = InputFolder+"Chi2LaTeX_compact.tex";
     else OutputFileName = InputFolder+"Chi2LaTeX_full.tex";
     if(Compact) OutputFileNameNsig = InputFolder+"nSigLaTeX_compact.tex";
     else OutputFileNameNsig = InputFolder+"nSigLaTeX_full.tex";
+    if(Compact) OutputFileNameSigDev = InputFolder+"SigDevLaTeX_compact.tex";
+    else OutputFileNameSigDev = InputFolder+"SigDevLaTeX_full.tex";
 
     char* InfoFileName = new char [512];
     strcpy(InfoFileName,InputFolder.Data());
@@ -11245,7 +11338,7 @@ void MakeLATEXtable(TString InputFolder, bool Compact=false){
     int POT_VAR;
     int Sigma0_Feed;
 //! hard coded for 12 MeV bins up to 300 MeV
-    const float NDF = 8;
+    const float NDF = 25;
     float MinChi2NDF;
     float MinNsigma;
     float Best_SourceSize;
@@ -11484,6 +11577,131 @@ void MakeLATEXtable(TString InputFolder, bool Compact=false){
     fprintf(fptr,"\\label{tab:nsig_2020} \n");
     fprintf(fptr,"\\end{center} \n");
     fprintf(fptr,"\\end{table} \n");
+
+
+
+
+
+
+    fptr=fopen(OutputFileNameSigDev.Data(),"w");
+    if(Compact){
+        fprintf(fptr,"\\begin{table} \n");
+        fprintf(fptr,"\\begin{center} \n");
+        fprintf(fptr,"\\begin{tabular}{r|c|c|} \n");
+        fprintf(fptr,"\\hline \\hline \n");
+        fprintf(fptr,"$\\text{p--}\\Sigma^0$ ($\\rightarrow$)& \\pmb{$\\chi$EFT} & Flat \\\\ $\\text{p--}\\Lambda$ ($\\downarrow$) & & \\\\ \n");
+        fprintf(fptr,"\\hline \n");
+    }
+    else{
+        fprintf(fptr,"\\begin{table} \n");
+        fprintf(fptr,"\\begin{center} \n");
+        fprintf(fptr,"\\begin{tabular}{r|c|c|c|} \n");
+        fprintf(fptr,"\\hline \\hline \n");
+        fprintf(fptr,"$\\text{p--}\\Sigma^0$ ($\\rightarrow$)& \\pmb{$\\chi$EFT} & ESC16 & Flat \\\\ $\\text{p--}\\Lambda$ ($\\downarrow$) & & & \\\\ \n");
+        fprintf(fptr,"\\hline \n");
+    }
+
+    //char* buffer = new char [512];
+    for(unsigned upL=0; upL<NumLamVars; upL++){
+        float val_chiral_cubic=0;
+        float val_esc16_cubic=0;
+        float val_flat_cubic=0;
+        float val_chiral_const=0;
+        float val_esc16_const=0;
+        float val_flat_const=0;
+
+        float dsig_chiral_cubic=0;
+        float dsig_esc16_cubic=0;
+        float dsig_flat_cubic=0;
+        float dsig_chiral_const=0;
+        float dsig_esc16_const=0;
+        float dsig_flat_const=0;
+
+        for(unsigned uEntry=0; uEntry<NumEntries; uEntry++){
+            InfoTree->GetEntry(uEntry);
+            if(POT_VAR!=PotFlag_pL[upL]) continue;
+            if(Sigma0_Feed==0&&BASELINE_VAR==0){
+                val_flat_const = MinChi2NDF;
+            }
+            else if(Sigma0_Feed==0&&BASELINE_VAR==10){
+                val_flat_cubic = MinChi2NDF;
+            }
+            else if(Sigma0_Feed==1&&BASELINE_VAR==0){
+                val_chiral_const = MinChi2NDF;
+            }
+            else if(Sigma0_Feed==1&&BASELINE_VAR==10){
+                val_chiral_cubic = MinChi2NDF;
+            }
+            else if(Sigma0_Feed==2&&BASELINE_VAR==0){
+                val_esc16_const = MinChi2NDF;
+            }
+            else if(Sigma0_Feed==2&&BASELINE_VAR==10){
+                val_esc16_cubic = MinChi2NDF;
+            }
+        }
+//double nsigma = sqrt(2)*TMath::ErfcInverse(TMath::Prob(Chi2,TMath::Nint(NDF)));
+        double pval;
+
+        pval = TMath::Prob(val_chiral_cubic*NDF,TMath::Nint(NDF)); if(pval<1e-24)pval=1e-24; if(pval>1)pval=1;
+        dsig_chiral_cubic = sqrt(2)*TMath::ErfcInverse(pval);
+
+        pval = TMath::Prob(val_chiral_const*NDF,TMath::Nint(NDF)); if(pval<1e-24)pval=1e-24; if(pval>1)pval=1;
+        dsig_chiral_const = sqrt(2)*TMath::ErfcInverse(pval);
+
+        pval = TMath::Prob(val_esc16_cubic*NDF,TMath::Nint(NDF)); if(pval<1e-24)pval=1e-24; if(pval>1)pval=1;
+        dsig_esc16_cubic = sqrt(2)*TMath::ErfcInverse(pval);
+
+        pval = TMath::Prob(val_esc16_const*NDF,TMath::Nint(NDF)); if(pval<1e-24)pval=1e-24; if(pval>1)pval=1;
+        dsig_esc16_const = sqrt(2)*TMath::ErfcInverse(pval);
+
+        pval = TMath::Prob(val_flat_cubic*NDF,TMath::Nint(NDF)); if(pval<1e-24)pval=1e-24; if(pval>1)pval=1;
+        dsig_flat_cubic = sqrt(2)*TMath::ErfcInverse(pval);
+
+        pval = TMath::Prob(val_flat_const*NDF,TMath::Nint(NDF)); if(pval<1e-24)pval=1e-24; if(pval>1)pval=1;
+        dsig_flat_const = sqrt(2)*TMath::ErfcInverse(pval);
+
+        printf("chiral_cubic:\n");
+        printf("  chi2 = %.2f\n",val_chiral_cubic);
+        printf("  NDF = %.0f\n",NDF);
+        printf("  p_val = %.2e\n",TMath::Prob(val_chiral_cubic*NDF,TMath::Nint(NDF)));
+        printf("  nsig = %.3f\n",dsig_chiral_cubic);
+        printf("chiral_const:\n");
+
+        printf("flat_cubic:\n");
+
+        printf("flat_const:\n");
+
+
+        if(PotFlag_pL[upL]==11600) fprintf(fptr,"\\pmb{");
+        fprintf(fptr,"%s",PotName_pL[upL].Data());
+        if(PotFlag_pL[upL]==11600) fprintf(fptr,"}");
+        if(Compact){
+            fprintf(fptr," & %.1f (%.1f) & %.1f (%.1f)",
+                    dsig_chiral_cubic,dsig_chiral_const,
+                    dsig_flat_cubic,dsig_flat_const);
+        }
+        else{
+            fprintf(fptr," & %.1f (%.1f) & %.1f (%.1f) & %.1f (%.1f)",
+                    dsig_chiral_cubic,dsig_chiral_const,
+                    dsig_esc16_cubic,dsig_esc16_const,
+                    dsig_flat_cubic,dsig_flat_const);
+        }
+
+        fprintf(fptr," \\\\ \n");
+
+    }
+    fprintf(fptr,"\\hline \\hline \n");
+    fprintf(fptr,"\\end{tabular} \n");
+    fprintf(fptr,"\\caption{Deviation in $n_{\\sigma}$ for the different interaction hypotheses "
+            "of $\\text{p--}\\Lambda$ and $\\text{p--}\\Sigma^0$. "
+            "The default values correspond to the fit with a cubic baseline, the values in brackets represent the results from using a constant baseline. "
+            "The default model (in bold) is the $\\chi$EFT NLO calculation, at a cutoff of 600~MeV. } \n");
+    fprintf(fptr,"\\label{tab:dsig_2020} \n");
+    fprintf(fptr,"\\end{center} \n");
+    fprintf(fptr,"\\end{table} \n");
+
+
+
 
     delete [] PotName_pL;
     //delete [] PotName_pS0;
@@ -15127,7 +15345,7 @@ Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(at
                             atoi(argv[5])///REMOVE FOR THE OLD PLOTS
                           );
 
-//MakeLATEXtable(TString::Format("%s/pLambda/231020_NoBootstrap/Plots/",GetCernBoxDimi()),true);
+//MakeLATEXtable(TString::Format("%s/pLambda/231020_NoBootstrap/Plots091220/",GetCernBoxDimi()),true);
 return 0;
 
 //Plot_pL_SystematicsMay2020_2(2,10,1500,2.0,

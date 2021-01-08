@@ -1964,7 +1964,7 @@ void TestKyoto2019(const double& RADIUS){
 
     CATS KittyTemp;
     //KittyTemp.SetMomBins(150,1,301);
-    DLM_Histo<complex<double>>*** BINNING=Init_pKminus_Kyoto2019("/home/dmihaylov/CernBox/CATS_potentials/Tetsuo/Kyoto2019/",KittyTemp,0);
+    DLM_Histo<complex<double>>*** BINNING=Init_pKminus_Kyoto2019(TString::Format("%s/CatsFiles/Interaction/Tetsuo/Kyoto2019/",GetCernBoxDimi()),KittyTemp,0);
     unsigned NumMomBins = BINNING[0][0][0].GetNbins(0);
     double* MomBins = BINNING[0][0][0].GetBinRange(0);
     double* MomBinsCenter = BINNING[0][0][0].GetBinCenters(0);
@@ -1977,7 +1977,7 @@ void TestKyoto2019(const double& RADIUS){
     KittyStrong.SetMomBins(NumMomBins,MomBins,MomBinsCenter);
     KittyStrong.SetAnaSource(GaussSource, cPars);
     KittyStrong.SetUseAnalyticSource(true);
-    DLM_Histo<complex<double>>*** ExternalWF_Strong=Init_pKminus_Kyoto2019("/home/dmihaylov/CernBox/CATS_potentials/Tetsuo/Kyoto2019/",KittyStrong,0);
+    DLM_Histo<complex<double>>*** ExternalWF_Strong=Init_pKminus_Kyoto2019(TString::Format("%s/CatsFiles/Interaction/Tetsuo/Kyoto2019/",GetCernBoxDimi()),KittyStrong,0);
     //printf("NumMomBins=%u\n",ExternalWF_Strong[0][0][0].GetNbins());
     for(unsigned uCh=0; uCh<NumChannels; uCh++){
         KittyStrong.SetExternalWaveFunction(uCh,0,ExternalWF_Strong[0][uCh][0],ExternalWF_Strong[1][uCh][0]);
@@ -1988,7 +1988,7 @@ void TestKyoto2019(const double& RADIUS){
     KittyGamow.SetMomBins(NumMomBins,MomBins,MomBinsCenter);
     KittyGamow.SetAnaSource(GaussSource, cPars);
     KittyGamow.SetUseAnalyticSource(true);
-    DLM_Histo<complex<double>>*** ExternalWF_Gamow=Init_pKminus_Kyoto2019("/home/dmihaylov/CernBox/CATS_potentials/Tetsuo/Kyoto2019/",KittyGamow,0);
+    DLM_Histo<complex<double>>*** ExternalWF_Gamow=Init_pKminus_Kyoto2019(TString::Format("%s/CatsFiles/Interaction/Tetsuo/Kyoto2019/",GetCernBoxDimi()),KittyGamow,0);
     for(unsigned uCh=0; uCh<NumChannels; uCh++){
         KittyGamow.SetExternalWaveFunction(uCh,0,ExternalWF_Gamow[0][uCh][0],ExternalWF_Gamow[1][uCh][0]);
     }
@@ -2000,7 +2000,7 @@ void TestKyoto2019(const double& RADIUS){
     KittyFull.SetMomBins(NumMomBins,MomBins,MomBinsCenter);
     KittyFull.SetAnaSource(GaussSource, cPars);
     KittyFull.SetUseAnalyticSource(true);
-    DLM_Histo<complex<double>>*** ExternalWF_Full=Init_pKminus_Kyoto2019("/home/dmihaylov/CernBox/CATS_potentials/Tetsuo/Kyoto2019/",KittyFull,1);
+    DLM_Histo<complex<double>>*** ExternalWF_Full=Init_pKminus_Kyoto2019(TString::Format("%s/CatsFiles/Interaction/Tetsuo/Kyoto2019/",GetCernBoxDimi()),KittyFull,1);
     for(unsigned uCh=0; uCh<NumChannels; uCh++){
         KittyFull.SetExternalWaveFunction(uCh,0,ExternalWF_Full[0][uCh][0],ExternalWF_Full[1][uCh][0]);
     }
@@ -2052,7 +2052,7 @@ void TestKyoto2019(const double& RADIUS){
         }
     }
 
-    TFile fOutput(TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/TestKyoto2019/fOutput130520_%.2f.root",
+    TFile fOutput(TString::Format("%s/KaonProton/TestKyoto2019/fOutput141220_%.2f.root",GetFemtoOutputFolder(),
                                   RADIUS),"recreate");
 
     for(unsigned uCh=0; uCh<=NumChannels; uCh++){
@@ -2467,10 +2467,12 @@ int KAONPROTON_MAIN(int argc, char *argv[]){
 
     //TestKyoto2019(1.2);
     //for(double rad=1; rad<=7.5; rad+=0.5){
+    //for(double rad=5.0; rad<=8.0; rad+=0.5){
     //    TestKyoto2019(rad);
     //}
+    TestKyoto2019(7.0);
 
-    PbPb_Paper_CkWithErrors();
+    //PbPb_Paper_CkWithErrors();
 
     //Toy_pKplus();
     //Toy_pKplus_2();

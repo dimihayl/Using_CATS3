@@ -265,6 +265,56 @@ void SetStyle4(const bool UsePng, const unsigned NumPlotObjects, TAttLine** Obje
 
 }
 
+void SetStyle_pLambda(bool graypalette, bool title)
+{
+      const int NCont = 255;
+      gStyle->Reset("Plain");
+      gStyle->SetNumberContours(NCont);
+      gStyle->SetOptTitle(title);
+      gStyle->SetTitleBorderSize(0);
+      gStyle->SetOptStat(0);
+      if(graypalette) gStyle->SetPalette(8,0);
+      else gStyle->SetPalette(1);
+      gStyle->SetCanvasColor(10);
+      gStyle->SetCanvasBorderMode(0);
+      gStyle->SetFrameLineWidth(1);
+      gStyle->SetFrameFillColor(kWhite);
+      gStyle->SetPadColor(10);
+      gStyle->SetPadTickX(1);
+      gStyle->SetPadTickY(1);
+      gStyle->SetPadBottomMargin(0.15);
+      gStyle->SetPadLeftMargin(0.15);
+      gStyle->SetHistLineWidth(1);
+      gStyle->SetHistLineColor(kRed);
+      gStyle->SetFuncWidth(2);
+      gStyle->SetFuncColor(kGreen);
+      gStyle->SetLineWidth(2);
+      gStyle->SetLabelSize(0.06,"xyz");
+      gStyle->SetLabelOffset(0.01,"y");
+      gStyle->SetLabelOffset(0.01,"x");
+      gStyle->SetLabelColor(kBlack,"xyz");
+      gStyle->SetTitleSize(0.06,"xyz");
+      gStyle->SetTitleOffset(1.25,"y");
+      gStyle->SetTitleOffset(1.2,"x");
+      gStyle->SetTitleFillColor(kWhite);
+      gStyle->SetTextSizePixels(26);
+      gStyle->SetTextFont(42);
+      gStyle->SetLegendBorderSize(0);
+      gStyle->SetLegendFillColor(kWhite);
+      gStyle->SetLegendFont(42);
+      gStyle->SetLegendBorderSize(0);
+
+      const int NRGBs = 6;
+      Double_t stops[NRGBs];
+      for(int i=0; i<NRGBs; ++i) stops[i] = float(i)/(NRGBs-1);
+
+      Double_t red[NRGBs]   = { 1.,  29./255., 25./255., 27./255., 32./255., 24./255.};
+      Double_t green[NRGBs] = { 1., 221./255., 160./255., 113./255., 74./255., 37./255.};
+      Double_t blue[NRGBs] = {  1., 221./255., 184./255., 154./255., 129./255., 98./255.};
+      TColor::CreateGradientColorTable(NRGBs,stops,red,green,blue,NCont);
+}
+
+
 //if Scale, than the result is scaled according to the bin size
 TH2F* RebinTH2F(TH2F* hOriginal, const unsigned& RebinX, const unsigned& RebinY, const bool& Scale){
 	//hResolutionMatrix->Rebin2D(iRebin);
@@ -380,6 +430,40 @@ void SetStyleHisto2a(TH1 *histo, int marker, int color, double factor)
     histo->GetYaxis()->SetTitleSize(0.06*factor);
     histo->GetYaxis()->SetLabelOffset(0.01);
     histo->GetYaxis()->SetTitleOffset(1.15/factor);
+    histo->SetMarkerSize(1.25);
+    if(marker>=0){
+        histo->SetLineWidth(2);
+        histo->SetMarkerStyle(fMarkers[marker]);
+    }
+    if(color>=0){
+        histo->SetMarkerColor(fColors[color]);
+        histo->SetLineColor(fColors[color]);
+    }
+}
+
+//for the paper
+void SetStyleHisto_pLambda(TH1 *histo, int marker, int color, double factor, bool NoYaxis)
+{
+    //SetStyleHisto2a(histo,marker,color,factor); return;
+    histo->GetXaxis()->SetLabelSize(0.075*factor);
+    histo->GetXaxis()->SetTitleSize(0.08*factor);
+    histo->GetXaxis()->SetLabelOffset(0.01);
+    histo->GetXaxis()->SetTitleOffset(1.0);
+    histo->GetXaxis()->SetLabelFont(42);
+    if(NoYaxis){
+      histo->GetYaxis()->SetLabelSize(0.075*factor);
+      histo->GetYaxis()->SetTitleSize(0.08*factor);
+      histo->GetYaxis()->SetLabelOffset(0.05);
+      histo->GetYaxis()->SetTitleOffset(1.17/(factor));
+    }
+    else{
+      histo->GetYaxis()->SetLabelSize(0.075*factor);
+      histo->GetYaxis()->SetTitleSize(0.08*factor);
+      histo->GetYaxis()->SetLabelOffset(0.01);
+      histo->GetYaxis()->SetTitleOffset(1.17/(factor));
+    }
+
+
     histo->SetMarkerSize(1.25);
     if(marker>=0){
         histo->SetLineWidth(2);

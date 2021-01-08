@@ -10,10 +10,13 @@ class TGraphErrors;
 
 void SetStyle(bool graypalette=false, bool title=false);
 void SetStyle2(bool graypalette=false, bool title=false);
+void SetStyle_pLambda(bool graypalette=false, bool title=false);
 void plotMorePreliminaries(const TString system);
 void SetStyleHisto(TH1 *histo, int marker=-1, int color=-1);
 void SetStyleHisto2(TH1 *histo, int marker, int color, double factor=1);
 void SetStyleHisto2a(TH1 *histo, int marker, int color, double factor=1);
+void SetStyleHisto_pLambda(TH1 *histo, int marker, int color, double factor=1, bool NoYaxis=false);
+
 void PlotDimiExclusion_ver1(const TString FolderName, const TString HistoNameEP, const TString FileNameLED, const TString HistoNameLED,
                             const unsigned RebinX, const unsigned RebinY,
                             const TString DataSets);
