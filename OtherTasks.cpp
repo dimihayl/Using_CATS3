@@ -12,6 +12,7 @@
 #include "DLM_WfModel.h"
 #include "DLM_CkModels.h"
 #include "DLM_RootWrapper.h"
+#include "EnvVars.h"
 
 #include "TGraph.h"
 #include "TGraphErrors.h"
@@ -6102,6 +6103,53 @@ void SmearNonFlatCorrelation(){
 
 void Georgios_LXi_ResoTest(){
 
+}
+
+void StableDisto_Test(){
+  const double CauchySize = 1.0;
+  const double GaussSize = CauchySize*2.;
+  const unsigned NumBins = 256;
+  const double RadMax = 16;
+  TH1F* hCauchyApprox = new TH1F("hCauchyApprox","hCauchyApprox",NumBins,0,RadMax);
+  TH1F* hCauchyExact = new TH1F("hCauchyExact","hCauchyExact",NumBins,0,RadMax);
+  TH1F* hLevy = new TH1F("hLevy","hLevy",NumBins,0,RadMax);
+  TH1F* hGauss1 = new TH1F("hGauss1","hGauss1",NumBins,0,RadMax);
+  TH1F* hGauss2 = new TH1F("hGauss2","hGauss2",NumBins,0,RadMax);
+
+  double* PARS = new double [4];
+  DLM_CleverMcLevyReso Mc_Source;
+  Mc_Source.InitStability(1,1-1e-6,1+1e-6);
+  Mc_Source.InitScale(1,CauchySize-1e-6,CauchySize+1e-6);
+  Mc_Source.InitRad(257*4,0,64);
+  Mc_Source.InitType(2);
+  Mc_Source.InitNumMcIter(2000000);
+
+  for(unsigned uRad=0; uRad<NumBins; uRad++){
+    double& RAD = PARS[1];
+    double& SIZE = PARS[3];
+    RAD = hCauchyApprox->GetBinCenter(uRad+1);
+    SIZE = CauchySize;
+    hLevy->SetBinContent(uRad+1,Mc_Source.Eval(PARS));
+    hCauchyApprox->SetBinContent(uRad+1,CauchySource(PARS));
+    SIZE *= 0.5;hCauchyExact->SetBinContent(uRad+1,CauchySource_v2(PARS));SIZE *= 2.0;
+    hGauss1->SetBinContent(uRad+1,GaussSource(PARS));
+    SIZE = GaussSize;
+    hGauss2->SetBinContent(uRad+1,GaussSource(PARS));
+  }
+
+  TFile fOutput(TString::Format("%s/OtherTasks/StableDisto_Test.root",GetFemtoOutputFolder()),"recreate");
+  hCauchyApprox->Write();
+  hCauchyExact->Write();
+  hLevy->Write();
+  hGauss1->Write();
+  hGauss2->Write();
+
+  delete [] PARS;
+  delete hCauchyApprox;
+  delete hCauchyExact;
+  delete hLevy;
+  delete hGauss1;
+  delete hGauss2;
 
 }
 
@@ -6142,10 +6190,12 @@ int OTHERTASKS(int narg, char** ARGS){
     //MemBugHunt();
     //DlmHistoMemBugHunt();
     //SmearNonFlatCorrelation();
-    Georgios_LXi_ResoTest();
+    //Georgios_LXi_ResoTest();
+    StableDisto_Test();
 
     //const double RAD = 5.11;
     //printf("u(%.2f) = %.4f\n",RAD,Evaluate_d_u(RAD));
     //printf(" w(%.2f) = %.4f\n",RAD,Evaluate_d_w(RAD));
 
+    return 0;
 }

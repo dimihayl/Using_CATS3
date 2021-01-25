@@ -15282,11 +15282,13 @@ void CreateFineBinnedResoMatrix_pL(){
 
 void pLambda_DummyCk_DifferentRadii(){
 
+  //0 HM and OO, 1 is only OO
+  const int PlotType = 0;
   const double lambdapar = 0.47;
   unsigned NumRadii = 2;
   double* Radii = new double [NumRadii];
   Radii[0] = 1.25;
-  Radii[1] = 2.0;
+  Radii[1] = 2.5;
   //Radii[2] = 3.0;
   //Radii[3] = 4.0;
 
@@ -15309,10 +15311,13 @@ void pLambda_DummyCk_DifferentRadii(){
   double kMax = 360;
 
   TGraphErrors** gCk = new TGraphErrors* [NumModels];
+  TGraphErrors** gCkFine = new TGraphErrors* [NumModels];
   for(unsigned uMod=0; uMod<NumModels; uMod++){
     gCk[uMod] = new TGraphErrors[NumRadii];
+    gCkFine[uMod] = new TGraphErrors[NumRadii];
     for(unsigned uRad=0; uRad<NumRadii; uRad++){
       gCk[uMod][uRad].SetName(TString::Format("gCk_%.1f_%i",Radii[uRad],ChiralType[uMod]));
+      gCkFine[uMod][uRad].SetName(TString::Format("gCkFine_%.1f_%i",Radii[uRad],ChiralType[uMod]));
     }
   }
 
@@ -15330,11 +15335,19 @@ void pLambda_DummyCk_DifferentRadii(){
   DLM_CommonAnaFunctions AnalysisObject;
   AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
   for(unsigned uMod=0; uMod<NumModels; uMod++){
+    CATS AB_BIN;
+    AB_BIN.SetMomBins(NumMomBins,0,kMax);
     CATS AB_pL;
     AB_pL.SetNotifications(CATS::nWarning);
-    AB_pL.SetMomBins(NumMomBins,0,kMax);
+    AB_pL.SetMomBins(NumMomBins*3,0,kMax);
     //AnalysisObject.SetUpCats_pL(AB_pL,"Chiral_Coupled_SPD","McGauss_ResoTM",ChiralType[uMod],202);//NLO_Coupled_S
     AnalysisObject.SetUpCats_pL(AB_pL,"Chiral_Coupled_SPD","Gauss",ChiralType[uMod],202);//NLO_Coupled_S
+    const double CuspWeight = 0.4;//0.54
+    AB_pL.SetChannelWeight(7,1./4.*CuspWeight);//1S0 SN(s) -> LN(s)
+    AB_pL.SetChannelWeight(8,3./4.*CuspWeight);//3S1 SN(s) -> LN(s)
+    AB_pL.SetChannelWeight(10,3./4.*CuspWeight);//3S1 SN(d) -> LN(s)
+    AB_pL.SetChannelWeight(13,3./20.*CuspWeight);//3D1 SN(d) -> LN(d)
+    AB_pL.SetChannelWeight(15,3./20.*CuspWeight);//3D1 SN(s) -> LN(d)
     for(unsigned uRad=0; uRad<NumRadii; uRad++){
       double Prog = double(uMod*NumRadii+uRad)/double(NumRadii*NumModels);
       unsigned NumStars = TMath::Nint(20.*Prog);
@@ -15345,8 +15358,20 @@ void pLambda_DummyCk_DifferentRadii(){
       cout << flush;
       AB_pL.SetAnaSource(0,Radii[uRad]);
       AB_pL.KillTheCat();
+      for(unsigned uMom=0; uMom<AB_pL.GetNumMomBins(); uMom++){
+        gCkFine[uMod][uRad].SetPoint(uMom,AB_pL.GetMomentum(uMom),lambdapar*AB_pL.GetCorrFun(uMom)+1-lambdapar);
+      }
       for(unsigned uMom=0; uMom<NumMomBins; uMom++){
-        gCk[uMod][uRad].SetPoint(uMom,AB_pL.GetMomentum(uMom),lambdapar*AB_pL.GetCorrFun(uMom)+1-lambdapar);
+        //if(uMom==23){
+          double c1,c2,c3,avg;
+          c1 = AB_pL.EvalCorrFun(AB_BIN.GetMomentum(uMom)-6.);
+          c2 = AB_pL.EvalCorrFun(AB_BIN.GetMomentum(uMom));
+          c3 = AB_pL.EvalCorrFun(AB_BIN.GetMomentum(uMom)+6.);
+          avg = (c1+c2+c3)/3.;
+          gCk[uMod][uRad].SetPoint(uMom,AB_BIN.GetMomentum(uMom),lambdapar*avg+1-lambdapar);
+        //}
+        //else
+          //gCk[uMod][uRad].SetPoint(uMom,AB_BIN.GetMomentum(uMom),lambdapar*AB_pL.EvalCorrFun(AB_BIN.GetMomentum(uMom))+1-lambdapar);
       }
     }
   }
@@ -15387,18 +15412,26 @@ void pLambda_DummyCk_DifferentRadii(){
   }
 
 
+
 //PLOT
 
-  TRandom3 rangen(11);
+  TRandom3 rangen(7);
 
   double MOM;
   double CKVAL;
   double CKERR;
   int CKBIN;
   TH1F* hData_pL_Stat = AnalysisObject.GetAliceExpCorrFun("pp13TeV_HM_DimiJul20","pLambda","L53_SL4_SR6_P96_0",2,false,-1);
+  fOutput.cd();
+  TH1F* hProjection = (TH1F*)hData_pL_Stat->Clone("hProjection");
+  TH1F* hGenHM = (TH1F*)hData_pL_Stat->Clone("hGenHM");
+  //hData_pL_Stat->Scale(1.01);
   gStyle->SetCanvasPreferGL(1);
   SetStyle();
+
   hData_pL_Stat->Write();
+  hProjection->Write();
+
   TGraphErrors** gDummyData = new TGraphErrors* [NumModels];
   for(unsigned uMod=0; uMod<NumModels; uMod++){
     gDummyData[uMod] = new TGraphErrors[NumRadii];
@@ -15412,24 +15445,31 @@ void pLambda_DummyCk_DifferentRadii(){
         CKVAL = rangen.Gaus(CKVAL,CKERR);
         gDummyData[uMod][uRad].SetPoint(uMom,MOM,CKVAL);
         gDummyData[uMod][uRad].SetPointError(uMom,0,CKERR);
+        if(uMod==1&&uRad==1){
+          hProjection->SetBinContent(uMom+1,CKVAL);
+          hProjection->SetBinError(uMom+1,CKERR);
+        }
+        if(uMod==1&&uRad==0){
+          hGenHM->SetBinContent(uMom+1,CKVAL);
+          hGenHM->SetBinError(uMom+1,CKERR);
+        }
       }
     }
   }
   const float right = 0.025;
   const float top = 0.025;
 
-  gCk[1][0].SetLineColor(kRed);
-  gCk[1][0].SetLineWidth(5);
+  gCkFine[1][0].SetLineColor(kBlack);
+  gCkFine[1][0].SetLineWidth(2.5);
 
-  gCk[1][1].SetLineColor(kBlue);
-  gCk[1][1].SetLineWidth(5);
+  gCkFine[1][1].SetLineColor(kAzure);
+  gCkFine[1][1].SetLineWidth(2.5);
 
   gDummyData[1][0].SetLineColor(kRed);
   gDummyData[1][0].SetLineWidth(5);
 
   gDummyData[1][1].SetLineColor(kBlue);
   gDummyData[1][1].SetLineWidth(5);
-
 
   DLM_SubPads DlmPad(1024,720);
   DlmPad.AddSubPad(0,1,0.33,1);
@@ -15441,13 +15481,24 @@ void pLambda_DummyCk_DifferentRadii(){
   hData_pL_Stat->SetTitle("; #it{k*} (MeV/#it{c}); #it{C}(#it{k*})");
   hData_pL_Stat->GetXaxis()->SetRangeUser(0, kMax);
   hData_pL_Stat->GetXaxis()->SetNdivisions(505);
-  hData_pL_Stat->GetYaxis()->SetRangeUser(0.9, 2.0);
+  hData_pL_Stat->GetYaxis()->SetRangeUser(0.85, 2.1);
   hData_pL_Stat->SetFillColor(kGray+1);
   SetStyleHisto2(hData_pL_Stat,2,0);
+  SetStyleHisto2(hGenHM,2,0);
+  SetStyleHisto2(hProjection,2,0);
+  hData_pL_Stat->SetFillColor(kWhite);
+  hGenHM->SetFillColor(kWhite);
+  hProjection->SetLineColor(kAzure);
+  hProjection->SetMarkerColor(kAzure);
+  hProjection->SetMarkerStyle(26);
   //hData_pL_Stat->GetYaxis()->SetTitleOffset(1.0);
   hData_pL_Stat->Draw("axis");
-  gDummyData[1][0].Draw("same,e");
-  gDummyData[1][1].Draw("same,e");
+  //gDummyData[1][0].Draw("same,e");
+  if(PlotType==0) hGenHM->Draw("same");
+  hProjection->Draw("same");
+  if(PlotType==0) gCkFine[1][0].Draw("same,c");
+  gCkFine[1][1].Draw("same,c");
+  //gDummyData[1][1].Draw("same,e");
 
   TString LegendSource_line1 = "Gaussian source";
   //TString LegendSource_line2 = TString::Format("n#sigma#in(%.1f,%.1f)",nSigma_Best[NumBlTypes],nSigma_Worst[NumBlTypes]);
@@ -15457,8 +15508,8 @@ void pLambda_DummyCk_DifferentRadii(){
   legend->SetBorderSize(0);
   legend->SetTextFont(42);
   legend->SetTextSize(gStyle->GetTextSize()*0.90);
-  legend->AddEntry(&gDummyData[1][0],"#chiEFT NLO19, r_{eff} = 1.25 fm (pp HM)","l");
-  legend->AddEntry(&gDummyData[1][1],"#chiEFT NLO19, r_{eff} = 2.00 fm (O+O)","l");
+  legend->AddEntry(&gDummyData[1][0],TString::Format("#chiEFT NLO19, r_{eff} = %.2f fm (pp HM)",Radii[0]),"l");
+  legend->AddEntry(&gDummyData[1][1],TString::Format("#chiEFT NLO19, r_{eff} = %.2f fm (O+O)",Radii[1]),"l");
   //TH1F* hCk_Fake;
   //hCk_Fake = (TH1F*)hData_pL_Stat->Clone("hCk_Fake");
   //hCk_Fake->SetName("hCk_Fake");
@@ -15469,20 +15520,37 @@ void pLambda_DummyCk_DifferentRadii(){
   //legend->AddEntry(&graph_FitMAX[NumBlTypes],"Femtoscopic fit (NLO)","l");
   //legend->AddEntry(&graph_BlMAX[NumBlTypes],"Baseline","l");
   //}
-  legend->Draw("same");
+  //legend->Draw("same");
   TLatex BeamText;
   BeamText.SetTextSize(gStyle->GetTextSize()*1.00);
   BeamText.SetNDC(kTRUE);
-  BeamText.DrawLatex(0.45, 0.905, "ALICE work in progress");
-  //BeamText.DrawLatex(0.45, 0.850, "high-mult. (0#minus 0.17% INEL>0) pp #sqrt{#it{s}} = 13 TeV");
-  BeamText.DrawLatex(0.45, 0.850, "Data generated from theory with");
-  BeamText.DrawLatex(0.45, 0.795, "reallistic statistical uncertainties");
+  BeamText.DrawLatex(0.25, 0.895, "ALICE Update Projection");
+  //BeamText.DrawLatex(0.45, 0.830, "high-mult. (0#minus 0.17% INEL>0) pp #sqrt{#it{s}} = 13 TeV");
+  TLegend *legHM = new TLegend(0.22,0.830-0.055*2,0.95,0.830);//lbrt
+  legHM->SetBorderSize(0);
+  legHM->SetTextFont(42);
+  legHM->SetTextSize(gStyle->GetTextSize()*0.90);
+  legHM->AddEntry(hData_pL_Stat,TString::Format("Projected data for high-mult. (0#minus 0.17%% INEL>0) pp #sqrt{#it{s}} = 13 TeV"));
+  legHM->AddEntry(&gCkFine[1][0],TString::Format("#chiEFT NLO19, #it{r_{0}}=%.2f fm",Radii[0]));
+  //BeamText.DrawLatex(0.45, 0.720, "O#minusO #sqrt{#it{s}_{NN}}=6.35 TeV, #it{L}_{int}=1 nb^{-1}");
+  TLegend *legOO = new TLegend(0.22,0.700-0.055*2,0.95,0.700);//lbrt
+  legOO->SetBorderSize(0);
+  legOO->SetTextFont(42);
+  legOO->SetTextSize(gStyle->GetTextSize()*0.90);
+  legOO->AddEntry(hProjection,TString::Format("Projected data for O#minusO #sqrt{#it{s}_{NN}}=6.35 TeV, #it{L}_{int}=1 nb^{-1}"));
+  legOO->AddEntry(&gCkFine[1][1],TString::Format("#chiEFT NLO19, #it{r_{0}}=%.2f fm",Radii[1]));
+
+  if(PlotType==0) legHM->Draw("same");
+  legOO->Draw("same");
+
+  //BeamText.DrawLatex(0.45, 0.850, "Data generated from theory with");
+  //BeamText.DrawLatex(0.45, 0.795, "reallistic statistical uncertainties");
 
 
   TLatex BeamTextSource;
   BeamTextSource.SetTextSize(gStyle->GetTextSize()*1.00);
   BeamTextSource.SetNDC(kTRUE);
-  BeamTextSource.DrawLatex(0.45, 0.785-0.055, LegendSource_line1);
+  //BeamTextSource.DrawLatex(0.45, 0.785-0.055, LegendSource_line1);
   //BeamTextSource.DrawLatex(0.40, 0.750, LegendSource_line2);
 
 //INLET -------------------------------------------------------------------------------------------------------------------
@@ -15499,12 +15567,16 @@ void pLambda_DummyCk_DifferentRadii(){
   DataHisto_Inlet->GetYaxis()->SetTitleSize(hData_pL_Stat->GetYaxis()->GetTitleSize()*2.0);
   DataHisto_Inlet->GetYaxis()->SetLabelSize(hData_pL_Stat->GetYaxis()->GetLabelSize()*2.0);
   DataHisto_Inlet->GetYaxis()->SetTitleOffset(hData_pL_Stat->GetYaxis()->GetTitleOffset()*0.5);
-  DataHisto_Inlet->GetYaxis()->SetRangeUser(0.98, 1.08);
+  DataHisto_Inlet->GetYaxis()->SetRangeUser(0.975, 1.0225);
   DataHisto_Inlet->GetYaxis()->SetNdivisions(504);
 
   DataHisto_Inlet->Draw("axis");
-  gDummyData[1][0].Draw("same,e");
-  gDummyData[1][1].Draw("same,e");
+  //gDummyData[1][0].Draw("same,e");
+  if(PlotType==0) hGenHM->Draw("same");
+  hProjection->Draw("same");
+  if(PlotType==0) gCkFine[1][0].Draw("same,c");
+  gCkFine[1][1].Draw("same,c");
+  //gDummyData[1][1].Draw("same,e");
   DlmPad.GetCanvas()->SaveAs(TString::Format("%s/pLambda/pLambda_DummyCk_DifferentRadii.pdf",GetFemtoOutputFolder()));
 
 
