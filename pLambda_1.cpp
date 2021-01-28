@@ -8844,7 +8844,7 @@ else if((SourceAlpha<1.59||SourceAlpha>1.61)&&WhichSourceAlpha==2) continue;
             hCk_Fake->SetName("hCk_Fake");
             hCk_Fake->SetLineColor(hCk_Fake->GetFillColor());
 
-            legend->AddEntry(hCk_Fake, "p#minus #Lambda #oplus #bar{p}#minus #bar{#Lambda} pairs", "fpe");
+            legend->AddEntry(hCk_Fake, "p#minus#Lambda #oplus #bar{p}#minus#bar{#Lambda} pairs", "fpe");
             //if(!DataOnly){
             legend->AddEntry(ge_Fit,"Femtoscopic fit "+PotName1[uPot],"l");
             legend->AddEntry(&DummyLegendEntry,PotName2[uPot],"l");
@@ -9198,10 +9198,10 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
     TString PotDescr;
     TString SigDescr;
     TString SigName1;
-    TString XimName1 = "Residual p#minus #Xi^{#minus}: HAL QCD";
-    TString Xi0Name1 = "Residual p#minus #Xi^{0}: HAL QCD";
-    TString XiName1 = "Residual p#minus #Xi^{#minus}#oplusp#minus #Xi^{0}: HAL QCD";
-    if(PlotsType==1) XiName1 = "Residual p#minus #Xi^{#minus}#oplusp#minus #Xi^{0}";
+    TString XimName1 = "Residual p#minus#Xi^{#minus}: HAL QCD";
+    TString Xi0Name1 = "Residual p#minus#Xi^{0}: HAL QCD";
+    TString XiName1 = "Residual p#minus#Xi^{#minus} #oplus p#minus#Xi^{0}: HAL QCD";
+    if(PlotsType==1) XiName1 = "Residual p#minus#kern[0.0]{#Xi^{#minus}} #oplus p#minus#kern[0.0]{#Xi^{0}}";
     int PotFlag;
     switch(WhichPotential){
         case 1500 : PotName1 = "NLO13 (500)";
@@ -9265,19 +9265,19 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
                     break;
     }
     switch(SIGMA_FEED){
-        case 0 :    PotName3 = "Residual p#minus #Sigma^{0}: Flat";
+        case 0 :    PotName3 = "Residual p#minus#kern[0.0]{#Sigma^{0}}: Flat";
                     SigDescr = "SigmaFlat";
                     SigName1 = PotName3;
                     break;
-        case 1 :    PotName3 = "Residual p#minus #Sigma^{0}: #chiEFT";
+        case 1 :    PotName3 = "Residual p#minus#kern[0.0]{#Sigma^{0}}: #chiEFT";
                     SigDescr = "SigmaChiral";
                     SigName1 = PotName3;
                     break;
-        case 2 :    PotName3 = "Residual p#minus #Sigma^{0}: ESC16";
+        case 2 :    PotName3 = "Residual p#minus#kern[0.0]{#Sigma^{0}}: ESC16";
                     SigDescr = "SigmaESC16";
                     SigName1 = PotName3;
                     break;
-        default :   PotName3 = "Residual p#minus #Sigma^{0}: unknown";
+        default :   PotName3 = "Residual p#minus#kern[0.0]{#Sigma^{0}}: unknown";
                     SigDescr = "Unknown";
                     SigName1 = PotName3;
                     break;
@@ -10361,18 +10361,25 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
     DummyLegendEntry2.SetName("DummyLegendEntry2");
     DummyLegendEntry2.SetLineColor(kWhite);
     DummyLegendEntry2.SetMarkerColor(kWhite);
-    const float TextLeft = 0.32;
+    const float TextLeft = 0.28;
     const float TextTop = 0.90;
+    const float TextSz = 0.07;
+    const float TextH = TextSz+0.01;
     TLegend *legend;
-    if(PlotsType==1 && Panel_X==0) legend = new TLegend(TextLeft+0.01+0.03,TextTop-0.58,0.73,TextTop-0.22);//lbrt
-    else if(PlotsType==1 && Panel_X==1) legend = new TLegend(TextLeft+0.01+0.03,TextTop-0.22,0.73,TextTop+0.02);//lbrt
-    else if(PlotsType==1 && Panel_X==2) legend = new TLegend(TextLeft+0.01+0.03,TextTop-0.22,0.73,TextTop+0.02);//lbrt
-    else if(PlotsType==1 && Panel_X==3) legend = new TLegend(TextLeft+0.01+0.03,TextTop-0.22,0.73,TextTop+0.02);//lbrt
+    //if(PlotsType==1 && Panel_X==0) legend = new TLegend(TextLeft+0.01+0.03,TextTop-0.58,0.73,TextTop-0.22);//lbrt
+    //else if(PlotsType==1 && Panel_X==1) legend = new TLegend(TextLeft+0.01+0.03,TextTop-0.22,0.73,TextTop+0.02);//lbrt
+    //else if(PlotsType==1 && Panel_X==2) legend = new TLegend(TextLeft+0.01+0.03,TextTop-0.22,0.73,TextTop+0.02);//lbrt
+    //else if(PlotsType==1 && Panel_X==3) legend = new TLegend(TextLeft+0.01+0.03,TextTop-0.22,0.73,TextTop+0.02);//lbrt
+    if(PlotsType==1 && Panel_X==0) legend = new TLegend(TextLeft+0.01+0.03,TextTop-7.0*TextH,0.73,TextTop-2.5*TextH);//lbrt
+    else if(PlotsType==1 && Panel_X==1) legend = new TLegend(TextLeft+0.01+0.03,TextTop-5.5*TextH,0.73,TextTop-2.5*TextH);//lbrt
+    else if(PlotsType==1 && Panel_X==2) legend = new TLegend(TextLeft+0.01+0.03,TextTop-5.5*TextH,0.73,TextTop-2.5*TextH);//lbrt
+    else if(PlotsType==1 && Panel_X==3) legend = new TLegend(TextLeft+0.01+0.03,TextTop-5.5*TextH,0.73,TextTop-2.5*TextH);//lbrt
     else if(PlotsType) legend = new TLegend(TextLeft-0.01,0.73-0.064*NumRows,0.73,TextTop-0.135);//lbrt
     else legend = new TLegend(TextLeft-0.01,0.73-0.054*NumRows,0.73,TextTop-0.135);//lbrt
     legend->SetBorderSize(0);
     legend->SetTextFont(42);
-    if(PlotsType==1) legend->SetTextSize(gStyle->GetTextSize()*1.3);
+    //if(PlotsType==1) legend->SetTextSize(gStyle->GetTextSize()*1.3);
+    if(PlotsType==1) legend->SetTextSize(TextSz);
     else legend->SetTextSize(gStyle->GetTextSize()*0.90);
 
     TH1F* hCk_Fake;
@@ -10382,7 +10389,7 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
 
     if(PlotsType==1){
       if(Panel_X==0){
-        legend->AddEntry(hCk_Fake, "p#minus #Lambda #oplus #bar{p}#minus #bar{#Lambda} pairs", "fpe");
+        legend->AddEntry(hCk_Fake, "p#minus#kern[0.0]{#Lambda} #oplus #bar{p}#minus#kern[0.0]{#bar{#Lambda}} pairs", "fpe");
         legend->AddEntry(ge_Fit,TString::Format("Fit %s",PotName1.Data()),"l");
         legend->AddEntry(ge_Sig,SigName1,"l");
       }
@@ -10396,7 +10403,7 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
       }
     }
     else{
-      legend->AddEntry(hCk_Fake, "p#minus #Lambda #oplus #bar{p}#minus #bar{#Lambda} pairs", "fpe");
+      legend->AddEntry(hCk_Fake, "p#minus#Lambda #oplus #bar{p}#minus#bar{#Lambda} pairs", "fpe");
       if(!DataOnly){
           //legend->AddEntry(ge_Fit,TString::Format("Fit %s   #chi^{2}_{ndf} = %.1f",PotName1.Data(),MinChi2/double(MinNdf)),"l");
           legend->AddEntry(ge_Fit,TString::Format("Fit %s",PotName1.Data()),"l");
@@ -10419,8 +10426,8 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
     //legend->AddEntry(&DummyLegendEntry2,BlName2,"l");
     //}
 
-    const double Panel_L = 0.25;
-    const double Panel_T = 0.85;
+    const double Panel_L = 0.24;
+    const double Panel_T = 0.853;
     TLatex Panel_A;
     Panel_A.SetTextSize(gStyle->GetTextSize()*1.6);
     Panel_A.SetNDC(kTRUE);
@@ -10457,18 +10464,20 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
     TLatex BeamText;
     BeamText.SetNDC(kTRUE);
     if(PlotsType==1){
-      if(Panel_X==0){
-        BeamText.SetTextSize(gStyle->GetTextSize()*1.25);
-        BeamText.DrawLatex(TextLeft+0.03, TextTop-0.05, "ALICE");
-        BeamText.DrawLatex(TextLeft+0.03, TextTop-0.19, "high-mult. (0#minus 0.17% INEL>0)");
-        BeamText.DrawLatex(TextLeft+0.03, TextTop-0.12, "pp #sqrt{#it{s}} = 13 TeV");
-      }
+      //if(Panel_X==0){
+        //BeamText.SetTextSize(gStyle->GetTextSize()*1.25);
+        BeamText.SetTextSize(TextSz);
+        BeamText.DrawLatex(TextLeft+0.03, TextTop-0.05, "#bf{ALICE} pp #sqrt{#it{s}} = 13 TeV");
+        BeamText.DrawLatex(TextLeft+0.03, TextTop-0.05-TextH, "high-mult. (0#minus#kern[0.0]{0.}17% INEL>0)");
+        //BeamText.DrawLatex(TextLeft+0.03, TextTop-0.05-TextH, "aa#kern[0.5]{a}#kern[0.5]{a}#kern[0.5]{a}aaaa)");
+        //BeamText.DrawLatex(TextLeft+0.03, TextTop-0.12, "pp #sqrt{#it{s}} = 13 TeV");
+      //}
     }
     else{
       BeamText.SetTextSize(gStyle->GetTextSize()*0.90);
       if(!PlotsType||WorkInProgress) BeamText.DrawLatex(TextLeft, TextTop, "ALICE work in progress");
       else BeamText.DrawLatex(TextLeft, TextTop, "ALICE");
-      BeamText.DrawLatex(TextLeft, TextTop-0.055, "high-mult. (0#minus 0.17% INEL>0) pp #sqrt{#it{s}} = 13 TeV");
+      BeamText.DrawLatex(TextLeft, TextTop-0.055, "high-mult. (0#minus0.17% INEL>0) pp #sqrt{#it{s}} = 13 TeV");
     }
 
     TLatex BeamTextSource;
@@ -10952,7 +10961,7 @@ void Quick_pLambda_plotter(){
     hCk_Fake->SetName("hCk_Fake");
     hCk_Fake->SetLineColor(hCk_Fake->GetFillColor());
 
-    legend->AddEntry(hCk_Fake, "p#minus #Lambda #oplus #bar{p}#minus #bar{#Lambda} pairs", "fpe");
+    legend->AddEntry(hCk_Fake, "p#minus#Lambda #oplus #bar{p}#minus#bar{#Lambda} pairs", "fpe");
     legend->AddEntry(gfit3, "NLO19-600");
     legend->AddEntry(gfit1, "NLO19-500");
     legend->AddEntry(gfit2, "NLO19-650");
@@ -15598,8 +15607,8 @@ void pLambda_DummyCk_DifferentRadii(){
 int PLAMBDA_1_MAIN(int argc, char *argv[]){
 printf("PLAMBDA_1_MAIN\n");
 
-pLambda_DummyCk_DifferentRadii();
-return 0;
+//pLambda_DummyCk_DifferentRadii();
+//return 0;
 
 //FitMC_CompareToData_pL(0);
 //FitMC_CompareToData_pL(1);
@@ -15653,7 +15662,7 @@ Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(at
                             atoi(argv[1]),atoi(argv[2]),atoi(argv[3])),
                             //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/",
                             //"UnfoldRefine_pp13TeV_HM_DimiJul20_POT11600_BL10_SIG1.root",
-                            TString::Format("%s/pLambda/100720_Unfolded/PaperPlotsUpdate1/",GetCernBoxDimi()),
+                            TString::Format("%s/pLambda/100720_Unfolded/PaperPlotsUpdate2/",GetCernBoxDimi()),
                             //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/"
                             atoi(argv[5])///REMOVE FOR THE OLD PLOTS
                           );
