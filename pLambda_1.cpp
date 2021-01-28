@@ -15468,10 +15468,10 @@ void pLambda_DummyCk_DifferentRadii(){
   const float right = 0.025;
   const float top = 0.025;
 
-  gCkFine[1][0].SetLineColor(kBlack);
+  gCkFine[1][0].SetLineColor(kAzure);
   gCkFine[1][0].SetLineWidth(2.5);
 
-  gCkFine[1][1].SetLineColor(kAzure);
+  gCkFine[1][1].SetLineColor(kBlack);
   gCkFine[1][1].SetLineWidth(2.5);
 
   gDummyData[1][0].SetLineColor(kRed);
@@ -15496,9 +15496,11 @@ void pLambda_DummyCk_DifferentRadii(){
   SetStyleHisto2(hGenHM,2,0);
   SetStyleHisto2(hProjection,2,0);
   hData_pL_Stat->SetFillColor(kWhite);
+  hData_pL_Stat->SetLineColor(kAzure);
+  hData_pL_Stat->SetMarkerColor(kAzure);
   hGenHM->SetFillColor(kWhite);
-  hProjection->SetLineColor(kAzure);
-  hProjection->SetMarkerColor(kAzure);
+  hProjection->SetLineColor(kBlack);
+  hProjection->SetMarkerColor(kBlack);
   hProjection->SetMarkerStyle(26);
   //hData_pL_Stat->GetYaxis()->SetTitleOffset(1.0);
   hData_pL_Stat->Draw("axis");
@@ -15534,7 +15536,8 @@ void pLambda_DummyCk_DifferentRadii(){
   BeamText.SetTextSize(gStyle->GetTextSize()*1.00);
   BeamText.SetNDC(kTRUE);
   BeamText.DrawLatex(0.25, 0.895, "ALICE Update Projection");
-  //BeamText.DrawLatex(0.45, 0.830, "high-mult. (0#minus 0.17% INEL>0) pp #sqrt{#it{s}} = 13 TeV");
+  BeamText.DrawLatex(0.25, 0.885, "O#minusO #sqrt{#it{s}_{NN}}=6.35 TeV, #it{L}_{int}=1 nb^{-1}");
+  BeamText.DrawLatex(0.25, 0.875, TString::Format("#it{r_{0}}=%.2f fm",Radii[0]));
   TLegend *legHM = new TLegend(0.22,0.830-0.055*2,0.95,0.830);//lbrt
   legHM->SetBorderSize(0);
   legHM->SetTextFont(42);
@@ -15548,9 +15551,20 @@ void pLambda_DummyCk_DifferentRadii(){
   legOO->SetTextSize(gStyle->GetTextSize()*0.90);
   legOO->AddEntry(hProjection,TString::Format("Projected data for O#minusO #sqrt{#it{s}_{NN}}=6.35 TeV, #it{L}_{int}=1 nb^{-1}"));
   legOO->AddEntry(&gCkFine[1][1],TString::Format("#chiEFT NLO19, #it{r_{0}}=%.2f fm",Radii[1]));
+  TLegend *legCommon = new TLegend(0.22,0.830-0.055*2,0.95,0.830);//lbrt
+  legCommon->SetBorderSize(0);
+  legCommon->SetTextFont(42);
+  legCommon->SetTextSize(gStyle->GetTextSize()*0.90);
+  legCommon->AddEntry(hData_pL_Stat,TString::Format("p#minus#Lambda #oplus #bar{p}#minus#bar{#Lambda} pairs"),"fpe");
+  if(PlotType==0) legCommon->AddEntry(&gCkFine[1][0],TString::Format("p#minus#Lambda #oplus #bar{p}#minus#bar{#Lambda} pp High. Mult. #sqrt{#it{s}} = 13 TeV"));
+  TGraph gModelDummy;
+  gModelDummy.SetLineColor(kBlack);
+  gModelDummy.SetLineWidth(2.5);
+  legCommon->AddEntry(&gModelDummy,"#chiEFT NLO19","l");
 
-  if(PlotType==0) legHM->Draw("same");
-  legOO->Draw("same");
+  //if(PlotType==0) legHM->Draw("same");
+  //legOO->Draw("same");
+  legCommon->Draw("same");
 
   //BeamText.DrawLatex(0.45, 0.850, "Data generated from theory with");
   //BeamText.DrawLatex(0.45, 0.795, "reallistic statistical uncertainties");
