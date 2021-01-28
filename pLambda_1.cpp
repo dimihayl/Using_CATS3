@@ -15621,8 +15621,8 @@ void pLambda_DummyCk_DifferentRadii(){
 int PLAMBDA_1_MAIN(int argc, char *argv[]){
 printf("PLAMBDA_1_MAIN\n");
 
-//pLambda_DummyCk_DifferentRadii();
-//return 0;
+pLambda_DummyCk_DifferentRadii();
+return 0;
 
 //FitMC_CompareToData_pL(0);
 //FitMC_CompareToData_pL(1);
