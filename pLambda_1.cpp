@@ -15495,13 +15495,20 @@ void pLambda_DummyCk_DifferentRadii(){
   SetStyleHisto2(hData_pL_Stat,2,0);
   SetStyleHisto2(hGenHM,2,0);
   SetStyleHisto2(hProjection,2,0);
-  hData_pL_Stat->SetFillColor(kWhite);
-  hData_pL_Stat->SetLineColor(kAzure);
-  hData_pL_Stat->SetMarkerColor(kAzure);
   hGenHM->SetFillColor(kWhite);
+  hGenHM->SetLineColor(kAzure);
+  hGenHM->SetMarkerColor(kAzure);
+  hGenHM->SetMarkerSize(1.5);
+  hGenHM->SetFillColor(kWhite);
+  TH1F* hGenHM_leg = (TH1F*)hGenHM->Clone("hGenHM_leg");
+  hGenHM_leg->SetMarkerSize(2);
+
   hProjection->SetLineColor(kBlack);
   hProjection->SetMarkerColor(kBlack);
   hProjection->SetMarkerStyle(26);
+  hProjection->SetMarkerSize(1.5);
+  TH1F* hProjection_leg = (TH1F*)hProjection->Clone("hProjection_leg");
+  hProjection_leg->SetMarkerSize(2);
   //hData_pL_Stat->GetYaxis()->SetTitleOffset(1.0);
   hData_pL_Stat->Draw("axis");
   //gDummyData[1][0].Draw("same,e");
@@ -15533,11 +15540,11 @@ void pLambda_DummyCk_DifferentRadii(){
   //}
   //legend->Draw("same");
   TLatex BeamText;
-  BeamText.SetTextSize(gStyle->GetTextSize()*1.00);
+  BeamText.SetTextSize(gStyle->GetTextSize()*1.10);
   BeamText.SetNDC(kTRUE);
-  BeamText.DrawLatex(0.25, 0.895, "ALICE Update Projection");
-  BeamText.DrawLatex(0.25, 0.885, "O#minusO #sqrt{#it{s}_{NN}}=6.35 TeV, #it{L}_{int}=1 nb^{-1}");
-  BeamText.DrawLatex(0.25, 0.875, TString::Format("#it{r_{0}}=%.2f fm",Radii[0]));
+  BeamText.DrawLatex(0.35, 0.89, "ALICE Projection");
+  BeamText.DrawLatex(0.35, 0.80, "O#minusO 0#minus100% #sqrt{#it{s}_{NN}} = 6.37 TeV, #it{L}_{int}=1 nb^{-1}");
+  BeamText.DrawLatex(0.35, 0.71, TString::Format("#it{r_{0}} = %.2f fm",Radii[1]));
   TLegend *legHM = new TLegend(0.22,0.830-0.055*2,0.95,0.830);//lbrt
   legHM->SetBorderSize(0);
   legHM->SetTextFont(42);
@@ -15549,14 +15556,14 @@ void pLambda_DummyCk_DifferentRadii(){
   legOO->SetBorderSize(0);
   legOO->SetTextFont(42);
   legOO->SetTextSize(gStyle->GetTextSize()*0.90);
-  legOO->AddEntry(hProjection,TString::Format("Projected data for O#minusO #sqrt{#it{s}_{NN}}=6.35 TeV, #it{L}_{int}=1 nb^{-1}"));
+  legOO->AddEntry(hProjection,TString::Format("Projected data for O#minusO #sqrt{#it{s}_{NN}}=6.37 TeV, #it{L}_{int}=1 nb^{-1}"));
   legOO->AddEntry(&gCkFine[1][1],TString::Format("#chiEFT NLO19, #it{r_{0}}=%.2f fm",Radii[1]));
-  TLegend *legCommon = new TLegend(0.22,0.830-0.055*2,0.95,0.830);//lbrt
+  TLegend *legCommon = new TLegend(0.32,0.63-0.070*3,0.7,0.63);//lbrt
   legCommon->SetBorderSize(0);
   legCommon->SetTextFont(42);
-  legCommon->SetTextSize(gStyle->GetTextSize()*0.90);
-  legCommon->AddEntry(hData_pL_Stat,TString::Format("p#minus#Lambda #oplus #bar{p}#minus#bar{#Lambda} pairs"),"fpe");
-  if(PlotType==0) legCommon->AddEntry(&gCkFine[1][0],TString::Format("p#minus#Lambda #oplus #bar{p}#minus#bar{#Lambda} pp High. Mult. #sqrt{#it{s}} = 13 TeV"));
+  legCommon->SetTextSize(gStyle->GetTextSize()*1);
+  legCommon->AddEntry(hProjection_leg,TString::Format("p#minus#Lambda #oplus #bar{p}#minus#bar{#Lambda} pairs"),"p");
+  if(PlotType==0) legCommon->AddEntry(hGenHM_leg,TString::Format("p#minus#Lambda #oplus #bar{p}#minus#bar{#Lambda} pp High. Mult. #sqrt{#it{s}} = 13 TeV"),"p");
   TGraph gModelDummy;
   gModelDummy.SetLineColor(kBlack);
   gModelDummy.SetLineWidth(2.5);

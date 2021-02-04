@@ -3279,7 +3279,7 @@ void Fit_pp(){
   TLegend* legend = new TLegend(0.45,0.5,0.95,0.9);//lbrt
   legend->SetBorderSize(0);
   legend->SetTextFont(42);
-  legend->SetTextSize(gStyle->GetTextSize()*1.1);
+  legend->SetTextSize(gStyle->GetTextSize()*1.3);
   legend->AddEntry(&gTheoG, "Gaussian source");
   legend->AddEntry(&gTheoR, "Resonance source model");
   legend->AddEntry(&gTheoGR, "Ratio");
@@ -3301,7 +3301,8 @@ void Fit_pp(){
   hCkAxis->GetYaxis()->SetRangeUser(0.55, 4.5);
   hCkAxis->SetFillColor(kGray+1);
   SetStyleHisto2a(hCkAxis,2,0);
-
+  hCkAxis->GetYaxis()->SetLabelSize(gStyle->GetTextSize()*1.3);
+  hCkAxis->GetYaxis()->SetTitleSize(gStyle->GetTextSize()*1.3);
 
 
   hCkAxis->Draw("axis");
@@ -3318,6 +3319,8 @@ void Fit_pp(){
   hCkAxisInlet->GetYaxis()->SetRangeUser(0.935, 1.005);
   hCkAxisInlet->SetFillColor(kGray+1);
   SetStyleHisto2a(hCkAxisInlet,2,0);
+  hCkAxisInlet->GetYaxis()->SetLabelSize(gStyle->GetTextSize()*1.3);
+  hCkAxisInlet->GetYaxis()->SetTitleSize(gStyle->GetTextSize()*1.3);
 
   hCkAxisInlet->Draw("axis");
   gTheoG.Draw("L,same");
@@ -3330,10 +3333,13 @@ void Fit_pp(){
   hRatioAxis->SetTitle("; #it{k*} (MeV/#it{c}); Ratio");
   hRatioAxis->GetXaxis()->SetRangeUser(0, 456);
   hRatioAxis->GetXaxis()->SetNdivisions(505);
-  hRatioAxis->GetYaxis()->SetRangeUser(0.990, 1.015);
+  hRatioAxis->GetYaxis()->SetRangeUser(0.990, 1.014);
   hRatioAxis->SetFillColor(kGray+1);
   SetStyleHisto2a(hRatioAxis,2,0);
-
+  hRatioAxis->GetXaxis()->SetLabelSize(gStyle->GetTextSize()*1.3);
+  hRatioAxis->GetXaxis()->SetTitleSize(gStyle->GetTextSize()*1.3);
+  hRatioAxis->GetYaxis()->SetLabelSize(gStyle->GetTextSize()*1.3);
+  hRatioAxis->GetYaxis()->SetTitleSize(gStyle->GetTextSize()*1.3);
 
   hRatioAxis->Draw("axis");
   gTheoGR.Draw("L,same");
