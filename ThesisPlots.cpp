@@ -103,7 +103,7 @@ void ToyPotentials_PS_WF_CF(){
 
     printf("Start: ToyPotentials_PS_WF_CF\n");
 
-    const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/PhD_Thesis/Pictures/InteractionExamples/";
+    const TString OutputFolder = TString::Format("%s/Plots/PhDThesis/CATS/",GetCernBoxDimi()).Data();
 
     const double MassX = 1116;
     const double MassY = 1116;
@@ -615,9 +615,9 @@ void ToyPotentials_PS_WF_CF(){
     }
 
 
-    TLegend* lLegend_Ck = new TLegend(0.75,0.65,0.90,0.90);//lbrt
+    TLegend* lLegend_Ck = new TLegend(0.75,0.55,0.90,0.90);//lbrt
     lLegend_Ck->SetName(TString::Format("lLegend_Ck"));
-    lLegend_Ck->SetTextSize(0.07);
+    lLegend_Ck->SetTextSize(0.08);
     for(unsigned uPot=0; uPot<NumPot; uPot++){
         lLegend_Ck->AddEntry(fPot[uPot],PotLegend[uPot]);
     }
@@ -630,7 +630,10 @@ void ToyPotentials_PS_WF_CF(){
         PT_RAD[uSor] = new TPaveText(0.35,0.65,0.65,0.85, "blNDC");//lbrt
         PT_RAD[uSor]->SetName(TString::Format("PT_RAD_%u",uSor));
         PT_RAD[uSor]->SetBorderSize(1);
-        PT_RAD[uSor]->SetTextSize(0.055);
+        //PT_RAD[uSor]->SetTextSize(0.055);
+        if(uSor==0) PT_RAD[uSor]->SetTextSize(0.065);
+        else if(uSor==1) PT_RAD[uSor]->SetTextSize(0.08);
+        else PT_RAD[uSor]->SetTextSize(0.065);
         PT_RAD[uSor]->SetFillColor(kWhite);
         PT_RAD[uSor]->SetTextFont(22);
         PT_RAD[uSor]->AddText(TString::Format("Source size: %.1f fm",RADIUS[uSor]));
@@ -3564,7 +3567,7 @@ void Compare_pL_models(){
 
 
 int THESIS_PLOTS(int narg, char** ARGS){
-    //ToyPotentials_PS_WF_CF();
+    ToyPotentials_PS_WF_CF();
     //ComparePionPion(0);
     //ComparePionPion(1);
     //Plot_ProtonLambda(Basics_ProtonLambda());
@@ -3575,7 +3578,7 @@ int THESIS_PLOTS(int narg, char** ARGS){
     //pL_Feed();
     //pp_MomReso();
     //QuantumBaseline();
-    Fit_pp();
+    //Fit_pp();
     //EPOS_QS_PLOT();
     //Compare_pL_models();
 
