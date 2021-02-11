@@ -3301,8 +3301,9 @@ void Fit_pp(){
   hCkAxis->GetYaxis()->SetRangeUser(0.55, 4.5);
   hCkAxis->SetFillColor(kGray+1);
   SetStyleHisto2a(hCkAxis,2,0);
-  hCkAxis->GetYaxis()->SetLabelSize(gStyle->GetTextSize()*1.3);
-  hCkAxis->GetYaxis()->SetTitleSize(gStyle->GetTextSize()*1.3);
+  hCkAxis->GetYaxis()->SetLabelSize(gStyle->GetTextSize()*1.4);
+  hCkAxis->GetYaxis()->SetTitleSize(gStyle->GetTextSize()*1.4);
+  hCkAxis->GetYaxis()->SetTitleOffset(1.05);
 
 
   hCkAxis->Draw("axis");
@@ -3319,8 +3320,9 @@ void Fit_pp(){
   hCkAxisInlet->GetYaxis()->SetRangeUser(0.935, 1.005);
   hCkAxisInlet->SetFillColor(kGray+1);
   SetStyleHisto2a(hCkAxisInlet,2,0);
-  hCkAxisInlet->GetYaxis()->SetLabelSize(gStyle->GetTextSize()*1.3);
-  hCkAxisInlet->GetYaxis()->SetTitleSize(gStyle->GetTextSize()*1.3);
+  hCkAxisInlet->GetYaxis()->SetLabelSize(gStyle->GetTextSize()*1.4);
+  hCkAxisInlet->GetYaxis()->SetTitleSize(gStyle->GetTextSize()*1.4);
+  hCkAxisInlet->GetYaxis()->SetTitleOffset(1.05);
 
   hCkAxisInlet->Draw("axis");
   gTheoG.Draw("L,same");
@@ -3334,12 +3336,14 @@ void Fit_pp(){
   hRatioAxis->GetXaxis()->SetRangeUser(0, 456);
   hRatioAxis->GetXaxis()->SetNdivisions(505);
   hRatioAxis->GetYaxis()->SetRangeUser(0.990, 1.014);
+  hRatioAxis->GetYaxis()->SetNdivisions(504);
   hRatioAxis->SetFillColor(kGray+1);
   SetStyleHisto2a(hRatioAxis,2,0);
-  hRatioAxis->GetXaxis()->SetLabelSize(gStyle->GetTextSize()*1.3);
-  hRatioAxis->GetXaxis()->SetTitleSize(gStyle->GetTextSize()*1.3);
-  hRatioAxis->GetYaxis()->SetLabelSize(gStyle->GetTextSize()*1.3);
-  hRatioAxis->GetYaxis()->SetTitleSize(gStyle->GetTextSize()*1.3);
+  hRatioAxis->GetXaxis()->SetLabelSize(gStyle->GetTextSize()*1.4);
+  hRatioAxis->GetXaxis()->SetTitleSize(gStyle->GetTextSize()*1.4);
+  hRatioAxis->GetYaxis()->SetLabelSize(gStyle->GetTextSize()*1.4);
+  hRatioAxis->GetYaxis()->SetTitleSize(gStyle->GetTextSize()*1.4);
+  hRatioAxis->GetYaxis()->SetTitleOffset(1.05);
 
   hRatioAxis->Draw("axis");
   gTheoGR.Draw("L,same");
@@ -3573,7 +3577,7 @@ void Compare_pL_models(){
 
 
 int THESIS_PLOTS(int narg, char** ARGS){
-    ToyPotentials_PS_WF_CF();
+    //ToyPotentials_PS_WF_CF();
     //ComparePionPion(0);
     //ComparePionPion(1);
     //Plot_ProtonLambda(Basics_ProtonLambda());
@@ -3584,7 +3588,7 @@ int THESIS_PLOTS(int narg, char** ARGS){
     //pL_Feed();
     //pp_MomReso();
     //QuantumBaseline();
-    //Fit_pp();
+    Fit_pp();
     //EPOS_QS_PLOT();
     //Compare_pL_models();
 
