@@ -6153,6 +6153,99 @@ void StableDisto_Test(){
 
 }
 
+void Andi_pDminus_1(){
+  TString pDminus_Folder = TString::Format("%s/CatsFiles/Interaction/Haidenbauer/pDminus/",GetCernBoxDimi());
+  const double kMin=0;
+  const double kMax=340;
+  const unsigned nMomBins = 68;
+  CATSparameters cPars(CATSparameters::tSource,1,true);
+  cPars.SetParameter(0,1.4);
+  CATS Kitty;
+  Kitty.SetMomBins(nMomBins,kMin,kMax);
+  Kitty.SetAnaSource(GaussSource, cPars);
+  Kitty.SetAnaSource(0, cPars.GetParameter(0));
+  DLM_Histo<complex<double>>*** ExternalWF=NULL;
+  ExternalWF = Init_pDminus_Haidenbauer(pDminus_Folder,Kitty,0);
+  Kitty.SetExternalWaveFunction(0,0,ExternalWF[0][0][0],ExternalWF[1][0][0]);
+  Kitty.SetExternalWaveFunction(1,0,ExternalWF[0][1][0],ExternalWF[1][1][0]);
+  Kitty.SetChannelWeight(0,1);
+  Kitty.SetChannelWeight(1,1);
+  Kitty.KillTheCat();
+
+  TGraph gCk;
+  gCk.SetName("gCk");
+  TGraph* gReWf_u = new TGraph[nMomBins];
+  TGraph* gReWf_R = new TGraph[nMomBins];
+  TGraph* gImWf_u = new TGraph[nMomBins];
+  TGraph* gImWf_R = new TGraph[nMomBins];
+  TGraph* gWf2 = new TGraph[nMomBins];
+
+  TGraph* gReCc_u = new TGraph[nMomBins];
+  TGraph* gReCc_R = new TGraph[nMomBins];
+  TGraph* gImCc_u = new TGraph[nMomBins];
+  TGraph* gImCc_R = new TGraph[nMomBins];
+
+  const unsigned nRadBins = 256;
+  const double rMin = 0;
+  const double rMax = 16;
+  const double rWidth = (rMax-rMin)/double(nRadBins);
+  for(unsigned uMom=0; uMom<nMomBins; uMom++){
+    double MOM = Kitty.GetMomentum(uMom);
+    gReWf_u[uMom].SetName(TString::Format("gReWf_u_%.0f",MOM));
+    gReWf_R[uMom].SetName(TString::Format("gReWf_R_%.0f",MOM));
+    gImWf_u[uMom].SetName(TString::Format("gImWf_u_%.0f",MOM));
+    gImWf_R[uMom].SetName(TString::Format("gImWf_R_%.0f",MOM));
+    gWf2[uMom].SetName(TString::Format("gWf2_%.0f",MOM));
+
+    gReCc_u[uMom].SetName(TString::Format("gReCc_u_%.0f",MOM));
+    gReCc_R[uMom].SetName(TString::Format("gReCc_R_%.0f",MOM));
+    gImCc_u[uMom].SetName(TString::Format("gImCc_u_%.0f",MOM));
+    gImCc_R[uMom].SetName(TString::Format("gImCc_R_%.0f",MOM));
+
+    gCk.SetPoint(uMom,MOM,Kitty.GetCorrFun(uMom));
+    for(unsigned uRad=0; uRad<nRadBins; uRad++){
+      double RAD = rWidth*0.5 + rWidth*double(uRad);
+      gReWf_u[uMom].SetPoint(uRad,RAD,real(Kitty.EvalRadialWaveFunction(uMom, 0, 0, RAD, false)));
+      gImWf_u[uMom].SetPoint(uRad,RAD,imag(Kitty.EvalRadialWaveFunction(uMom, 0, 0, RAD, false)));
+      gReWf_R[uMom].SetPoint(uRad,RAD,real(Kitty.EvalRadialWaveFunction(uMom, 0, 0, RAD, true)));
+      gImWf_R[uMom].SetPoint(uRad,RAD,imag(Kitty.EvalRadialWaveFunction(uMom, 0, 0, RAD, true)));
+      gWf2[uMom].SetPoint(uRad,RAD,Kitty.EvalWaveFun2(uMom,RAD,0));
+
+      gReCc_u[uMom].SetPoint(uRad,RAD,real(Kitty.EvalRadialWaveFunction(uMom, 1, 0, RAD, false)));
+      gImCc_u[uMom].SetPoint(uRad,RAD,imag(Kitty.EvalRadialWaveFunction(uMom, 1, 0, RAD, false)));
+      gReCc_R[uMom].SetPoint(uRad,RAD,real(Kitty.EvalRadialWaveFunction(uMom, 1, 0, RAD, true)));
+      gImCc_R[uMom].SetPoint(uRad,RAD,imag(Kitty.EvalRadialWaveFunction(uMom, 1, 0, RAD, true)));
+    }
+  }
+
+  TFile OutputFile(TString::Format("%s/OtherTasks/Andi_pDminus_1/OutputFile.root",GetFemtoOutputFolder()),"recreate");
+  gCk.Write();
+  for(unsigned uMom=0; uMom<nMomBins; uMom++){
+    gReWf_u[uMom].Write();
+    gImWf_u[uMom].Write();
+    gReWf_R[uMom].Write();
+    gImWf_R[uMom].Write();
+
+    gReCc_u[uMom].Write();
+    gImCc_u[uMom].Write();
+    gReCc_R[uMom].Write();
+    gImCc_R[uMom].Write();
+
+    gWf2[uMom].Write();
+  }
+
+  CleanUpWfHisto(Kitty,ExternalWF);
+  delete [] gReWf_u;
+  delete [] gReWf_R;
+  delete [] gImWf_u;
+  delete [] gImWf_R;
+  delete [] gReCc_u;
+  delete [] gReCc_R;
+  delete [] gImCc_u;
+  delete [] gImCc_R;
+  delete [] gWf2;
+}
+
 int OTHERTASKS(int narg, char** ARGS){
     //pp_CompareToNorfolk();
     //pp_pL_CorrectedMC_EXP();
@@ -6191,7 +6284,8 @@ int OTHERTASKS(int narg, char** ARGS){
     //DlmHistoMemBugHunt();
     //SmearNonFlatCorrelation();
     //Georgios_LXi_ResoTest();
-    StableDisto_Test();
+    //StableDisto_Test();
+    Andi_pDminus_1();
 
     //const double RAD = 5.11;
     //printf("u(%.2f) = %.4f\n",RAD,Evaluate_d_u(RAD));
