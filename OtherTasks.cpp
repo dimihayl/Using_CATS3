@@ -12,7 +12,9 @@
 #include "DLM_WfModel.h"
 #include "DLM_CkModels.h"
 #include "DLM_RootWrapper.h"
+#include "DLM_HistoAnalysis.h"
 #include "EnvVars.h"
+#include "DLM_Fitters.h"
 
 #include "TGraph.h"
 #include "TGraphErrors.h"
@@ -6101,9 +6103,246 @@ void SmearNonFlatCorrelation(){
     delete hResolution;
 }
 
-void Georgios_LXi_ResoTest(){
+//double Spline_Fitter(double* xVal, double* pars){
+//    return DLM_FITTER2_FUNCTION_SPLINE3(xVal,pars);
+//}
+TF1* MakeSmoothAngularSourceDisto(TH1F* hAngleDisto){
+
+  const double FitMin = 0;
+  const double FitMax = TMath::Pi();
+  const unsigned NumKnots = 6;
+  const double KnotStep = (FitMax-FitMin)/double(NumKnots-1);
+  double* Nodes_x = new double [NumKnots];
+  //int iKnot = 0;
+  Nodes_x[0] = 0;
+  for(unsigned uKnot=1; uKnot<NumKnots-1; uKnot++){
+    Nodes_x[uKnot] = Nodes_x[uKnot-1]+KnotStep;
+  }
+  Nodes_x[NumKnots-1] = TMath::Pi();
+  for(unsigned uKnot=0; uKnot<NumKnots; uKnot++){
+    printf("QA: Nodes_x[%u] = %.4f\n",uKnot,Nodes_x[uKnot]);
+  }
+
+  TF1* fit_angle = new TF1("fit_angle",DLM_FITTER2_FUNCTION_SPLINE3,FitMin,FitMax,3+NumKnots*2);
+  fit_angle->FixParameter(0,NumKnots);
+  //derivative at the first knot
+  fit_angle->SetParameter(1,0.1);
+  fit_angle->SetParLimits(1,0,100);
+  fit_angle->SetParameter(2,-0.1);
+  fit_angle->SetParLimits(2,-100,0);
+  for(unsigned uKnot=0; uKnot<NumKnots; uKnot++){
+      double HistVal = hAngleDisto->GetBinContent(hAngleDisto->FindBin(Nodes_x[uKnot]));
+      fit_angle->FixParameter(3+uKnot,Nodes_x[uKnot]);
+      fit_angle->SetParameter(3+NumKnots+uKnot,HistVal);
+      fit_angle->SetParLimits(3+NumKnots+uKnot,0,HistVal*2);
+  }
+  fit_angle->SetNpx(1024);
+  hAngleDisto->Fit(fit_angle,"S, N, R, M");
+
+  //TFile fOutput(TString::Format("%s/OtherTasks/MakeSmoothAngularSourceDisto/fOutput.root",GetFemtoOutputFolder()),"recreate");
+  //hAngleDisto->Write();
+  //fit_angle->Write();
+
+  delete [] Nodes_x;
+
+  return fit_angle;
+}
+
+void Georgios_LXi_ResoTest(const bool& SmoothSampling){
+
+    const double CoreSize = 1.0;
+    const unsigned SmoothEntires = 1024*128;
+
+    //DLM_CleverMcLevyResoTM* MagicSource = new DLM_CleverMcLevyResoTM ();
+    DLM_CleverMcLevyResoTM MagicSource;
+
+    //DO NOT CHANGE !!! Sets up numerical bullshit, tuned for a Gaussian source
+    MagicSource.InitStability(1,2-1e-6,2+1e-6);
+    MagicSource.InitScale(38,0.15,2.0);
+    MagicSource.InitRad(257*2,0,64);
+    MagicSource.InitType(2);
+    ///////////////////
+
+    //for p-Xi, set up the amount of secondaries
+    //first for the protons (64.22%)
+    MagicSource.SetUpReso(0,0.6422);
+    //than for the Xis, here its 0% (we have ONLY primordials)
+    MagicSource.SetUpReso(1,0.0);
+    MagicSource.InitNumMcIter(1000000);
+
+    //the cut off scale in k*, for which the angular distributions from EPOS
+    //are evaluated. 200 MeV works okay, you can go up to 300 MeV for systematic checks
+    const double k_CutOff = 200;
+
+    //to be used for the NTuple later on
+    Float_t k_D;
+    Float_t fP1;
+    Float_t fP2;
+    Float_t fM1;
+    Float_t fM2;
+    Float_t Tau1;
+    Float_t Tau2;
+    Float_t AngleRcP1;
+    Float_t AngleRcP2;
+    Float_t AngleP1P2;
+    //random generator dimi style. The input is incompatible with the ROOT random generator,
+    //do not mix and match, do not ask me how I know this. Ask Bernie.
+    //11 is the seed, you can change that to you favorite number
+    DLM_Random RanGen(11);
+    //dummies to save random shit
+    double RanVal1;
+    double RanVal2;
+    double RanVal3;
+//printf("1\n");
+    //open the magic file from dimi with the angular distributions.
+    TFile* F_EposDisto_pReso_Xim = new TFile(TString::Format("%s/CatsFiles/Source/EposAngularDist/Epos_LamReso_Xim.root",GetCernBoxDimi()));
+    //set up the ntuple, do not change anything unless told so by dimi
+    TNtuple* T_EposDisto_pReso_Xim = (TNtuple*)F_EposDisto_pReso_Xim->Get("InfoTuple_ClosePairs");
+    unsigned N_EposDisto_pReso_Xim = T_EposDisto_pReso_Xim->GetEntries();
+    T_EposDisto_pReso_Xim->SetBranchAddress("k_D",&k_D);
+    T_EposDisto_pReso_Xim->SetBranchAddress("P1",&fP1);
+    T_EposDisto_pReso_Xim->SetBranchAddress("P2",&fP2);
+    T_EposDisto_pReso_Xim->SetBranchAddress("M1",&fM1);
+    T_EposDisto_pReso_Xim->SetBranchAddress("M2",&fM2);
+    T_EposDisto_pReso_Xim->SetBranchAddress("Tau1",&Tau1);
+    T_EposDisto_pReso_Xim->SetBranchAddress("Tau2",&Tau2);
+    T_EposDisto_pReso_Xim->SetBranchAddress("AngleRcP1",&AngleRcP1);
+    T_EposDisto_pReso_Xim->SetBranchAddress("AngleRcP2",&AngleRcP2);
+    T_EposDisto_pReso_Xim->SetBranchAddress("AngleP1P2",&AngleP1P2);
+
+    //TH1F* hAngleRcP1 = new TH1F("hAngleRcP1","hAngleRcP1",1024,0,TMath::Pi());
+
+    gROOT->cd();
+    TH1F* hAngle = new TH1F("hAngle","hAngle",32,0,TMath::Pi());
+    TH1F* hFinalAngle = new TH1F("hFinalAngle","hFinalAngle",32,0,TMath::Pi());
+    F_EposDisto_pReso_Xim->cd();
+    int NumUsefulEntries = 0;
+    for(unsigned uEntry=0; uEntry<N_EposDisto_pReso_Xim; uEntry++){
+      T_EposDisto_pReso_Xim->GetEntry(uEntry);
+      if(k_D>k_CutOff) continue;
+      hAngle->Fill(AngleRcP1);
+      NumUsefulEntries++;
+    }
+//printf("2\n");
+
+    if(!SmoothSampling){
+      //iterate over the ntuple
+      for(unsigned uEntry=0; uEntry<N_EposDisto_pReso_Xim; uEntry++){
+          //get each entry
+          T_EposDisto_pReso_Xim->GetEntry(uEntry);
+          //disregard the entry of you are outside the desired k*
+          if(k_D>k_CutOff) continue;
+          //overwrite the value for the lifetime. This is computed from the
+          //stat. hadronization model (Vale) or thermal fist (Max)
+          //this is the value for the secondary protons
+          Tau1 = 4.69;
+          //for primoridials (the Xis) we put 0
+          Tau2 = 0;
+          //put in the average mass of the resonances (again from SHM or TF)
+          //this is the value for protons
+          fM1 = 1462.93;
+          //generate a random path length for the propagation of the resonances
+          //nothing to change!
+          RanVal1 = RanGen.Exponential(fM1/(fP1*Tau1));
+          //adds a single entry into the PDF for the angular distribution to be used
+          MagicSource.AddBGT_RP(RanVal1,cos(AngleRcP1));
+          hFinalAngle->Fill(AngleRcP1);
+      }
+    }
+    else{
+      gROOT->cd();
+      TF1* fRandomAngle = MakeSmoothAngularSourceDisto(hAngle);
+      //TRandom3* ran_gen = new TRandom3(11);
+      for(unsigned uEntry=0; uEntry<SmoothEntires; uEntry++){
+          Tau1 = 4.69;
+          Tau2 = 0;
+          fM1 = 1462.93;
+          RanVal1 = RanGen.Exponential(fM1/(fP1*Tau1));
+          AngleRcP1 = fRandomAngle->GetRandom(0.,TMath::Pi());
+          MagicSource.AddBGT_RP(RanVal1,cos(AngleRcP1));
+          hFinalAngle->Fill(AngleRcP1);
+      }
+      gROOT->cd();
+      //delete ran_gen;
+      delete fRandomAngle;
+    }
+
+    delete F_EposDisto_pReso_Xim;
+    //delete hAngleRcP1;
+//printf("3\n");
+
+
+
+    //if you have resonances contributing to both particles, we need to repeat the above procedure
+    //for the prim-reso (AddBGT_PR) and reso-reso (AddBGT_RR) cases
+
+    const unsigned NumSourceBins = 128;
+    const double rMin = 0;
+    const double rMax = 16;
+    TFile* fOutput = new TFile(TString::Format("%s/OtherTasks/Georgios_LXi_ResoTest/fOutput_%i.root",GetFemtoOutputFolder(),int(SmoothSampling)),"recreate");
+    TH1F* hSource = new TH1F("hSource","hSource",NumSourceBins,rMin,rMax);
+
+    //fill the histo fro the source
+    for(unsigned uBin=0; uBin<NumSourceBins; uBin++){
+      //get the x-axis (r value) of the current bin
+      double xaxis = hSource->GetBinCenter(uBin+1);
+      //an array for the parameters, [0] is source size, [1] is == 2 (for a Gaussian)
+      double parameters[2];
+      parameters[0] = CoreSize;
+      parameters[1] = 2.0;
+      double SourceValue = MagicSource.RootEval(&xaxis, parameters);
+      hSource->SetBinContent(uBin+1,SourceValue);
+      //infinite errors for now
+      hSource->SetBinError(uBin+1,1000.);
+    }
+//printf("4\n");
+    //idea: fit the source distribution only in a range around its peak
+    //to do this: silly idea: put very large uncertainties in the bins outside of this range
+    //we can get this range automatically, by evaluating the central (median) integral of the source distribution
+    //with this set up, we fit the 68% most central yield of the source distribution
+    double lowerlimit;
+    double upperlimit;
+    GetCentralInterval(*hSource, 0.84, lowerlimit, upperlimit, true);
+    unsigned lowerbin = hSource->FindBin(lowerlimit);
+    unsigned upperbin = hSource->FindBin(upperlimit);
+    for(unsigned uBin=lowerbin; uBin<=upperbin; uBin++){
+      hSource->SetBinError(uBin+1,0.01);
+    }
+
+    printf("Core size of %.3f fm\n",CoreSize);
+    printf("The fit will be performed in the range [%.2f, %.2f] fm\n",lowerlimit,upperlimit);
+    //fyi, GaussSourceTF1 is in DLM_Source.h if you want to check it out.
+    TF1* fSource = new TF1("fSource",GaussSourceTF1,rMin,rMax,1);
+    fSource->SetParameter(0,CoreSize);
+    fSource->SetParLimits(0,CoreSize*0.5,CoreSize*2.0);
+    hSource->Fit(fSource,"S, N, R, M");
+    printf("The effective Gaussian size is %.3f +/- %.3f fm\n",fSource->GetParameter(0),fSource->GetParError(0));
+
+    //get rid of weird plotting
+    for(unsigned uBin=0; uBin<NumSourceBins; uBin++){
+      hSource->SetBinError(uBin+1,0.01);
+    }
+    hSource->Write();
+    fSource->Write();
+    hAngle->Scale(1./hAngle->Integral(),"width");
+    hAngle->Write();
+    hFinalAngle->Scale(1./hFinalAngle->Integral(),"width");
+    hFinalAngle->Write();
+
+    //gROOT->cd();
+    //delete hAngle;
+
+    delete hSource;
+    delete fSource;
+    delete hAngle;
+    delete hFinalAngle;
+    delete fOutput;
+
 
 }
+
+
+
 
 void StableDisto_Test(){
   const double CauchySize = 1.0;
@@ -6246,6 +6485,117 @@ void Andi_pDminus_1(){
   delete [] gWf2;
 }
 
+void Fast_Bootstrap_Example(){
+  unsigned NumSystVars = 3;
+  double* Constant = new double [NumSystVars];
+  double* Shift = new double [NumSystVars];
+  //systematic shift of 5% per bin
+  Shift[0] = 0;
+  Shift[1] = 0.05;
+  Shift[2] = -0.05;
+  Constant[0] = 1;
+  Constant[1] = 1+Shift[1];
+  Constant[2] = 1+Shift[2];
+
+  //stat uncertainty of 5% per bin
+  const double StatErr = 0.05;
+
+  TRandom3 rangen(11);
+
+  unsigned NumBins = 32;
+  TH1F** hCorrFun = new TH1F* [NumSystVars];
+
+
+
+  for(unsigned uVar=0; uVar<NumSystVars; uVar++){
+    hCorrFun[uVar] = new TH1F(TString::Format("hCorrFun_%u",uVar),TString::Format("hCorrFun_%u",uVar),NumBins,0,256);
+  }
+
+  //generate experimental data, default variation
+  for(unsigned uBin=0; uBin<NumBins; uBin++){
+    hCorrFun[0]->SetBinContent(uBin+1,rangen.Gaus(Constant[0],StatErr));
+    hCorrFun[0]->SetBinError(uBin+1,StatErr);
+  }
+
+  //generate experimental data, systematically shifted variations
+  for(unsigned uVar=1; uVar<NumSystVars; uVar++){
+    for(unsigned uBin=0; uBin<NumBins; uBin++){
+      hCorrFun[uVar]->SetBinContent(uBin+1,hCorrFun[0]->GetBinContent(uBin+1)+Shift[uVar]);
+      hCorrFun[uVar]->SetBinError(uBin+1,StatErr);
+    }
+  }
+
+  TH1F* hResult_Stat = new TH1F("hResult_Stat","hResult_Stat",128,0.5,1.5);
+  TH1F* hResult_Tot = new TH1F("hResult_Tot","hResult_Tot",128,0.5,1.5);
+  double ExpectedStatErr;
+
+  const unsigned NumIter = 2048;
+  //perform both bootstrap (_Stat) and bootstrap+systematic (_Tot) variations
+  for(unsigned uIter=0; uIter<NumIter; uIter++){
+    TF1* fit_Tot = new TF1("fit_Tot","[0]",0,256);
+    TF1* fit_Stat = new TF1("fit_Stat","[0]",0,256);
+    fit_Tot->SetParameter(0,Constant[0]);
+    fit_Stat->SetParameter(0,Constant[0]);
+
+    TH1F* h_Tot = new TH1F("h_Tot","h_Tot",NumBins,0,256);
+    TH1F* h_Stat = new TH1F("h_Stat","h_Stat",NumBins,0,256);
+
+    for(unsigned uBin=0; uBin<NumBins; uBin++){
+      //on iter 0, the default data set (no variations)
+      if(uIter==0){
+        h_Tot->SetBinContent(uBin+1,hCorrFun[0]->GetBinContent(uBin+1));
+        h_Tot->SetBinError(uBin+1,StatErr);
+        h_Stat->SetBinContent(uBin+1,hCorrFun[0]->GetBinContent(uBin+1));
+        h_Stat->SetBinError(uBin+1,StatErr);
+      }
+      //generate a bootstrapped sample, which is than fitted to extract the value of the constant function
+      else{
+        unsigned WhichVar = rangen.Integer(NumSystVars);
+        h_Tot->SetBinContent(uBin+1,rangen.Gaus(hCorrFun[WhichVar]->GetBinContent(uBin+1),StatErr));
+        h_Tot->SetBinError(uBin+1,StatErr);
+        h_Stat->SetBinContent(uBin+1,rangen.Gaus(hCorrFun[0]->GetBinContent(uBin+1),StatErr));
+        h_Stat->SetBinError(uBin+1,StatErr);
+      }
+
+    }
+
+    //fit, save the stat err on the fit parameter to compare with our result
+    if(uIter==0){
+      h_Tot->Fit(fit_Tot,"S, N, R, M");
+      h_Stat->Fit(fit_Stat,"S, N, R, M");
+      ExpectedStatErr = fit_Stat->GetParError(0);
+    }
+    else{
+      h_Tot->Fit(fit_Tot,"Q, S, N, R, M");
+      h_Stat->Fit(fit_Stat,"Q, S, N, R, M");
+    }
+
+    //save the distribution of fit results (the constant value of our input function)
+    hResult_Tot->Fill(fit_Tot->GetParameter(0));
+    hResult_Stat->Fill(fit_Stat->GetParameter(0));
+
+    delete fit_Tot;
+    delete fit_Stat;
+    delete h_Tot;
+    delete h_Stat;
+  }
+
+  printf(" ExpectedStatErr = %.2e\n",ExpectedStatErr);
+  printf("ExtractedStatErr = %.2e\n",hResult_Stat->GetStdDev());
+  printf(" ExtractedTotErr = %.2e\n",hResult_Tot->GetStdDev());
+  printf("ExtractedSystErr = %.2e\n",sqrt(hResult_Tot->GetStdDev()*hResult_Tot->GetStdDev()-hResult_Stat->GetStdDev()*hResult_Stat->GetStdDev()));
+
+
+  TFile OutputFile(TString::Format("%s/OtherTasks/Fast_Bootstrap_Example/fOutput.root",GetFemtoOutputFolder()), "recreate");
+  for(unsigned uVar=0; uVar<NumSystVars; uVar++){
+    hCorrFun[uVar]->Write();
+  }
+  hResult_Tot->Write();
+  hResult_Stat->Write();
+  //delete hCorrFun;
+  //delete [] Constant;
+}
+
 int OTHERTASKS(int narg, char** ARGS){
     //pp_CompareToNorfolk();
     //pp_pL_CorrectedMC_EXP();
@@ -6283,9 +6633,11 @@ int OTHERTASKS(int narg, char** ARGS){
     //MemBugHunt();
     //DlmHistoMemBugHunt();
     //SmearNonFlatCorrelation();
-    //Georgios_LXi_ResoTest();
+    Georgios_LXi_ResoTest(true);
     //StableDisto_Test();
-    Andi_pDminus_1();
+    //Andi_pDminus_1();
+    //Fast_Bootstrap_Example();
+    //MakeSmoothAngularSourceDisto(NULL);
 
     //const double RAD = 5.11;
     //printf("u(%.2f) = %.4f\n",RAD,Evaluate_d_u(RAD));
