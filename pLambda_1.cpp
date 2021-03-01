@@ -10178,7 +10178,7 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
     int ColorLO13 = kGreen;//+1
     int ColorSigmaNLO = kAzure;//kBlue-7 or //kTeal
     int ColorXiLattice = kPink+1;//kOrange+2 or +1
-    int ColorBaseline = kGray+1;//kGray+1
+    int ColorBaseline = kGray+3;//kGray+1
 
     int ColorInteraction =  WhichPotential<0?ColorLO13:
                             WhichPotential<10000?ColorNLO13:ColorNLO19;
@@ -10194,7 +10194,8 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
     ge_Fit->SetLineColor(ColorInteraction);
     ge_Fit->SetLineWidth(5);
 
-    ge_Bl->SetFillColorAlpha(ColorBaseline,0.70);//kCyan-8
+    ge_Bl->SetFillColorAlpha(ColorBaseline,0.80);//kCyan-8
+    //ge_Bl->SetFillStyle(3144);
     ge_Bl->SetLineColor(ColorBaseline);//kCyan-8
     ge_Bl->SetLineWidth(5);
 
@@ -10361,7 +10362,7 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
     DummyLegendEntry2.SetName("DummyLegendEntry2");
     DummyLegendEntry2.SetLineColor(kWhite);
     DummyLegendEntry2.SetMarkerColor(kWhite);
-    const float TextLeft = 0.28;
+    const float TextLeft = 0.31;//0.28 for CR1
     const float TextTop = 0.90;
     const float TextSz = 0.07;
     const float TextH = TextSz+0.01;
@@ -10370,10 +10371,18 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
     //else if(PlotsType==1 && Panel_X==1) legend = new TLegend(TextLeft+0.01+0.03,TextTop-0.22,0.73,TextTop+0.02);//lbrt
     //else if(PlotsType==1 && Panel_X==2) legend = new TLegend(TextLeft+0.01+0.03,TextTop-0.22,0.73,TextTop+0.02);//lbrt
     //else if(PlotsType==1 && Panel_X==3) legend = new TLegend(TextLeft+0.01+0.03,TextTop-0.22,0.73,TextTop+0.02);//lbrt
-    if(PlotsType==1 && Panel_X==0) legend = new TLegend(TextLeft+0.01+0.03,TextTop-7.0*TextH,0.73,TextTop-2.5*TextH);//lbrt
-    else if(PlotsType==1 && Panel_X==1) legend = new TLegend(TextLeft+0.01+0.03,TextTop-5.5*TextH,0.73,TextTop-2.5*TextH);//lbrt
-    else if(PlotsType==1 && Panel_X==2) legend = new TLegend(TextLeft+0.01+0.03,TextTop-5.5*TextH,0.73,TextTop-2.5*TextH);//lbrt
-    else if(PlotsType==1 && Panel_X==3) legend = new TLegend(TextLeft+0.01+0.03,TextTop-5.5*TextH,0.73,TextTop-2.5*TextH);//lbrt
+    //going into CR1
+    //if(PlotsType==1 && Panel_X==0) legend = new TLegend(TextLeft+0.01+0.03,TextTop-7.0*TextH,0.73,TextTop-2.5*TextH);//lbrt
+    //else if(PlotsType==1 && Panel_X==1) legend = new TLegend(TextLeft+0.01+0.03,TextTop-5.5*TextH,0.73,TextTop-2.5*TextH);//lbrt
+    //else if(PlotsType==1 && Panel_X==2) legend = new TLegend(TextLeft+0.01+0.03,TextTop-5.5*TextH,0.73,TextTop-2.5*TextH);//lbrt
+    //else if(PlotsType==1 && Panel_X==3) legend = new TLegend(TextLeft+0.01+0.03,TextTop-5.5*TextH,0.73,TextTop-2.5*TextH);//lbrt
+    //else if(PlotsType) legend = new TLegend(TextLeft-0.01,0.73-0.064*NumRows,0.73,TextTop-0.135);//lbrt
+    //else legend = new TLegend(TextLeft-0.01,0.73-0.054*NumRows,0.73,TextTop-0.135);//lbrt
+    //going into CR2, 2.1 3.2 4.4 5.6 6.8 8.0 9.2
+    if(PlotsType==1 && Panel_X==0) legend = new TLegend(TextLeft+0.01+0.03,TextTop-8.0*TextH,0.73,TextTop-2.1*TextH);//lbrt
+    else if(PlotsType==1 && Panel_X==1) legend = new TLegend(TextLeft+0.01+0.03,TextTop-6.8*TextH,0.73,TextTop-2.1*TextH);//lbrt
+    else if(PlotsType==1 && Panel_X==2) legend = new TLegend(TextLeft+0.01+0.03,TextTop-9.2*TextH,0.73,TextTop-2.1*TextH);//lbrt
+    else if(PlotsType==1 && Panel_X==3) legend = new TLegend(TextLeft+0.01+0.03,TextTop-8.0*TextH,0.73,TextTop-2.1*TextH);//lbrt
     else if(PlotsType) legend = new TLegend(TextLeft-0.01,0.73-0.064*NumRows,0.73,TextTop-0.135);//lbrt
     else legend = new TLegend(TextLeft-0.01,0.73-0.054*NumRows,0.73,TextTop-0.135);//lbrt
     legend->SetBorderSize(0);
@@ -10389,17 +10398,43 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
 
     if(PlotsType==1){
       if(Panel_X==0){
+        //legend->AddEntry(hCk_Fake, "p#minus#kern[0.0]{#Lambda} #oplus #bar{p}#minus#kern[0.0]{#bar{#Lambda}} pairs", "fpe");
+        //legend->AddEntry(ge_Fit,TString::Format("Fit %s",PotName1.Data()),"l");
+        //legend->AddEntry(ge_Sig,SigName1,"l");
+
         legend->AddEntry(hCk_Fake, "p#minus#kern[0.0]{#Lambda} #oplus #bar{p}#minus#kern[0.0]{#bar{#Lambda}} pairs", "fpe");
         legend->AddEntry(ge_Fit,TString::Format("Fit %s",PotName1.Data()),"l");
         legend->AddEntry(ge_Sig,SigName1,"l");
+        legend->AddEntry(ge_Xi,XiName1,"l");
+        legend->AddEntry(ge_Bl,BlName1,"l");
       }
       if(Panel_X==1){
-        legend->AddEntry(ge_Bl,BlName1,"l");
+        //legend->AddEntry(ge_Bl,BlName1,"l");
+        //legend->AddEntry(ge_Xi,XiName1,"l");
+
+        legend->AddEntry(hCk_Fake, "p#minus#kern[0.0]{#Lambda} #oplus #bar{p}#minus#kern[0.0]{#bar{#Lambda}} pairs", "fpe");
+        legend->AddEntry(ge_Fit,TString::Format("Fit %s",PotName1.Data()),"l");
         legend->AddEntry(ge_Xi,XiName1,"l");
+        legend->AddEntry(ge_Bl,BlName1,"l");
       }
       if(Panel_X==2){
+        //legend->AddEntry(ge_Fit,TString::Format("Fit %s",PotName1.Data()),"l");
+        //legend->AddEntry(fitLoDummy,"LO13 (600)","l");
+
+        legend->AddEntry(hCk_Fake, "p#minus#kern[0.0]{#Lambda} #oplus #bar{p}#minus#kern[0.0]{#bar{#Lambda}} pairs", "fpe");
         legend->AddEntry(ge_Fit,TString::Format("Fit %s",PotName1.Data()),"l");
         legend->AddEntry(fitLoDummy,"LO13 (600)","l");
+        legend->AddEntry(ge_Sig,SigName1,"l");
+        legend->AddEntry(ge_Xi,XiName1,"l");
+        legend->AddEntry(ge_Bl,BlName1,"l");
+      }
+      if(Panel_X==3){
+//printf("EHEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\n");
+        legend->AddEntry(hCk_Fake, "p#minus#kern[0.0]{#Lambda} #oplus #bar{p}#minus#kern[0.0]{#bar{#Lambda}} pairs", "fpe");
+        legend->AddEntry(ge_Fit,TString::Format("Fit %s",PotName1.Data()),"l");
+        legend->AddEntry(fitLoDummy,"LO13 (600)","l");
+        legend->AddEntry(ge_Xi,XiName1,"l");
+        legend->AddEntry(ge_Bl,BlName1,"l");
       }
     }
     else{
@@ -10457,7 +10492,8 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
     */
 
     if(PlotsType==1){
-      if(Panel_X!=3) legend->Draw("same");
+      //if(Panel_X!=3)
+        legend->Draw("same");
     }
     else if(PlotsType!=2 || WhichPotential==11600) legend->Draw("same");
 
@@ -10638,9 +10674,9 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
         DLM_Timer FileTimer;
         long long FileWaitTime;//in micros
         //we wait until the file is closed. If this is not the case in 10s => error
-        while(InfoFileStatus==-1&&FileWaitTime<10e6){
-            //sleep for 10 ms
-            usleep(10e3);
+        while(InfoFileStatus==-1&&FileWaitTime<10000e6){
+            //sleep for 10 s
+            usleep(10000e3);
             FileWaitTime = FileTimer.Stop();
             InfoFileStatus = file_status(InfoFileName);
         }
@@ -10782,7 +10818,7 @@ printf("Delete 2\n");
     if(InfoFileStatus==0){
         delete InfoTree;
     }
-    if(InfoFile) {delete InfoFile; InfoFile=NULL;}
+    if(InfoFile) {InfoFile->Close(); delete InfoFile; InfoFile=NULL;}
 }
 
 void Quick_pLambda_plotter(){
@@ -15628,8 +15664,8 @@ void pLambda_DummyCk_DifferentRadii(){
 int PLAMBDA_1_MAIN(int argc, char *argv[]){
 printf("PLAMBDA_1_MAIN\n");
 
-pLambda_DummyCk_DifferentRadii();
-return 0;
+//pLambda_DummyCk_DifferentRadii();
+//return 0;
 
 //FitMC_CompareToData_pL(0);
 //FitMC_CompareToData_pL(1);
@@ -15683,7 +15719,7 @@ Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(at
                             atoi(argv[1]),atoi(argv[2]),atoi(argv[3])),
                             //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/",
                             //"UnfoldRefine_pp13TeV_HM_DimiJul20_POT11600_BL10_SIG1.root",
-                            TString::Format("%s/pLambda/100720_Unfolded/PaperPlotsUpdate2/",GetCernBoxDimi()),
+                            TString::Format("%s/pLambda/100720_Unfolded/PaperPlotsUpdate3/",GetCernBoxDimi()),
                             //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/"
                             atoi(argv[5])///REMOVE FOR THE OLD PLOTS
                           );

@@ -6150,7 +6150,7 @@ TF1* MakeSmoothAngularSourceDisto(TH1F* hAngleDisto){
 
 void Georgios_LXi_ResoTest(const bool& SmoothSampling){
 
-    const double CoreSize = 1.0;
+    const double CoreSize = 0.8934;
     const unsigned SmoothEntires = 1024*128;
 
     //DLM_CleverMcLevyResoTM* MagicSource = new DLM_CleverMcLevyResoTM ();
