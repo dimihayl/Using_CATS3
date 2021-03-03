@@ -36,6 +36,8 @@
 #include "TList.h"
 #include "TROOT.h"
 
+#include "gsl_sf_dawson.h"
+
 void pp_CompareToNorfolk(){
     const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/OtherTasks/pp_CompareToNorfolk/Reid/FAST/";
     const unsigned NumPotentials = 4;
@@ -6124,12 +6126,16 @@ TF1* MakeSmoothAngularSourceDisto(TH1F* hAngleDisto){
   }
 
   TF1* fit_angle = new TF1("fit_angle",DLM_FITTER2_FUNCTION_SPLINE3,FitMin,FitMax,3+NumKnots*2);
+  //number of knots
   fit_angle->FixParameter(0,NumKnots);
   //derivative at the first knot
   fit_angle->SetParameter(1,0.1);
   fit_angle->SetParLimits(1,0,100);
+  //derivative at the last knot
   fit_angle->SetParameter(2,-0.1);
   fit_angle->SetParLimits(2,-100,0);
+  //knots [3, 3+NumKnots-1] aret the position of the knot on the x-axis (typically fixed)
+  //knots [3+NumKnots, 3+2*NumKnots-1] aret the position of the knot on the y-axis (typically fitted)
   for(unsigned uKnot=0; uKnot<NumKnots; uKnot++){
       double HistVal = hAngleDisto->GetBinContent(hAngleDisto->FindBin(Nodes_x[uKnot]));
       fit_angle->FixParameter(3+uKnot,Nodes_x[uKnot]);
@@ -6139,16 +6145,41 @@ TF1* MakeSmoothAngularSourceDisto(TH1F* hAngleDisto){
   fit_angle->SetNpx(1024);
   hAngleDisto->Fit(fit_angle,"S, N, R, M");
 
-  //TFile fOutput(TString::Format("%s/OtherTasks/MakeSmoothAngularSourceDisto/fOutput.root",GetFemtoOutputFolder()),"recreate");
-  //hAngleDisto->Write();
-  //fit_angle->Write();
-
   delete [] Nodes_x;
 
   return fit_angle;
 }
+TF1* MakeSmoothAngularCosine(TH1F* hCosDisto){
 
-void Georgios_LXi_ResoTest(const bool& SmoothSampling){
+  const double FitMin = -1;
+  const double FitBl = 0.7;
+  const double FitMax = 1;
+
+  //hCosDisto->Scale(1./hCosDisto->Integral(),"width");
+  const int NumBins = hCosDisto->GetNbinsX();
+  TF1* fBaseline = new TF1("fBaseline","[0]",FitBl,FitMax);
+  hCosDisto->Fit(fBaseline,"S, N, R, M");
+  const double BlPar = fBaseline->GetParameter(0);
+  const double BlErr = fBaseline->GetParError(0);
+  TF1* fit_cos = new TF1("fit_cos","[0]/(1.-[1]*exp(-[1]*[2]*(x+1.)))",FitMin,FitMax);
+  fit_cos->SetParameter(0,BlPar);
+  fit_cos->SetParLimits(0,0,BlPar+2.*BlErr);
+  fit_cos->SetParameter(1,0.5);
+  fit_cos->SetParLimits(1,0.1,1.0);
+  fit_cos->SetParameter(2,5);
+  fit_cos->SetParLimits(2,0,25.0);
+  fit_cos->SetNpx(1024);
+  hCosDisto->Fit(fit_cos,"S, N, R, M");
+
+  delete fBaseline;
+
+  return fit_cos;
+}
+
+//0 = Original
+//1 = fit the angle with splines
+//2 = fit the cos with 1/(1-exp)
+void Georgios_LXi_ResoTest(const int& SmoothSampling){
 
     const double CoreSize = 0.8934;
     const unsigned SmoothEntires = 1024*128;
@@ -6165,7 +6196,8 @@ void Georgios_LXi_ResoTest(const bool& SmoothSampling){
 
     //for p-Xi, set up the amount of secondaries
     //first for the protons (64.22%)
-    MagicSource.SetUpReso(0,0.6422);
+    //MagicSource.SetUpReso(0,0.6422);
+    MagicSource.SetUpReso(0,0.6438);
     //than for the Xis, here its 0% (we have ONLY primordials)
     MagicSource.SetUpReso(1,0.0);
     MagicSource.InitNumMcIter(1000000);
@@ -6193,6 +6225,8 @@ void Georgios_LXi_ResoTest(const bool& SmoothSampling){
     double RanVal1;
     double RanVal2;
     double RanVal3;
+    double RanCos;
+    double MeanP1=0;
 //printf("1\n");
     //open the magic file from dimi with the angular distributions.
     TFile* F_EposDisto_pReso_Xim = new TFile(TString::Format("%s/CatsFiles/Source/EposAngularDist/Epos_LamReso_Xim.root",GetCernBoxDimi()));
@@ -6214,15 +6248,23 @@ void Georgios_LXi_ResoTest(const bool& SmoothSampling){
 
     gROOT->cd();
     TH1F* hAngle = new TH1F("hAngle","hAngle",32,0,TMath::Pi());
+    TH1F* hCos = new TH1F("hCos","hCos",32,-1.,1.);
     TH1F* hFinalAngle = new TH1F("hFinalAngle","hFinalAngle",32,0,TMath::Pi());
+    TH1F* hFinalCos = new TH1F("hFinalCos","hFinalCos",32,-1.,1.);
     F_EposDisto_pReso_Xim->cd();
     int NumUsefulEntries = 0;
     for(unsigned uEntry=0; uEntry<N_EposDisto_pReso_Xim; uEntry++){
       T_EposDisto_pReso_Xim->GetEntry(uEntry);
       if(k_D>k_CutOff) continue;
       hAngle->Fill(AngleRcP1);
+      hCos->Fill(cos(AngleRcP1));
+      MeanP1 += fP1;
       NumUsefulEntries++;
     }
+    MeanP1 /= double(NumUsefulEntries);
+
+    //hAngle->SetBinContent(hAngle->FindBin(0.275),0.31);
+    hCos->Scale(1./hAngle->Integral(),"width");
 //printf("2\n");
 
     if(!SmoothSampling){
@@ -6235,11 +6277,13 @@ void Georgios_LXi_ResoTest(const bool& SmoothSampling){
           //overwrite the value for the lifetime. This is computed from the
           //stat. hadronization model (Vale) or thermal fist (Max)
           //this is the value for the secondary protons
+          //Tau1 = 1.65;
           Tau1 = 4.69;
           //for primoridials (the Xis) we put 0
           Tau2 = 0;
           //put in the average mass of the resonances (again from SHM or TF)
           //this is the value for protons
+          //fM1 = 1361.52;
           fM1 = 1462.93;
           //generate a random path length for the propagation of the resonances
           //nothing to change!
@@ -6247,9 +6291,10 @@ void Georgios_LXi_ResoTest(const bool& SmoothSampling){
           //adds a single entry into the PDF for the angular distribution to be used
           MagicSource.AddBGT_RP(RanVal1,cos(AngleRcP1));
           hFinalAngle->Fill(AngleRcP1);
+          hFinalCos->Fill(cos(AngleRcP1));
       }
     }
-    else{
+    else if(SmoothSampling==1){
       gROOT->cd();
       TF1* fRandomAngle = MakeSmoothAngularSourceDisto(hAngle);
       //TRandom3* ran_gen = new TRandom3(11);
@@ -6257,21 +6302,37 @@ void Georgios_LXi_ResoTest(const bool& SmoothSampling){
           Tau1 = 4.69;
           Tau2 = 0;
           fM1 = 1462.93;
+          fP1 = MeanP1;
           RanVal1 = RanGen.Exponential(fM1/(fP1*Tau1));
           AngleRcP1 = fRandomAngle->GetRandom(0.,TMath::Pi());
           MagicSource.AddBGT_RP(RanVal1,cos(AngleRcP1));
           hFinalAngle->Fill(AngleRcP1);
+          hFinalCos->Fill(cos(AngleRcP1));
       }
       gROOT->cd();
       //delete ran_gen;
       delete fRandomAngle;
     }
+    else{
+      gROOT->cd();
+      TF1* fRandomCos = MakeSmoothAngularCosine(hCos);
+      //TRandom3* ran_gen = new TRandom3(11);
+      for(unsigned uEntry=0; uEntry<SmoothEntires; uEntry++){
+          Tau1 = 4.69;
+          Tau2 = 0;
+          fM1 = 1462.93;
+          fP1 = MeanP1;
+          RanVal1 = RanGen.Exponential(fM1/(fP1*Tau1));
+          RanCos = fRandomCos->GetRandom(-1.,1.);
+          MagicSource.AddBGT_RP(RanVal1,RanCos);
+          hFinalAngle->Fill(acos(RanCos));
+          hFinalCos->Fill(RanCos);
+      }
+      gROOT->cd();
+      delete fRandomCos;
+    }
 
     delete F_EposDisto_pReso_Xim;
-    //delete hAngleRcP1;
-//printf("3\n");
-
-
 
     //if you have resonances contributing to both particles, we need to repeat the above procedure
     //for the prim-reso (AddBGT_PR) and reso-reso (AddBGT_RR) cases
@@ -6326,8 +6387,11 @@ void Georgios_LXi_ResoTest(const bool& SmoothSampling){
     fSource->Write();
     hAngle->Scale(1./hAngle->Integral(),"width");
     hAngle->Write();
+    hCos->Write();
     hFinalAngle->Scale(1./hFinalAngle->Integral(),"width");
     hFinalAngle->Write();
+    hFinalCos->Scale(1./hFinalCos->Integral(),"width");
+    hFinalCos->Write();
 
     //gROOT->cd();
     //delete hAngle;
@@ -6335,10 +6399,10 @@ void Georgios_LXi_ResoTest(const bool& SmoothSampling){
     delete hSource;
     delete fSource;
     delete hAngle;
+    delete hCos;
     delete hFinalAngle;
+    delete hFinalCos;
     delete fOutput;
-
-
 }
 
 
@@ -6596,6 +6660,176 @@ void Fast_Bootstrap_Example(){
   //delete [] Constant;
 }
 
+void Eval_ScattParameters(CATS& Kitty, double& ScatLen, double& EffRan){
+  Kitty.KillTheCat();
+  TF1 fitSP("fitSP","[2]*x*x*x*x+0.5*[1]/197.327*x*x+197.327/[0]", 10, 80);
+  fitSP.SetParameter(0,ScatLen);
+  fitSP.SetParameter(1,EffRan);
+  fitSP.FixParameter(2,0);
+  TH1F* hFit = new TH1F("hFit","hFit",Kitty.GetNumMomBins(),Kitty.GetMomBinLowEdge(0),Kitty.GetMomBinUpEdge(Kitty.GetNumMomBins()-1));
+  for(unsigned uMom=0; uMom<Kitty.GetNumMomBins(); uMom++){
+    hFit->SetBinContent(uMom+1,Kitty.GetMomentum(uMom)/tan(Kitty.GetPhaseShift(uMom,0,0)));
+  }
+  hFit->Fit(&fitSP, "Q, S, N, R, M");
+  ScatLen = fitSP.GetParameter(0);
+  EffRan = fitSP.GetParameter(1);
+  delete hFit;
+}
+
+void Ledni_SmallRad(){
+  //const TString PotentialName = "NSC97b";
+  //const TString PotentialName = "NF48";
+  const TString PotentialName = "custom";
+
+  const double kMin = 0;
+  const double kMax = 300;
+  const double kStep = 3;
+  const unsigned nMom = TMath::Nint(kMax/kStep);
+  const double Radius = 1.2;
+
+  CATSparameters sPars(CATSparameters::tSource,1,true);
+  sPars.SetParameter(0,Radius);
+  CATS Kitty_SE;
+  Kitty_SE.SetMomBins(nMom,kMin,kMax);
+  Kitty_SE.SetAnaSource(GaussSource, sPars);
+  Kitty_SE.SetUseAnalyticSource(true);
+  Kitty_SE.SetQ1Q2(0);
+  Kitty_SE.SetQuantumStatistics(false);
+  Kitty_SE.SetRedMass(Mass_L*0.5);
+  Kitty_SE.SetNumChannels(1);
+  Kitty_SE.SetNumPW(0,1);
+  Kitty_SE.SetSpin(0,0);
+  Kitty_SE.SetChannelWeight(0, 1.);
+  CATSparameters pPars(CATSparameters::tPotential,4,true);
+  double c_f0,c_d0;
+  if(PotentialName=="NSC97b"){
+    pPars.SetParameter(0,-78.42);
+    pPars.SetParameter(1,1.0);
+    pPars.SetParameter(2,741.76);
+    pPars.SetParameter(3,0.45);
+    c_f0 = 0.397;
+    c_d0 = 10.360;
+  }
+  else if(PotentialName=="NF48"){
+    pPars.SetParameter(0,-1647.40);
+    pPars.SetParameter(1,0.6);
+    pPars.SetParameter(2,3888.96);
+    pPars.SetParameter(3,0.45);
+    c_f0 = 1.511;
+    c_d0 = 2.549;
+  }
+  else{
+    pPars.SetParameter(0,-78.42*0.39*4.5);//0.39,0.4
+    pPars.SetParameter(1,1.0*1.35);
+    pPars.SetParameter(2,741.76*4.5);
+    pPars.SetParameter(3,0.45*1.4);
+    c_f0 = 0.397;
+    c_d0 = 10.360;
+  }
+  Kitty_SE.SetEpsilonConv(1e-8);
+  Kitty_SE.SetEpsilonProp(1e-8);
+  Kitty_SE.SetShortRangePotential(0,0,DoubleGaussSum,pPars);
+  Kitty_SE.KillTheCat();
+
+  Eval_ScattParameters(Kitty_SE,c_f0,c_d0);
+  printf("c_f0 = %.2f fm\n",c_f0);
+  printf("c_d0 = %.2f fm\n",c_d0);
+
+  const double Re_f0 = PotentialName=="NSC97b"?0.397:PotentialName=="NF48"?1.511:c_f0;//NSC97b
+  const double Im_f0 = 0;
+  double Val_d0 = PotentialName=="NSC97b"?10.36:PotentialName=="NF48"?2.549:c_d0;
+  const TString OutputFolder = TString::Format("%s/OtherTasks/Ledni_SmallRad/",GetFemtoOutputFolder());
+  const complex<double> Val_f0(Re_f0*FmToNu,Im_f0*FmToNu);
+  const complex<double> Inv_f0 = 1./(Val_f0+1e-64);
+  const double Val_r0 = Radius*FmToNu;
+  Val_d0 *= FmToNu;
+
+  TGraph gCk_SE;
+  gCk_SE.SetName("gCk_"+PotentialName);
+  gCk_SE.SetLineWidth(3);
+  gCk_SE.SetLineColor(kGreen);
+  TGraph gCk_default;
+  gCk_default.SetName("gCk_default");
+  gCk_default.SetLineWidth(3);
+  gCk_default.SetLineColor(kBlack);
+  TGraph gCk_csmall;
+  gCk_csmall.SetName("gCk_csmall");
+  gCk_csmall.SetLineWidth(3);
+  gCk_csmall.SetLineColor(kRed+2);
+  TGraph g_csmall;
+  g_csmall.SetName("g_csmall");
+  g_csmall.SetLineWidth(2);
+  g_csmall.SetLineColor(kRed);
+  TGraph g_f2;
+  g_f2.SetName("g_f2");
+  g_f2.SetLineWidth(2);
+  g_f2.SetLineColor(kGreen+1);
+  TGraph g_f2c;
+  g_f2c.SetName("g_f2c");
+  g_f2c.SetLineWidth(2);
+  g_f2c.SetLineColor(kYellow+2);
+  TGraph g_F1F2;
+  g_F1F2.SetName("g_F1F2");
+  g_F1F2.SetLineWidth(2);
+  g_F1F2.SetLineColor(kBlue);
+
+  TGraph g_F1F2_f2c;
+  g_F1F2_f2c.SetName("g_F1F2_f2c");
+  g_F1F2_f2c.SetLineWidth(2);
+  g_F1F2_f2c.SetLineColor(kGray+1);
+
+  TGraph g_f0d0;
+  g_f0d0.SetName("g_f0d0");
+  g_f0d0.SetMarkerStyle(2);
+  g_f0d0.SetMarkerSize(2);
+  g_f0d0.SetPoint(0,c_f0,c_d0);
+
+  TGraph g_Vmu;
+  g_Vmu.SetName("g_Vmu");
+  g_Vmu.SetMarkerStyle(3);
+  g_Vmu.SetMarkerSize(2);
+  g_Vmu.SetPoint(0,pPars.GetParameter(0),pPars.GetParameter(1));
+  g_Vmu.SetPoint(1,pPars.GetParameter(2),pPars.GetParameter(3));
+
+  unsigned NumPts = 0;
+  for(double MOM=kMin+kStep*0.5; MOM<kMax; MOM+=kStep){
+    double F1 = gsl_sf_dawson(2.*MOM*Val_r0)/(2.*MOM*Val_r0);
+    double F2 = (1.-exp(-4.*MOM*MOM*Val_r0*Val_r0))/(2.*MOM*Val_r0);
+    complex<double> Val_f = pow(Inv_f0+0.5*Val_d0*MOM*MOM-i*MOM,-1.);
+    double csmall = (1-(Val_d0)/(2*sqrt(Pi)*Val_r0));
+    double v_f2 = 0.5*pow(abs(Val_f)/Val_r0,2);
+    double F1F2 = 2*real(Val_f)*F1/(sqrt(Pi)*Val_r0)-imag(Val_f)*F2/Val_r0;
+
+    double Ck_default = 1.+v_f2+F1F2;
+    double Ck_csmall = 1.+v_f2*csmall+F1F2;
+
+    gCk_default.SetPoint(NumPts,MOM,Ck_default);
+    gCk_csmall.SetPoint(NumPts,MOM,Ck_csmall);
+    g_csmall.SetPoint(NumPts,MOM,csmall);
+    g_f2.SetPoint(NumPts,MOM,v_f2);
+    g_f2c.SetPoint(NumPts,MOM,v_f2*csmall);
+    g_F1F2.SetPoint(NumPts,MOM,F1F2);
+    g_F1F2_f2c.SetPoint(NumPts,MOM,fabs(F1F2/v_f2/csmall));
+
+    gCk_SE.SetPoint(NumPts,MOM,Kitty_SE.GetCorrFun(NumPts));
+
+    NumPts++;
+  }
+
+  TFile fOutput(OutputFolder+"fOutput_"+PotentialName+".root","recreate");
+  gCk_SE.Write();
+  gCk_default.Write();
+  gCk_csmall.Write();
+  g_csmall.Write();
+  g_f2.Write();
+  g_f2c.Write();
+  g_F1F2.Write();
+  g_F1F2_f2c.Write();
+  g_f0d0.Write();
+  g_Vmu.Write();
+
+}
+
 int OTHERTASKS(int narg, char** ARGS){
     //pp_CompareToNorfolk();
     //pp_pL_CorrectedMC_EXP();
@@ -6633,7 +6867,10 @@ int OTHERTASKS(int narg, char** ARGS){
     //MemBugHunt();
     //DlmHistoMemBugHunt();
     //SmearNonFlatCorrelation();
-    Georgios_LXi_ResoTest(true);
+    //Georgios_LXi_ResoTest(0);
+    //Georgios_LXi_ResoTest(1);
+    //Georgios_LXi_ResoTest(2);
+    Ledni_SmallRad();
     //StableDisto_Test();
     //Andi_pDminus_1();
     //Fast_Bootstrap_Example();
