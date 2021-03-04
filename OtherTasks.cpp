@@ -6662,7 +6662,7 @@ void Fast_Bootstrap_Example(){
 
 void Eval_ScattParameters(CATS& Kitty, double& ScatLen, double& EffRan){
   Kitty.KillTheCat();
-  TF1 fitSP("fitSP","[2]*x*x*x*x+0.5*[1]/197.327*x*x+197.327/[0]", 10, 80);
+  TF1 fitSP("fitSP","[2]*x*x*x*x+0.5*[1]/197.327*x*x+197.327/[0]", 10, 60);
   fitSP.SetParameter(0,ScatLen);
   fitSP.SetParameter(1,EffRan);
   fitSP.FixParameter(2,0);
@@ -6676,16 +6676,17 @@ void Eval_ScattParameters(CATS& Kitty, double& ScatLen, double& EffRan){
   delete hFit;
 }
 
-void Ledni_SmallRad(){
+void Ledni_SmallRad(TString PotentialName){
   //const TString PotentialName = "NSC97b";
   //const TString PotentialName = "NF48";
-  const TString PotentialName = "custom";
+  //const TString PotentialName = "emma";
+  //const TString PotentialName = "custom";
 
   const double kMin = 0;
   const double kMax = 300;
   const double kStep = 3;
   const unsigned nMom = TMath::Nint(kMax/kStep);
-  const double Radius = 1.2;
+  const double Radius = 1.08;
 
   CATSparameters sPars(CATSparameters::tSource,1,true);
   sPars.SetParameter(0,Radius);
@@ -6718,16 +6719,47 @@ void Ledni_SmallRad(){
     c_f0 = 1.511;
     c_d0 = 2.549;
   }
+  else if(PotentialName=="emma"){
+    //for emma -> NSC97f basis
+    pPars.SetParameter(0,-106.53*0.85);
+    pPars.SetParameter(1,1.0*1.18);
+    pPars.SetParameter(2,1469.33);
+    pPars.SetParameter(3,0.45*1.1);
+    c_f0 = 0.350;
+    c_d0 = 16.330;
+  }
+  else if(PotentialName=="Toy1"){
+    pPars.SetParameter(0,-144.5);
+    pPars.SetParameter(1,2.11);
+    pPars.SetParameter(2,520.0);
+    pPars.SetParameter(3,0.54);
+    c_f0 = -0.73;
+    c_d0 = 7.72;
+  }
+  else if(PotentialName=="ND46"){
+    pPars.SetParameter(0,144.89);
+    pPars.SetParameter(1,1.0);
+    pPars.SetParameter(2,127.87);
+    pPars.SetParameter(3,0.45);
+    c_f0 = -4.621;
+    c_d0 = 1.3;
+  }
   else{
     pPars.SetParameter(0,-78.42*0.39*4.5);//0.39,0.4
     pPars.SetParameter(1,1.0*1.35);
     pPars.SetParameter(2,741.76*4.5);
     pPars.SetParameter(3,0.45*1.4);
-    c_f0 = 0.397;
-    c_d0 = 10.360;
+    //NF46 as a stariting point
+    //pPars.SetParameter(0,-1327.26*1.0);
+    //pPars.SetParameter(1,0.6);
+    //pPars.SetParameter(2,2561.56);
+    //pPars.SetParameter(3,0.45);
+    c_f0 = 0.350;
+    c_d0 = 16.330;
+
   }
-  Kitty_SE.SetEpsilonConv(1e-8);
-  Kitty_SE.SetEpsilonProp(1e-8);
+  Kitty_SE.SetEpsilonConv(5e-9);
+  Kitty_SE.SetEpsilonProp(5e-9);
   Kitty_SE.SetShortRangePotential(0,0,DoubleGaussSum,pPars);
   Kitty_SE.KillTheCat();
 
@@ -6791,6 +6823,55 @@ void Ledni_SmallRad(){
   g_Vmu.SetPoint(0,pPars.GetParameter(0),pPars.GetParameter(1));
   g_Vmu.SetPoint(1,pPars.GetParameter(2),pPars.GetParameter(3));
 
+  //the true correction
+  TGraph g_XXX;
+  g_XXX.SetName("g_XXX");
+  g_XXX.SetLineWidth(4);
+  g_XXX.SetLineStyle(2);
+  g_XXX.SetLineColor(kPink+1);
+
+  TGraph g_XXXa;
+  g_XXXa.SetName("g_XXXa");
+  g_XXXa.SetLineWidth(4);
+  g_XXXa.SetLineStyle(3);
+  g_XXXa.SetLineColor(kPink+1);
+
+  TGraph g_XXXm;
+  g_XXXm.SetName("g_XXXm");
+  g_XXXm.SetLineWidth(4);
+  g_XXXm.SetLineStyle(4);
+  g_XXXm.SetLineColor(kPink+1);
+
+  TGraph g_delta;
+  g_delta.SetName("g_delta");
+  g_delta.SetLineWidth(4);
+  g_delta.SetLineStyle(2);
+  g_delta.SetLineColor(kBlack);
+
+  TGraph g_kcotdelta;
+  g_kcotdelta.SetName("g_kcotdelta");
+  g_kcotdelta.SetLineWidth(4);
+  g_kcotdelta.SetLineStyle(2);
+  g_kcotdelta.SetLineColor(kBlack);
+
+  TGraph g_cotdelta;
+  g_cotdelta.SetName("g_cotdelta");
+  g_cotdelta.SetLineWidth(4);
+  g_cotdelta.SetLineStyle(2);
+  g_cotdelta.SetLineColor(kBlack);
+
+  TGraph g_tgdelta;
+  g_tgdelta.SetName("g_tgdelta");
+  g_tgdelta.SetLineWidth(4);
+  g_tgdelta.SetLineStyle(2);
+  g_tgdelta.SetLineColor(kBlack);
+
+  TGraph g_sindelta;
+  g_sindelta.SetName("g_sindelta");
+  g_sindelta.SetLineWidth(4);
+  g_sindelta.SetLineStyle(2);
+  g_sindelta.SetLineColor(kBlack);
+
   unsigned NumPts = 0;
   for(double MOM=kMin+kStep*0.5; MOM<kMax; MOM+=kStep){
     double F1 = gsl_sf_dawson(2.*MOM*Val_r0)/(2.*MOM*Val_r0);
@@ -6813,6 +6894,19 @@ void Ledni_SmallRad(){
 
     gCk_SE.SetPoint(NumPts,MOM,Kitty_SE.GetCorrFun(NumPts));
 
+    //the correction as in ledni
+    g_XXX.SetPoint(NumPts,MOM,(Kitty_SE.GetCorrFun(NumPts)-1.-F1F2)/v_f2);
+    //the correction concidered as a general addition factor to C(k)
+    g_XXXa.SetPoint(NumPts,MOM,(Kitty_SE.GetCorrFun(NumPts)-1.-v_f2-F1F2));
+    //the correction concidered as a general multiplication factor to C(k)
+    g_XXXm.SetPoint(NumPts,MOM,Kitty_SE.GetCorrFun(NumPts)/(1.+v_f2+F1F2));
+
+    g_delta.SetPoint(NumPts,MOM,Kitty_SE.GetPhaseShift(NumPts,0,0));
+    g_kcotdelta.SetPoint(NumPts,MOM,MOM/tan(Kitty_SE.GetPhaseShift(NumPts,0,0)));
+    g_cotdelta.SetPoint(NumPts,MOM,1./tan(Kitty_SE.GetPhaseShift(NumPts,0,0)));
+    g_tgdelta.SetPoint(NumPts,MOM,tan(Kitty_SE.GetPhaseShift(NumPts,0,0)));
+    g_sindelta.SetPoint(NumPts,MOM,sin(Kitty_SE.GetPhaseShift(NumPts,0,0)));
+
     NumPts++;
   }
 
@@ -6825,6 +6919,14 @@ void Ledni_SmallRad(){
   g_f2c.Write();
   g_F1F2.Write();
   g_F1F2_f2c.Write();
+  g_XXX.Write();
+  g_XXXa.Write();
+  g_XXXm.Write();
+  g_delta.Write();
+  g_kcotdelta.Write();
+  g_cotdelta.Write();
+  g_tgdelta.Write();
+  g_sindelta.Write();
   g_f0d0.Write();
   g_Vmu.Write();
 
@@ -6870,7 +6972,12 @@ int OTHERTASKS(int narg, char** ARGS){
     //Georgios_LXi_ResoTest(0);
     //Georgios_LXi_ResoTest(1);
     //Georgios_LXi_ResoTest(2);
-    Ledni_SmallRad();
+    Ledni_SmallRad("NF48");
+    Ledni_SmallRad("NSC97b");
+    Ledni_SmallRad("emma");
+    Ledni_SmallRad("custom");
+    Ledni_SmallRad("Toy1");
+    Ledni_SmallRad("ND46");
     //StableDisto_Test();
     //Andi_pDminus_1();
     //Fast_Bootstrap_Example();
