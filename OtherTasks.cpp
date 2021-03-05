@@ -6660,20 +6660,49 @@ void Fast_Bootstrap_Example(){
   //delete [] Constant;
 }
 
-void Eval_ScattParameters(CATS& Kitty, double& ScatLen, double& EffRan){
+bool Eval_ScattParameters(CATS& Kitty, double& ScatLen, double& EffRan, TH1F*& hFit, TF1*& fitSP){
   Kitty.KillTheCat();
-  TF1 fitSP("fitSP","[2]*x*x*x*x+0.5*[1]/197.327*x*x+197.327/[0]", 10, 60);
-  fitSP.SetParameter(0,ScatLen);
-  fitSP.SetParameter(1,EffRan);
-  fitSP.FixParameter(2,0);
-  TH1F* hFit = new TH1F("hFit","hFit",Kitty.GetNumMomBins(),Kitty.GetMomBinLowEdge(0),Kitty.GetMomBinUpEdge(Kitty.GetNumMomBins()-1));
+  hFit = new TH1F("hFit","hFit",Kitty.GetNumMomBins(),Kitty.GetMomBinLowEdge(0),Kitty.GetMomBinUpEdge(Kitty.GetNumMomBins()-1));
+  double LAST_POINT;
+  double CURRENT_POINT;
   for(unsigned uMom=0; uMom<Kitty.GetNumMomBins(); uMom++){
-    hFit->SetBinContent(uMom+1,Kitty.GetMomentum(uMom)/tan(Kitty.GetPhaseShift(uMom,0,0)));
+    CURRENT_POINT = Kitty.GetMomentum(uMom)/tan(Kitty.GetPhaseShift(uMom,0,0));
+    if(uMom){
+      if(CURRENT_POINT*LAST_POINT<0&&fabs(CURRENT_POINT-LAST_POINT)>1000&&Kitty.GetMomentum(uMom)<120)
+      {fitSP=NULL;return false;}
+    }
+    hFit->SetBinContent(uMom+1,CURRENT_POINT);
+    hFit->SetBinError(uMom+1,1.);
+    LAST_POINT = CURRENT_POINT;
   }
-  hFit->Fit(&fitSP, "Q, S, N, R, M");
-  ScatLen = fitSP.GetParameter(0);
-  EffRan = fitSP.GetParameter(1);
-  delete hFit;
+  TF1* fitSP2 = new TF1("fitSP2","0.5*[1]/197.327*x*x+197.327*[0]", 10, 90);
+  TF1* fitSP4 = new TF1("fitSP4","[2]*pow(x,4.)+0.5*[1]/197.327*x*x+197.327*[0]", 10, 90);
+  TF1* fitSP6 = new TF1("fitSP6","[3]*pow(x,6.)+[2]*pow(x,4.)+0.5*[1]/197.327*x*x+197.327*[0]", 10, 90);
+  double inv_f0 = ScatLen==0?0:1./ScatLen;
+  fitSP2->SetParameter(0,inv_f0);fitSP4->SetParameter(0,inv_f0);fitSP6->SetParameter(0,inv_f0);
+  fitSP2->SetParameter(1,EffRan);fitSP4->SetParameter(1,EffRan);fitSP6->SetParameter(1,EffRan);
+  fitSP4->SetParameter(2,0);fitSP6->SetParameter(2,0);
+  fitSP6->SetParameter(3,0);
+
+  double Chi2_Old = 1e64;
+
+  hFit->Fit(fitSP2, "Q, S, N, R, M");
+  //printf("f0 %f\n", 1./fitSP2->GetParameter(0));
+  ScatLen = 1./fitSP2->GetParameter(0);
+  EffRan = fitSP2->GetParameter(1);
+
+  hFit->Fit(fitSP4, "Q, S, N, R, M");
+  if(fitSP4->GetChisquare()/fitSP2->GetChisquare()>0.8)
+  {delete fitSP4; delete fitSP6; fitSP=fitSP2; return true;}
+  ScatLen = 1./fitSP4->GetParameter(0);
+  EffRan = fitSP4->GetParameter(1);
+
+  hFit->Fit(fitSP6, "Q, S, N, R, M");
+  if(fitSP6->GetChisquare()/fitSP4->GetChisquare()>0.8)
+  {delete fitSP2; delete fitSP6; fitSP=fitSP4; return true;}
+  ScatLen = 1./fitSP6->GetParameter(0);
+  EffRan = fitSP6->GetParameter(1);
+  delete fitSP2; delete fitSP4; fitSP=fitSP6; return true;
 }
 
 void Ledni_SmallRad(TString PotentialName){
@@ -6763,14 +6792,26 @@ void Ledni_SmallRad(TString PotentialName){
   Kitty_SE.SetShortRangePotential(0,0,DoubleGaussSum,pPars);
   Kitty_SE.KillTheCat();
 
-  Eval_ScattParameters(Kitty_SE,c_f0,c_d0);
+  const TString OutputFolder = TString::Format("%s/OtherTasks/Ledni_SmallRad/",GetFemtoOutputFolder());
+  TFile fOutput(OutputFolder+"fOutput_"+PotentialName+".root","recreate");
+
+  TH1F* h_kcotd=NULL;
+  TF1* f_kcotd=NULL;
+  Eval_ScattParameters(Kitty_SE,c_f0,c_d0,h_kcotd,f_kcotd);
+  //c_f0 = 1./c_f0;
   printf("c_f0 = %.2f fm\n",c_f0);
   printf("c_d0 = %.2f fm\n",c_d0);
-
+  //printf("h_kcotd = %p\n",h_kcotd);
+  //printf("f_kcotd = %p\n",f_kcotd);
+  fOutput.cd();
+  h_kcotd->Write();
+  f_kcotd->Write();
+  delete h_kcotd;
+  delete f_kcotd;
+printf("-->\n");
   const double Re_f0 = PotentialName=="NSC97b"?0.397:PotentialName=="NF48"?1.511:c_f0;//NSC97b
   const double Im_f0 = 0;
   double Val_d0 = PotentialName=="NSC97b"?10.36:PotentialName=="NF48"?2.549:c_d0;
-  const TString OutputFolder = TString::Format("%s/OtherTasks/Ledni_SmallRad/",GetFemtoOutputFolder());
   const complex<double> Val_f0(Re_f0*FmToNu,Im_f0*FmToNu);
   const complex<double> Inv_f0 = 1./(Val_f0+1e-64);
   const double Val_r0 = Radius*FmToNu;
@@ -6829,6 +6870,12 @@ void Ledni_SmallRad(TString PotentialName){
   g_XXX.SetLineWidth(4);
   g_XXX.SetLineStyle(2);
   g_XXX.SetLineColor(kPink+1);
+
+  //attempted correction with MM model
+  //TGraph g_MM;
+  //g_MM.SetName("g_MM");
+  //g_MM.SetLineWidth(4);
+  //g_MM.SetLineColor(kPink+3);
 
   TGraph g_XXXa;
   g_XXXa.SetName("g_XXXa");
@@ -6893,6 +6940,7 @@ void Ledni_SmallRad(TString PotentialName){
 //I am 100% sure it goes as 1/Radius
   double exp_MMB = c_d0/pow(TMath::Pi(),3.)/Radius;
   double exp_MMA;
+printf("--->\n");
   for(double MOM=kMin+kStep*0.5; MOM<kMax; MOM+=kStep){
     double F1 = gsl_sf_dawson(2.*MOM*Val_r0)/(2.*MOM*Val_r0);
     double F2 = (1.-exp(-4.*MOM*MOM*Val_r0*Val_r0))/(2.*MOM*Val_r0);
@@ -6926,7 +6974,17 @@ void Ledni_SmallRad(TString PotentialName){
     //the correction concidered as a general multiplication factor to C(k)
     g_XXXm.SetPoint(NumPts,MOM,Kitty_SE.GetCorrFun(NumPts)/(1.+v_f2+F1F2));
 
-    g_MM_XXX.SetPoint(NumPts,MOM,exp_MMA-exp_MMB*sqrt(1.+MOM*MOM*0.5*c_f0*c_d0*FmToNu*FmToNu));
+    //g_MM_XXX.SetPoint(NumPts,MOM,exp_MMA-exp_MMB*sqrt(1.+MOM*MOM*0.5*c_f0*c_d0*FmToNu*FmToNu));
+
+    //wrong still
+    double UnderRoot = 1.+0.5*MOM*MOM*c_d0*c_f0*FmToNu*FmToNu;
+    double RootSign = -1;
+    //bond state
+    if(c_f0<0&&(1.+2*c_d0/c_f0)>0) RootSign = 1;
+    if(UnderRoot<0) {UnderRoot=-UnderRoot; RootSign=-RootSign;}
+    double MM_XXX;
+    MM_XXX = 1.+RootSign*c_d0/(2.*sqrt(Pi)*Radius)*sqrt(UnderRoot);
+    g_MM_XXX.SetPoint(NumPts,MOM,MM_XXX);
 
     g_delta.SetPoint(NumPts,MOM,Kitty_SE.GetPhaseShift(NumPts,0,0));
     g_kcotdelta.SetPoint(NumPts,MOM,MOM/tan(Kitty_SE.GetPhaseShift(NumPts,0,0)));
@@ -6956,13 +7014,13 @@ void Ledni_SmallRad(TString PotentialName){
     NumPts++;
   }
 
-  printf("f0 = %.2f\n",c_f0);
-  printf("1/f0 = %.2f\n",1./c_f0);
-  printf("MMA = %.2f\n",exp_MMA);
-  printf("d0 = %.2f\n",c_d0);
-  printf("MMB = %.2f\n",exp_MMB);
+  //printf("f0 = %.2f\n",c_f0);
+  //printf("1/f0 = %.2f\n",1./c_f0);
+  //printf("MMA = %.2f\n",exp_MMA);
+  //printf("d0 = %.2f\n",c_d0);
+  //printf("MMB = %.2f\n",exp_MMB);
 
-  TFile fOutput(OutputFolder+"fOutput_"+PotentialName+".root","recreate");
+
   gCk_SE.Write();
   gCk_default.Write();
   gCk_csmall.Write();
@@ -6984,10 +7042,138 @@ void Ledni_SmallRad(TString PotentialName){
   g_sindelta.Write();
   g_f0d0.Write();
   g_Vmu.Write();
+  //h_kcotd->Write();
+  //f_kcotd->Write();
 
+  //delete h_kcotd;
+  //delete f_kcotd;
 }
 
-int OTHERTASKS(int narg, char** ARGS){
+void Ledni_SmallRad_Random(const unsigned SEED, const unsigned NumIter){
+
+  const double kMin = 0;
+  const double kMax = 210;
+  const double kCorrection = 120;
+  const double kStep = 3;
+  const unsigned nMom = TMath::Nint(kMax/kStep);
+
+  const double V1_min = -1000;
+  const double V1_max = 0;
+  const double mu1_min = 0.6;
+  const double mu1_max = 1.2;
+  const double V2_min = 0;
+  const double V2_max = 5000;
+  const double mu2_min = 0.3;
+  const double mu2_max = 0.5;
+
+  const double r_min = 1.00;
+  const double r_max = 1.50;
+
+  TRandom3 rangen(SEED);
+
+  CATSparameters sPars(CATSparameters::tSource,1,true);
+  sPars.SetParameter(0,(r_max+r_min)*0.5);
+  CATS Kitty_SE;
+  Kitty_SE.SetMomBins(nMom,kMin,kMax);
+  Kitty_SE.SetAnaSource(GaussSource, sPars);
+  Kitty_SE.SetUseAnalyticSource(true);
+  Kitty_SE.SetQ1Q2(0);
+  Kitty_SE.SetQuantumStatistics(false);
+  Kitty_SE.SetRedMass(Mass_L*0.5);
+  Kitty_SE.SetNumChannels(1);
+  Kitty_SE.SetNumPW(0,1);
+  Kitty_SE.SetSpin(0,0);
+  Kitty_SE.SetChannelWeight(0, 1.);
+  Kitty_SE.SetEpsilonConv(5e-9);
+  Kitty_SE.SetEpsilonProp(5e-9);
+  Kitty_SE.SetNotifications(CATS::nWarning);
+  Kitty_SE.KillTheCat();
+  CATSparameters pPars(CATSparameters::tPotential,4,true);
+  Kitty_SE.SetShortRangePotential(0,0,DoubleGaussSum,pPars);
+  double c_f0,c_if0,c_d0,V_1,V_2,mu_1,mu_2,r_0;
+  const TString OutputFolder = TString::Format("%s/OtherTasks/Ledni_SmallRad_Random/Toy1/",GetFemtoOutputFolder());
+  TFile fOutput(OutputFolder+TString::Format("fOut_S%u_I%u.root",SEED,NumIter),"recreate");
+  TNtuple* ntMM = new TNtuple("ntMM", "ntMM","r0:f0:d0:MMA:MMB");
+  Float_t ntBuffer[5];
+  for(unsigned uIter=0; uIter<NumIter; uIter++){
+    V_1 = rangen.Uniform(V1_min,V1_max);
+    V_2 = rangen.Uniform(V2_min,V2_max);
+    mu_1 = rangen.Uniform(mu1_min,mu1_max);
+    mu_2 = rangen.Uniform(mu2_min,mu2_max);
+//V_1 = -144.89;
+//V_2 = 127.87;
+//mu_1 = 1.0;
+//mu_2 = 0.45;
+V_1 = -144.5;
+V_2 = 520.0;
+mu_1 = 2.11;
+mu_2 = 0.54;
+
+    r_0 = rangen.Uniform(r_min,r_max);
+//r_0 = 1.5;
+    c_f0 = 0.0;
+    c_d0 = 0.0;
+    Kitty_SE.SetShortRangePotential(0,0,0,V_1);
+    Kitty_SE.SetShortRangePotential(0,0,1,mu_1);
+    Kitty_SE.SetShortRangePotential(0,0,2,V_2);
+    Kitty_SE.SetShortRangePotential(0,0,3,mu_2);
+    Kitty_SE.SetAnaSource(0,r_0);
+    Kitty_SE.KillTheCat();
+    TH1F* hDummy; TF1* fDummy;
+    //potential with silly phase shifts
+    if(!Eval_ScattParameters(Kitty_SE,c_f0,c_d0,hDummy,fDummy)){
+      uIter--;
+      if(hDummy) delete hDummy;
+      if(fDummy) delete fDummy;
+      continue;
+    }
+    c_if0 = 1./c_f0;
+//hDummy->Write();fDummy->Write();
+    delete hDummy; delete fDummy;
+    if(fabs(c_if0)>40||fabs(c_f0)>40||fabs(c_d0)>40)
+      {uIter--;continue;}
+
+    TH1F* hXXX = new TH1F("hXXX","hXXX",nMom,kMin,kMax);
+    TF1* fXXX = new TF1("fXXX","[0]+[1]*sqrt(1.+[2]*x*x)",kMin,kCorrection);
+    fXXX->SetParameter(0,1);
+    fXXX->SetParLimits(0,-40,40);
+    fXXX->SetParameter(1,0);
+    fXXX->SetParLimits(1,-40,40);
+    fXXX->FixParameter(2,fabs(c_f0*c_d0*FmToNu*FmToNu*0.5));
+    for(unsigned uMom=0; uMom<nMom; uMom++){
+      double MOM = Kitty_SE.GetMomentum(uMom);
+      double F1 = gsl_sf_dawson(2.*MOM*r_0*FmToNu)/(2.*MOM*r_0*FmToNu);
+      double F2 = (1.-exp(-4.*MOM*MOM*r_0*r_0*FmToNu*FmToNu))/(2.*MOM*r_0*FmToNu);
+      complex<double> Val_f = pow(c_if0/FmToNu+0.5*c_d0*FmToNu*MOM*MOM-i*MOM,-1.);
+      double v_f2 = 0.5*pow(abs(Val_f)/(r_0*FmToNu),2.);
+      double F1F2 = 2*real(Val_f)*F1/(sqrt(Pi)*r_0*FmToNu)-imag(Val_f)*F2/(r_0*FmToNu);
+      //double Ck_Ledni = 1.+v_f2+F1F2;
+      double Ck_Cats = Kitty_SE.GetCorrFun(uMom);
+      //printf("k=%.0f Cats=%.2f Ledni=%.2f\n", MOM, Ck_Cats, 1.+v_f2+F1F2);
+      //usleep(100e3);
+      //the correction factor we want to study
+      double XXX = (Ck_Cats-1.-F1F2)/v_f2;
+      hXXX->SetBinContent(uMom+1,XXX);
+      hXXX->SetBinError(uMom+1,0.001);
+    }
+    hXXX->Fit(fXXX,"Q, S, N, R, M");
+    ntBuffer[0] = r_0;
+    ntBuffer[1] = c_f0;
+    ntBuffer[2] = c_d0;
+    ntBuffer[3] = fXXX->GetParameter(0);
+    ntBuffer[4] = fXXX->GetParameter(1);
+    ntMM->Fill(ntBuffer);
+    //hXXX->Write();
+    //fXXX->Write();
+    delete hXXX; delete fXXX;
+  }
+
+  ntMM->Write();
+  delete ntMM;
+}
+
+
+int OTHERTASKS(int argc, char *argv[]){
     //pp_CompareToNorfolk();
     //pp_pL_CorrectedMC_EXP();
     //ALL_CorrectedMC_EXP();
@@ -7027,12 +7213,13 @@ int OTHERTASKS(int narg, char** ARGS){
     //Georgios_LXi_ResoTest(0);
     //Georgios_LXi_ResoTest(1);
     //Georgios_LXi_ResoTest(2);
-    Ledni_SmallRad("NF48");
-    Ledni_SmallRad("NSC97b");
-    Ledni_SmallRad("emma");
-    Ledni_SmallRad("custom");
-    Ledni_SmallRad("Toy1");
-    Ledni_SmallRad("ND46");
+    //Ledni_SmallRad("ND46");
+    //Ledni_SmallRad("NF48");
+    //Ledni_SmallRad("NSC97b");
+    //Ledni_SmallRad("emma");
+    //Ledni_SmallRad("custom");
+    //Ledni_SmallRad("Toy1");
+    Ledni_SmallRad_Random(atoi(argv[1]),atoi(argv[2]));
     //StableDisto_Test();
     //Andi_pDminus_1();
     //Fast_Bootstrap_Example();
