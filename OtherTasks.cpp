@@ -6686,7 +6686,7 @@ void Ledni_SmallRad(TString PotentialName){
   const double kMax = 300;
   const double kStep = 3;
   const unsigned nMom = TMath::Nint(kMax/kStep);
-  const double Radius = 1.08;
+  const double Radius = 1.20;
 
   CATSparameters sPars(CATSparameters::tSource,1,true);
   sPars.SetParameter(0,Radius);
@@ -6872,7 +6872,27 @@ void Ledni_SmallRad(TString PotentialName){
   g_sindelta.SetLineStyle(2);
   g_sindelta.SetLineColor(kBlack);
 
+  TGraph g_MM_B;
+  g_MM_B.SetName("g_MM_B");
+  g_MM_B.SetLineWidth(4);
+  g_MM_B.SetLineColor(kAzure+10);
+
+  TGraph g_MM_A;
+  g_MM_A.SetName("g_MM_A");
+  g_MM_A.SetLineWidth(4);
+  g_MM_A.SetLineColor(kViolet+1);
+
+  TGraph g_MM_XXX;
+  g_MM_XXX.SetName("g_MM_XXX");
+  g_MM_XXX.SetLineWidth(4);
+  g_MM_XXX.SetLineColor(kRed);
+
+
   unsigned NumPts = 0;
+  double XXX0;
+//I am 100% sure it goes as 1/Radius
+  double exp_MMB = c_d0/pow(TMath::Pi(),3.)/Radius;
+  double exp_MMA;
   for(double MOM=kMin+kStep*0.5; MOM<kMax; MOM+=kStep){
     double F1 = gsl_sf_dawson(2.*MOM*Val_r0)/(2.*MOM*Val_r0);
     double F2 = (1.-exp(-4.*MOM*MOM*Val_r0*Val_r0))/(2.*MOM*Val_r0);
@@ -6895,11 +6915,18 @@ void Ledni_SmallRad(TString PotentialName){
     gCk_SE.SetPoint(NumPts,MOM,Kitty_SE.GetCorrFun(NumPts));
 
     //the correction as in ledni
-    g_XXX.SetPoint(NumPts,MOM,(Kitty_SE.GetCorrFun(NumPts)-1.-F1F2)/v_f2);
+    double XXX = (Kitty_SE.GetCorrFun(NumPts)-1.-F1F2)/v_f2;
+    if(NumPts==0){
+      XXX0 = XXX;
+      exp_MMA = XXX0-exp_MMB;
+    }
+    g_XXX.SetPoint(NumPts,MOM,XXX);
     //the correction concidered as a general addition factor to C(k)
     g_XXXa.SetPoint(NumPts,MOM,(Kitty_SE.GetCorrFun(NumPts)-1.-v_f2-F1F2));
     //the correction concidered as a general multiplication factor to C(k)
     g_XXXm.SetPoint(NumPts,MOM,Kitty_SE.GetCorrFun(NumPts)/(1.+v_f2+F1F2));
+
+    g_MM_XXX.SetPoint(NumPts,MOM,exp_MMA-exp_MMB*sqrt(1.+MOM*MOM*0.5*c_f0*c_d0*FmToNu*FmToNu));
 
     g_delta.SetPoint(NumPts,MOM,Kitty_SE.GetPhaseShift(NumPts,0,0));
     g_kcotdelta.SetPoint(NumPts,MOM,MOM/tan(Kitty_SE.GetPhaseShift(NumPts,0,0)));
@@ -6907,8 +6934,33 @@ void Ledni_SmallRad(TString PotentialName){
     g_tgdelta.SetPoint(NumPts,MOM,tan(Kitty_SE.GetPhaseShift(NumPts,0,0)));
     g_sindelta.SetPoint(NumPts,MOM,sin(Kitty_SE.GetPhaseShift(NumPts,0,0)));
 
+    double MM_B,MM_A;
+    //MM_B = (XXX-XXX0)/(sqrt(fabs(c_f0*(1./c_f0+0.5*MOM*MOM*c_d0)))-1.);
+    //MM_B = (XXX-XXX0)/(c_f0*(1./c_f0+0.5*MOM*MOM*c_d0)-1.);
+    MM_B = (XXX-XXX0)/(sqrt(fabs(1.+MOM*MOM*0.5*c_f0*c_d0*FmToNu*FmToNu))-1.);
+    MM_A = XXX0-MM_B;
+    //printf("k = %.1f\n",MOM);
+    //printf(" X=%.3f\n",XXX);
+    //printf(" X-X0=%.3f\n",XXX-XXX0);
+    //printf(" C = %.2e\n",0.5*c_f0*c_d0*FmToNu*FmToNu);
+    //printf(" prop=%.3f\n",sqrt(fabs(1.+MOM*MOM*0.5*c_f0*c_d0*FmToNu*FmToNu))-1.);
+    //printf(" B = %.2e\n",MM_B);
+    //printf(" A = %.2e\n",MM_A);
+    //printf("----------------------\n");
+    //usleep(500e3);
+    if(NumPts){
+      g_MM_B.SetPoint(NumPts-1,MOM,MM_B);
+      g_MM_A.SetPoint(NumPts-1,MOM,MM_A);
+    }
+
     NumPts++;
   }
+
+  printf("f0 = %.2f\n",c_f0);
+  printf("1/f0 = %.2f\n",1./c_f0);
+  printf("MMA = %.2f\n",exp_MMA);
+  printf("d0 = %.2f\n",c_d0);
+  printf("MMB = %.2f\n",exp_MMB);
 
   TFile fOutput(OutputFolder+"fOutput_"+PotentialName+".root","recreate");
   gCk_SE.Write();
@@ -6920,6 +6972,9 @@ void Ledni_SmallRad(TString PotentialName){
   g_F1F2.Write();
   g_F1F2_f2c.Write();
   g_XXX.Write();
+  g_MM_XXX.Write();
+  g_MM_A.Write();
+  g_MM_B.Write();
   g_XXXa.Write();
   g_XXXm.Write();
   g_delta.Write();
