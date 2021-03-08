@@ -7114,6 +7114,7 @@ void Ledni_SmallRad_Random(const unsigned SEED, const unsigned NumIter){
   //-23: deep bound state, moderate raidus. Ledni could work              (?)
   //-31: repulsion, small radius. Ledni will fail                         (!!)
   //-32: shallow repulsion. Ledni will fail                               (!!)
+         //--> actually that one works sometimes, in case r0>d0
 
   TRandom3 rangen(SEED);
 
