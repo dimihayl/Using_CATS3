@@ -7141,10 +7141,10 @@ void Ledni_SmallRad_Random(const unsigned SEED, const unsigned NumIter){
   //Kitty_SE.SetShortRangePotential(0,0,DoubleGaussSum,pPars);
   Kitty_SE.SetShortRangePotential(0,0,YukawaDimiCore,pPars);
   double c_f0,c_if0,c_d0,V_1,V_2,mu_1,mu_2,r_0,s_2,l_if0,l_d0;
-  const TString OutputFolder = TString::Format("%s/MMM/Yukawa2/",GetCernBoxDimi());
+  const TString OutputFolder = TString::Format("%s/MMM/Yukawa3/",GetCernBoxDimi());
   TFile fOutput(OutputFolder+TString::Format("fOut_S%u_I%u.root",SEED,NumIter),"recreate");
-  TNtuple* ntMM = new TNtuple("ntMM", "ntMM","r0:f0:d0:MMA:MMB:C_X0:L_X0:V1:mu1:V2:mu2:s2:wf2:Class");
-  Float_t ntBuffer[14];
+  TNtuple* ntMM = new TNtuple("ntMM", "ntMM","r0:f0:d0:MMA:MMB:C_X0:C_X150:L_X0:V1:mu1:V2:mu2:s2:wf2:Class");
+  Float_t ntBuffer[15];
   TH1F* hClassCount = new TH1F("hClassCount","hClassCount",100,-50.5,49.5);
   TH2F* hif0d0Count = new TH2F("hf0d0Count","hf0d0Count",20,-10,10,20,0,40);
   int LastClass=0;
@@ -7329,13 +7329,14 @@ void Ledni_SmallRad_Random(const unsigned SEED, const unsigned NumIter){
     ntBuffer[3] = fXXX->GetParameter(0);
     ntBuffer[4] = fXXX->GetParameter(1);
     ntBuffer[5] = hXXX->GetBinContent(1);
-    ntBuffer[6] = csmall;
-    ntBuffer[7] = V_1;
-    ntBuffer[8] = mu_1;
-    ntBuffer[9] = V_2;
-    ntBuffer[10] = mu_2;
-    ntBuffer[11] = s_2;
-    ntBuffer[12] = wf2;
+    ntBuffer[6] = hXXX->GetBinContent(nMom);
+    ntBuffer[7] = csmall;
+    ntBuffer[8] = V_1;
+    ntBuffer[9] = mu_1;
+    ntBuffer[10] = V_2;
+    ntBuffer[11] = mu_2;
+    ntBuffer[12] = s_2;
+    ntBuffer[13] = wf2;
 
 
     //f0>0
@@ -7356,7 +7357,7 @@ void Ledni_SmallRad_Random(const unsigned SEED, const unsigned NumIter){
     else if(fabs(c_d0)>r_0&&fabs(c_d0)>fabs(c_f0)*0.5) CLASS += 30;
 
     CLASS = c_f0>0?CLASS:-CLASS;
-    ntBuffer[13] = CLASS;
+    ntBuffer[14] = CLASS;
     //printf("BEFORE: %f\n",hClassCount->GetBinContent(hClassCount->FindBin(double(CLASS))));
     hClassCount->Fill(ntBuffer[13]);
     //printf("AFTER: %f\n",hClassCount->GetBinContent(hClassCount->FindBin(double(CLASS))));
