@@ -7061,7 +7061,13 @@ printf("--->\n");
 }
 
 void Ledni_SmallRad_Random(const unsigned SEED, const unsigned NumIter){
-
+//boosts classes 21,23,31,32
+// *radius fixed to 1.08 done
+// *the boosters only apply to the above 4 classes, never to others
+// *the Gaussian V1 has to be negative
+// *for a Gaussian mu1<1
+// *for Yukawa V1<80  done
+const bool EmmaBias = true;
   const double kMin = 0;
   const double kMax = 150;
   const double kCorrection = 120;
@@ -7141,7 +7147,7 @@ void Ledni_SmallRad_Random(const unsigned SEED, const unsigned NumIter){
   //Kitty_SE.SetShortRangePotential(0,0,DoubleGaussSum,pPars);
   Kitty_SE.SetShortRangePotential(0,0,YukawaDimiCore,pPars);
   double c_f0,c_if0,c_d0,V_1,V_2,mu_1,mu_2,r_0,s_2,l_if0,l_d0;
-  const TString OutputFolder = TString::Format("%s/MMM/Yukawa3/",GetCernBoxDimi());
+  const TString OutputFolder = TString::Format("%s/MMM/Emma1/",GetCernBoxDimi());
   TFile fOutput(OutputFolder+TString::Format("fOut_S%u_I%u.root",SEED,NumIter),"recreate");
   TNtuple* ntMM = new TNtuple("ntMM", "ntMM","r0:f0:d0:MMA:MMB:C_X0:C_X150:L_X0:V1:mu1:V2:mu2:s2:wf2:Class");
   Float_t ntBuffer[15];
@@ -7206,7 +7212,8 @@ void Ledni_SmallRad_Random(const unsigned SEED, const unsigned NumIter){
       //mu_2 = 0.45;
       //mu_2 = rangen.Gaus(mu_2,0.01*Factor);
       mu_1 = rangen.Gaus(mu_1,0.01*FactorSP);
-      if(ClassN<AvgN) r_0 = r_0;
+      if(EmmaBias) r_0 = 1.08;
+      else if(ClassN<AvgN) r_0 = r_0;
       else r_0 = Radii[rangen.Integer(8)];
     }
     else{
@@ -7214,7 +7221,8 @@ void Ledni_SmallRad_Random(const unsigned SEED, const unsigned NumIter){
       else s_2 = 0.0;
       if(s_2>0){
         //Yukawa
-        V_1 = rangen.Uniform(5,150);
+        if(EmmaBias) V_1 = rangen.Uniform(5,80);
+        else V_1 = rangen.Uniform(5,150);
         mu_1 = rangen.Uniform(0.6,2.1);
         V_2 = rangen.Uniform(5,600);
         s_2 = 0.1;
@@ -7229,7 +7237,8 @@ void Ledni_SmallRad_Random(const unsigned SEED, const unsigned NumIter){
       }
       if(rangen.Uniform()<0.75) mu_2 = 0.4;
       else mu_2 = 0.7;
-      r_0 = Radii[rangen.Integer(8)];
+      if(EmmaBias) r_0 = 1.08;
+      else r_0 = Radii[rangen.Integer(8)];
     }
          if(V_1>0&&V_2>0)printf("\n   V1=%5.0f mu1=%.2f V2=%5.0f mu2=%.2f s2=%.1f r0=%.2f", V_1,mu_1,V_2,mu_2,s_2,r_0);
     else if(V_1>0&&V_2<0)printf("\n   V1=%5.0f mu1=%.2f V2=%4.0f mu2=%.2f s2=%.1f r0=%.2f", V_1,mu_1,V_2,mu_2,s_2,r_0);
@@ -7260,8 +7269,7 @@ void Ledni_SmallRad_Random(const unsigned SEED, const unsigned NumIter){
     //Kitty_SE.SetShortRangePotential(0,0,3,0.45);
     //Kitty_SE.SetShortRangePotential(0,0,4,0.1);
 
-
-    Kitty_SE.SetAnaSource(0,r_0,false);
+    Kitty_SE.SetAnaSource(0,r_0,EmmaBias);
     Kitty_SE.KillTheCat();
     TH1F* hDummy; TF1* fDummy;
     //potential with silly phase shifts
