@@ -6730,7 +6730,7 @@ void Ledni_SmallRad(TString PotentialName){
   Kitty_SE.SetNumPW(0,1);
   Kitty_SE.SetSpin(0,0);
   Kitty_SE.SetChannelWeight(0, 1.);
-  CATSparameters pPars(CATSparameters::tPotential,4,true);
+  CATSparameters pPars(CATSparameters::tPotential,5,true);
   double c_f0,c_d0;
   if(PotentialName=="NSC97b"){
     pPars.SetParameter(0,-78.42);
@@ -6773,6 +6773,15 @@ void Ledni_SmallRad(TString PotentialName){
     c_f0 = -4.621;
     c_d0 = 1.3;
   }
+  else if(PotentialName=="Yukawa1"){
+    pPars.SetParameter(0,1.0);
+    pPars.SetParameter(1,1.0);
+    pPars.SetParameter(2,100.0);
+    pPars.SetParameter(3,1.0);
+    pPars.SetParameter(4,0.4);
+    c_f0 = 0;
+    c_d0 = 1;
+  }
   else{
     pPars.SetParameter(0,-78.42*0.39*4.5);//0.39,0.4
     pPars.SetParameter(1,1.0*1.35);
@@ -6789,7 +6798,9 @@ void Ledni_SmallRad(TString PotentialName){
   }
   Kitty_SE.SetEpsilonConv(5e-9);
   Kitty_SE.SetEpsilonProp(5e-9);
-  Kitty_SE.SetShortRangePotential(0,0,DoubleGaussSum,pPars);
+  if(PotentialName.Contains("Yukawa"))
+    Kitty_SE.SetShortRangePotential(0,0,YukawaDimiCore,pPars);
+  else Kitty_SE.SetShortRangePotential(0,0,DoubleGaussSum,pPars);
   Kitty_SE.KillTheCat();
 
   const TString OutputFolder = TString::Format("%s/OtherTasks/Ledni_SmallRad/",GetFemtoOutputFolder());
@@ -7052,27 +7063,62 @@ printf("--->\n");
 void Ledni_SmallRad_Random(const unsigned SEED, const unsigned NumIter){
 
   const double kMin = 0;
-  const double kMax = 210;
+  const double kMax = 150;
   const double kCorrection = 120;
   const double kStep = 3;
   const unsigned nMom = TMath::Nint(kMax/kStep);
 
-  const double V1_min = -1000;
-  const double V1_max = 0;
-  const double mu1_min = 0.6;
-  const double mu1_max = 1.2;
-  const double V2_min = 0;
-  const double V2_max = 5000;
-  const double mu2_min = 0.3;
-  const double mu2_max = 0.5;
+  //const double V1_min = -1000;
+  //const double V1_max = 0;
+  //const double mu1_min = 0.6;
+  //const double mu1_max = 1.2;
+  //const double V2_min = 0;
+  //const double V2_max = 5000;
+  //const double mu2_min = 0.3;
+  //const double mu2_max = 0.5;
 
-  const double r_min = 1.00;
-  const double r_max = 1.50;
+  //const double r_min = 1.00;
+  //const double r_max = 1.50;\
+
+  double Radii[8];
+  Radii[0] = 0.9;
+  Radii[1] = 1.0;
+  Radii[2] = 1.2;
+  Radii[3] = 1.5;
+  Radii[4] = 2.0;
+  Radii[5] = 2.5;
+  Radii[6] = 3.0;
+  Radii[7] = 4.0;
+
+  //separtion based on:
+  //f0>0
+  //r0>d0
+  //|f0|>2*d0 (BS cond) -> satisfied for 2 dominant or 3 surpressed
+  //r0>|f|/2
+
+  //interesting classes:
+  //+/- AB, with A,B = 1,2,3 (r0,f0,d0)
+  //A = which one is dominant (e.g. 1 if r0>d0 && r0>|f|/2)
+  //B = which one is surpressed (e.g. 3 if d0<r0 && d0<|f0|/2)
+  //N.B.
+  //ALL POSSIBLE CLASSES:
+  // 12: shallow attraction, large radius. Ledni should be perfect here   (OK)
+  // 13: moderate attraction, large radius. Ledni should work well        (OK)
+  // 21: strong attraction, small radius. Ledni could fail                (!)
+  // 23: strong attraction, small range. Ledni could work                 (?)
+  // 31: attraction, small radius, large range. Ledni will fail           (!!)
+  // 32: weak attraction, small radius, large range. Ledni could fail     (!)
+  //-12: shallow repulsion, large radius. Ledni could work                (?)
+  //-13: bound state, large radius. Ledni will work                       (OK)
+  //-21: bound state, small radius. Ledni could fail                      (!)
+  //-23: deep bound state, moderate raidus. Ledni could work              (?)
+  //-31: repulsion, small radius. Ledni will fail                         (!!)
+  //-32: shallow repulsion. Ledni will fail                               (!!)
 
   TRandom3 rangen(SEED);
 
   CATSparameters sPars(CATSparameters::tSource,1,true);
-  sPars.SetParameter(0,(r_max+r_min)*0.5);
+  sPars.SetParameter(0,2.5);
   CATS Kitty_SE;
   Kitty_SE.SetMomBins(nMom,kMin,kMax);
   Kitty_SE.SetAnaSource(GaussSource, sPars);
@@ -7086,38 +7132,135 @@ void Ledni_SmallRad_Random(const unsigned SEED, const unsigned NumIter){
   Kitty_SE.SetChannelWeight(0, 1.);
   Kitty_SE.SetEpsilonConv(5e-9);
   Kitty_SE.SetEpsilonProp(5e-9);
+  Kitty_SE.SetMaxRad(64);
+  Kitty_SE.SetMaxRho(24);
   Kitty_SE.SetNotifications(CATS::nWarning);
   Kitty_SE.KillTheCat();
-  CATSparameters pPars(CATSparameters::tPotential,4,true);
-  Kitty_SE.SetShortRangePotential(0,0,DoubleGaussSum,pPars);
-  double c_f0,c_if0,c_d0,V_1,V_2,mu_1,mu_2,r_0;
-  const TString OutputFolder = TString::Format("%s/OtherTasks/Ledni_SmallRad_Random/Toy1/",GetFemtoOutputFolder());
+  CATSparameters pPars(CATSparameters::tPotential,5,true);
+  //Kitty_SE.SetShortRangePotential(0,0,DoubleGaussSum,pPars);
+  Kitty_SE.SetShortRangePotential(0,0,YukawaDimiCore,pPars);
+  double c_f0,c_if0,c_d0,V_1,V_2,mu_1,mu_2,r_0,s_2,l_if0,l_d0;
+  const TString OutputFolder = TString::Format("%s/MMM/Yukawa2/",GetFemtoOutputFolder());
   TFile fOutput(OutputFolder+TString::Format("fOut_S%u_I%u.root",SEED,NumIter),"recreate");
-  TNtuple* ntMM = new TNtuple("ntMM", "ntMM","r0:f0:d0:MMA:MMB");
-  Float_t ntBuffer[5];
+  TNtuple* ntMM = new TNtuple("ntMM", "ntMM","r0:f0:d0:MMA:MMB:C_X0:L_X0:V1:mu1:V2:mu2:s2:wf2:Class");
+  Float_t ntBuffer[14];
+  TH1F* hClassCount = new TH1F("hClassCount","hClassCount",100,-50.5,49.5);
+  TH2F* hif0d0Count = new TH2F("hf0d0Count","hf0d0Count",20,-10,10,20,0,40);
+  int LastClass=0;
+  int SillyPhaseShifts = 0;
   for(unsigned uIter=0; uIter<NumIter; uIter++){
-    V_1 = rangen.Uniform(V1_min,V1_max);
-    V_2 = rangen.Uniform(V2_min,V2_max);
-    mu_1 = rangen.Uniform(mu1_min,mu1_max);
-    mu_2 = rangen.Uniform(mu2_min,mu2_max);
+    printf("\r\033[K Progress %5u from %5u",uIter,NumIter);
+
+    //try to enhance the statistics here
+    //if((1.+2.*c_d0/c_f0)<0){
+    //  V_1 = rangen.Gaus(V_1,30);
+    //  V_2 = rangen.Gaus(V_2,30);
+    //  mu_1 = rangen.Gaus(mu_1,0.02);
+    //  mu_2 = rangen.Gaus(mu_2,0.02);
+    //}
+    /*
+    if(c_d0>5&&c_f0>0){
+      V_1 = rangen.Gaus(V_1,15);
+      V_2 = rangen.Gaus(V_2,15);
+      mu_1 = rangen.Gaus(mu_1,0.01);
+      mu_2 = rangen.Gaus(mu_2,0.01);
+    }
+    else{
+      //try to enhance bound states a bit
+      if(rangen.Uniform()<0.2){
+        V_1 = rangen.Gaus(-400,200);
+        V_2 = rangen.Gaus(600,300);
+      }
+      else{
+        V_1 = rangen.Gaus(-100,75);
+        V_2 = rangen.Uniform(V2_min,V2_max);
+      }
+      mu_1 = rangen.Uniform(mu1_min,mu1_max);
+      mu_2 = rangen.Uniform(mu2_min,mu2_max);
+    }
+    */
+
 //V_1 = -144.89;
 //V_2 = 127.87;
 //mu_1 = 1.0;
 //mu_2 = 0.45;
-V_1 = -144.5;
-V_2 = 520.0;
-mu_1 = 2.11;
-mu_2 = 0.54;
+//V_1 = -144.5;CLASS
+//V_2 = 520.0;
+//mu_1 = 2.11;
+//mu_2 = 0.54;
+    int AvgN = uIter/12;
+    int ClassN = hClassCount->GetBinContent(hClassCount->FindBin(double(LastClass)));
+    int AvgSP = uIter/400;
+    int if0d0N = hif0d0Count->GetBinContent(hif0d0Count->FindBin(l_if0,l_d0));
+    //printf(" (Class=%i N%i A%i)",LastClass,ClassN,AvgN);
 
-    r_0 = rangen.Uniform(r_min,r_max);
-//r_0 = 1.5;
+    if((ClassN<AvgN||if0d0N<AvgSP)&&SillyPhaseShifts<3){
+      double FactorSP=1;double FactorR=1;
+      if(ClassN<AvgN/2){FactorSP*=0.5;FactorR*=0.5;}
+      else if(if0d0N<AvgSP/2){FactorSP*=0.5;}
+      if(ClassN<AvgN/4){FactorSP*=0.5;FactorR*=0.5;}
+      else if(if0d0N<AvgSP/4){FactorSP*=0.5;}
+      V_1 = rangen.Gaus(V_1,s_2>0?3*FactorSP:12*FactorSP);
+      V_2 = rangen.Gaus(V_2,s_2>0?12*FactorSP:16*FactorSP);
+      //mu_2 = 0.45;
+      //mu_2 = rangen.Gaus(mu_2,0.01*Factor);
+      mu_1 = rangen.Gaus(mu_1,0.01*FactorSP);
+      if(ClassN<AvgN) r_0 = r_0;
+      else r_0 = Radii[rangen.Integer(8)];
+    }
+    else{
+      if(rangen.Uniform()<0.5) s_2 = 0.1;
+      else s_2 = 0.0;
+      if(s_2>0){
+        //Yukawa
+        V_1 = rangen.Uniform(5,150);
+        mu_1 = rangen.Uniform(0.6,2.1);
+        V_2 = rangen.Uniform(5,600);
+        s_2 = 0.1;
+      }
+      else{
+        //V_1 = rangen.Uniform(-2500,500);
+        V_1 = rangen.Gaus(-1100,700);
+        //V_2 = rangen.Uniform(-500,5500);
+        V_2 = rangen.Gaus(1400,800);
+        mu_1 = rangen.Uniform(0.5,1.6);
+        s_2 = 0;
+      }
+      if(rangen.Uniform()<0.75) mu_2 = 0.4;
+      else mu_2 = 0.7;
+      r_0 = Radii[rangen.Integer(8)];
+    }
+         if(V_1>0&&V_2>0)printf("\n   V1=%5.0f mu1=%.2f V2=%5.0f mu2=%.2f s2=%.1f r0=%.2f", V_1,mu_1,V_2,mu_2,s_2,r_0);
+    else if(V_1>0&&V_2<0)printf("\n   V1=%5.0f mu1=%.2f V2=%4.0f mu2=%.2f s2=%.1f r0=%.2f", V_1,mu_1,V_2,mu_2,s_2,r_0);
+    else if(V_1<0&&V_2>0)printf("\n   V1=%4.0f mu1=%.2f V2=%5.0f mu2=%.2f s2=%.1f r0=%.2f", V_1,mu_1,V_2,mu_2,s_2,r_0);
+    else                 printf("\n   V1=%4.0f mu1=%.2f V2=%4.0f mu2=%.2f s2=%.1f r0=%.2f", V_1,mu_1,V_2,mu_2,s_2,r_0);
+
     c_f0 = 0.0;
     c_d0 = 0.0;
+    //Kitty_SE.SetShortRangePotential(0,0,0,V_1);
+    //Kitty_SE.SetShortRangePotential(0,0,1,mu_1);
+    //Kitty_SE.SetShortRangePotential(0,0,2,V_2);
+    //Kitty_SE.SetShortRangePotential(0,0,3,mu_2);
+
+    if(s_2==0) Kitty_SE.SetShortRangePotential(0,0,DoubleGaussSum,pPars);
+    else if(s_2==-1) Kitty_SE.SetShortRangePotential(0,0,GaussExpSum,pPars);
+    else Kitty_SE.SetShortRangePotential(0,0,YukawaDimiCore,pPars);
     Kitty_SE.SetShortRangePotential(0,0,0,V_1);
     Kitty_SE.SetShortRangePotential(0,0,1,mu_1);
     Kitty_SE.SetShortRangePotential(0,0,2,V_2);
+    //Kitty_SE.SetShortRangePotential(0,0,3,rangen.Uniform(0.3,0.5));
     Kitty_SE.SetShortRangePotential(0,0,3,mu_2);
-    Kitty_SE.SetAnaSource(0,r_0);
+    //Kitty_SE.SetShortRangePotential(0,0,4,rangen.Uniform(0.05,0.15));
+    Kitty_SE.SetShortRangePotential(0,0,4,s_2);
+
+    //Kitty_SE.SetShortRangePotential(0,0,0,50.);
+    //Kitty_SE.SetShortRangePotential(0,0,1,1.);
+    //Kitty_SE.SetShortRangePotential(0,0,2,200.);
+    //Kitty_SE.SetShortRangePotential(0,0,3,0.45);
+    //Kitty_SE.SetShortRangePotential(0,0,4,0.1);
+
+
+    Kitty_SE.SetAnaSource(0,r_0,false);
     Kitty_SE.KillTheCat();
     TH1F* hDummy; TF1* fDummy;
     //potential with silly phase shifts
@@ -7125,13 +7268,30 @@ mu_2 = 0.54;
       uIter--;
       if(hDummy) delete hDummy;
       if(fDummy) delete fDummy;
+      SillyPhaseShifts++;
+      cout << flush;
+      cout << "\033[F";
+      cout << flush;
       continue;
     }
+    SillyPhaseShifts=0;
     c_if0 = 1./c_f0;
 //hDummy->Write();fDummy->Write();
     delete hDummy; delete fDummy;
-    if(fabs(c_if0)>40||fabs(c_f0)>40||fabs(c_d0)>40)
-      {uIter--;continue;}
+    if(fabs(c_if0)>100||fabs(c_f0)>100||fabs(c_d0)>100){
+      uIter--;
+      cout << flush;
+      cout << "\033[F";
+      cout << flush;
+      continue;
+    }
+
+    if(c_f0>0)printf(" => f0=%4.2f d0=%3.2f",c_f0,c_d0);
+    else printf(" => f0=%3.2f d0=%3.2f--------",c_f0,c_d0);
+    cout << flush;
+    cout << "\033[F";
+    cout << flush;
+
 
     TH1F* hXXX = new TH1F("hXXX","hXXX",nMom,kMin,kMax);
     TF1* fXXX = new TF1("fXXX","[0]+[1]*sqrt(1.+[2]*x*x)",kMin,kCorrection);
@@ -7140,6 +7300,8 @@ mu_2 = 0.54;
     fXXX->SetParameter(1,0);
     fXXX->SetParLimits(1,-40,40);
     fXXX->FixParameter(2,fabs(c_f0*c_d0*FmToNu*FmToNu*0.5));
+    //the weight of the f^2 factor with respect to F1F2 (after correction)
+    double wf2=0;
     for(unsigned uMom=0; uMom<nMom; uMom++){
       double MOM = Kitty_SE.GetMomentum(uMom);
       double F1 = gsl_sf_dawson(2.*MOM*r_0*FmToNu)/(2.*MOM*r_0*FmToNu);
@@ -7155,21 +7317,67 @@ mu_2 = 0.54;
       double XXX = (Ck_Cats-1.-F1F2)/v_f2;
       hXXX->SetBinContent(uMom+1,XXX);
       hXXX->SetBinError(uMom+1,0.001);
+      wf2 += fabs((Ck_Cats-1.-F1F2)/F1F2);
     }
+    wf2 /= double(nMom);
     hXXX->Fit(fXXX,"Q, S, N, R, M");
+    double csmall = (1-(c_d0)/(2*sqrt(Pi)*r_0));
     ntBuffer[0] = r_0;
     ntBuffer[1] = c_f0;
     ntBuffer[2] = c_d0;
     ntBuffer[3] = fXXX->GetParameter(0);
     ntBuffer[4] = fXXX->GetParameter(1);
+    ntBuffer[5] = hXXX->GetBinContent(1);
+    ntBuffer[6] = csmall;
+    ntBuffer[7] = V_1;
+    ntBuffer[8] = mu_1;
+    ntBuffer[9] = V_2;
+    ntBuffer[10] = mu_2;
+    ntBuffer[11] = s_2;
+    ntBuffer[12] = wf2;
+
+
+    //f0>0
+    //r0>d0
+    //|f0|>2*|d0| (BS cond) -> satisfied for 2 dominant or 3 surpressed
+    //r0>|f|/2
+    //interesting classes:
+    //+/- AB, with A,B = 1,2,3 (r0,f0,d0)
+    //A = which one is dominant (e.g. 1 if r0>d0 && r0>|f|/2)
+    //B = which one is surpressed (e.g. 3 if d0<r0 && d0<|f0|/2)
+    int CLASS = 0;
+    if(r_0<fabs(c_d0)&&r_0<fabs(c_f0)*0.5) CLASS = 1;
+    else if(fabs(c_f0)<2.*r_0&&fabs(c_f0)<2.*fabs(c_d0)) CLASS = 2;
+    else if(fabs(c_d0)<r_0&&fabs(c_d0)<fabs(c_f0)*0.5) CLASS = 3;
+
+    if(r_0>fabs(c_d0)&&r_0>fabs(c_f0)*0.5) CLASS += 10;
+    else if(fabs(c_f0)>2.*r_0&&fabs(c_f0)>2.*fabs(c_d0)) CLASS += 20;
+    else if(fabs(c_d0)>r_0&&fabs(c_d0)>fabs(c_f0)*0.5) CLASS += 30;
+
+    CLASS = c_f0>0?CLASS:-CLASS;
+    ntBuffer[13] = CLASS;
+    //printf("BEFORE: %f\n",hClassCount->GetBinContent(hClassCount->FindBin(double(CLASS))));
+    hClassCount->Fill(ntBuffer[13]);
+    //printf("AFTER: %f\n",hClassCount->GetBinContent(hClassCount->FindBin(double(CLASS))));
+    LastClass = CLASS;
+
+    hif0d0Count->Fill(c_if0,c_d0);
+    l_if0=c_if0;
+    l_d0=c_d0;
+
     ntMM->Fill(ntBuffer);
     //hXXX->Write();
     //fXXX->Write();
     delete hXXX; delete fXXX;
   }
+  printf("\n");
 
   ntMM->Write();
+  hClassCount->Write();
+  hif0d0Count->Write();
   delete ntMM;
+  delete hClassCount;
+  delete hif0d0Count;
 }
 
 
@@ -7219,6 +7427,7 @@ int OTHERTASKS(int argc, char *argv[]){
     //Ledni_SmallRad("emma");
     //Ledni_SmallRad("custom");
     //Ledni_SmallRad("Toy1");
+    //Ledni_SmallRad("Yukawa1");
     Ledni_SmallRad_Random(atoi(argv[1]),atoi(argv[2]));
     //StableDisto_Test();
     //Andi_pDminus_1();
