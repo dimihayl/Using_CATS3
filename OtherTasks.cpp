@@ -7358,7 +7358,7 @@ void Ledni_SmallRad_Random(const unsigned SEED, const unsigned NumIter){
     CLASS = c_f0>0?CLASS:-CLASS;
     ntBuffer[14] = CLASS;
     //printf("BEFORE: %f\n",hClassCount->GetBinContent(hClassCount->FindBin(double(CLASS))));
-    hClassCount->Fill(ntBuffer[13]);
+    hClassCount->Fill(ntBuffer[14]);
     //printf("AFTER: %f\n",hClassCount->GetBinContent(hClassCount->FindBin(double(CLASS))));
     LastClass = CLASS;
 
