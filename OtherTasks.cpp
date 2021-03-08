@@ -7140,7 +7140,7 @@ void Ledni_SmallRad_Random(const unsigned SEED, const unsigned NumIter){
   //Kitty_SE.SetShortRangePotential(0,0,DoubleGaussSum,pPars);
   Kitty_SE.SetShortRangePotential(0,0,YukawaDimiCore,pPars);
   double c_f0,c_if0,c_d0,V_1,V_2,mu_1,mu_2,r_0,s_2,l_if0,l_d0;
-  const TString OutputFolder = TString::Format("%s/MMM/Yukawa2/",GetFemtoOutputFolder());
+  const TString OutputFolder = TString::Format("%s/MMM/Yukawa2/",GetCernBoxDimi());
   TFile fOutput(OutputFolder+TString::Format("fOut_S%u_I%u.root",SEED,NumIter),"recreate");
   TNtuple* ntMM = new TNtuple("ntMM", "ntMM","r0:f0:d0:MMA:MMB:C_X0:L_X0:V1:mu1:V2:mu2:s2:wf2:Class");
   Float_t ntBuffer[14];
