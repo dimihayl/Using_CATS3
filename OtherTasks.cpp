@@ -6678,6 +6678,9 @@ bool Eval_ScattParameters(CATS& Kitty, double& ScatLen, double& EffRan, TH1F*& h
   TF1* fitSP4 = new TF1("fitSP4","[2]*pow(x,4.)+0.5*[1]/197.327*x*x+197.327*[0]", 10, 90);
   TF1* fitSP6 = new TF1("fitSP6","[3]*pow(x,6.)+[2]*pow(x,4.)+0.5*[1]/197.327*x*x+197.327*[0]", 10, 90);
   double inv_f0 = ScatLen==0?0:1./ScatLen;
+//printf("ScatLen = %e\n",ScatLen);
+//printf("inv_f0 = %f\n",inv_f0);
+//printf("EffRan = %f\n",EffRan);
   fitSP2->SetParameter(0,inv_f0);fitSP4->SetParameter(0,inv_f0);fitSP6->SetParameter(0,inv_f0);
   fitSP2->SetParameter(1,EffRan);fitSP4->SetParameter(1,EffRan);fitSP6->SetParameter(1,EffRan);
   fitSP4->SetParameter(2,0);fitSP6->SetParameter(2,0);
@@ -7439,9 +7442,10 @@ void SelectEmmaPotential(){
   }
 }
 
-void ManufactureYukawaPotential(const double f0, const double df0,
+void ManufacturePotential(const double f0, const double df0,
                                 const double d0, const double dd0,
-                                double& V1, double& mu1, double& V2, double& mu2, const int& SEED=11){
+                                double& V1, double& mu1, double& V2, double& mu2,
+                                const TString Potential, const int& SEED=11){
   //b = best, l = last, d = difference to desired
   double V_1,bV_1;
   double V_2,bV_2;
@@ -7449,9 +7453,11 @@ void ManufactureYukawaPotential(const double f0, const double df0,
   double mu_2,bmu_2;
   double f_0,bf_0,df_0,bdf_0;
   double d_0,bd_0,dd_0,bdd_0;
+  f_0 = 0; d_0 = 0;
   bV_1 = 0; bV_2 = 0;
-  bmu_1 = 1.5; mu_2 = 0.5;
+  bmu_1 = 1.5; bmu_2 = 0.5;
   bdf_0 = 1e6; bdd_0 = 1e6;
+  bf_0 = f0; bd_0 = d0;
   const unsigned MaxIter = 1000;
   unsigned uIter=0;
   TRandom3 rangen(SEED);
@@ -7478,34 +7484,106 @@ void ManufactureYukawaPotential(const double f0, const double df0,
   Kitty_SE.SetNotifications(CATS::nWarning);
   Kitty_SE.KillTheCat();
   CATSparameters pPars(CATSparameters::tPotential,5,true);
-  Kitty_SE.SetShortRangePotential(0,0,YukawaDimiCore,pPars);
+  if(Potential=="YukawaDimiCore") Kitty_SE.SetShortRangePotential(0,0,YukawaDimiCore,pPars);
+  else Kitty_SE.SetShortRangePotential(0,0,DoubleGaussSum,pPars);
   bool GoodGoing=false;
-  double Distance=100;
-  while(uIter<MaxIter&&df0<bdf_0&&dd0<bdd_0){
-    //printf("\r\033[K Progress %5u from %5u, d=%.1f",uIter,MaxIter,Distance);
-    printf("Progress %5u from %5u, d=%.1f\n",uIter,MaxIter,Distance);
-    V_1 = fabs(rangen.Gaus(bV_1,0.05+50./(1.+exp(-(Distance-2.0)/0.4))));
-    do{mu_1 = rangen.Gaus(bmu_1,0.001+1./(1.+exp(-(Distance-2.0)/0.4)));}
-    while(mu1>0.1&&mu1<3.0);
-    V_2 = fabs(rangen.Gaus(bV_1,0.2+200./(1.+exp(-(Distance-2.0)/0.4))));
-    do{mu_2 = rangen.Gaus(bmu_1,0.0005+0.5/(1.+exp(-(Distance-2.0)/0.4)));}
-    while(mu2>0.1&&mu2<1.5);
+  double dist=1e16;
+  double bdist=1e16;
+  //the scale to which 1fm roughly correponds
+  const double dist_unit = sqrt(0.5/df0/df0+0.5/dd0/dd0);
+
+  //Fluctuations: should be the same order as bdist
+  //if too large -> decrease Convergence
+  //if too small -> increse Convergence
+  const unsigned fluctN = 5;
+  double fluct[fluctN];
+  unsigned ufluct = 0;
+  double avg_fluct;
+  //double Adjust = 10;
+  double Convergence = 1;
+  for(unsigned uf=0; uf<fluctN; uf++) fluct[uf]=-1000*dist_unit;
+//TFile fDump(TString::Format("%s/OtherTasks/ManufactureYukawaPotential/fDump.root",GetFemtoOutputFolder()),"recreate");
+  while(uIter<MaxIter&&(df0<bdf_0||dd0<bdd_0)){
+    //printf("\r\033[K Progress #=(%5u/%5u) df0=(%.4f/%.4f) dd0=(%.4f/%.4f)",uIter,MaxIter,bdf_0,df0,bdd_0,dd0);
+    printf("\nProgress #=(%5u/%5u) df0=(%.2f/%.2f) dd0=(%.2f/%.2f)",uIter,MaxIter,bdf_0,df0,bdd_0,dd0);
+    //printf("Progress %5u from %5u, bd=%.1f(%.1f)\n",uIter,MaxIter,bdist,sqrt(0.5*bdf_0*bdf_0/df0/df0+0.5*bdd_0*bdd_0/dd0/dd0));
+
+    avg_fluct = 0;
+    for(unsigned uf=0; uf<fluctN; uf++) avg_fluct+=fluct[uf];
+    avg_fluct /= double(fluctN);
+
+    double MaxConv;
+    if(Potential=="YukawaDimiCore") MaxConv = 4;
+    else MaxConv = 1;
+    if(avg_fluct<0) Convergence=1;
+    else if(avg_fluct/bdist>1) Convergence/=1.25;
+    else if(Convergence<0.8) Convergence*=1.25;
+    //not good for the potentials to get too scattered values
+    else if(Convergence<MaxConv) Convergence*=1.05;
+    else Convergence = MaxConv;
+//ADD NUM ITER WITHOUT IMPROVEMENT TO INCREASE THE Convergence
+    printf("\n fluct = %.2f(%.2f)",avg_fluct,bdist);
+    printf("\n Convergence = %.3f",Convergence);
+    printf("\n bdf_0=%.2f; bdd_0=%.2f",bdf_0,bdd_0);
+    printf("\n bf_0=%.2f; bd_0=%.2f",bf_0,bd_0);
+    if(Potential=="YukawaDimiCore"){
+      do V_1 = rangen.Gaus(bV_1,0.05+50.*Convergence);
+      while(V_1<0);
+      do{mu_1 = rangen.Gaus(bmu_1,0.001+1.*Convergence);}
+      while(mu_1<0.||mu_1>3.0);
+      do V_2 = rangen.Gaus(bV_2,0.2+200.*Convergence);
+      while(V_2<0);
+      do{mu_2 = rangen.Gaus(bmu_2,0.0005+0.5*Convergence);}
+      while(mu_2<0.1||mu_2>1.5);
+    }
+    else{
+      //this is the long range guy, we expect it to be negative for positive f0
+      do {V_1 = rangen.Gaus(bV_1,0.1+700.*Convergence);}
+      while(f0>0&&V_1>0);
+      do{mu_1 = rangen.Gaus(bmu_1,0.001+1.*Convergence);}
+      while(mu_1<0.||mu_1>3.0);
+      //the second gaussian should be short ranged and stronger in amplitude
+      do{V_2 = rangen.Gaus(bV_2,0.3+2800.*Convergence);}
+      while(fabs(V_2)<fabs(V_1));
+      do{mu_2 = rangen.Gaus(bmu_2,0.0005+0.5*Convergence);}
+      while(mu_2<0.||mu_2>mu_1);
+    }
+
     TH1F* hDummy; TF1* fDummy;
     Kitty_SE.SetShortRangePotential(0,0,0,V_1);
     Kitty_SE.SetShortRangePotential(0,0,1,mu_1);
     Kitty_SE.SetShortRangePotential(0,0,2,V_2);
     Kitty_SE.SetShortRangePotential(0,0,3,mu_2);
     Kitty_SE.SetShortRangePotential(0,0,4,mu_2*0.2);
+    //Kitty_SE.SetNotifications(CATS::nAll);
+    //printf(" KillTheCat\n");
     Kitty_SE.KillTheCat();
+    printf("\n V1=%.1f mu1=%.3f V2=%.1f mu2=%.3f",V_1,mu_1,V_2,mu_2);
     bool Issue = !Eval_ScattParameters(Kitty_SE,f_0,d_0,hDummy,fDummy);
+    //hDummy->Write();
+    //fDummy->Write();
     if(hDummy) delete hDummy; if(fDummy) delete fDummy;
-    if(Issue) {cout << flush; continue;}
+    if(Issue) {
+      //cout<<flush;cout<<"\033[F";cout<<flush;cout<<"\033[F";
+      //cout<<flush;cout<<"\033[F";cout<<flush;cout<<"\033[F";
+      //cout << flush;
+      continue;
+    }
     df_0 = fabs(f_0-f0);
     dd_0 = fabs(d_0-d0);
-    printf(" f_0=%.2f df_0=%.2e; d_0=%.2f dd_0=%.2e\n",f_0,df_0,d_0,dd_0);
+    dist = sqrt(0.5*df_0*df_0/df0/df0+0.5*dd_0*dd_0/dd0/dd0);
+    printf("\n f_0=%.2f df_0=%.2e; d_0=%.2f dd_0=%.2e",f_0,df_0,d_0,dd_0);
     //we get a better result, that has the correct sign
-    GoodGoing = ( (df_0<bdf_0||df_0<df0)&&(dd_0<bdd_0||dd_0<dd0)
-                  &&(f_0*bf_0>0)&&(f_0*f0>0)&&(d_0*bd_0>0)&&(d_0*d0>0));
+    //GoodGoing = ( (df_0<bdf_0||df_0<df0)&&(dd_0<bdd_0||dd_0<dd0)
+    //              &&(f_0*bf_0>0)&&(f_0*f0>0)&&(d_0*bd_0>0)&&(d_0*d0>0));
+    //we reduce df_0 or dd_0 (obsolete?)(df_0<bdf_0||dd_0<bdd_0)&&
+    //we have the correct sign
+    //we reduce the distance
+    GoodGoing = (dist<bdist&&(f_0*bf_0>0)&&(f_0*f0>0)&&(d_0*bd_0>0)&&(d_0*d0>0));
+    if(bdist<1e15) fluct[ufluct] = fabs(dist-bdist);
+    else fluct[ufluct] = dist;
+    ufluct++;ufluct=ufluct%fluctN;
+
     if(GoodGoing){
       bf_0 = f_0;
       bdf_0 = df_0;
@@ -7515,25 +7593,41 @@ void ManufactureYukawaPotential(const double f0, const double df0,
       bmu_1 = mu_1;
       bV_2 = V_2;
       bmu_2 = mu_2;
-      Distance = sqrt(bf_0*bf_0+bd_0*bd_0);
+      //Distance = sqrt(bf_0*bf_0+bd_0*bd_0);
+      bdist = sqrt(0.5*df_0*df_0/df0/df0+0.5*dd_0*dd_0/dd0/dd0);
     }
     uIter++;
+    //cout<<flush;cout<<"\033[F";cout<<flush;cout<<"\033[F";
+    //cout<<flush;cout<<"\033[F";cout<<flush;cout<<"\033[F";
+    //cout<<flush;cout<<"\033[F";
     //cout << flush;
   }
+  printf("\n");
+  printf("Suitable %s potential found:\n",Potential.Data());
+  printf(" f0 = %.3f fm\n", bf_0);
+  printf(" d0 = %.2f fm\n", bd_0);
+  printf("  V1 = %.6e\n",bV_1);
+  printf("  mu1 = %.6e\n",bmu_1);
+  printf("  V2 = %.6e\n",bV_2);
+  printf("  mu2 = %.6e\n",bmu_2);
+
   V1 = bV_1;
   V2 = bV_2;
   mu1 = bmu_1;
   mu2 = bmu_2;
 }
 void MakePotentials(){
-  double f0 = 0.95;
-  double d0 = 8.9;
   double V1,V2,mu1,mu2;
-  ManufactureYukawaPotential(f0,0.001,d0,0.01,V1,mu1,V2,mu2);
-  printf("V1 = %.6e\n",V1);
-  printf("mu1 = %.6e\n",mu1);
-  printf("V2 = %.6e\n",V2);
-  printf("mu2 = %.6e\n",mu2);
+  //ManufactureYukawaPotential(0.5,0.0025,1,0.005,V1,mu1,V2,mu2);
+  //ManufactureYukawaPotential(0.5,0.0025,2,0.005*2,V1,mu1,V2,mu2);
+  //ManufactureYukawaPotential(0.5,0.0025,4,0.005*4,V1,mu1,V2,mu2);
+  //ManufactureYukawaPotential(0.5,0.0025,8,0.005*8,V1,mu1,V2,mu2);
+
+  ManufacturePotential(1.0,0.005,1.0,0.005*1,V1,mu1,V2,mu2,"DoubleGaussSum");
+  ManufacturePotential(1.0,0.005,2.0,0.005*2,V1,mu1,V2,mu2,"DoubleGaussSum");
+  ManufacturePotential(1.0,0.005,4.0,0.005*4,V1,mu1,V2,mu2,"DoubleGaussSum");
+  ManufacturePotential(1.0,0.005,8.0,0.005*8,V1,mu1,V2,mu2,"DoubleGaussSum");
+
 }
 
 int OTHERTASKS(int argc, char *argv[]){
