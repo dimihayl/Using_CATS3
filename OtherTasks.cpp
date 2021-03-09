@@ -26,7 +26,6 @@
 #include "TNtuple.h"
 #include "TRandom3.h"
 #include "TF1.h"
-#include "TNtuple.h"
 #include "TStyle.h"
 #include "TLegend.h"
 #include "TPaveText.h"
@@ -7063,9 +7062,9 @@ printf("--->\n");
 void Ledni_SmallRad_Random(const unsigned SEED, const unsigned NumIter){
 //boosts classes 21,23,31,32
 // *radius fixed to 1.08 done
-// *the boosters only apply to the above 4 classes, never to others
-// *the Gaussian V1 has to be negative
-// *for a Gaussian mu1<1
+// *the boosters only apply to the above 4 classes, never to others done
+// *the Gaussian V1 has to be negative done
+// *for a Gaussian mu1<1 done
 // *for Yukawa V1<80  done
 const bool EmmaBias = true;
   const double kMin = 0;
@@ -7146,8 +7145,8 @@ const bool EmmaBias = true;
   CATSparameters pPars(CATSparameters::tPotential,5,true);
   //Kitty_SE.SetShortRangePotential(0,0,DoubleGaussSum,pPars);
   Kitty_SE.SetShortRangePotential(0,0,YukawaDimiCore,pPars);
-  double c_f0,c_if0,c_d0,V_1,V_2,mu_1,mu_2,r_0,s_2,l_if0,l_d0;
-  const TString OutputFolder = TString::Format("%s/MMM/Emma1/",GetCernBoxDimi());
+  double c_f0,c_if0,c_d0,V_1,V_2,mu_1,mu_2,r_0,s_2,l_f0,l_if0,l_d0;
+  const TString OutputFolder = TString::Format("%s/MMM/Emma2/",GetCernBoxDimi());
   TFile fOutput(OutputFolder+TString::Format("fOut_S%u_I%u.root",SEED,NumIter),"recreate");
   TNtuple* ntMM = new TNtuple("ntMM", "ntMM","r0:f0:d0:MMA:MMB:C_X0:C_X150:L_X0:V1:mu1:V2:mu2:s2:wf2:Class");
   Float_t ntBuffer[15];
@@ -7156,7 +7155,8 @@ const bool EmmaBias = true;
   int LastClass=0;
   int SillyPhaseShifts = 0;
   for(unsigned uIter=0; uIter<NumIter; uIter++){
-    printf("\r\033[K Progress %5u from %5u",uIter,NumIter);
+    printf("\r\033[K Progress %5u from %5u\n",uIter,NumIter);
+    //printf("Progress %5u from %5u: ",uIter,NumIter);
 
     //try to enhance the statistics here
     //if((1.+2.*c_d0/c_f0)<0){
@@ -7195,23 +7195,29 @@ const bool EmmaBias = true;
 //V_2 = 520.0;
 //mu_1 = 2.11;
 //mu_2 = 0.54;
-    int AvgN = uIter/12;
+    int AvgN = uIter/(EmmaBias?6:12);
     int ClassN = hClassCount->GetBinContent(hClassCount->FindBin(double(LastClass)));
-    int AvgSP = uIter/400;
+    int AvgSP = uIter/400;//based on num bins
     int if0d0N = hif0d0Count->GetBinContent(hif0d0Count->FindBin(l_if0,l_d0));
+    bool SUPER_BOOST = (EmmaBias&&l_f0>0.65&&l_f0<1.25&&l_d0>6.2&&l_d0<17.8);
     //printf(" (Class=%i N%i A%i)",LastClass,ClassN,AvgN);
-
-    if((ClassN<AvgN||if0d0N<AvgSP)&&SillyPhaseShifts<3){
+    //in case of EmmaBias, it activates for 31,32 or SUPER_BOOST regardless on the amount of entires for this class
+    //in case of EmmaBias, classes 21 and 23 activate in case there is two little amount of them
+    if((ClassN<AvgN||if0d0N<AvgSP||SUPER_BOOST||LastClass>30)&&SillyPhaseShifts<3&&(LastClass>20||!EmmaBias)){
       double FactorSP=1;double FactorR=1;
       if(ClassN<AvgN/2){FactorSP*=0.5;FactorR*=0.5;}
       else if(if0d0N<AvgSP/2){FactorSP*=0.5;}
       if(ClassN<AvgN/4){FactorSP*=0.5;FactorR*=0.5;}
       else if(if0d0N<AvgSP/4){FactorSP*=0.5;}
+      if(SUPER_BOOST)FactorSP=1./6.;
+      //if we are close (30%, 2x for d0 in upper direction) to 0.95 8.9 which is the ledni fit result (real)
+      //printf(" -> EB%i lf0=%.2f ld0=%.2f ", EmmaBias,l_f0,l_d0);
       V_1 = rangen.Gaus(V_1,s_2>0?3*FactorSP:12*FactorSP);
       V_2 = rangen.Gaus(V_2,s_2>0?12*FactorSP:16*FactorSP);
       //mu_2 = 0.45;
       //mu_2 = rangen.Gaus(mu_2,0.01*Factor);
-      mu_1 = rangen.Gaus(mu_1,0.01*FactorSP);
+      mu_1 = rangen.Gaus(mu_1,0.02*FactorSP);
+
       if(EmmaBias) r_0 = 1.08;
       else if(ClassN<AvgN) r_0 = r_0;
       else r_0 = Radii[rangen.Integer(8)];
@@ -7229,10 +7235,12 @@ const bool EmmaBias = true;
       }
       else{
         //V_1 = rangen.Uniform(-2500,500);
-        V_1 = rangen.Gaus(-1100,700);
+        if(EmmaBias) V_1 = rangen.Gaus(-1100,0);
+        else V_1 = rangen.Gaus(-1100,700);
         //V_2 = rangen.Uniform(-500,5500);
         V_2 = rangen.Gaus(1400,800);
-        mu_1 = rangen.Uniform(0.5,1.6);
+        if(EmmaBias) mu_1 = rangen.Uniform(0.5,1.0);
+        else mu_1 = rangen.Uniform(0.5,1.6);
         s_2 = 0;
       }
       if(rangen.Uniform()<0.75) mu_2 = 0.4;
@@ -7240,10 +7248,10 @@ const bool EmmaBias = true;
       if(EmmaBias) r_0 = 1.08;
       else r_0 = Radii[rangen.Integer(8)];
     }
-         if(V_1>0&&V_2>0)printf("\n   V1=%5.0f mu1=%.2f V2=%5.0f mu2=%.2f s2=%.1f r0=%.2f", V_1,mu_1,V_2,mu_2,s_2,r_0);
-    else if(V_1>0&&V_2<0)printf("\n   V1=%5.0f mu1=%.2f V2=%4.0f mu2=%.2f s2=%.1f r0=%.2f", V_1,mu_1,V_2,mu_2,s_2,r_0);
-    else if(V_1<0&&V_2>0)printf("\n   V1=%4.0f mu1=%.2f V2=%5.0f mu2=%.2f s2=%.1f r0=%.2f", V_1,mu_1,V_2,mu_2,s_2,r_0);
-    else                 printf("\n   V1=%4.0f mu1=%.2f V2=%4.0f mu2=%.2f s2=%.1f r0=%.2f", V_1,mu_1,V_2,mu_2,s_2,r_0);
+         if(V_1>0&&V_2>0)printf("   V1=%5.0f mu1=%.2f V2=%5.0f mu2=%.2f s2=%.1f r0=%.2f", V_1,mu_1,V_2,mu_2,s_2,r_0);
+    else if(V_1>0&&V_2<0)printf("   V1=%5.0f mu1=%.2f V2=%4.0f mu2=%.2f s2=%.1f r0=%.2f", V_1,mu_1,V_2,mu_2,s_2,r_0);
+    else if(V_1<0&&V_2>0)printf("   V1=%4.0f mu1=%.2f V2=%5.0f mu2=%.2f s2=%.1f r0=%.2f", V_1,mu_1,V_2,mu_2,s_2,r_0);
+    else                 printf("   V1=%4.0f mu1=%.2f V2=%4.0f mu2=%.2f s2=%.1f r0=%.2f", V_1,mu_1,V_2,mu_2,s_2,r_0);
 
     c_f0 = 0.0;
     c_d0 = 0.0;
@@ -7281,6 +7289,7 @@ const bool EmmaBias = true;
       cout << flush;
       cout << "\033[F";
       cout << flush;
+//cout << endl;
       continue;
     }
     SillyPhaseShifts=0;
@@ -7292,15 +7301,20 @@ const bool EmmaBias = true;
       cout << flush;
       cout << "\033[F";
       cout << flush;
+//cout << endl;
       continue;
     }
 
-    if(c_f0>0)printf(" => f0=%4.2f d0=%3.2f",c_f0,c_d0);
+    if(c_f0>0)printf(" => f0=%4.2f d0=%3.2f--------",c_f0,c_d0);
     else printf(" => f0=%3.2f d0=%3.2f--------",c_f0,c_d0);
+    if(SUPER_BOOST){
+      printf("SUPER_BOOST");
+      //usleep(2000e3);
+    }
     cout << flush;
     cout << "\033[F";
     cout << flush;
-
+//cout << endl;
 
     TH1F* hXXX = new TH1F("hXXX","hXXX",nMom,kMin,kMax);
     TF1* fXXX = new TF1("fXXX","[0]+[1]*sqrt(1.+[2]*x*x)",kMin,kCorrection);
@@ -7372,6 +7386,7 @@ const bool EmmaBias = true;
     LastClass = CLASS;
 
     hif0d0Count->Fill(c_if0,c_d0);
+    l_f0=c_f0;
     l_if0=c_if0;
     l_d0=c_d0;
 
@@ -7390,6 +7405,136 @@ const bool EmmaBias = true;
   delete hif0d0Count;
 }
 
+void SelectEmmaPotential(){
+  const double f_0 = 0.95;
+  const double d_0 = 8.9;
+  const double delta = 2./100.;
+  const double df0 = fabs(f_0*delta);
+  const double dd0 = fabs(d_0*delta);
+
+  TString InputFileName = TString::Format("%s/MMM/Emma2/I4K.root",GetCernBoxDimi());
+  TFile InputFile(InputFileName,"read");
+  TNtuple* ntMM = (TNtuple*)InputFile.Get("ntMM");
+  unsigned NumEntries = ntMM->GetEntries();
+  Float_t ft_r0;  ntMM->SetBranchAddress("r0",&ft_r0);
+  Float_t ft_f0;  ntMM->SetBranchAddress("f0",&ft_f0);
+  Float_t ft_d0;  ntMM->SetBranchAddress("d0",&ft_d0);
+  Float_t ft_V1;  ntMM->SetBranchAddress("V1",&ft_V1);
+  Float_t ft_mu1; ntMM->SetBranchAddress("mu1",&ft_mu1);
+  Float_t ft_V2;  ntMM->SetBranchAddress("V2",&ft_V2);
+  Float_t ft_mu2; ntMM->SetBranchAddress("mu2",&ft_mu2);
+  Float_t ft_s2;  ntMM->SetBranchAddress("s2",&ft_s2);
+  for(unsigned uEntry; uEntry<NumEntries; uEntry++){
+    ntMM->GetEntry(uEntry);
+    if(ft_f0>f_0-df0&&ft_f0<f_0+df0&&ft_d0>d_0-dd0&&ft_d0<d_0+dd0){
+      printf("f0=%.3f; d0=%.2f;\n",ft_f0,ft_d0);
+      if(ft_s2>0.01) printf(" Yukawa potential with repulsive core\n");
+      else printf(" Double Gaussian potential\n");
+      printf("   V1 = %.6e\n",ft_V1);
+      printf("   mu1 = %.6e\n",ft_mu1);
+      printf("   V2 = %.6e\n",ft_V2);
+      printf("   mu2 = %.6e\n",ft_mu2);
+      printf("---------------------------------\n");
+    }
+  }
+}
+
+void ManufactureYukawaPotential(const double f0, const double df0,
+                                const double d0, const double dd0,
+                                double& V1, double& mu1, double& V2, double& mu2, const int& SEED=11){
+  //b = best, l = last, d = difference to desired
+  double V_1,bV_1;
+  double V_2,bV_2;
+  double mu_1,bmu_1;
+  double mu_2,bmu_2;
+  double f_0,bf_0,df_0,bdf_0;
+  double d_0,bd_0,dd_0,bdd_0;
+  bV_1 = 0; bV_2 = 0;
+  bmu_1 = 1.5; mu_2 = 0.5;
+  bdf_0 = 1e6; bdd_0 = 1e6;
+  const unsigned MaxIter = 1000;
+  unsigned uIter=0;
+  TRandom3 rangen(SEED);
+  CATSparameters sPars(CATSparameters::tSource,1,true);
+  sPars.SetParameter(0,2.5);
+  const double kMin=0;
+  const double kMax=123;
+  const unsigned nMom = 41;
+  CATS Kitty_SE;
+  Kitty_SE.SetMomBins(nMom,kMin,kMax);
+  Kitty_SE.SetAnaSource(GaussSource, sPars);
+  Kitty_SE.SetUseAnalyticSource(true);
+  Kitty_SE.SetQ1Q2(0);
+  Kitty_SE.SetQuantumStatistics(false);
+  Kitty_SE.SetRedMass(Mass_L*0.5);
+  Kitty_SE.SetNumChannels(1);
+  Kitty_SE.SetNumPW(0,1);
+  Kitty_SE.SetSpin(0,0);
+  Kitty_SE.SetChannelWeight(0, 1.);
+  Kitty_SE.SetEpsilonConv(5e-9);
+  Kitty_SE.SetEpsilonProp(5e-9);
+  Kitty_SE.SetMaxRad(96);
+  Kitty_SE.SetMaxRho(32);
+  Kitty_SE.SetNotifications(CATS::nWarning);
+  Kitty_SE.KillTheCat();
+  CATSparameters pPars(CATSparameters::tPotential,5,true);
+  Kitty_SE.SetShortRangePotential(0,0,YukawaDimiCore,pPars);
+  bool GoodGoing=false;
+  double Distance=100;
+  while(uIter<MaxIter&&df0<bdf_0&&dd0<bdd_0){
+    //printf("\r\033[K Progress %5u from %5u, d=%.1f",uIter,MaxIter,Distance);
+    printf("Progress %5u from %5u, d=%.1f\n",uIter,MaxIter,Distance);
+    V_1 = fabs(rangen.Gaus(bV_1,0.05+50./(1.+exp(-(Distance-2.0)/0.4))));
+    do{mu_1 = rangen.Gaus(bmu_1,0.001+1./(1.+exp(-(Distance-2.0)/0.4)));}
+    while(mu1>0.1&&mu1<3.0);
+    V_2 = fabs(rangen.Gaus(bV_1,0.2+200./(1.+exp(-(Distance-2.0)/0.4))));
+    do{mu_2 = rangen.Gaus(bmu_1,0.0005+0.5/(1.+exp(-(Distance-2.0)/0.4)));}
+    while(mu2>0.1&&mu2<1.5);
+    TH1F* hDummy; TF1* fDummy;
+    Kitty_SE.SetShortRangePotential(0,0,0,V_1);
+    Kitty_SE.SetShortRangePotential(0,0,1,mu_1);
+    Kitty_SE.SetShortRangePotential(0,0,2,V_2);
+    Kitty_SE.SetShortRangePotential(0,0,3,mu_2);
+    Kitty_SE.SetShortRangePotential(0,0,4,mu_2*0.2);
+    Kitty_SE.KillTheCat();
+    bool Issue = !Eval_ScattParameters(Kitty_SE,f_0,d_0,hDummy,fDummy);
+    if(hDummy) delete hDummy; if(fDummy) delete fDummy;
+    if(Issue) {cout << flush; continue;}
+    df_0 = fabs(f_0-f0);
+    dd_0 = fabs(d_0-d0);
+    printf(" f_0=%.2f df_0=%.2e; d_0=%.2f dd_0=%.2e\n",f_0,df_0,d_0,dd_0);
+    //we get a better result, that has the correct sign
+    GoodGoing = ( (df_0<bdf_0||df_0<df0)&&(dd_0<bdd_0||dd_0<dd0)
+                  &&(f_0*bf_0>0)&&(f_0*f0>0)&&(d_0*bd_0>0)&&(d_0*d0>0));
+    if(GoodGoing){
+      bf_0 = f_0;
+      bdf_0 = df_0;
+      bd_0 = d_0;
+      bdd_0 = dd_0;
+      bV_1 = V_1;
+      bmu_1 = mu_1;
+      bV_2 = V_2;
+      bmu_2 = mu_2;
+      Distance = sqrt(bf_0*bf_0+bd_0*bd_0);
+    }
+    uIter++;
+    //cout << flush;
+  }
+  V1 = bV_1;
+  V2 = bV_2;
+  mu1 = bmu_1;
+  mu2 = bmu_2;
+}
+void MakePotentials(){
+  double f0 = 0.95;
+  double d0 = 8.9;
+  double V1,V2,mu1,mu2;
+  ManufactureYukawaPotential(f0,0.001,d0,0.01,V1,mu1,V2,mu2);
+  printf("V1 = %.6e\n",V1);
+  printf("mu1 = %.6e\n",mu1);
+  printf("V2 = %.6e\n",V2);
+  printf("mu2 = %.6e\n",mu2);
+}
 
 int OTHERTASKS(int argc, char *argv[]){
     //pp_CompareToNorfolk();
@@ -7438,7 +7583,9 @@ int OTHERTASKS(int argc, char *argv[]){
     //Ledni_SmallRad("custom");
     //Ledni_SmallRad("Toy1");
     //Ledni_SmallRad("Yukawa1");
-    Ledni_SmallRad_Random(atoi(argv[1]),atoi(argv[2]));
+    //Ledni_SmallRad_Random(atoi(argv[1]),atoi(argv[2]));
+    MakePotentials();
+    //SelectEmmaPotential();
     //StableDisto_Test();
     //Andi_pDminus_1();
     //Fast_Bootstrap_Example();
