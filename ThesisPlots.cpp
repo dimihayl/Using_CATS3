@@ -3576,6 +3576,93 @@ void Compare_pL_models(){
 }
 
 
+void Sources_Defence(){
+  const unsigned NumSource = 3;
+  double* SourceSize = new double[NumSource];
+  SourceSize[0] = 1.1;
+  SourceSize[1] = 1.5;
+  SourceSize[2] = 5.0;
+
+  const double SIrange = 2.0;
+
+  TString* SourceInfo = new TString [NumSource];
+  SourceInfo[0] = TString::Format("r_{Gauss} = %.1f fm (pp)",SourceSize[0]);
+  SourceInfo[1] = TString::Format("r_{Gauss} = %.1f fm (p#minusPb)",SourceSize[1]);
+  SourceInfo[2] = TString::Format("r_{Gauss} = %.1f fm (Pb#minusPb)",SourceSize[2]);
+
+  const unsigned NumPts = 256;
+  const double rMax = 5.0;
+  const double rWidth = rMax/double(NumPts);
+
+  TH1F* hSI = new TH1F("hSI","hSI",NumPts,0,rMax);
+  hSI->SetStats(false);
+  hSI->SetTitle("");
+  hSI->GetXaxis()->SetTitleSize(0.05);
+  hSI->GetXaxis()->SetLabelSize(0.05);
+  hSI->GetXaxis()->SetTitleOffset(1.3);
+  //hSI->GetXaxis()->SetLabelOffset(0.02);
+  hSI->GetYaxis()->SetTitleSize(0.05);
+  hSI->GetYaxis()->SetLabelSize(0.05);
+  hSI->GetYaxis()->SetTitleOffset(1.1);
+  //hSI->GetYaxis()->SetLabelOffset(0.0);
+
+  hSI->SetFillColorAlpha(kGreen+3,0.3);
+  hSI->SetLineWidth(0);
+  hSI->SetLineColor(kGreen+3);
+  hSI->GetXaxis()->SetTitle("r* (fm)");
+  hSI->GetYaxis()->SetTitle("4#pir*^{2}S (1/fm)");
+  hSI->GetYaxis()->SetRangeUser(0.0, 0.5);
+
+  TLegend* lLegend = new TLegend(0.585,0.70,0.95,0.95);//lbrt
+  lLegend->SetName(TString::Format("lLegend"));
+  lLegend->SetTextSize(0.05);
+  //lLegend->SetBorderSize(0);
+  TGraph* gSource = new TGraph [NumSource];
+  for(unsigned uN=0; uN<NumSource; uN++){
+    gSource[uN].Set(NumPts);
+    gSource[uN].SetLineWidth(4);
+    lLegend->AddEntry(&gSource[uN],SourceInfo[uN]);
+  }
+
+  gSource[0].SetLineColor(kBlue+1);
+  gSource[0].SetLineStyle(1);
+
+  gSource[1].SetLineColor(kMagenta+1);
+  gSource[1].SetLineStyle(2);
+
+  gSource[2].SetLineColor(kRed+1);
+  gSource[2].SetLineStyle(4);
+
+  double SourcePars[4];
+
+  for(unsigned uBin=0; uBin<NumPts; uBin++){
+    double RAD = hSI->GetBinCenter(uBin+1);
+    hSI->SetBinContent(uBin+1,RAD<=SIrange?100:0);
+    hSI->SetBinError(uBin+1,0);
+    SourcePars[1] = RAD;
+    for(unsigned uN=0; uN<NumSource; uN++){
+      SourcePars[3] = SourceSize[uN];
+      gSource[uN].SetPoint(uBin,RAD,GaussSource(SourcePars));
+    }
+  }
+
+  TCanvas* cSources = new TCanvas("cSources","cSources",1);
+  cSources->cd(0); cSources->SetCanvasSize(1920, 1080); cSources->SetMargin(0.12,0.05,0.14,0.05);//lrbt
+  hSI->Draw();
+  for(unsigned uN=0; uN<NumSource; uN++){
+    gSource[uN].Draw("same,L");
+  }
+  lLegend->Draw("same");
+  cSources->SaveAs(TString::Format("%s/Plots/PhDThesis/Sources_Defence.pdf",GetCernBoxDimi()));
+
+  delete [] SourceSize;
+  delete [] SourceInfo;
+  delete hSI;
+  delete [] gSource;
+  delete cSources;
+  delete lLegend;
+}
+
 int THESIS_PLOTS(int narg, char** ARGS){
     //ToyPotentials_PS_WF_CF();
     //ComparePionPion(0);
@@ -3588,9 +3675,10 @@ int THESIS_PLOTS(int narg, char** ARGS){
     //pL_Feed();
     //pp_MomReso();
     //QuantumBaseline();
-    Fit_pp();
+    //Fit_pp();
     //EPOS_QS_PLOT();
     //Compare_pL_models();
+    Sources_Defence();
 
     return 0;
 }

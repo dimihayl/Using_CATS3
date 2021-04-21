@@ -41,6 +41,10 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <cerrno>
+#include <iostream>
+#include <fstream>
+
+using namespace std;
 
 
 TH1F* pL_CleverRebin(TH1F* hData_pL, const unsigned& NumMomBins_pL, const double* MomBins_pL){
@@ -7391,7 +7395,6 @@ void pL_SystematicsMay2020(unsigned SEED, unsigned BASELINE_VAR, int POT_VAR, in
         double lam_pL[5];
         double lam_pXim[5];
 
-
         //has no effect actually
         //int WhichProtonVar = rangen.Integer(3);
         //if(DefaultVariation||FitSyst==false) WhichProtonVar = 0;
@@ -10349,7 +10352,38 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
 
     Tgraph_syserror->SetFillColorAlpha(kBlack, 0.4);
     Tgraph_syserror->Draw("2 same");
-    //hData->Draw("pe same");
+
+    TString HepFileName = OutputFolder+"pL_fig1.yaml";
+    ofstream hepfile (HepFileName.Data(),ios::out);
+    hepfile << "dependent_variables:" << endl;
+    hepfile << "- header: {name: C(k*)}" << endl;
+    hepfile << "  qualifiers:" << endl;
+    hepfile << "  - {name: SQRT(S), units: GeV, value: '13000.0'}" << endl;
+    hepfile << "  values:" << endl;
+    double hep_syst;
+    double hep_stat;
+    double hep_x;
+    double hep_y;
+    for(unsigned uBin=1; uBin<hData_pL_Stat->GetNbinsX(); uBin++){
+      hep_x = hData_pL_Stat->GetBinCenter(uBin);
+      hep_y = hData_pL_Stat->GetBinContent(uBin);
+      if(hep_x>480) break;
+      hep_syst = Tgraph_syserror->GetErrorY(uBin-1);
+      hep_stat = hData_pL_Stat->GetBinError(uBin);
+      hepfile << "  - errors:" << endl;
+      hepfile << "    - {label: stat, symerror: "<<hep_stat<<"}" << endl;
+      hepfile << "    - {label: sys, symerror: "<<hep_syst<<"}" << endl;
+      hepfile << "    value: "<<hep_y << endl;
+    }
+    hepfile << "independent_variables:" << endl;
+    hepfile << "- header: {name: k* (MeV/c)}" << endl;
+    hepfile << "  values:" << endl;
+    for(unsigned uBin=1; uBin<hData_pL_Stat->GetNbinsX(); uBin++){
+        hep_x = hData_pL_Stat->GetBinCenter(uBin);
+        if(hep_x>480) break;
+        hepfile << "  - {value: "<<hep_x<<"}" << endl;
+    }
+    hepfile.close();
 
     TString LegendSource_line1 = SourceName1;
 
@@ -10381,7 +10415,8 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
     //going into CR2, 2.1 3.2 4.4 5.6 6.8 8.0 9.2
     if(PlotsType==1 && Panel_X==0) legend = new TLegend(TextLeft+0.01+0.03,TextTop-8.0*TextH,0.73,TextTop-2.1*TextH);//lbrt
     else if(PlotsType==1 && Panel_X==1) legend = new TLegend(TextLeft+0.01+0.03,TextTop-6.8*TextH,0.73,TextTop-2.1*TextH);//lbrt
-    else if(PlotsType==1 && Panel_X==2) legend = new TLegend(TextLeft+0.01+0.03,TextTop-9.2*TextH,0.73,TextTop-2.1*TextH);//lbrt
+    //else if(PlotsType==1 && Panel_X==2) legend = new TLegend(TextLeft+0.01+0.03,TextTop-9.2*TextH,0.73,TextTop-2.1*TextH);//lbrt //suggestion 1
+    else if(PlotsType==1 && Panel_X==2) legend = new TLegend(TextLeft+0.01+0.03,TextTop-2.37*TextH,0.73,TextTop-0.00*TextH);//lbrt //suggestion 2
     else if(PlotsType==1 && Panel_X==3) legend = new TLegend(TextLeft+0.01+0.03,TextTop-8.0*TextH,0.73,TextTop-2.1*TextH);//lbrt
     else if(PlotsType) legend = new TLegend(TextLeft-0.01,0.73-0.064*NumRows,0.73,TextTop-0.135);//lbrt
     else legend = new TLegend(TextLeft-0.01,0.73-0.054*NumRows,0.73,TextTop-0.135);//lbrt
@@ -10421,12 +10456,17 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
         //legend->AddEntry(ge_Fit,TString::Format("Fit %s",PotName1.Data()),"l");
         //legend->AddEntry(fitLoDummy,"LO13 (600)","l");
 
-        legend->AddEntry(hCk_Fake, "p#minus#kern[0.0]{#Lambda} #oplus #bar{p}#minus#kern[0.0]{#bar{#Lambda}} pairs", "fpe");
+        //suggestion 1
+        //legend->AddEntry(hCk_Fake, "p#minus#kern[0.0]{#Lambda} #oplus #bar{p}#minus#kern[0.0]{#bar{#Lambda}} pairs", "fpe");
+        //legend->AddEntry(ge_Fit,TString::Format("Fit %s",PotName1.Data()),"l");
+        //legend->AddEntry(fitLoDummy,"LO13 (600)","l");
+        //legend->AddEntry(ge_Sig,SigName1,"l");
+        //legend->AddEntry(ge_Xi,XiName1,"l");
+        //legend->AddEntry(ge_Bl,BlName1,"l");
+
+        //suggestion 2
         legend->AddEntry(ge_Fit,TString::Format("Fit %s",PotName1.Data()),"l");
         legend->AddEntry(fitLoDummy,"LO13 (600)","l");
-        legend->AddEntry(ge_Sig,SigName1,"l");
-        legend->AddEntry(ge_Xi,XiName1,"l");
-        legend->AddEntry(ge_Bl,BlName1,"l");
       }
       if(Panel_X==3){
 //printf("EHEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\n");
@@ -10493,6 +10533,7 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
 
     if(PlotsType==1){
       //if(Panel_X!=3)
+      if(Panel_X==0||Panel_X==2)
         legend->Draw("same");
     }
     else if(PlotsType!=2 || WhichPotential==11600) legend->Draw("same");
@@ -10502,9 +10543,18 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
     if(PlotsType==1){
       //if(Panel_X==0){
         //BeamText.SetTextSize(gStyle->GetTextSize()*1.25);
-        BeamText.SetTextSize(TextSz);
-        BeamText.DrawLatex(TextLeft+0.03, TextTop-0.05, "#bf{ALICE} pp #sqrt{#it{s}} = 13 TeV");
-        BeamText.DrawLatex(TextLeft+0.03, TextTop-0.05-TextH, "high-mult. (0#minus#kern[0.0]{0.}17% INEL>0)");
+        //if(Panel_X==0||Panel_X==2){//Suggestion 1
+        if(Panel_X==0){//Suggestion 2
+          BeamText.SetTextSize(TextSz);
+          BeamText.DrawLatex(TextLeft+0.03, TextTop-0.05, "#bf{ALICE} pp #sqrt{#it{s}} = 13 TeV");
+          BeamText.DrawLatex(TextLeft+0.03, TextTop-0.05-TextH, "high-mult. (0#minus#kern[0.0]{0.}17% INEL>0)");
+        }
+        else if(Panel_X==1||Panel_X==3){
+          BeamText.SetTextSize(TextSz);
+          BeamText.DrawLatex(TextLeft+0.03, TextTop-0.05, "Assume a negligible ");
+          BeamText.DrawLatex(TextLeft+0.03, TextTop-0.05-TextH, "p#minus#Sigma^{0} strong interaction");
+        }
+
         //BeamText.DrawLatex(TextLeft+0.03, TextTop-0.05-TextH, "aa#kern[0.5]{a}#kern[0.5]{a}#kern[0.5]{a}aaaa)");
         //BeamText.DrawLatex(TextLeft+0.03, TextTop-0.12, "pp #sqrt{#it{s}} = 13 TeV");
       //}
@@ -15719,7 +15769,7 @@ Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(at
                             atoi(argv[1]),atoi(argv[2]),atoi(argv[3])),
                             //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/",
                             //"UnfoldRefine_pp13TeV_HM_DimiJul20_POT11600_BL10_SIG1.root",
-                            TString::Format("%s/pLambda/100720_Unfolded/PaperPlotsUpdate3/",GetCernBoxDimi()),
+                            TString::Format("%s/pLambda/100720_Unfolded/PaperPlotsUpdate4/",GetCernBoxDimi()),
                             //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/"
                             atoi(argv[5])///REMOVE FOR THE OLD PLOTS
                           );

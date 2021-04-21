@@ -3,5 +3,8 @@
 
 char* GetCernBoxDimi();
 char* GetFemtoOutputFolder();
+char* GetNx1Folder();
+char* GetNx2Folder();
+char* GetNx3Folder();
 
 #endif

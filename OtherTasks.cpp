@@ -6407,6 +6407,442 @@ void Georgios_LXi_ResoTest(const int& SmoothSampling){
 }
 
 
+double MakeMaxRamonaFit(double* x, double* pars){
+  return pars[1]*GaussSourceTF1(x,pars)+(1.-pars[1]);
+}
+
+//0 = Original
+//1 = fit the angle with splines
+//2 = fit the cos with 1/(1-exp)
+void MaxRamona_piSig_ResoTest(){
+
+    const double CoreSize = 0.8;
+    const unsigned SmoothEntires = 1024*128;
+
+    //DLM_CleverMcLevyResoTM* MagicSource = new DLM_CleverMcLevyResoTM ();
+    DLM_CleverMcLevyResoTM MagicSource;
+
+    //DO NOT CHANGE !!! Sets up numerical bullshit, tuned for a Gaussian source
+    MagicSource.InitStability(1,2-1e-6,2+1e-6);
+    MagicSource.InitScale(38,0.15,2.0);
+    MagicSource.InitRad(257*2,0,64);
+    MagicSource.InitType(2);
+    ///////////////////
+
+    //for p-Xi, set up the amount of secondaries
+    //first for the protons (64.22%)
+    //MagicSource.SetUpReso(0,0.6422);
+    MagicSource.SetUpReso(0,0.61);
+    //MagicSource.SetUpReso(0,0.6422);
+    //than for the Xis, here its 0% (we have ONLY primordials)
+    MagicSource.SetUpReso(1,0.6438);
+    //MagicSource.SetUpReso(1,0.6422);
+    MagicSource.InitNumMcIter(1000000);
+
+    //the cut off scale in k*, for which the angular distributions from EPOS
+    //are evaluated. 200 MeV works okay, you can go up to 300 MeV for systematic checks
+    const double k_CutOff = 250;
+
+    //to be used for the NTuple later on
+    Float_t k_D;
+    Float_t fP1;
+    Float_t fP2;
+    Float_t fM1;
+    Float_t fM2;
+    Float_t Tau1;
+    Float_t Tau2;
+    Float_t AngleRcP1;
+    Float_t AngleRcP2;
+    Float_t AngleP1P2;
+    //random generator dimi style. The input is incompatible with the ROOT random generator,
+    //do not mix and match, do not ask me how I know this. Ask Bernie.
+    //11 is the seed, you can change that to you favorite number
+    DLM_Random RanGen(11);
+    //dummies to save random shit
+    double RanVal1;
+    double RanVal2;
+    double RanVal3;
+    double RanCos;
+    double MeanP1=0;
+
+    TFile* F_EposDisto_piReso_Sig = new TFile(TString::Format("%s/CatsFiles/Source/EposAngularDist/ForMaxRamona_piReso_Sig.root",GetCernBoxDimi()));
+    //TFile* F_EposDisto_piReso_Sig = new TFile(TString::Format("%s/CatsFiles/Source/EposAngularDist/EposDisto_p_pReso.root",GetCernBoxDimi()));
+    TNtuple* T_EposDisto_piReso_Sig = (TNtuple*)F_EposDisto_piReso_Sig->Get("InfoTuple_ClosePairs");
+    unsigned N_EposDisto_piReso_Sig = T_EposDisto_piReso_Sig->GetEntries();
+    T_EposDisto_piReso_Sig->SetBranchAddress("k_D",&k_D);
+    T_EposDisto_piReso_Sig->SetBranchAddress("P1",&fP1);
+    T_EposDisto_piReso_Sig->SetBranchAddress("P2",&fP2);
+    T_EposDisto_piReso_Sig->SetBranchAddress("M1",&fM1);
+    T_EposDisto_piReso_Sig->SetBranchAddress("M2",&fM2);
+    T_EposDisto_piReso_Sig->SetBranchAddress("Tau1",&Tau1);
+    T_EposDisto_piReso_Sig->SetBranchAddress("Tau2",&Tau2);
+    T_EposDisto_piReso_Sig->SetBranchAddress("AngleRcP1",&AngleRcP1);
+    T_EposDisto_piReso_Sig->SetBranchAddress("AngleRcP2",&AngleRcP2);
+    T_EposDisto_piReso_Sig->SetBranchAddress("AngleP1P2",&AngleP1P2);
+    gROOT->cd();
+    //iterate over the ntuple
+    for(unsigned uEntry=0; uEntry<N_EposDisto_piReso_Sig; uEntry++){
+        //get each entry
+        T_EposDisto_piReso_Sig->GetEntry(uEntry);
+        //disregard the entry of you are outside the desired k*
+        if(k_D>k_CutOff) continue;
+        Tau1 = 1.5;
+        Tau2 = 0;
+        fM1 = 1124.0;
+        RanVal1 = RanGen.Exponential(fM1/(fP1*Tau1));
+        MagicSource.AddBGT_RP(RanVal1,cos(AngleRcP1));
+
+        //Tau1 = 0;
+        //Tau2 = 1.65;
+        //fM2 = 1362;
+        //RanVal1 = RanGen.Exponential(fM2/(fP2*Tau2));
+        //MagicSource.AddBGT_PR(RanVal1,-cos(AngleRcP2));
+        //MagicSource.AddBGT_RP(RanVal1,cos(AngleRcP2));
+    }
+    delete T_EposDisto_piReso_Sig;
+    delete F_EposDisto_piReso_Sig;
+
+
+
+    TFile* F_EposDisto_pi_SigReso = new TFile(TString::Format("%s/CatsFiles/Source/EposAngularDist/ForMaxRamona_pi_SigReso.root",GetCernBoxDimi()));
+    TNtuple* T_EposDisto_pi_SigReso = (TNtuple*)F_EposDisto_pi_SigReso->Get("InfoTuple_ClosePairs");
+    unsigned N_EposDisto_pi_SigReso = T_EposDisto_pi_SigReso->GetEntries();
+    T_EposDisto_pi_SigReso->SetBranchAddress("k_D",&k_D);
+    T_EposDisto_pi_SigReso->SetBranchAddress("P1",&fP1);
+    T_EposDisto_pi_SigReso->SetBranchAddress("P2",&fP2);
+    T_EposDisto_pi_SigReso->SetBranchAddress("M1",&fM1);
+    T_EposDisto_pi_SigReso->SetBranchAddress("M2",&fM2);
+    T_EposDisto_pi_SigReso->SetBranchAddress("Tau1",&Tau1);
+    T_EposDisto_pi_SigReso->SetBranchAddress("Tau2",&Tau2);
+    T_EposDisto_pi_SigReso->SetBranchAddress("AngleRcP1",&AngleRcP1);
+    T_EposDisto_pi_SigReso->SetBranchAddress("AngleRcP2",&AngleRcP2);
+    T_EposDisto_pi_SigReso->SetBranchAddress("AngleP1P2",&AngleP1P2);
+    gROOT->cd();
+    //iterate over the ntuple
+    for(unsigned uEntry=0; uEntry<N_EposDisto_pi_SigReso; uEntry++){
+        //get each entry
+        T_EposDisto_pi_SigReso->GetEntry(uEntry);
+        //disregard the entry of you are outside the desired k*
+        if(k_D>k_CutOff) continue;
+        Tau1 = 0;
+        Tau2 = 4.69;
+        fM2 = 1462.93;
+        RanVal2 = RanGen.Exponential(fM2/(fP2*Tau2));
+        MagicSource.AddBGT_PR(RanVal2,-cos(AngleRcP2));
+    }
+    delete T_EposDisto_pi_SigReso;
+    delete F_EposDisto_pi_SigReso;
+
+
+    TFile* F_EposDisto_piReso_SigReso = new TFile(TString::Format("%s/CatsFiles/Source/EposAngularDist/ForMaxRamona_piReso_SigReso.root",GetCernBoxDimi()));
+    //TFile* F_EposDisto_piReso_SigReso = new TFile(TString::Format("%s/CatsFiles/Source/EposAngularDist/EposDisto_pReso_pReso.root",GetCernBoxDimi()));
+
+    TNtuple* T_EposDisto_piReso_SigReso = (TNtuple*)F_EposDisto_piReso_SigReso->Get("InfoTuple_ClosePairs");
+    unsigned N_EposDisto_piReso_SigReso = T_EposDisto_piReso_SigReso->GetEntries();
+    T_EposDisto_piReso_SigReso->SetBranchAddress("k_D",&k_D);
+    T_EposDisto_piReso_SigReso->SetBranchAddress("P1",&fP1);
+    T_EposDisto_piReso_SigReso->SetBranchAddress("P2",&fP2);
+    T_EposDisto_piReso_SigReso->SetBranchAddress("M1",&fM1);
+    T_EposDisto_piReso_SigReso->SetBranchAddress("M2",&fM2);
+    T_EposDisto_piReso_SigReso->SetBranchAddress("Tau1",&Tau1);
+    T_EposDisto_piReso_SigReso->SetBranchAddress("Tau2",&Tau2);
+    T_EposDisto_piReso_SigReso->SetBranchAddress("AngleRcP1",&AngleRcP1);
+    T_EposDisto_piReso_SigReso->SetBranchAddress("AngleRcP2",&AngleRcP2);
+    T_EposDisto_piReso_SigReso->SetBranchAddress("AngleP1P2",&AngleP1P2);
+    gROOT->cd();
+    //iterate over the ntuple
+    for(unsigned uEntry=0; uEntry<N_EposDisto_piReso_SigReso; uEntry++){
+        //get each entry
+        T_EposDisto_piReso_SigReso->GetEntry(uEntry);
+        //disregard the entry of you are outside the desired k*
+        if(k_D>k_CutOff) continue;
+        Tau1 = 1.5;
+        fM1 = 1124.0;
+        RanVal1 = RanGen.Exponential(fM1/(fP1*Tau1));
+        Tau2 = 4.69;
+        fM2 = 1462.93;
+        RanVal2 = RanGen.Exponential(fM2/(fP2*Tau2));
+        //check the signs
+        MagicSource.AddBGT_RR(RanVal1,cos(AngleRcP1),RanVal2,cos(AngleRcP2),cos(AngleP1P2));
+
+        //Tau1 = 1.65;
+        //Tau2 = 1.65;
+        //fM1 = 1362;
+        //fM2 = 1362;
+        //RanVal1 = RanGen.Exponential(fM1/(fP1*Tau1));
+        //RanVal2 = RanGen.Exponential(fM2/(fP2*Tau2));
+        //MagicSource.AddBGT_RR(RanVal1,cos(AngleRcP1),RanVal2,cos(AngleRcP2),cos(AngleP1P2));
+
+    }
+    delete T_EposDisto_piReso_SigReso;
+    delete F_EposDisto_piReso_SigReso;
+
+
+    const unsigned NumSourceBins = 128;
+    const double rMin = 0;
+    const double rMax = 16;
+    TFile* fOutput = new TFile(TString::Format("%s/OtherTasks/MaxRamona_piSig_ResoTest/fOutput.root",GetFemtoOutputFolder()),"recreate");
+    TH1F* hSource = new TH1F("hSource","hSource",NumSourceBins,rMin,rMax);
+
+    //fill the histo fro the source
+    for(unsigned uBin=0; uBin<NumSourceBins; uBin++){
+      //get the x-axis (r value) of the current bin
+      double xaxis = hSource->GetBinCenter(uBin+1);
+      //an array for the parameters, [0] is source size, [1] is == 2 (for a Gaussian)
+      double parameters[2];
+      parameters[0] = CoreSize;
+      parameters[1] = 2.0;
+      double SourceValue = MagicSource.RootEval(&xaxis, parameters);
+      hSource->SetBinContent(uBin+1,SourceValue);
+      //infinite errors for now
+      hSource->SetBinError(uBin+1,1000.);
+    }
+    //idea: fit the source distribution only in a range around its peak
+    //to do this: silly idea: put very large uncertainties in the bins outside of this range
+    //we can get this range automatically, by evaluating the central (median) integral of the source distribution
+    //with this set up, we fit the 68% most central yield of the source distribution
+    double lowerlimit;
+    double upperlimit;
+    GetCentralInterval(*hSource, 0.84, lowerlimit, upperlimit, true);
+    unsigned lowerbin = hSource->FindBin(lowerlimit);
+    unsigned upperbin = hSource->FindBin(upperlimit);
+    for(unsigned uBin=lowerbin; uBin<=upperbin; uBin++){
+      hSource->SetBinError(uBin+1,0.01);
+    }
+
+    printf("Core size of %.3f fm\n",CoreSize);
+    printf("The fit will be performed in the range [%.2f, %.2f] fm\n",lowerlimit,upperlimit);
+    //fyi, GaussSourceTF1 is in DLM_Source.h if you want to check it out.
+    TF1* fSource = new TF1("fSource",GaussSourceScaledTF1,rMin,rMax,2);
+    //fSource->SetParameter(0,CoreSize);
+    //fSource->SetParLimits(0,CoreSize*0.5,CoreSize*2.0);
+    fSource->FixParameter(0,1.0);
+    fSource->SetParameter(1,0.5);
+    fSource->SetParLimits(1,0,1);
+    //fSource->FixParameter(1,1.);
+    hSource->Fit(fSource,"S, N, R, M");
+    printf("The effective Gaussian size is %.3f +/- %.3f fm\n",fSource->GetParameter(0),fSource->GetParError(0));
+    printf("The lambda par is %.1f +/- %.1f %%\n",fSource->GetParameter(1)*100.,fSource->GetParError(1)*100.);
+
+    //get rid of weird plotting
+    for(unsigned uBin=0; uBin<NumSourceBins; uBin++){
+      hSource->SetBinError(uBin+1,0.01);
+    }
+    hSource->Write();
+    fSource->Write();
+
+    delete hSource;
+    delete fSource;
+    delete fOutput;
+}
+
+
+void Ramona_pK_ResoTest(){
+
+      const double CoreSize = 0.8;
+
+      //DLM_CleverMcLevyResoTM* MagicSource = new DLM_CleverMcLevyResoTM ();
+      DLM_CleverMcLevyResoTM MagicSource;
+
+      //DO NOT CHANGE !!! Sets up numerical bullshit, tuned for a Gaussian source
+      MagicSource.InitStability(1,2-1e-6,2+1e-6);
+      MagicSource.InitScale(38,0.15,2.0);
+      MagicSource.InitRad(257*2,0,64);
+      MagicSource.InitType(2);
+      ///////////////////
+
+      MagicSource.SetUpReso(0,0.6422);
+      MagicSource.SetUpReso(1,0.4575);
+      MagicSource.InitNumMcIter(1000000);
+
+      //the cut off scale in k*, for which the angular distributions from EPOS
+      //are evaluated. 200 MeV works okay, you can go up to 300 MeV for systematic checks
+      const double k_CutOff = 200;
+
+      //to be used for the NTuple later on
+      Float_t k_D;
+      Float_t fP1;
+      Float_t fP2;
+      Float_t fM1;
+      Float_t fM2;
+      Float_t Tau1;
+      Float_t Tau2;
+      Float_t AngleRcP1;
+      Float_t AngleRcP2;
+      Float_t AngleP1P2;
+      //random generator dimi style. The input is incompatible with the ROOT random generator,
+      //do not mix and match, do not ask me how I know this. Ask Bernie.
+      //11 is the seed, you can change that to you favorite number
+      DLM_Random RanGen(11);
+      //dummies to save random shit
+      double RanVal1;
+      double RanVal2;
+      double RanVal3;
+      double RanCos;
+      double MeanP1=0;
+
+      TFile* F_EposDisto_pReso_Kaon = new TFile(TString::Format("%s/CatsFiles/Source/EposAngularDist/ForRamona_pReso_Kaon.root",GetCernBoxDimi()));
+      TNtuple* T_EposDisto_pReso_Kaon = (TNtuple*)F_EposDisto_pReso_Kaon->Get("InfoTuple_ClosePairs");
+      unsigned N_EposDisto_pReso_Kaon = T_EposDisto_pReso_Kaon->GetEntries();
+      T_EposDisto_pReso_Kaon->SetBranchAddress("k_D",&k_D);
+      T_EposDisto_pReso_Kaon->SetBranchAddress("P1",&fP1);
+      T_EposDisto_pReso_Kaon->SetBranchAddress("P2",&fP2);
+      T_EposDisto_pReso_Kaon->SetBranchAddress("M1",&fM1);
+      T_EposDisto_pReso_Kaon->SetBranchAddress("M2",&fM2);
+      T_EposDisto_pReso_Kaon->SetBranchAddress("Tau1",&Tau1);
+      T_EposDisto_pReso_Kaon->SetBranchAddress("Tau2",&Tau2);
+      T_EposDisto_pReso_Kaon->SetBranchAddress("AngleRcP1",&AngleRcP1);
+      T_EposDisto_pReso_Kaon->SetBranchAddress("AngleRcP2",&AngleRcP2);
+      T_EposDisto_pReso_Kaon->SetBranchAddress("AngleP1P2",&AngleP1P2);
+      gROOT->cd();
+      //iterate over the ntuple
+      for(unsigned uEntry=0; uEntry<N_EposDisto_pReso_Kaon; uEntry++){
+          //get each entry
+          T_EposDisto_pReso_Kaon->GetEntry(uEntry);
+          //disregard the entry of you are outside the desired k*
+          if(k_D>k_CutOff) continue;
+          Tau1 = 1.65;
+          Tau2 = 0;
+          fM1 = 1362;
+          RanVal1 = RanGen.Exponential(fM1/(fP1*Tau1));
+          MagicSource.AddBGT_RP(RanVal1,cos(AngleRcP1));
+      }
+      delete T_EposDisto_pReso_Kaon;
+      delete F_EposDisto_pReso_Kaon;
+
+
+
+      TFile* F_EposDisto_p_KaonReso = new TFile(TString::Format("%s/CatsFiles/Source/EposAngularDist/ForRamona_p_KaonReso.root",GetCernBoxDimi()));
+      TNtuple* T_EposDisto_p_KaonReso = (TNtuple*)F_EposDisto_p_KaonReso->Get("InfoTuple_ClosePairs");
+      unsigned N_EposDisto_p_KaonReso = T_EposDisto_p_KaonReso->GetEntries();
+      T_EposDisto_p_KaonReso->SetBranchAddress("k_D",&k_D);
+      T_EposDisto_p_KaonReso->SetBranchAddress("P1",&fP1);
+      T_EposDisto_p_KaonReso->SetBranchAddress("P2",&fP2);
+      T_EposDisto_p_KaonReso->SetBranchAddress("M1",&fM1);
+      T_EposDisto_p_KaonReso->SetBranchAddress("M2",&fM2);
+      T_EposDisto_p_KaonReso->SetBranchAddress("Tau1",&Tau1);
+      T_EposDisto_p_KaonReso->SetBranchAddress("Tau2",&Tau2);
+      T_EposDisto_p_KaonReso->SetBranchAddress("AngleRcP1",&AngleRcP1);
+      T_EposDisto_p_KaonReso->SetBranchAddress("AngleRcP2",&AngleRcP2);
+      T_EposDisto_p_KaonReso->SetBranchAddress("AngleP1P2",&AngleP1P2);
+      gROOT->cd();
+      //iterate over the ntuple
+      for(unsigned uEntry=0; uEntry<N_EposDisto_p_KaonReso; uEntry++){
+          //get each entry
+          T_EposDisto_p_KaonReso->GetEntry(uEntry);
+          //disregard the entry of you are outside the desired k*
+          if(k_D>k_CutOff) continue;
+          Tau1 = 0;
+          Tau2 = 3.66;
+          fM2 = 1054;
+          RanVal2 = RanGen.Exponential(fM2/(fP2*Tau2));
+          MagicSource.AddBGT_PR(RanVal2,-cos(AngleRcP2));
+      }
+      delete T_EposDisto_p_KaonReso;
+      delete F_EposDisto_p_KaonReso;
+
+
+      TFile* F_EposDisto_pReso_KaonReso = new TFile(TString::Format("%s/CatsFiles/Source/EposAngularDist/ForRamona_pReso_KaonReso.root",GetCernBoxDimi()));
+      //TFile* F_EposDisto_pReso_KaonReso = new TFile(TString::Format("%s/CatsFiles/Source/EposAngularDist/EposDisto_pReso_pReso.root",GetCernBoxDimi()));
+
+      TNtuple* T_EposDisto_pReso_KaonReso = (TNtuple*)F_EposDisto_pReso_KaonReso->Get("InfoTuple_ClosePairs");
+      unsigned N_EposDisto_pReso_KaonReso = T_EposDisto_pReso_KaonReso->GetEntries();
+      T_EposDisto_pReso_KaonReso->SetBranchAddress("k_D",&k_D);
+      T_EposDisto_pReso_KaonReso->SetBranchAddress("P1",&fP1);
+      T_EposDisto_pReso_KaonReso->SetBranchAddress("P2",&fP2);
+      T_EposDisto_pReso_KaonReso->SetBranchAddress("M1",&fM1);
+      T_EposDisto_pReso_KaonReso->SetBranchAddress("M2",&fM2);
+      T_EposDisto_pReso_KaonReso->SetBranchAddress("Tau1",&Tau1);
+      T_EposDisto_pReso_KaonReso->SetBranchAddress("Tau2",&Tau2);
+      T_EposDisto_pReso_KaonReso->SetBranchAddress("AngleRcP1",&AngleRcP1);
+      T_EposDisto_pReso_KaonReso->SetBranchAddress("AngleRcP2",&AngleRcP2);
+      T_EposDisto_pReso_KaonReso->SetBranchAddress("AngleP1P2",&AngleP1P2);
+      gROOT->cd();
+      //iterate over the ntuple
+      for(unsigned uEntry=0; uEntry<N_EposDisto_pReso_KaonReso; uEntry++){
+          //get each entry
+          T_EposDisto_pReso_KaonReso->GetEntry(uEntry);
+          //disregard the entry of you are outside the desired k*
+          if(k_D>k_CutOff) continue;
+          Tau1 = 1.65;
+          fM1 = 1362;
+          RanVal1 = RanGen.Exponential(fM1/(fP1*Tau1));
+          Tau2 = 3.66;
+          fM2 = 1054;
+          RanVal2 = RanGen.Exponential(fM2/(fP2*Tau2));
+          //check the signs
+          MagicSource.AddBGT_RR(RanVal1,cos(AngleRcP1),RanVal2,cos(AngleRcP2),cos(AngleP1P2));
+      }
+      delete T_EposDisto_pReso_KaonReso;
+      delete F_EposDisto_pReso_KaonReso;
+
+      CATS Kitty;
+      Kitty.SetMomBins(50,0,250);
+      //Substitue all definitions regaring the source with the following lines:
+      Kitty.SetAnaSource(CatsSourceForwarder, &MagicSource, 2);//use as it is, no questions asked
+      Kitty.SetAnaSource(0,CoreSize);//size of the core
+      Kitty.SetAnaSource(1,2);//important, but you do not care about it (specifies its a Gaussian core)
+      Kitty.SetUseAnalyticSource(true);
+      Kitty.SetNormalizedSource(false);//to avoid problems in case of a longer tail. Should not really matter for pK
+      //... and so on, you continue with the standard definition of your CATS object
+
+//FROM HERE ON AN EXAMPLE HOW TO GET THE EFFECTIVE GAUSSIAN, NOT NEEDED (i.e. remove in case you cannot compile it)
+      const unsigned NumSourceBins = 128;
+      const double rMin = 0;
+      const double rMax = 16;
+      TFile* fOutput = new TFile(TString::Format("%s/OtherTasks/Ramona_pK_ResoTest/fOutput.root",GetFemtoOutputFolder()),"recreate");
+      TH1F* hSource = new TH1F("hSource","hSource",NumSourceBins,rMin,rMax);
+
+      //fill the histo fro the source
+      for(unsigned uBin=0; uBin<NumSourceBins; uBin++){
+        //get the x-axis (r value) of the current bin
+        double xaxis = hSource->GetBinCenter(uBin+1);
+        //an array for the parameters, [0] is source size, [1] is == 2 (for a Gaussian)
+        double parameters[2];
+        parameters[0] = CoreSize;
+        parameters[1] = 2.0;
+        double SourceValue = MagicSource.RootEval(&xaxis, parameters);
+        hSource->SetBinContent(uBin+1,SourceValue);
+        //infinite errors for now
+        hSource->SetBinError(uBin+1,1000.);
+      }
+      //idea: fit the source distribution only in a range around its peak
+      //to do this: silly idea: put very large uncertainties in the bins outside of this range
+      //we can get this range automatically, by evaluating the central (median) integral of the source distribution
+      //with this set up, we fit the 68% (or whatever, 84% in this case) most central yield of the source distribution
+      double lowerlimit;
+      double upperlimit;
+      //you will need to include DLM_HistoAnalysis.h
+      GetCentralInterval(*hSource, 0.84, lowerlimit, upperlimit, true);
+      unsigned lowerbin = hSource->FindBin(lowerlimit);
+      unsigned upperbin = hSource->FindBin(upperlimit);
+      for(unsigned uBin=lowerbin; uBin<=upperbin; uBin++){
+        hSource->SetBinError(uBin+1,0.01);
+      }
+
+      printf("Core size of %.3f fm\n",CoreSize);
+      printf("The fit will be performed in the range [%.2f, %.2f] fm\n",lowerlimit,upperlimit);
+      //fyi, GaussSourceTF1 is in DLM_Source.h if you want to check it out.
+      TF1* fSource = new TF1("fSource",GaussSourceScaledTF1,rMin,rMax,2);
+      fSource->SetParameter(0,CoreSize);
+      fSource->SetParLimits(0,CoreSize*0.5,CoreSize*2.0);
+      fSource->FixParameter(1,1.);
+      hSource->Fit(fSource,"S, N, R, M");
+      printf("The effective Gaussian size is %.3f +/- %.3f fm\n",fSource->GetParameter(0),fSource->GetParError(0));
+      printf("The lambda par is %.1f +/- %.1f %%\n",fSource->GetParameter(1)*100.,fSource->GetParError(1)*100.);
+
+      //get rid of weird plotting
+      for(unsigned uBin=0; uBin<NumSourceBins; uBin++){
+        hSource->SetBinError(uBin+1,0.01);
+      }
+      hSource->Write();
+      fSource->Write();
+
+      delete hSource;
+      delete fSource;
+      delete fOutput;
+}
+
 
 
 void StableDisto_Test(){
@@ -6661,7 +7097,7 @@ void Fast_Bootstrap_Example(){
   //delete [] Constant;
 }
 
-bool Eval_ScattParameters(CATS& Kitty, double& ScatLen, double& EffRan, TH1F*& hFit, TF1*& fitSP, const int& Nterms=2){
+bool Eval_ScattParameters(CATS& Kitty, double& ScatLen, double& EffRan, TH1F*& hFit, TF1*& fitSP, const int& Nterms=2, const bool& Fixf0=false, const bool& Fixd0=false){
   Kitty.KillTheCat();
   double* MomBins = Kitty.CopyMomBin();
   hFit = new TH1F("hFit","hFit",Kitty.GetNumMomBins(),MomBins);
@@ -6684,10 +7120,13 @@ bool Eval_ScattParameters(CATS& Kitty, double& ScatLen, double& EffRan, TH1F*& h
 //printf("ScatLen = %e\n",ScatLen);
 //printf("inv_f0 = %f\n",inv_f0);
 //printf("EffRan = %f\n",EffRan);
-  fitSP2->SetParameter(0,inv_f0);fitSP4->SetParameter(0,inv_f0);fitSP6->SetParameter(0,inv_f0);
-  fitSP2->SetParameter(1,EffRan);fitSP4->SetParameter(1,EffRan);fitSP6->SetParameter(1,EffRan);
+  if(Fixf0) {fitSP2->FixParameter(0,inv_f0);fitSP4->FixParameter(0,inv_f0);fitSP6->FixParameter(0,inv_f0);}
+  else {fitSP2->SetParameter(0,inv_f0);fitSP4->SetParameter(0,inv_f0);fitSP6->SetParameter(0,inv_f0);}
+  if(Fixd0) {fitSP2->FixParameter(1,EffRan);fitSP4->FixParameter(1,EffRan);fitSP6->FixParameter(1,EffRan);}
+  else {fitSP2->SetParameter(1,EffRan);fitSP4->SetParameter(1,EffRan);fitSP6->SetParameter(1,EffRan);}
   fitSP4->SetParameter(2,0);fitSP6->SetParameter(2,0);
   fitSP6->SetParameter(3,0);
+
 
   double Chi2_Old = 1e64;
 
@@ -6728,7 +7167,7 @@ void Ledni_SmallRad(TString PotentialName){
   const double kMax = 300;
   const double kStep = 3;
   const unsigned nMom = TMath::Nint(kMax/kStep);
-  const double Radius = 1.08;
+  const double Radius = 1.2;
 
   CATSparameters sPars(CATSparameters::tSource,1,true);
   sPars.SetParameter(0,Radius);
@@ -6738,12 +7177,13 @@ void Ledni_SmallRad(TString PotentialName){
   Kitty_SE.SetUseAnalyticSource(true);
   Kitty_SE.SetQ1Q2(0);
   Kitty_SE.SetQuantumStatistics(false);
-  Kitty_SE.SetRedMass(Mass_L*0.5);
+  //Kitty_SE.SetRedMass(Mass_L*0.5);
+  Kitty_SE.SetRedMass((Mass_p*Mass_Kch)/(Mass_p+Mass_Kch));
   Kitty_SE.SetNumChannels(1);
   Kitty_SE.SetNumPW(0,1);
   Kitty_SE.SetSpin(0,0);
   Kitty_SE.SetChannelWeight(0, 1.);
-  CATSparameters pPars(CATSparameters::tPotential,5,true);
+  CATSparameters pPars(CATSparameters::tPotential,7,true);
   double c_f0,c_d0;
   if(PotentialName=="NSC97b"){
     pPars.SetParameter(0,-78.42);
@@ -6795,6 +7235,27 @@ void Ledni_SmallRad(TString PotentialName){
     c_f0 = 0;
     c_d0 = 1;
   }
+  else if(PotentialName=="pKplusI0"){
+    pPars.SetParameter(0,0.0);
+    c_f0 = 0.03;
+    c_d0 = 0.0;
+  }
+  else if(PotentialName=="pKplusI1"){
+    pPars.SetParameter(0,1.0);
+    c_f0 = -0.3;
+    c_d0 = 0.0;
+  }
+  else if(PotentialName=="pKplusYuki"){
+    pPars.SetParameter(0,0.376);//0.376;0.335
+    pPars.SetParameter(1,sqrt(200.*(Mass_p*Mass_Kch)/(Mass_p+Mass_Kch)));
+    pPars.SetParameter(2,3);
+    pPars.SetParameter(3,2084);
+    pPars.SetParameter(4,50.81);
+    pPars.SetParameter(5,18.34);
+    pPars.SetParameter(6,-1.752);
+    c_f0 = -0.3;
+    c_d0 = 0.0;
+  }
   else{
     pPars.SetParameter(0,-5.50337);
     pPars.SetParameter(1,1./sqrt(2.148805));
@@ -6818,6 +7279,16 @@ void Ledni_SmallRad(TString PotentialName){
   Kitty_SE.SetEpsilonProp(5e-9);
   if(PotentialName.Contains("Yukawa"))
     Kitty_SE.SetShortRangePotential(0,0,YukawaDimiCore,pPars);
+  else if(PotentialName.Contains("pKplusI")){
+    Kitty_SE.SetShortRangePotential(0,0,KpProtonEquivalentPotential,pPars);
+    Kitty_SE.SetEpsilonConv(1e-9);
+    Kitty_SE.SetEpsilonProp(1e-9);
+  }
+  else if(PotentialName.Contains("pKplusYuki")){
+    Kitty_SE.SetShortRangePotential(0,0,SingleGaussDynamic,pPars);
+    Kitty_SE.SetEpsilonConv(1e-9);
+    Kitty_SE.SetEpsilonProp(1e-9);
+  }
   else Kitty_SE.SetShortRangePotential(0,0,DoubleGaussSum,pPars);
   Kitty_SE.KillTheCat();
 
@@ -6826,7 +7297,8 @@ void Ledni_SmallRad(TString PotentialName){
 
   TH1F* h_kcotd=NULL;
   TF1* f_kcotd=NULL;
-  Eval_ScattParameters(Kitty_SE,c_f0,c_d0,h_kcotd,f_kcotd);
+  if(PotentialName.Contains("pKplus")) Eval_ScattParameters(Kitty_SE,c_f0,c_d0,h_kcotd,f_kcotd,2,false,false);
+  else Eval_ScattParameters(Kitty_SE,c_f0,c_d0,h_kcotd,f_kcotd);
   //c_f0 = 1./c_f0;
   printf("c_f0 = %.2f fm\n",c_f0);
   printf("c_d0 = %.2f fm\n",c_d0);
@@ -6948,6 +7420,20 @@ printf("-->\n");
   g_sindelta.SetLineStyle(2);
   g_sindelta.SetLineColor(kBlack);
 
+  //real part of scatt. amplitude as a function of sqrt(s)
+  TGraph g_s_ReF;
+  g_s_ReF.SetName("g_s_ReF");
+  g_s_ReF.SetLineWidth(4);
+  g_s_ReF.SetLineStyle(2);
+  g_s_ReF.SetLineColor(kBlack);
+
+  //imag part of scatt. amplitude as a function of sqrt(s)
+  TGraph g_s_ImF;
+  g_s_ImF.SetName("g_s_ImF");
+  g_s_ImF.SetLineWidth(4);
+  g_s_ImF.SetLineStyle(2);
+  g_s_ImF.SetLineColor(kBlack);
+
   TGraph g_MM_B;
   g_MM_B.SetName("g_MM_B");
   g_MM_B.SetLineWidth(4);
@@ -7021,6 +7507,10 @@ printf("--->\n");
     g_tgdelta.SetPoint(NumPts,MOM,tan(Kitty_SE.GetPhaseShift(NumPts,0,0)));
     g_sindelta.SetPoint(NumPts,MOM,sin(Kitty_SE.GetPhaseShift(NumPts,0,0)));
 
+    complex<double> ScatAmpl = exp(i*Kitty_SE.GetPhaseShift(NumPts,0,0))*sin(Kitty_SE.GetPhaseShift(NumPts,0,0))/(MOM);
+    g_s_ReF.SetPoint(NumPts,sqrt(Mass_Kch*Mass_Kch+MOM*MOM)+sqrt(Mass_p*Mass_p+MOM*MOM),real(ScatAmpl)*197.);
+    g_s_ImF.SetPoint(NumPts,sqrt(Mass_Kch*Mass_Kch+MOM*MOM)+sqrt(Mass_p*Mass_p+MOM*MOM),imag(ScatAmpl)*197.);
+
     double MM_B,MM_A;
     //MM_B = (XXX-XXX0)/(sqrt(fabs(c_f0*(1./c_f0+0.5*MOM*MOM*c_d0)))-1.);
     //MM_B = (XXX-XXX0)/(c_f0*(1./c_f0+0.5*MOM*MOM*c_d0)-1.);
@@ -7043,17 +7533,101 @@ printf("--->\n");
     NumPts++;
   }
 
-  TGraph g_pot;
-  g_pot.SetName("g_pot");
-  g_pot.SetLineWidth(4);
-  g_pot.SetLineStyle(2);
-  g_pot.SetLineColor(kBlue-1);
+  TGraph g_pot0;
+  g_pot0.SetName("g_pot0");
+  g_pot0.SetLineWidth(4);
+  g_pot0.SetLineStyle(2);
+  g_pot0.SetLineColor(kBlue-1);
   unsigned uRad=0;
-  for(double RAD=0.1; RAD<5; RAD+=0.1){
-    g_pot.SetPoint(uRad++,RAD,Kitty_SE.EvaluateThePotential(0,0,50,RAD));
+  for(double RAD=0.01; RAD<5; RAD+=0.01){
+    g_pot0.SetPoint(uRad++,RAD,Kitty_SE.EvaluateThePotential(0,0,0,RAD));
+  }
+  TGraph g_pot360;
+  g_pot360.SetName("g_pot360");
+  g_pot360.SetLineWidth(4);
+  g_pot360.SetLineStyle(2);
+  g_pot360.SetLineColor(kGreen-1);
+  uRad=0;
+  for(double RAD=0.01; RAD<5; RAD+=0.01){
+    g_pot360.SetPoint(uRad++,RAD,Kitty_SE.EvaluateThePotential(0,0,359.7,RAD));
   }
 
 
+  TGraph g_yukipot0;
+  g_yukipot0.SetName("g_yukipot0");
+  g_yukipot0.SetLineWidth(2);
+  g_yukipot0.SetLineStyle(1);
+  g_yukipot0.SetLineColor(kBlue+1);
+
+  TGraph g_yukipot360;
+  g_yukipot360.SetName("g_yukipot360");
+  g_yukipot360.SetLineWidth(2);
+  g_yukipot360.SetLineStyle(1);
+  g_yukipot360.SetLineColor(kGreen+1);
+
+
+  //for pKplus - read yuki file
+  float fRad;
+  float fPot;
+  char* InputFileName = new char[256];
+  char* cdummy = new char[256];
+  strcpy(InputFileName,GetCernBoxDimi());
+  strcat(InputFileName,"/CatsFiles_Dimi/pKplus/YukiPotentials/pote_E_0MeV.dat");
+  FILE *InFile;
+  InFile = fopen(InputFileName, "r");
+  if(!InFile){
+      printf("          \033[1;31mERROR:\033[0m The file\033[0m %s cannot be opened!\n", InputFileName);
+      return;
+  }
+  fseek ( InFile , 0 , SEEK_END );
+  long EndPos;
+  EndPos = ftell (InFile);
+  fseek ( InFile , 0 , SEEK_SET );
+  long CurPos;
+  //Read the header lines
+  for(unsigned short us=0; us<1; us++){
+      if(!fgets(cdummy, 255, InFile)){
+          printf("\033[1;33mWARNING!\033[0m Possible bad input-file, error when reading from %s!\n",InputFileName);
+          continue;
+      }
+  }
+  uRad=0;
+  while(!feof(InFile)){
+    if(!fscanf(InFile,"%f %f",&fRad,&fPot)){
+        printf("\033[1;33mWARNING!\033[0m Possible bad input-file, error when reading from %s!\n",InputFileName);
+        continue;
+    }
+    g_yukipot0.SetPoint(uRad++,fRad,fPot);
+  }
+  fclose(InFile);
+  //delete InFile;
+
+  strcpy(InputFileName,GetCernBoxDimi());
+  strcat(InputFileName,"/CatsFiles_Dimi/pKplus/YukiPotentials/pote_E_200MeV.dat");
+  InFile = fopen(InputFileName, "r");
+  if(!InFile){
+      printf("          \033[1;31mERROR:\033[0m The file\033[0m %s cannot be opened!\n", InputFileName);
+      return;
+  }
+  fseek ( InFile , 0 , SEEK_END );
+  EndPos = ftell (InFile);
+  fseek ( InFile , 0 , SEEK_SET );
+  //Read the header lines
+  for(unsigned short us=0; us<1; us++){
+      if(!fgets(cdummy, 255, InFile)){
+          printf("\033[1;33mWARNING!\033[0m Possible bad input-file, error when reading from %s!\n",InputFileName);
+          continue;
+      }
+  }
+  uRad=0;
+  while(!feof(InFile)){
+    if(!fscanf(InFile,"%f %f",&fRad,&fPot)){
+        printf("\033[1;33mWARNING!\033[0m Possible bad input-file, error when reading from %s!\n",InputFileName);
+        continue;
+    }
+    g_yukipot360.SetPoint(uRad++,fRad,fPot);
+  }
+  fclose(InFile);
 
   //printf("f0 = %.2f\n",c_f0);
   //printf("1/f0 = %.2f\n",1./c_f0);
@@ -7081,14 +7655,21 @@ printf("--->\n");
   g_cotdelta.Write();
   g_tgdelta.Write();
   g_sindelta.Write();
+  g_s_ReF.Write();
+  g_s_ImF.Write();
   g_f0d0.Write();
   g_Vmu.Write();
-  g_pot.Write();
+  g_pot0.Write();
+  g_pot360.Write();
+  g_yukipot0.Write();
+  g_yukipot360.Write();
   //h_kcotd->Write();
   //f_kcotd->Write();
 
   //delete h_kcotd;
   //delete f_kcotd;
+  delete [] InputFileName;
+  delete [] cdummy;
 }
 
 void Write_MM_Plots(TFile*fOutput, const CATS& Kitty, const double& r0, const double& f0, const double& d0, const TString& suffix){
@@ -7196,6 +7777,18 @@ void Write_MM_Plots(TFile*fOutput, const CATS& Kitty, const double& r0, const do
 
       NumPts++;
     }
+
+
+    TGraph g_pot;
+    g_pot.SetName("g_pot");
+    g_pot.SetLineWidth(4);
+    g_pot.SetLineStyle(2);
+    g_pot.SetLineColor(kBlue-1);
+    unsigned uRad=0;
+    for(double RAD=0.1; RAD<5; RAD+=0.025){
+      g_pot.SetPoint(uRad++,RAD,Kitty.EvaluateThePotential(0,0,50,RAD));
+    }
+
     gCk_SE.Write();
     gCk_LL.Write();
     gCk_LLX.Write();
@@ -7208,6 +7801,7 @@ void Write_MM_Plots(TFile*fOutput, const CATS& Kitty, const double& r0, const do
     g_kcot.Write();
     g_sqrtkcot.Write();
     g_MMX.Write();
+    g_pot.Write();
 }
 
 int Get_MMclass(const double& r0, const double& f0, const double& d0){
@@ -7682,13 +8276,16 @@ void SelectEmmaPotential(){
 //evaluated w/o coulomb and for red mass of p-phi (so around 490 MeV)
 void OkayishStartingPars( const TString Potential, const double& f0, const double d0,
                           double& V1, double& mu1, double& V2, double& mu2, double& s2){
-
+  V1 = 0.1;
+  mu1 = 1;
+  V2 = 0.1;
+  mu2 = 0.5;
   if(f0>0&&fabs(f0)>fabs(2.*d0)){
     if(Potential=="DoubleGaussSum"){
 
     }
     else if(Potential=="YukawaDimiCore"){
-
+      s2 = mu2*0.2;
     }
     else if(Potential=="Gaussian"){
 
@@ -7715,12 +8312,12 @@ void OkayishStartingPars( const TString Potential, const double& f0, const doubl
       s2 = 0;
     }
     else if(Potential=="YukawaDimiCore"){
-      //f0 = 0.976 fm
-      //d0 = 3.81 fm
-      V1 = 7.539952e+01;
-      mu1 = 6.380064e-01;
-      V2 = 6.502556e+00;
-      mu2 = 8.333564e-01;
+      //f0 = 1.027 fm
+      //d0 = 4.19 fm
+      V1 = 3.455340e+00;
+      mu1 = 3.881920e-01;
+      V2 = 2.211957e+02;
+      mu2 = 6.202096e-01;
       s2 = mu2*0.2;
     }
     else if(Potential=="Gaussian"){
@@ -7733,7 +8330,7 @@ void OkayishStartingPars( const TString Potential, const double& f0, const doubl
       s2 = -1;
     }
     else if(Potential=="Yukawa"){
-
+      s2 = -2;
     }
     else{
       V1 = 0;
@@ -7754,12 +8351,12 @@ void OkayishStartingPars( const TString Potential, const double& f0, const doubl
       s2 = 0;
     }
     else if(Potential=="YukawaDimiCore"){
-      //f0 = -3.969 fm
-      //d0 = 1.06 fm
-      V1 = 1.625413e+03;
-      mu1 = 2.866561e-01;
-      V2 = 1.978510e+02;
-      mu2 = 4.534767e-01;
+      //f0 = -4.094 fm
+      //d0 = 1.04 fm
+      V1 = 1.246311e+01;
+      mu1 = 2.290515e-01;
+      V2 = -8.227462e+01;
+      mu2 = 9.258949e-01;
       s2 = mu2*0.2;
     }
     else if(Potential=="Gaussian"){
@@ -7774,10 +8371,10 @@ void OkayishStartingPars( const TString Potential, const double& f0, const doubl
     else if(Potential=="Yukawa"){
       //f0 = -3.837 fm
       //d0 = 1.05 fm
-      V1 = 8.792615e-01;
-      mu1 = 1.045134e+02;
-      V2 = 0.000000e+00;
-      mu2 = 0.000000e+00;
+      //V1 = 8.792615e-01;
+      //mu1 = 1.045134e+02;
+      //V2 = 0.000000e+00;
+      //mu2 = 0.000000e+00;
       s2 = -2;
     }
     else{
@@ -7800,25 +8397,31 @@ void OkayishStartingPars( const TString Potential, const double& f0, const doubl
       s2 = 0;
     }
     else if(Potential=="YukawaDimiCore"){
-      //f0 = -1.044 fm
-      //d0 = 1.03 fm
-      V1 = 1.545075e+01;
-      mu1 = 1.109717e+00;
-      V2 = 8.023057e+02;
-      mu2 = 9.975796e-01;
+      //f0 = -1.048 fm
+      //d0 = 1.04 fm
+      V1 = 1.945222e+01;
+      mu1 = 4.377242e-01;
+      V2 = 1.085863e+03;
+      mu2 = 1.111706e+00;
       s2 = mu2*0.2;
     }
     else if(Potential=="Gaussian"){
       //f0 = -1.054 fm
       //d0 = 1.02 fm
-      V1 = -1.260122e+02
-      mu1 = 1.991708e+00
-      V2 = 0.000000e+00
-      mu2 = 0.000000e+00
-
+      V1 = -1.260122e+02;
+      mu1 = 1.991708e+00;
+      V2 = 0.000000e+00;
+      mu2 = 0.000000e+00;
+      s2 = -1;
     }
     else if(Potential=="Yukawa"){
-
+      //f0 = -1.042 fm
+      //d0 = 1.04 fm
+      V1 = 7.584738e+00;
+      mu1 = 5.422729e-01;
+      V2 = 0.000000e+00;
+      mu2 = 0.000000e+00;
+      s2 = -2;
     }
     else{
       V1 = 0;
@@ -7853,6 +8456,7 @@ void ManufacturePotential(const double f0, const double df0,
   double f_0,lf_0,bf_0,df_0,bdf_0;
   double d_0,ld_0,bd_0,dd_0,bdd_0;
   bool Starting = true;
+  bool Started = false;
   //dist,f0,d0,V1,mu1,V2,mu2: used when VeryStuck>=2 resets the whole thing
   double FallBack[8];FallBack[0]=1e16;
   f_0 = 0; d_0 = 0;
@@ -7901,7 +8505,7 @@ Kitty_SE.SetRedMass(488.6);//pphi
   CATSparameters pPars(CATSparameters::tPotential,5,true);
   if(CurrentPot=="YukawaDimiCore") Kitty_SE.SetShortRangePotential(0,0,YukawaDimiCore,pPars);
   else if(CurrentPot=="Gassian") Kitty_SE.SetShortRangePotential(0,0,Gaussian,pPars);
-  else if(CurrentPot=="Yukawa") Kitty_SE.SetShortRangePotential(0,0,Yukawa,pPars);
+  else if(CurrentPot=="Yukawa") Kitty_SE.SetShortRangePotential(0,0,YukawaDimiSmooth,pPars);
   else Kitty_SE.SetShortRangePotential(0,0,DoubleGaussSum,pPars);
   bool GoodGoing=false;
   double dist=1e16;
@@ -7927,6 +8531,7 @@ Kitty_SE.SetRedMass(488.6);//pphi
   double Convergence[5];
   for(unsigned uPar=0; uPar<5; uPar++)Convergence[uPar]=1;
   unsigned Stuck = 0;
+  unsigned BadPhaseShifts = 0;
   unsigned UnstuckCounter = 0;
   const unsigned StuckLimit = 64;
   //how many iterations to do by changing only single pars
@@ -7976,6 +8581,7 @@ const bool DEBUG = false;
       Convergence[0]=1;
       desired_fluct /= 2.;
     }
+    if(BadPhaseShifts==10) {VeryStuck=3;Stuck=100000;UnstuckCounter=UnstuckPerPar*Npars;}
     if(UnstuckCounter==UnstuckPerPar*Npars){
       //if VeryStuck goes two times: reset and start from scratch
       if(Stuck<UnstuckCounter){
@@ -8036,6 +8642,7 @@ const bool DEBUG = false;
         for(unsigned uf=0; uf<fluctN; uf++) fluct[uf]=-1000*dist_unit;
         for(unsigned ud=0; ud<dirN; ud++) dir[ud]=true;
         Starting = true;
+        Started = false;
       }
     }
     if(SinglePar){
@@ -8051,12 +8658,12 @@ const bool DEBUG = false;
     if(DEBUG) printf("\n A: Stuck=%u(%u); UnstuckCounter=%u; SinglePar=%u",Stuck,VeryStuck,UnstuckCounter,SinglePar);
 //desired_fluct = 1;
 
-    if(CurrentPot=="Yukawa"){
-      Kitty_SE.SetEpsilonConv(5e-8);
-      Kitty_SE.SetEpsilonProp(5e-8);
-      Kitty_SE.SetMaxRad(128);
-      Kitty_SE.SetMaxRho(64);
-    }
+    //if(CurrentPot=="Yukawa"){
+    //  Kitty_SE.SetEpsilonConv(5e-8);
+    //  Kitty_SE.SetEpsilonProp(5e-8);
+    //  Kitty_SE.SetMaxRad(128);
+    //  Kitty_SE.SetMaxRho(64);
+    //}
 
     double MaxConv;
     if(CurrentPot=="YukawaDimiCore") MaxConv = 4;
@@ -8087,17 +8694,18 @@ const bool DEBUG = false;
       //printf("\n bf_0=%.2f; bd_0=%.2f",bf_0,bd_0);
     }
 
-    if(Starting){
+    if(Starting&&!Started){
       OkayishStartingPars(CurrentPot,f0,d0,bV_1,bmu_1,bV_2,bmu_2,s_2);
       V_1 = bV_1;
       mu_1 = bmu_1;
       V_2 = bV_2;
       mu_2 = bmu_2;
+      Started = true;
     }
     else{
       if(CurrentPot=="YukawaDimiCore"){
         if(!SinglePar||SinglePar==1){
-          do V_1 = rangen.Gaus(bV_1,0.05+50.*Convergence[1]*Convergence[0]);
+          do V_1 = rangen.Gaus(bV_1,0.005+5.*Convergence[1]*Convergence[0]);
           while(V_1<0);
         }
         if(!SinglePar||SinglePar==2){
@@ -8105,8 +8713,9 @@ const bool DEBUG = false;
           while(mu_1<0.||mu_1>3.0);
         }
         if(!SinglePar||SinglePar==3){
-          do V_2 = rangen.Gaus(bV_2,0.2+200.*Convergence[3]*Convergence[0]);
-          while(V_2<0);
+          V_2 = rangen.Gaus(bV_2,0.2+200.*Convergence[3]*Convergence[0]);
+          //do V_2 = rangen.Gaus(bV_2,0.2+200.*Convergence[3]*Convergence[0]);
+          //while(V_2<0);
         }
         if(!SinglePar||SinglePar==4){
           do{mu_2 = rangen.Gaus(bmu_2,0.0005+0.5*Convergence[4]*Convergence[0]);}
@@ -8130,8 +8739,8 @@ const bool DEBUG = false;
           while(V_1<0);
         }
         if(!SinglePar||SinglePar==2){
-          do{mu_1 = rangen.Gaus(bmu_1,0.1+150.*Convergence[2]*Convergence[0]);}
-          while(mu_1<0.);
+          do{mu_1 = rangen.Gaus(bmu_1,0.001+1.0*Convergence[2]*Convergence[0]);}
+          while(mu_1<0.||mu_1>3.0);
         }
         V_2 = 0;
         mu_2 = 0;
@@ -8180,15 +8789,17 @@ const bool DEBUG = false;
 
     if(DEBUG) printf("\n    V1=%.1f mu1=%.3f V2=%.1f mu2=%.3f",V_1,mu_1,V_2,mu_2);
     if(DEBUG) printf("\n b: V1=%.1f mu1=%.3f V2=%.1f mu2=%.3f",bV_1,bmu_1,bV_2,bmu_2);
-    bool Issue = !Eval_ScattParameters(Kitty_SE,f_0,d_0,hDummy,fDummy);
+    if(Eval_ScattParameters(Kitty_SE,f_0,d_0,hDummy,fDummy)) BadPhaseShifts = 0;
+    else BadPhaseShifts++;
     //hDummy->Write();
     //fDummy->Write();
 
     if(hDummy) delete hDummy; if(fDummy) delete fDummy;
-    if(Issue) {
+    if(BadPhaseShifts) {
       //cout<<flush;cout<<"\033[F";cout<<flush;cout<<"\033[F";
       //cout<<flush;cout<<"\033[F";cout<<flush;cout<<"\033[F";
       if(!DEBUG) cout << flush;
+      else printf("\n ISSUE");
       continue;
     }
     df_0 = fabs(f_0-f0);
@@ -8333,6 +8944,282 @@ const bool DEBUG = false;
   delete ntMM;
   delete [] MomBins;
 }
+
+
+
+
+
+//Potential==Dynamic, means we try to do the double Gaussian, if it fails we repeat it all with Yukawa
+void ManufacturePotential2(const double f0, const double df0,
+                                const double d0, const double dd0, const double* Radii, const unsigned NumRad,
+                                double& V1, double& mu1, double& V2, double& mu2,
+                                const TString Potential, const TString OutputFolder, const int& SEED=11){
+
+  const double RedMass = 488.6;//pphi
+  const bool DEBUG = false;
+  //the scale to which 1fm roughly correponds
+  //const double dist_unit = df0*df0+dd0*dd0;
+  const unsigned MaxIter = 8192;
+
+  //b = best, l = last, d = difference to desired
+  TString CurrentPot = Potential;
+  if(Potential=="Dynamic") CurrentPot = "DoubleGaussSum";
+
+  bool Starting = true;
+  bool Started = false;
+  const unsigned NumSavedPars = 8;
+  //dist,f0,d0,V1,mu1,V2,mu2,s2:
+  enum ManufacturedSolution { ms_dist, ms_f0, ms_d0, ms_V1, ms_mu1, ms_V2, ms_mu2, ms_s2 };
+  //the globally best solution
+  double* GBS = new double [NumSavedPars];
+  for(unsigned usp=0; usp<NumSavedPars; usp++){GBS[usp]=1e16;}
+  //the best solution of the current attempt
+  double* CAS = new double [NumSavedPars];
+  for(unsigned usp=0; usp<NumSavedPars; usp++){CAS[usp]=1e16;}
+  //the current set of parameters
+  double* CSP = new double [NumSavedPars];
+  for(unsigned usp=0; usp<NumSavedPars; usp++){CSP[usp]=1e16;}
+  //position of last calibration
+  double* PLC = new double [NumSavedPars];
+  for(unsigned usp=0; usp<NumSavedPars; usp++){PLC[usp]=1e16;}
+
+  unsigned uIter=0;
+  TRandom3 rangen(SEED);
+  CATSparameters sPars(CATSparameters::tSource,1,true);
+  sPars.SetParameter(0,2.5);
+  const double kStepFine=3;
+  const double kStepCoarse=10;
+  const unsigned nMomFine = 40;
+  const unsigned nMomCoarse = 12;
+  const unsigned nMom = nMomFine+nMomCoarse;
+  double* MomBins = new double [nMom+1];
+  for(unsigned uMom=0; uMom<nMomFine; uMom++){
+    MomBins[uMom] = kStepFine*double(uMom);
+  }
+  for(unsigned uMom=0; uMom<=nMomCoarse; uMom++){
+    MomBins[nMomFine+uMom] = kStepFine*double(nMomFine)+kStepCoarse*double(uMom);
+  }
+  CATS Kitty_SE;
+  Kitty_SE.SetMomBins(nMom,MomBins);
+  Kitty_SE.SetAnaSource(GaussSource, sPars);
+  Kitty_SE.SetUseAnalyticSource(true);
+  Kitty_SE.SetQ1Q2(0);
+  Kitty_SE.SetQuantumStatistics(false);
+  //Kitty_SE.SetRedMass(Mass_L*0.5);
+  Kitty_SE.SetRedMass(RedMass);//pphi
+  Kitty_SE.SetNumChannels(1);
+  Kitty_SE.SetNumPW(0,1);
+  Kitty_SE.SetSpin(0,0);
+  Kitty_SE.SetChannelWeight(0, 1.);
+  Kitty_SE.SetEpsilonConv(5e-9);
+  Kitty_SE.SetEpsilonProp(5e-9);
+  Kitty_SE.SetMaxRad(96);
+  Kitty_SE.SetMaxRho(32);
+  Kitty_SE.SetNotifications(CATS::nSilent);
+  Kitty_SE.SetGridEpsilon(1./512.);
+  double RadForGrid;
+  Kitty_SE.KillTheCat();
+
+  CATSparameters pPars(CATSparameters::tPotential,5,true);
+  if(CurrentPot=="YukawaDimiCore") Kitty_SE.SetShortRangePotential(0,0,YukawaDimiCore,pPars);
+  else if(CurrentPot=="Gassian") Kitty_SE.SetShortRangePotential(0,0,SingleGauss,pPars);
+  else if(CurrentPot=="Yukawa") Kitty_SE.SetShortRangePotential(0,0,YukawaDimiSmooth,pPars);
+  else Kitty_SE.SetShortRangePotential(0,0,DoubleGaussSum,pPars);
+
+  bool GoodGoing=false;
+  double dist=1e16;
+  double bdist=1e16;
+  //Fluctuations: the average distance between our working solution and new solution
+  //if too large -> decrease Convergence
+  //if too small -> increse Convergence
+  //criteria for small/large: ditance between working solution and goal + the sphere
+  //formed by the opening angle crossing a line perpendicular to the above distance and going through the goal
+  const unsigned fluctN = 32;
+  const unsigned fluctNth = 8;
+  double fluct[fluctN];
+  unsigned ufluct = 0;
+  double avg_fluct;
+
+  const unsigned TanN = 32;
+  const unsigned TanNth = 8;
+  //how many of the last dirN iterations moved towards the true solution, based on the opening angle
+  //between the working solution and the goal. The opening angle will be adjusted based on the
+  //expectation value based on the angle (assuming a flat anglular disto), and the value
+  //measured one. The ratio of the two determines if we will increase or decrease the opening angle
+  //the measured one is beeing reset on finding a new working solution, and we will NOT change the default angle
+  //between we reach a threshold
+  double Tan[TanN];
+  unsigned uTan = 0;
+  double TanInRange;
+  double Exp_TanInRange;
+
+  //the opening angle and its min/max values. Notice, that if we find a new working solution, we start
+  //from the default value, which is tuned such that it is not possible to get the next solution further away than the
+  //current one. If TanAlpha>1, we can actually end up with a soltion that goes away from our goal (used to avoid beeing stuck)
+  //if we cross TanAlphaAdjust (going up), we make a certain number of iterations where we are adjusting the Convergence of the
+  //single parameters. During that time, TanAlpha is not allowed to change
+  const double TanAlphaDefault = 1.;
+  const double TanAlphaStep = TanAlphaDefault/8.;//0.125
+  const double TanAlphaMin = TanAlphaStep;//0.125
+  const double TanAlphaAdjust = TanAlphaDefault*2.;
+  const double TanAlphaMax = TanAlphaDefault*8.;
+  double TanAlpha;
+
+  //this is the procedure of fine tuning Convergence for each parameter. It is executed at the start,
+  //and later on each time some of the parameters differs either by sign or by more than 2x its value at the last calibration
+  //The calibration will be interrupted only if we find a new solution that lies within 1./TanAlphaAdjust or reach our goal.
+  //the iterations during calibration do NOT count towards the stuck count.
+  bool NeedToCalibrate = true;
+  const unsigned SingleParN = 16;
+  unsigned uSingleParN = 0;
+
+  const unsigned Npars = 4;
+  double Convergence[Npars+1];
+  for(unsigned uPar=0; uPar<Npars+1; uPar++)Convergence[uPar]=1;
+  //Num Iter since last new working solution, and corresponding limit at which we give up
+  unsigned WorkStuck = 0;
+  const unsigned MaxWorkStuck = 128;
+  //Num Iter since last new best solution
+  unsigned GlobalStuck = 0;
+  const unsigned MaxGlobalStuck = 1024;
+
+  //Num Iter with consecutive error in the PS calculation
+  //if it reacheas a threshold, the TanAlpha is artificially increased by 2x.
+  //these iterations DO count towards the stuck
+  unsigned BadPS = 0;
+
+
+  //for(unsigned uf=0; uf<fluctN; uf++) fluct[uf]=0;
+  //for(unsigned ud=0; ud<dirN; ud++) dir[ud]=0;
+//TFile fDump(TString::Format("%s/OtherTasks/ManufactureYukawaPotential/fDump.root",GetFemtoOutputFolder()),"recreate");
+
+  TFile fOutput(TString::Format("%s/fOut_%.2f_%.1f_%s.root",OutputFolder.Data(),f0,d0,Potential.Data()),"recreate");
+  TNtuple* ntMM = new TNtuple("ntMM", "ntMM","r0:f0:d0:MMA:MMB:C_X0:C_X150:L_X0:V1:mu1:V2:mu2:s2:wf2:Class:Manufactured");
+  TH1F* hClassCount = new TH1F("hClassCount","hClassCount",100,-50.5,49.5);
+  TH2F* hif0d0Count = new TH2F("hf0d0Count","hf0d0Count",20,-10,10,20,0,40);
+  bool FoundIt = false;
+  bool GiveUp = false;
+  bool NewGlobSol = false;
+  bool NewWorkSol = false;
+/*
+  while(!GiveUp&&!FoundIt){
+    //PRINT
+
+//after we compute the new guys:
+//* if(BadPS)...
+//* else:
+//* check what is the opening angle
+//* check what is the distance from start pt (fluct) and from goal
+//* based on those, decide on NewWorkSol,NewGlobSol,FoundIt
+//*   -> above apply special rules if we are currently calibrating
+//* compute the Convergence for the next step
+//* check if we need to calibrate
+
+
+
+
+    if(!NewWorkSol&&!NewGlobSol){
+      //if appropriate, evaluate the current avereges
+//CHECK ALL OF THIS !!!!!
+
+      //for the distance, we compute the avg distance we moved
+      //away from our current working solution. The avg of that
+      //is the quantity we need
+      avg_fluct = 0;
+      if(ufluct>=fluctNth){
+        for(unsigned uf=0; uf<ufluct; uf++){
+          avg_fluct+=fluct[uf];
+        }
+        avg_fluct /= double(ufluct);
+        fluct[ufluct] = avg_fluct;
+        ufluct++;
+        if(ufluct>fluctN) ufluct=fluctN;
+      }
+
+//CHECK ALL OF THIS !!!!!
+      //avg_fluct = 0;
+      TanAlpha = TanAlphaDefault;
+      if(uTan>=TanNth){
+        for(TanAlpha=TanAlphaStep; TanAlpha<=TanAlphaMax; TanAlpha+=TanAlphaStep){
+          double Alpha = arctan(TanAlpha);
+          Exp_TanInRange = Alpha/(2.*Pi);
+          TanInRange=0;
+          for(unsigned ut=0; ut<uTan; ut++){
+            TanInRange += (fabs(Tan[uTan])<TanAlpha)
+          }
+          TanInRange /= double(uTan);
+          if(TanInRange/Exp_TanInRange>=1) break;
+        }
+        //uTan++;
+        //if(uTan>fluctN) ufluct=fluctN;
+      }
+
+      const unsigned TanN = 32;
+      const unsigned TanNth = 8;
+      //how many of the last dirN iterations moved towards the true solution, based on the opening angle
+      //between the working solution and the goal. The opening angle will be adjusted based on the
+      //expectation value based on the angle (assuming a flat anglular disto), and the value
+      //measured one. The ratio of the two determines if we will increase or decrease the opening angle
+      //the measured one is beeing reset on finding a new working solution, and we will NOT change the default angle
+      //between we reach a threshold
+      double Tan[TanN];
+      unsigned uTan = 0;
+      double TanInRange;
+      double Exp_TanInRange;
+
+    }
+    //if we find a new solution, working or global, the avg are reset
+    else{
+      avg_fluct = 0;
+      ufluct = 0;
+
+
+    }
+
+    if(!NeedToCalibrate){
+      uIter++;
+      if(NewWorkSol) WorkStuck=0;
+      else WorkStuck++;
+      if(NewGlobSol) GlobalStuck=0;
+      else GlobalStuck++;
+    }
+    FoundIt = (fabs(CSP[ms_f0]-f0)<fabs(df0) && fabs(CSP[ms_d0]-d0)<fabs(dd0));
+    GiveUp = (WorkStuck>=MaxWorkStuck||GlobalStuck>=MaxGlobalStuck||uIter>MaxIter);
+  }
+
+
+  printf("\n");
+  printf("Suitable %s potential found:\n",CurrentPot.Data());
+  printf(" f0 = %.3f fm\n", bf_0);
+  printf(" d0 = %.2f fm\n", bd_0);
+  printf("  V1 = %.6e\n",bV_1);
+  printf("  mu1 = %.6e\n",bmu_1);
+  printf("  V2 = %.6e\n",bV_2);
+  printf("  mu2 = %.6e\n",bmu_2);
+
+  V1 = bV_1;
+  V2 = bV_2;
+  mu1 = bmu_1;
+  mu2 = bmu_2;
+
+  delete hClassCount;
+  delete hif0d0Count;
+  delete ntMM;
+  delete [] MomBins;
+  delete [] GBS;
+  delete [] CAS;
+  delete [] CSP;
+  delete [] PLC;
+*/
+}
+
+
+
+
+
+
+
+
 void MakePotentials(int flag){
   double V1,V2,mu1,mu2;
   //ManufactureYukawaPotential(0.5,0.0025,1,0.005,V1,mu1,V2,mu2);
@@ -8428,7 +9315,7 @@ void MakePotentials(int flag){
     f0=32.0; d0=16.00; ManufacturePotential(f0,f0*ef0,d0,d0*ed0,Radii,NumR,V1,mu1,V2,mu2,Potential,OutputFolder);
     f0=16.0; d0=8.000; ManufacturePotential(f0,f0*ef0,d0,d0*ed0,Radii,NumR,V1,mu1,V2,mu2,Potential,OutputFolder);
   }
-  //for emma
+  //for emma 20X, 21X....
   else if(flag/10>=20&&flag/10<=27){
     //ef0 = 0.01;
     //ed0 = 0.01;
@@ -8442,7 +9329,62 @@ void MakePotentials(int flag){
       ManufacturePotential(f0,f0*ef0,d0,d0*ed0,Radii,NumR,V1,mu1,V2,mu2,Potential,OutputFolder);
     }
   }
+  //for ramona 40X, 41X....
+  else if(flag/10>=40&&flag/10<=44){
+    ef0 = 0.01;
+    ed0 = 0.01;
+    NumR = 2;
+    Radii[0] = 0.95;
+    Radii[1] = 1.30;
+    OutputFolder += "Ramona1/";
+    int VAR_FLAG = (flag/10)%10;
+    f0 = -0.3-0.05*double(VAR_FLAG);
+    for(int ud0=3; ud0>=0; ud0--){
+      d0 = 5.00-1.5*double(ud0);
+      ManufacturePotential(f0,fabs(f0*ef0)+0.01,d0,fabs(d0*ed0)+0.01,Radii,NumR,V1,mu1,V2,mu2,Potential,OutputFolder);
+    }
+  }
+  /*
+  Suitable DoubleGaussSum potential found:
+   f0 = -0.360 fm
+   d0 = 1.98 fm
+    V1 = -7.594562e+02
+    mu1 = 6.466316e-01
+    V2 = -1.200472e+02
+    mu2 = 1.076839e+00
 
+  Suitable DoubleGaussSum potential found:
+   f0 = -0.353 fm
+   d0 = 0.50 fm
+    V1 = -1.693235e+03
+    mu1 = 4.200525e-01
+    V2 = -1.946644e+02
+    mu2 = 7.536386e-01
+
+  Suitable DoubleGaussSum potential found:
+   f0 = -0.388 fm
+   d0 = 3.51 fm
+    V1 = -1.388675e+03
+    mu1 = 9.657631e-01
+    V2 = -1.072519e+03
+    mu2 = 3.781579e-01
+
+  Suitable DoubleGaussSum potential found:
+   f0 = -0.399 fm
+   d0 = 2.01 fm
+    V1 = -1.471788e+03
+    mu1 = 6.912759e-01
+    V2 = -1.086707e+03
+    mu2 = 8.669076e-01
+
+  Suitable DoubleGaussSum potential found:
+   f0 = -0.386 fm
+   d0 = 0.49 fm
+    V1 = -8.883082e+02
+    mu1 = 4.924323e-01
+    V2 = -3.805122e+02
+    mu2 = 7.725780e-01
+*/
 
   //Morita
   else if(flag==100){
@@ -8459,7 +9401,6 @@ NumR=1;
     NumR=1;
     ef0 = 0.05;
     ed0 = 0.05;
-
     if(flag==-1){
       f0 = 1.0; d0 = 1.0;
       ManufacturePotential(f0,f0*ef0,d0,d0*ed0,Radii,NumR,V1,mu1,V2,mu2,"DoubleGaussSum",OutputFolder);
@@ -8467,24 +9408,30 @@ NumR=1;
       ManufacturePotential(f0,f0*ef0,d0,d0*ed0,Radii,NumR,V1,mu1,V2,mu2,"Gaussian",OutputFolder);
       ManufacturePotential(f0,f0*ef0,d0,d0*ed0,Radii,NumR,V1,mu1,V2,mu2,"Yukawa",OutputFolder);
     }
-    if(flag==-2){
+    else if(flag==-2){//
       f0 = 1.0; d0 = 4.0;
-      ManufacturePotential(f0,f0*ef0,d0,d0*ed0,Radii,NumR,V1,mu1,V2,mu2,"DoubleGaussSum",OutputFolder);
+      //ManufacturePotential(f0,f0*ef0,d0,d0*ed0,Radii,NumR,V1,mu1,V2,mu2,"DoubleGaussSum",OutputFolder);
       ManufacturePotential(f0,f0*ef0,d0,d0*ed0,Radii,NumR,V1,mu1,V2,mu2,"YukawaDimiCore",OutputFolder);
-      ManufacturePotential(f0,f0*ef0,d0,d0*ed0,Radii,NumR,V1,mu1,V2,mu2,"Gaussian",OutputFolder);
+      //ManufacturePotential(f0,f0*ef0,d0,d0*ed0,Radii,NumR,V1,mu1,V2,mu2,"Gaussian",OutputFolder);
       ManufacturePotential(f0,f0*ef0,d0,d0*ed0,Radii,NumR,V1,mu1,V2,mu2,"Yukawa",OutputFolder);
 
     }
-    if(flag==-3){
+    else if(flag==-3){//
       f0 = -4.0; d0 = 1.0;
-      ManufacturePotential(f0,f0*ef0,d0,d0*ed0,Radii,NumR,V1,mu1,V2,mu2,"DoubleGaussSum",OutputFolder);
-      ManufacturePotential(f0,f0*ef0,d0,d0*ed0,Radii,NumR,V1,mu1,V2,mu2,"YukawaDimiCore",OutputFolder);
-      ManufacturePotential(f0,f0*ef0,d0,d0*ed0,Radii,NumR,V1,mu1,V2,mu2,"Gaussian",OutputFolder);
-      ManufacturePotential(f0,f0*ef0,d0,d0*ed0,Radii,NumR,V1,mu1,V2,mu2,"Yukawa",OutputFolder);
-
+      //ManufacturePotential(f0,f0*ef0,d0,d0*ed0,Radii,NumR,V1,mu1,V2,mu2,"DoubleGaussSum",OutputFolder);
+      //ManufacturePotential(f0,f0*ef0,d0,d0*ed0,Radii,NumR,V1,mu1,V2,mu2,"YukawaDimiCore",OutputFolder);
+      //ManufacturePotential(f0,f0*ef0,d0,d0*ed0,Radii,NumR,V1,mu1,V2,mu2,"Gaussian",OutputFolder);
+      ManufacturePotential(f0,f0*ef0,d0,d0*ed0,Radii,NumR,V1,mu1,V2,mu2,"Yukawa",OutputFolder,8);
     }
-    if(flag==-4){
+    else if(flag==-4){//
       f0 = -1.0; d0 = 1.0;
+      //ManufacturePotential(f0,f0*ef0,d0,d0*ed0,Radii,NumR,V1,mu1,V2,mu2,"DoubleGaussSum",OutputFolder);
+      ManufacturePotential(f0,f0*ef0,d0,d0*ed0,Radii,NumR,V1,mu1,V2,mu2,"YukawaDimiCore",OutputFolder);
+      //ManufacturePotential(f0,f0*ef0,d0,d0*ed0,Radii,NumR,V1,mu1,V2,mu2,"Gaussian",OutputFolder);
+      ManufacturePotential(f0,f0*ef0,d0,d0*ed0,Radii,NumR,V1,mu1,V2,mu2,"Yukawa",OutputFolder);
+    }
+    else if(flag==-5){//
+      f0 = 4.0; d0 = 1.0;
       ManufacturePotential(f0,f0*ef0,d0,d0*ed0,Radii,NumR,V1,mu1,V2,mu2,"DoubleGaussSum",OutputFolder);
       ManufacturePotential(f0,f0*ef0,d0,d0*ed0,Radii,NumR,V1,mu1,V2,mu2,"YukawaDimiCore",OutputFolder);
       ManufacturePotential(f0,f0*ef0,d0,d0*ed0,Radii,NumR,V1,mu1,V2,mu2,"Gaussian",OutputFolder);
@@ -8518,6 +9465,43 @@ NumR=1;
 
 }
 
+void pKplus_ScattPars(){
+  CATS Kitty_I0;
+  Kitty_I0.SetMomBins(41,0,123);
+
+
+  CATS Kitty_I1;
+
+  //Eval_ScattParameters
+
+
+}
+//double fDlmPot(const int& DlmPot, const int& DlmPotFlag,
+//               const int& IsoSpin, const int& t2p1, const int& t2p2, const int& Spin,
+//const int& AngMom, const int& TotMom, double* Radius, const double& CutOff, double* OtherPars){
+//
+/*
+void pXi_Pot(){
+  TGraph gr[4];
+  unsigned nRad=0;
+  double PotParsI0S0[9]={pXim_HALQCD1,-12,0,-1,1,0,0,0,0};
+  double PotParsI0S1[9]={pXim_HALQCD1,-12,0,-1,1,1,0,1,0};
+  double PotParsI1S0[9]={pXim_HALQCD1,-12,1,1,1,0,0,0,0};
+  double PotParsI1S1[9]={pXim_HALQCD1,-12,1,1,1,1,0,1,0};
+  CATSparameters* cPotParsI0S0 = new CATSparameters(CATSparameters::tPotential,9,true); cPotParsI0S0->SetParameters(PotParsI0S0);
+  CATSparameters* cPotParsI0S1 = new CATSparameters(CATSparameters::tPotential,9,true); cPotParsI0S1->SetParameters(PotParsI0S1);
+  CATSparameters* cPotParsI1S0 = new CATSparameters(CATSparameters::tPotential,9,true); cPotParsI1S0->SetParameters(PotParsI1S0);
+  CATSparameters* cPotParsI1S1 = new CATSparameters(CATSparameters::tPotential,9,true); cPotParsI1S1->SetParameters(PotParsI1S1);
+  for(double RAD = 0.01; RAD<3; RAD+=0.02){
+    gr[0].SetPoint(nRad,RAD,fDlmPot.Eval(pXim_HALQCD1,-12,0,-1,1,0,0,0));
+    gr[1].SetPoint(nRad,RAD,fDlmPot.Eval(pXim_HALQCD1,-12,0,-1,1,1,0,1));
+    gr[2].SetPoint(nRad,RAD,fDlmPot.Eval(pXim_HALQCD1,-12,1,1,1,0,0,0));
+    gr[3].SetPoint(nRad,RAD,fDlmPot.Eval(pXim_HALQCD1,-12,1,1,1,1,0,1));
+    nRad++;
+  }
+
+}
+*/
 int OTHERTASKS(int argc, char *argv[]){
     //pp_CompareToNorfolk();
     //pp_pL_CorrectedMC_EXP();
@@ -8565,13 +9549,20 @@ int OTHERTASKS(int argc, char *argv[]){
     //Ledni_SmallRad("custom");
     //Ledni_SmallRad("Toy1");
     //Ledni_SmallRad("Yukawa1");
+    //Ledni_SmallRad("pKplusI0");
+    //Ledni_SmallRad("pKplusI1");
+    Ledni_SmallRad("pKplusYuki");
+    //pXi_Pot();
+
     //Ledni_SmallRad_Random(atoi(argv[1]),atoi(argv[2]));
-    MakePotentials(atoi(argv[1]));
+    //MakePotentials(atoi(argv[1]));
     //SelectEmmaPotential();
     //StableDisto_Test();
     //Andi_pDminus_1();
     //Fast_Bootstrap_Example();
     //MakeSmoothAngularSourceDisto(NULL);
+    //MaxRamona_piSig_ResoTest();
+    //Ramona_pK_ResoTest();
 
     //const double RAD = 5.11;
     //printf("u(%.2f) = %.4f\n",RAD,Evaluate_d_u(RAD));

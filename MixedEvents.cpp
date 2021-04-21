@@ -3189,6 +3189,7 @@ void RatioBetweenLevy(){
 
 
 TH1F* CDS_HADD(const unsigned& uDist, const CatsEvent* KittyEvent, TH1F* histo){
+  return NULL;
     /*
     TH1F* hAdd = NULL;
     const int NumMomBins = histo->GetNbinsX();
@@ -3947,113 +3948,310 @@ void ReferenceSampleStudy_1(const TString& TranModDescr, const TString& DataSetD
 
 
 
-void ResoInfo(const int& ResoPid, int& ParentPid, double& Width){
+void ResoInfo(const int& ResoPid, int& ParentPid, double& Width, const TString& System){
+  //pion resonances
+  if(System=="pi_Sig"){
+    if(ResoPid==211||ResoPid==120){Width=0; ParentPid=0;}
+    else if(ResoPid==3122||ResoPid==2130){Width=0; ParentPid=0;}
+    else {Width=0; ParentPid=1;}
+    return;
+  }
+  if(System=="piReso_Sig"||System=="pi_SigReso"||System=="pi_Sig"||System=="piReso_SigReso"){
+    //primordial
+    if(abs(ResoPid)==120||abs(ResoPid)==211||abs(ResoPid)==2130||abs(ResoPid)==3122) {Width=0; ParentPid=0;}
+    else{
+      switch (abs(ResoPid)) {
+        //pion resonances
+        case 120: Width=0; ParentPid=0; break;
+        case 111: Width=1; ParentPid=211; break;
+        case 121: Width=1; ParentPid=211; break;
+        case 131: Width=1; ParentPid=211; break;
+        case 231: Width=1; ParentPid=211; break;
+        case 10111: Width=1; ParentPid=211; break;
+        case 1111: Width=1; ParentPid=211; break;
+        case 2221: Width=1; ParentPid=211; break;
+        case 1221: Width=1; ParentPid=211; break;
+        case 1121: Width=1; ParentPid=211; break;
+        case 1122: Width=1; ParentPid=211; break;
+        case 1125: Width=1; ParentPid=211; break;
+        case 1126: Width=1; ParentPid=211; break;
+        case 1113: Width=1; ParentPid=211; break;
+        case 1127: Width=1; ParentPid=211; break;
+        case 1128: Width=1; ParentPid=211; break;
+        case 1114: Width=1; ParentPid=211; break;
 
-            switch(ResoPid){
-                //PDG
-                case 32224 : Width = 0.35; ParentPid = 2212; break;//Delta 1600
-                case 32214 : Width = 0.35; ParentPid = 2212; break;
-                case 32114 : Width = 0.35; ParentPid = 2212; break;
-                case 2226 : Width = 0.33; ParentPid = 2212; break;//Delta 1905
-                case 2126 : Width = 0.33; ParentPid = 2212; break;
-                case 1216 : Width = 0.33; ParentPid = 2212; break;
-                case 12112 : Width = 0.30; ParentPid = 2212; break;//N 1440
-                case 12212 : Width = 0.30; ParentPid = 2212; break;
-                case 12224 : Width = 0.30; ParentPid = 2212; break;//Delta 1700
-                case 12214 : Width = 0.30; ParentPid = 2212; break;
-                case 12114 : Width = 0.30; ParentPid = 2212; break;
-                case 22222 : Width = 0.25; ParentPid = 2212; break;//Delta 1910
-                case 22122 : Width = 0.25; ParentPid = 2212; break;
-                case 21212 : Width = 0.25; ParentPid = 2212; break;
-                case 31214 : Width = 0.20; ParentPid = 2212; break;//N 1440
-                case 32124 : Width = 0.20; ParentPid = 2212; break;
-                case 32112 : Width = 0.165; ParentPid = 2212; break;//N 1650
-                case 32212 : Width = 0.165; ParentPid = 2212; break;
-                case 22212 : Width = 0.15; ParentPid = 2212; break;//N 1535
-                case 22112 : Width = 0.15; ParentPid = 2212; break;
-                case 2116 : Width = 0.15; ParentPid = 2212; break;//N 1675
-                case 2216 : Width = 0.15; ParentPid = 2212; break;
-                case 2222 : Width = 0.145; ParentPid = 2212; break;//Delta 1620
-                case 2122 : Width = 0.145; ParentPid = 2212; break;
-                case 1212 : Width = 0.145; ParentPid = 2212; break;
-                case 12116 : Width = 0.13; ParentPid = 2212; break;//N 1680
-                case 12216 : Width = 0.13; ParentPid = 2212; break;
-                case 2224 : Width = 0.118; ParentPid = 2212; break;//Delta 1230
-                case 2214 : Width = 0.118; ParentPid = 2212; break;
-                case 2114 : Width = 0.118; ParentPid = 2212; break;
-                case 1214 : Width = 0.115; ParentPid = 2212; break;//N 1520
-                case 2124 : Width = 0.115; ParentPid = 2212; break;
-                case 42212 : Width = 0.10; ParentPid = 2212; break;//N 1710
-                case 42112 : Width = 0.10; ParentPid = 2212; break;
-                case 21214 : Width = 0.10; ParentPid = 2212; break;//N 1700
-                case 22124 : Width = 0.10; ParentPid = 2212; break;
-                //for lambda
-                case 3224 : Width = 0.0358; ParentPid = 3122; break;//S*+
-                case 3214 : Width = 0.036; ParentPid = 3122; break;//S*0
-                case 3114 : Width = 0.0394; ParentPid = 3122; break;//S*-
-                case 13124 : Width = 0.06; ParentPid = 3122; break;//Lambda 1690
-                case 13222 : Width = 0.1; ParentPid = 3122; break;//S+(1660)
-                case 13212 : Width = 0.1; ParentPid = 3122; break;//S0(1660)
-                case 13112 : Width = 0.1; ParentPid = 3122; break;//S-(1660)
-                case 13224 : Width = 0.06; ParentPid = 3122; break;//S+(1670)
-                case 13214 : Width = 0.06; ParentPid = 3122; break;//S0(1670)
-                case 13114 : Width = 0.06; ParentPid = 3122; break;//S-(1670)
-                case 3216 : Width = 0.12; ParentPid = 3122; break;//S+(1775)
-                case 3226 : Width = 0.12; ParentPid = 3122; break;//S0(1775)
-                case 3116 : Width = 0.12; ParentPid = 3122; break;//S-(1775)
-                case 33122 : Width = 0.035; ParentPid = 3122; break;//Lambda 1670
-                case 13226 : Width = 0.12; ParentPid = 3122; break;//S+(1915)
-                case 13216 : Width = 0.12; ParentPid = 3122; break;//S0(1915)
-                case 13116 : Width = 0.12; ParentPid = 3122; break;//S-(1915)
-                case 13324 : Width = 0.024; ParentPid = 3122; break;//Xi0 1820
-                case 13314 : Width = 0.024; ParentPid = 3122; break;//Xi- 1820
-                case 3126 : Width = 0.08; ParentPid = 3122; break;//Lambda 1820
-                case 23222 : Width = 0.09; ParentPid = 3122; break;//S+(1750)
-                case 23212 : Width = 0.09; ParentPid = 3122; break;//S0(1750)
-                case 23112 : Width = 0.09; ParentPid = 3122; break;//S-(1750)
-                //case 42212 : Width = 0.1; break;//N+ 1710
-                //case 42112 : Width = 0.1; break;//N0 1710
-                //case 32124 : Width = 0.2; break;//N+ 1720
-                //case 31214 : Width = 0.2; break;//N0 1720
-                //case 32212 : Width = 0.165; break;//N+ 1650
-                //case 32112 : Width = 0.165; break;//N0 1650
+        case 211: Width=0; ParentPid=0; break;
+        case 113: Width=1; ParentPid=211; break;
+        case 213: Width=1; ParentPid=211; break;
+        case 323: Width=1; ParentPid=211; break;
+        case 313: Width=1; ParentPid=211; break;
+        case 20113: Width=1; ParentPid=211; break;
+        case 2224: Width=1; ParentPid=211; break;
+        //case 1114: Width=1; ParentPid=211; break;//duplicates, but in both cases it is a pion reso, so okay
+        case 2114: Width=1; ParentPid=211; break;
+        case 2214: Width=1; ParentPid=211; break;
+        case 12112: Width=1; ParentPid=211; break;
+        case 22212: Width=1; ParentPid=211; break;
+        case 2122: Width=1; ParentPid=211; break;
+        case 2222: Width=1; ParentPid=211; break;
+        case 32212: Width=1; ParentPid=211; break;
+        case 12214: Width=1; ParentPid=211; break;
+        case 12224: Width=1; ParentPid=211; break;
 
-                //EPOS
-                case 1111 : Width = 0.118; ParentPid = 1120; break;//Delta 1230
-                case 1121 : Width = 0.118; ParentPid = 1120; break;
-                case 1221 : Width = 0.118; ParentPid = 1120; break;
-                case 1122 : Width = 0.20; ParentPid = 1120; break;//N 1440
-                case 1222 : Width = 0.20; ParentPid = 1120; break;
-                case 1123 : Width = 0.15; ParentPid = 1120; break;//N 1530 -> 1535
-                case 1223 : Width = 0.15; ParentPid = 1120; break;
-                case 1112 : Width = 0.145; ParentPid = 1120; break;//Delta 1620
-                case 1124 : Width = 0.145; ParentPid = 1120; break;
-                case 1224 : Width = 0.145; ParentPid = 1120; break;
-                case 1125 : Width = 0.15; ParentPid = 1120; break;//N 1665 -> 1675
-                case 1225 : Width = 0.15; ParentPid = 1120; break;
-                case 1113 : Width = 0.30; ParentPid = 1120; break;//Delta 1700
-                case 1126 : Width = 0.30; ParentPid = 1120; break;
-                case 1226 : Width = 0.30; ParentPid = 1120; break;
-                case 1127 : Width = 0.10; ParentPid = 1120; break;//N 1710
-                case 1227 : Width = 0.10; ParentPid = 1120; break;
-                case 1114 : Width = 0.25; ParentPid = 1120; break;//Delta 1925 -> 1910
-                case 1128 : Width = 0.25; ParentPid = 1120; break;
-                case 1228 : Width = 0.25; ParentPid = 1120; break;
-                //for lambda
-                case 1131 : Width = 0.036; ParentPid = 2130; break;//S1385
-                case 1231 : Width = 0.036; ParentPid = 2130; break;
-                case 2231 : Width = 0.039; ParentPid = 2130; break;
-                case 1132 : Width = 0.08; ParentPid = 2130; break;//S1665 (avg of 1660 and 1670)
-                case 1236 : Width = 0.08; ParentPid = 2130; break;
-                case 2232 : Width = 0.08; ParentPid = 2130; break;
-                case 1133 : Width = 0.12; ParentPid = 2130; break;//S1775
-                case 1237 : Width = 0.12; ParentPid = 2130; break;
-                case 2233 : Width = 0.12; ParentPid = 2130; break;
-                case 1134 : Width = 0.12; ParentPid = 2130; break;
-                case 1239 : Width = 0.12; ParentPid = 2130; break;
-                case 2234 : Width = 0.12; ParentPid = 2130; break;
-                default : Width = 0; ParentPid=0; break;
-            }
+        //sigma resonances -> well actually its Lambda used as a dummy!
+        case 2130: Width=0; ParentPid=0; break;
+        case 1131: Width=1; ParentPid=3122; break;
+        case 1231: Width=1; ParentPid=3122; break;
+        case 2231: Width=1; ParentPid=3122; break;
+        case 1132: Width=1; ParentPid=3122; break;
+        case 1236: Width=1; ParentPid=3122; break;
+        case 2232: Width=1; ParentPid=3122; break;
+        case 1133: Width=1; ParentPid=3122; break;
+        case 1237: Width=1; ParentPid=3122; break;
+        case 2233: Width=1; ParentPid=3122; break;
+        case 1134: Width=1; ParentPid=3122; break;
+        case 1239: Width=1; ParentPid=3122; break;
+        case 2234: Width=1; ParentPid=3122; break;
+
+        case 3122: Width=0; ParentPid=0; break;
+        case 3224: Width=1; ParentPid=3122; break;
+        case 3214: Width=1; ParentPid=3122; break;
+        case 3114: Width=1; ParentPid=3122; break;
+        case 13124: Width=1; ParentPid=3122; break;
+        case 13222: Width=1; ParentPid=3122; break;
+        case 13212: Width=1; ParentPid=3122; break;
+        case 13112: Width=1; ParentPid=3122; break;
+        case 13224: Width=1; ParentPid=3122; break;
+        case 13214: Width=1; ParentPid=3122; break;
+        case 13114: Width=1; ParentPid=3122; break;
+        case 3216: Width=1; ParentPid=3122; break;
+        case 3226: Width=1; ParentPid=3122; break;
+        case 3116: Width=1; ParentPid=3122; break;
+        case 33122: Width=1; ParentPid=3122; break;
+        case 13226: Width=1; ParentPid=3122; break;
+        case 13216: Width=1; ParentPid=3122; break;
+        case 13116: Width=1; ParentPid=3122; break;
+        case 13324: Width=1; ParentPid=3122; break;
+        case 13314: Width=1; ParentPid=3122; break;
+        case 3126: Width=1; ParentPid=3122; break;
+        case 23222: Width=1; ParentPid=3122; break;
+        case 23212: Width=1; ParentPid=3122; break;
+        case 23112: Width=1; ParentPid=3122; break;
+        default : printf("\033[1;33mWARNING:\033[0m Unexpected pi_Sig resonances!\n"); Width=0; ParentPid=1; break;
+      }
+    }
+  }
+  //
+  else if(System=="p_KaonReso"||System=="pReso_KaonReso"||System=="pReso_Kaon"){
+    switch (abs(ResoPid)) {
+      case 1120: Width=0; ParentPid=0; break;
+      case 1111: Width=1; ParentPid=2212; break;
+      case 1121: Width=1; ParentPid=2212; break;
+      case 1221: Width=1; ParentPid=2212; break;
+      case 1122: Width=1; ParentPid=2212; break;
+      case 1222: Width=1; ParentPid=2212; break;
+      case 1123: Width=1; ParentPid=2212; break;
+      case 1223: Width=1; ParentPid=2212; break;
+      case 1112: Width=1; ParentPid=2212; break;
+      case 1124: Width=1; ParentPid=2212; break;
+      case 1224: Width=1; ParentPid=2212; break;
+      case 1125: Width=1; ParentPid=2212; break;
+      case 1225: Width=1; ParentPid=2212; break;
+      case 1113: Width=1; ParentPid=2212; break;
+      case 1126: Width=1; ParentPid=2212; break;
+      case 1226: Width=1; ParentPid=2212; break;
+      case 1127: Width=1; ParentPid=2212; break;
+      case 1227: Width=1; ParentPid=2212; break;
+      case 1114: Width=1; ParentPid=2212; break;
+      case 1128: Width=1; ParentPid=2212; break;
+      case 1228: Width=1; ParentPid=2212; break;
+
+      case 2212: Width=0; ParentPid=0; break;
+      case 2224: Width=1; ParentPid=2212; break;
+      case 2214: Width=1; ParentPid=2212; break;
+      case 2114: Width=1; ParentPid=2212; break;
+      case 12112: Width=1; ParentPid=2212; break;
+      case 1214: Width=1; ParentPid=2212; break;
+      case 12116: Width=1; ParentPid=2212; break;
+      case 22212: Width=1; ParentPid=2212; break;
+      case 12212: Width=1; ParentPid=2212; break;
+      case 2124: Width=1; ParentPid=2212; break;
+      case 2226: Width=1; ParentPid=2212; break;
+      case 12224: Width=1; ParentPid=2212; break;
+      case 2116: Width=1; ParentPid=2212; break;
+      case 31214: Width=1; ParentPid=2212; break;
+      case 12216: Width=1; ParentPid=2212; break;
+      case 12214: Width=1; ParentPid=2212; break;
+      case 22112: Width=1; ParentPid=2212; break;
+      case 2126: Width=1; ParentPid=2212; break;
+      case 32224: Width=1; ParentPid=2212; break;
+      case 32112: Width=1; ParentPid=2212; break;
+      case 2216: Width=1; ParentPid=2212; break;
+      case 2222: Width=1; ParentPid=2212; break;
+      case 32124: Width=1; ParentPid=2212; break;
+      case 32214: Width=1; ParentPid=2212; break;
+      case 32212: Width=1; ParentPid=2212; break;
+      case 12114: Width=1; ParentPid=2212; break;
+      case 2122: Width=1; ParentPid=2212; break;
+      case 1216: Width=1; ParentPid=2212; break;
+      case 22222: Width=1; ParentPid=2212; break;
+      case 32114: Width=1; ParentPid=2212; break;
+      case 42212: Width=1; ParentPid=2212; break;
+      case 22122: Width=1; ParentPid=2212; break;
+      case 1212: Width=1; ParentPid=2212; break;
+      case 42112: Width=1; ParentPid=2212; break;
+      case 21214: Width=1; ParentPid=2212; break;
+      case 21212: Width=1; ParentPid=2212; break;
+      case 22124: Width=1; ParentPid=2212; break;
+
+      case 130: Width=0; ParentPid=0; break;
+      case 231: Width=1; ParentPid=321; break;
+      case 131: Width=1; ParentPid=321; break;
+      case 1220: Width=1; ParentPid=321; break;
+      case 2130: Width=1; ParentPid=321; break;
+      case 1233: Width=1; ParentPid=321; break;
+      case 1234: Width=1; ParentPid=321; break;
+      case 2330: Width=1; ParentPid=321; break;
+      case 1330: Width=1; ParentPid=321; break;
+      case 3331: Width=1; ParentPid=321; break;
+      case 2234: Width=1; ParentPid=321; break;
+      case 1134: Width=1; ParentPid=321; break;
+      case 1239: Width=1; ParentPid=321; break;
+
+      case 321: Width=0; ParentPid=0; break;
+      case 313: Width=1; ParentPid=321; break;
+      case 323: Width=1; ParentPid=321; break;
+      case 2112: Width=1; ParentPid=321; break;
+      case 315: Width=1; ParentPid=321; break;
+      case 10313: Width=1; ParentPid=321; break;
+      case 10323: Width=1; ParentPid=321; break;
+      case 9000225: Width=1; ParentPid=321; break;
+      case 325: Width=1; ParentPid=321; break;
+      case 9010221: Width=1; ParentPid=321; break;
+      case 9000111: Width=1; ParentPid=321; break;
+      case 10311: Width=1; ParentPid=321; break;
+      case 335: Width=1; ParentPid=321; break;
+      case 10333: Width=1; ParentPid=321; break;
+      case 3124: Width=1; ParentPid=321; break;
+      case 215: Width=1; ParentPid=321; break;
+      case 9000223: Width=1; ParentPid=321; break;
+      case 10321: Width=1; ParentPid=321; break;
+      case 30313: Width=1; ParentPid=321; break;
+      case 20333: Width=1; ParentPid=321; break;
+      case 327: Width=1; ParentPid=321; break;
+      case 100215: Width=1; ParentPid=321; break;
+      case 20223: Width=1; ParentPid=321; break;
+      case 225: Width=1; ParentPid=321; break;
+      default: printf("\033[1;33mWARNING:\033[0m Unexpected p_Kaon resonances!\n"); Width=0; ParentPid=1; break;
+    }
+  }
+  else{
+    switch(ResoPid){
+        //PDG
+        case 32224 : Width = 0.35; ParentPid = 2212; break;//Delta 1600
+        case 32214 : Width = 0.35; ParentPid = 2212; break;
+        case 32114 : Width = 0.35; ParentPid = 2212; break;
+        case 2226 : Width = 0.33; ParentPid = 2212; break;//Delta 1905
+        case 2126 : Width = 0.33; ParentPid = 2212; break;
+        case 1216 : Width = 0.33; ParentPid = 2212; break;
+        case 12112 : Width = 0.30; ParentPid = 2212; break;//N 1440
+        case 12212 : Width = 0.30; ParentPid = 2212; break;
+        case 12224 : Width = 0.30; ParentPid = 2212; break;//Delta 1700
+        case 12214 : Width = 0.30; ParentPid = 2212; break;
+        case 12114 : Width = 0.30; ParentPid = 2212; break;
+        case 22222 : Width = 0.25; ParentPid = 2212; break;//Delta 1910
+        case 22122 : Width = 0.25; ParentPid = 2212; break;
+        case 21212 : Width = 0.25; ParentPid = 2212; break;
+        case 31214 : Width = 0.20; ParentPid = 2212; break;//N 1440
+        case 32124 : Width = 0.20; ParentPid = 2212; break;
+        case 32112 : Width = 0.165; ParentPid = 2212; break;//N 1650
+        case 32212 : Width = 0.165; ParentPid = 2212; break;
+        case 22212 : Width = 0.15; ParentPid = 2212; break;//N 1535
+        case 22112 : Width = 0.15; ParentPid = 2212; break;
+        case 2116 : Width = 0.15; ParentPid = 2212; break;//N 1675
+        case 2216 : Width = 0.15; ParentPid = 2212; break;
+        case 2222 : Width = 0.145; ParentPid = 2212; break;//Delta 1620
+        case 2122 : Width = 0.145; ParentPid = 2212; break;
+        case 1212 : Width = 0.145; ParentPid = 2212; break;
+        case 12116 : Width = 0.13; ParentPid = 2212; break;//N 1680
+        case 12216 : Width = 0.13; ParentPid = 2212; break;
+        case 2224 : Width = 0.118; ParentPid = 2212; break;//Delta 1230
+        case 2214 : Width = 0.118; ParentPid = 2212; break;
+        case 2114 : Width = 0.118; ParentPid = 2212; break;
+        case 1214 : Width = 0.115; ParentPid = 2212; break;//N 1520
+        case 2124 : Width = 0.115; ParentPid = 2212; break;
+        case 42212 : Width = 0.10; ParentPid = 2212; break;//N 1710
+        case 42112 : Width = 0.10; ParentPid = 2212; break;
+        case 21214 : Width = 0.10; ParentPid = 2212; break;//N 1700
+        case 22124 : Width = 0.10; ParentPid = 2212; break;
+        //for lambda
+        case 3224 : Width = 0.0358; ParentPid = 3122; break;//S*+
+        case 3214 : Width = 0.036; ParentPid = 3122; break;//S*0
+        case 3114 : Width = 0.0394; ParentPid = 3122; break;//S*-
+        case 13124 : Width = 0.06; ParentPid = 3122; break;//Lambda 1690
+        case 13222 : Width = 0.1; ParentPid = 3122; break;//S+(1660)
+        case 13212 : Width = 0.1; ParentPid = 3122; break;//S0(1660)
+        case 13112 : Width = 0.1; ParentPid = 3122; break;//S-(1660)
+        case 13224 : Width = 0.06; ParentPid = 3122; break;//S+(1670)
+        case 13214 : Width = 0.06; ParentPid = 3122; break;//S0(1670)
+        case 13114 : Width = 0.06; ParentPid = 3122; break;//S-(1670)
+        case 3216 : Width = 0.12; ParentPid = 3122; break;//S+(1775)
+        case 3226 : Width = 0.12; ParentPid = 3122; break;//S0(1775)
+        case 3116 : Width = 0.12; ParentPid = 3122; break;//S-(1775)
+        case 33122 : Width = 0.035; ParentPid = 3122; break;//Lambda 1670
+        case 13226 : Width = 0.12; ParentPid = 3122; break;//S+(1915)
+        case 13216 : Width = 0.12; ParentPid = 3122; break;//S0(1915)
+        case 13116 : Width = 0.12; ParentPid = 3122; break;//S-(1915)
+        case 13324 : Width = 0.024; ParentPid = 3122; break;//Xi0 1820
+        case 13314 : Width = 0.024; ParentPid = 3122; break;//Xi- 1820
+        case 3126 : Width = 0.08; ParentPid = 3122; break;//Lambda 1820
+        case 23222 : Width = 0.09; ParentPid = 3122; break;//S+(1750)
+        case 23212 : Width = 0.09; ParentPid = 3122; break;//S0(1750)
+        case 23112 : Width = 0.09; ParentPid = 3122; break;//S-(1750)
+        //case 42212 : Width = 0.1; break;//N+ 1710
+        //case 42112 : Width = 0.1; break;//N0 1710
+        //case 32124 : Width = 0.2; break;//N+ 1720
+        //case 31214 : Width = 0.2; break;//N0 1720
+        //case 32212 : Width = 0.165; break;//N+ 1650
+        //case 32112 : Width = 0.165; break;//N0 1650
+
+        //EPOS
+        case 1111 : Width = 0.118; ParentPid = 1120; break;//Delta 1230
+        case 1121 : Width = 0.118; ParentPid = 1120; break;
+        case 1221 : Width = 0.118; ParentPid = 1120; break;
+        case 1122 : Width = 0.20; ParentPid = 1120; break;//N 1440
+        case 1222 : Width = 0.20; ParentPid = 1120; break;
+        case 1123 : Width = 0.15; ParentPid = 1120; break;//N 1530 -> 1535
+        case 1223 : Width = 0.15; ParentPid = 1120; break;
+        case 1112 : Width = 0.145; ParentPid = 1120; break;//Delta 1620
+        case 1124 : Width = 0.145; ParentPid = 1120; break;
+        case 1224 : Width = 0.145; ParentPid = 1120; break;
+        case 1125 : Width = 0.15; ParentPid = 1120; break;//N 1665 -> 1675
+        case 1225 : Width = 0.15; ParentPid = 1120; break;
+        case 1113 : Width = 0.30; ParentPid = 1120; break;//Delta 1700
+        case 1126 : Width = 0.30; ParentPid = 1120; break;
+        case 1226 : Width = 0.30; ParentPid = 1120; break;
+        case 1127 : Width = 0.10; ParentPid = 1120; break;//N 1710
+        case 1227 : Width = 0.10; ParentPid = 1120; break;
+        case 1114 : Width = 0.25; ParentPid = 1120; break;//Delta 1925 -> 1910
+        case 1128 : Width = 0.25; ParentPid = 1120; break;
+        case 1228 : Width = 0.25; ParentPid = 1120; break;
+        //for lambda
+        case 1131 : Width = 0.036; ParentPid = 2130; break;//S1385
+        case 1231 : Width = 0.036; ParentPid = 2130; break;
+        case 2231 : Width = 0.039; ParentPid = 2130; break;
+        case 1132 : Width = 0.08; ParentPid = 2130; break;//S1665 (avg of 1660 and 1670)
+        case 1236 : Width = 0.08; ParentPid = 2130; break;
+        case 2232 : Width = 0.08; ParentPid = 2130; break;
+        case 1133 : Width = 0.12; ParentPid = 2130; break;//S1775
+        case 1237 : Width = 0.12; ParentPid = 2130; break;
+        case 2233 : Width = 0.12; ParentPid = 2130; break;
+        case 1134 : Width = 0.12; ParentPid = 2130; break;
+        case 1239 : Width = 0.12; ParentPid = 2130; break;
+        case 2234 : Width = 0.12; ParentPid = 2130; break;
+        default : Width = 0; ParentPid=0; break;
+    }
+  }
 }
 
 
@@ -4071,7 +4269,7 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
     //const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/ReferenceSampleStudy_1/";
     //const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/AngleStudy_3/";
     //const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/Max/";
-    const TString OutputFolder = "$CERNBOX_DIMI/CatsFiles/Source/EposAngularDist/";
+    const TString OutputFolder = TString::Format("%s/CatsFiles/Source/EposAngularDist/",GetCernBoxDimi());
     const unsigned NumMomBins = DataSetDescr=="pp"?400:DataSetDescr=="pLambda"?200:DataSetDescr=="pXim"?200:200;
     const TString OutFileBaseName = OutputFolder+TranModDescr+"_"+DataSetDescr;
     //const TString InputFileName = DataSetDescr=="pp"?TransportFile_pp_Alice:DataSetDescr=="pLambda"?TransportFile_pL_Alice:
@@ -4094,8 +4292,11 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
         //InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/Max/270320_with_omega.f19";
         InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/Max/300320_width50_omegaYes.root";
         //InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/Max/300320_width50_omegaNo.root";
-    else if(DataSetDescr=="p_Kaon"||DataSetDescr=="p_KaonReso"||DataSetDescr=="pReso_KaonReso")
-        InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/Kaons/pKch_64.f19";
+    else if(DataSetDescr=="pi_Sig"||DataSetDescr=="piReso_Sig"||DataSetDescr=="pi_SigReso"||DataSetDescr=="piReso_SigReso"){
+      InputFileName = TString::Format("%s/CatsFiles/Source/EposRawOutput/pi_Sig_Dummy.f19",GetCernBoxDimi());
+    }
+    else if(DataSetDescr=="p_Kaon"||DataSetDescr=="pReso_Kaon"||DataSetDescr=="p_KaonReso"||DataSetDescr=="pReso_KaonReso")
+        InputFileName = TString::Format("%s/scratch6/dmihaylov/OutputEPOS/13TeV/EPOS_20200121/pKch_2021_80.f19",GetNx2Folder());
     else if(DataSetDescr=="p_Phi"||DataSetDescr=="pReso_Phi")
         InputFileName = "/home/dimihayl/Mount/nx3/scratch6/dmihaylov/OutputEPOS/13TeV/EPOS_20200121/pPhi_All.f19";
     else if(DataSetDescr=="Lam_Xim"||DataSetDescr=="LamReso_Xim")
@@ -4573,13 +4774,124 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
 
         UseResoInfo = false;
     }
+    //Modification to Dimis code
+    //piSig correlation for now use Lambda=Sigma, neglect many body-decays
+    else if(DataSetDescr=="pi_Sig"){
+        pdgID[0] = 211;
+        pdgID[1] = 3122;
+        Original_eposID[0] = 120;
+        Original_eposID[1] = 2130;
+        Original_pdgID[0] = 211;
+        Original_pdgID[1] = 3122;
+
+        DaughterMassP1[0] = -1;
+        DaughterMassP1[1] = -1;
+        DaughterMassP1[2] = -1;
+        DaughterMassP1[3] = -1;
+
+        DaughterMassP2[0] = -1;
+        DaughterMassP2[1] = -1;
+        DaughterMassP2[2] = -1;
+        DaughterMassP2[3] = -1;
+
+        ResoMass[0] = -1;
+        ResoMass[1] = -1;
+
+        FractionsNbody[0] = 1;
+        FractionsNbody[1] = 0;
+        FractionsNbody[2] = 0;
+
+        UseResoInfo = true;
+    }
+    else if(DataSetDescr=="piReso_Sig"){
+        pdgID[0] = 0;
+        pdgID[1] = 3122;
+        Original_eposID[0] = 120;
+        Original_eposID[1] = 2130;
+        Original_pdgID[0] = 211;
+        Original_pdgID[1] = 3122;
+
+        DaughterMassP1[0] = Mass_pic*0.001;
+        DaughterMassP1[1] = Mass_pic*0.001;
+        DaughterMassP1[2] = Mass_pic*0.001;
+        DaughterMassP1[3] = Mass_pic*0.001;
+
+        DaughterMassP2[0] = -1;
+        DaughterMassP2[1] = -1;
+        DaughterMassP2[2] = -1;
+        DaughterMassP2[3] = -1;
+
+        ResoMass[0] = 1.124;
+        ResoMass[1] = -1;
+
+        FractionsNbody[0] = 1;
+        FractionsNbody[1] = 0;
+        FractionsNbody[2] = 0;
+
+        UseResoInfo = true;
+    }
+    else if(DataSetDescr=="pi_SigReso"){
+        pdgID[0] = 211;
+        pdgID[1] = 1;
+        Original_eposID[0] = 120;
+        Original_eposID[1] = 2130;
+        Original_pdgID[0] = 211;
+        Original_pdgID[1] = 3122;
+
+        DaughterMassP1[0] = -1;
+        DaughterMassP1[1] = -1;
+        DaughterMassP1[2] = -1;
+        DaughterMassP1[3] = -1;
+
+        DaughterMassP2[0] = Mass_L*0.001;
+        DaughterMassP2[1] = Mass_pic*0.001;
+        DaughterMassP2[2] = -1;
+        DaughterMassP2[3] = -1;
+
+        ResoMass[0] = -1;
+        ResoMass[1] = 1.46;
+
+        FractionsNbody[0] = 1;
+        FractionsNbody[1] = 0;
+        FractionsNbody[2] = 0;
+
+        UseResoInfo = true;
+    }
+    else if(DataSetDescr=="piReso_SigReso"){
+        pdgID[0] = 0;
+        pdgID[1] = 1;
+        Original_eposID[0] = 120;
+        Original_eposID[1] = 2130;
+        Original_pdgID[0] = 211;
+        Original_pdgID[1] = 3122;
+
+        DaughterMassP1[0] = Mass_pic*0.001;
+        DaughterMassP1[1] = Mass_pic*0.001;
+        DaughterMassP1[2] = Mass_pic*0.001;
+        DaughterMassP1[3] = Mass_pic*0.001;
+
+        DaughterMassP2[0] = Mass_L*0.001;
+        DaughterMassP2[1] = Mass_pic*0.001;
+        DaughterMassP2[2] = -1;
+        DaughterMassP2[3] = -1;
+
+        ResoMass[0] = 1.124;
+        ResoMass[1] = 1.46;
+
+        FractionsNbody[0] = 1;
+        FractionsNbody[1] = 0;
+        FractionsNbody[2] = 0;
+
+        UseResoInfo = true;
+    }
+
     //pK correlation
     else if(DataSetDescr=="p_Kaon"){
-        pdgID[0] = 321;
+        pdgID[0] = 2212;
         pdgID[1] = 321;
-        Original_eposID[0] = 130;
+        Original_eposID[0] = 1120;
         Original_eposID[1] = 130;
-        Original_pdgID[0] = 321;
+        Original_pdgID[0] = 2212;
         Original_pdgID[1] = 321;
 
         DaughterMassP1[0] = -1;
@@ -4599,11 +4911,11 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
         FractionsNbody[1] = 0.0;
         FractionsNbody[2] = 0.0;
 
-        UseResoInfo = false;
+        UseResoInfo = true;
     }
     else if(DataSetDescr=="p_KaonReso"){
-        pdgID[0] = 321;
-        pdgID[1] = 0;
+        pdgID[0] = 2212;
+        pdgID[1] = 1;
         Original_eposID[0] = 1120;
         Original_eposID[1] = 130;
         Original_pdgID[0] = 2212;
@@ -4620,17 +4932,17 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
         DaughterMassP2[3] = -1;
 
         ResoMass[0] = -1;
-        ResoMass[1] = 1.044;
+        ResoMass[1] = 1.054;
 
         FractionsNbody[0] = 1.0;
         FractionsNbody[1] = 0.0;
         FractionsNbody[2] = 0.0;
 
-        UseResoInfo = false;
+        UseResoInfo = true;
     }
     else if(DataSetDescr=="pReso_Kaon"){
         pdgID[0] = 0;
-        pdgID[1] = 2212;
+        pdgID[1] = 321;
         Original_eposID[0] = 1120;
         Original_eposID[1] = 130;
         Original_pdgID[0] = 2212;
@@ -4653,11 +4965,11 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
         FractionsNbody[1] = 0.0;
         FractionsNbody[2] = 0.0;
 
-        UseResoInfo = false;
+        UseResoInfo = true;
     }
     else if(DataSetDescr=="pReso_KaonReso"){
         pdgID[0] = 0;
-        pdgID[1] = 0;
+        pdgID[1] = 1;
         Original_eposID[0] = 1120;
         Original_eposID[1] = 130;
         Original_pdgID[0] = 2212;
@@ -4674,13 +4986,13 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
         DaughterMassP2[3] = -1;
 
         ResoMass[0] = 1.36;
-        ResoMass[1] = 1.044;
+        ResoMass[1] = 1.054;
 
         FractionsNbody[0] = 1.0;
         FractionsNbody[1] = 0.0;
         FractionsNbody[2] = 0.0;
 
-        UseResoInfo = false;
+        UseResoInfo = true;
     }
     //pPhi correlation
     else if(DataSetDescr=="p_Phi"){
@@ -4971,16 +5283,23 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
 //!set all masses to the avg
 //KittyParticle.SetMass(1.36);
 //            }
-    int ParticlePID = KittyParticle.GetPid();
+
+    //int ParticlePID = KittyParticle.GetPid();
+    //to boost statistics we take both the particles and antiparticles and treat them the same
+    int ParticlePID = abs(KittyParticle.GetPid());
+
 ///Check for neutral pions
 //if(ParticlePID==111 || ParticlePID==110){
+//if(ParticlePID==131)
 //printf("PID=%i; M=%f\n",ParticlePID,KittyParticle.GetMass());
 //}
     double ResoWidth;
     int ParentPID;
     //this was used for the baryon baryon femto, where each reso can be mapped to a specific daughter
     //this will not work properly for meson meson, this is why we have to switch it off
-    if(UseResoInfo) ResoInfo(ParticlePID,ParentPID,ResoWidth);
+    //if(UseResoInfo&&(DataSetDescr=="piReso_Sig"||DataSetDescr=="pi_SigReso"||DataSetDescr=="pi_Sig"||DataSetDescr=="piReso_SigReso")) ResoInfo(ParticlePID,ParentPID,ResoWidth,DataSetDescr);
+    //else if(UseResoInfo) ResoInfo(ParticlePID,ParentPID,ResoWidth);
+    if(UseResoInfo) ResoInfo(ParticlePID,ParentPID,ResoWidth,DataSetDescr);
     else{
         //to boost statistics we take both the particles and antiparticles and treat them the same
         ParticlePID = abs(ParticlePID);
@@ -5003,19 +5322,26 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
 /// Няма да стане :( има дупликати, като н1440, за резонансите на протоните и каоните, ще трябва нещо друго да измислищ
         }
     }
-
+//printf("ParticlePID==%i; ParentPID==%i; ResoWidth==%.2f; %s\n",ParticlePID,ParentPID,ResoWidth,DataSetDescr.Data());
     if(ParticlePID==Original_pdgID[0]||ParticlePID==Original_eposID[0]) {KittyParticle.SetWidth(0);KittyParticle.SetPid(Original_pdgID[0]);}
     else if(ParticlePID==Original_pdgID[1]||ParticlePID==Original_eposID[1]) {KittyParticle.SetWidth(0);KittyParticle.SetPid(Original_pdgID[1]);}
     //if it is a reso
     else if(ParentPID&&ResoWidth){
         KittyParticle.SetWidth(ResoWidth);
-        if(ParentPID==Original_pdgID[0]||ParentPID==Original_eposID[0]) KittyParticle.SetPid(0);
-        else if(ParentPID==Original_pdgID[1]||ParentPID==Original_eposID[1]) KittyParticle.SetPid(1);
+        if(ParentPID==Original_pdgID[0]||ParentPID==Original_eposID[0]) {KittyParticle.SetPid(0);}
+        else if(ParentPID==Original_pdgID[1]||ParentPID==Original_eposID[1]) {KittyParticle.SetPid(1);}
         //unknown particle
-        else {continue;}
+        else {printf(" AAA\n"); continue;}
     }
     //unknown particle
-    else {continue;}
+    else {printf(" BBB\n"); continue;}
+
+    //modify the mass of neutrons, which are used as dummies to model f0 and a0 (M = 1 GeV) decays into Kaons
+    if(DataSetDescr=="p_KaonReso"||DataSetDescr=="pReso_KaonReso"){
+      if(ParticlePID==1220||ParticlePID==2112){
+        KittyParticle.SetMass(1.0);
+      }
+    }
 
 //printf("----\n");
 //printf(" id = %i\n",KittyParticle.GetPid());
@@ -5069,6 +5395,7 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
 */
             KittyEvent->AddParticle(KittyParticle);
 
+
 if(KittyParticle.GetPid()==0)
 hResoMass->Fill(KittyParticle.GetMass()*1000.);
         }//for(int iPart=0; iPart<NumPartInEvent; iPart++)
@@ -5094,6 +5421,7 @@ hResoMass->Fill(KittyParticle.GetMass()*1000.);
         for(unsigned uPair=0; uPair<KittyFilteredEvent->GetNumPairs(); uPair++){
             int pid1 = KittyFilteredEvent->GetParticlePair(uPair).GetParticle(0).GetPid();
             int pid2 = KittyFilteredEvent->GetParticlePair(uPair).GetParticle(1).GetPid();
+//printf("pid1/2 = %i/%i\n",pid1,pid2);
             //make sure we have particles of the desired PID
             if((pdgID[0]!=pid1||pdgID[1]!=pid2) && (pdgID[0]!=pid2||pdgID[1]!=pid1)) continue;
 
@@ -5102,7 +5430,9 @@ hResoMass->Fill(KittyParticle.GetMass()*1000.);
 
 //printf("ParticleOriginal1.GetWidth()=%f(%f)\n",ParticleOriginal1.GetWidth(),KittyFilteredEvent->GetParticlePair(uPair).GetParticle(0).GetWidth());
 //printf("ParticleOriginal2.GetWidth()=%f(%f)\n",ParticleOriginal2.GetWidth(),KittyFilteredEvent->GetParticlePair(uPair).GetParticle(1).GetWidth());
-
+//if(ParticleOriginal2.GetMass()<0.5){
+//printf("P2 mass = %.2f\n",ParticleOriginal2.GetMass());
+//}
             ///correct the mass
             if(pid1<10&&ParticleOriginal1.GetMass()<DaughterMassP1[0]+DaughterMassP1[1]){
 //printf("ParticleOriginal1.GetMass() = %f\n",ParticleOriginal1.GetMass());
@@ -5113,10 +5443,12 @@ hResoMass->Fill(KittyParticle.GetMass()*1000.);
             }
             if(pid2<10&&ParticleOriginal2.GetMass()<DaughterMassP2[0]+DaughterMassP2[1]){
 //printf("ParticleOriginal2.GetMass() = %f\n",ParticleOriginal2.GetMass());
+//printf("ParticleOriginal2.GetMass() = %f\n",ParticleOriginal2.GetMass());
                 ParticleOriginal2.SetMass(ResoMass[1]);
                 ParticleOriginal2.Set(ParticleOriginal2.GetT(),ParticleOriginal2.GetX(),ParticleOriginal2.GetY(),ParticleOriginal2.GetZ(),
                                       sqrt(ResoMass[1]*ResoMass[1]+ParticleOriginal2.GetP2()),
                                       ParticleOriginal2.GetPx(),ParticleOriginal2.GetPy(),ParticleOriginal2.GetPz());
+//printf(" -> new mass: %.2f (%.2f)\n",ResoMass[1],ParticleOriginal2.GetMass());
             }
 
 
@@ -5135,8 +5467,8 @@ hResoMass->Fill(KittyParticle.GetMass()*1000.);
             Part1Part2 = Particle1+Particle2;
             CatsLorentzVector RelPart1Part2 = Particle2-Particle1;
 
-        //printf("\nParticle1 = %f (%.3f,%.3f,%.3f)\n",Particle1.GetP(),Particle1.GetPx(),Particle1.GetPy(),Particle1.GetPz());
-        //printf("Particle2 = %f (%.3f,%.3f,%.3f)\n",Particle2.GetP(),Particle2.GetPx(),Particle2.GetPy(),Particle2.GetPz());
+        //printf("\nParticle1 = %f (%.3f,%.3f,%.3f) pid %i\n",Particle1.GetP(),Particle1.GetPx(),Particle1.GetPy(),Particle1.GetPz(),Particle1.GetPid());
+        //printf("Particle2 = %f (%.3f,%.3f,%.3f) pid %i\n",Particle2.GetP(),Particle2.GetPx(),Particle2.GetPy(),Particle2.GetPz(),Particle2.GetPid());
 
             //the angle (r,k) before any boosts (so in LAB)
             TVector3 vecR;
@@ -5231,6 +5563,13 @@ hResoMass->Fill(KittyParticle.GetMass()*1000.);
 
             TLV_P1.SetPxPyPzE(Particle1.GetPx(),Particle1.GetPy(),Particle1.GetPz(),Particle1.GetE());
             TLV_P2.SetPxPyPzE(Particle2.GetPx(),Particle2.GetPy(),Particle2.GetPz(),Particle2.GetE());
+
+//if(Particle2.GetMass()<0.6||TLV_P2.M()<0.6){
+//  double px,py,pz,ener;
+//  px = Particle2.GetPx(); py = Particle2.GetPy(); pz = Particle2.GetPz(); ener = Particle2.GetE();
+//  printf("M=%.2f (%.2f) [%.2f]\n",Particle2.GetMass(),TLV_P2.M(),sqrt(ener*ener-px*px-py*py-pz*pz));
+//}
+
 /*
             if(DaughterMassP1[0]>=0){
                 eventRan->SetDecay(TLV_P1, 2, DaughterMassP1);
@@ -5297,6 +5636,7 @@ hResoMass->Fill(KittyParticle.GetMass()*1000.);
                 if(NbodyDecayP2==2 && TotalDaughterMassP2>TLV_P2.M()){
                     printf("WTF!!!!\n");
                     printf(" 2) %f > %f\n",TotalDaughterMassP2,TLV_P2.M());
+                    usleep(1000e3);
                 }
             }
 
@@ -6375,18 +6715,25 @@ void CorrFromEpos(TString Descr2, TString Descr3, const double& CoronaFrac){
 }
 
 
-int MIXEDEVENTS(int narg, char** ARGS){
+int MIXEDEVENTS(int argc, char *argv[]){
     //DifferentTechniquesTest1("DimiPhi","pp");
     //DifferentTechniquesTest1("DimiPhi","pLambda");
 
     //DifferentTechniquesTest1("ForVale","pAp","Core");
 
-    //ReferenceSampleStudy_2("ForMax","pi_pi");
 
+    //ReferenceSampleStudy_2("ForMax","pi_pi");
     //ReferenceSampleStudy_2("ForMax","pi_piReso");
     //ReferenceSampleStudy_2("ForMax","piReso_piReso");
     //ReferenceSampleStudy_2("ForMax","p_KaonReso");
     //ReferenceSampleStudy_2("ForMax","pReso_KaonReso");
+    //ReferenceSampleStudy_2("ForMaxRamona","pi_SigReso");
+    //ReferenceSampleStudy_2("ForMaxRamona","piReso_Sig");
+    //ReferenceSampleStudy_2("ForMaxRamona","piReso_SigReso");
+    if(atoi(argv[1])==1) ReferenceSampleStudy_2("ForRamona","p_KaonReso");
+    else if(atoi(argv[1])==2) ReferenceSampleStudy_2("ForRamona","pReso_Kaon");
+    else ReferenceSampleStudy_2("ForRamona","pReso_KaonReso");
+    return 0;
 
 
     //SE_for_Vale("pL");

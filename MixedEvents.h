@@ -24,7 +24,7 @@ const TString TransportFile_pL_Alice =
 "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/Scratch9_OSCAR1997_AllLrzLambdaFiles.f19";
 
 
-int MIXEDEVENTS(int narg, char** ARGS);
+int MIXEDEVENTS(int argc, char *argv[]);
 
 class CatsParticle;
 class CatsEvent;
