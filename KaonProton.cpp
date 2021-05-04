@@ -1968,9 +1968,9 @@ void TestKyoto2019(const double& RADIUS){
     unsigned NumMomBins = BINNING[0][0][0].GetNbins(0);
     double* MomBins = BINNING[0][0][0].GetBinRange(0);
     double* MomBinsCenter = BINNING[0][0][0].GetBinCenters(0);
-    printf("NumMomBins=%u\n",NumMomBins);
+    //printf("NumMomBins=%u\n",NumMomBins);
     for(unsigned uMomBin=0; uMomBin<NumMomBins; uMomBin++){
-        printf("%u: %3.f %.3f %.3f\n",uMomBin,MomBins[uMomBin],MomBinsCenter[uMomBin],MomBins[uMomBin+1]);
+  //      printf("%u: %3.f %.3f %.3f\n",uMomBin,MomBins[uMomBin],MomBinsCenter[uMomBin],MomBins[uMomBin+1]);
     }
 
     CATS KittyStrong;
@@ -2094,6 +2094,165 @@ void TestKyoto2019(const double& RADIUS){
     delete [] hWfFull;
     delete [] MomBins;
 }
+
+
+void TestKyoto2019_pK0(const double& RADIUS){
+
+    CATSparameters cPars(CATSparameters::tSource,1,true);
+    cPars.SetParameter(0,RADIUS);
+
+    CATS KittyTemp;
+    DLM_Histo<complex<double>>*** BINNING=Init_pK0_Kyoto2019(TString::Format("%s/CatsFiles/Interaction/Tetsuo/Kyoto2019/",GetCernBoxDimi()),KittyTemp,0);
+    unsigned NumMomBins = BINNING[0][0][0].GetNbins(0);
+    double* MomBins = BINNING[0][0][0].GetBinRange(0);
+    double* MomBinsCenter = BINNING[0][0][0].GetBinCenters(0);
+    //printf("NumMomBins=%u\n",NumMomBins);
+    for(unsigned uMomBin=0; uMomBin<NumMomBins; uMomBin++){
+        //printf("%u: %3.f %.3f %.3f\n",uMomBin,MomBins[uMomBin],MomBinsCenter[uMomBin],MomBins[uMomBin+1]);
+    }
+
+    CATS Kitty_pK0_m1;
+    Kitty_pK0_m1.SetMomBins(NumMomBins,MomBins,MomBinsCenter);
+    Kitty_pK0_m1.SetAnaSource(GaussSource, cPars);
+    Kitty_pK0_m1.SetUseAnalyticSource(true);
+    DLM_Histo<complex<double>>*** ExternalWF_pK0_m1=Init_pK0_Kyoto2019(TString::Format("%s/CatsFiles/Interaction/Tetsuo/Kyoto2019/",GetCernBoxDimi()),Kitty_pK0_m1,0);
+    for(unsigned uCh=0; uCh<2; uCh++){
+        Kitty_pK0_m1.SetExternalWaveFunction(uCh,0,ExternalWF_pK0_m1[0][uCh][0],ExternalWF_pK0_m1[1][uCh][0]);
+    }
+    Kitty_pK0_m1.KillTheCat();
+
+    CATS Kitty_pK0_m2;
+    Kitty_pK0_m2.SetMomBins(NumMomBins,MomBins,MomBinsCenter);
+    Kitty_pK0_m2.SetAnaSource(GaussSource, cPars);
+    Kitty_pK0_m2.SetUseAnalyticSource(true);
+    DLM_Histo<complex<double>>*** ExternalWF_pK0_m2=Init_pK0_Kyoto2019(TString::Format("%s/CatsFiles/Interaction/Tetsuo/Kyoto2019/",GetCernBoxDimi()),Kitty_pK0_m2,1);
+    for(unsigned uCh=0; uCh<2; uCh++){
+        Kitty_pK0_m2.SetExternalWaveFunction(uCh,0,ExternalWF_pK0_m2[0][uCh][0],ExternalWF_pK0_m2[1][uCh][0]);
+    }
+    Kitty_pK0_m2.KillTheCat();
+
+    CATS Kitty_pK0bar;
+    Kitty_pK0bar.SetMomBins(NumMomBins,MomBins,MomBinsCenter);
+    Kitty_pK0bar.SetAnaSource(GaussSource, cPars);
+    Kitty_pK0bar.SetUseAnalyticSource(true);
+    DLM_Histo<complex<double>>*** ExternalWF_pK0bar=Init_pK0_Kyoto2019(TString::Format("%s/CatsFiles/Interaction/Tetsuo/Kyoto2019/",GetCernBoxDimi()),Kitty_pK0bar,10);
+    for(unsigned uCh=0; uCh<4; uCh++){
+        Kitty_pK0bar.SetExternalWaveFunction(uCh,0,ExternalWF_pK0bar[0][uCh][0],ExternalWF_pK0bar[1][uCh][0]);
+    }
+    Kitty_pK0bar.KillTheCat();
+
+
+    TGraph* gpK0_m1 = new TGraph [2+1];
+    TGraph* gpK0_m2 = new TGraph [2+1];
+    TGraph* gpK0bar = new TGraph [4+1];
+    TH1F** hWf_K0_m1 = new TH1F* [2];
+    TH1F** hWf_K0_m2 = new TH1F* [2];
+    TH1F** hWf_K0bar = new TH1F* [4];
+    for(unsigned uCh=0; uCh<=4; uCh++){
+        if(uCh<2) hWf_K0_m1[uCh] = new TH1F(TString::Format("hWf_K0_m1_%u",uCh),TString::Format("hWf_K0_m1_%u",uCh),16384,0,128);
+        if(uCh<2) hWf_K0_m2[uCh] = new TH1F(TString::Format("hWf_K0_m2_%u",uCh),TString::Format("hWf_K0_m2_%u",uCh),16384,0,128);
+        hWf_K0bar[uCh] = new TH1F(TString::Format("hWf_K0bar_%u",uCh),TString::Format("hWf_K0bar_%u",uCh),16384,0,128);
+    }
+
+    for(unsigned uBin=0; uBin<NumMomBins; uBin++){
+        gpK0_m1[2].SetPoint(uBin,Kitty_pK0_m1.GetMomentum(uBin),Kitty_pK0_m1.GetCorrFun(uBin));
+        gpK0_m2[2].SetPoint(uBin,Kitty_pK0_m2.GetMomentum(uBin),Kitty_pK0_m2.GetCorrFun(uBin));
+        gpK0bar[4].SetPoint(uBin,Kitty_pK0bar.GetMomentum(uBin),Kitty_pK0bar.GetCorrFun(uBin));
+    }
+
+    Kitty_pK0_m1.SetNotifications(CATS::nError);
+    Kitty_pK0_m2.SetNotifications(CATS::nError);
+    Kitty_pK0bar.SetNotifications(CATS::nError);
+    //printf("Hello 2\n");
+    for(unsigned uCh=0; uCh<4; uCh++){
+        //printf(" uCh=%u\n", uCh);
+        for(unsigned uCh2=0; uCh2<4; uCh2++){
+            if(uCh<2&&uCh2<2) Kitty_pK0_m1.SetChannelWeight(uCh2,0);
+            if(uCh<2&&uCh2<2) Kitty_pK0_m2.SetChannelWeight(uCh2,0);
+            Kitty_pK0bar.SetChannelWeight(uCh2,0);
+        }
+        if(uCh<2) Kitty_pK0_m1.SetChannelWeight(uCh,1);
+        if(uCh<2) Kitty_pK0_m2.SetChannelWeight(uCh,1);
+        Kitty_pK0bar.SetChannelWeight(uCh,1);
+        if(uCh<2) Kitty_pK0_m1.KillTheCat();
+        if(uCh<2) Kitty_pK0_m2.KillTheCat();
+        Kitty_pK0bar.KillTheCat();
+        //printf("  killed\n");
+        for(unsigned uBin=0; uBin<NumMomBins; uBin++){
+            if(uCh<2) gpK0_m1[uCh].SetPoint(uBin,Kitty_pK0_m1.GetMomentum(uBin),Kitty_pK0_m1.GetCorrFun(uBin));
+            if(uCh<2) gpK0_m2[uCh].SetPoint(uBin,Kitty_pK0_m2.GetMomentum(uBin),Kitty_pK0_m2.GetCorrFun(uBin));
+            gpK0bar[uCh].SetPoint(uBin,Kitty_pK0bar.GetMomentum(uBin),Kitty_pK0bar.GetCorrFun(uBin));
+        }
+        //printf("  gpK0bar\n");
+        for(unsigned uBin=1; uBin<=hWf_K0bar[uCh]->GetNbinsX(); uBin++){
+            if(uCh<2) hWf_K0_m1[uCh]->SetBinContent(uBin,std::abs(Kitty_pK0_m1.EvalRadialWaveFunction(40,uCh,0,hWf_K0_m1[uCh]->GetBinCenter(uBin),true)));
+            if(uCh<2) hWf_K0_m2[uCh]->SetBinContent(uBin,std::abs(Kitty_pK0_m2.EvalRadialWaveFunction(40,uCh,0,hWf_K0_m2[uCh]->GetBinCenter(uBin),true)));
+            hWf_K0bar[uCh]->SetBinContent(uBin,std::abs(Kitty_pK0bar.EvalRadialWaveFunction(40,uCh,0,hWf_K0bar[uCh]->GetBinCenter(uBin),true)));
+            //hWf_K0bar[uCh]->SetBinContent(uBin,1.);
+        }
+        //printf("  hWf_K0bar\n");
+    }
+    //printf("Hello 3\n");
+    TFile fOutput(TString::Format("%s/KaonProton/TestKyoto2019_pK0/fOutput_%.2f.root",GetFemtoOutputFolder(),
+                                  RADIUS),"recreate");
+
+    for(unsigned uCh=0; uCh<=2; uCh++){
+        TString AddOn;
+        if(uCh<2) AddOn = TString::Format("%u",uCh);
+        else AddOn = "ALLw1";
+        gpK0_m1[uCh].SetName(TString::Format("gpK0_m1_%s",AddOn.Data()));
+        gpK0_m1[uCh].Write();
+        if(uCh<2) hWf_K0_m1[uCh]->Write();
+    }
+    //printf("Hello 4\n");
+    for(unsigned uCh=0; uCh<=2; uCh++){
+        TString AddOn;
+        if(uCh<2) AddOn = TString::Format("%u",uCh);
+        else AddOn = "ALLw1";
+        gpK0_m2[uCh].SetName(TString::Format("gpK0_m2_%s",AddOn.Data()));
+        gpK0_m2[uCh].Write();
+        if(uCh<2) hWf_K0_m2[uCh]->Write();
+    }
+    //printf("Hello 5\n");
+    for(unsigned uCh=0; uCh<=4; uCh++){
+        TString AddOn;
+        if(uCh<4) AddOn = TString::Format("%u",uCh);
+        else AddOn = "ALLw1";
+        gpK0bar[uCh].SetName(TString::Format("gpK0bar_%s",AddOn.Data()));
+        gpK0bar[uCh].Write();;
+        if(uCh<4) hWf_K0bar[uCh]->Write();
+    }
+    //printf("Hello 6\n");
+/*
+    FILE * CkFile;
+    CkFile = fopen (TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/TestKyoto2019/CkProtonKaon130520.txt"),"w");
+    fprintf (CkFile, "%10s%10s%10s%10s\n","k* (MeV)","C_S(k*)","C_G(k*)","C_C(k*)");
+    double kVal_S,CkVal_S;
+	double kVal_G,CkVal_G;
+	double kVal_C,CkVal_C;
+	for(unsigned uBin=0; uBin<NumMomBins; uBin++){
+		gStrong->GetPoint(uBin,kVal_S,CkVal_S);
+		gGamow->GetPoint(uBin,kVal_G,CkVal_G);
+		gFull->GetPoint(uBin,kVal_C,CkVal_C);
+		fprintf (CkFile, "%10.1f%10.3f%10.3f%10.3f\n",kVal_S,CkVal_S,CkVal_G,CkVal_C);
+	}
+	fclose(CkFile);
+*/
+
+    delete [] gpK0_m1;
+    delete [] gpK0_m2;
+    delete [] gpK0bar;
+    for(unsigned uCh=0; uCh<=4; uCh++){
+        if(uCh<=2) delete hWf_K0_m1[uCh];
+        if(uCh<=2) delete hWf_K0_m2[uCh];
+        delete hWf_K0bar[uCh];
+    }
+    delete [] hWf_K0_m1;
+    delete [] hWf_K0_m2;
+    delete [] hWf_K0bar;
+    delete [] MomBins;
+}
+
 
 void SmearTest_pKminus(){
     const unsigned NumMomBins = 100;
@@ -2470,7 +2629,8 @@ int KAONPROTON_MAIN(int argc, char *argv[]){
     //for(double rad=5.0; rad<=8.0; rad+=0.5){
     //    TestKyoto2019(rad);
     //}
-    TestKyoto2019(7.0);
+    //TestKyoto2019(1.0);
+    TestKyoto2019_pK0(1.0);
 
     //PbPb_Paper_CkWithErrors();
 

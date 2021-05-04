@@ -52,7 +52,8 @@ void DifferentTechniquesTest1(const TString& TranModDescr, const TString& DataSe
     //const double kNormMin = 0.400;
     //const double kNormMax = 0.600;
     //const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/DifferentTechniquesTest1/dEta_dPhi/";
-    const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/DifferentTechniquesTest1/ForVale/";
+    //const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/DifferentTechniquesTest1/ForVale/";
+    const TString OutputFolder = TString::Format("%s/MixedEvents/DifferentTechniquesTest1/",GetFemtoOutputFolder());
     const unsigned NumMomBins = DataSetDescr=="pp"?100:DataSetDescr=="pLambda"?50:DataSetDescr=="pXim"?50:50;
     const TString OutFileBaseName = OutputFolder+TranModDescr+"_"+DataSetDescr+Descr2;
     TString InputFileName = DataSetDescr=="pp"?TransportFile_pp_Alice:DataSetDescr=="pLambda"?TransportFile_pL_Alice:
@@ -307,8 +308,15 @@ CatsParticle FirstPart;
 //if(rangen.Uniform()<0.5) KittyParticle.SetPid(3122);
 
 //ALICE ACCEPTANCE
-if(KittyParticle.GetP()<0.4) continue;
-if(fabs(KittyParticle.GetPseudoRap())>0.8) continue;//!
+
+bool ACC_CUT = true;
+if(TranModDescr=="Bhawani"&&Descr2=="with")ACC_CUT=true;
+else if(TranModDescr=="Bhawani"&&Descr2=="without")ACC_CUT=false;
+//printf(" ACC_CUT = %i\n",ACC_CUT);
+//usleep(2000e3);
+
+if(KittyParticle.GetP()<0.4&&ACC_CUT) continue;
+if(fabs(KittyParticle.GetPseudoRap())>0.8&&ACC_CUT) continue;//!
 //if(KittyParticle.GetPt()>1.5) continue;
 //if(rangen.Uniform()<0.5 && KittyParticle.GetPt()<1.5) continue;
 
@@ -6720,7 +6728,9 @@ int MIXEDEVENTS(int argc, char *argv[]){
     //DifferentTechniquesTest1("DimiPhi","pLambda");
 
     //DifferentTechniquesTest1("ForVale","pAp","Core");
-
+    //DifferentTechniquesTest1("Bhawani","pp","with");
+    DifferentTechniquesTest1("Bhawani","pp","without");
+return 0;
 
     //ReferenceSampleStudy_2("ForMax","pi_pi");
     //ReferenceSampleStudy_2("ForMax","pi_piReso");

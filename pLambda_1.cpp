@@ -9201,10 +9201,10 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
     TString PotDescr;
     TString SigDescr;
     TString SigName1;
-    TString XimName1 = "Residual p#minus#Xi^{#minus}: HAL QCD";
-    TString Xi0Name1 = "Residual p#minus#Xi^{0}: HAL QCD";
-    TString XiName1 = "Residual p#minus#Xi^{#minus} #oplus p#minus#Xi^{0}: HAL QCD";
-    if(PlotsType==1) XiName1 = "Residual p#minus#kern[0.0]{#Xi^{#minus}} #oplus p#minus#kern[0.0]{#Xi^{0}}";
+    TString XimName1 = "Residual p#Xi^{#minus}: HAL QCD";
+    TString Xi0Name1 = "Residual p#Xi^{0}: HAL QCD";
+    TString XiName1 = "Residual p#Xi^{#minus} #oplus p#Xi^{0}: HAL QCD";
+    if(PlotsType==1) XiName1 = "Residual p#kern[0.0]{#Xi^{#minus}} #oplus p#kern[0.0]{#Xi^{0}}";
     int PotFlag;
     switch(WhichPotential){
         case 1500 : PotName1 = "NLO13 (500)";
@@ -9247,7 +9247,7 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
                     PotDescr = "NLO19-650";
                     PotFlag = 11650;
                     break;//
-        case -11600:PotName1 = "LO13 (600)";
+        case -11600:PotName1 = "LO (600)";
                     PotName2 = "s,d waves";
                     PotDescr = "LO13-600";
                     PotFlag = -11600;
@@ -9268,19 +9268,19 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
                     break;
     }
     switch(SIGMA_FEED){
-        case 0 :    PotName3 = "Residual p#minus#kern[0.0]{#Sigma^{0}}: Flat";
+        case 0 :    PotName3 = "Residual p#kern[0.0]{#Sigma^{0}}: Flat";
                     SigDescr = "SigmaFlat";
                     SigName1 = PotName3;
                     break;
-        case 1 :    PotName3 = "Residual p#minus#kern[0.0]{#Sigma^{0}}: #chiEFT";
+        case 1 :    PotName3 = "Residual p#kern[0.0]{#Sigma^{0}}: #chiEFT";
                     SigDescr = "SigmaChiral";
                     SigName1 = PotName3;
                     break;
-        case 2 :    PotName3 = "Residual p#minus#kern[0.0]{#Sigma^{0}}: ESC16";
+        case 2 :    PotName3 = "Residual p#kern[0.0]{#Sigma^{0}}: ESC16";
                     SigDescr = "SigmaESC16";
                     SigName1 = PotName3;
                     break;
-        default :   PotName3 = "Residual p#minus#kern[0.0]{#Sigma^{0}}: unknown";
+        default :   PotName3 = "Residual p#kern[0.0]{#Sigma^{0}}: unknown";
                     SigDescr = "Unknown";
                     SigName1 = PotName3;
                     break;
@@ -10437,7 +10437,7 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
         //legend->AddEntry(ge_Fit,TString::Format("Fit %s",PotName1.Data()),"l");
         //legend->AddEntry(ge_Sig,SigName1,"l");
 
-        legend->AddEntry(hCk_Fake, "p#minus#kern[0.0]{#Lambda} #oplus #bar{p}#minus#kern[0.0]{#bar{#Lambda}} pairs", "fpe");
+        legend->AddEntry(hCk_Fake, "p#kern[0.0]{#Lambda} #oplus #bar{p}#kern[0.0]{#bar{#Lambda}} pairs", "fpe");
         legend->AddEntry(ge_Fit,TString::Format("Fit %s",PotName1.Data()),"l");
         legend->AddEntry(ge_Sig,SigName1,"l");
         legend->AddEntry(ge_Xi,XiName1,"l");
@@ -10447,7 +10447,7 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
         //legend->AddEntry(ge_Bl,BlName1,"l");
         //legend->AddEntry(ge_Xi,XiName1,"l");
 
-        legend->AddEntry(hCk_Fake, "p#minus#kern[0.0]{#Lambda} #oplus #bar{p}#minus#kern[0.0]{#bar{#Lambda}} pairs", "fpe");
+        legend->AddEntry(hCk_Fake, "p#kern[0.0]{#Lambda} #oplus #bar{p}#kern[0.0]{#bar{#Lambda}} pairs", "fpe");
         legend->AddEntry(ge_Fit,TString::Format("Fit %s",PotName1.Data()),"l");
         legend->AddEntry(ge_Xi,XiName1,"l");
         legend->AddEntry(ge_Bl,BlName1,"l");
@@ -10466,23 +10466,23 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
 
         //suggestion 2
         legend->AddEntry(ge_Fit,TString::Format("Fit %s",PotName1.Data()),"l");
-        legend->AddEntry(fitLoDummy,"LO13 (600)","l");
+        legend->AddEntry(fitLoDummy,"LO (600)","l");
       }
       if(Panel_X==3){
 //printf("EHEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\n");
-        legend->AddEntry(hCk_Fake, "p#minus#kern[0.0]{#Lambda} #oplus #bar{p}#minus#kern[0.0]{#bar{#Lambda}} pairs", "fpe");
+        legend->AddEntry(hCk_Fake, "p#kern[0.0]{#Lambda} #oplus #bar{p}#kern[0.0]{#bar{#Lambda}} pairs", "fpe");
         legend->AddEntry(ge_Fit,TString::Format("Fit %s",PotName1.Data()),"l");
-        legend->AddEntry(fitLoDummy,"LO13 (600)","l");
+        legend->AddEntry(fitLoDummy,"LO (600)","l");
         legend->AddEntry(ge_Xi,XiName1,"l");
         legend->AddEntry(ge_Bl,BlName1,"l");
       }
     }
     else{
-      legend->AddEntry(hCk_Fake, "p#minus#Lambda #oplus #bar{p}#minus#bar{#Lambda} pairs", "fpe");
+      legend->AddEntry(hCk_Fake, "p#Lambda #oplus #bar{p}#bar{#Lambda} pairs", "fpe");
       if(!DataOnly){
           //legend->AddEntry(ge_Fit,TString::Format("Fit %s   #chi^{2}_{ndf} = %.1f",PotName1.Data(),MinChi2/double(MinNdf)),"l");
           legend->AddEntry(ge_Fit,TString::Format("Fit %s",PotName1.Data()),"l");
-          if(COMPARE_TO_LO&&fitLoDummy) legend->AddEntry(fitLoDummy,"LO13 (600)","l");
+          if(COMPARE_TO_LO&&fitLoDummy) legend->AddEntry(fitLoDummy,"LO (600)","l");
           else if(!PlotsType) legend->AddEntry(&DummyLegendEntry,PotName2,"l");
           else legend->AddEntry(&DummyLegendEntry," ","l");
           //legend->AddEntry(&DummyLegendEntry,PotName3,"l");
@@ -10552,7 +10552,7 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
         else if(Panel_X==1||Panel_X==3){
           BeamText.SetTextSize(TextSz);
           BeamText.DrawLatex(TextLeft+0.03, TextTop-0.05, "Assume a negligible ");
-          BeamText.DrawLatex(TextLeft+0.03, TextTop-0.05-TextH, "p#minus#Sigma^{0} strong interaction");
+          BeamText.DrawLatex(TextLeft+0.03, TextTop-0.05-TextH, "p#Sigma^{0} strong interaction");
         }
 
         //BeamText.DrawLatex(TextLeft+0.03, TextTop-0.05-TextH, "aa#kern[0.5]{a}#kern[0.5]{a}#kern[0.5]{a}aaaa)");
@@ -15769,7 +15769,7 @@ Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(at
                             atoi(argv[1]),atoi(argv[2]),atoi(argv[3])),
                             //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/",
                             //"UnfoldRefine_pp13TeV_HM_DimiJul20_POT11600_BL10_SIG1.root",
-                            TString::Format("%s/pLambda/100720_Unfolded/PaperPlotsUpdate4/",GetCernBoxDimi()),
+                            TString::Format("%s/pLambda/100720_Unfolded/PaperPlotsUpdate5/",GetCernBoxDimi()),
                             //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/"
                             atoi(argv[5])///REMOVE FOR THE OLD PLOTS
                           );

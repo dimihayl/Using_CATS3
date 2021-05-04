@@ -19,6 +19,8 @@
 
 #include "TGraph.h"
 #include "TGraphErrors.h"
+#include "TGraphMultiErrors.h"
+#include "TGraphAsymmErrors.h"
 #include "TFile.h"
 #include "TCanvas.h"
 #include "TH1F.h"
@@ -6182,7 +6184,9 @@ TF1* MakeSmoothAngularCosine(TH1F* hCosDisto){
 //2 = fit the cos with 1/(1-exp)
 void Georgios_LXi_ResoTest(const int& SmoothSampling){
 
-    const double CoreSize = 0.8934;
+    //const double CoreSize = 0.8934;
+    //const double CoreSize = 0.838728;
+    const double CoreSize = 0.946257;
     const unsigned SmoothEntires = 1024*128;
 
     //DLM_CleverMcLevyResoTM* MagicSource = new DLM_CleverMcLevyResoTM ();
@@ -6341,7 +6345,7 @@ void Georgios_LXi_ResoTest(const int& SmoothSampling){
     const unsigned NumSourceBins = 128;
     const double rMin = 0;
     const double rMax = 16;
-    TFile* fOutput = new TFile(TString::Format("%s/OtherTasks/Georgios_LXi_ResoTest/fOutput_%i.root",GetFemtoOutputFolder(),int(SmoothSampling)),"recreate");
+    TFile* fOutput = new TFile(TString::Format("%s/OtherTasks/Georgios_LXi_ResoTest/fOutput_%i_%.2f.root",GetFemtoOutputFolder(),int(SmoothSampling),CoreSize),"recreate");
     TH1F* hSource = new TH1F("hSource","hSource",NumSourceBins,rMin,rMax);
 
     //fill the histo fro the source
@@ -9502,6 +9506,814 @@ void pXi_Pot(){
 
 }
 */
+
+
+void Raffa_Errors(){
+
+  TH1I* hSE1 = new TH1I("hSE1","hSE1",4,0,2);
+  TH1I* hME1 = new TH1I("hME1","hME1",4,0,2);
+  float Norm1 = 1.;
+
+  TH1I* hSE2 = new TH1I("hSE2","hSE2",4,0,2);
+  TH1I* hME2 = new TH1I("hME2","hME2",4,0,2);
+  float Norm2 = -1.;
+
+  hSE1->SetBinContent(1,20000);  hSE2->SetBinContent(1,20000+0.1*sqrt(20000.));
+  hME1->SetBinContent(1,10000);  hME2->SetBinContent(1,10000);
+
+  hSE1->SetBinContent(2,15000);  hSE2->SetBinContent(2,15000+1.5*sqrt(15000.));
+  hME1->SetBinContent(2,10000);  hME2->SetBinContent(2,10000);
+
+  hSE1->SetBinContent(3,10000);  hSE2->SetBinContent(3,10000-3.5*sqrt(10000.));
+  hME1->SetBinContent(3,10000);  hME2->SetBinContent(3,10000);
+
+  hSE1->SetBinContent(4,5000);   hSE2->SetBinContent(4,5000+0.5*sqrt(5000.));
+  hME1->SetBinContent(4,10000);  hME2->SetBinContent(4,10000);
+
+  HistoAddRatios HAD(2,"two_histos",1024,-0.2,0.2);
+  HAD.SetNormalization(0,Norm1);
+  HAD.SetNumerator(0,hSE1);
+  HAD.SetDenominator(0,hME1);
+
+  HAD.SetNormalization(1,Norm2);
+  HAD.SetNumerator(1,hSE2);
+  HAD.SetDenominator(1,hME2);
+  HAD.SetIgnoreUncertainty(1);
+
+  HAD.SetCompareToNullHypothesis(true,1000);
+  TH2F* hResult = HAD.GetResult();
+
+  for(unsigned uBin=0; uBin<hSE1->GetNbinsX(); uBin++){
+    printf(" (%u) nsig = %.2f\n",uBin,HAD.GetNsig(uBin));
+  }
+  printf("nsig fish = %.2f\n",HAD.GetTotNsig(true));
+  printf("nsig dimi = %.2f\n",HAD.GetTotNsig(false));
+
+  TFile OutputFile(TString::Format("%s/OtherTasks/Raffa_Errors/OutputFile.root",GetFemtoOutputFolder()),"recreate");
+  hResult->Write();
+
+  delete hSE1;
+  delete hSE2;
+  delete hME1;
+  delete hME2;
+}
+
+//FeedDown = 0 NO
+//FeedDown = 1 Yes, but a constant
+//FeedDown = 2 Yes, sample form TH2F
+void ppp_errors(int FeedDown, bool Projector){
+  //the 3 body thing, I need to scale by 3 and than subrtract 2, related to how we build the cumulant
+  const float Xmin = 0;
+  const float Xmax = 0.4;
+  const float Norm = 1./(0.5*(0.928459+0.929896));
+  const float Norm_2 = 1./(0.5*(0.972599+0.972939));
+  const float lam_gen = 0.618;
+  const float lam_res = 0.196;
+  const float lam_flt = 1.-lam_gen-lam_res;
+
+  TString List1_p = "PairDist";
+  TString ListREB_p = "PairRebinned";
+  TString ListREW_p = "PairReweighted";
+  TString histoSe_p = "sameEventDistributionPPPfSE_Shifted_FixShifted_Rebinned_30";
+  TString histoMe_p = "mixedEventDistributionPPPfME_Shifted_FixShifted_Rebinned_30";
+  TString histoSe_2_p = "sameEventDistributionppSamepMixedfSE_Shifted_FixShifted_Rebinned_30";
+  TString histoMe_2_p = "mixedEventDistributionPPPfME_Shifted_FixShifted_Rebinned_30";
+
+  TString List1_ap = "AntiPairDist";
+  TString ListREB_ap = "PairRebinned";
+  TString ListREW_ap = "PairReweighted";
+  TString histoSe_ap = "sameEventDistributionAPAPAPfSE_Shifted_FixShifted_Rebinned_30";
+  TString histoMe_ap = "mixedEventDistributionAPAPAPfME_Shifted_FixShifted_Rebinned_30";
+  TString histoSe_2_ap = "sameEventDistributionapapSameapMixedfSE_Shifted_FixShifted_Rebinned_30";
+  TString histoMe_2_ap = "mixedEventDistributionAPAPAPfME_Shifted_FixShifted_Rebinned_30";
+
+  TString DataFileFolder = TString::Format("%s/3body/LauraPrelim/",GetCernBoxDimi());
+  TList* list1_tmp;
+  TList* list2_tmp;
+
+  TFile* datafile_3 = new TFile(DataFileFolder+"CFOutput_PPP0Perfect.root");
+
+  //PARTICLES
+  list1_tmp = (TList*)datafile_3->Get(List1_p);
+  //printf("list1_tmp=%p\n",list1_tmp);
+  list2_tmp = (TList*)list1_tmp->FindObject(ListREB_p);
+  //printf("list2_tmp=%p\n",list2_tmp);
+  TH1F* hSe_3_p = (TH1F*)list2_tmp->FindObject(histoSe_p);
+  //printf("hSe_3=%p\n",hSe_3_p);
+  TH1F* hMe_3_p = (TH1F*)list2_tmp->FindObject(histoMe_p);
+  //printf("hMe_3=%p\n",hMe_3_p);
+  list2_tmp = (TList*)list1_tmp->FindObject(ListREW_p);
+  //printf("list2_tmp=%p\n",list2_tmp);
+  TH1F* hSeRew_3_p = (TH1F*)list2_tmp->FindObject(histoSe_p+"_Reweighted");
+  //printf("hSeRew_3=%p\n",hSeRew_3_p);
+  TH1F* hMeRew_3_p = (TH1F*)list2_tmp->FindObject(histoMe_p+"_Reweighted");
+  //printf("hMeRew_3=%p\n",hMeRew_3_p);
+
+  //ANTI-PARTICLES
+  list1_tmp = (TList*)datafile_3->Get(List1_ap);
+  //printf("list1_tmp=%p\n",list1_tmp);
+  list2_tmp = (TList*)list1_tmp->FindObject(ListREB_ap);
+  //printf("list2_tmp=%p\n",list2_tmp);
+  TH1F* hSe_3_ap = (TH1F*)list2_tmp->FindObject(histoSe_ap);
+  //printf("hSe_3=%p\n",hSe_3_ap);
+  TH1F* hMe_3_ap = (TH1F*)list2_tmp->FindObject(histoMe_ap);
+  //printf("hMe_3=%p\n",hMe_3_ap);
+  list2_tmp = (TList*)list1_tmp->FindObject(ListREW_ap);
+  //printf("list2_tmp=%p\n",list2_tmp);
+  TH1F* hSeRew_3_ap = (TH1F*)list2_tmp->FindObject(histoSe_ap+"_Reweighted");
+  //printf("hSeRew_3=%p\n",hSeRew_3_ap);
+  TH1F* hMeRew_3_ap = (TH1F*)list2_tmp->FindObject(histoMe_ap+"_Reweighted");
+  //printf("hMeRew_3=%p\n",hMeRew_3_ap);
+
+  TH1F* hSe_3 = (TH1F*)hSe_3_p->Clone("hSe_3");
+  hSe_3->Add(hSe_3_ap);
+
+  TH1F* hMe_3 = (TH1F*)hMe_3_p->Clone("hMe_3");
+  hMe_3->Add(hMe_3_ap);
+
+  TH1F* hMeRew_3 = (TH1F*)hMeRew_3_p->Clone("hMeRew_3");
+  hMeRew_3->Add(hMeRew_3_ap);
+
+  //this is actually 1/weights, as this is the input we need for our code
+  TH1F* hMe_3_w = (TH1F*)hMe_3->Clone("hMe_3_w");
+  hMe_3_w->Divide(hMeRew_3);
+  hMe_3_w->Sumw2();
+  hMe_3_w->Scale(Norm);
+
+  TH1F* hCk_3 = (TH1F*)hSe_3->Clone("hCk_3");
+  hCk_3->Divide(hMeRew_3);
+  hCk_3->Scale(Norm);
+
+  //QA
+  TFile* fOutput = new TFile(TString::Format("%s/OtherTasks/ppp_errors/fOutput_%i_%i.root",GetFemtoOutputFolder(),FeedDown,Projector),"recreate");
+  hCk_3->Write();
+  hMe_3_w->Write();
+
+
+  //Next: the 2-body bit
+  TFile* datafile_2 = new TFile(DataFileFolder+"CFOutput_ppSamepMixed0Perfect.root");
+
+  //PARTICLES
+  list1_tmp = (TList*)datafile_2->Get(List1_p);
+  //printf("list1_tmp=%p\n",list1_tmp);
+  list2_tmp = (TList*)list1_tmp->FindObject(ListREB_p);
+  //printf("list2_tmp=%p\n",list2_tmp);
+  //list2_tmp->ls();
+  TH1F* hSe_2_p = (TH1F*)list2_tmp->FindObject(histoSe_2_p);
+  //printf("hSe_2_p=%p\n",hSe_2_p);
+  TH1F* hMe_2_p = (TH1F*)list2_tmp->FindObject(histoMe_2_p);
+  //printf("hMe_2_p=%p\n",hMe_2_p);
+  list2_tmp = (TList*)list1_tmp->FindObject(ListREW_p);
+  //printf("list2_tmp=%p\n",list2_tmp);
+  TH1F* hSeRew_2_p = (TH1F*)list2_tmp->FindObject(histoSe_2_p+"_Reweighted");
+  //printf("hSeRew_2=%p\n",hSeRew_2_p);
+  TH1F* hMeRew_2_p = (TH1F*)list2_tmp->FindObject(histoMe_2_p+"_Reweighted");
+  //printf("hMeRew_2=%p\n",hMeRew_2_p);
+
+  //ANTI-PARTICLES
+  list1_tmp = (TList*)datafile_2->Get(List1_ap);
+  //printf("list1_tmp=%p\n",list1_tmp);
+  list2_tmp = (TList*)list1_tmp->FindObject(ListREB_ap);
+  //printf("list2_tmp=%p\n",list2_tmp);
+  //list2_tmp->ls();
+  TH1F* hSe_2_ap = (TH1F*)list2_tmp->FindObject(histoSe_2_ap);
+  //printf("hSe_2_ap=%p\n",hSe_2_ap);
+  TH1F* hMe_2_ap = (TH1F*)list2_tmp->FindObject(histoSe_2_ap);
+  //printf("hMe_2_ap=%p\n",hMe_2_ap);
+  list2_tmp = (TList*)list1_tmp->FindObject(ListREW_ap);
+  //printf("list2_tmp=%p\n",list2_tmp);
+  TH1F* hSeRew_2_ap = (TH1F*)list2_tmp->FindObject(histoSe_2_ap+"_Reweighted");
+  //printf("hSeRew_2=%p\n",hSeRew_2_ap);
+  TH1F* hMeRew_2_ap = (TH1F*)list2_tmp->FindObject(histoMe_2_ap+"_Reweighted");
+  //printf("hMeRew_2=%p\n",hMeRew_2_ap);
+
+  //Next: the 2-body bit -> projector
+  TFile* datafile_pr2 = new TFile(DataFileFolder+"CpppBINNED.root");
+  //PARTICLES
+  TGraphAsymmErrors* gr_Ck_2_pr = (TGraphAsymmErrors*)datafile_pr2->Get("htheo_ppp_stat");
+
+  //the cumulant feed down
+  TFile* datafile_f = new TFile(DataFileFolder+"DecaysCenteredGaussian2.root");
+  TGraphMultiErrors* hFeedCum = (TGraphMultiErrors*)datafile_f->Get(FeedDown==1?"ppLFeedDownScaled":"ppLFeedDownScaled3Sigma");
+
+  //the cumulant feed down (with probability density)
+  TFile* datafile_fpdf = new TFile(DataFileFolder+"outputPPLSampled.root");
+  list1_tmp = (TList*)list1_tmp->FindObject(ListREW_ap);
+  TH2F* hCumPdf = (TH2F*)datafile_fpdf->Get("distributions2DSampledonPPPScaled");
+
+
+  TH1F* hSe_2 = (TH1F*)hSe_2_p->Clone("hSe_2");
+  hSe_2->Add(hSe_2_ap);
+
+  TH1F* hMe_2 = (TH1F*)hMe_2_p->Clone("hMe_2");
+  hMe_2->Add(hMe_2_ap);
+
+  TH1F* hMeRew_2 = (TH1F*)hMeRew_2_p->Clone("hMeRew_2");
+  hMeRew_2->Add(hMeRew_2_ap);
+
+  //this is actually 1/weights, as this is the input we need for our code
+  TH1F* hMe_2_w = (TH1F*)hMe_2->Clone("hMe_2_w");
+  hMe_2_w->Divide(hMeRew_2);
+  hMe_2_w->Sumw2();
+  hMe_2_w->Scale(Norm_2);
+
+  TH1F* hCk_2 = (TH1F*)hSe_2->Clone("hCk_2");
+  hCk_2->Divide(hMeRew_2);
+  //hCk_2->Sumw2();
+  hCk_2->Scale(Norm_2);
+  //for(unsigned uBin=0; uBin<hCk_2->GetNbinsX(); uBin++){
+  //  hCk_2->SetBinContent(uBin+1,hCk_2->GetBinContent(uBin+1)-2);
+  //}
+
+  fOutput->cd();
+  hCk_2->Write();
+  hMe_2_w->Write();
+  //hSe_2_p->Write();
+  //hSe_2_ap->Write();
+  //hSe_2->Write();
+  //hMe_2_p->Write();
+  //hMe_2_ap->Write();
+  //hMe_2->Write();
+
+  TH1F* hSe_3_exp;// = (TH1F*)hSe_2->Clone("hSe_3_exp");
+  TH1F* hCtimes3minus2 = NULL;
+  TH1F* hCtimes3minus2_m = NULL;
+  //hSe_3_exp->Multiply(hMe_3);
+  //hSe_3_exp->Divide(hMe_3_w);
+  //hSe_3_exp->Divide(hMe_2);
+  //hSe_3_exp->Multiply(hMe_2_w);
+  //hSe_3_exp->Scale(3.);
+  if(Projector){
+    hCtimes3minus2 = (TH1F*)hMe_3->Clone("hCtimes3minus2");
+    hSe_3_exp = (TH1F*)hMe_3->Clone("hSe_3_exp");
+    hSe_3_exp->Divide(hMe_3_w);
+    double Ctimes3minus2;
+    double xDummy;
+    for(unsigned uBin=0; uBin<gr_Ck_2_pr->GetN(); uBin++){
+      gr_Ck_2_pr->GetPoint(uBin,xDummy,Ctimes3minus2);
+      hCtimes3minus2->SetBinContent(uBin+1,Ctimes3minus2);
+      hCtimes3minus2->SetBinError(uBin+1,gr_Ck_2_pr->GetErrorY(uBin));
+      hSe_3_exp->SetBinContent(uBin+1,hSe_3_exp->GetBinContent(uBin+1)*Ctimes3minus2);
+    }
+    hCtimes3minus2_m = (TH1F*)hCtimes3minus2->Clone("hCtimes3minus2_m");
+    hCtimes3minus2_m->Scale(-1.);
+  }
+  else{
+    hSe_3_exp = (TH1F*)hSe_2->Clone("hSe_3_exp");
+    hSe_3_exp->Multiply(hMe_2_w);
+    hSe_3_exp->Scale(3.);
+    hSe_3_exp->Add(hMe_2,-2);
+    hSe_3_exp->Divide(hMe_2);
+    hSe_3_exp->Multiply(hMe_3);
+    hSe_3_exp->Divide(hMe_3_w);
+  }
+//double XTEST,YTEST;
+//gr_Ck_2_pr->GetPoint(2,XTEST,YTEST);
+//printf("d-p = %f vs %f\n",hSe_3_exp->GetBinContent(2),YTEST);
+  hSe_3->Write();
+  hSe_3_exp->Write();
+  hMeRew_3->Write();
+
+  TH1F* hMe_3exp_w = (TH1F*)hMe_3_w->Clone("hMe_3exp_w");
+  hMe_3exp_w->Scale(-1);
+
+  TH1F* hMe_2_w_3x = (TH1F*)hMe_2_w->Clone("hMe_2_w_3x");
+  hMe_2_w_3x->Scale(3.);
+  TH1F* hMe_2_w_3xm = (TH1F*)hMe_2_w->Clone("hMe_2_w_3xm");
+  hMe_2_w_3xm->Scale(-3.);
+
+/*
+  printf("Last bin:\n");
+  printf(" S3 = %.2f\n",hSe_3->GetBinContent(9));
+  printf(" M3 = %.2f\n",hMe_3->GetBinContent(9));
+  printf(" w3 = %.2f\n",hMe_3_w->GetBinContent(9));
+  printf(" C3 = %.2f (%.2f)\n",hSe_3->GetBinContent(9)/hMe_3->GetBinContent(9)*hMe_3_w->GetBinContent(9),hCk_3->GetBinContent(9));
+  printf(" S2 = %.2f\n",hSe_3_exp->GetBinContent(9));
+  printf(" M2 = %.2f\n",hMe_3->GetBinContent(9));
+  printf(" w2 = %.2f\n",hMe_3exp_w->GetBinContent(9));
+  printf(" C2 = %.2f (%.2f)\n",hSe_3_exp->GetBinContent(9)/hMe_3->GetBinContent(9)*hMe_3exp_w->GetBinContent(9),hCk_2->GetBinContent(9));
+  printf(" C2 (1) = %.2f\n",hMe_2_w->GetBinContent(9)*hSe_2->GetBinContent(9)/hMe_2->GetBinContent(9));
+  printf(" Sexp = %.1f (%.1f)\n",hSe_3_exp->GetBinContent(9),3.*hMe_2_w->GetBinContent(9)*hSe_2->GetBinContent(9)/hMe_2->GetBinContent(9)*hMe_3->GetBinContent(9)/hMe_3_w->GetBinContent(9));
+  printf("  c = %.2f\n",hSe_3->GetBinContent(9)/hMe_3->GetBinContent(9)*hMe_3_w->GetBinContent(9)+
+    hSe_3_exp->GetBinContent(9)/hMe_3->GetBinContent(9)*hMe_3exp_w->GetBinContent(9)+2.);
+*/
+//1.27-1.07*3+2 = 0.06
+  TH1F* hFeed = (TH1F*)hSe_3->Clone("hFeed");
+  if(FeedDown==0){
+    for(unsigned uBin=0; uBin<hFeed->GetNbinsX(); uBin++){
+      hFeed->SetBinContent(uBin+1,0);
+    }
+  }
+  else if(FeedDown==1){
+    for(unsigned uBin=0; uBin<hFeedCum->GetN(); uBin++){
+      double xVal,yVal;
+      //this is already scaled for lamda_res
+      hFeedCum->GetPoint(uBin,xVal,yVal);
+      hFeed->SetBinContent(uBin+1,-yVal);
+    }
+  }
+  else{
+    hFeed = NULL;
+  }
+  //hMe_3_w->Scale(1./lam_gen);
+  //hMe_3exp_w->Scale(1./lam_gen);
+  //hFeed->Scale(1./lam_gen);
+  //hMe_2_w->Scale(1./lam_gen);
+  //hMe_2_w_minus->Scale(1./lam_gen);
+  for(unsigned uBin=0; uBin<hSe_3->GetNbinsX(); uBin++){
+    hSe_3->SetBinError(uBin+1,0);
+    hMe_3->SetBinError(uBin+1,0);
+    //double MuMe3 = hMe_3->GetBinContent(uBin+1);
+    double MuSe2 = hSe_2->GetBinContent(uBin+1);
+    double MuMe2 = hMe_2->GetBinContent(uBin+1);
+    //double ErrMe3 = sqrt();
+    //double ErrSe2 = sqrt(MuSe2);
+    //double ErrMe2 = sqrt(MuMe2);
+    double RelErrCk2;
+    //the uncertainty related to the two-body expectiation, that is assumed to be Gaussian and with large number of entries in the ME
+    if(Projector){RelErrCk2 = hCtimes3minus2->GetBinError(uBin+1)/hCtimes3minus2->GetBinContent(uBin+1);}
+    else{
+      RelErrCk2 = sqrt(1./(MuSe2*MuMe2)+1./MuSe2+1./MuMe2);
+    }
+    hSe_3_exp->SetBinError(uBin+1,hSe_3_exp->GetBinContent(uBin+1)*RelErrCk2);
+    //printf(" err %u: %.1f%%\n",uBin,RelErrCk2*100.);
+  }
+  //TH1F* hNormMinus = (TH1F*)hSe_3->Clone("hSe_3");
+  //for(unsigned uBin=0; uBin<hNormMinus->GetNbinsX(); uBin++){
+  //  hNormMinus->SetBinContent(uBin+1,-1);
+  //  hNormMinus->SetBinError(uBin+1,0);
+  //}
+
+  HistoAddRatios HAD(5,"hResult",8192,-24,8);
+  HAD.SetNormalization(0,hMe_3_w);
+  HAD.SetNumerator(0,hSe_3);
+  HAD.SetDenominator(0,hMe_3);
+  HAD.SetIgnoreUncertainty(0);
+
+  //HAD.SetNormalization(1,hMe_2_w);
+  //HAD.SetNumerator(1,hSe_2);
+  //HAD.SetDenominator(1,hMe_2);
+  HAD.SetNormalization(1,hMe_3exp_w);
+  HAD.SetNumerator(1,hSe_3_exp);
+  HAD.SetDenominator(1,hMe_3);
+
+  //HAD.SetRatio(2,hFeed,true);
+  if(hFeed){
+    HAD.SetRatio(2,hFeed);
+    HAD.SetIgnoreUncertainty(2);
+  }
+  else{
+    HAD.SetRatio(2,hCumPdf);
+    HAD.SetNormalization(2,-1.);
+  }
+
+
+/*
+  if(Projector){
+    HAD.SetRatio(3,hCtimes3minus2);
+
+    HAD.SetRatio(4,hCtimes3minus2_m);
+    HAD.SetIgnoreUncertainty(4);
+  }
+  else{
+    HAD.SetNormalization(3,hMe_2_w_3x);
+    HAD.SetNumerator(3,hSe_2);
+    HAD.SetDenominator(3,hMe_2);
+
+    HAD.SetNormalization(4,hMe_2_w_3xm);
+    HAD.SetNumerator(4,hSe_2);
+    HAD.SetDenominator(4,hMe_2);
+    HAD.SetIgnoreUncertainty(4);
+  }
+*/
+  HAD.SetConstant(3,0,0);
+  HAD.SetConstant(4,0,0);
+  HAD.SetExpectationUncertainty(true);
+
+
+  HAD.SetCompareToNullHypothesis(true,256);
+  HAD.SetRange(Xmin,Xmax);
+  HAD.SetNumIter(500000000);
+  //HAD.SetNumIter(510000000);
+  HAD.SetMinIter(100000);
+  //HAD.SetNumIter(1000000);
+
+  fOutput->cd();
+  TH2F* hResult = HAD.GetResult();
+  double Chi2_3b = 0;
+  double Chi2_6b = 0;
+  TGraphAsymmErrors* gaseResult_1s = new TGraphAsymmErrors();
+  gaseResult_1s->SetName("gaseResult_1s");
+  TGraphAsymmErrors* gaseResult_3s = new TGraphAsymmErrors();
+  gaseResult_3s->SetName("gaseResult_3s");
+  //double Chi2_29b = 0;//1 GeV
+  for(unsigned uBin=0; uBin<9; uBin++){
+    printf(" (%u) nsig (pval) = %.2f (%.5f)\n",uBin,HAD.GetNsig(uBin),HAD.GetPval(uBin));
+    double med,low,up;
+    double xval = hSe_3->GetBinCenter(uBin+1);
+    double xwidth =  hSe_3->GetBinWidth(uBin+1);
+    HAD.GetCentralInt(uBin,1,med,low,up);
+    gaseResult_1s->SetPoint(uBin,xval,med);
+    gaseResult_3s->SetPoint(uBin,xval,med);
+    //printf("   mean value = %.2f\n",med);
+    //printf("   1 sig = (%.2f, %.2f)\n",low,up);
+    gaseResult_1s->SetPointError(uBin,xwidth/2.,xwidth/2.,med-low,up-med);
+    HAD.GetCentralInt(uBin,3,med,low,up);
+    //printf("   3 sig = (%.2f, %.2f)\n",low,up);
+    gaseResult_3s->SetPointError(uBin,xwidth/2.,xwidth/2.,med-low,up-med);
+    if(uBin<3) Chi2_3b += HAD.GetNsig(uBin)*HAD.GetNsig(uBin);
+    if(uBin<6) Chi2_6b += HAD.GetNsig(uBin)*HAD.GetNsig(uBin);
+    //Chi2_29b += HAD.GetNsig(uBin)*HAD.GetNsig(uBin);
+  }
+  printf(" nsig 3 bins = %.2f\n", sqrt(2)*TMath::ErfcInverse(TMath::Prob(Chi2_3b,3)));
+  printf(" nsig 6 bins = %.2f\n", sqrt(2)*TMath::ErfcInverse(TMath::Prob(Chi2_6b,6)));
+  //printf(" nsig 29 bins = %.2f\n", sqrt(2)*TMath::ErfcInverse(TMath::Prob(Chi2_29b,29)));
+
+  fOutput->cd();
+  hResult->Write();
+  gaseResult_1s->Write();
+  gaseResult_3s->Write();
+}
+
+
+void ppL_errors(int FeedDown, bool Projector){
+  //the 3 body thing, I need to scale by 3 and than subrtract 2, related to how we build the cumulant
+  const float Xmin = 0;
+  const float Xmax = 1.1;
+  const float Norm = 1./(0.5*(0.951354+0.945446));
+  const float Norm_2pp = 1./(0.5*(0.97576+0.976197));
+  const float Norm_2pL = 1./(0.5*(0.983855+0.979637));
+
+  TString List1_p = "PairDist";
+  TString ListREB_p = "PairRebinned";
+  TString ListREW_p = "PairReweighted";
+  TString histoSe_p = "sameEventDistributionPPLfSE_Shifted_FixShifted_Rebinned_30";
+  TString histoMe_p = "mixedEventDistributionPPLfME_Shifted_FixShifted_Rebinned_30";
+  TString histoSe_2pp_p = "sameEventDistributionppSameLMixedfSE_Shifted_FixShifted_Rebinned_30";
+  TString histoMe_2pp_p = "mixedEventDistributionPPLfME_Shifted_FixShifted_Rebinned_30";
+  TString histoSe_2pL_p = "sameEventDistributionpLSamepMixedfSE_Shifted_FixShifted_Rebinned_30";
+  TString histoMe_2pL_p = "mixedEventDistributionPPLfME_Shifted_FixShifted_Rebinned_30";
+
+  TString List1_ap = "AntiPairDist";
+  TString ListREB_ap = "PairRebinned";
+  TString ListREW_ap = "PairReweighted";
+  TString histoSe_ap = "sameEventDistributionAPAPALfSE_Shifted_FixShifted_Rebinned_30";
+  TString histoMe_ap = "mixedEventDistributionAPAPALfME_Shifted_FixShifted_Rebinned_30";
+  TString histoSe_2pp_ap = "sameEventDistributionapapSameaLMixedfSE_Shifted_FixShifted_Rebinned_30";
+  TString histoMe_2pp_ap = "mixedEventDistributionAPAPALfME_Shifted_FixShifted_Rebinned_30";
+  TString histoSe_2pL_ap = "sameEventDistributionapaLSameapMixedfSE_Shifted_FixShifted_Rebinned_30";
+  TString histoMe_2pL_ap = "mixedEventDistributionAPAPALfME_Shifted_FixShifted_Rebinned_30";
+
+  TString DataFileFolder = TString::Format("%s/3body/LauraPrelim/",GetCernBoxDimi());
+  TList* list1_tmp;
+  TList* list2_tmp;
+
+  TFile* datafile_3 = new TFile(DataFileFolder+"CFOutput_PPL0Perfect.root");
+
+  //PARTICLES
+  list1_tmp = (TList*)datafile_3->Get(List1_p);
+  printf("list1_tmp=%p\n",list1_tmp);
+  list2_tmp = (TList*)list1_tmp->FindObject(ListREB_p);
+  printf("list2_tmp=%p\n",list2_tmp);
+  TH1F* hSe_3_p = (TH1F*)list2_tmp->FindObject(histoSe_p);
+  printf("hSe_3=%p\n",hSe_3_p);
+  TH1F* hMe_3_p = (TH1F*)list2_tmp->FindObject(histoMe_p);
+  printf("hMe_3=%p\n",hMe_3_p);
+  list2_tmp = (TList*)list1_tmp->FindObject(ListREW_p);
+  printf("list2_tmp=%p\n",list2_tmp);
+  TH1F* hSeRew_3_p = (TH1F*)list2_tmp->FindObject(histoSe_p+"_Reweighted");
+  printf("hSeRew_3=%p\n",hSeRew_3_p);
+  TH1F* hMeRew_3_p = (TH1F*)list2_tmp->FindObject(histoMe_p+"_Reweighted");
+  printf("hMeRew_3=%p\n",hMeRew_3_p);
+
+  //ANTI-PARTICLES
+  list1_tmp = (TList*)datafile_3->Get(List1_ap);
+  printf("list1_tmp=%p\n",list1_tmp);
+  list2_tmp = (TList*)list1_tmp->FindObject(ListREB_ap);
+  printf("list2_tmp=%p\n",list2_tmp);
+  TH1F* hSe_3_ap = (TH1F*)list2_tmp->FindObject(histoSe_ap);
+  printf("hSe_3=%p\n",hSe_3_ap);
+  TH1F* hMe_3_ap = (TH1F*)list2_tmp->FindObject(histoMe_ap);
+  printf("hMe_3=%p\n",hMe_3_ap);
+  list2_tmp = (TList*)list1_tmp->FindObject(ListREW_ap);
+  printf("list2_tmp=%p\n",list2_tmp);
+  TH1F* hSeRew_3_ap = (TH1F*)list2_tmp->FindObject(histoSe_ap+"_Reweighted");
+  printf("hSeRew_3=%p\n",hSeRew_3_ap);
+  TH1F* hMeRew_3_ap = (TH1F*)list2_tmp->FindObject(histoMe_ap+"_Reweighted");
+  printf("hMeRew_3=%p\n",hMeRew_3_ap);
+
+  TH1F* hSe_3 = (TH1F*)hSe_3_p->Clone("hSe_3");
+  hSe_3->Add(hSe_3_ap);
+
+  TH1F* hMe_3 = (TH1F*)hMe_3_p->Clone("hMe_3");
+  hMe_3->Add(hMe_3_ap);
+
+  TH1F* hMeRew_3 = (TH1F*)hMeRew_3_p->Clone("hMeRew_3");
+  hMeRew_3->Add(hMeRew_3_ap);
+
+  //this is actually 1/weights, as this is the input we need for our code
+  TH1F* hMe_3_w = (TH1F*)hMe_3->Clone("hMe_3_w");
+  hMe_3_w->Divide(hMeRew_3);
+  hMe_3_w->Sumw2();
+  hMe_3_w->Scale(Norm);
+
+  TH1F* hCk_3 = (TH1F*)hSe_3->Clone("hCk_3");
+  hCk_3->Divide(hMeRew_3);
+  hCk_3->Scale(Norm);
+
+
+  //QA
+  TFile* fOutput = new TFile(TString::Format("%s/OtherTasks/ppL_errors/fOutput_%i_%i.root",GetFemtoOutputFolder(),FeedDown,Projector),"recreate");
+  hCk_3->Write();
+  hMe_3_w->Write();
+
+
+  //Next: the 2-body bit (pp Lmixed)
+  TFile* datafile_2pp = new TFile(DataFileFolder+"CFOutput_ppSameLMixed0Perfect.root");
+
+  //PARTICLES
+  list1_tmp = (TList*)datafile_2pp->Get(List1_p);
+  printf("list1_tmp=%p\n",list1_tmp);
+  list2_tmp = (TList*)list1_tmp->FindObject(ListREB_p);
+  printf("list2_tmp=%p\n",list2_tmp);
+  //list2_tmp->ls();
+  TH1F* hSe_2pp_p = (TH1F*)list2_tmp->FindObject(histoSe_2pp_p);
+  printf("hSe_2pp_p=%p\n",hSe_2pp_p);
+  TH1F* hMe_2pp_p = (TH1F*)list2_tmp->FindObject(histoMe_2pp_p);
+  printf("hMe_2pp_p=%p\n",hMe_2pp_p);
+  list2_tmp = (TList*)list1_tmp->FindObject(ListREW_p);
+  printf("list2_tmp=%p\n",list2_tmp);
+  TH1F* hSeRew_2pp_p = (TH1F*)list2_tmp->FindObject(histoSe_2pp_p+"_Reweighted");
+  printf("hSeRew_2pp_p=%p\n",hSeRew_2pp_p);
+  TH1F* hMeRew_2pp_p = (TH1F*)list2_tmp->FindObject(histoMe_2pp_p+"_Reweighted");
+  printf("hMeRew_2pp_p=%p\n",hMeRew_2pp_p);
+
+  //ANTI-PARTICLES
+  list1_tmp = (TList*)datafile_2pp->Get(List1_ap);
+  printf("list1_tmp=%p\n",list1_tmp);
+  list2_tmp = (TList*)list1_tmp->FindObject(ListREB_ap);
+  printf("list2_tmp=%p\n",list2_tmp);
+  //list2_tmp->ls();
+  TH1F* hSe_2pp_ap = (TH1F*)list2_tmp->FindObject(histoSe_2pp_ap);
+  printf("hSe_2pp_ap=%p\n",hSe_2pp_ap);
+  TH1F* hMe_2pp_ap = (TH1F*)list2_tmp->FindObject(histoSe_2pp_ap);
+  printf("hMe_2pp_ap=%p\n",hMe_2pp_ap);
+  list2_tmp = (TList*)list1_tmp->FindObject(ListREW_ap);
+  printf("list2_tmp=%p\n",list2_tmp);
+  TH1F* hSeRew_2pp_ap = (TH1F*)list2_tmp->FindObject(histoSe_2pp_ap+"_Reweighted");
+  printf("hSeRew_2pp_p=%p\n",hSeRew_2pp_ap);
+  TH1F* hMeRew_2pp_ap = (TH1F*)list2_tmp->FindObject(histoMe_2pp_ap+"_Reweighted");
+  printf("hMeRew_2pp_p=%p\n",hMeRew_2pp_ap);
+
+
+  TH1F* hSe_2pp = (TH1F*)hSe_2pp_p->Clone("hSe_2pp");
+  hSe_2pp->Add(hSe_2pp_ap);
+
+  TH1F* hMe_2pp = (TH1F*)hMe_2pp_p->Clone("hMe_2pp");
+  hMe_2pp->Add(hMe_2pp_ap);
+
+  TH1F* hMeRew_2pp = (TH1F*)hMeRew_2pp_p->Clone("hMeRew_2pp");
+  hMeRew_2pp->Add(hMeRew_2pp_ap);
+
+  //this is actually 1/weights, as this is the input we need for our code
+  TH1F* hMe_2pp_w = (TH1F*)hMe_2pp->Clone("hMe_2pp_w");
+  hMe_2pp_w->Divide(hMeRew_2pp);
+  hMe_2pp_w->Sumw2();
+  hMe_2pp_w->Scale(Norm_2pp);
+
+  TH1F* hCk_2pp = (TH1F*)hSe_2pp->Clone("hCk_2pp");
+  hCk_2pp->Divide(hMeRew_2pp);
+  hCk_2pp->Scale(Norm_2pp);
+
+  //Next: the 2-body bit (pL pmixed)
+  TFile* datafile_2pL = new TFile(DataFileFolder+"CFOutput_pLSamepMixed0Perfect.root");
+
+  //PARTICLES
+  list1_tmp = (TList*)datafile_2pL->Get(List1_p);
+  printf("list1_tmp=%p\n",list1_tmp);
+  list2_tmp = (TList*)list1_tmp->FindObject(ListREB_p);
+  printf("list2_tmp=%p\n",list2_tmp);
+  //list2_tmp->ls();
+  TH1F* hSe_2pL_p = (TH1F*)list2_tmp->FindObject(histoSe_2pL_p);
+  printf("hSe_2pL_p=%p\n",hSe_2pL_p);
+  TH1F* hMe_2pL_p = (TH1F*)list2_tmp->FindObject(histoMe_2pL_p);
+  printf("hMe_2pL_p=%p\n",hMe_2pL_p);
+  list2_tmp = (TList*)list1_tmp->FindObject(ListREW_p);
+  printf("list2_tmp=%p\n",list2_tmp);
+  TH1F* hSeRew_2pL_p = (TH1F*)list2_tmp->FindObject(histoSe_2pL_p+"_Reweighted");
+  printf("hSeRew_2pL_p=%p\n",hSeRew_2pL_p);
+  TH1F* hMeRew_2pL_p = (TH1F*)list2_tmp->FindObject(histoMe_2pL_p+"_Reweighted");
+  printf("hMeRew_2pL_p=%p\n",hMeRew_2pL_p);
+
+  //ANTI-PARTICLES
+  list1_tmp = (TList*)datafile_2pL->Get(List1_ap);
+  printf("list1_tmp=%p\n",list1_tmp);
+  list2_tmp = (TList*)list1_tmp->FindObject(ListREB_ap);
+  printf("list2_tmp=%p\n",list2_tmp);
+  //list2_tmp->ls();
+  TH1F* hSe_2pL_ap = (TH1F*)list2_tmp->FindObject(histoSe_2pL_ap);
+  printf("hSe_2pL_ap=%p\n",hSe_2pL_ap);
+  TH1F* hMe_2pL_ap = (TH1F*)list2_tmp->FindObject(histoSe_2pL_ap);
+  printf("hMe_2pL_ap=%p\n",hMe_2pL_ap);
+  list2_tmp = (TList*)list1_tmp->FindObject(ListREW_ap);
+  printf("list2_tmp=%p\n",list2_tmp);
+  TH1F* hSeRew_2pL_ap = (TH1F*)list2_tmp->FindObject(histoSe_2pL_ap+"_Reweighted");
+  printf("hSeRew_2pL_p=%p\n",hSeRew_2pL_ap);
+  TH1F* hMeRew_2pL_ap = (TH1F*)list2_tmp->FindObject(histoMe_2pL_ap+"_Reweighted");
+  printf("hMeRew_2pL_p=%p\n",hMeRew_2pL_ap);
+
+  //Next: the 2-body bit -> projector
+  TFile* datafile_pr2 = new TFile(DataFileFolder+"CppL_BINNED.root");
+  //PARTICLES
+  TGraphAsymmErrors* gr_Ck_2_pr = (TGraphAsymmErrors*)datafile_pr2->Get("htheo_ppL_stat");
+
+  TH1F* hSe_2pL = (TH1F*)hSe_2pL_p->Clone("hSe_2pL");
+  hSe_2pL->Add(hSe_2pL_ap);
+
+  TH1F* hMe_2pL = (TH1F*)hMe_2pL_p->Clone("hMe_2pL");
+  hMe_2pL->Add(hMe_2pL_ap);
+
+  TH1F* hMeRew_2pL = (TH1F*)hMeRew_2pL_p->Clone("hMeRew_2pL");
+  hMeRew_2pL->Add(hMeRew_2pL_ap);
+
+  //this is actually 1/weights, as this is the input we need for our code
+  TH1F* hMe_2pL_w = (TH1F*)hMe_2pL->Clone("hMe_2pL_w");
+  hMe_2pL_w->Divide(hMeRew_2pL);
+  hMe_2pL_w->Sumw2();
+  hMe_2pL_w->Scale(Norm_2pL);
+
+  TH1F* hCk_2pL = (TH1F*)hSe_2pL->Clone("hCk_2pL");
+  hCk_2pL->Divide(hMeRew_2pL);
+  hCk_2pL->Scale(Norm_2pL);
+
+
+  fOutput->cd();
+  //hCk_2->Write();
+  //hMe_2_w->Write();
+  //hSe_2_p->Write();
+  //hSe_2_ap->Write();
+  //hSe_2->Write();
+  //hMe_2_p->Write();
+  //hMe_2_ap->Write();
+  //hMe_2->Write();
+
+  TH1F* hSe_3_exp; //= (TH1F*)hSe_2pp->Clone("hSe_3_exp");
+  TH1F* hCtimes3minus2 = NULL;
+  TH1F* hCtimes3minus2_m = NULL;
+  //hSe_3_exp->Multiply(hMe_3);
+  //hSe_3_exp->Divide(hMe_3_w);
+  //hSe_3_exp->Divide(hMe_2);
+  //hSe_3_exp->Multiply(hMe_2_w);
+  //hSe_3_exp->Scale(3.);
+  if(Projector){
+    hCtimes3minus2 = (TH1F*)hMe_3->Clone("hCtimes3minus2");
+    hSe_3_exp = (TH1F*)hMe_3->Clone("hSe_3_exp");
+    hSe_3_exp->Divide(hMe_3_w);
+    double Ctimes3minus2;
+    double xDummy;
+    for(unsigned uBin=0; uBin<gr_Ck_2_pr->GetN(); uBin++){
+      gr_Ck_2_pr->GetPoint(uBin,xDummy,Ctimes3minus2);
+      /*
+      if(uBin==0){
+        Ctimes3minus2 += 2.4;
+      }
+      if(uBin==1){
+        Ctimes3minus2 -= 1.9;
+      }
+      if(uBin==2){
+        Ctimes3minus2 -= 1.38;
+      }
+      if(uBin==3){
+        Ctimes3minus2 -= 1.17;
+      }
+      if(uBin==4){//
+        Ctimes3minus2 -= 1.28;
+      }
+      if(uBin==5){//
+        Ctimes3minus2 -= 0.83;
+      }
+      if(uBin==6){
+        Ctimes3minus2 -= 0.57;
+      }
+      if(uBin==7){
+        Ctimes3minus2 -= 0.428;
+      }
+      if(uBin==8){
+        Ctimes3minus2 -= 0.297;
+      }
+      */
+      hCtimes3minus2->SetBinContent(uBin+1,Ctimes3minus2);
+      hCtimes3minus2->SetBinError(uBin+1,gr_Ck_2_pr->GetErrorY(uBin));
+      hSe_3_exp->SetBinContent(uBin+1,hSe_3_exp->GetBinContent(uBin+1)*Ctimes3minus2);
+    }
+    hCtimes3minus2_m = (TH1F*)hCtimes3minus2->Clone("hCtimes3minus2_m");
+    hCtimes3minus2_m->Scale(-1.);
+  }
+  else{
+    hSe_3_exp = (TH1F*)hSe_2pp->Clone("hSe_3_exp");
+    for(unsigned uBin=0; uBin<hSe_3_exp->GetNbinsX(); uBin++){
+      if(hSe_3_exp->GetBinCenter(uBin+1)>Xmax) break;
+      double BinValue_pp = hSe_2pp->GetBinContent(uBin+1);
+      BinValue_pp *= hMe_2pp_w->GetBinContent(uBin+1);
+      BinValue_pp /= hMe_2pp->GetBinContent(uBin+1);
+      double BinValue_pL = hSe_2pL->GetBinContent(uBin+1);
+      BinValue_pL *= hMe_2pL_w->GetBinContent(uBin+1);
+      BinValue_pL /= hMe_2pL->GetBinContent(uBin+1);
+      double BinValue = 2.*BinValue_pL+BinValue_pp-2.;
+      BinValue *= hMe_3->GetBinContent(uBin+1);
+      BinValue /= hMe_3_w->GetBinContent(uBin+1);
+      hSe_3_exp->SetBinContent(uBin+1,BinValue);
+    }
+  }
+  hSe_3->Write();
+  hSe_3_exp->Write();
+  hMeRew_3->Write();
+
+
+  TH1F* hMe_3exp_w = (TH1F*)hMe_3_w->Clone("hMe_3exp_w");
+  hMe_3exp_w->Scale(-1);
+
+  TH1F* hMe_2pp_w_1x = (TH1F*)hMe_2pp_w->Clone("hMe_2pp_w_1x");
+  //hMe_2_wpp_3x->Scale(1.);
+  TH1F* hMe_2pp_w_1xm = (TH1F*)hMe_2pp_w->Clone("hMe_2pp_w_1xm");
+  hMe_2pp_w_1xm->Scale(-1.);
+
+  TH1F* hMe_2pL_w_2x = (TH1F*)hMe_2pL_w->Clone("hMe_2pL_w_2x");
+  hMe_2pL_w_2x->Scale(2.);
+  TH1F* hMe_2pL_w_2xm = (TH1F*)hMe_2pL_w->Clone("hMe_2pL_w_2xm");
+  hMe_2pL_w_2xm->Scale(-2.);
+
+
+  HistoAddRatios HAD(7,"hResult",8192,-8,40);
+  HAD.SetNormalization(0,hMe_3_w);
+  HAD.SetNumerator(0,hSe_3);
+  HAD.SetDenominator(0,hMe_3);
+  HAD.SetIgnoreUncertainty(0);
+
+  //HAD.SetNormalization(1,hMe_2_w);
+  //HAD.SetNumerator(1,hSe_2);
+  //HAD.SetDenominator(1,hMe_2);
+  HAD.SetNormalization(1,hMe_3exp_w);
+  HAD.SetNumerator(1,hSe_3_exp);
+  HAD.SetDenominator(1,hMe_3);
+
+  HAD.SetConstant(2,0,0);
+
+  if(Projector){
+    HAD.SetRatio(3,hCtimes3minus2);
+
+    HAD.SetRatio(4,hCtimes3minus2_m);
+    HAD.SetIgnoreUncertainty(4);
+
+    HAD.SetConstant(5,0,0);
+    HAD.SetConstant(6,0,0);
+  }
+  else{
+    HAD.SetNormalization(3,hMe_2pp_w_1x);
+    HAD.SetNumerator(3,hSe_2pp);
+    HAD.SetDenominator(3,hMe_2pp);
+
+    HAD.SetNormalization(4,hMe_2pp_w_1xm);
+    HAD.SetNumerator(4,hSe_2pp);
+    HAD.SetDenominator(4,hMe_2pp);
+    HAD.SetIgnoreUncertainty(4);
+
+    HAD.SetNormalization(5,hMe_2pL_w_2x);
+    HAD.SetNumerator(5,hSe_2pL);
+    HAD.SetDenominator(5,hMe_2pL);
+
+    HAD.SetNormalization(6,hMe_2pL_w_2xm);
+    HAD.SetNumerator(6,hSe_2pL);
+    HAD.SetDenominator(6,hMe_2pL);
+    HAD.SetIgnoreUncertainty(6);
+  }
+
+  HAD.SetCompareToNullHypothesis(true,256);
+  HAD.SetRange(Xmin,Xmax);
+  HAD.SetNumIter(100000000);
+  HAD.SetMinIter(10000);
+
+
+  fOutput->cd();
+  TH2F* hResult = HAD.GetResult();
+  double Chi2_3b = 0;
+  double Chi2_6b = 0;
+  for(unsigned uBin=0; uBin<9; uBin++){
+    printf(" (%u) nsig (pval) = %.2f (%.5f)\n",uBin,HAD.GetNsig(uBin),HAD.GetPval(uBin));
+    if(uBin<3) Chi2_3b += HAD.GetNsig(uBin)*HAD.GetNsig(uBin);
+    if(uBin<6) Chi2_6b += HAD.GetNsig(uBin)*HAD.GetNsig(uBin);
+  }
+  printf(" nsig 3 bins = %.2f\n", sqrt(2)*TMath::ErfcInverse(TMath::Prob(Chi2_3b,3)));
+  printf(" nsig 6 bins = %.2f\n", sqrt(2)*TMath::ErfcInverse(TMath::Prob(Chi2_6b,6)));
+
+  fOutput->cd();
+  hResult->Write();
+
+}
+
+
+
+//
 int OTHERTASKS(int argc, char *argv[]){
     //pp_CompareToNorfolk();
     //pp_pL_CorrectedMC_EXP();
@@ -9551,8 +10363,38 @@ int OTHERTASKS(int argc, char *argv[]){
     //Ledni_SmallRad("Yukawa1");
     //Ledni_SmallRad("pKplusI0");
     //Ledni_SmallRad("pKplusI1");
-    Ledni_SmallRad("pKplusYuki");
+    //Ledni_SmallRad("pKplusYuki");
     //pXi_Pot();
+    //Raffa_Errors();
+    ppp_errors(atoi(argv[1]),atoi(argv[2]));
+    //ppL_errors(0,1);
+/*
+ppp_errors(2,1);
+(0) nsig (pval) = 1.10 (0.27080)
+(1) nsig (pval) = 5.19 (0.00000)
+(2) nsig (pval) = 1.81 (0.06980)
+(3) nsig (pval) = 0.29 (0.76880)
+(4) nsig (pval) = 0.50 (0.61760)
+(5) nsig (pval) = 0.31 (0.75580)
+(6) nsig (pval) = 0.38 (0.70180)
+(7) nsig (pval) = 1.58 (0.11440)
+(8) nsig (pval) = 0.51 (0.60880)
+nsig 3 bins = 4.97
+nsig 6 bins = 4.30
+
+ppp_errors(2,0);
+(0) nsig (pval) = 0.98 (0.32780)
+(1) nsig (pval) = 4.57 (0.00000)
+(2) nsig (pval) = 1.65 (0.09860)
+(3) nsig (pval) = 0.75 (0.45360)
+(4) nsig (pval) = 1.16 (0.24600)
+(5) nsig (pval) = 0.07 (0.94340)
+(6) nsig (pval) = 0.53 (0.59880)
+(7) nsig (pval) = 1.65 (0.09980)
+(8) nsig (pval) = 0.65 (0.51260)
+nsig 3 bins = 4.28
+nsig 6 bins = 3.75
+*/
 
     //Ledni_SmallRad_Random(atoi(argv[1]),atoi(argv[2]));
     //MakePotentials(atoi(argv[1]));
