@@ -9775,7 +9775,7 @@ void ppp_errors(int FeedDown, bool Projector){
   hMeRew_3->Write();
 
   TH1F* hMe_3exp_w = (TH1F*)hMe_3_w->Clone("hMe_3exp_w");
-  hMe_3exp_w->Scale(-1);
+  hMe_3exp_w->Scale(-1.);
 
   TH1F* hMe_2_w_3x = (TH1F*)hMe_2_w->Clone("hMe_2_w_3x");
   hMe_2_w_3x->Scale(3.);
@@ -9815,8 +9815,9 @@ void ppp_errors(int FeedDown, bool Projector){
   else{
     hFeed = NULL;
   }
-  //hMe_3_w->Scale(1./lam_gen);
-  //hMe_3exp_w->Scale(1./lam_gen);
+  hMe_3_w->Scale(1./lam_gen);
+  hMe_3exp_w->Scale(1./lam_gen);
+  hCumPdf->Scale(1./lam_gen);
   //hFeed->Scale(1./lam_gen);
   //hMe_2_w->Scale(1./lam_gen);
   //hMe_2_w_minus->Scale(1./lam_gen);
@@ -9902,6 +9903,7 @@ void ppp_errors(int FeedDown, bool Projector){
   TH2F* hResult = HAD.GetResult();
   double Chi2_3b = 0;
   double Chi2_6b = 0;
+  double Chi2_9b = 0;
   TGraphAsymmErrors* gaseResult_1s = new TGraphAsymmErrors();
   gaseResult_1s->SetName("gaseResult_1s");
   TGraphAsymmErrors* gaseResult_3s = new TGraphAsymmErrors();
@@ -9923,10 +9925,12 @@ void ppp_errors(int FeedDown, bool Projector){
     gaseResult_3s->SetPointError(uBin,xwidth/2.,xwidth/2.,med-low,up-med);
     if(uBin<3) Chi2_3b += HAD.GetNsig(uBin)*HAD.GetNsig(uBin);
     if(uBin<6) Chi2_6b += HAD.GetNsig(uBin)*HAD.GetNsig(uBin);
+    if(uBin<9) Chi2_9b += HAD.GetNsig(uBin)*HAD.GetNsig(uBin);
     //Chi2_29b += HAD.GetNsig(uBin)*HAD.GetNsig(uBin);
   }
   printf(" nsig 3 bins = %.2f\n", sqrt(2)*TMath::ErfcInverse(TMath::Prob(Chi2_3b,3)));
   printf(" nsig 6 bins = %.2f\n", sqrt(2)*TMath::ErfcInverse(TMath::Prob(Chi2_6b,6)));
+  printf(" nsig 9 bins = %.2f\n", sqrt(2)*TMath::ErfcInverse(TMath::Prob(Chi2_9b,9)));
   //printf(" nsig 29 bins = %.2f\n", sqrt(2)*TMath::ErfcInverse(TMath::Prob(Chi2_29b,29)));
 
   fOutput->cd();
@@ -10147,6 +10151,79 @@ void ppL_errors(int FeedDown, bool Projector){
   hCk_2pL->Scale(Norm_2pL);
 
 
+  //decay matrix, used only for testing
+  TFile* datafile_decay = new TFile(DataFileFolder+"DLM_DecayMatrix_ppL_ppp.root");
+  TH2F* hDecay_ppL_ppp = (TH2F*)datafile_decay->Get("DLM_DecayMatrix");
+
+  TH1F* hMe_3_decay = (TH1F*)hMe_3->Clone("hMe_3_decay");
+  TH1F* hMe_3_decayDimi = (TH1F*)hMe_3->Clone("hMe_3_decayDimi");
+  for(unsigned uBinY=0; uBinY<hMe_3->GetNbinsX(); uBinY++){
+    hMe_3_decay->SetBinContent(uBinY+1,0);
+    double kMother,kDaughter;
+    kDaughter = hMe_3->GetBinCenter(uBinY+1);
+    if(kDaughter>Xmax) break;
+    for(unsigned uBinX=0; uBinX<hMe_3->GetNbinsX(); uBinX++){
+      int FirstBin = TMath::Nint(hMe_3->GetXaxis()->GetBinLowEdge(uBinX+1)*1000.);
+      int LastBin = TMath::Nint(hMe_3->GetXaxis()->GetBinUpEdge(uBinX+1)*1000.)-1;
+      int Rebin = LastBin-FirstBin+1;
+      kMother = hMe_3->GetBinCenter(uBinX+1);
+      if(kMother>Xmax) break;
+      TH1D* hTransform = hDecay_ppL_ppp->ProjectionY(TString::Format("hTransform"),FirstBin,LastBin);
+      //TH1F* hTransf = new TH1F("hTransf","hTransf",65,hTransform->GetBinLowEdge(1),hTransform->GetXaxis()->GetBinUpEdge(65));
+      //for(unsigned uBin=0; uBin<65; uBin++){
+      //  hTransf->SetBinContent(uBin+1,hTransform->GetBinContent(uBin*6+1));
+      //  for(unsigned uBinReb=1; uBinReb<6; uBinReb++){
+      //    hTransf->SetBinContent(uBin+1,hTransf->GetBinContent(uBin+1)+hTransform->GetBinContent(uBin*6+1+uBinReb));
+      //  }
+      //}
+      //printf(" Rebin=%i\n",Rebin);
+      //printf(" b: NBX=%i; l/u=%.3f/%.3f\n",hTransform->GetNbinsX(),hTransform->GetXaxis()->GetBinLowEdge(1),hTransform->GetXaxis()->GetBinUpEdge(1));
+      hTransform->Rebin(Rebin);
+      hTransform->Scale(1./hTransform->Integral());
+      //printf(" a: NBX=%i; l/u=%.3f/%.3f\n",hTransform->GetNbinsX(),hTransform->GetXaxis()->GetBinLowEdge(1),hTransform->GetXaxis()->GetBinUpEdge(1));
+      //usleep(200e3);
+      unsigned Yield = hMe_3_decay->GetBinContent(uBinX+1);
+      unsigned NewYield = hMe_3->GetBinContent(uBinX+1)*hTransform->GetBinContent(uBinX+1);
+      hMe_3_decay->SetBinContent(uBinX+1,Yield+NewYield);
+      delete hTransform;
+      //delete hTransf;
+    }
+  }
+
+  for(unsigned uBin=0; uBin<hMe_3->GetNbinsX(); uBin++){
+    hMe_3_decayDimi->SetBinContent(uBin+1,0);
+  }
+  for(unsigned uBin=0; uBin<hMe_3->GetNbinsX(); uBin++){
+    double kMother,kDaughter;
+    unsigned Yield = hMe_3->GetBinContent(uBin+1);
+    int FirstBin = TMath::Nint(hMe_3->GetXaxis()->GetBinLowEdge(uBin+1)*1000.);
+    int LastBin = TMath::Nint(hMe_3->GetXaxis()->GetBinUpEdge(uBin+1)*1000.)-1;
+    int Rebin = LastBin-FirstBin+1;
+    kMother = hMe_3->GetBinCenter(uBin+1);
+    if(kMother>Xmax) break;
+    TH1D* hTransform = hDecay_ppL_ppp->ProjectionY(TString::Format("hTransform"),FirstBin,LastBin);
+    //TH1F* hTransf = new TH1F("hTransf","hTransf",65,hTransform->GetBinLowEdge(1),hTransform->GetXaxis()->GetBinUpEdge(65));
+    //for(unsigned uBin=0; uBin<65; uBin++){
+    //  hTransf->SetBinContent(uBin+1,hTransform->GetBinContent(uBin*6+1));
+    //  for(unsigned uBinReb=1; uBinReb<6; uBinReb++){
+    //    hTransf->SetBinContent(uBin+1,hTransf->GetBinContent(uBin+1)+hTransform->GetBinContent(uBin*6+1+uBinReb));
+    //  }
+    //}
+    hTransform->Rebin(Rebin);
+    hTransform->Scale(1./hTransform->Integral());
+    for(unsigned uYield=0; uYield<Yield; uYield++){
+      kDaughter = hTransform->GetRandom();
+      hMe_3_decayDimi->Fill(kDaughter);
+    }
+    delete hTransform;
+    //delete hTransf;
+  }
+
+  TH1F* hMe_3_decayfactor = (TH1F*)hMe_3->Clone("hMe_3_decayfactor");
+  hMe_3_decayfactor->Divide(hMe_3_decay);
+  TH1F* hMe_3_decayfactorDimi = (TH1F*)hMe_3->Clone("hMe_3_decayfactorDimi");
+  hMe_3_decayfactorDimi->Divide(hMe_3_decayDimi);
+
   fOutput->cd();
   //hCk_2->Write();
   //hMe_2_w->Write();
@@ -10156,6 +10233,12 @@ void ppL_errors(int FeedDown, bool Projector){
   //hMe_2_p->Write();
   //hMe_2_ap->Write();
   //hMe_2->Write();
+  hDecay_ppL_ppp->Write();
+  hMe_3->Write();
+  hMe_3_decay->Write();
+  hMe_3_decayDimi->Write();
+  hMe_3_decayfactor->Write();
+  hMe_3_decayfactorDimi->Write();
 
   TH1F* hSe_3_exp; //= (TH1F*)hSe_2pp->Clone("hSe_3_exp");
   TH1F* hCtimes3minus2 = NULL;
@@ -10312,6 +10395,443 @@ void ppL_errors(int FeedDown, bool Projector){
 }
 
 
+//Emission: 0, all particles are emitted at dist rSize (point source), otherwise Gaussian source
+//PhaseSpace: 0 is uniform, 1 is boltzmann
+void Silly2body(const int Emission, const int PhaseSpace){
+  const unsigned NumPairs = 100*1000;
+  const double rCutOff = 10;
+  const double tCutOff = 1e6;
+  const double rSize = 1.0;
+  //the radius fluctuates (say QM) to avoid zero positions of the potential
+  const double rFluct = 0.02;
+
+  //the potential is A*exp(-x^2/R^2)
+  const double V_A = -20;
+  const double V_R = 2.0;
+  const double V_CA = 500;
+  const double V_CR = 0.5;
+  const double RedMass = 500;
+  const double MomMean = 1000;
+  const double tEps = 1e-2;
+  const double tMin = 1e-2;
+  const double tMax = 1e4;
+
+  double Rad;
+  double Mom;
+  double Force;
+  double dt;
+  double dr;
+
+  DLM_Random DimiRanGen(11);
+
+  unsigned NBINS = 1024;
+  TFile* fOutput = new TFile(TString::Format("%s/OtherTasks/Silly2body/fOutput_%i_%i.root",GetFemtoOutputFolder(),Emission,PhaseSpace),"recreate");
+  TH1F* hSource = new TH1F("hSource","hSource",NBINS,0,8);
+  TH1F* hRef = new TH1F("hRef","hRef",NBINS,0,4096);
+  TH1F* hSig = new TH1F("hSig","hSig",NBINS,0,4096);
+  TH1F* hDist = new TH1F("hDist","hDist",NBINS,0,8*rCutOff);
+  TH1F* hTime = new TH1F("hTime","hTime",NBINS,0,4*tCutOff);
+  TH1F* hPos = new TH1F("hPos","hPos",NBINS,0,4*rCutOff);
+
+  for(unsigned uPair=0; uPair<NumPairs; uPair++){
+    double Prog = double(uPair)/double(NumPairs);
+    //printf("uPair=%u\n",uPair);
+    printf("\r\033[K Progress %.0f%% ",100.*Prog);
+    cout << flush;
+    if(Emission==0) Rad=rSize;
+    else {Rad=DimiRanGen.GaussDiffR(3,0,rSize);}
+    double Rad0 = Rad;
+
+    if(PhaseSpace==0) {Mom=DimiRanGen.Uniform(0,2.*MomMean);}
+    else {Mom=DimiRanGen.GaussR(3,0,MomMean/sqrt(2));}
+    Mom = 100;
+    double Mom0 = Mom;
+
+    double DistanceTraveled = 0;
+    double TimeTraveled = 0;
+    //sign conventions. If Mom>0 we move away from each other, else towards one another
+    //if the force is negative => attraction => the absolute value of the Mom should decrease
+    //the sign of the radius is arbitrary, in the end we do start off with positive values, and
+    //in the end we should only care about |Rad|
+    while(fabs(Rad)<rCutOff&&DistanceTraveled<2.*rCutOff&&TimeTraveled<tCutOff){
+      Force = V_A*exp(-pow(fabs(Rad)/V_R,2.))+V_CA*exp(-pow(fabs(Rad)/V_CR,2.));
+      //if we are stuck around a zero potential value within the range
+      //if(fabs(Force)<tEps&&fabs(Rad)<V_R){
+      //  Force = tEps*Force/fabs(Force);
+      //}
+      //dt = fabs(Mom/Force)*(sqrt(1.+fabs(2.*tEps*Rad*RedMass*Force))-1.);
+      dt = fabs(Mom/Force*tEps);
+      if(dt>tMax) dt=tMax;
+      if(dt<tMin) dt=tMin;
+      dr = Mom/RedMass*dt+0.5*Force/RedMass*dt*dt;
+      /*if(uPair==252){
+        printf("Mom = %.2f\n",Mom);
+        printf("  F = %.2f\n",Force);
+        printf(" dt = %.5f\n",dt);
+        printf(" dp = %.2f\n",Force*dt);
+        printf("Rad = %.2f\n",Rad);
+        printf(" dr = %.2f\n",dt);
+        printf("\n");
+        usleep(25e3);
+      }*/
+
+      Rad += dr;
+      Rad += DimiRanGen.Gauss(0,rFluct);
+      DistanceTraveled += fabs(dr);
+      TimeTraveled += dt;
+      if(Mom>0) Mom += Force*dt;
+      else Mom -= Force*dt;
+    }
+
+    //if(fabs(Mom)<1){
+      //printf(" DistanceTraveled = %.2f\n",DistanceTraveled);
+      //printf(" TimeTraveled = %.2f\n",TimeTraveled);
+      //printf(" Rad = %.2f\n",Rad);
+      //printf(" Mom = %.2f\n",Mom);
+      //printf("\n");
+    //}
+
+    //this is a pair that got stuck with 0 momentum and close position
+    //experimentally this is not really detectable, so we remove these pairs
+    //if(Mom>1||fabs(Rad)>rCutOff){
+      hDist->Fill(DistanceTraveled);
+      hSig->Fill(fabs(Mom));
+      hTime->Fill(TimeTraveled);
+      hPos->Fill(fabs(Rad));
+      hSource->Fill(Rad0);
+      hRef->Fill(Mom0);
+    //}
+
+  }
+  printf("\r\033[K Progress %.0f%% ",100.);
+
+  TH1F* hCk = (TH1F*)hSig->Clone("hCk");
+  hCk->Divide(hRef);
+
+  hSource->Write();
+  hSig->Write();
+  hRef->Write();
+  hCk->Write();
+  hPos->Write();
+  hDist->Write();
+  hTime->Write();
+
+  delete hSource;
+  delete hSig;
+  delete hRef;
+  delete hCk;
+  delete hPos;
+  delete hDist;
+  delete hTime;
+  delete fOutput;
+}
+
+
+void ppL_smear_test(){
+
+}
+
+void KilledByFeedDown(){
+
+  const double kMin = 0;
+  const double kMax = 768;
+  //8 MeV bins
+  const double nBins = 64;
+  const double BinWidth = kMax/double(nBins);
+  const double lam_S0 = 0.18;
+  const double lam_Xi = 0.221;
+  const double lam_pL = 0.427;
+  const double lam_flt = 1.-lam_S0-lam_Xi-lam_pL;
+  double lam_S0_genuine = 1.-0.18;//this is the flat contribution to pSigma0 itself
+
+  TFile* fOutput = new TFile(TString::Format("%s/OtherTasks/KilledByFeedDown/fOutput.root",GetFemtoOutputFolder()),"recreate");
+  TH1F* hCk_pS0 = new TH1F("hCk_pS0","hCk_pS0",nBins,kMin,kMax);
+  TH1F* hCk_pS0_pL_old = new TH1F("hCk_pS0_pL_old","hCk_pS0_pL_old",nBins,kMin,kMax);
+  TH1F* hCk_pS0_pL_new = new TH1F("hCk_pS0_pL_new","hCk_pS0_pL_new",nBins,kMin,kMax);
+  TH1F* hCk_pXim = new TH1F("hCk_pXim","hCk_pXim",nBins,kMin,kMax);
+  TH1F* hCk_pXi0 = new TH1F("hCk_pXi0","hCk_pXi0",nBins,kMin,kMax);
+  TH1F* hCk_pXi = new TH1F("hCk_pXi","hCk_pXi",nBins,kMin,kMax);
+  TH1F* hCk_pXi_pL_old = new TH1F("hCk_pXi_pL_old","hCk_pXi_pL_old",nBins,kMin,kMax);
+  TH1F* hCk_pXi_pL_new = new TH1F("hCk_pXi_pL_new","hCk_pXi_pL_new",nBins,kMin,kMax);
+
+  TH1F* hCk_pS0_pL_dlm = new TH1F("hCk_pS0_pL_dlm","hCk_pS0_pL_dlm",nBins,kMin,kMax);
+  TH1F* hCk_pXi_pL_dlm = new TH1F("hCk_pXi_pL_dlm","hCk_pXi_pL_dlm",nBins,kMin,kMax);
+
+  TFile* fDM = new TFile(TString::Format("%s/CatsFiles/DecaySmear/Decay_matrices_2020.root",GetCernBoxDimi()));
+  TH2F* hDM_pS0_pL = (TH2F*)fDM->Get("hRes_pL_pSigma0");
+  TH2F* hDM_pXi_pL = (TH2F*)fDM->Get("hRes_pL_pXim");
+
+  TFile* fME = new TFile(TString::Format("%s/CatsFiles/ExpData/ALICE_pp_13TeV_HM/DimiJun20/Norm240_340/DataSignal/CkREW_pL_0.root",GetCernBoxDimi()));
+  TDirectoryFile *dirME=(TDirectoryFile*)(fME->FindObjectAny(Form("Binning_%i",TMath::Nint(BinWidth))));
+  TH1F *hMe_pL;
+  dirME->GetObject(Form("hME_SUM"),hMe_pL);
+  TH1F* hMe_pL_S0_smeared = (TH1F*)hMe_pL->Clone("hMe_pL_S0_smeared");
+  TH1F* hMe_pL_Xi_smeared = (TH1F*)hMe_pL->Clone("hMe_pL_Xi_smeared");
+
+  DLM_CleverMcLevyResoTM CleverMcLevyReso;
+  CleverMcLevyReso.InitStability(21,1,2);
+  CleverMcLevyReso.InitScale(91,100,1000);
+  CleverMcLevyReso.InitRad(513,0,8192);
+  CleverMcLevyReso.InitType(2);
+  CleverMcLevyReso.InitNumMcIter(1000000);
+  //TF1* fMe = new TF1("fMe",&CleverMcLevyReso,&DLM_CleverMcLevyResoTM::RootEvalNorm,0,1000,3,"DLM_CleverMcLevyResoTM","RootEvalNorm");
+  TF1* fitMe = new TF1("fitMe","[2]*(x*x*exp(-pow(x/sqrt(2)/[0],[1])))/pow([0],3.)",0,1000);
+  fitMe->SetParameter(0,500);
+  fitMe->SetParameter(1,1.5);
+  fitMe->SetParLimits(1,0,5);
+  fitMe->SetParameter(2,1);
+  hMe_pL->Fit(fitMe,"S, N, R, M");
+fitMe->SetParameter(0,fitMe->GetParameter(0)*0.9);
+//[2]*(x*x*exp(-pow(x/sqrt(2)/[0],[1])))/pow([0],3.)
+
+
+  TH1F* hGHETTO_PS = new TH1F("hGHETTO_PS","hGHETTO_PS",250,0,3000);
+  for(unsigned uBin=0; uBin<250; uBin++){
+    double MOM = hGHETTO_PS->GetBinCenter(uBin+1);
+    //double VAL = 5.40165e-08-1.06309e-08*pow(MOM,1.)+5.71623e-09*pow(MOM,2.)-
+    //-1.15454e-11*pow(MOM,3.)+1.17292e-14*pow(MOM,4.)-7.94266e-18*pow(MOM,5.)+
+    //3.70109e-21*pow(MOM,6.)-1.10644e-24*pow(MOM,7.)+1.86899e-28*pow(MOM,8.)-1.34242e-32*pow(MOM,9.);
+    double VAL = fitMe->Eval(MOM);
+    hGHETTO_PS->SetBinContent(uBin+1,VAL);
+  }
+
+
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
+
+  double lam_pXim[5];
+  AnalysisObject.SetUpLambdaPars_pXim("pp13TeV_HM_DimiJun20",0,0,lam_pXim);
+  double lam_Xim_genuine = (1.-lam_pXim[1]-lam_pXim[2]-lam_pXim[3]-lam_pXim[4])/(1.-lam_pXim[4]);
+  double lam_Xim_Flat = (lam_pXim[1]+lam_pXim[2]+lam_pXim[3])/(1.-lam_pXim[4]);
+  printf("lam_Xim_genuine = %.2f\n",lam_Xim_genuine*100.);
+  printf("lam_Xim_Flat = %.2f\n",lam_Xim_Flat*100.);
+
+  CATS AB_pL;
+  AB_pL.SetMomBins(nBins,kMin,kMax);
+  AnalysisObject.SetUpCats_pL(AB_pL,"Chiral_Coupled_SPD","McGauss_ResoTM",11600,202);//NLO_Coupled_S
+
+  const double CuspWeight = 0.4;//0.54
+  AB_pL.SetChannelWeight(7,1./4.*CuspWeight);//1S0 SN(s) -> LN(s)
+  AB_pL.SetChannelWeight(8,3./4.*CuspWeight);//3S1 SN(s) -> LN(s)
+  AB_pL.SetChannelWeight(10,3./4.*CuspWeight);//3S1 SN(d) -> LN(s)
+  AB_pL.SetChannelWeight(13,3./20.*CuspWeight);//3D1 SN(d) -> LN(d)
+  AB_pL.SetChannelWeight(15,3./20.*CuspWeight);//3D1 SN(s) -> LN(d)
+
+  AB_pL.SetAnaSource(0,1.09);
+  AB_pL.SetAnaSource(1,2);
+  AB_pL.SetNotifications(CATS::nError);
+  AB_pL.KillTheCat();
+
+  DLM_Ck* Ck_pL = new DLM_Ck(AB_pL.GetNumSourcePars(),0,AB_pL,nBins,kMin,kMax);
+  Ck_pL->SetSourcePar(0,AB_pL.GetAnaSourcePar(0));
+  Ck_pL->SetSourcePar(1,AB_pL.GetAnaSourcePar(1));
+  Ck_pL->SetCutOff(330,kMax);
+  Ck_pL->Update();
+
+  CATS AB_pXim;
+  //same binning as pL, as we only use pXim as feed-down
+  AB_pXim.SetMomBins(nBins,kMin,kMax);
+  AnalysisObject.SetUpCats_pXim(AB_pXim,"pXim_HALQCDPaper2020","Gauss");
+//!
+  AB_pXim.SetAnaSource(0,1.0);
+  AB_pXim.SetNotifications(CATS::nError);
+  AB_pXim.KillTheCat();
+
+  DLM_Ck* Ck_pXim = new DLM_Ck(AB_pXim.GetNumSourcePars(),0,AB_pXim,nBins,kMin,kMax);
+  Ck_pXim->SetSourcePar(0,AB_pXim.GetAnaSourcePar(0));
+  Ck_pXim->SetSourcePar(1,AB_pXim.GetAnaSourcePar(1));
+  Ck_pXim->SetCutOff(330,kMax);
+  Ck_pXim->Update();
+
+  CATS AB_pXi0;
+  //same binning as pL, as we only use pXim as feed-down
+  AB_pXi0.SetMomBins(nBins,kMin,kMax);
+  AnalysisObject.SetUpCats_pXi0(AB_pXi0,"pXim_HALQCDPaper2020","Gauss");
+//!
+  AB_pXi0.SetAnaSource(0,1.0);
+  AB_pXi0.SetNotifications(CATS::nError);
+  AB_pXi0.KillTheCat();
+
+  DLM_Ck* Ck_pXi0 = new DLM_Ck(AB_pXi0.GetNumSourcePars(),0,AB_pXi0,nBins,kMin,kMax);
+  Ck_pXi0->SetSourcePar(0,AB_pXi0.GetAnaSourcePar(0));
+  Ck_pXi0->SetSourcePar(1,AB_pXi0.GetAnaSourcePar(1));
+  Ck_pXi0->SetCutOff(330,kMax);
+  Ck_pXi0->Update();
+
+  CATS AB_pS0_Chiral;
+  //the minus one is to to avoid going above 350 MeV, since we do not have the WF there
+  AB_pS0_Chiral.SetMomBins(nBins,kMin,kMax);
+  AnalysisObject.SetUpCats_pS0(AB_pS0_Chiral,"Chiral","Gauss");
+//!
+  AB_pS0_Chiral.SetAnaSource(0,1.25);
+  AB_pS0_Chiral.SetNotifications(CATS::nError);
+  AB_pS0_Chiral.KillTheCat();
+  DLM_Ck* Ck_pS0_Chiral = new DLM_Ck(AB_pS0_Chiral.GetNumSourcePars(),0,AB_pS0_Chiral,nBins,kMin,kMax);
+  Ck_pS0_Chiral->SetSourcePar(0,1.25);
+  Ck_pS0_Chiral->SetCutOff(330,kMax);
+  Ck_pS0_Chiral->Update();
+
+  TH2F* hResidual_pL_pSigma0 = AnalysisObject.GetResidualMatrix("pLambda","pSigma0");
+  TH2F* hResidual_pL_pXim = AnalysisObject.GetResidualMatrix("pLambda","pXim");
+  TH2F* hResidual_pL_pXi0 = AnalysisObject.GetResidualMatrix("pLambda","pXi0");
+
+  DLM_CkDecomposition* CkDec_pL = new DLM_CkDecomposition("pLambda",5,*Ck_pL,NULL);
+  DLM_CkDecomposition* CkDec_pS0 = new DLM_CkDecomposition("pSigma0",1,*Ck_pS0_Chiral,NULL);;
+  DLM_CkDecomposition* CkDec_pXim = new DLM_CkDecomposition("pXim",2,*Ck_pXim,NULL);
+  DLM_CkDecomposition* CkDec_pXi0 = new DLM_CkDecomposition("pXi0",2,*Ck_pXi0,NULL);
+
+  CkDec_pL->AddContribution(0,lam_S0,DLM_CkDecomposition::cFeedDown,CkDec_pS0,hResidual_pL_pSigma0);
+  CkDec_pL->AddContribution(1,lam_Xi/2.,DLM_CkDecomposition::cFeedDown,CkDec_pXim,hResidual_pL_pXim);
+  CkDec_pL->AddContribution(2,lam_Xi/2.,DLM_CkDecomposition::cFeedDown,CkDec_pXi0,hResidual_pL_pXi0);
+  CkDec_pL->AddContribution(3,lam_flt,DLM_CkDecomposition::cFeedDown);
+  CkDec_pL->AddContribution(4,0,DLM_CkDecomposition::cFake);
+
+  CkDec_pL->AddPhaseSpace(0,hGHETTO_PS);
+  CkDec_pL->AddPhaseSpace(1,hGHETTO_PS);
+  CkDec_pL->AddPhaseSpace(2,hGHETTO_PS);
+  //CkDec_pL->AddPhaseSpace(0,hMe_pL);
+  //CkDec_pL->AddPhaseSpace(1,hMe_pL);
+  //CkDec_pL->AddPhaseSpace(2,hMe_pL);
+//TF1* fMe = new TF1("fMe",GaussSourceScaledTF1,0,1000,2);
+
+
+//TF1* fData = new TF1("fData",dimi_pL_May2020_Fitter,FitRegion_pL[0],FitRegion_pL[3],NumFitPars);
+//TH1F* testPS0 = Convert_DlmHisto_TH1F(CkDec_pL->PS_Child[0],"testPS0");
+
+
+  CkDec_pS0->AddContribution(0,1.-lam_S0_genuine,DLM_CkDecomposition::cFeedDown);
+
+  CkDec_pXim->AddContribution(0,lam_pXim[1]+lam_pXim[2]+lam_pXim[3],DLM_CkDecomposition::cFeedDown);
+  CkDec_pXim->AddContribution(1,lam_pXim[4],DLM_CkDecomposition::cFake);
+
+  CkDec_pXi0->AddContribution(0,lam_pXim[1]+lam_pXim[2]+lam_pXim[3],DLM_CkDecomposition::cFeedDown);
+  CkDec_pXi0->AddContribution(1,lam_pXim[4],DLM_CkDecomposition::cFake);
+
+  CkDec_pL->Update(true,true);
+
+  for(unsigned uBin=0; uBin<nBins; uBin++){
+    double MOM = hCk_pXi_pL_dlm->GetBinCenter(uBin+1);
+    hCk_pS0_pL_dlm->SetBinContent(uBin+1,CkDec_pL->EvalSignalChild(0,MOM)+1.);
+    hCk_pXi_pL_dlm->SetBinContent(uBin+1,CkDec_pL->EvalSignalChild(1,MOM)+CkDec_pL->EvalSignalChild(2,MOM)+1.);
+    //hCk_pXi_pL_dlm->SetBinContent(uBin+1,CkDec_pL->EvalCk(MOM));
+  }
+
+
+
+  for(unsigned uBin=0; uBin<nBins; uBin++){
+    hCk_pXim->SetBinContent(uBin+1,AB_pXim.GetCorrFun(uBin));
+    hCk_pXi0->SetBinContent(uBin+1,AB_pXi0.GetCorrFun(uBin));
+    hCk_pXi->SetBinContent(uBin+1,0.5*(AB_pXim.GetCorrFun(uBin)+AB_pXi0.GetCorrFun(uBin)));
+    hCk_pS0->SetBinContent(uBin+1,Ck_pS0_Chiral->GetBinContent(uBin));
+  }
+//printf("hi\n");
+  //smear the shit
+  //X = pS0, Y = pL
+  for(unsigned uBinY=0; uBinY<nBins; uBinY++){
+    double BWDM = hDM_pS0_pL->GetXaxis()->GetBinWidth(1);
+    hDM_pS0_pL->Rebin2D(TMath::Nint(BinWidth/BWDM),TMath::Nint(BinWidth/BWDM));
+    TH1D* hTrS0 = hDM_pS0_pL->ProjectionX(TString::Format("hTrS0"),uBinY+1,uBinY+1);
+    //hDM_pXi_pL
+    hTrS0->Scale(1./hTrS0->Integral());
+
+    BWDM = hDM_pXi_pL->GetXaxis()->GetBinWidth(1);
+    hDM_pXi_pL->Rebin2D(TMath::Nint(BinWidth/BWDM),TMath::Nint(BinWidth/BWDM));
+    TH1D* hTrXi = hDM_pXi_pL->ProjectionX(TString::Format("hTrXi"),uBinY+1,uBinY+1);
+    hTrXi->Scale(1./hTrXi->Integral());
+
+    double BinValueS0 = 0;
+    double BinValueXi = 0;
+    double BinValueMeS0 = 0;
+    double BinValueMeXi = 0;
+    for(unsigned uBinX=0; uBinX<nBins; uBinX++){
+      BinValueS0 += hTrS0->GetBinContent(uBinX+1)*Ck_pS0_Chiral->GetBinContent(uBinX);
+      BinValueXi += hTrXi->GetBinContent(uBinX+1)*hCk_pXi->GetBinContent(uBinX+1);
+      BinValueMeS0 += hTrS0->GetBinContent(uBinX+1)*hMe_pL->GetBinContent(uBinX+1);
+      BinValueMeXi += hTrXi->GetBinContent(uBinX+1)*hMe_pL->GetBinContent(uBinX+1);
+    }
+    hCk_pS0_pL_old->SetBinContent(uBinY+1,lam_S0*lam_S0_genuine*BinValueS0+1.-lam_S0*lam_S0_genuine);
+    hCk_pXi_pL_old->SetBinContent(uBinY+1,lam_Xi*lam_Xim_genuine*BinValueXi+1.-lam_Xi*lam_Xim_genuine);
+    hMe_pL_S0_smeared->SetBinContent(uBinY+1,BinValueMeS0);
+    hMe_pL_Xi_smeared->SetBinContent(uBinY+1,BinValueMeXi);
+    delete hTrS0;
+    delete hTrXi;
+  }
+  //I think the norm is fucked up due to the tail, renorm in tighter region
+  for(unsigned uBin=(nBins*3)/4; uBin<nBins; uBin++){
+    hMe_pL_S0_smeared->SetBinContent(uBin+1,hMe_pL->GetBinContent(uBin+1));
+    hMe_pL_Xi_smeared->SetBinContent(uBin+1,hMe_pL->GetBinContent(uBin+1));
+  }
+  //hMe_pL_smeared->Scale(hMe_pL->Integral(1,(nBins*2)/3)/hMe_pL_smeared->Integral(1,(nBins*2)/3));
+  //printf(" IME=%.4e; ISME=%.4e\n",hMe_pL->Integral(),hMe_pL_smeared->Integral());
+  //hMe_pL_smeared->Scale(hMe_pL->Integral()/hMe_pL_smeared->Integral());
+//printf("hi2\n");
+  //new smearing
+  for(unsigned uBinY=0; uBinY<nBins; uBinY++){
+    double BWDM = hDM_pS0_pL->GetXaxis()->GetBinWidth(1);
+    hDM_pS0_pL->Rebin2D(TMath::Nint(BinWidth/BWDM),TMath::Nint(BinWidth/BWDM));
+    TH1D* hTrS0 = hDM_pS0_pL->ProjectionX(TString::Format("hTrS0"),uBinY+1,uBinY+1);
+    hTrS0->Scale(1./hTrS0->Integral());
+
+    BWDM = hDM_pXi_pL->GetXaxis()->GetBinWidth(1);
+    hDM_pXi_pL->Rebin2D(TMath::Nint(BinWidth/BWDM),TMath::Nint(BinWidth/BWDM));
+    TH1D* hTrXi = hDM_pXi_pL->ProjectionX(TString::Format("hTrXi"),uBinY+1,uBinY+1);
+    hTrXi->Scale(1./hTrXi->Integral());
+
+    double BinValueS0 = 0;
+    double BinValueXi = 0;
+    for(unsigned uBinX=0; uBinX<nBins; uBinX++){
+      BinValueS0 +=  hTrS0->GetBinContent(uBinX+1)*
+                      hMe_pL->GetBinContent(uBinX+1)/
+                      hMe_pL_S0_smeared->GetBinContent(uBinY+1)*
+                      Ck_pS0_Chiral->GetBinContent(uBinX);
+      BinValueXi +=  hTrXi->GetBinContent(uBinX+1)*
+                      hMe_pL->GetBinContent(uBinX+1)/
+                      hMe_pL_Xi_smeared->GetBinContent(uBinY+1)*
+                      hCk_pXi->GetBinContent(uBinX+1);
+    }
+    hCk_pS0_pL_new->SetBinContent(uBinY+1,lam_S0*BinValueS0+1.-lam_S0);
+    hCk_pXi_pL_new->SetBinContent(uBinY+1,lam_Xi*lam_Xim_genuine*BinValueXi+1.-lam_Xi*lam_Xim_genuine);
+    delete hTrS0;
+    delete hTrXi;
+  }
+//printf("hi3\n");
+  fOutput->cd();
+  hGHETTO_PS->Write();
+  hMe_pL->Write();
+  fitMe->Write();
+  hMe_pL_S0_smeared->Write();
+  hMe_pL_Xi_smeared->Write();
+  hCk_pS0->Write();
+  hCk_pS0_pL_old->Write();
+  hCk_pS0_pL_new->Write();
+  hCk_pS0_pL_dlm->Write();
+  hCk_pXim->Write();
+  hCk_pXi0->Write();
+  hCk_pXi->Write();
+  hCk_pXi_pL_old->Write();
+  hCk_pXi_pL_new->Write();
+  hCk_pXi_pL_dlm->Write();
+//testPS0->Write();
+
+/*
+  delete hCk_pS0;
+  delete hCk_pS0_pL_old;
+  delete hCk_pS0_pL_new;
+  delete hCk_pXim;
+  delete hCk_pXi0;
+  delete hCk_pXi;
+  delete hCk_pXi_pL_old;
+  delete hCk_pXi_pL_new;
+  delete Ck_pS0_Chiral;
+  delete hMe_pL_S0_smeared;
+  delete hMe_pL_Xi_smeared;
+  delete fOutput;
+  delete fDM;
+  delete fME;
+  delete hGHETTO_PS;
+*/
+}
+
 
 //
 int OTHERTASKS(int argc, char *argv[]){
@@ -10366,8 +10886,14 @@ int OTHERTASKS(int argc, char *argv[]){
     //Ledni_SmallRad("pKplusYuki");
     //pXi_Pot();
     //Raffa_Errors();
-    ppp_errors(atoi(argv[1]),atoi(argv[2]));
-    //ppL_errors(0,1);
+    //ppp_errors(atoi(argv[1]),atoi(argv[2]));
+    //ppL_errors(0,0);
+    //ppL_smear_test();
+
+    //Silly2body(atoi(argv[1]),atoi(argv[2]));
+
+    KilledByFeedDown();
+
 /*
 ppp_errors(2,1);
 (0) nsig (pval) = 1.10 (0.27080)

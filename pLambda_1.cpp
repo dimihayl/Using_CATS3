@@ -7038,6 +7038,9 @@ void pL_SystematicsMay2020(unsigned SEED, unsigned BASELINE_VAR, int POT_VAR, in
                            bool DataSyst, bool FitSyst, bool Bootstrap, unsigned NumIter,
                            const char* CatsFileFolder, const char* OutputFolder){
 
+//made on the same/mixed events
+const bool IMPROVED_FEED=true;
+
     //if we go beyond the 1 hour 50 minutes mark, we stop
     //safety for the batch farm
     const double TIME_LIMIT = 110;
@@ -7066,7 +7069,7 @@ void pL_SystematicsMay2020(unsigned SEED, unsigned BASELINE_VAR, int POT_VAR, in
     double ResidualSourceSizeXi=1.0;
 
     TRandom3 rangen(SEED);
-
+TH1F* hGHETTO_PS=NULL;
     //TString DataSample = "pp13TeV_HM_Dec19";
     //TString DataSample = "pp13TeV_HM_RotPhiDec19";
     TString DataSample;
@@ -7459,6 +7462,26 @@ void pL_SystematicsMay2020(unsigned SEED, unsigned BASELINE_VAR, int POT_VAR, in
         DLM_CkDecomposition* CkDec_pXi0 = NULL;
         if(Ck_pXineutral) CkDec_pXi0 = new DLM_CkDecomposition("pXi0",2,*Ck_pXineutral,NULL);
 
+if(hGHETTO_PS) delete hGHETTO_PS;
+hGHETTO_PS = new TH1F("hGHETTO_PS","hGHETTO_PS",250,0,3000);
+TF1* fitPS = new TF1("fitPS","[2]*(x*x*exp(-pow(x/sqrt(2)/[0],[1])))/pow([0],3.)",0,1000);
+//i fitted ME of PL with this functions, these were the parameters.
+//we allow -10 to +20% of variations (+20 we expect from ME of pXi etc..., -10 for the fun of it)
+double PS_VAR = rangen.Uniform(0.9,1.2);
+//fitPS->SetParameter(0,3.54129e+02);
+fitPS->SetParameter(0,PS_VAR*3.54129e+02);
+fitPS->SetParameter(1,1.03198e+00);
+fitPS->SetParameter(2,2.47853e-01);
+for(unsigned uBin=0; uBin<250; uBin++){
+  double MOM = hGHETTO_PS->GetBinCenter(uBin+1);
+//  double VAL = 5.40165e-08-1.06309e-08*pow(MOM,1.)+5.71623e-09*pow(MOM,2.)-
+//  -1.15454e-11*pow(MOM,3.)+1.17292e-14*pow(MOM,4.)-7.94266e-18*pow(MOM,5.)+
+//  3.70109e-21*pow(MOM,6.)-1.10644e-24*pow(MOM,7.)+1.86899e-28*pow(MOM,8.)-1.34242e-32*pow(MOM,9.);
+  double VAL = fitPS->Eval(MOM);
+  hGHETTO_PS->SetBinContent(uBin+1,VAL);
+}
+delete fitPS;
+
         CkDec_pL->AddContribution(0,lam_L_Sig0,DLM_CkDecomposition::cFeedDown,CkDec_pS0?CkDec_pS0:NULL,CkDec_pS0?hResidual_pL_pSigma0:NULL);
         CkDec_pL->AddContribution(1,lam_L_Xim,DLM_CkDecomposition::cFeedDown,CkDec_pXim?CkDec_pXim:NULL,CkDec_pXim?hResidual_pL_pXim:NULL);
         CkDec_pL->AddContribution(2,lam_L_Xi0,DLM_CkDecomposition::cFeedDown,CkDec_pXi0?CkDec_pXi0:NULL,CkDec_pXi0?hResidual_pL_pXi0:NULL);
@@ -7466,6 +7489,13 @@ void pL_SystematicsMay2020(unsigned SEED, unsigned BASELINE_VAR, int POT_VAR, in
         //CkDec_pL->AddContribution(1,lam_pL[2],DLM_CkDecomposition::cFeedDown);
         CkDec_pL->AddContribution(3,lam_L_Flat,DLM_CkDecomposition::cFeedDown);
         CkDec_pL->AddContribution(4,lam_pL[4],DLM_CkDecomposition::cFake);//0.03
+
+if(IMPROVED_FEED){
+  CkDec_pL->AddPhaseSpace(0,hGHETTO_PS);
+  CkDec_pL->AddPhaseSpace(1,hGHETTO_PS);
+  CkDec_pL->AddPhaseSpace(2,hGHETTO_PS);
+}
+
 
         if(CkDec_pS0){
             CkDec_pS0->AddContribution(0,lam_S0_Flat,DLM_CkDecomposition::cFeedDown);
@@ -7753,6 +7783,7 @@ printf("\n");
     delete [] MomBins_pL;
     delete [] FitRegion_pL;
 
+if(hGHETTO_PS) delete hGHETTO_PS;
 }
 
 
@@ -15761,21 +15792,27 @@ printf("PLAMBDA_1_MAIN\n");
 //return 0;
 //printf("hello\n");
 
+/*
 Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(atoi(argv[4]))/10.,
                             ///home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/100720_Unfolded/
-                            TString::Format("%s/pLambda/100720_Unfolded/",GetCernBoxDimi()),
-                            TString::Format("Merged_pp13TeV_HM_DimiJul20_POT%i_BL%i_SIG%i.root",
+                            //TString::Format("%s/pLambda/100720_Unfolded/",GetCernBoxDimi()),
+                            TString::Format("%s/pLambda/Dump/",GetCernBoxDimi()),
+                            //TString::Format("Merged_pp13TeV_HM_DimiJul20_POT%i_BL%i_SIG%i.root",
                             //TString::Format("Merged_pp13TeV_HM_Dec19_POT%i_BL%i_SIG%i.root",
+                            TString::Format("Output_pp13TeV_HM_DimiJul20_POT%i_BL%i_SIG%i_1000.root",
                             atoi(argv[1]),atoi(argv[2]),atoi(argv[3])),
                             //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/",
                             //"UnfoldRefine_pp13TeV_HM_DimiJul20_POT11600_BL10_SIG1.root",
-                            TString::Format("%s/pLambda/100720_Unfolded/PaperPlotsUpdate5/",GetCernBoxDimi()),
+                            //TString::Format("%s/pLambda/100720_Unfolded/PaperPlotsUpdate5/",GetCernBoxDimi()),
+                            TString::Format("%s/pLambda/Dump/Plots/",GetCernBoxDimi()),
                             //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/"
                             atoi(argv[5])///REMOVE FOR THE OLD PLOTS
                           );
+return 0;
+*/
 
 //MakeLATEXtable(TString::Format("%s/pLambda/231020_NoBootstrap/Plots091220/",GetCernBoxDimi()),true);
-return 0;
+//
 
 //Plot_pL_SystematicsMay2020_2(2,10,1500,2.0,
 //        "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/040620_Gauss/",
@@ -15813,9 +15850,9 @@ return 0;
 //unsigned SEED, unsigned BASELINE_VAR, int POT_VAR, int Sigma0_Feed, int Data_Type,
                            //bool DataSyst, bool FitSyst, bool Bootstrap, unsigned NumIter,
                           // const char* CatsFileFolder, const char* OutputFolder
-//pL_SystematicsMay2020(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]), atoi(argv[6]), atoi(argv[7]), atoi(argv[8]), atoi(argv[9]),
-//TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data(),
-//TString::Format("%s/pLambda/Dump/",GetCernBoxDimi()).Data());
+pL_SystematicsMay2020(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]), atoi(argv[6]), atoi(argv[7]), atoi(argv[8]), atoi(argv[9]),
+TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data(),
+TString::Format("%s/pLambda/Dump/",GetCernBoxDimi()).Data());
 
 //pL_SystematicsMay2020(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]), atoi(argv[6]), atoi(argv[7]),
 //                      argv[8],argv[9]);
