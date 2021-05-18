@@ -7045,7 +7045,7 @@ const bool IMPROVED_FEED=true;
     //safety for the batch farm
     const double TIME_LIMIT = 110;
     //do extra variations
-    const bool ExtendedSyst = true;
+    const bool ExtendedSyst = false;
     DLM_Timer TIMER_SYST;
 
     //pol(0/1/2/3)s: pol(0/1/2/3) with a small fit range
@@ -7061,7 +7061,7 @@ const bool IMPROVED_FEED=true;
     // new syst: pLambda(1.55):   low 0.853396 mean 0.877717 up 0.90239
     //the values below is for the updated epos version of the source
     const float SourceSizeErr = (1.05676-0.980842)*0.5;
-    const float SourceSize = (1.05676+0.980842)*0.5+2.*SourceSizeErr;
+    const float SourceSize = (1.05676+0.980842)*0.5;//+2.*SourceSizeErr;
 
     float SourceAlpha = 2.0;
 
@@ -7364,6 +7364,7 @@ TH1F* hGHETTO_PS=NULL;
         unsigned WhichCkConv = rangen.Integer(3);
         if(BASELINE_VAR<pol2e||BASELINE_VAR>spl1) WhichCkConv=0;
         if(DefaultVariation||FitSyst==false) WhichCkConv=0;
+        if(!ExtendedSyst) WhichCkConv=0;
         switch(WhichCkConv){
             case 0 : CkConv = 700; break;
             case 1 : CkConv = 500; break;
@@ -9070,7 +9071,7 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
     //if 0, we have much more info on the plots
     //if 1: as intended for the paper (cleaner)
     //if 2: as intended for the thesis
-    const int PlotsType = 1;
+    const int PlotsType = 0;
     int Panel_X = 0;
     if(PlotsType==1){
       if(WhichPotential==11600 && SIGMA_FEED==1)Panel_X=0;
@@ -12420,6 +12421,27 @@ void pLambda_Spline_Fit_Unfold2(const unsigned& SEEDmin, const unsigned& NumIter
     bool TerminateASAP = false;
     DLM_Timer JobTime;
 
+    TH1F* hGHETTO_PS = NULL;
+    if(hGHETTO_PS) delete hGHETTO_PS;
+    hGHETTO_PS = new TH1F("hGHETTO_PS","hGHETTO_PS",250,0,3000);
+    TF1* fitPS = new TF1("fitPS","[2]*(x*x*exp(-pow(x/sqrt(2)/[0],[1])))/pow([0],3.)",0,1000);
+    //i fitted ME of PL with this functions, these were the parameters.
+    //we allow -10 to +20% of variations (+20 we expect from ME of pXi etc..., -10 for the fun of it)
+    //double PS_VAR = rangen.Uniform(0.9,1.2);
+    //fitPS->SetParameter(0,3.54129e+02);
+    fitPS->SetParameter(0,3.54129e+02);
+    fitPS->SetParameter(1,1.03198e+00);
+    fitPS->SetParameter(2,2.47853e-01);
+    for(unsigned uBin=0; uBin<250; uBin++){
+      double MOM = hGHETTO_PS->GetBinCenter(uBin+1);
+    //  double VAL = 5.40165e-08-1.06309e-08*pow(MOM,1.)+5.71623e-09*pow(MOM,2.)-
+    //  -1.15454e-11*pow(MOM,3.)+1.17292e-14*pow(MOM,4.)-7.94266e-18*pow(MOM,5.)+
+    //  3.70109e-21*pow(MOM,6.)-1.10644e-24*pow(MOM,7.)+1.86899e-28*pow(MOM,8.)-1.34242e-32*pow(MOM,9.);
+      double VAL = fitPS->Eval(MOM);
+      hGHETTO_PS->SetBinContent(uBin+1,VAL);
+    }
+    delete fitPS;
+
     //if you reach such a chi2, ignore all other constraints and terminate
     //const double Perfect_chi2ndf = 0.1;
     //similar as the perfect one, however this condition is only verified at the end of each polishing run
@@ -12509,6 +12531,7 @@ void pLambda_Spline_Fit_Unfold2(const unsigned& SEEDmin, const unsigned& NumIter
 //TH2F* hResolution_pL = AnalysisObject.GetResolutionMatrix("pp13TeV_HM_Dec19","pp");
 //TH2F* hResolution_pL = AnalysisObject.GetResolutionMatrix("pp13TeV_HM_DimiJun20","pp");
     DLM_CkDecomposition* CkDec_pL = new DLM_CkDecomposition("pLambda",0,*Ck_pL,hResolution_pL);
+    CkDec_pL->AddPhaseSpace(hGHETTO_PS);
     pLambda_Spline_CkFit_CKDEC = CkDec_pL;
 
     TF1* fit_pL = new TF1("fit_pL",pLambda_Spline_CkFit,kMin,kMax,3+NumKnots*2);
@@ -12649,7 +12672,7 @@ void pLambda_Spline_Fit_Unfold2(const unsigned& SEEDmin, const unsigned& NumIter
         //TH1F* hData_Unfolded = (TH1F*)hData_boot->Clone("hData_Unfolded");
         DLM_Ck* Ck_Unfolded = new DLM_Ck(0,0,NumMomBins,kMin,kMax,NULL);
         DLM_CkDecomposition* CkDec_Unfolded = new DLM_CkDecomposition("pLambda",0,*Ck_Unfolded,hResolution_pL);
-
+        CkDec_Unfolded->AddPhaseSpace(hGHETTO_PS);
         double BestChi2=1e6;
         double BestChi2_Data=1e6;
         double BestChi2_Fit=1e6;
@@ -12658,6 +12681,7 @@ void pLambda_Spline_Fit_Unfold2(const unsigned& SEEDmin, const unsigned& NumIter
         DLM_Ck* Ck_Best = new DLM_Ck(0,0,NumMomBins,kMin,kMax,NULL);
         DLM_Ck* Ck_Sample = new DLM_Ck(0,0,NumMomBins,kMin,kMax,NULL);
         DLM_CkDecomposition* CkDec_Best = new DLM_CkDecomposition("pLambda",0,*Ck_Best,hResolution_pL);
+        CkDec_Best->AddPhaseSpace(hGHETTO_PS);
     //64.5, 64.6 for the fast round
     // New best fit: Chi2=85.568 (48.694+36.875) at uED=3 for the pLambda_Spline_Fit_Unfold2_TEST1_Chi2All.root
 
@@ -12870,6 +12894,9 @@ void pLambda_Spline_Fit_Unfold2(const unsigned& SEEDmin, const unsigned& NumIter
             if(ExeTime>PatienceMax){
                 ShowTime(ExeTime,strtime,2,true,5);
                 printf("  Over the time limit at %s\n",strtime);
+                //delete Chi2Ndf_Unfold; Chi2Ndf_Unfold=NULL;
+                //delete CPU_Unfold; CPU_Unfold=NULL;
+                //delete Chi2Ndf_CPU_Unfold; Chi2Ndf_CPU_Unfold=NULL;
                 break;
             }
 
@@ -13122,6 +13149,7 @@ void pLambda_Spline_Fit_Unfold2(const unsigned& SEEDmin, const unsigned& NumIter
 //printf("COMPLETE!\n");
     }//uSeed
 
+    delete hGHETTO_PS;
     delete fit_pL_RAW;
     delete fit_pL;
     delete Ck_pL;
@@ -15767,14 +15795,19 @@ printf("PLAMBDA_1_MAIN\n");
 //pLambda_Spline_Fit_Test();
 //pLambda_Spline_Fit_Test2();
 //pLambda_Spline_Fit_Unfold2(12,"L53_SL4_SR6_P96_0","/mnt/Ubuntu_Data/CernBox/Sync/CatsFiles/ExpData/ALICE_pp_13TeV_HM/DimiJun20/Norm240_340/DataSignal/Unfolded/ppMatrix/");
-//const unsigned& SEEDmin, const unsigned& NumIter,
+//const unsigned& SEEDmin, const unsigned& NumIter, const unsigned& TimeLimit,
+//                                const double& Perfect_chi2ndf, const double& VeryGood_chi2ndf, const double& Unacceptable_chi2ndf,
 //                                const double& BinWidth, const TString& DataVariation,
 //                                const char* CatsFileFolder, const TString& OutputFolder
-//pLambda_Spline_Fit_Unfold2(atoi(argv[1]),atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),"L53_SL4_SR6_P96_0","/mnt/Ubuntu_Data/CernBox/Sync/CatsFiles",
-//                           "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Unfolding/Test4/");
-//UpdateUnfoldFile("/mnt/Ubuntu_Data/CernBox/Sync/CatsFiles",
-//                 "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Unfolding/Test4/QA.root",
-//                 12,"L53_SL4_SR6_P96_0");
+//pLambda_Spline_Fit_Unfold2(atoi(argv[1]),25,75,0.2,0.4,0.8,12,"L53_SL4_SR6_P96_0",TString::Format("%s/CatsFiles/",GetCernBoxDimi()),
+//                           TString::Format("%s/pLambda/Unfolding/TestMomReso2/",GetFemtoOutputFolder()));
+//const char* CatsFileFolder, const TString& InputFolderName,
+//                      const TString& InputFileName, const TString& DataVariation,
+//                      const int& BinWidth
+UpdateUnfoldFile(TString::Format("%s/CatsFiles/",GetCernBoxDimi()),
+                 TString::Format("%s/pLambda/Unfolding/TestMomReso2/",GetFemtoOutputFolder()),"CkSB_pL_L53_SL4_SR6_P96_0_Unfolded.root",
+                 "L53_SL4_SR6_P96_0",12);
+//return 0;
 //cout << argv[1] << endl;
 //cout << argv[2] << endl;
 //cout << argv[3] << endl;
@@ -15796,23 +15829,22 @@ printf("PLAMBDA_1_MAIN\n");
 Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(atoi(argv[4]))/10.,
                             ///home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/100720_Unfolded/
                             //TString::Format("%s/pLambda/100720_Unfolded/",GetCernBoxDimi()),
-                            TString::Format("%s/pLambda/Dump/",GetCernBoxDimi()),
-                            //TString::Format("Merged_pp13TeV_HM_DimiJul20_POT%i_BL%i_SIG%i.root",
+                            TString::Format("%s/pLambda/180521_SillyTest/NoBootstrap/",GetCernBoxDimi()),
+                            TString::Format("Merged_pp13TeV_HM_DimiJul20_POT%i_BL%i_SIG%i.root",
                             //TString::Format("Merged_pp13TeV_HM_Dec19_POT%i_BL%i_SIG%i.root",
-                            TString::Format("Output_pp13TeV_HM_DimiJul20_POT%i_BL%i_SIG%i_1000.root",
+                            //TString::Format("Output_pp13TeV_HM_DimiJul20_POT%i_BL%i_SIG%i_1000.root",
                             atoi(argv[1]),atoi(argv[2]),atoi(argv[3])),
                             //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/",
                             //"UnfoldRefine_pp13TeV_HM_DimiJul20_POT11600_BL10_SIG1.root",
                             //TString::Format("%s/pLambda/100720_Unfolded/PaperPlotsUpdate5/",GetCernBoxDimi()),
-                            TString::Format("%s/pLambda/Dump/Plots/",GetCernBoxDimi()),
+                            TString::Format("%s/pLambda/180521_SillyTest/NoBootstrap/Plots/",GetCernBoxDimi()),
                             //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/"
                             atoi(argv[5])///REMOVE FOR THE OLD PLOTS
                           );
-return 0;
 */
+//MakeLATEXtable(TString::Format("%s/pLambda/180521_SillyTest/NoBootstrap/Plots/",GetCernBoxDimi()),true);
 
-//MakeLATEXtable(TString::Format("%s/pLambda/231020_NoBootstrap/Plots091220/",GetCernBoxDimi()),true);
-//
+return 0;
 
 //Plot_pL_SystematicsMay2020_2(2,10,1500,2.0,
 //        "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/040620_Gauss/",
@@ -15850,9 +15882,9 @@ return 0;
 //unsigned SEED, unsigned BASELINE_VAR, int POT_VAR, int Sigma0_Feed, int Data_Type,
                            //bool DataSyst, bool FitSyst, bool Bootstrap, unsigned NumIter,
                           // const char* CatsFileFolder, const char* OutputFolder
-pL_SystematicsMay2020(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]), atoi(argv[6]), atoi(argv[7]), atoi(argv[8]), atoi(argv[9]),
-TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data(),
-TString::Format("%s/pLambda/Dump/",GetCernBoxDimi()).Data());
+//pL_SystematicsMay2020(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]), atoi(argv[6]), atoi(argv[7]), atoi(argv[8]), atoi(argv[9]),
+//TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data(),
+//TString::Format("%s/pLambda/Dump/",GetCernBoxDimi()).Data());
 
 //pL_SystematicsMay2020(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]), atoi(argv[6]), atoi(argv[7]),
 //                      argv[8],argv[9]);

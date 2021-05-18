@@ -10833,6 +10833,300 @@ fitMe->SetParameter(0,fitMe->GetParameter(0)*0.9);
 }
 
 
+//DLM_CkDecomposition* MM_PP;
+//CATS* MM_CatPP;
+double VerySimpleFitter_pp(double* x, double* par){
+    double& MOM = *x;
+    MM_PP->GetCk()->SetSourcePar(0,par[0]);
+    MM_PP->Update(false);
+    double CkVal;
+    CkVal = MM_PP->EvalCk(MOM);
+    return CkVal*(par[1]+MOM*par[2]);
+}
+
+void SmearEffect_pp(){
+  const double ResidualSourceSize = 1.35;
+  const double SourceSize = 1.25;
+
+  double* MomBins_pp = NULL;
+  double* FitRegion_pp = NULL;
+  unsigned NumMomBins_pp;
+  TString DataSample = "pp13TeV_HM_Dec19";
+  //TString DataSample = "pp13TeV_HM_RotPhiDec19";
+  DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
+  AnalysisObject.SetUpBinning_pp(DataSample,NumMomBins_pp,MomBins_pp,FitRegion_pp);
+NumMomBins_pp=30;
+for(unsigned uBin=0; uBin<=NumMomBins_pp; uBin++){
+  MomBins_pp[uBin] = double(uBin)*12.;
+}
+
+  TH2F* hResolution_pp = AnalysisObject.GetResolutionMatrix(DataSample,"pp");
+  TH2F* hResidual_pp_pL = AnalysisObject.GetResidualMatrix("pp","pLambda");
+
+  TH1F* hData_pp = AnalysisObject.GetAliceExpCorrFun(DataSample,"pp","_0",0,false,-1);
+
+  double lam_pp[5];
+  double lam_pL[5];
+
+  AnalysisObject.SetUpLambdaPars_pp(DataSample,0,lam_pp);
+  AnalysisObject.SetUpLambdaPars_pL(DataSample,0,0,lam_pL);
+
+  //TString SourceDescription = "Gauss";
+  TString OutputFolder = TString::Format("%s/OtherTasks/SmearEffect_pp/",GetFemtoOutputFolder());
+  TString OutFileName = "fOutput.root";
+  TFile* OutputFile = new TFile(OutputFolder+OutFileName,"recreate");
+  hData_pp->Write();
+
+  //Gauss
+  TString SourceDescription = "Gauss";
+  //TString SourceDescription = "McGauss_ResoTM";
+  //TString SourceDescription = "McLevy_ResoTM";
+
+  CATS AB_pp;
+  DLM_Ck* Ck_pp;
+  AB_pp.SetMomBins(NumMomBins_pp,MomBins_pp);
+  AB_pp.SetNotifications(CATS::nWarning);
+  //AnalysisObject.SetUpCats_pp(AB_pp,"AV18","Gauss",0,0);//McLevyNolan_Reso
+  AnalysisObject.SetUpCats_pp(AB_pp,"AV18",SourceDescription,0,202);//McLevyNolan_Reso
+
+  AB_pp.SetAnaSource(0,SourceSize);
+  if(SourceDescription.Contains("Mc")){
+      AB_pp.SetAnaSource(0,1.20);
+      AB_pp.SetAnaSource(1,2.0);
+  }
+//AB_pp.RemoveShortRangePotential();
+//AB_pp.SetQ1Q2(0);
+//AB_pp.SetQuantumStatistics(false);
+  //AB_pp.SetAnaSource(1,2.0);
+  //AB_pp.SetNotifications(CATS::nWarning);
+  //AB_pp.SetEpsilonConv(5e-8);
+  //AB_pp.SetEpsilonProp(5e-8);
+  AB_pp.KillTheCat();
+  Ck_pp = new DLM_Ck(AB_pp.GetNumSourcePars(),0,AB_pp);
+  Ck_pp->Update();
+
+  CATS AB_pL;
+  DLM_Ck* Ck_pL;
+  AB_pL.SetMomBins(NumMomBins_pp,MomBins_pp);
+  //AnalysisObject.SetUpCats_pL(AB_pL,"NLO_Coupled_S","Gauss");
+  AnalysisObject.SetUpCats_pL(AB_pL,"Usmani","Gauss");
+  AB_pL.SetAnaSource(0,ResidualSourceSize);
+  AB_pL.SetNotifications(CATS::nWarning);
+//AB_pL.RemoveShortRangePotential();
+  AB_pL.KillTheCat();
+  Ck_pL = new DLM_Ck(AB_pL.GetNumSourcePars(),0,AB_pL);
+  Ck_pL->Update();
+
+  DLM_CkDecomposition CkDec_pp("pp",3,*Ck_pp,hResolution_pp);
+  //DLM_CkDecomposition CkDec_pp("pp",3,*Ck_pp,NULL);
+  DLM_CkDecomposition CkDec_pL("pLambda",2,*Ck_pL,hResolution_pp);
+
+  CkDec_pp.AddContribution(0,lam_pp[1]*0,DLM_CkDecomposition::cFeedDown,&CkDec_pL,hResidual_pp_pL);
+  CkDec_pp.AddContribution(1,lam_pp[2]*0,DLM_CkDecomposition::cFeedDown);
+  CkDec_pp.AddContribution(2,lam_pp[3]*0,DLM_CkDecomposition::cFake);
+
+  CkDec_pL.AddContribution(2,lam_pL[1]+lam_pL[2]+lam_pL[3],DLM_CkDecomposition::cFeedDown);
+  CkDec_pL.AddContribution(3,lam_pL[4],DLM_CkDecomposition::cFake);//0.03
+
+  CkDec_pp.Update();
+  CkDec_pL.Update();
+
+  MM_PP = &CkDec_pp;
+  TF1* fit_pp_data_old = new TF1("fit_pp_data_old",VerySimpleFitter_pp,0,240,3);
+  fit_pp_data_old->SetParameter(0,SourceSize);
+  fit_pp_data_old->SetParameter(1,1);
+  fit_pp_data_old->FixParameter(2,0);
+  hData_pp->Fit(fit_pp_data_old,"S, N, R, M");
+  CkDec_pp.GetCk()->SetSourcePar(0,SourceSize);
+
+  TH1F* h_pL_pp_old = new TH1F("h_pL_pp_old","h_pL_pp_old",NumMomBins_pp,MomBins_pp);
+  TH1F* h_pL_pp_new = new TH1F("h_pL_pp_new","h_pL_pp_new",NumMomBins_pp,MomBins_pp);
+  TH1F* h_pp_old = new TH1F("h_pp_old","h_pp_old",NumMomBins_pp,MomBins_pp);
+  TH1F* h_pp_new = new TH1F("h_pp_new","h_pp_new",NumMomBins_pp,MomBins_pp);
+
+  TH1F* h_pL_old = new TH1F("h_pL_old","h_pL_old",NumMomBins_pp,MomBins_pp);
+  TH1F* h_pL_new = new TH1F("h_pL_new","h_pL_new",NumMomBins_pp,MomBins_pp);
+
+  printf("lam main = %.2f\n",CkDec_pp.GetLambdaMain()*100.);
+  for(unsigned uBin=0; uBin<NumMomBins_pp; uBin++){
+    double MOM = h_pL_pp_old->GetBinCenter(uBin+1);
+    h_pp_old->SetBinContent(uBin+1,CkDec_pp.EvalCk(MOM));
+    h_pp_old->SetBinError(uBin+1,0.005);
+    h_pL_old->SetBinContent(uBin+1,CkDec_pL.EvalCk(MOM));
+    h_pL_old->SetBinError(uBin+1,0.005);
+    if(MOM<50) h_pp_old->SetBinError(uBin+1,0.05);
+    h_pL_pp_old->SetBinContent(uBin+1,CkDec_pp.EvalSignalSmearedChild(0,MOM)+1.);
+
+    if(MOM>60) continue;
+    printf(" oECK(%.0f) = %.3f = %.3f+1 = %.3f = %.3f+%.3f+1 = %.3f (%.3f)\n",MOM,
+            CkDec_pp.EvalCk(MOM),
+            CkDec_pp.EvalSignalSmeared(MOM),
+            CkDec_pp.EvalSignalSmeared(MOM)+1,
+            CkDec_pp.EvalSignalSmearedMain(MOM),CkDec_pp.EvalSignalSmearedChild(0,MOM),
+            CkDec_pp.EvalSignalSmearedMain(MOM)+CkDec_pp.EvalSignalSmearedChild(0,MOM)+1,
+            CkDec_pp.GetCk()->Eval(MOM)
+          );
+  }
+
+  TH1F* hGHETTO_PS = new TH1F("hGHETTO_PS","hGHETTO_PS",NumMomBins_pp,MomBins_pp);
+  TF1* fitPS = new TF1("fitPS","[2]*(x*x*exp(-pow(x/sqrt(2)/[0],[1])))/pow([0],3.)",0,1000);
+  fitPS->SetParameter(0,3.54129e+02);
+  fitPS->SetParameter(1,1.03198e+00);
+  fitPS->SetParameter(2,2.47853e-01);
+  for(unsigned uBin=0; uBin<NumMomBins_pp; uBin++){
+    double MOM = hGHETTO_PS->GetBinCenter(uBin+1);
+    hGHETTO_PS->SetBinContent(uBin+1,fitPS->Eval(MOM));
+    //hGHETTO_PS->SetBinContent(uBin+1,1);
+  }
+
+  CkDec_pp.GetCk()->SetSourcePar(0,SourceSize);
+  CkDec_pp.AddPhaseSpace(hGHETTO_PS);
+  CkDec_pp.AddPhaseSpace(0,hGHETTO_PS);
+  CkDec_pp.Update(true,true);
+
+  CkDec_pL.AddPhaseSpace(hGHETTO_PS);
+  CkDec_pL.Update(true,true);
+
+  printf("lam main = %.2f\n",CkDec_pp.GetLambdaMain()*100.);
+  for(unsigned uBin=0; uBin<NumMomBins_pp; uBin++){
+    double MOM = h_pL_pp_old->GetBinCenter(uBin+1);
+    h_pp_new->SetBinContent(uBin+1,CkDec_pp.EvalCk(MOM));
+    h_pL_pp_new->SetBinContent(uBin+1,CkDec_pp.EvalSignalSmearedChild(0,MOM)+1.);
+
+    h_pL_new->SetBinContent(uBin+1,CkDec_pL.EvalCk(MOM));
+
+    if(MOM>60) continue;
+    printf(" nECK(%.0f) = %.3f = %.3f+1 = %.3f = %.3f+%.3f+1 = %.3f (%.3f)\n",MOM,
+            CkDec_pp.EvalCk(MOM),
+            CkDec_pp.EvalSignalSmeared(MOM),
+            CkDec_pp.EvalSignalSmeared(MOM)+1,
+            CkDec_pp.EvalSignalSmearedMain(MOM),CkDec_pp.EvalSignalSmearedChild(0,MOM),
+            CkDec_pp.EvalSignalSmearedMain(MOM)+CkDec_pp.EvalSignalSmearedChild(0,MOM)+1,
+            CkDec_pp.GetCk()->Eval(MOM)
+          );
+  }
+
+  TF1* fit_pp_data_new = new TF1("fit_pp_data_new",VerySimpleFitter_pp,0,240,3);
+  fit_pp_data_new->SetParameter(0,SourceSize);
+  fit_pp_data_new->SetParameter(1,1);
+  fit_pp_data_new->FixParameter(2,0);
+  hData_pp->Fit(fit_pp_data_new,"S, N, R, M");
+  CkDec_pp.GetCk()->SetSourcePar(0,SourceSize);
+
+  TF1* fit_pp_Femto = new TF1("fit_pp_Femto",VerySimpleFitter_pp,0,300,3);
+  fit_pp_Femto->SetParameter(0,SourceSize);
+  fit_pp_Femto->FixParameter(1,1);
+  fit_pp_Femto->FixParameter(2,0);
+  h_pp_old->Fit(fit_pp_Femto,"S, N, R, M");
+  CkDec_pp.GetCk()->SetSourcePar(0,SourceSize);
+  printf("True value: r = %.3f fm\n", SourceSize);
+  printf(" Fit value: r = %.3f fm\n", fit_pp_Femto->GetParameter(0));
+  printf(" Difference: %.1f%%\n",fabs(SourceSize-fit_pp_Femto->GetParameter(0))/(SourceSize)*100.);
+
+  TH1F* h_pp_ratio;
+  h_pp_ratio = (TH1F*)h_pp_new->Clone("h_pp_ratio");
+  h_pp_ratio->Divide(h_pp_old);
+  TH1F* h_pp_diff;
+  h_pp_diff = (TH1F*)h_pp_new->Clone("h_pp_diff");
+  h_pp_diff->Add(h_pp_old,-1.);
+  TH1F* h_pL_pp_diff;
+  h_pL_pp_diff = (TH1F*)h_pL_pp_new->Clone("h_pL_pp_diff");
+  h_pL_pp_diff->Add(h_pL_pp_old,-1.);
+
+  TGraphErrors* g_pp_ratio_1s = new TGraphErrors();
+  g_pp_ratio_1s->SetName("g_pp_ratio_1s");
+  g_pp_ratio_1s->SetFillColorAlpha(kBlue,0.4);
+  g_pp_ratio_1s->SetLineColor(kBlue);
+  g_pp_ratio_1s->SetLineWidth(0);
+  TGraphErrors* g_pp_ratio_3s = new TGraphErrors();
+  g_pp_ratio_3s->SetName("g_pp_ratio_3s");
+  g_pp_ratio_3s->SetFillColorAlpha(kRed,0.4);
+  g_pp_ratio_3s->SetLineColor(kRed);
+  g_pp_ratio_3s->SetLineWidth(0);
+  TGraphErrors* g_pp_ratio_3smT = new TGraphErrors();
+  g_pp_ratio_3smT->SetName("g_pp_ratio_3smT");
+  g_pp_ratio_3smT->SetFillColorAlpha(kGreen,0.4);
+  g_pp_ratio_3smT->SetLineColor(kGreen);
+  g_pp_ratio_3smT->SetLineWidth(0);
+  for(unsigned uBin=0; uBin<h_pp_ratio->GetNbinsX(); uBin++){
+    //h_pp_ratio->SetBinError(uBin+1,0);
+    double RelErr = hData_pp->GetBinError(uBin+1)/hData_pp->GetBinContent(uBin+1);
+    h_pp_ratio->SetBinError(uBin+1,h_pp_ratio->GetBinContent(uBin+1)*RelErr);
+    g_pp_ratio_1s->SetPoint(uBin,h_pp_ratio->GetBinCenter(uBin+1),h_pp_ratio->GetBinContent(uBin+1));
+    g_pp_ratio_1s->SetPointError(uBin,0,h_pp_ratio->GetBinError(uBin+1));
+    g_pp_ratio_3s->SetPoint(uBin,h_pp_ratio->GetBinCenter(uBin+1),h_pp_ratio->GetBinContent(uBin+1));
+    g_pp_ratio_3s->SetPointError(uBin,0,3.*h_pp_ratio->GetBinError(uBin+1));
+    g_pp_ratio_3smT->SetPoint(uBin,h_pp_ratio->GetBinCenter(uBin+1),h_pp_ratio->GetBinContent(uBin+1));
+    g_pp_ratio_3smT->SetPointError(uBin,0,3.*h_pp_ratio->GetBinError(uBin+1)*sqrt(7.));//7 mT bins of equal yields
+  }
+
+  TCanvas* can1 = new TCanvas("can1", "can1", 1);
+  TH1F* h_pp_ratio_axis;
+  h_pp_ratio_axis = (TH1F*)h_pp_ratio->Clone("h_pp_ratio_axis");
+  for(unsigned uBin=0; uBin<h_pp_ratio->GetNbinsX(); uBin++){
+    h_pp_ratio_axis->SetBinContent(uBin+1,1);
+    h_pp_ratio_axis->SetBinError(uBin+1,0);
+  }
+  h_pp_ratio_axis->SetLineWidth(3);
+  h_pp_ratio_axis->SetLineColor(kBlack);
+  h_pp_ratio_axis->GetYaxis()->SetRangeUser(0.92,1.05);
+  h_pp_ratio_axis->SetStats(false);
+  h_pp_ratio_axis->SetTitle("; #it{k*} (MeV/#it{c}); #it{C}(#it{k*})_{new}/#it{C}(#it{k*})_{old}");
+  h_pp_ratio_axis->GetXaxis()->SetTitleSize(0.05);
+  h_pp_ratio_axis->GetXaxis()->SetLabelSize(0.05);
+  h_pp_ratio_axis->GetXaxis()->SetTitleOffset(1.10);
+  h_pp_ratio_axis->GetYaxis()->SetTitleSize(0.05);
+  h_pp_ratio_axis->GetYaxis()->SetLabelSize(0.05);
+  h_pp_ratio_axis->GetYaxis()->SetTitleOffset(1.10);
+
+  can1->cd(0); can1->SetCanvasSize(1920/3*2, 1080/3*2); can1->SetMargin(0.12,0.05,0.14,0.05);//lrbt
+  TLegend *legend = new TLegend(0.6,0.2,0.9,0.45);//lbrt
+  legend->SetBorderSize(0);
+  legend->SetTextFont(42);
+  legend->SetTextSize(0.04);
+  legend->AddEntry(g_pp_ratio_1s, "1#sigma error (data, m_{T} int.)", "fpe");
+  legend->AddEntry(g_pp_ratio_3s, "3#sigma error (data, m_{T} int.)", "fpe");
+  legend->AddEntry(g_pp_ratio_3smT, "3#sigma error (data, single m_{T} bin)", "fpe");
+
+  h_pp_ratio_axis->Draw();
+  g_pp_ratio_3smT->Draw("3,same");
+  g_pp_ratio_3s->Draw("3,same");
+  g_pp_ratio_1s->Draw("3,same");
+  legend->Draw("same");
+  can1->SaveAs(OutputFolder+"can1.pdf");
+
+  fit_pp_data_old->Write();
+  fit_pp_data_new->Write();
+  hGHETTO_PS->Write();
+  h_pL_pp_old->Write();
+  h_pL_pp_new->Write();
+  h_pL_pp_diff->Write();
+  h_pp_old->Write();
+  fit_pp_Femto->Write();
+  h_pp_new->Write();
+  h_pp_diff->Write();
+  h_pp_ratio->Write();
+  g_pp_ratio_1s->Write();
+  g_pp_ratio_3s->Write();
+  h_pL_old->Write();
+  h_pL_new->Write();
+  can1->Write();
+
+  delete Ck_pp;
+  delete Ck_pL;
+  delete h_pL_pp_old;
+  delete h_pL_pp_new;
+  delete h_pp_old;
+  delete h_pp_new;
+  delete h_pp_ratio;
+  delete fit_pp_Femto;
+  delete h_pL_old;
+  delete h_pL_new;
+  delete hGHETTO_PS;
+  delete OutputFile;
+}
+
+
 //
 int OTHERTASKS(int argc, char *argv[]){
     //pp_CompareToNorfolk();
@@ -10892,7 +11186,9 @@ int OTHERTASKS(int argc, char *argv[]){
 
     //Silly2body(atoi(argv[1]),atoi(argv[2]));
 
-    KilledByFeedDown();
+    //KilledByFeedDown();
+    //SmearEffect_Resolution();
+    SmearEffect_pp();
 
 /*
 ppp_errors(2,1);
