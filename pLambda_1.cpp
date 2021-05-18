@@ -12406,6 +12406,7 @@ void pLambda_Spline_Fit_Unfold2(const unsigned& SEEDmin, const unsigned& NumIter
 
     //PUT FALST FOR THE BATCH FARM
     const bool PC_OUTPUT = false;
+    const bool NewSmearing = true;
 
     //if true, the output is saved in a separate file for each seed
     //the 1D histograms are not filled, however if we run with
@@ -12422,8 +12423,8 @@ void pLambda_Spline_Fit_Unfold2(const unsigned& SEEDmin, const unsigned& NumIter
     DLM_Timer JobTime;
 
     TH1F* hGHETTO_PS = NULL;
-    if(hGHETTO_PS) delete hGHETTO_PS;
-    hGHETTO_PS = new TH1F("hGHETTO_PS","hGHETTO_PS",250,0,3000);
+    if(hGHETTO_PS) {delete hGHETTO_PS; hGHETTO_PS=NULL;}
+    if(NewSmearing) {hGHETTO_PS = new TH1F("hGHETTO_PS","hGHETTO_PS",250,0,3000);}
     TF1* fitPS = new TF1("fitPS","[2]*(x*x*exp(-pow(x/sqrt(2)/[0],[1])))/pow([0],3.)",0,1000);
     //i fitted ME of PL with this functions, these were the parameters.
     //we allow -10 to +20% of variations (+20 we expect from ME of pXi etc..., -10 for the fun of it)
@@ -12438,7 +12439,7 @@ void pLambda_Spline_Fit_Unfold2(const unsigned& SEEDmin, const unsigned& NumIter
     //  -1.15454e-11*pow(MOM,3.)+1.17292e-14*pow(MOM,4.)-7.94266e-18*pow(MOM,5.)+
     //  3.70109e-21*pow(MOM,6.)-1.10644e-24*pow(MOM,7.)+1.86899e-28*pow(MOM,8.)-1.34242e-32*pow(MOM,9.);
       double VAL = fitPS->Eval(MOM);
-      hGHETTO_PS->SetBinContent(uBin+1,VAL);
+      if(hGHETTO_PS) hGHETTO_PS->SetBinContent(uBin+1,VAL);
     }
     delete fitPS;
 
@@ -12531,7 +12532,7 @@ void pLambda_Spline_Fit_Unfold2(const unsigned& SEEDmin, const unsigned& NumIter
 //TH2F* hResolution_pL = AnalysisObject.GetResolutionMatrix("pp13TeV_HM_Dec19","pp");
 //TH2F* hResolution_pL = AnalysisObject.GetResolutionMatrix("pp13TeV_HM_DimiJun20","pp");
     DLM_CkDecomposition* CkDec_pL = new DLM_CkDecomposition("pLambda",0,*Ck_pL,hResolution_pL);
-    CkDec_pL->AddPhaseSpace(hGHETTO_PS);
+    if(hGHETTO_PS) CkDec_pL->AddPhaseSpace(hGHETTO_PS);
     pLambda_Spline_CkFit_CKDEC = CkDec_pL;
 
     TF1* fit_pL = new TF1("fit_pL",pLambda_Spline_CkFit,kMin,kMax,3+NumKnots*2);
@@ -12672,7 +12673,7 @@ void pLambda_Spline_Fit_Unfold2(const unsigned& SEEDmin, const unsigned& NumIter
         //TH1F* hData_Unfolded = (TH1F*)hData_boot->Clone("hData_Unfolded");
         DLM_Ck* Ck_Unfolded = new DLM_Ck(0,0,NumMomBins,kMin,kMax,NULL);
         DLM_CkDecomposition* CkDec_Unfolded = new DLM_CkDecomposition("pLambda",0,*Ck_Unfolded,hResolution_pL);
-        CkDec_Unfolded->AddPhaseSpace(hGHETTO_PS);
+        if(hGHETTO_PS) CkDec_Unfolded->AddPhaseSpace(hGHETTO_PS);
         double BestChi2=1e6;
         double BestChi2_Data=1e6;
         double BestChi2_Fit=1e6;
@@ -12681,7 +12682,7 @@ void pLambda_Spline_Fit_Unfold2(const unsigned& SEEDmin, const unsigned& NumIter
         DLM_Ck* Ck_Best = new DLM_Ck(0,0,NumMomBins,kMin,kMax,NULL);
         DLM_Ck* Ck_Sample = new DLM_Ck(0,0,NumMomBins,kMin,kMax,NULL);
         DLM_CkDecomposition* CkDec_Best = new DLM_CkDecomposition("pLambda",0,*Ck_Best,hResolution_pL);
-        CkDec_Best->AddPhaseSpace(hGHETTO_PS);
+        if(hGHETTO_PS) CkDec_Best->AddPhaseSpace(hGHETTO_PS);
     //64.5, 64.6 for the fast round
     // New best fit: Chi2=85.568 (48.694+36.875) at uED=3 for the pLambda_Spline_Fit_Unfold2_TEST1_Chi2All.root
 
