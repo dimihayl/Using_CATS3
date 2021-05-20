@@ -3255,6 +3255,20 @@ TH1F* DLM_CommonAnaFunctions::GetAliceExpCorrFun(const TString& DataSample,const
             printf("\033[1;31mERROR:\033[0m The system '%s' does not exist\n",System.Data());
         }
     }
+    else if(DataSample=="pp13TeV_HM_DimiMay21"){
+        if(System=="pLambda"){
+            if(mTbin==-1){
+                FileName = TString::Format(CatsFilesFolder[0]+"/ExpData/ALICE_pp_13TeV_HM/DimiMay21/UnfoldedNorm240_340/CkSB_pL_%s.root",CutVar.Data());
+                HistoName = TString::Format("hCkS_Norm_%.0fMeV",float(iReb+1)*4.);
+            }
+            else{
+                printf("\033[1;31mERROR:\033[0m The mT bin #%i is not defined for %s (%s)\n",mTbin,DataSample.Data(),System.Data());
+            }
+        }
+        else{
+            printf("\033[1;31mERROR:\033[0m The system '%s' does not exist\n",System.Data());
+        }
+    }
     else if(DataSample=="pp13TeV_HM_RotPhiDec19"){
         if(System=="pp"){
             if(mTbin==-1){

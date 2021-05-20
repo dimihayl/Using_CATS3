@@ -7033,6 +7033,7 @@ graph_FitMAX[5].Write();
 //1: corrected for SB (0/1 for no/yes)
 //2: unfolded (0/1 for no/yes)
 //3: corrected for flat feed and misid (0/1 for no/yes) -> done on the fly at the PLOTTING, no actual corrected datasets are available
+//->Special cases: 211 -> DimiMay21
 //   3 is not used by this function at all
 void pL_SystematicsMay2020(unsigned SEED, unsigned BASELINE_VAR, int POT_VAR, int Sigma0_Feed, int Data_Type,
                            bool DataSyst, bool FitSyst, bool Bootstrap, unsigned NumIter,
@@ -7073,11 +7074,12 @@ TH1F* hGHETTO_PS=NULL;
     //TString DataSample = "pp13TeV_HM_Dec19";
     //TString DataSample = "pp13TeV_HM_RotPhiDec19";
     TString DataSample;
+    if(Data_Type==211) DataSample = "pp13TeV_HM_DimiMay21";
     //N.B. for this data we do not have the unfolded version
-    if(Data_Type%10==0) DataSample = "pp13TeV_HM_Dec19";
+    else if(Data_Type%10==0) DataSample = "pp13TeV_HM_Dec19";//0,10...
     //corrected for SB, folded
-    else if(Data_Type%10==1&&Data_Type/10==0) DataSample = "pp13TeV_HM_DimiJun20";
-    else DataSample = "pp13TeV_HM_DimiJul20";
+    else if(Data_Type%10==1&&Data_Type/10==0) DataSample = "pp13TeV_HM_DimiJun20";//01
+    else DataSample = "pp13TeV_HM_DimiJul20";//11
 
     //TString SourceDescription = "Gauss";
     TString SourceDescription = "McGauss_ResoTM";
@@ -7521,7 +7523,7 @@ if(IMPROVED_FEED){
         TString DataVar;
         //here we have new file naming, which allows for additional variations,
         //namely for the sideband correction, we can change the purity and the left-right SB fraction
-        if(DataSample=="pp13TeV_HM_DimiJun20"||DataSample=="pp13TeV_HM_DimiJul20"){
+        if(DataSample=="pp13TeV_HM_DimiJun20"||DataSample=="pp13TeV_HM_DimiJul20"||DataSample=="pp13TeV_HM_DimiMay21"){
             //data set variation
             WhichData = rangen.Integer(45);
             //purity variation (significant at the level of the stat. uncertainties)
@@ -9547,7 +9549,7 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
         //NDF_300[uEntry] = 0;
         plambdaTree->GetEntry(uEntry);
         if(!hData_pL_Stat){
-            if(*DataSample=="pp13TeV_HM_DimiJun20"||*DataSample=="pp13TeV_HM_DimiJul20")
+            if(*DataSample=="pp13TeV_HM_DimiJun20"||*DataSample=="pp13TeV_HM_DimiJul20"||*DataSample=="pp13TeV_HM_DimiMay21")
               hData_pL_Stat = AnalysisObject.GetAliceExpCorrFun(DataSample[0],"pLambda",TString::Format("L%.0f_SL4_SR6_P%.0f_0",0.529*100,0.963*100),2,false,-1);
             else
               hData_pL_Stat = AnalysisObject.GetAliceExpCorrFun(DataSample[0],"pLambda",TString::Format("_0"),2,false,-1);
@@ -9556,7 +9558,7 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
         XiSigLamFrac=(lam_L_Xi0+lam_L_Xim)/(lam_L_genuine+lam_L_Sig0);
         unsigned WhichBin[7];
         //if(*DataSample=="pp13TeV_HM_DimiJun20") GetIterCombo170620(WhichBin,SourceSize,lam_L_genuine,CuspWeight,SourceAlpha);
-        if(*DataSample=="pp13TeV_HM_DimiJun20"||*DataSample=="pp13TeV_HM_DimiJul20") {}//GetIterCombo040720(WhichBin,SourceSize,SBpur,SigLamFrac,XiSigLamFrac,CuspWeight,SourceAlpha,CkConv);
+        if(*DataSample=="pp13TeV_HM_DimiJun20"||*DataSample=="pp13TeV_HM_DimiJul20"||*DataSample=="pp13TeV_HM_DimiMay21") {}//GetIterCombo040720(WhichBin,SourceSize,SBpur,SigLamFrac,XiSigLamFrac,CuspWeight,SourceAlpha,CkConv);
         else {printf("WARNING trouble, the function MIGHT not work unless you checkout an older version (before 4th July 2020\n)"); //abort();
         }
         GetIterCombo040720(WhichBin,SourceSize,SBpur,SigLamFrac,XiSigLamFrac,CuspWeight,SourceAlpha,CkConv);
@@ -10640,7 +10642,7 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
     //DataHisto_Inlet->GetYaxis()->SetTitleSize(hData_pL_Stat->GetYaxis()->GetTitleSize()*1.75);
     //DataHisto_Inlet->GetYaxis()->SetLabelSize(hData_pL_Stat->GetYaxis()->GetLabelSize()*1.75);
     //DataHisto_Inlet->GetYaxis()->SetTitleOffset(hData_pL_Stat->GetYaxis()->GetTitleOffset()*0.67);
-    if(*DataSample=="pp13TeV_HM_DimiJun20"||*DataSample=="pp13TeV_HM_DimiJul20") DataHisto_Inlet->GetYaxis()->SetRangeUser(0.965, 1.065);
+    if(*DataSample=="pp13TeV_HM_DimiJun20"||*DataSample=="pp13TeV_HM_DimiJul20"||*DataSample=="pp13TeV_HM_DimiMay21") DataHisto_Inlet->GetYaxis()->SetRangeUser(0.965, 1.065);
     else DataHisto_Inlet->GetYaxis()->SetRangeUser(0.985, 1.085);
 
     TGraph* grFemto_Inlet = (TGraph*)ge_Fit->Clone("grFemto_Inlet");
@@ -15805,9 +15807,9 @@ printf("PLAMBDA_1_MAIN\n");
 //const char* CatsFileFolder, const TString& InputFolderName,
 //                      const TString& InputFileName, const TString& DataVariation,
 //                      const int& BinWidth
-UpdateUnfoldFile(TString::Format("%s/CatsFiles/",GetCernBoxDimi()),
-                 TString::Format("%s/pLambda/Unfolding/TestMomReso2/",GetFemtoOutputFolder()),"CkSB_pL_L53_SL4_SR6_P96_0_Unfolded.root",
-                 "L53_SL4_SR6_P96_0",12);
+//UpdateUnfoldFile(TString::Format("%s/CatsFiles/",GetCernBoxDimi()),
+//                 TString::Format("%s/pLambda/Unfolding/TestMomReso2/",GetFemtoOutputFolder()),"CkSB_pL_L53_SL4_SR6_P96_0_Unfolded.root",
+//                 "L53_SL4_SR6_P96_0",12);
 //return 0;
 //cout << argv[1] << endl;
 //cout << argv[2] << endl;
