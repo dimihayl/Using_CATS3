@@ -23,6 +23,7 @@ const double Mass_p = 938.272;
 const double Mass_L = 1115.683;
 const double Mass_Xim = 1321.7;
 const double Mass_Xi0 = 1314.86;
+const double Mass_Xim1530 = 1535;
 const double MassOmega = 1672.45;
 
 

@@ -1767,6 +1767,9 @@ void DLM_CommonAnaFunctions::SetUpCats_pXim(CATS& Kitty, const TString& POT, con
         cPotParsI1S0 = new CATSparameters(CATSparameters::tPotential,9,true); cPotParsI1S0->SetParameters(PotParsI1S0);
         cPotParsI1S1 = new CATSparameters(CATSparameters::tPotential,9,true); cPotParsI1S1->SetParameters(PotParsI1S1);
     }
+    else if(POT=="pXim1530"){
+
+    }
     else{
         printf("\033[1;31mERROR:\033[0m Non-existing pp potential '%s'\n",POT.Data());
         goto CLEAN_SetUpCats_pXim;
@@ -1777,26 +1780,38 @@ void DLM_CommonAnaFunctions::SetUpCats_pXim(CATS& Kitty, const TString& POT, con
 
     Kitty.SetQ1Q2(-1);
     Kitty.SetPdgId(2212, 3312);
-    Kitty.SetRedMass( (Mass_p*Mass_Xim)/(Mass_p+Mass_Xim) );
+    if(POT=="pXim1530"){
+      Kitty.SetRedMass( (Mass_p*Mass_Xim)/(Mass_p+Mass_Xim) );
 
-    Kitty.SetNumChannels(4);
-    Kitty.SetNumPW(0,1);
-    Kitty.SetNumPW(1,1);
-    Kitty.SetNumPW(2,1);
-    Kitty.SetNumPW(3,1);
-    Kitty.SetSpin(0,0);
-    Kitty.SetSpin(1,1);
-    Kitty.SetSpin(2,0);
-    Kitty.SetSpin(3,1);
-    Kitty.SetChannelWeight(0, 1./8.);
-    Kitty.SetChannelWeight(1, 3./8.);
-    Kitty.SetChannelWeight(2, 1./8.);
-    Kitty.SetChannelWeight(3, 3./8.);
+      Kitty.SetNumChannels(1);
+      Kitty.SetNumPW(0,0);
+      Kitty.SetSpin(0,0);
+      Kitty.SetChannelWeight(0,1.);
+    }
+    else{
+      Kitty.SetRedMass( (Mass_p*Mass_Xim1530)/(Mass_p+Mass_Xim1530) );
 
-    if(cPotParsI0S0) Kitty.SetShortRangePotential(0,0,fDlmPot,*cPotParsI0S0);
-    if(cPotParsI0S1) Kitty.SetShortRangePotential(1,0,fDlmPot,*cPotParsI0S1);
-    if(cPotParsI1S0) Kitty.SetShortRangePotential(2,0,fDlmPot,*cPotParsI1S0);
-    if(cPotParsI1S1) Kitty.SetShortRangePotential(3,0,fDlmPot,*cPotParsI1S1);
+      Kitty.SetNumChannels(4);
+      Kitty.SetNumPW(0,1);
+      Kitty.SetNumPW(1,1);
+      Kitty.SetNumPW(2,1);
+      Kitty.SetNumPW(3,1);
+      Kitty.SetSpin(0,0);
+      Kitty.SetSpin(1,1);
+      Kitty.SetSpin(2,0);
+      Kitty.SetSpin(3,1);
+      Kitty.SetChannelWeight(0, 1./8.);
+      Kitty.SetChannelWeight(1, 3./8.);
+      Kitty.SetChannelWeight(2, 1./8.);
+      Kitty.SetChannelWeight(3, 3./8.);
+
+      if(cPotParsI0S0) Kitty.SetShortRangePotential(0,0,fDlmPot,*cPotParsI0S0);
+      if(cPotParsI0S1) Kitty.SetShortRangePotential(1,0,fDlmPot,*cPotParsI0S1);
+      if(cPotParsI1S0) Kitty.SetShortRangePotential(2,0,fDlmPot,*cPotParsI1S0);
+      if(cPotParsI1S1) Kitty.SetShortRangePotential(3,0,fDlmPot,*cPotParsI1S1);
+    }
+
+
 
     CLEAN_SetUpCats_pXim: ;
     if(cPars){delete cPars; cPars=NULL;}
@@ -2236,7 +2251,7 @@ void DLM_CommonAnaFunctions::SetUpBinning_pp(const TString& DataSample, unsigned
         }
     }
     else if(DataSample=="pp13TeV_HM_March19"||DataSample=="pp13TeV_HM_Dec19"||DataSample=="pp13TeV_HM_RotPhiDec19"
-            ||DataSample=="pp13TeV_HM_DimiJun20"||DataSample=="pp13TeV_HM_DimiJul20"){
+            ||DataSample=="pp13TeV_HM_DimiJun20"||DataSample=="pp13TeV_HM_DimiJul20"||DataSample=="pp13TeV_HM_DimiMay21"){
         if(MomBinVar==0){
             kMin=4;
             kStep=4;
@@ -2419,7 +2434,7 @@ void DLM_CommonAnaFunctions::SetUpBinning_pL(const TString& DataSample, unsigned
         FitRegion[3] = MomBins[NumMomBins]+kCoarseStep*20.;//588
     }
     else if(DataSample=="pp13TeV_HM_March19"||DataSample=="pp13TeV_HM_Dec19"||DataSample=="pp13TeV_HM_RotPhiDec19"
-            ||DataSample=="pp13TeV_HM_DimiJun20"||DataSample=="pp13TeV_HM_DimiJul20"){
+            ||DataSample=="pp13TeV_HM_DimiJun20"||DataSample=="pp13TeV_HM_DimiJul20"||DataSample=="pp13TeV_HM_DimiMay21"){
         if(MomBinVar==0){
             kMin=0;
             kFineMin=336;//272//216
@@ -2651,7 +2666,7 @@ void DLM_CommonAnaFunctions::GetPurities_p(const TString& DataSample, const int&
         PurityProton = 0.989859;
     }
     else if(DataSample=="pp13TeV_HM_March19"||DataSample=="pp13TeV_HM_Dec19"||DataSample=="pp13TeV_HM_RotPhiDec19"
-            ||DataSample=="pp13TeV_HM_DimiJun20"||DataSample=="pp13TeV_HM_DimiJul20"){
+            ||DataSample=="pp13TeV_HM_DimiJun20"||DataSample=="pp13TeV_HM_DimiJul20"||DataSample=="pp13TeV_HM_DimiMay21"){
         PurityProton = 0.9943;
     }
     else if(DataSample=="pPb5TeV_Run2paper"){
@@ -2659,6 +2674,9 @@ void DLM_CommonAnaFunctions::GetPurities_p(const TString& DataSample, const int&
     }
     else if(DataSample=="pPb5TeV_CPR_Mar19"){
         PurityProton = 0.984265;
+    }
+    else if(DataSample=="pp13TeV_HM_BernieSource"){
+        PurityProton = 0.9943;
     }
     else{
         printf("\033[1;31mERROR:\033[0m The data sample '%s' does not exist\n",DataSample.Data());
@@ -2694,7 +2712,7 @@ void DLM_CommonAnaFunctions::GetPurities_L(const TString& DataSample, const int&
         else if(Variation==-1) PurityLambda = 1.0;//use for SB corrected correlations
         else PurityLambda = 0.9595;
     }
-    else if(DataSample=="pp13TeV_HM_DimiJun20"||DataSample=="pp13TeV_HM_DimiJul20"){
+    else if(DataSample=="pp13TeV_HM_DimiJun20"||DataSample=="pp13TeV_HM_DimiJul20"||DataSample=="pp13TeV_HM_DimiMay21"){
         PurityLambda = 1.0;//use for SB corrected correlations
     }
     else if(DataSample=="pPb5TeV_Run2paper"){
@@ -2727,7 +2745,7 @@ void DLM_CommonAnaFunctions::GetPurities_Xim(const TString& DataSample, const in
         PurityXim = 0.956;
     }
     else if(DataSample=="pp13TeV_HM_March19"||DataSample=="pp13TeV_HM_Dec19"||DataSample=="pp13TeV_HM_RotPhiDec19"
-            ||DataSample=="pp13TeV_HM_DimiJun20"||DataSample=="pp13TeV_HM_DimiJul20"){
+            ||DataSample=="pp13TeV_HM_DimiJun20"||DataSample=="pp13TeV_HM_DimiJul20"||DataSample=="pp13TeV_HM_DimiMay21"){
         PurityXim = 0.956;
     }
     else if(DataSample=="pPb5TeV_Run2paper"){
@@ -2753,7 +2771,8 @@ void DLM_CommonAnaFunctions::GetPurities_Xim(const TString& DataSample, const in
     Purities[4] = 1.-PurityXim;
 }
 
-//no variations are possible
+//the last digit of Variation is generic.
+//the second to-last digit referes to BernieSource
 void DLM_CommonAnaFunctions::GetFractions_p(const TString& DataSample, const int& Variation, double* Fractions){
     //following my lambda pars with the 3 possible modifications
     //for the proton:
@@ -2762,7 +2781,7 @@ void DLM_CommonAnaFunctions::GetFractions_p(const TString& DataSample, const int
     //2 = other feeddown (flat)
     //3 = missidentified
     double Modify_pp=1;
-    switch(Variation){
+    switch(Variation%10){
         case 1 : Modify_pp=0.8; break;
         case 2 : Modify_pp=1.2; break;
         default : Modify_pp=1; break;
@@ -2779,9 +2798,15 @@ void DLM_CommonAnaFunctions::GetFractions_p(const TString& DataSample, const int
         pp_f1 = 0.0898;
     }
     else if(DataSample=="pp13TeV_HM_Dec19"||DataSample=="pp13TeV_HM_RotPhiDec19"
-            ||DataSample=="pp13TeV_HM_DimiJun20"||DataSample=="pp13TeV_HM_DimiJul20"){
+            ||DataSample=="pp13TeV_HM_DimiJun20"||DataSample=="pp13TeV_HM_DimiJul20"||DataSample=="pp13TeV_HM_DimiMay21"){
         pp_f0 = 0.823;
         pp_f1 = 0.125;
+    }
+    //Variation reflects the mT bin
+    else if("pp13TeV_HM_BernieSource"){
+      std::vector<double> pp_primary = { 0.82, 0.81, 0.81, 0.81, 0.81, 0.82, 0.83 };
+      pp_f0 = pp_primary.at((Variation/10)%10);
+      pp_f1 = 0.7*(1.-pp_f0);
     }
     else if(DataSample=="pPb5TeV_Run2paper"){
         pp_f0 = 0.862814;
@@ -2849,7 +2874,7 @@ void DLM_CommonAnaFunctions::GetFractions_L(const TString& DataSample, const int
         pL_fm = 0;
     }
     else if(DataSample=="pp13TeV_HM_March19"||DataSample=="pp13TeV_HM_Dec19"||DataSample=="pp13TeV_HM_RotPhiDec19"
-            ||DataSample=="pp13TeV_HM_DimiJun20"||DataSample=="pp13TeV_HM_DimiJul20"){
+            ||DataSample=="pp13TeV_HM_DimiJun20"||DataSample=="pp13TeV_HM_DimiJul20"||DataSample=="pp13TeV_HM_DimiMay21"){
         pL_f0 = 0.576066;
         pL_f1 = 0.192022;
         pL_f2 = 0.115956;
@@ -3015,12 +3040,12 @@ TH2F* DLM_CommonAnaFunctions::GetResolutionMatrix(const TString& DataSample,cons
         FileName = CatsFilesFolder[0]+"/MomentumSmear/ALICE_pp_13TeV.root";
     }
     else if(DataSample=="pp13TeV_HM_March19"||DataSample=="pp13TeV_HM_Dec19"||DataSample=="pp13TeV_HM_RotPhiDec19"
-            ||DataSample=="pp13TeV_HM_DimiJun20"||DataSample=="pp13TeV_HM_DimiJul20"){
+            ||DataSample=="pp13TeV_HM_DimiJun20"||DataSample=="pp13TeV_HM_DimiJul20"||DataSample=="pp13TeV_HM_DimiMay21"){
         //N.B. special rule for pp and pLambda below
         FileName = CatsFilesFolder[0]+"/MomentumSmear/ALICE_pp_13TeV.root";
     }
     else if(DataSample=="pPb5TeV_Run2paper"){
-        FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pPb_5TeV/ResolutionMatrices/Sample3_MeV_compact.root";
+        FileName = CatsFilesFolder[0]+"/MomentumSmear/Sample3_MeV_compact.root";;
     }
     else if(DataSample=="pPb5TeV_CPR_Mar19"){
         FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pPb_5TeV/ResolutionMatrices/Sample3_MeV_compact.root";
@@ -3057,8 +3082,17 @@ TH2F* DLM_CommonAnaFunctions::GetResolutionMatrix(const TString& DataSample,cons
         FileName = CatsFilesFolder[0]+"/MomentumSmear/ALICE_pp_13TeV_MEpL.root";
         HistoName = "h_RESO_pL_MeV";
     }
+    if(DataSample=="pp13TeV_HM_BernieSource"&&System=="pp"){
+        FileName = CatsFilesFolder[0]+"/MomentumSmear/Sample6_MeV_compact.root";
+        HistoName = "hSigmaMeV_Proton_Proton";
+    }
+    if(DataSample=="pp13TeV_HM_BernieSource"&&System=="pLambda"){
+        FileName = CatsFilesFolder[0]+"/MomentumSmear/Sample6_MeV_compact.root";
+        HistoName = "hSigmaMeV_Proton_Lambda";
+    }
+
     //this is the unfolded data
-    if(DataSample=="pp13TeV_HM_DimiJul20"){
+    if(DataSample=="pp13TeV_HM_DimiJul20"||DataSample=="pp13TeV_HM_DimiMay21"){
         return NULL;
     }
 
@@ -3301,6 +3335,30 @@ TH1F* DLM_CommonAnaFunctions::GetAliceExpCorrFun(const TString& DataSample,const
             if(mTbin==-1){
                 FileName = TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/pp13TeV_HM_Baseline/MyResults_Vale/Data/CF/ME_Methods_14122019/CFOutput_pXi_3.root");
                 HistoName = TString::Format("hCk_ReweightedMeV_%i",iReb);
+            }
+            else{
+                printf("\033[1;31mERROR:\033[0m The mT bin #%i is not defined for %s (%s)\n",mTbin,DataSample.Data(),System.Data());
+            }
+        }
+        else{
+            printf("\033[1;31mERROR:\033[0m The system '%s' does not exist\n",System.Data());
+        }
+    }
+    //the data used by Bernie for the source paper. Only pp and pLambda
+    else if(DataSample=="pp13TeV_HM_BernieSource"){
+        if(System=="pp"){
+            if(mTbin>=0&&mTbin<7){
+                FileName = TString::Format(CatsFilesFolder[0]+"/ExpData/Bernie_Source/ppData/mTBin_%i/CFOutput_mT_ppVar%s_HM_%i.root",mTbin+1,CutVar.Data(),mTbin);
+                HistoName = TString::Format("hCk_RebinnedppVar%sMeV_0",CutVar.Data());
+            }
+            else{
+                printf("\033[1;31mERROR:\033[0m The mT bin #%i is not defined for %s (%s)\n",mTbin,DataSample.Data(),System.Data());
+            }
+        }
+        else if(System=="pLambda"){
+            if(mTbin>=0&&mTbin<6){
+              FileName = TString::Format(CatsFilesFolder[0]+"/ExpData/Bernie_Source/pLData/mTBin_%i/CFOutput_mT_pLVar%s_HM_%i.root",mTbin+1,CutVar.Data(),mTbin);
+              HistoName = TString::Format("hCk_RebinnedpLVar%sMeV_0",CutVar.Data());
             }
             else{
                 printf("\033[1;31mERROR:\033[0m The mT bin #%i is not defined for %s (%s)\n",mTbin,DataSample.Data(),System.Data());

@@ -16,6 +16,7 @@
 #include "EnvVars.h"
 #include "DLM_Fitters.h"
 #include "DLM_RootFit.h"
+#include "DLM_Unfold.h"
 
 #include "TGraph.h"
 #include "TGraphErrors.h"
@@ -40,6 +41,7 @@
 #include "Math/MinimizerOptions.h"
 //./math/mathcore/inc/Math/MinimizerOptions.h
 #include "gsl_sf_dawson.h"
+#include "Math/Vector4Dfwd.h"
 
 void pp_CompareToNorfolk(){
     const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/OtherTasks/pp_CompareToNorfolk/Reid/FAST/";
@@ -11126,9 +11128,1148 @@ for(unsigned uBin=0; uBin<=NumMomBins_pp; uBin++){
   delete OutputFile;
 }
 
+void Test_new_fold(){
+  const double SourceSize = 1.1;
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles/",GetCernBoxDimi()));
+  TH2F* hResolution_pp = AnalysisObject.GetResolutionMatrix("pp13TeV_HM_DimiJun20","pLambda");//AnalysisObject.GetResolutionMatrix("pp13TeV_HM_Dec19","pp");
+
+  printf("Bin width: %.0f\n",hResolution_pp->GetXaxis()->GetBinWidth(1));
+  hResolution_pp->Rebin2D(2,2);
+  //DLM_Histo<float>* dlmResolution_pp = Convert_TH2F_DlmHisto(hResolution_pp);
+
+  //TH2F* hResidual_pp_pL = AnalysisObject.GetResidualMatrix("pp","pLambda");
+  //TH1F* hData_pp = AnalysisObject.GetAliceExpCorrFun(DataSample,"pp","_0",0,false,-1);
+  double lam_pp[5];
+  //AnalysisObject.SetUpLambdaPars_pp("pp13TeV_HM_Dec19",0,lam_pp);
+
+  TString OutputFolder = TString::Format("%s/OtherTasks/Test_new_fold/",GetFemtoOutputFolder());
+  TString OutFileName = "fOutput.root";
+  TFile* OutputFile = new TFile(OutputFolder+OutFileName,"recreate");
+  //hData_pp->Write();
+
+  TString SourceDescription = "Gauss";
+  //TString SourceDescription = "McGauss_ResoTM";
+  //TString SourceDescription = "McLevy_ResoTM";
+
+  unsigned NumMomBins_pp = 75;
+  double kMin_pp = 0;
+  double kMax_pp = 300;
+  CATS AB_pp;
+  DLM_Ck* Ck_pp;
+  AB_pp.SetMomBins(NumMomBins_pp,kMin_pp,kMax_pp);
+  AB_pp.SetNotifications(CATS::nWarning);
+  AnalysisObject.SetUpCats_pp(AB_pp,"AV18",SourceDescription,0,202);//McLevyNolan_Reso
+
+  AB_pp.SetAnaSource(0,SourceSize);
+  AB_pp.KillTheCat();
+  printf("Killed\n");
+  //DLM_Histo<float> dlm_pp;
+  //dlm_pp.SetUp(1);
+  //dlm_pp.SetUp(0,NumMomBins_pp,kMin_pp,kMax_pp);
+  //dlm_pp.Initialize();
+  //printf("Initialized\n");
+  //for(unsigned uBin=0; uBin<NumMomBins_pp; uBin++){
+  //  dlm_pp.SetBinContent(uBin,AB_pp.GetCorrFun(uBin));
+  //}
+  //printf("Filled\n");
+  TH1F* h_pp = new TH1F("h_pp","h_pp",NumMomBins_pp,kMin_pp,kMax_pp);
+  for(unsigned uBin=0; uBin<NumMomBins_pp; uBin++){
+    h_pp->SetBinContent(uBin+1,AB_pp.GetCorrFun(uBin));
+  }
+  DLM_Unfold dlmFold;
+  dlmFold.SetData(h_pp);
+  dlmFold.SetResponse(hResolution_pp);
+  dlmFold.SetSilentMode(false);
+  //printf("All set\n");
+  //OutputFile->cd();
+  DLM_Histo<float>* dlm_pp_fold = dlmFold.Fold();
+  printf("Folded\n");
+  OutputFile->cd();
+  TH1F* h_pp_fold = Convert_DlmHisto_TH1F(dlm_pp_fold,"h_pp_fold");
+  printf("Converted\n");
+
+
+  //test to see what my integral function does if applied to rebin
+  DLM_Histo<float> dlm_pp_fold_reb;//(*dlm_pp_fold);
+
+  double* BinRange = dlm_pp_fold->GetBinRange(0);
+  double* BinRangeNew = new double[dlm_pp_fold->GetNbins()];
+  unsigned BinCounter = 0;
+  for(unsigned uBin=0; uBin<dlm_pp_fold->GetNbins(); uBin++){
+    //printf("BinRange[%u] = %.2f\n",uBin,BinRange[uBin]);
+    if(uBin%2==0){
+      BinRangeNew[BinCounter] = BinRange[uBin];
+      //printf("  BinRangeNew[%u] = %.2f\n",BinCounter,BinRangeNew[BinCounter]);
+      BinCounter++;
+    }
+    BinRangeNew[BinCounter] = dlm_pp_fold->GetUpEdge(0);
+  }
+  dlm_pp_fold_reb.SetUp(1);
+  dlm_pp_fold_reb.SetUp(0,BinCounter,BinRangeNew);
+  dlm_pp_fold_reb.Initialize();
+
+  DLM_Histo<float> dlm_pp_fold_reb_2(dlm_pp_fold_reb);
+
+  delete [] BinRangeNew;
+  for(unsigned uBin=0; uBin<dlm_pp_fold_reb.GetNbins(); uBin++){
+  //for(unsigned uBin=0; uBin<1; uBin++){
+    double xAxisLow = dlm_pp_fold_reb.GetBinLowEdge(0,uBin);
+    double xAxisUp = dlm_pp_fold_reb.GetBinUpEdge(0,uBin);
+    dlm_pp_fold_reb.SetBinContent(uBin,dlm_pp_fold->Integral(&xAxisLow,&xAxisUp,true));
+    //printf("%u : %f\n",uBin,dlm_pp_fold->Integral(&xAxisLow,&xAxisUp));
+  }
+  TH1F* hlm_pp_fold_reb = Convert_DlmHisto_TH1F(&dlm_pp_fold_reb,"hlm_pp_fold_reb");
+
+  dlm_pp_fold->Rebin(dlm_pp_fold_reb_2);
+  TH1F* hlm_pp_fold_reb_2 = Convert_DlmHisto_TH1F(&dlm_pp_fold_reb_2,"hlm_pp_fold_reb_2");
+
+  DLM_Histo<float> dlm_pp_fold_reb_3(*dlm_pp_fold);
+  unsigned REBIN_3 = 2;
+  printf("before: %u\n",dlm_pp_fold_reb_3.GetNbins());
+  dlm_pp_fold_reb_3.Rebin(&REBIN_3);
+  printf("after: %u\n",dlm_pp_fold_reb_3.GetNbins());
+  TH1F* hlm_pp_fold_reb_3 = Convert_DlmHisto_TH1F(&dlm_pp_fold_reb_3,"hlm_pp_fold_reb_3");
+//return;
+  printf("The old stuff\n");
+  Ck_pp = new DLM_Ck(AB_pp.GetNumSourcePars(),0,AB_pp);
+  Ck_pp->Update();
+
+  DLM_CkDecomposition CkDec_pp("pp",0,*Ck_pp,hResolution_pp);
+  CkDec_pp.Update();
+
+  printf("Done\n");
+
+  TH1F* h_pp_cats = new TH1F("h_pp_cats","h_pp_cats",NumMomBins_pp,kMin_pp,kMax_pp);
+  for(unsigned uBin=0; uBin<NumMomBins_pp; uBin++){
+    h_pp_cats->SetBinContent(uBin+1,CkDec_pp.EvalCk(h_pp_cats->GetBinCenter(uBin+1)));
+  }
+  OutputFile->cd();
+  h_pp->Write();
+  h_pp_cats->Write();
+  h_pp_fold->Write();
+  hlm_pp_fold_reb->Write();
+  hlm_pp_fold_reb_2->Write();
+  hlm_pp_fold_reb_3->Write();
+
+  printf("Written\n");
+  //UNFOLD
+
+  //OutputFile->cd();
+  DLM_Unfold dlmUnfold;
+  for(unsigned uBin=0; uBin<NumMomBins_pp; uBin++){
+    h_pp_fold->SetBinError(uBin+1,0.5);
+  }
+  dlmUnfold.SetData(h_pp_fold);
+  dlmUnfold.SetResponse(hResolution_pp);
+  dlmUnfold.SetSilentMode(false);
+  dlmUnfold.SetUnfoldPrecision(0.001,0.5);
+
+  DLM_Histo<float>*  dlm_pp_unfolded = dlmUnfold.Unfold();
+  printf("Unfolded\n");
+  TH1F* h_pp_unfolded = Convert_DlmHisto_TH1F(dlm_pp_unfolded,"h_pp_unfolded");
+  for(unsigned uBin=0; uBin<NumMomBins_pp; uBin++){
+    if(!h_pp_unfolded) break;
+    h_pp_unfolded->SetBinError(uBin+1,0.1);
+  }
+  printf("Converted\n");
+
+  OutputFile->cd();
+  if(h_pp_unfolded)h_pp_unfolded->Write();
+  //dlmUnfold.GetFitFoldOriginal()->Write();
+  //dlmUnfold.GetFitFoldFinal()->Write();
+  //dlmUnfold.GetFitUnfoldFinal()->Write();
+  printf("Written\n");
+
+  delete h_pp;
+  delete h_pp_cats;
+  delete h_pp_fold;
+  printf("Del 1\n");
+  if(h_pp_unfolded)delete h_pp_unfolded;
+  if(dlm_pp_unfolded)delete dlm_pp_unfolded;
+  printf("Del 2\n");
+  delete Ck_pp;
+  delete hResolution_pp;
+  printf("Del 3\n");
+  //OutputFile->Close();
+  delete OutputFile;
+
+}
+
+
+//we smear pp with some dummy ME and SE
+void TestUnfoldSEME(){
+
+  const double SourceSize = 1.2;
+  const unsigned NumSE = 100*1000*1000;
+  const unsigned NumME = 100*NumSE;
+  const double Norm = 1.01;
+  const double lambda = 0.67/0.99;//corrected for purity
+  const double lambda_pL = 0.20/0.99;
+  const bool Flat_pL = true;
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles/",GetCernBoxDimi()));
+  //TH2F* hResolution_pp = AnalysisObject.GetResolutionMatrix("pp13TeV_HM_Dec19","pp");
+  TH2F* hResolution_pp = AnalysisObject.GetResolutionMatrix("pp13TeV_HM_DimiJun20","pp");
+  TH2F* hResidual_pp_pL = AnalysisObject.GetResidualMatrix("pp","pLambda");
+  hResolution_pp->Rebin2D(4,4);
+  hResidual_pp_pL->Rebin2D(4,4);
+  printf("Bin width: %.0f (%.0f)\n",hResolution_pp->GetXaxis()->GetBinWidth(1),hResidual_pp_pL->GetXaxis()->GetBinWidth(1));
+
+  double lam_pp[5];
+
+  TString OutputFolder = TString::Format("%s/OtherTasks/Test_new_fold/",GetFemtoOutputFolder());
+  TString OutFileName = "TestUnfoldSEME.root";
+  TFile* OutputFile = new TFile(OutputFolder+OutFileName,"recreate");
+
+  TString SourceDescription = "Gauss";
+
+  unsigned NumMomBins_pp = 80;
+  double kMin_pp = 0;
+  double kMax_pp = 320;
+  CATS AB_pp;
+  AB_pp.SetMomBins(NumMomBins_pp,kMin_pp,kMax_pp);
+  AB_pp.SetNotifications(CATS::nWarning);
+  AnalysisObject.SetUpCats_pp(AB_pp,"AV18",SourceDescription,0,202);//McLevyNolan_Reso
+  AB_pp.SetAnaSource(0,SourceSize);
+  AB_pp.KillTheCat();
+  printf("Killed\n");
+
+  CATS AB_pL;
+  AB_pL.SetMomBins(NumMomBins_pp,kMin_pp,kMax_pp);
+  AB_pL.SetNotifications(CATS::nWarning);
+  AnalysisObject.SetUpCats_pL(AB_pL,"Chiral_Coupled_SPD",SourceDescription,0,202);//McLevyNolan_Reso
+  AB_pL.SetAnaSource(0,SourceSize);
+  AB_pL.KillTheCat();
+  printf("Killed\n");
+
+  DLM_Ck Ck_pp(AB_pp.GetNumSourcePars(),0,AB_pp,200,0,800);
+  Ck_pp.SetCutOff(kMax_pp,kMax_pp*2);
+  Ck_pp.Update();
+
+
+  DLM_Ck CkShort_pp(AB_pp.GetNumSourcePars(),0,AB_pp,200,0,800);
+  CkShort_pp.SetCutOff(kMax_pp,kMax_pp*2);
+  CkShort_pp.Update();
+
+  DLM_Ck CkShort_pL(AB_pL.GetNumSourcePars(),0,AB_pL,200,0,800);
+  CkShort_pL.SetCutOff(kMax_pp,kMax_pp*2*2);
+  CkShort_pL.Update();
+
+  //DLM_CkDecomposition CkDec_pp_Feed("pp",2,CkShort_pp,hResolution_pp);
+  DLM_CkDecomposition CkDec_pL("pLambda",1,CkShort_pL,NULL);
+  //CkDec_pp_Feed.AddContribution(0,lambda_pL,DLM_CkDecomposition::cFeedDown,&CkDec_pL,hResidual_pp_pL);
+  //CkDec_pp_Feed.AddContribution(1,1.-lambda-lambda_pL,DLM_CkDecomposition::cFeedDown);
+  CkDec_pL.AddContribution(0,0.5,DLM_CkDecomposition::cFeedDown);
+  //CkDec_pp_Feed.Update();
+
+  TH1F* h_pp_ME_true = new TH1F("h_pp_ME_true","h_pp_ME_true",200,0,800);
+  TH1F* h_pp_SE_true = new TH1F("h_pp_SE_true","h_pp_SE_true",200,0,800);
+  TH1F* h_pp_Ck_true = new TH1F("h_pp_Ck_true","h_pp_Ck_true",200,0,800);
+  TF1* fitPS = new TF1("fitPS","[2]*(x*x*exp(-pow(x/sqrt(2)/[0],[1])))/pow([0],3.)",0,800);
+  //i fitted ME of PL with this functions, these were the parameters.
+  //we allow -10 to +20% of variations (+20 we expect from ME of pXi etc..., -10 for the fun of it)
+  //fitPS->SetParameter(0,3.54129e+02);
+  fitPS->SetParameter(0,3.54129e+02);
+  fitPS->SetParameter(1,1.03198e+00);
+  fitPS->SetParameter(2,2.47853e-01);
+  for(unsigned uBin=0; uBin<h_pp_ME_true->GetNbinsX(); uBin++){
+    double MOM = h_pp_ME_true->GetBinCenter(uBin+1);
+  //  double VAL = 5.40165e-08-1.06309e-08*pow(MOM,1.)+5.71623e-09*pow(MOM,2.)-
+  //  -1.15454e-11*pow(MOM,3.)+1.17292e-14*pow(MOM,4.)-7.94266e-18*pow(MOM,5.)+
+  //  3.70109e-21*pow(MOM,6.)-1.10644e-24*pow(MOM,7.)+1.86899e-28*pow(MOM,8.)-1.34242e-32*pow(MOM,9.);
+    double VAL = fitPS->Eval(MOM);
+    h_pp_ME_true->SetBinContent(uBin+1,VAL);
+    h_pp_ME_true->SetBinError(uBin+1,0);
+    h_pp_SE_true->SetBinContent(uBin+1,VAL*Ck_pp.Eval(MOM));
+    h_pp_SE_true->SetBinError(uBin+1,0);
+    h_pp_Ck_true->SetBinContent(uBin+1,Ck_pp.Eval(MOM));
+    h_pp_Ck_true->SetBinError(uBin+1,0);
+  }
+  h_pp_SE_true->Scale(1./h_pp_SE_true->Integral());
+  h_pp_ME_true->Scale(1./h_pp_ME_true->Integral());
+
+  //fold the correlation,SE and ME
+  DLM_Unfold dlmFold;
+  dlmFold.SetResponse(hResolution_pp);
+  dlmFold.SetSilentMode(false);
+
+  dlmFold.SetData(h_pp_SE_true);
+  DLM_Histo<float>* dlm_pp_SE_exp = dlmFold.Fold();
+  TH1F* h_pp_SE_exp = Convert_DlmHisto_TH1F(dlm_pp_SE_exp,"h_pp_SE_exp");
+
+  dlmFold.SetData(h_pp_ME_true);
+  DLM_Histo<float>* dlm_pp_ME_exp = dlmFold.Fold();
+  TH1F* h_pp_ME_exp = Convert_DlmHisto_TH1F(dlm_pp_ME_exp,"h_pp_ME_exp");
+
+  DLM_Histo<float>* dlm_pp_Ck_exp(dlm_pp_SE_exp);
+  dlm_pp_Ck_exp[0] /= dlm_pp_ME_exp[0];
+  TH1F* h_pp_Ck_exp = Convert_DlmHisto_TH1F(dlm_pp_Ck_exp,"h_pp_Ck_exp");
+
+  dlmFold.SetData(h_pp_Ck_true);
+  DLM_Histo<float>* dlm_pp_Ck_truefold = dlmFold.Fold();
+  TH1F* h_pp_Ck_truefold = Convert_DlmHisto_TH1F(dlm_pp_Ck_truefold,"h_pp_Ck_truefold");
+
+  ////DLM_CkDecomposition CkDec_pp_Feed("pp",2,CkShort_pp,hResolution_pp);
+  //DLM_CkDecomposition CkDec_pL("pLambda",1,CkShort_pL,NULL);
+  ////CkDec_pp_Feed.AddContribution(0,lambda_pL,DLM_CkDecomposition::cFeedDown,&CkDec_pL,hResidual_pp_pL);
+  ////CkDec_pp_Feed.AddContribution(1,1.-lambda-lambda_pL,DLM_CkDecomposition::cFeedDown);
+  //CkDec_pL.AddContribution(0,0.5,DLM_CkDecomposition::cFeedDown);
+
+
+  //from CATS
+  DLM_CkDecomposition CkDec_pp_direct("pp",2,CkShort_pp,hResolution_pp);
+  if(Flat_pL) CkDec_pp_direct.AddContribution(0,lambda_pL,DLM_CkDecomposition::cFeedDown);
+  else {CkDec_pp_direct.AddContribution(0,lambda_pL,DLM_CkDecomposition::cFeedDown,&CkDec_pL,hResidual_pp_pL);}
+  CkDec_pp_direct.AddContribution(1,1.-lambda-lambda_pL,DLM_CkDecomposition::cFeedDown);
+  CkDec_pp_direct.Update();
+  DLM_CkDecomposition CkDec_pp_PS("pp",2,CkShort_pp,hResolution_pp);
+  CkDec_pp_PS.AddPhaseSpace(h_pp_ME_true);
+  if(Flat_pL) CkDec_pp_PS.AddContribution(0,lambda_pL,DLM_CkDecomposition::cFeedDown);
+  else {CkDec_pp_PS.AddContribution(0,lambda_pL,DLM_CkDecomposition::cFeedDown,&CkDec_pL,hResidual_pp_pL); CkDec_pp_PS.AddPhaseSpace(0,h_pp_ME_true);}
+  CkDec_pp_PS.AddContribution(1,1.-lambda-lambda_pL,DLM_CkDecomposition::cFeedDown);
+  CkDec_pp_PS.Update();
+
+  DLM_CkDecomposition CkDec_pp_PSexp("pp",2,CkShort_pp,hResolution_pp);
+  CkDec_pp_PSexp.AddPhaseSpace(h_pp_ME_exp);
+  if(Flat_pL) CkDec_pp_PSexp.AddContribution(0,lambda_pL,DLM_CkDecomposition::cFeedDown);
+  else {CkDec_pp_PSexp.AddContribution(0,lambda_pL,DLM_CkDecomposition::cFeedDown,&CkDec_pL,hResidual_pp_pL); CkDec_pp_PS.AddPhaseSpace(0,h_pp_ME_exp);}
+  CkDec_pp_PSexp.AddContribution(1,1.-lambda-lambda_pL,DLM_CkDecomposition::cFeedDown);
+  CkDec_pp_PSexp.Update();
+
+  TH1F* hCk_CATS_direct = new TH1F("hCk_CATS_direct","hCk_CATS_direct",NumMomBins_pp,kMin_pp,kMax_pp);
+  TH1F* hCk_CATS_PS = new TH1F("hCk_CATS_PS","hCk_CATS_PS",NumMomBins_pp,kMin_pp,kMax_pp);
+  TH1F* hCk_CATS_PSexp = new TH1F("hCk_CATS_PSexp","hCk_CATS_PSexp",NumMomBins_pp,kMin_pp,kMax_pp);
+  //TH1F* hCk_CATS_PSexp_Feed = new TH1F("hCk_CATS_PSexp_Feed","hCk_CATS_PSexp_Feed",NumMomBins_pp,kMin_pp,kMax_pp);
+
+  for(unsigned uBin=0; uBin<NumMomBins_pp; uBin++){
+    double MOM = AB_pp.GetMomentum(uBin);
+    hCk_CATS_direct->SetBinContent(uBin+1,CkDec_pp_direct.EvalCk(MOM));
+    hCk_CATS_direct->SetBinError(uBin+1,0);
+    hCk_CATS_PS->SetBinContent(uBin+1,CkDec_pp_PS.EvalCk(MOM));
+    hCk_CATS_PS->SetBinError(uBin+1,0);
+    hCk_CATS_PSexp->SetBinContent(uBin+1,CkDec_pp_PSexp.EvalCk(MOM));
+    hCk_CATS_PSexp->SetBinError(uBin+1,0);
+    //hCk_CATS_PSexp_Feed->SetBinContent(uBin+1,CkDec_pp_Feed.EvalCk(MOM));
+    //hCk_CATS_PSexp_Feed->SetBinError(uBin+1,0);
+    //printf("Ck_pp(%.0f) = %.2f\n",MOM,Ck_pp.GetBinContent(uBin));
+    //printf("CkDec_pp_direct(%.0f) = %.2f\n",MOM,CkDec_pp_direct.EvalCk(MOM));
+    //printf("CkDec_pp_PS(%.0f) = %.2f\n",MOM,CkDec_pp_PS.EvalCk(MOM));
+    //printf("CkDec_pp_PSexp(%.0f) = %.2f\n",MOM,CkDec_pp_PSexp.EvalCk(MOM));
+    //printf("\n");
+  }
+
+  //unfold the correlation,SE and ME, building the SE/ME to compare to the direct correlation unfold
+
+  for(unsigned uBin=0; uBin<NumMomBins_pp; uBin++){
+    double CkVal;
+    double CkErr;
+
+    CkVal=h_pp_Ck_true->GetBinContent(uBin+1);
+    CkErr=h_pp_Ck_true->GetBinError(uBin+1);
+    h_pp_Ck_true->SetBinContent(uBin+1,Norm*(lambda*CkVal+1-lambda));
+    h_pp_Ck_true->SetBinError(uBin+1,Norm*lambda*CkErr);
+
+    CkVal=h_pp_Ck_truefold->GetBinContent(uBin+1);
+    CkErr=h_pp_Ck_truefold->GetBinError(uBin+1);
+    h_pp_Ck_truefold->SetBinContent(uBin+1,Norm*(lambda*CkVal+1-lambda));
+    h_pp_Ck_truefold->SetBinError(uBin+1,Norm*lambda*CkErr);
+
+    CkVal=h_pp_Ck_exp->GetBinContent(uBin+1);
+    CkErr=h_pp_Ck_exp->GetBinError(uBin+1);
+    h_pp_Ck_exp->SetBinContent(uBin+1,Norm*(lambda*CkVal+1-lambda));
+    h_pp_Ck_exp->SetBinError(uBin+1,Norm*lambda*CkErr);
+
+    CkVal=hCk_CATS_direct->GetBinContent(uBin+1);
+    CkErr=hCk_CATS_direct->GetBinError(uBin+1);
+    hCk_CATS_direct->SetBinContent(uBin+1,Norm*CkVal);
+    hCk_CATS_direct->SetBinError(uBin+1,Norm*CkErr);
+
+    //CkVal=hCk_CATS_PSexp_Feed->GetBinContent(uBin+1);
+    //CkErr=hCk_CATS_PSexp_Feed->GetBinError(uBin+1);
+    //hCk_CATS_PSexp_Feed->SetBinContent(uBin+1,Norm*CkVal);
+    //hCk_CATS_PSexp_Feed->SetBinError(uBin+1,Norm*CkErr);
+
+    CkVal=hCk_CATS_PS->GetBinContent(uBin+1);
+    CkErr=hCk_CATS_PS->GetBinError(uBin+1);
+    hCk_CATS_PS->SetBinContent(uBin+1,Norm*CkVal);
+    hCk_CATS_PS->SetBinError(uBin+1,Norm*CkErr);
+
+    CkVal=hCk_CATS_PSexp->GetBinContent(uBin+1);
+    CkErr=hCk_CATS_PSexp->GetBinError(uBin+1);
+    hCk_CATS_PSexp->SetBinContent(uBin+1,Norm*CkVal);
+    hCk_CATS_PSexp->SetBinError(uBin+1,Norm*CkErr);
+  }
+
+  OutputFile->cd();
+  h_pp_SE_true->Write();
+  h_pp_ME_true->Write();
+  h_pp_Ck_true->Write();
+  h_pp_Ck_truefold->Write();
+  //h_pp_Ck_perfect->Write();
+
+  h_pp_SE_exp->Write();
+  h_pp_ME_exp->Write();
+  h_pp_Ck_exp->Write();
+
+  hCk_CATS_direct->Write();
+  hCk_CATS_PS->Write();
+  hCk_CATS_PSexp->Write();
+  //hCk_CATS_PSexp_Feed->Write();
+
+  //h_pp_Ck_fold->Write();
+
+
+  delete h_pp_SE_true;
+  delete h_pp_ME_true;
+  delete h_pp_Ck_true;
+  //delete h_pp_Ck_perfect;
+  delete h_pp_SE_exp;
+  delete h_pp_ME_exp;
+  delete hCk_CATS_direct;
+  delete hCk_CATS_PS;
+  delete hCk_CATS_PSexp;
+  //delete h_pp_Ck_fold;
+  delete fitPS;
+  delete OutputFile;
+}
+
+
+
+
+void TestUnfoldSEME_pL(){
+
+  const double SourceSize = 1.2;
+  const unsigned NumSE = 100*1000*1000;
+  const unsigned NumME = 100*NumSE;
+  const double Norm = 1;
+  const double lambda = 0.47;
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles/",GetCernBoxDimi()));
+  TH2F* hResolution_pL = AnalysisObject.GetResolutionMatrix("pp13TeV_HM_DimiJun20","pLambda");
+  hResolution_pL->Rebin2D(12,12);
+  printf("BINS %u\n",hResolution_pL->GetXaxis()->GetNbins());
+  TH2F* hResolution_pp = AnalysisObject.GetResolutionMatrix("pp13TeV_HM_Dec19","pp");
+  printf("Bin width: %.0f\n",hResolution_pL->GetXaxis()->GetBinWidth(1));
+  double lam_pL[5];
+
+  TString OutputFolder = TString::Format("%s/OtherTasks/Test_new_fold/",GetFemtoOutputFolder());
+  TString OutFileName = "TestUnfoldSEME_pL.root";
+  TFile* OutputFile = new TFile(OutputFolder+OutFileName,"recreate");
+
+  TString SourceDescription = "Gauss";
+
+  unsigned NumMomBins_pL = 30;
+  double kMin_pL = 0;
+  double kMax_pL = 360;
+  CATS AB_pL;
+  AB_pL.SetMomBins(NumMomBins_pL,kMin_pL,kMax_pL);
+  AB_pL.SetNotifications(CATS::nWarning);
+  AnalysisObject.SetUpCats_pL(AB_pL,"Chiral_Coupled_SPD",SourceDescription,0,202);//McLevyNolan_Reso
+  AB_pL.SetAnaSource(0,SourceSize);
+  AB_pL.KillTheCat();
+  printf("Killed\n");
+
+  DLM_Ck Ck_pL(AB_pL.GetNumSourcePars(),0,AB_pL,75,0,900);
+  Ck_pL.SetCutOff(kMax_pL,kMax_pL*2);
+  Ck_pL.Update();
+
+  DLM_Ck CkShort_pL(AB_pL.GetNumSourcePars(),0,AB_pL,60,0,720);
+  CkShort_pL.SetCutOff(kMax_pL,kMax_pL*2);
+  CkShort_pL.Update();
+
+  printf("DLM_Ck\n");
+
+  TH1F* h_pL_ME_true = new TH1F("h_pL_ME_true","h_pL_ME_true",75,0,900);
+  TH1F* h_pL_SE_true = new TH1F("h_pL_SE_true","h_pL_SE_true",75,0,900);
+  TH1F* h_pL_Ck_true = new TH1F("h_pL_Ck_true","h_pL_Ck_true",75,0,900);
+  TF1* fitPS = new TF1("fitPS","[2]*(x*x*exp(-pow(x/sqrt(2)/[0],[1])))/pow([0],3.)",0,900);
+  //i fitted ME of PL with this functions, these were the parameters.
+  //we allow -10 to +20% of variations (+20 we expect from ME of pXi etc..., -10 for the fun of it)
+  //fitPS->SetParameter(0,3.54129e+02);
+  fitPS->SetParameter(0,3.54129e+02);
+  fitPS->SetParameter(1,1.03198e+00);
+  fitPS->SetParameter(2,2.47853e-01);
+  for(unsigned uBin=0; uBin<h_pL_ME_true->GetNbinsX(); uBin++){
+    double MOM = h_pL_ME_true->GetBinCenter(uBin+1);
+  //  double VAL = 5.40165e-08-1.06309e-08*pow(MOM,1.)+5.71623e-09*pow(MOM,2.)-
+  //  -1.15454e-11*pow(MOM,3.)+1.17292e-14*pow(MOM,4.)-7.94266e-18*pow(MOM,5.)+
+  //  3.70109e-21*pow(MOM,6.)-1.10644e-24*pow(MOM,7.)+1.86899e-28*pow(MOM,8.)-1.34242e-32*pow(MOM,9.);
+    double VAL = fitPS->Eval(MOM);
+    h_pL_ME_true->SetBinContent(uBin+1,VAL);
+    h_pL_ME_true->SetBinError(uBin+1,0);
+    h_pL_SE_true->SetBinContent(uBin+1,VAL*Ck_pL.Eval(MOM));
+    h_pL_SE_true->SetBinError(uBin+1,0);
+    h_pL_Ck_true->SetBinContent(uBin+1,Ck_pL.Eval(MOM));
+    h_pL_Ck_true->SetBinError(uBin+1,0);
+  }
+  h_pL_SE_true->Scale(1./h_pL_SE_true->Integral());
+  h_pL_ME_true->Scale(1./h_pL_ME_true->Integral());
+
+  printf("Folding fun\n");
+  //fold the correlation,SE and ME
+  DLM_Unfold dlmFold;
+  dlmFold.SetResponse(hResolution_pL);
+  dlmFold.SetSilentMode(false);
+
+  dlmFold.SetData(h_pL_SE_true);
+  DLM_Histo<float>* dlm_pL_SE_exp = dlmFold.Fold();
+  printf("Fold dlm_pL_SE_exp\n");
+  TH1F* h_pL_SE_exp = Convert_DlmHisto_TH1F(dlm_pL_SE_exp,"h_pL_SE_exp");
+
+  dlmFold.SetData(h_pL_ME_true);
+  DLM_Histo<float>* dlm_pL_ME_exp = dlmFold.Fold();
+  printf("Fold dlm_pL_ME_exp\n");
+  TH1F* h_pL_ME_exp = Convert_DlmHisto_TH1F(dlm_pL_ME_exp,"h_pL_ME_exp");
+
+  DLM_Histo<float>* dlm_pL_Ck_exp(dlm_pL_SE_exp);
+  dlm_pL_Ck_exp[0] /= dlm_pL_ME_exp[0];
+  TH1F* h_pL_Ck_exp = Convert_DlmHisto_TH1F(dlm_pL_Ck_exp,"h_pL_Ck_exp");
+
+  dlmFold.SetData(h_pL_Ck_true);
+  DLM_Histo<float>* dlm_pL_Ck_truefold = dlmFold.Fold();
+  printf("Fold dlm_pL_Ck_truefold\n");
+  TH1F* h_pL_Ck_truefold = Convert_DlmHisto_TH1F(dlm_pL_Ck_truefold,"h_pL_Ck_truefold");
+
+
+  //from CATS
+  DLM_CkDecomposition CkDec_pL_direct("pp",0,CkShort_pL,hResolution_pL);
+  CkDec_pL_direct.Update();
+  DLM_CkDecomposition CkDec_pL_PS("pp",0,CkShort_pL,hResolution_pL);
+  CkDec_pL_PS.AddPhaseSpace(h_pL_ME_true);
+  CkDec_pL_PS.Update();
+
+  DLM_CkDecomposition CkDec_pL_PSexp("pp",0,CkShort_pL,hResolution_pL);
+  CkDec_pL_PSexp.AddPhaseSpace(h_pL_ME_exp);
+  CkDec_pL_PSexp.Update();
+
+  TH1F* hCk_CATS_direct = new TH1F("hCk_CATS_direct","hCk_CATS_direct",NumMomBins_pL,kMin_pL,kMax_pL);
+  TH1F* hCk_CATS_PS = new TH1F("hCk_CATS_PS","hCk_CATS_PS",NumMomBins_pL,kMin_pL,kMax_pL);
+  TH1F* hCk_CATS_PSexp = new TH1F("hCk_CATS_PSexp","hCk_CATS_PSexp",NumMomBins_pL,kMin_pL,kMax_pL);
+
+  for(unsigned uBin=0; uBin<NumMomBins_pL; uBin++){
+    double MOM = AB_pL.GetMomentum(uBin);
+    hCk_CATS_direct->SetBinContent(uBin+1,CkDec_pL_direct.EvalCk(MOM));
+    hCk_CATS_PS->SetBinContent(uBin+1,CkDec_pL_PS.EvalCk(MOM));
+    hCk_CATS_PSexp->SetBinContent(uBin+1,CkDec_pL_PSexp.EvalCk(MOM));
+
+    hCk_CATS_direct->SetBinError(uBin+1,0);
+    hCk_CATS_PS->SetBinError(uBin+1,0);
+    hCk_CATS_PSexp->SetBinError(uBin+1,0);
+    //printf("Ck_pL(%.0f) = %.2f\n",MOM,Ck_pL.GetBinContent(uBin));
+    //printf("CkDec_pL_direct(%.0f) = %.2f\n",MOM,CkDec_pL_direct.EvalCk(MOM));
+    //printf("CkDec_pL_PS(%.0f) = %.2f\n",MOM,CkDec_pL_PS.EvalCk(MOM));
+    //printf("CkDec_pL_PSexp(%.0f) = %.2f\n",MOM,CkDec_pL_PSexp.EvalCk(MOM));
+    //printf("\n");
+  }
+
+  TH1F* hData_pL = AnalysisObject.GetAliceExpCorrFun("pp13TeV_HM_Dec19","pLambda","_0",2,false,-1);
+  //unfold the correlation,SE and ME, building the SE/ME to compare to the direct correlation unfold
+
+  for(unsigned uBin=0; uBin<NumMomBins_pL; uBin++){
+    double CkVal;
+    double CkErr;
+
+    CkVal=h_pL_Ck_true->GetBinContent(uBin+1);
+    CkErr=h_pL_Ck_true->GetBinError(uBin+1);
+    h_pL_Ck_true->SetBinContent(uBin+1,Norm*(lambda*CkVal+1-lambda));
+    h_pL_Ck_true->SetBinError(uBin+1,Norm*lambda*CkErr);
+
+    CkVal=h_pL_Ck_truefold->GetBinContent(uBin+1);
+    CkErr=h_pL_Ck_truefold->GetBinError(uBin+1);
+    h_pL_Ck_truefold->SetBinContent(uBin+1,Norm*(lambda*CkVal+1-lambda));
+    h_pL_Ck_truefold->SetBinError(uBin+1,Norm*lambda*CkErr);
+
+    CkVal=h_pL_Ck_exp->GetBinContent(uBin+1);
+    CkErr=h_pL_Ck_exp->GetBinError(uBin+1);
+    h_pL_Ck_exp->SetBinContent(uBin+1,Norm*(lambda*CkVal+1-lambda));
+    h_pL_Ck_exp->SetBinError(uBin+1,Norm*lambda*CkErr);
+
+    CkVal=hCk_CATS_direct->GetBinContent(uBin+1);
+    CkErr=hCk_CATS_direct->GetBinError(uBin+1);
+    hCk_CATS_direct->SetBinContent(uBin+1,Norm*(lambda*CkVal+1-lambda));
+    hCk_CATS_direct->SetBinError(uBin+1,Norm*lambda*CkErr);
+
+    CkVal=hCk_CATS_PS->GetBinContent(uBin+1);
+    CkErr=hCk_CATS_PS->GetBinError(uBin+1);
+    hCk_CATS_PS->SetBinContent(uBin+1,Norm*(lambda*CkVal+1-lambda));
+    hCk_CATS_PS->SetBinError(uBin+1,Norm*lambda*CkErr);
+
+    CkVal=hCk_CATS_PSexp->GetBinContent(uBin+1);
+    CkErr=hCk_CATS_PSexp->GetBinError(uBin+1);
+    hCk_CATS_PSexp->SetBinContent(uBin+1,Norm*(lambda*CkVal+1-lambda));
+    hCk_CATS_PSexp->SetBinError(uBin+1,Norm*lambda*CkErr);
+  }
+
+  TH1F* h_pL_Ck_exp_SmallRange = (TH1F*)hCk_CATS_direct->Clone("hCkRatio_CATS_direct");
+  for(unsigned uBin=0; uBin<NumMomBins_pL; uBin++){
+    h_pL_Ck_exp_SmallRange->SetBinContent(uBin+1,h_pL_Ck_exp->GetBinContent(uBin+1));
+    h_pL_Ck_exp_SmallRange->SetBinError(uBin+1,0);
+  }
+
+  TH1F* hCkRatio_CATS_direct = (TH1F*)hCk_CATS_direct->Clone("hCkRatio_CATS_direct");
+  hCkRatio_CATS_direct->Divide(h_pL_Ck_exp_SmallRange);
+  TH1F* hCkRatio_CATS_PS = (TH1F*)hCk_CATS_PS->Clone("hCkRatio_CATS_PS");
+  hCkRatio_CATS_PS->Divide(h_pL_Ck_exp_SmallRange);
+  TH1F* hCkRatio_CATS_PSexp = (TH1F*)hCk_CATS_PSexp->Clone("hCkRatio_CATS_PSexp");
+  hCkRatio_CATS_PSexp->Divide(h_pL_Ck_exp_SmallRange);
+
+  TH1F* hUpperErrors1 = new TH1F("hUpperErrors1","hUpperErrors1",NumMomBins_pL,kMin_pL,kMax_pL);
+  TH1F* hLowerErrors1 = new TH1F("hLowerErrors1","hLowerErrors1",NumMomBins_pL,kMin_pL,kMax_pL);
+  TH1F* hUpperErrors3 = new TH1F("hUpperErrors3","hUpperErrors3",NumMomBins_pL,kMin_pL,kMax_pL);
+  TH1F* hLowerErrors3 = new TH1F("hLowerErrors3","hLowerErrors3",NumMomBins_pL,kMin_pL,kMax_pL);
+  TGraph gUpperErrors1;
+  gUpperErrors1.SetName("gUpperErrors1");
+  TGraph gLowerErrors1;
+  gLowerErrors1.SetName("gLowerErrors1");
+  TGraph gUpperErrors3;
+  gUpperErrors3.SetName("gUpperErrors3");
+  TGraph gLowerErrors3;
+  gLowerErrors3.SetName("gLowerErrors3");
+
+
+  hUpperErrors1->SetLineColor(kGreen+1);
+  hUpperErrors1->SetLineWidth(3);
+  hUpperErrors1->SetLineStyle(1);
+  hLowerErrors1->SetLineColor(kGreen+1);
+  hLowerErrors1->SetLineWidth(3);
+  hLowerErrors1->SetLineStyle(1);
+
+  hUpperErrors3->SetLineColor(kRed);
+  hUpperErrors3->SetLineWidth(3);
+  hUpperErrors3->SetLineStyle(1);
+  hLowerErrors3->SetLineColor(kRed);
+  hLowerErrors3->SetLineWidth(3);
+  hLowerErrors3->SetLineStyle(1);
+
+  gUpperErrors1.SetLineColor(kGreen+1);
+  gUpperErrors1.SetLineWidth(3);
+  gUpperErrors1.SetLineStyle(1);
+  gLowerErrors1.SetLineColor(kGreen+1);
+  gLowerErrors1.SetLineWidth(3);
+  gLowerErrors1.SetLineStyle(1);
+
+  gUpperErrors3.SetLineColor(kRed);
+  gUpperErrors3.SetLineWidth(3);
+  gUpperErrors3.SetLineStyle(1);
+  gLowerErrors3.SetLineColor(kRed);
+  gLowerErrors3.SetLineWidth(3);
+  gLowerErrors3.SetLineStyle(1);
+
+  h_pL_Ck_exp->SetLineColor(kBlack);
+  h_pL_Ck_exp->SetLineWidth(7);
+  h_pL_Ck_exp->SetLineStyle(1);
+
+  hCk_CATS_direct->SetLineColor(kRed-3);
+  hCk_CATS_direct->SetLineWidth(6);
+  hCk_CATS_direct->SetLineStyle(2);
+  hCkRatio_CATS_direct->SetLineColor(kRed-3);
+  hCkRatio_CATS_direct->SetLineWidth(6);
+  hCkRatio_CATS_direct->SetLineStyle(2);
+
+  hCk_CATS_PSexp->SetLineColor(kViolet);
+  hCk_CATS_PSexp->SetLineWidth(6);
+  hCk_CATS_PSexp->SetLineStyle(3);
+  hCkRatio_CATS_PSexp->SetLineColor(kViolet);
+  hCkRatio_CATS_PSexp->SetLineWidth(6);
+  hCkRatio_CATS_PSexp->SetLineStyle(5);
+
+  hCk_CATS_PS->SetLineColor(kAzure);
+  hCk_CATS_PS->SetLineWidth(5);
+  hCk_CATS_PS->SetLineStyle(1);
+  hCkRatio_CATS_PS->SetLineColor(kAzure);
+  hCkRatio_CATS_PS->SetLineWidth(5);
+  hCkRatio_CATS_PS->SetLineStyle(1);
+
+  for(unsigned uBin=0; uBin<NumMomBins_pL; uBin++){
+    double RelErr = hData_pL->GetBinError(uBin+1)/hData_pL->GetBinContent(uBin+1);
+    double MOM = hData_pL->GetBinCenter(uBin+1);
+    hUpperErrors1->SetBinContent(uBin+1,1.*(1.+RelErr));
+    hLowerErrors1->SetBinContent(uBin+1,1./(1.+RelErr));
+    hUpperErrors3->SetBinContent(uBin+1,1.*(1.+3.*RelErr));
+    hLowerErrors3->SetBinContent(uBin+1,1./(1.+3.*RelErr));
+
+    hUpperErrors1->SetBinError(uBin+1,0);
+    hLowerErrors1->SetBinError(uBin+1,0);
+    hUpperErrors3->SetBinError(uBin+1,0);
+    hLowerErrors3->SetBinError(uBin+1,0);
+
+    gUpperErrors1.SetPoint(uBin,MOM,1.*(1.+RelErr));
+    gLowerErrors1.SetPoint(uBin,MOM,1./(1.+RelErr));
+    gUpperErrors3.SetPoint(uBin,MOM,1.*(1.+3.*RelErr));
+    gLowerErrors3.SetPoint(uBin,MOM,1./(1.+3.*RelErr));
+  }
+
+  //for the plots, plug in error h_pL_Ck_exp
+  for(unsigned uBin=0; uBin<NumMomBins_pL; uBin++){
+    h_pL_Ck_exp->SetBinError(uBin+1,hData_pL->GetBinError(uBin+1));
+  }
+
+  OutputFile->cd();
+  hData_pL->Write();
+  h_pL_SE_true->Write();
+  h_pL_ME_true->Write();
+  h_pL_Ck_true->Write();
+  h_pL_Ck_truefold->Write();
+  //h_pL_Ck_perfect->Write();
+
+  h_pL_SE_exp->Write();
+  h_pL_ME_exp->Write();
+  h_pL_Ck_exp->Write();//the true one
+
+  hCk_CATS_direct->Write();
+  hCk_CATS_PS->Write();
+  hCk_CATS_PSexp->Write();
+
+  hCkRatio_CATS_direct->Write();
+  hCkRatio_CATS_PS->Write();
+  hCkRatio_CATS_PSexp->Write();
+
+  hUpperErrors1->Write();
+  hLowerErrors1->Write();
+  hUpperErrors3->Write();
+  hLowerErrors3->Write();
+
+  gUpperErrors1.Write();
+  gLowerErrors1.Write();
+  gUpperErrors3.Write();
+  gLowerErrors3.Write();
+  //h_pL_Ck_fold->Write();
+
+
+  delete h_pL_SE_true;
+  delete h_pL_ME_true;
+  delete h_pL_Ck_true;
+  //delete h_pL_Ck_perfect;
+  delete h_pL_SE_exp;
+  delete h_pL_ME_exp;
+  delete hCk_CATS_direct;
+  delete hCk_CATS_PS;
+  delete hCk_CATS_PSexp;
+  //delete h_pL_Ck_fold;
+  delete fitPS;
+  delete hData_pL;
+  delete OutputFile;
+}
+
+
+//Conclusion on pXi:
+//the first bin might change by 10-20% which is on the edge of the uncertainty
+//due to the bin shift which was used, actually there is some mimicing of reducing the phase space at low momenta,
+//so in fact the effect will be lessened. Given the current binning of the momentum smearing matrix etc it is diffictult to
+//really quantify the effect with high precision unless more time is invested.
+void TestUnfoldSEME_pXi(){
+
+  const int FINER_BINNING = 5;
+  const double SourceSize = 1.43;
+  const unsigned NumSE = 100*1000*1000;
+  const unsigned NumME = 100*NumSE;
+  const double Norm = 1;
+  const double lambda_misid = 0.085+0.029;
+  const double lambda_gen = 0.513;
+  const double lambda_xi1530 = 0.082;
+  const double lambda_flat = 0.291;
+
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles/",GetCernBoxDimi()));
+
+  //TH2F* hResolution_pXi = AnalysisObject.GetResolutionMatrix("pPb5TeV_Run2paper","pXim");
+  //hResolution_pXi->Rebin2D(2,2);
+
+  TH2F* hResolution_pXi = AnalysisObject.GetResolutionMatrix("pp13TeV_HM_DimiJun20","pLambda");
+  hResolution_pXi->Rebin2D(20/FINER_BINNING,20/FINER_BINNING);
+
+  TH2F* hResidual_pXi_pXi1530 = AnalysisObject.GetResidualMatrix("pXim","pXim1530");
+  hResidual_pXi_pXi1530->Rebin2D(20/FINER_BINNING,20/FINER_BINNING);
+  printf("Bin width: %.0f (%.0f)\n",hResolution_pXi->GetXaxis()->GetBinWidth(1),hResidual_pXi_pXi1530->GetXaxis()->GetBinWidth(1));
+  //double lam_pL[5];
+//return;
+  TString OutputFolder = TString::Format("%s/OtherTasks/Test_new_fold/",GetFemtoOutputFolder());
+  TString OutFileName = "TestUnfoldSEME_pXi.root";
+  TFile* OutputFile = new TFile(OutputFolder+OutFileName,"recreate");
+
+  TString SourceDescription = "Gauss";
+
+  const bool SHIFTED = true;
+
+
+  unsigned NumMomBins_pXi = 18*FINER_BINNING;
+  double kMin_pXi = 0+(SHIFTED?8:0);
+  double kMax_pXi = 360+(SHIFTED?8:0);
+  CATS AB_pXi;
+  AB_pXi.SetMomBins(NumMomBins_pXi,kMin_pXi,kMax_pXi);
+  AB_pXi.SetNotifications(CATS::nWarning);
+  AnalysisObject.SetUpCats_pXim(AB_pXi,"pXim_Lattice",SourceDescription);//McLevyNolan_Reso
+  AB_pXi.SetAnaSource(0,SourceSize);
+  AB_pXi.KillTheCat();
+  printf("Killed\n");
+
+  CATS AB_pXi1530;
+  AB_pXi1530.SetMomBins(NumMomBins_pXi,kMin_pXi,kMax_pXi);
+  AB_pXi1530.SetNotifications(CATS::nWarning);
+  AnalysisObject.SetUpCats_pXim(AB_pXi1530,"pXim1530",SourceDescription);//McLevyNolan_Reso
+  AB_pXi1530.SetAnaSource(0,SourceSize);
+  AB_pXi1530.KillTheCat();
+  printf("Killed\n");
+
+  DLM_Ck Ck_pXi(AB_pXi.GetNumSourcePars(),0,AB_pXi,40*FINER_BINNING,0+(SHIFTED?8:0),800+(SHIFTED?8:0));
+  Ck_pXi.SetCutOff(kMax_pXi,kMax_pXi*2);
+  Ck_pXi.Update();
+
+  DLM_Ck Ck_pXi1530(AB_pXi1530.GetNumSourcePars(),0,AB_pXi1530,40*FINER_BINNING,0+(SHIFTED?8:0),800+(SHIFTED?8:0));
+  Ck_pXi1530.SetCutOff(kMax_pXi,kMax_pXi*2);
+  Ck_pXi1530.Update();
+
+  printf("DLM_Ck\n");
+
+  TH1F* h_pXi_ME_true = new TH1F("h_pXi_ME_true","h_pXi_ME_true",40*FINER_BINNING,0+(SHIFTED?8:0),800+(SHIFTED?8:0));
+  TH1F* h_pXi_SE_true = new TH1F("h_pXi_SE_true","h_pXi_SE_true",40*FINER_BINNING,0+(SHIFTED?8:0),800+(SHIFTED?8:0));
+  TH1F* h_pXi_Ck_true = new TH1F("h_pXi_Ck_true","h_pXi_Ck_true",40*FINER_BINNING,0+(SHIFTED?8:0),800+(SHIFTED?8:0));
+  TF1* fitPS = new TF1("fitPS","[2]*(x*x*exp(-pow(x/sqrt(2)/[0],[1])))/pow([0],3.)",0+(SHIFTED?8:0),800+(SHIFTED?8:0));
+
+  //i fitted ME of PXI
+  fitPS->SetParameter(0,4.51e+02);
+  fitPS->SetParameter(1,1.597+00);
+  fitPS->SetParameter(2,1);
+  for(unsigned uBin=0; uBin<h_pXi_ME_true->GetNbinsX(); uBin++){
+    double MOM = h_pXi_ME_true->GetBinCenter(uBin+1);
+  //  double VAL = 5.40165e-08-1.06309e-08*pow(MOM,1.)+5.71623e-09*pow(MOM,2.)-
+  //  -1.15454e-11*pow(MOM,3.)+1.17292e-14*pow(MOM,4.)-7.94266e-18*pow(MOM,5.)+
+  //  3.70109e-21*pow(MOM,6.)-1.10644e-24*pow(MOM,7.)+1.86899e-28*pow(MOM,8.)-1.34242e-32*pow(MOM,9.);
+    double VAL = fitPS->Eval(MOM);
+    h_pXi_ME_true->SetBinContent(uBin+1,VAL);
+    h_pXi_ME_true->SetBinError(uBin+1,0);
+    h_pXi_SE_true->SetBinContent(uBin+1,VAL*Ck_pXi.Eval(MOM));
+    h_pXi_SE_true->SetBinError(uBin+1,0);
+    h_pXi_Ck_true->SetBinContent(uBin+1,Ck_pXi.Eval(MOM));
+    h_pXi_Ck_true->SetBinError(uBin+1,0);
+  }
+  h_pXi_SE_true->Scale(1./h_pXi_SE_true->Integral());
+  h_pXi_ME_true->Scale(1./h_pXi_ME_true->Integral());
+
+  printf("Folding fun\n");
+  //fold the correlation,SE and ME
+  DLM_Unfold dlmFold;
+  dlmFold.SetResponse(hResolution_pXi);
+  dlmFold.SetSilentMode(false);
+
+  dlmFold.SetData(h_pXi_SE_true);
+  DLM_Histo<float>* dlm_pXi_SE_exp = dlmFold.Fold();
+  printf("Fold dlm_pXi_SE_exp\n");
+  TH1F* h_pXi_SE_exp = Convert_DlmHisto_TH1F(dlm_pXi_SE_exp,"h_pXi_SE_exp");
+
+  dlmFold.SetData(h_pXi_ME_true);
+  DLM_Histo<float>* dlm_pXi_ME_exp = dlmFold.Fold();
+  printf("Fold dlm_pXi_ME_exp\n");
+  TH1F* h_pXi_ME_exp = Convert_DlmHisto_TH1F(dlm_pXi_ME_exp,"h_pXi_ME_exp");
+
+  DLM_Histo<float>* dlm_pXi_Ck_exp(dlm_pXi_SE_exp);
+  dlm_pXi_Ck_exp[0] /= dlm_pXi_ME_exp[0];
+  TH1F* h_pXi_Ck_exp = Convert_DlmHisto_TH1F(dlm_pXi_Ck_exp,"h_pXi_Ck_exp");
+
+  dlmFold.SetData(h_pXi_Ck_true);
+  DLM_Histo<float>* dlm_pXi_Ck_truefold = dlmFold.Fold();
+  printf("Fold dlm_pXi_Ck_truefold\n");
+  TH1F* h_pXi_Ck_truefold = Convert_DlmHisto_TH1F(dlm_pXi_Ck_truefold,"h_pXi_Ck_truefold");
+
+
+  //from CATS
+  DLM_CkDecomposition CkDec_pXi_1530("pXi1530",0,Ck_pXi1530,NULL);
+
+  DLM_CkDecomposition CkDec_pXi_direct("pXi",3,Ck_pXi,hResolution_pXi);
+  CkDec_pXi_direct.AddContribution(0,lambda_xi1530,DLM_CkDecomposition::cFeedDown,&CkDec_pXi_1530,hResidual_pXi_pXi1530);
+  //CkDec_pXi_direct.AddPhaseSpace(0, h_pXi_ME_true);
+  CkDec_pXi_direct.AddContribution(1,lambda_flat,DLM_CkDecomposition::cFeedDown);
+  CkDec_pXi_direct.AddContribution(2,lambda_misid,DLM_CkDecomposition::cFake);
+  CkDec_pXi_direct.Update();
+  DLM_CkDecomposition CkDec_pXi_PS("pXi",3,Ck_pXi,hResolution_pXi);
+  CkDec_pXi_PS.AddPhaseSpace(h_pXi_ME_true);
+  CkDec_pXi_PS.AddContribution(0,lambda_xi1530,DLM_CkDecomposition::cFeedDown,&CkDec_pXi_1530,hResidual_pXi_pXi1530);
+  CkDec_pXi_PS.AddPhaseSpace(0, h_pXi_ME_true);
+  CkDec_pXi_PS.AddContribution(1,lambda_flat,DLM_CkDecomposition::cFeedDown);
+  CkDec_pXi_PS.AddContribution(2,lambda_misid,DLM_CkDecomposition::cFake);
+  CkDec_pXi_PS.Update();
+
+  DLM_CkDecomposition CkDec_pXi_PSexp("pXi",3,Ck_pXi,hResolution_pXi);
+  CkDec_pXi_PSexp.AddPhaseSpace(h_pXi_ME_exp);
+  CkDec_pXi_PSexp.AddContribution(0,lambda_xi1530,DLM_CkDecomposition::cFeedDown,&CkDec_pXi_1530,hResidual_pXi_pXi1530);
+  CkDec_pXi_PSexp.AddPhaseSpace(0, h_pXi_ME_exp);
+  CkDec_pXi_PSexp.AddContribution(1,lambda_flat,DLM_CkDecomposition::cFeedDown);
+  CkDec_pXi_PSexp.AddContribution(2,lambda_misid,DLM_CkDecomposition::cFake);
+  CkDec_pXi_PSexp.Update();
+
+  TH1F* hCk_CATS_direct = new TH1F("hCk_CATS_direct","hCk_CATS_direct",NumMomBins_pXi,kMin_pXi,kMax_pXi);
+  TH1F* hCk_CATS_PS = new TH1F("hCk_CATS_PS","hCk_CATS_PS",NumMomBins_pXi,kMin_pXi,kMax_pXi);
+  TH1F* hCk_CATS_PSexp = new TH1F("hCk_CATS_PSexp","hCk_CATS_PSexp",NumMomBins_pXi,kMin_pXi,kMax_pXi);
+
+  for(unsigned uBin=0; uBin<NumMomBins_pXi; uBin++){
+    double MOM = AB_pXi.GetMomentum(uBin);
+    hCk_CATS_direct->SetBinContent(uBin+1,CkDec_pXi_direct.EvalCk(MOM));
+    hCk_CATS_PS->SetBinContent(uBin+1,CkDec_pXi_PS.EvalCk(MOM));
+    hCk_CATS_PSexp->SetBinContent(uBin+1,CkDec_pXi_PSexp.EvalCk(MOM));
+
+    hCk_CATS_direct->SetBinError(uBin+1,0);
+    hCk_CATS_PS->SetBinError(uBin+1,0);
+    hCk_CATS_PSexp->SetBinError(uBin+1,0);
+    //printf("Ck_pXi(%.0f) = %.2f\n",MOM,Ck_pXi.GetBinContent(uBin));
+    //printf("CkDec_pXi_direct(%.0f) = %.2f\n",MOM,CkDec_pXi_direct.EvalCk(MOM));
+    //printf("CkDec_pXi_PS(%.0f) = %.2f\n",MOM,CkDec_pXi_PS.EvalCk(MOM));
+    //printf("CkDec_pXi_PSexp(%.0f) = %.2f\n",MOM,CkDec_pXi_PSexp.EvalCk(MOM));
+    //printf("\n");
+  }
+
+  TH1F* hData_pXi = AnalysisObject.GetAliceExpCorrFun("pp13TeV_HM_Dec19","pLambda","_0",2,false,-1);
+  //unfold the correlation,SE and ME, building the SE/ME to compare to the direct correlation unfold
+
+  for(unsigned uBin=0; uBin<NumMomBins_pXi; uBin++){
+    double CkVal;
+    double CkErr;
+
+    CkVal=h_pXi_Ck_true->GetBinContent(uBin+1);
+    CkErr=h_pXi_Ck_true->GetBinError(uBin+1);
+    h_pXi_Ck_true->SetBinContent(uBin+1,Norm*(lambda_gen*CkVal+1-lambda_gen));
+    h_pXi_Ck_true->SetBinError(uBin+1,Norm*lambda_gen*CkErr);
+
+    CkVal=h_pXi_Ck_truefold->GetBinContent(uBin+1);
+    CkErr=h_pXi_Ck_truefold->GetBinError(uBin+1);
+    h_pXi_Ck_truefold->SetBinContent(uBin+1,Norm*(lambda_gen*CkVal+1-lambda_gen));
+    h_pXi_Ck_truefold->SetBinError(uBin+1,Norm*lambda_gen*CkErr);
+
+    CkVal=h_pXi_Ck_exp->GetBinContent(uBin+1);
+    CkErr=h_pXi_Ck_exp->GetBinError(uBin+1);
+    h_pXi_Ck_exp->SetBinContent(uBin+1,Norm*(lambda_gen*CkVal+1-lambda_gen));
+    h_pXi_Ck_exp->SetBinError(uBin+1,Norm*lambda_gen*CkErr);
+
+    CkVal=hCk_CATS_direct->GetBinContent(uBin+1);
+    CkErr=hCk_CATS_direct->GetBinError(uBin+1);
+    hCk_CATS_direct->SetBinContent(uBin+1,Norm*(lambda_gen*CkVal+1-lambda_gen));
+    hCk_CATS_direct->SetBinError(uBin+1,Norm*lambda_gen*CkErr);
+
+    CkVal=hCk_CATS_PS->GetBinContent(uBin+1);
+    CkErr=hCk_CATS_PS->GetBinError(uBin+1);
+    hCk_CATS_PS->SetBinContent(uBin+1,Norm*(lambda_gen*CkVal+1-lambda_gen));
+    hCk_CATS_PS->SetBinError(uBin+1,Norm*lambda_gen*CkErr);
+
+    CkVal=hCk_CATS_PSexp->GetBinContent(uBin+1);
+    CkErr=hCk_CATS_PSexp->GetBinError(uBin+1);
+    hCk_CATS_PSexp->SetBinContent(uBin+1,Norm*(lambda_gen*CkVal+1-lambda_gen));
+    hCk_CATS_PSexp->SetBinError(uBin+1,Norm*lambda_gen*CkErr);
+  }
+
+  TH1F* h_pXi_Ck_exp_SmallRange = (TH1F*)hCk_CATS_direct->Clone("hCkRatio_CATS_direct");
+  for(unsigned uBin=0; uBin<NumMomBins_pXi; uBin++){
+    h_pXi_Ck_exp_SmallRange->SetBinContent(uBin+1,h_pXi_Ck_exp->GetBinContent(uBin+1));
+    h_pXi_Ck_exp_SmallRange->SetBinError(uBin+1,0);
+  }
+
+  TH1F* hCkRatio_CATS_direct = (TH1F*)hCk_CATS_direct->Clone("hCkRatio_CATS_direct");
+  hCkRatio_CATS_direct->Divide(h_pXi_Ck_exp_SmallRange);
+  TH1F* hCkRatio_CATS_PS = (TH1F*)hCk_CATS_PS->Clone("hCkRatio_CATS_PS");
+  hCkRatio_CATS_PS->Divide(h_pXi_Ck_exp_SmallRange);
+  TH1F* hCkRatio_CATS_PSexp = (TH1F*)hCk_CATS_PSexp->Clone("hCkRatio_CATS_PSexp");
+  hCkRatio_CATS_PSexp->Divide(h_pXi_Ck_exp_SmallRange);
+
+  TH1F* hUpperErrors1 = new TH1F("hUpperErrors1","hUpperErrors1",NumMomBins_pXi,kMin_pXi,kMax_pXi);
+  TH1F* hLowerErrors1 = new TH1F("hLowerErrors1","hLowerErrors1",NumMomBins_pXi,kMin_pXi,kMax_pXi);
+  TH1F* hUpperErrors3 = new TH1F("hUpperErrors3","hUpperErrors3",NumMomBins_pXi,kMin_pXi,kMax_pXi);
+  TH1F* hLowerErrors3 = new TH1F("hLowerErrors3","hLowerErrors3",NumMomBins_pXi,kMin_pXi,kMax_pXi);
+  TGraph gUpperErrors1;
+  gUpperErrors1.SetName("gUpperErrors1");
+  TGraph gLowerErrors1;
+  gLowerErrors1.SetName("gLowerErrors1");
+  TGraph gUpperErrors3;
+  gUpperErrors3.SetName("gUpperErrors3");
+  TGraph gLowerErrors3;
+  gLowerErrors3.SetName("gLowerErrors3");
+
+
+  hUpperErrors1->SetLineColor(kGreen+1);
+  hUpperErrors1->SetLineWidth(3);
+  hUpperErrors1->SetLineStyle(1);
+  hLowerErrors1->SetLineColor(kGreen+1);
+  hLowerErrors1->SetLineWidth(3);
+  hLowerErrors1->SetLineStyle(1);
+
+  hUpperErrors3->SetLineColor(kRed);
+  hUpperErrors3->SetLineWidth(3);
+  hUpperErrors3->SetLineStyle(1);
+  hLowerErrors3->SetLineColor(kRed);
+  hLowerErrors3->SetLineWidth(3);
+  hLowerErrors3->SetLineStyle(1);
+
+  gUpperErrors1.SetLineColor(kGreen+1);
+  gUpperErrors1.SetLineWidth(3);
+  gUpperErrors1.SetLineStyle(1);
+  gLowerErrors1.SetLineColor(kGreen+1);
+  gLowerErrors1.SetLineWidth(3);
+  gLowerErrors1.SetLineStyle(1);
+
+  gUpperErrors3.SetLineColor(kRed);
+  gUpperErrors3.SetLineWidth(3);
+  gUpperErrors3.SetLineStyle(1);
+  gLowerErrors3.SetLineColor(kRed);
+  gLowerErrors3.SetLineWidth(3);
+  gLowerErrors3.SetLineStyle(1);
+
+  h_pXi_Ck_exp->SetLineColor(kBlack);
+  h_pXi_Ck_exp->SetLineWidth(7);
+  h_pXi_Ck_exp->SetLineStyle(1);
+
+  hCk_CATS_direct->SetLineColor(kRed-3);
+  hCk_CATS_direct->SetLineWidth(6);
+  hCk_CATS_direct->SetLineStyle(2);
+  hCkRatio_CATS_direct->SetLineColor(kRed-3);
+  hCkRatio_CATS_direct->SetLineWidth(6);
+  hCkRatio_CATS_direct->SetLineStyle(2);
+
+  hCk_CATS_PSexp->SetLineColor(kViolet);
+  hCk_CATS_PSexp->SetLineWidth(6);
+  hCk_CATS_PSexp->SetLineStyle(3);
+  hCkRatio_CATS_PSexp->SetLineColor(kViolet);
+  hCkRatio_CATS_PSexp->SetLineWidth(6);
+  hCkRatio_CATS_PSexp->SetLineStyle(5);
+
+  hCk_CATS_PS->SetLineColor(kAzure);
+  hCk_CATS_PS->SetLineWidth(5);
+  hCk_CATS_PS->SetLineStyle(1);
+  hCkRatio_CATS_PS->SetLineColor(kAzure);
+  hCkRatio_CATS_PS->SetLineWidth(5);
+  hCkRatio_CATS_PS->SetLineStyle(1);
+
+  for(unsigned uBin=0; uBin<NumMomBins_pXi; uBin++){
+    double RelErr = hData_pXi->GetBinError(uBin+1)/hData_pXi->GetBinContent(uBin+1);
+    double MOM = hData_pXi->GetBinCenter(uBin+1);
+    hUpperErrors1->SetBinContent(uBin+1,1.*(1.+RelErr));
+    hLowerErrors1->SetBinContent(uBin+1,1./(1.+RelErr));
+    hUpperErrors3->SetBinContent(uBin+1,1.*(1.+3.*RelErr));
+    hLowerErrors3->SetBinContent(uBin+1,1./(1.+3.*RelErr));
+
+    hUpperErrors1->SetBinError(uBin+1,0);
+    hLowerErrors1->SetBinError(uBin+1,0);
+    hUpperErrors3->SetBinError(uBin+1,0);
+    hLowerErrors3->SetBinError(uBin+1,0);
+
+    gUpperErrors1.SetPoint(uBin,MOM,1.*(1.+RelErr));
+    gLowerErrors1.SetPoint(uBin,MOM,1./(1.+RelErr));
+    gUpperErrors3.SetPoint(uBin,MOM,1.*(1.+3.*RelErr));
+    gLowerErrors3.SetPoint(uBin,MOM,1./(1.+3.*RelErr));
+  }
+
+  //for the plots, plug in error h_pXi_Ck_exp
+  for(unsigned uBin=0; uBin<NumMomBins_pXi; uBin++){
+    h_pXi_Ck_exp->SetBinError(uBin+1,hData_pXi->GetBinError(uBin+1));
+  }
+
+  OutputFile->cd();
+  hData_pXi->Write();
+  h_pXi_SE_true->Write();
+  h_pXi_ME_true->Write();
+  h_pXi_Ck_true->Write();
+  h_pXi_Ck_truefold->Write();
+  //h_pXi_Ck_perfect->Write();
+
+  h_pXi_SE_exp->Write();
+  h_pXi_ME_exp->Write();
+  h_pXi_Ck_exp->Write();//the true one
+
+  hCk_CATS_direct->Write();
+  hCk_CATS_PS->Write();
+  hCk_CATS_PSexp->Write();
+
+  hCkRatio_CATS_direct->Write();
+  hCkRatio_CATS_PS->Write();
+  hCkRatio_CATS_PSexp->Write();
+
+  hUpperErrors1->Write();
+  hLowerErrors1->Write();
+  hUpperErrors3->Write();
+  hLowerErrors3->Write();
+
+  gUpperErrors1.Write();
+  gLowerErrors1.Write();
+  gUpperErrors3.Write();
+  gLowerErrors3.Write();
+  //h_pXi_Ck_fold->Write();
+
+
+  delete h_pXi_SE_true;
+  delete h_pXi_ME_true;
+  delete h_pXi_Ck_true;
+  //delete h_pXi_Ck_perfect;
+  delete h_pXi_SE_exp;
+  delete h_pXi_ME_exp;
+  delete hCk_CATS_direct;
+  delete hCk_CATS_PS;
+  delete hCk_CATS_PSexp;
+  //delete h_pXi_Ck_fold;
+  delete fitPS;
+  delete hData_pXi;
+  delete OutputFile;
+}
+
+
+//const double& Momentum, const double* SourcePar, const double* PotPar
+double LedniFit(double* x, double* par){
+  return par[0]*Lednicky_Identical_Singlet(*x,&par[1],&par[2]);
+}
+
+//attempt to find scattering parameters or a potential that
+//can describe (approx) a Gaussian shaped correlation function
+void Rafa_2body_expCk(){
+  TString WorkFolder = TString::Format("%s/OtherTasks/Rafa_2body_expCk/",GetFemtoOutputFolder());
+  TString InputFile = WorkFolder+"femto.root";
+  TString InputHisto = "CF2PartNorm";
+  const double kMin = 0;
+  const double kMax = 250;
+  TFile fInput(InputFile,"read");
+  TH1D* hInput  = (TH1D*)fInput.Get(InputHisto);
+  TF1* fLedni = new TF1("fLedni",LedniFit,kMin,kMax,4);
+  fLedni->SetParameter(0,1);
+  fLedni->SetParameter(1,1.2);
+  fLedni->SetParameter(2,2.0);
+  fLedni->SetParameter(3,0.1);
+  hInput->Fit(fLedni,"S, N, R, M");
+  printf("at 50: %f\n",fLedni->Eval(50));
+  TH1F* hFit = new TH1F("hFit","hFit",int(kMax-kMin),kMin,kMax);
+  for(unsigned uBin=0; uBin<hFit->GetNbinsX(); uBin++){
+    hFit->SetBinContent(uBin+1,fLedni->Eval(hFit->GetBinCenter(uBin+1)));
+  }
+
+  TFile fOutput(WorkFolder+"FuckThisShit.root","recreate");
+  hInput->Write();
+  hFit->Write();
+  fLedni->Write();
+
+  delete hInput;
+}
+
+void rootmathboost_test1(){
+  TLorentzVector v1;
+  v1.SetXYZM(50,-50,100,1000);
+  TLorentzVector v2;
+  v2.SetXYZM(100,-20,200,1000);
+  ROOT::Math::PtEtaPhiMVector<double> part1(v1.Pt(),v1.Eta(),v1.Phi(),v1.M());
+  ROOT::Math::PtEtaPhiMVector<double> part2(v2.Pt(),v2.Eta(),v2.Phi(),v2.M());
+
+
+  TLorentzVector sum = v1+v2;
+  TVector3 bv = -sum.BoostVector();
+  v1.Boost(bv);
+  v2.Boost(bv);
+  printf("x: %.1f, %.1f\n",v1.X(),v2.X());
+  printf("y: %.1f, %.1f\n",v1.Y(),v2.Y());
+  printf("z: %.1f, %.1f\n",v1.Z(),v2.Z());
+
+
+
+
+}
 
 //
 int OTHERTASKS(int argc, char *argv[]){
+    rootmathboost_test1();
+    return 0;
+
     //pp_CompareToNorfolk();
     //pp_pL_CorrectedMC_EXP();
     //ALL_CorrectedMC_EXP();
@@ -11188,8 +12329,13 @@ int OTHERTASKS(int argc, char *argv[]){
 
     //KilledByFeedDown();
     //SmearEffect_Resolution();
-    SmearEffect_pp();
-
+    //SmearEffect_pp();
+    //Test_new_fold();
+    //TestUnfoldSEME();
+    //TestUnfoldSEME_pL();
+    //TestUnfoldSEME_pXi();
+    //Rafa_2body_expCk();
+return 0;
 /*
 ppp_errors(2,1);
 (0) nsig (pval) = 1.10 (0.27080)

@@ -15828,25 +15828,24 @@ printf("PLAMBDA_1_MAIN\n");
 //return 0;
 //printf("hello\n");
 
-/*
+
 Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(atoi(argv[4]))/10.,
                             ///home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/100720_Unfolded/
                             //TString::Format("%s/pLambda/100720_Unfolded/",GetCernBoxDimi()),
-                            TString::Format("%s/pLambda/180521_SillyTest/NoBootstrap/",GetCernBoxDimi()),
-                            TString::Format("Merged_pp13TeV_HM_DimiJul20_POT%i_BL%i_SIG%i.root",
+                            TString::Format("%s/pLambda/Dump/",GetCernBoxDimi()),
+                            TString::Format("Merged_pp13TeV_HM_DimiMay21_POT%i_BL%i_SIG%i.root",
                             //TString::Format("Merged_pp13TeV_HM_Dec19_POT%i_BL%i_SIG%i.root",
                             //TString::Format("Output_pp13TeV_HM_DimiJul20_POT%i_BL%i_SIG%i_1000.root",
                             atoi(argv[1]),atoi(argv[2]),atoi(argv[3])),
                             //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/",
                             //"UnfoldRefine_pp13TeV_HM_DimiJul20_POT11600_BL10_SIG1.root",
                             //TString::Format("%s/pLambda/100720_Unfolded/PaperPlotsUpdate5/",GetCernBoxDimi()),
-                            TString::Format("%s/pLambda/180521_SillyTest/NoBootstrap/Plots/",GetCernBoxDimi()),
+                            TString::Format("%s/pLambda/Dump/Plots/",GetCernBoxDimi()),
                             //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/"
                             atoi(argv[5])///REMOVE FOR THE OLD PLOTS
                           );
-*/
-//MakeLATEXtable(TString::Format("%s/pLambda/180521_SillyTest/NoBootstrap/Plots/",GetCernBoxDimi()),true);
 
+//MakeLATEXtable(TString::Format("%s/pLambda/180521_SillyTest/NoBootstrap/Plots/",GetCernBoxDimi()),true);
 return 0;
 
 //Plot_pL_SystematicsMay2020_2(2,10,1500,2.0,

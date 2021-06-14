@@ -7,8 +7,6 @@
 
 
 
-int SOURCESTUDIES(int narg, char** ARGS);
+int SOURCESTUDIES(int argc, char *argv[]);
 
 #endif // MIXEDEVENTS_H
-
-
