@@ -12419,6 +12419,14 @@ printf(" 8\n");
 printf(" 9\n");
 }
 
+
+
+void pLambda_Spline_Fit_Unfold2(const unsigned& SEEDmin, const unsigned& NumIter, const unsigned& TimeLimit,
+                                const double& Perfect_chi2ndf, const double& VeryGood_chi2ndf, const double& Unacceptable_chi2ndf,
+                                const double& BinWidth, const TString& DataVariation,
+                                const char* CatsFileFolder, const TString& OutputFolder){
+  pLambda_Spline_Fit_Unfold2(SEEDmin,NumIter,TimeLimit,Perfect_chi2ndf,VeryGood_chi2ndf,Unacceptable_chi2ndf,BinWidth,DataVariation,0,CatsFileFolder,OutputFolder);
+}
 //the story so far:
 //if I use pp SE matrix, pp ME matrix or pLambda matrix I get essentially the same result
 //if I use the original coarse pL (10MeV) SE matrix, I get deviation below 30 MeV (the unfolded Ck sits higher)

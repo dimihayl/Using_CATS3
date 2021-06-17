@@ -19,6 +19,11 @@ void pLambda_Spline_Fit_Unfold2(const unsigned& SEEDmin, const unsigned& NumIter
                                 const double& Perfect_chi2ndf, const double& VeryGood_chi2ndf, const double& Unacceptable_chi2ndf,
                                 const double& BinWidth, const TString& DataVariation, const int& WhichPS,
                                 const char* CatsFileFolder, const TString& OutputFolder);
+//historical call from older batch farm functions
+void pLambda_Spline_Fit_Unfold2(const unsigned& SEEDmin, const unsigned& NumIter, const unsigned& TimeLimit,
+                                const double& Perfect_chi2ndf, const double& VeryGood_chi2ndf, const double& Unacceptable_chi2ndf,
+                                const double& BinWidth, const TString& DataVariation,
+                                const char* CatsFileFolder, const TString& OutputFolder);
 void UpdateUnfoldFile(const char* CatsFileFolder, const TString& InputFolderName,
                       const TString& InputFileName, const TString& DataVariation,
                       const int& BinWidth);
