@@ -12572,7 +12572,7 @@ void pLambda_Spline_Fit_Unfold2(const unsigned& SEEDmin, const unsigned& NumIter
     //printf(" nsigma = %.2f\n",f_ns);
 //printf("hi\n");
     int WhichData = atoi(((TObjString*)(DataVariation.Tokenize("_")->At(4)))->String().Data());
-    const TString ME_FileName = TString::Format("%s/CatsFiles/ExpData/ALICE_pp_13TeV_HM/DimiJun20/Norm240_340/DataSignal/CkREW_pL_%i.root",CatsFileFolder,WhichData);
+    const TString ME_FileName = TString::Format("%s/ExpData/ALICE_pp_13TeV_HM/DimiJun20/Norm240_340/DataSignal/CkREW_pL_%i.root",CatsFileFolder,WhichData);
     printf("ME_FileName = %s\n",ME_FileName.Data());
     const TString DirName = "Binning_12";
     //this is the reweighted ME sample
