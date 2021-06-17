@@ -12572,7 +12572,7 @@ void pLambda_Spline_Fit_Unfold2(const unsigned& SEEDmin, const unsigned& NumIter
     //printf(" nsigma = %.2f\n",f_ns);
 //printf("hi\n");
     int WhichData = atoi(((TObjString*)(DataVariation.Tokenize("_")->At(4)))->String().Data());
-    const TString ME_FileName = TString::Format("%s/CatsFiles/ExpData/ALICE_pp_13TeV_HM/DimiJun20/Norm240_340/DataSignal/CkREW_pL_%i.root",GetCernBoxDimi(),WhichData);
+    const TString ME_FileName = TString::Format("%s/CatsFiles/ExpData/ALICE_pp_13TeV_HM/DimiJun20/Norm240_340/DataSignal/CkREW_pL_%i.root",CatsFileFolder,WhichData);
     printf("ME_FileName = %s\n",ME_FileName.Data());
     const TString DirName = "Binning_12";
     //this is the reweighted ME sample
@@ -15946,15 +15946,15 @@ printf("PLAMBDA_1_MAIN\n");
 //                                const double& Perfect_chi2ndf, const double& VeryGood_chi2ndf, const double& Unacceptable_chi2ndf,
 //                                const double& BinWidth, const TString& DataVariation, const int& WhichPS,
 //                                const char* CatsFileFolder, const TString& OutputFolder)
-pLambda_Spline_Fit_Unfold2(atoi(argv[1]),5,30,0.2,0.4,0.8,12,"L53_SL4_SR6_P96_0",atoi(argv[2]),TString::Format("%s/CatsFiles/",GetCernBoxDimi()),
-                           TString::Format("%s/pLambda/Unfolding/TestUnfold1/",GetFemtoOutputFolder()));
+//pLambda_Spline_Fit_Unfold2(atoi(argv[1]),5,30,0.2,0.4,0.8,12,"L53_SL4_SR6_P96_0",atoi(argv[2]),TString::Format("%s/CatsFiles/",GetCernBoxDimi()),
+//                           TString::Format("%s/pLambda/Unfolding/TestUnfold1/",GetFemtoOutputFolder()));
 //const char* CatsFileFolder, const TString& InputFolderName,
 //                      const TString& InputFileName, const TString& DataVariation,
 //                      const int& BinWidth
 
-//UpdateUnfoldFile(TString::Format("%s/CatsFiles/",GetCernBoxDimi()),
-//                 TString::Format("%s/pLambda/Unfolding/TestUnfold1/",GetFemtoOutputFolder()),TString::Format("CkSB_pL_L53_SL4_SR6_P96_0_Unfolded_1.root"),
-//                 "L53_SL4_SR6_P96_0",12);
+UpdateUnfoldFile(TString::Format("%s/CatsFiles/",GetCernBoxDimi()),
+                 TString::Format("%s/pLambda/Unfolding/TestUnfold1/",GetFemtoOutputFolder()),TString::Format("CkSB_pL_L53_SL4_SR6_P96_0_Unfolded_2.root"),
+                 "L53_SL4_SR6_P96_0",12);
 /*
 UpdateUnfoldFile(TString::Format("%s/CatsFiles/",GetCernBoxDimi()),
                  TString::Format("%s/pLambda/Unfolding/TestUnfold1/",GetFemtoOutputFolder()),"CkSB_pL_L53_SL4_SR6_P96_0_Unfolded_0_1.root",
