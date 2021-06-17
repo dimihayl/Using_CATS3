@@ -7123,13 +7123,20 @@ bool Eval_ScattParameters(CATS& Kitty, double& ScatLen, double& EffRan, TH1F*& h
   TF1* fitSP4 = new TF1("fitSP4","[2]*pow(x,4.)+0.5*[1]/197.327*x*x+197.327*[0]", 10, 90);
   TF1* fitSP6 = new TF1("fitSP6","[3]*pow(x,6.)+[2]*pow(x,4.)+0.5*[1]/197.327*x*x+197.327*[0]", 10, 90);
   double inv_f0 = ScatLen==0?0:1./ScatLen;
+  //EffRan = 0;
 //printf("ScatLen = %e\n",ScatLen);
 //printf("inv_f0 = %f\n",inv_f0);
 //printf("EffRan = %f\n",EffRan);
   if(Fixf0) {fitSP2->FixParameter(0,inv_f0);fitSP4->FixParameter(0,inv_f0);fitSP6->FixParameter(0,inv_f0);}
-  else {fitSP2->SetParameter(0,inv_f0);fitSP4->SetParameter(0,inv_f0);fitSP6->SetParameter(0,inv_f0);}
-  if(Fixd0) {fitSP2->FixParameter(1,EffRan);fitSP4->FixParameter(1,EffRan);fitSP6->FixParameter(1,EffRan);}
-  else {fitSP2->SetParameter(1,EffRan);fitSP4->SetParameter(1,EffRan);fitSP6->SetParameter(1,EffRan);}
+  else {fitSP2->SetParameter(0,inv_f0);fitSP2->SetParLimits(0,-100,100);
+        fitSP4->SetParameter(0,inv_f0);fitSP4->SetParLimits(0,-100,100);
+        fitSP6->SetParameter(0,inv_f0);fitSP6->SetParLimits(0,-100,100);}
+  if(Fixd0) { fitSP2->FixParameter(1,EffRan);
+              fitSP4->FixParameter(1,EffRan);
+              fitSP6->FixParameter(1,EffRan);}
+  else {fitSP2->SetParameter(1,EffRan);fitSP2->SetParLimits(1,0,50);
+        fitSP4->SetParameter(1,EffRan);fitSP4->SetParLimits(1,0,50);
+        fitSP6->SetParameter(1,EffRan);fitSP6->SetParLimits(1,0,50);}
   fitSP4->SetParameter(2,0);fitSP6->SetParameter(2,0);
   fitSP6->SetParameter(3,0);
 
@@ -7146,7 +7153,7 @@ bool Eval_ScattParameters(CATS& Kitty, double& ScatLen, double& EffRan, TH1F*& h
   EffRan = fitSP2->GetParameter(1);
   if(Nterms<=2){delete fitSP4; delete fitSP6; fitSP=fitSP2; delete[]MomBins; return true;}
 
-  //hFit->Fit(fitSP4, "Q, S, N, R, M");
+  hFit->Fit(fitSP4, "S, N, R, M");
   DLM_FitHisto(hFit, fitSP4, "Q, S, N, R, M", "", &MinOpt);
   if(fitSP4->GetChisquare()/fitSP2->GetChisquare()>0.8)
   {delete fitSP4; delete fitSP6; fitSP=fitSP2; delete[]MomBins; return true;}
@@ -8450,7 +8457,7 @@ void OkayishStartingPars( const TString Potential, const double& f0, const doubl
 void ManufacturePotential(const double f0, const double df0,
                                 const double d0, const double dd0, const double* Radii, const unsigned NumRad,
                                 double& V1, double& mu1, double& V2, double& mu2,
-                                const TString Potential, const TString OutputFolder, const int& SEED=11){
+                                const TString Potential, const TString OutputFolder, const int& SEED=11, const double* StartPars=NULL){
   //b = best, l = last, d = difference to desired
   TString CurrentPot = Potential;
   if(Potential=="Dynamic") CurrentPot = "DoubleGaussSum";
@@ -8701,7 +8708,8 @@ const bool DEBUG = false;
     }
 
     if(Starting&&!Started){
-      OkayishStartingPars(CurrentPot,f0,d0,bV_1,bmu_1,bV_2,bmu_2,s_2);
+      if(!StartPars) OkayishStartingPars(CurrentPot,f0,d0,bV_1,bmu_1,bV_2,bmu_2,s_2);
+      else {bV_1=StartPars[0];bmu_1=StartPars[1];bV_2=StartPars[2];bmu_2=StartPars[3];}
       V_1 = bV_1;
       mu_1 = bmu_1;
       V_2 = bV_2;
@@ -9348,6 +9356,35 @@ void MakePotentials(int flag){
     for(int ud0=3; ud0>=0; ud0--){
       d0 = 5.00-1.5*double(ud0);
       ManufacturePotential(f0,fabs(f0*ef0)+0.01,d0,fabs(d0*ed0)+0.01,Radii,NumR,V1,mu1,V2,mu2,Potential,OutputFolder);
+    }
+  }
+  //for Prof. S 50X, 51X....
+  // 50X,51X - doublet potentials
+  // 52X,53,54X - quarted potentials, if other -> perform all of them
+  else if(flag/10>=50&&flag/10<=59){
+    ef0 = 0.1;
+    ed0 = 0.05;
+    NumR = 1;
+    Radii[0] = 1.2;
+    OutputFolder += "ProfS/";
+    int VAR_FLAG = (flag/10)%10;
+    for(unsigned uVar=0; uVar<5; uVar++){
+      if(VAR_FLAG<5&&uVar!=VAR_FLAG) continue;
+      switch (uVar) {
+        case 0: f0=-16.8; d0 = 2.3; break;
+        case 1: f0=-16.3; d0 = 3.2; break;
+        case 2: f0=7.6; d0 = 3.6; break;
+        case 3: f0=10.8; d0 = 3.8; break;
+        case 4: f0=17.3; d0 = 3.6; break;
+        default: printf("Weird flags for producing the potentials for Prof. S.\n"); return;
+      }
+      double StartPars[4];
+      StartPars[0]=-8.999757e+02;
+      StartPars[1]=5.081559e-01;
+      StartPars[2]= -4.021392e+02;
+      StartPars[3]=1.019864e+00;
+      if(uVar==1) ManufacturePotential(f0,ef0,d0,ed0,Radii,NumR,V1,mu1,V2,mu2,Potential,OutputFolder,11,StartPars);
+      else ManufacturePotential(f0,ef0,d0,ed0,Radii,NumR,V1,mu1,V2,mu2,Potential,OutputFolder);
     }
   }
   /*
@@ -12243,7 +12280,124 @@ void Rafa_2body_expCk(){
   delete hInput;
 }
 
+//0 = norm
+//1 = radius
+//2,3,4,5 -> double gaussian potential
+CATS* KITTY_FITTER=NULL;
+double CATS_FITTER(double* x, double* par){
+  KITTY_FITTER->SetAnaSource(0,par[1],true);
+  KITTY_FITTER->SetShortRangePotential(0,0,0,par[2]);
+  KITTY_FITTER->SetShortRangePotential(0,0,1,par[3]);
+  KITTY_FITTER->SetShortRangePotential(0,0,2,par[4]);
+  KITTY_FITTER->SetShortRangePotential(0,0,3,par[5]);
+  KITTY_FITTER->KillTheCat();
+  return par[0]*KITTY_FITTER->EvalCorrFun(*x);
+}
+
+//same as above, but with a Gaussian potential
+void Rafa_2body_expCk_CATS(){
+  TString WorkFolder = TString::Format("%s/OtherTasks/Rafa_2body_expCk/",GetFemtoOutputFolder());
+  TString InputFile = WorkFolder+"femto.root";
+  TString InputHisto = "CF2PartNorm";
+  const double kMin = 0;
+  const double kMax = 240;
+  CATS Kitty;
+  Kitty.SetMomBins(TMath::Nint(kMax/2.),kMin,kMax);
+  CATSparameters cPars (CATSparameters::tSource,1,true);
+  cPars.SetParameter(0,1.2);
+  Kitty.SetAnaSource(GaussSource, cPars);
+  Kitty.SetUseAnalyticSource(true);
+  Kitty.SetMomentumDependentSource(false);
+  Kitty.SetExcludeFailedBins(false);
+  Kitty.SetQ1Q2(0);
+  Kitty.SetQuantumStatistics(false);
+  //Kitty.SetRedMass( (938.*1116.)/(938.+1116.) );
+  Kitty.SetRedMass( 0.5*938. );
+
+  Kitty.SetNumChannels(1);
+  Kitty.SetNumPW(0,1);
+  Kitty.SetSpin(0,0);
+  Kitty.SetChannelWeight(0, 1.);
+  CATSparameters pPars(CATSparameters::tPotential,4,true);
+  pPars.SetParameter(0,-50);
+  pPars.SetParameter(1,1.0);
+  pPars.SetParameter(2,0);
+  pPars.SetParameter(3,1);
+  Kitty.SetShortRangePotential(0,0,DoubleGaussSum,pPars);
+  Kitty.SetNotifications(CATS::nWarning);
+  Kitty.SetMaxRad(128);
+  Kitty.SetMaxRho(64);
+  Kitty.KillTheCat();
+  KITTY_FITTER = &Kitty;
+
+  TFile fInput(InputFile,"read");
+  TH1D* hInput  = (TH1D*)fInput.Get(InputHisto);
+  TF1* fCATS = new TF1("fCATS",CATS_FITTER,kMin,kMax,6);
+
+  fCATS->SetParameter(0,1);
+  fCATS->SetParameter(1,1.2);//r
+  fCATS->SetParLimits(1,1.0,1.5);
+  fCATS->SetParameter(2,-20);//V0
+  fCATS->SetParLimits(2,-100,0);
+  fCATS->SetParameter(3,1.0);//mu0
+  fCATS->SetParLimits(3,0.5,5.0);
+  fCATS->SetParameter(4,100.0);//V1
+  fCATS->SetParLimits(4,0,1000);
+  fCATS->SetParameter(5,0.1);//mu1
+  fCATS->SetParLimits(5,0.05,0.5);
+
+  /*
+  fCATS->FixParameter(0,1.01191e+00);
+  fCATS->FixParameter(1,1.20000e+00);
+  fCATS->FixParameter(2,-1.01057e+01);
+  fCATS->FixParameter(3,2.54662e+00);
+  fCATS->FixParameter(4,8.11437e+02);
+  fCATS->FixParameter(5,6.76762e-02);
+  */
+  hInput->Fit(fCATS,"S, N, R, M");
+  //printf("at 50: %f\n",fLedni->Eval(50));
+  TH1F* hFitResult = new TH1F("hFitResult","hFitResult",int(kMax-kMin),kMin,kMax);
+  for(unsigned uBin=0; uBin<hFitResult->GetNbinsX(); uBin++){
+    hFitResult->SetBinContent(uBin+1,fCATS->Eval(hFitResult->GetBinCenter(uBin+1)));
+  }
+
+  TH1F* h_kcotd=NULL;
+  TF1* f_kcotd=NULL;
+  double c_f0,c_d0=1;
+  c_f0=0;
+  c_d0=1;
+  //(CATS& Kitty, double& ScatLen, double& EffRan, TH1F*& hFit, TF1*& fitSP, const int& Nterms=2, const bool& Fixf0=false, const bool& Fixd0=false)
+  Kitty.SetEpsilonConv(1e-8);
+  Kitty.SetEpsilonProp(1e-8);
+  //V0=-10.11; mu=2.55; V1=811.44; mu1=0.07
+  //1  p0           1.01191e+00   3.07375e-04   0.00000e+00   3.73857e+03
+  //2  p1           1.20000e+00     fixed
+  //3  p2          -1.01057e+01   5.58941e-05  -0.00000e+00  -1.21703e+05
+  //4  p3           2.54662e+00   1.08960e-06  -0.00000e+00   9.07165e+04
+  //5  p4           8.11437e+02   2.70487e-01  -0.00000e+00   2.20305e+03
+  //6  p5           6.76762e-02   3.80730e-06   0.00000e+00  -2.79412e+04
+
+  Eval_ScattParameters(Kitty,c_f0,c_d0,h_kcotd,f_kcotd,2,false,false);
+  printf("f0 = %.2f; d0 = %.2f\n",c_f0,c_d0);
+  printf("V0=%.2f; mu=%.2f; V1=%.2f; mu1=%.2f\n",fCATS->GetParameter(2),fCATS->GetParameter(3),fCATS->GetParameter(4),fCATS->GetParameter(5));
+
+  TFile fOutput(WorkFolder+"FuckThisCat.root","recreate");
+  hInput->Write();
+  hFitResult->Write();
+  fCATS->Write();
+  h_kcotd->Write();
+  f_kcotd->Write();
+
+  delete fCATS;
+  delete h_kcotd;
+  delete f_kcotd;
+  delete hInput;
+}
+
+
+
 void rootmathboost_test1(){
+/*
   TLorentzVector v1;
   v1.SetXYZM(50,-50,100,1000);
   TLorentzVector v2;
@@ -12259,16 +12413,103 @@ void rootmathboost_test1(){
   printf("x: %.1f, %.1f\n",v1.X(),v2.X());
   printf("y: %.1f, %.1f\n",v1.Y(),v2.Y());
   printf("z: %.1f, %.1f\n",v1.Z(),v2.Z());
-
-
-
-
+*/
 }
+
+
+//we simulate an yield following a Levy distribution (to kind of mimic ME)
+//and than random sample from it. We fold it, and than we try to unfold it.
+void Test_unfold_yield(){
+  const long unsigned Yield = (long unsigned)(10)*(long unsigned)(1000*1000*1000);
+  const TString OutputFile = TString::Format("%s/Test_unfold_yield/fOutput.root",GetFemtoOutputFolder());
+  const unsigned NumBins = 1024/4;
+  const double kMin = 0;
+  const double kMax = 1024;
+  const double kFold = 360;
+  const double kUnfold = 320;
+  TRandom3 rangen(11);
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
+  TH2F* hResolution_pp = AnalysisObject.GetResolutionMatrix("pp13TeV_HM_DimiJun20","pp");
+  TFile* fOutput = new TFile(OutputFile,"recreate");
+  TF1* fYield = new TF1("fYield","[0]*x*x*exp(-pow(x/[1],[2]))/(sqrt(938.*938.+x*x)*sqrt(1116.*1116.+x*x))",0,8192);
+  fYield->SetParameter(0,1);
+  fYield->SetParameter(1,1000);
+  fYield->SetParameter(2,1.45);
+  double fIntegral = fYield->Integral(0,8192);
+  fYield->SetParameter(0,double(Yield)/fIntegral);
+
+  TH1F* hExpYield = new TH1F("hExpYield","hExpYield",NumBins,kMin,kMax);
+  TH1F* hYield = new TH1F("hYield","hYield",NumBins,kMin,kMax);
+  //const unsigned short& dim,const double& stability=2, const double& location=0, const double& scale=1, const double& skewness=0
+  for(unsigned uBin=0; uBin<hYield->GetNbinsX(); uBin++){
+    double kStar = hYield->GetBinCenter(uBin+1);
+    double klow = hYield->GetXaxis()->GetBinLowEdge(uBin+1);
+    double kup = hYield->GetXaxis()->GetBinUpEdge(uBin+1);
+    double ExpectedYield = fYield->Integral(klow,kup);
+    //double RandomYield = rangen.Poisson(EffectiveCounts)*OriginalValue/EffectiveCounts;
+    double RandomYield = rangen.Poisson(ExpectedYield);
+    hExpYield->SetBinContent(uBin+1,ExpectedYield);
+    hYield->SetBinContent(uBin+1,RandomYield);
+  }
+
+  DLM_Unfold dlmFold;
+  dlmFold.SetData(hYield);
+  dlmFold.SetResponse(hResolution_pp);
+  dlmFold.SetSilentMode(false);
+  dlmFold.SetFoldRange(0,kFold);
+  printf("Folding...\n");
+  DLM_Histo<float>* dlm_yield_fold = dlmFold.Fold();
+  printf("Folded\n");
+  fOutput->cd();
+  TH1F* h_yield_fold = Convert_DlmHisto_TH1F(dlm_yield_fold,"h_yield_fold");
+  for(unsigned uBin=0; uBin<h_yield_fold->GetNbinsX(); uBin++){
+    double BinVal = h_yield_fold->GetBinContent(uBin+1);
+    double BinErr = h_yield_fold->GetBinError(uBin+1);
+    BinVal = TMath::Nint(BinVal);
+    BinErr = sqrt(BinVal);
+    if(!BinErr) BinErr = 1;
+    h_yield_fold->SetBinContent(uBin+1,BinVal);
+    h_yield_fold->SetBinError(uBin+1,BinErr);
+  }
+  //h_yield_fold->Sumw2();
+
+
+  DLM_Unfold dlmUnfold;
+  dlmUnfold.SetData(h_yield_fold);
+  dlmUnfold.SetResponse(hResolution_pp);
+  dlmUnfold.SetSilentMode(false);
+  dlmUnfold.SetUnfoldPrecision(0.1,1.0);
+  dlmUnfold.SetUnfoldRange(0,kUnfold);
+  dlmUnfold.SetUnfoldMinutes(115);
+  printf("Unfolding...\n");
+  DLM_Histo<float>*  dlm_yield_unfolded = dlmUnfold.Unfold(1); 
+  printf("Unfolded\n");
+  fOutput->cd();
+  TH1F* h_yield_unfolded = Convert_DlmHisto_TH1F(dlm_yield_unfolded,"h_yield_unfolded");
+  fOutput->cd();
+  hResolution_pp->Write();
+  hExpYield->Write();
+  hYield->Write();
+  fYield->Write();
+  h_yield_fold->Write();
+  h_yield_unfolded->Write();
+
+  delete hExpYield;
+  delete hYield;
+  delete fYield;
+  delete h_yield_fold;
+  delete h_yield_unfolded;
+  delete fOutput;
+}
+
 
 //
 int OTHERTASKS(int argc, char *argv[]){
-    rootmathboost_test1();
-    return 0;
+    //rootmathboost_test1();
+    Test_unfold_yield();
+    //Rafa_2body_expCk_CATS();
+    //return 0;
 
     //pp_CompareToNorfolk();
     //pp_pL_CorrectedMC_EXP();
@@ -12335,7 +12576,7 @@ int OTHERTASKS(int argc, char *argv[]){
     //TestUnfoldSEME_pL();
     //TestUnfoldSEME_pXi();
     //Rafa_2body_expCk();
-return 0;
+//return 0;
 /*
 ppp_errors(2,1);
 (0) nsig (pval) = 1.10 (0.27080)

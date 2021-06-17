@@ -17,7 +17,7 @@ void pL_SystematicsMay2020(unsigned SEED, unsigned BASELINE_VAR, int POT_VAR, in
                            const char* CatsFileFolder, const char* OutputFolder);
 void pLambda_Spline_Fit_Unfold2(const unsigned& SEEDmin, const unsigned& NumIter, const unsigned& TimeLimit,
                                 const double& Perfect_chi2ndf, const double& VeryGood_chi2ndf, const double& Unacceptable_chi2ndf,
-                                const double& BinWidth, const TString& DataVariation,
+                                const double& BinWidth, const TString& DataVariation, const int& WhichPS,
                                 const char* CatsFileFolder, const TString& OutputFolder);
 void UpdateUnfoldFile(const char* CatsFileFolder, const TString& InputFolderName,
                       const TString& InputFileName, const TString& DataVariation,
@@ -28,4 +28,3 @@ int PLAMBDA_1_MAIN(int argc, char *argv[]);
 
 
 #endif
-

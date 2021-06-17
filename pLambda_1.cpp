@@ -20,6 +20,7 @@
 #include "TSystem.h"
 #include "TAttFill.h"
 #include "TSpline.h"
+#include "TObjString.h"
 
 #include "CATS.h"
 #include "DLM_CkDecomposition.h"
@@ -27,6 +28,7 @@
 #include "CommonAnaFunctions.h"
 #include "DLM_Fitters.h"
 #include "EnvVars.h"
+#include "DLM_Unfold.h"
 
 #include "DLM_HistoAnalysis.h"
 #include "DLM_SubPads.h"
@@ -7140,6 +7142,7 @@ TH1F* hGHETTO_PS=NULL;
     float lam_Xim_Flat;
     float pval;
     unsigned WhichData;
+    unsigned WhichPS;
     float SBl;//fraction of left sideband
     float SBpur;//the purity of the sample, used for the correction with sidebands
     bool DefaultVariation;
@@ -7202,6 +7205,7 @@ TH1F* hGHETTO_PS=NULL;
     plambdaTree->Branch("lam_Xim_genuine", &lam_Xim_genuine, "lam_Xim_genuine/F");
     plambdaTree->Branch("lam_Xim_Flat", &lam_Xim_Flat, "lam_Xim_Flat/F");
     plambdaTree->Branch("WhichData", &WhichData, "WhichData/i");
+    plambdaTree->Branch("WhichPS", &WhichPS, "WhichPS/i");
     plambdaTree->Branch("SBl", &SBl, "SBl/F");
     plambdaTree->Branch("SBpur", &SBpur, "SBpur/F");
     plambdaTree->Branch("pval", &pval, "pval/F");
@@ -7465,60 +7469,7 @@ TH1F* hGHETTO_PS=NULL;
         DLM_CkDecomposition* CkDec_pXi0 = NULL;
         if(Ck_pXineutral) CkDec_pXi0 = new DLM_CkDecomposition("pXi0",2,*Ck_pXineutral,NULL);
 
-if(hGHETTO_PS) delete hGHETTO_PS;
-hGHETTO_PS = new TH1F("hGHETTO_PS","hGHETTO_PS",250,0,3000);
-TF1* fitPS = new TF1("fitPS","[2]*(x*x*exp(-pow(x/sqrt(2)/[0],[1])))/pow([0],3.)",0,1000);
-//i fitted ME of PL with this functions, these were the parameters.
-//we allow -10 to +20% of variations (+20 we expect from ME of pXi etc..., -10 for the fun of it)
-double PS_VAR = rangen.Uniform(0.9,1.2);
-//fitPS->SetParameter(0,3.54129e+02);
-fitPS->SetParameter(0,PS_VAR*3.54129e+02);
-fitPS->SetParameter(1,1.03198e+00);
-fitPS->SetParameter(2,2.47853e-01);
-for(unsigned uBin=0; uBin<250; uBin++){
-  double MOM = hGHETTO_PS->GetBinCenter(uBin+1);
-//  double VAL = 5.40165e-08-1.06309e-08*pow(MOM,1.)+5.71623e-09*pow(MOM,2.)-
-//  -1.15454e-11*pow(MOM,3.)+1.17292e-14*pow(MOM,4.)-7.94266e-18*pow(MOM,5.)+
-//  3.70109e-21*pow(MOM,6.)-1.10644e-24*pow(MOM,7.)+1.86899e-28*pow(MOM,8.)-1.34242e-32*pow(MOM,9.);
-  double VAL = fitPS->Eval(MOM);
-  hGHETTO_PS->SetBinContent(uBin+1,VAL);
-}
-delete fitPS;
 
-        CkDec_pL->AddContribution(0,lam_L_Sig0,DLM_CkDecomposition::cFeedDown,CkDec_pS0?CkDec_pS0:NULL,CkDec_pS0?hResidual_pL_pSigma0:NULL);
-        CkDec_pL->AddContribution(1,lam_L_Xim,DLM_CkDecomposition::cFeedDown,CkDec_pXim?CkDec_pXim:NULL,CkDec_pXim?hResidual_pL_pXim:NULL);
-        CkDec_pL->AddContribution(2,lam_L_Xi0,DLM_CkDecomposition::cFeedDown,CkDec_pXi0?CkDec_pXi0:NULL,CkDec_pXi0?hResidual_pL_pXi0:NULL);
-        //CkDec_pL->AddContribution(0,lam_pL[1],DLM_CkDecomposition::cFeedDown);
-        //CkDec_pL->AddContribution(1,lam_pL[2],DLM_CkDecomposition::cFeedDown);
-        CkDec_pL->AddContribution(3,lam_L_Flat,DLM_CkDecomposition::cFeedDown);
-        CkDec_pL->AddContribution(4,lam_pL[4],DLM_CkDecomposition::cFake);//0.03
-
-if(IMPROVED_FEED){
-  CkDec_pL->AddPhaseSpace(0,hGHETTO_PS);
-  CkDec_pL->AddPhaseSpace(1,hGHETTO_PS);
-  CkDec_pL->AddPhaseSpace(2,hGHETTO_PS);
-}
-
-
-        if(CkDec_pS0){
-            CkDec_pS0->AddContribution(0,lam_S0_Flat,DLM_CkDecomposition::cFeedDown);
-        }
-        if(CkDec_pXim){
-            //for Xim we simplify a bit and take ALL feed-down as flat
-            CkDec_pXim->AddContribution(0,lam_pXim[1]+lam_pXim[2]+lam_pXim[3],DLM_CkDecomposition::cFeedDown);
-            CkDec_pXim->AddContribution(1,lam_pXim[4],DLM_CkDecomposition::cFake);
-        }
-        if(CkDec_pXi0){
-            //for Xim we simplify a bit and take ALL feed-down as flat
-            CkDec_pXi0->AddContribution(0,lam_pXim[1]+lam_pXim[2]+lam_pXim[3],DLM_CkDecomposition::cFeedDown);
-            CkDec_pXi0->AddContribution(1,lam_pXim[4],DLM_CkDecomposition::cFake);
-        }
-
-        CkDec_pL->Update(true,true);
-//printf("(%u) Eval at 366:\n",uIter);
-//printf(" CkDec_pL = %f\n",CkDec_pL->EvalCk(366));
-//printf(" CkDec_pSigma0 = %f\n",CkDec_pSigma0->EvalCk(366));
-//printf(" CkDec_pXim = %f\n",CkDec_pXim->EvalCk(366));
 
         TString DataVar;
         //here we have new file naming, which allows for additional variations,
@@ -7526,6 +7477,10 @@ if(IMPROVED_FEED){
         if(DataSample=="pp13TeV_HM_DimiJun20"||DataSample=="pp13TeV_HM_DimiJul20"||DataSample=="pp13TeV_HM_DimiMay21"){
             //data set variation
             WhichData = rangen.Integer(45);
+            //0 is no phase space, 1 is folded ME, 2 is unfolded
+            if(IMPROVED_FEED) WhichPS = rangen.Integer(2)+1;
+            else WhichPS = 0;
+
             //purity variation (significant at the level of the stat. uncertainties)
             unsigned WhichSBpur = rangen.Integer(2);
             //fraction L:R variation (found insignificant)
@@ -7557,6 +7512,80 @@ if(IMPROVED_FEED){
             if(DefaultVariation||DataSyst==false) WhichData = 0;
             DataVar = TString::Format("_%i",WhichData);
         }
+
+if(hGHETTO_PS) delete hGHETTO_PS;
+hGHETTO_PS = new TH1F("hGHETTO_PS","hGHETTO_PS",250,0,3000);
+TF1* fitPS = new TF1("fitPS","[2]*(x*x*exp(-pow(x/sqrt(2)/[0],[1])))/pow([0],3.)",0,1000);
+//i fitted ME of PL with this functions, these were the parameters.
+//we allow -10 to +20% of variations (+20 we expect from ME of pXi etc..., -10 for the fun of it)
+double PS_VAR = rangen.Uniform(0.9,1.2);
+//fitPS->SetParameter(0,3.54129e+02);
+fitPS->SetParameter(0,PS_VAR*3.54129e+02);
+fitPS->SetParameter(1,1.03198e+00);
+fitPS->SetParameter(2,2.47853e-01);
+for(unsigned uBin=0; uBin<250; uBin++){
+  double MOM = hGHETTO_PS->GetBinCenter(uBin+1);
+//  double VAL = 5.40165e-08-1.06309e-08*pow(MOM,1.)+5.71623e-09*pow(MOM,2.)-
+//  -1.15454e-11*pow(MOM,3.)+1.17292e-14*pow(MOM,4.)-7.94266e-18*pow(MOM,5.)+
+//  3.70109e-21*pow(MOM,6.)-1.10644e-24*pow(MOM,7.)+1.86899e-28*pow(MOM,8.)-1.34242e-32*pow(MOM,9.);
+  double VAL = fitPS->Eval(MOM);
+  hGHETTO_PS->SetBinContent(uBin+1,VAL);
+}
+delete fitPS;
+
+        const TString ME_FileName = TString::Format("%s/CatsFiles/ExpData/ALICE_pp_13TeV_HM/DimiJun20/Norm240_340/DataSignal/CkREW_pL_%u.root",GetCernBoxDimi(),WhichData);
+        const TString DirName = "Binning_12";
+        //this is the reweighted ME sample
+        const TString HistoName = "hMEmultFinal_SUM";
+        TFile* fIn_ME = new TFile(ME_FileName,"read");
+        TDirectoryFile* dir_ME=(TDirectoryFile*)(fIn_ME->FindObjectAny(DirName));
+        TH1D* hD_ME;
+        dir_ME->GetObject(HistoName,hD_ME);
+        TH1F* hF_ME = new TH1F("hF_ME","hF_ME",hD_ME->GetNbinsX(),
+        hD_ME->GetXaxis()->GetBinLowEdge(1),hD_ME->GetXaxis()->GetBinLowEdge(hD_ME->GetNbinsX()));
+        for(unsigned uBin=0; uBin<hD_ME->GetNbinsX(); uBin++){
+          hF_ME->SetBinContent(uBin+1,hD_ME->GetBinContent(uBin+1));
+          hF_ME->SetBinError(uBin+1,hD_ME->GetBinError(uBin+1));
+        }
+        TH1F* hF_ME_UNF = (TH1F*)fIn_ME->Get("hMEmultFinal_SUM_unfolded");
+
+
+        CkDec_pL->AddContribution(0,lam_L_Sig0,DLM_CkDecomposition::cFeedDown,CkDec_pS0?CkDec_pS0:NULL,CkDec_pS0?hResidual_pL_pSigma0:NULL);
+        CkDec_pL->AddContribution(1,lam_L_Xim,DLM_CkDecomposition::cFeedDown,CkDec_pXim?CkDec_pXim:NULL,CkDec_pXim?hResidual_pL_pXim:NULL);
+        CkDec_pL->AddContribution(2,lam_L_Xi0,DLM_CkDecomposition::cFeedDown,CkDec_pXi0?CkDec_pXi0:NULL,CkDec_pXi0?hResidual_pL_pXi0:NULL);
+        //CkDec_pL->AddContribution(0,lam_pL[1],DLM_CkDecomposition::cFeedDown);
+        //CkDec_pL->AddContribution(1,lam_pL[2],DLM_CkDecomposition::cFeedDown);
+        CkDec_pL->AddContribution(3,lam_L_Flat,DLM_CkDecomposition::cFeedDown);
+        CkDec_pL->AddContribution(4,lam_pL[4],DLM_CkDecomposition::cFake);//0.03
+
+if(IMPROVED_FEED){
+  //CkDec_pL->AddPhaseSpace(WhichPS==1?hF_ME:hF_ME_UNF);//this is not needed on the unfolded data
+  CkDec_pL->AddPhaseSpace(0,WhichPS==1?hF_ME:hF_ME_UNF);
+  CkDec_pL->AddPhaseSpace(1,WhichPS==1?hF_ME:hF_ME_UNF);
+  CkDec_pL->AddPhaseSpace(2,WhichPS==1?hF_ME:hF_ME_UNF);
+}
+
+        if(CkDec_pS0){
+            CkDec_pS0->AddContribution(0,lam_S0_Flat,DLM_CkDecomposition::cFeedDown);
+        }
+        if(CkDec_pXim){
+            //for Xim we simplify a bit and take ALL feed-down as flat
+            CkDec_pXim->AddContribution(0,lam_pXim[1]+lam_pXim[2]+lam_pXim[3],DLM_CkDecomposition::cFeedDown);
+            CkDec_pXim->AddContribution(1,lam_pXim[4],DLM_CkDecomposition::cFake);
+        }
+        if(CkDec_pXi0){
+            //for Xim we simplify a bit and take ALL feed-down as flat
+            CkDec_pXi0->AddContribution(0,lam_pXim[1]+lam_pXim[2]+lam_pXim[3],DLM_CkDecomposition::cFeedDown);
+            CkDec_pXi0->AddContribution(1,lam_pXim[4],DLM_CkDecomposition::cFake);
+        }
+
+        CkDec_pL->Update(true,true);
+//printf("(%u) Eval at 366:\n",uIter);
+//printf(" CkDec_pL = %f\n",CkDec_pL->EvalCk(366));
+//printf(" CkDec_pSigma0 = %f\n",CkDec_pSigma0->EvalCk(366));
+//printf(" CkDec_pXim = %f\n",CkDec_pXim->EvalCk(366));
+
+
 
         //TH1F* hData_pL = AnalysisObject.GetAliceExpCorrFun(DataSample,"pLambda","_0",1,false,-1);
         TH1F* hData = AnalysisObject.GetAliceExpCorrFun(DataSample,"pLambda",DataVar,2,false,-1);
@@ -7765,7 +7794,9 @@ if(IMPROVED_FEED){
         if(CkDec_pS0) delete CkDec_pS0;
         if(CkDec_pXim) delete CkDec_pXim;
         if(CkDec_pXi0) delete CkDec_pXi0;
-    }
+        delete hF_ME;
+        delete fIn_ME;
+    }//NumIter
 printf("\n");
 
     OutputFile->cd();
@@ -8119,6 +8150,7 @@ void Plot_pL_SystematicsMay2020(const int& SIGMA_FEED, const int& WhichSourceAlp
     float lam_Xim_Flat;
     float pval;
     unsigned WhichData;
+    unsigned WhichPS;
     bool DefaultVariation;
     int Sigma0_Feed;
     int Xim_Feed;
@@ -8165,6 +8197,7 @@ void Plot_pL_SystematicsMay2020(const int& SIGMA_FEED, const int& WhichSourceAlp
 	plambdaTree->SetBranchAddress("lam_Xim_genuine",&lam_Xim_genuine);
 	plambdaTree->SetBranchAddress("lam_Xim_Flat",&lam_Xim_Flat);
 	plambdaTree->SetBranchAddress("WhichData",&WhichData);
+  plambdaTree->SetBranchAddress("WhichPS",&WhichPS);
 	plambdaTree->SetBranchAddress("pval",&pval);
 	plambdaTree->SetBranchAddress("DefaultVariation",&DefaultVariation);
 
@@ -9373,6 +9406,7 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
     float lam_Xim_Flat;
     float pval;
     unsigned WhichData;
+    unsigned WhichPS;
     float SBl;
     float SBpur;
     bool DefaultVariation;
@@ -9422,8 +9456,9 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
 	plambdaTree->SetBranchAddress("lam_Xim_genuine",&lam_Xim_genuine);
 	plambdaTree->SetBranchAddress("lam_Xim_Flat",&lam_Xim_Flat);
 	plambdaTree->SetBranchAddress("WhichData",&WhichData);
-    plambdaTree->SetBranchAddress("SBl", &SBl);
-    plambdaTree->SetBranchAddress("SBpur", &SBpur);
+  plambdaTree->SetBranchAddress("WhichPS",&WhichPS);
+  plambdaTree->SetBranchAddress("SBl", &SBl);
+  plambdaTree->SetBranchAddress("SBpur", &SBpur);
 	plambdaTree->SetBranchAddress("pval",&pval);
 	plambdaTree->SetBranchAddress("DefaultVariation",&DefaultVariation);
 
@@ -12403,12 +12438,12 @@ printf(" 9\n");
 //for a new computation, make sure the output file is deleted by hand (otherwise it just accumulates statistics)
 void pLambda_Spline_Fit_Unfold2(const unsigned& SEEDmin, const unsigned& NumIter, const unsigned& TimeLimit,
                                 const double& Perfect_chi2ndf, const double& VeryGood_chi2ndf, const double& Unacceptable_chi2ndf,
-                                const double& BinWidth, const TString& DataVariation,
+                                const double& BinWidth, const TString& DataVariation, const int& WhichPS,
                                 const char* CatsFileFolder, const TString& OutputFolder){
 
     //PUT FALST FOR THE BATCH FARM
     const bool PC_OUTPUT = false;
-    const bool NewSmearing = true;
+    //const bool NewSmearing = true;
 
     //if true, the output is saved in a separate file for each seed
     //the 1D histograms are not filled, however if we run with
@@ -12423,28 +12458,30 @@ void pLambda_Spline_Fit_Unfold2(const unsigned& SEEDmin, const unsigned& NumIter
     const long long JobTimeLimit = TimeLimit*60;
     bool TerminateASAP = false;
     DLM_Timer JobTime;
-
-    TH1F* hGHETTO_PS = NULL;
-    if(hGHETTO_PS) {delete hGHETTO_PS; hGHETTO_PS=NULL;}
-    if(NewSmearing) {hGHETTO_PS = new TH1F("hGHETTO_PS","hGHETTO_PS",250,0,3000);}
-    TF1* fitPS = new TF1("fitPS","[2]*(x*x*exp(-pow(x/sqrt(2)/[0],[1])))/pow([0],3.)",0,1000);
-    //i fitted ME of PL with this functions, these were the parameters.
-    //we allow -10 to +20% of variations (+20 we expect from ME of pXi etc..., -10 for the fun of it)
-    //double PS_VAR = rangen.Uniform(0.9,1.2);
-    //fitPS->SetParameter(0,3.54129e+02);
-    fitPS->SetParameter(0,3.54129e+02);
-    fitPS->SetParameter(1,1.03198e+00);
-    fitPS->SetParameter(2,2.47853e-01);
-    for(unsigned uBin=0; uBin<250; uBin++){
-      double MOM = hGHETTO_PS->GetBinCenter(uBin+1);
-    //  double VAL = 5.40165e-08-1.06309e-08*pow(MOM,1.)+5.71623e-09*pow(MOM,2.)-
-    //  -1.15454e-11*pow(MOM,3.)+1.17292e-14*pow(MOM,4.)-7.94266e-18*pow(MOM,5.)+
-    //  3.70109e-21*pow(MOM,6.)-1.10644e-24*pow(MOM,7.)+1.86899e-28*pow(MOM,8.)-1.34242e-32*pow(MOM,9.);
-      double VAL = fitPS->Eval(MOM);
-      if(hGHETTO_PS) hGHETTO_PS->SetBinContent(uBin+1,VAL);
-    }
-    delete fitPS;
-
+//printf("hGHETTO_PS\n");
+//    TH1F* hGHETTO_PS = NULL;
+//    if(hGHETTO_PS) {delete hGHETTO_PS; hGHETTO_PS=NULL;}
+//    if(WhichPS==0) {
+//      hGHETTO_PS = new TH1F("hGHETTO_PS","hGHETTO_PS",250,0,3000);
+//      TF1* fitPS = new TF1("fitPS","[2]*(x*x*exp(-pow(x/sqrt(2)/[0],[1])))/pow([0],3.)",0,1000);
+      //i fitted ME of PL with this functions, these were the parameters.
+      //we allow -10 to +20% of variations (+20 we expect from ME of pXi etc..., -10 for the fun of it)
+      //double PS_VAR = rangen.Uniform(0.9,1.2);
+      //fitPS->SetParameter(0,3.54129e+02);
+//      fitPS->SetParameter(0,3.54129e+02);
+//      fitPS->SetParameter(1,1.03198e+00);
+//      fitPS->SetParameter(2,2.47853e-01);
+//      for(unsigned uBin=0; uBin<250; uBin++){
+//        double MOM = hGHETTO_PS->GetBinCenter(uBin+1);
+      //  double VAL = 5.40165e-08-1.06309e-08*pow(MOM,1.)+5.71623e-09*pow(MOM,2.)-
+      //  -1.15454e-11*pow(MOM,3.)+1.17292e-14*pow(MOM,4.)-7.94266e-18*pow(MOM,5.)+
+      //  3.70109e-21*pow(MOM,6.)-1.10644e-24*pow(MOM,7.)+1.86899e-28*pow(MOM,8.)-1.34242e-32*pow(MOM,9.);
+//        double VAL = fitPS->Eval(MOM);
+//        if(hGHETTO_PS) hGHETTO_PS->SetBinContent(uBin+1,VAL);
+//      }
+//      delete fitPS;
+//    }
+//printf("ho-ho-ho\n");
     //if you reach such a chi2, ignore all other constraints and terminate
     //const double Perfect_chi2ndf = 0.1;
     //similar as the perfect one, however this condition is only verified at the end of each polishing run
@@ -12525,7 +12562,28 @@ void pLambda_Spline_Fit_Unfold2(const unsigned& SEEDmin, const unsigned& NumIter
     printf(" chi2/ndf = %.1f/%i\n",f_chi2,f_ndf);
     //printf(" pval = %.4f\n",f_pval);
     //printf(" nsigma = %.2f\n",f_ns);
-
+//printf("hi\n");
+    int WhichData = atoi(((TObjString*)(DataVariation.Tokenize("_")->At(4)))->String().Data());
+    const TString ME_FileName = TString::Format("%s/CatsFiles/ExpData/ALICE_pp_13TeV_HM/DimiJun20/Norm240_340/DataSignal/CkREW_pL_%i.root",GetCernBoxDimi(),WhichData);
+    printf("ME_FileName = %s\n",ME_FileName.Data());
+    const TString DirName = "Binning_12";
+    //this is the reweighted ME sample
+    const TString HistoName = "hMEmultFinal_SUM";
+    TFile* fIn_ME = new TFile(ME_FileName,"read");
+    TDirectoryFile* dir_ME=(TDirectoryFile*)(fIn_ME->FindObjectAny(DirName));
+    TH1D* hD_ME;
+    dir_ME->GetObject(HistoName,hD_ME);
+    TH1F* hF_ME = new TH1F("hF_ME","hF_ME",hD_ME->GetNbinsX(),
+    hD_ME->GetXaxis()->GetBinLowEdge(1),hD_ME->GetXaxis()->GetBinLowEdge(hD_ME->GetNbinsX()));
+    for(unsigned uBin=0; uBin<hD_ME->GetNbinsX(); uBin++){
+      hF_ME->SetBinContent(uBin+1,hD_ME->GetBinContent(uBin+1));
+      hF_ME->SetBinError(uBin+1,hD_ME->GetBinError(uBin+1));
+    }
+    const int REBIN = TMath::Nint(BinWidth/4.);
+    TH1F* hF_ME_UNF = (TH1F*)fIn_ME->Get("hMEmultFinal_SUM_unfolded");
+    //hF_ME->Rebin(REBIN);
+    hF_ME_UNF->Rebin(REBIN);
+//printf("hi2\n");
 
     DLM_Ck* Ck_pL = new DLM_Ck(3+NumKnots*2,0,NumMomBins,kMin,kMax,pLambda_Spline_Ck);
     //Ck_pL->SetSourcePar(0,ResidualSourceSize);
@@ -12534,7 +12592,9 @@ void pLambda_Spline_Fit_Unfold2(const unsigned& SEEDmin, const unsigned& NumIter
 //TH2F* hResolution_pL = AnalysisObject.GetResolutionMatrix("pp13TeV_HM_Dec19","pp");
 //TH2F* hResolution_pL = AnalysisObject.GetResolutionMatrix("pp13TeV_HM_DimiJun20","pp");
     DLM_CkDecomposition* CkDec_pL = new DLM_CkDecomposition("pLambda",0,*Ck_pL,hResolution_pL);
-    if(hGHETTO_PS) CkDec_pL->AddPhaseSpace(hGHETTO_PS);
+    if(WhichPS==1) CkDec_pL->AddPhaseSpace(hF_ME);
+    else if(WhichPS==2) CkDec_pL->AddPhaseSpace(hF_ME_UNF);
+    //else CkDec_pL->AddPhaseSpace(hGHETTO_PS);
     pLambda_Spline_CkFit_CKDEC = CkDec_pL;
 
     TF1* fit_pL = new TF1("fit_pL",pLambda_Spline_CkFit,kMin,kMax,3+NumKnots*2);
@@ -12574,6 +12634,8 @@ void pLambda_Spline_Fit_Unfold2(const unsigned& SEEDmin, const unsigned& NumIter
         delete Ck_pL;
         delete CkDec_pL;
         delete fit_pL;
+        delete hF_ME;
+        delete fIn_ME;
         delete [] Nodes_x;
         printf("REJECTED (pre-fit)\n\n");
         return;
@@ -12675,7 +12737,10 @@ void pLambda_Spline_Fit_Unfold2(const unsigned& SEEDmin, const unsigned& NumIter
         //TH1F* hData_Unfolded = (TH1F*)hData_boot->Clone("hData_Unfolded");
         DLM_Ck* Ck_Unfolded = new DLM_Ck(0,0,NumMomBins,kMin,kMax,NULL);
         DLM_CkDecomposition* CkDec_Unfolded = new DLM_CkDecomposition("pLambda",0,*Ck_Unfolded,hResolution_pL);
-        if(hGHETTO_PS) CkDec_Unfolded->AddPhaseSpace(hGHETTO_PS);
+        //if(hGHETTO_PS) CkDec_Unfolded->AddPhaseSpace(hGHETTO_PS);
+        if(WhichPS==1) CkDec_Unfolded->AddPhaseSpace(hF_ME);
+        else if(WhichPS==2) CkDec_Unfolded->AddPhaseSpace(hF_ME_UNF);
+        //else CkDec_Unfolded->AddPhaseSpace(hGHETTO_PS);
         double BestChi2=1e6;
         double BestChi2_Data=1e6;
         double BestChi2_Fit=1e6;
@@ -12684,7 +12749,10 @@ void pLambda_Spline_Fit_Unfold2(const unsigned& SEEDmin, const unsigned& NumIter
         DLM_Ck* Ck_Best = new DLM_Ck(0,0,NumMomBins,kMin,kMax,NULL);
         DLM_Ck* Ck_Sample = new DLM_Ck(0,0,NumMomBins,kMin,kMax,NULL);
         DLM_CkDecomposition* CkDec_Best = new DLM_CkDecomposition("pLambda",0,*Ck_Best,hResolution_pL);
-        if(hGHETTO_PS) CkDec_Best->AddPhaseSpace(hGHETTO_PS);
+        //if(hGHETTO_PS) CkDec_Best->AddPhaseSpace(hGHETTO_PS);
+        if(WhichPS==1) CkDec_Best->AddPhaseSpace(hF_ME);
+        else if(WhichPS==2) CkDec_Best->AddPhaseSpace(hF_ME_UNF);
+        //else CkDec_Best->AddPhaseSpace(hGHETTO_PS);
     //64.5, 64.6 for the fast round
     // New best fit: Chi2=85.568 (48.694+36.875) at uED=3 for the pLambda_Spline_Fit_Unfold2_TEST1_Chi2All.root
 
@@ -12988,7 +13056,7 @@ void pLambda_Spline_Fit_Unfold2(const unsigned& SEEDmin, const unsigned& NumIter
     //create ones and rewrite on each iter
         TString OutputFileName;
         //if(SafeFileOpening)
-            OutputFileName = OutputFolder+TString::Format("CkSB_pL_%s_Unfolded_%u.root",DataVariation.Data(),uSeed);
+            OutputFileName = OutputFolder+TString::Format("CkSB_pL_%s_Unfolded_%i_%u.root",DataVariation.Data(),WhichPS,uSeed);
         //else OutputFileName = OutputFolder+TString::Format("CkSB_pL_%s_Unfolded.root",DataVariation.Data());
 
         TH2F* CkBootstrap = NULL;
@@ -13152,13 +13220,15 @@ void pLambda_Spline_Fit_Unfold2(const unsigned& SEEDmin, const unsigned& NumIter
 //printf("COMPLETE!\n");
     }//uSeed
 
-    delete hGHETTO_PS;
+    //delete hGHETTO_PS;
     delete fit_pL_RAW;
     delete fit_pL;
     delete Ck_pL;
     delete CkDec_pL;
     delete [] Nodes_x;
     delete hData_pL;
+    delete hF_ME;
+    delete fIn_ME;
     delete [] strtime;
     delete [] ctext1;
     delete [] ctext2;
@@ -13547,7 +13617,7 @@ void pLambda_Study_Hypotheses(){
                 float kFemtoMin;float kFemtoMax;float kLongMin;float kLongMax;
                 float lam_L_genuine;float lam_L_Sig0;float lam_L_Xim;float lam_L_Xi0;float lam_L_Flat;
                 float lam_S0_genuine;float lam_S0_Flat;float lam_Xim_genuine;float lam_Xim_Flat;
-                float pval;unsigned WhichData;bool DefaultVariation;int Sigma0_Feed;int Xim_Feed;
+                float pval;unsigned WhichData;unsigned WhichPS;bool DefaultVariation;int Sigma0_Feed;int Xim_Feed;
 
                 plambdaTree->SetBranchAddress("gData",&gData);
                 plambdaTree->SetBranchAddress("fitData",&fitData);
@@ -13591,6 +13661,7 @@ void pLambda_Study_Hypotheses(){
                 plambdaTree->SetBranchAddress("lam_Xim_genuine",&lam_Xim_genuine);
                 plambdaTree->SetBranchAddress("lam_Xim_Flat",&lam_Xim_Flat);
                 plambdaTree->SetBranchAddress("WhichData",&WhichData);
+                plambdaTree->SetBranchAddress("WhichPS",&WhichPS);
                 plambdaTree->SetBranchAddress("pval",&pval);
                 plambdaTree->SetBranchAddress("DefaultVariation",&DefaultVariation);
 
@@ -15772,9 +15843,74 @@ void pLambda_DummyCk_DifferentRadii(){
 
 
 
+void Unfold_pL_ME(const TString InputFolder, const TString InputFile){
+  //const TString OutputFile = InputFile.ReplaceAll(".root","_PS.root");
+  const TString DirName = "Binning_4";
+  //this is the reweighted ME sample
+  const TString HistoName = "hMEmultFinal_SUM";
+
+  const unsigned NumBins = 1000/4;
+  const double kMin = 0;
+  const double kMax = 1000;
+  const double kFold = 600;
+  //const double kFold = 120;
+  const double kUnfold = 540;
+  //const double kUnfold = 80;
+  TRandom3 rangen(11);
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
+  TH2F* hResolution_pp = AnalysisObject.GetResolutionMatrix("pp13TeV_HM_DimiJun20","pp");
+  //TFile* fOutput = new TFile(OutputFile,"recreate");
+  TFile* fInOut = new TFile(InputFolder+InputFile,"update");
+  TDirectoryFile* dir_ME=(TDirectoryFile*)(fInOut->FindObjectAny(DirName));
+  TH1D* hD_ME;// = (TH1F*)fInOut->Get(HistoName);
+  //dir_ME->ls();
+  dir_ME->GetObject(HistoName,hD_ME);
+  //printf("%p %p %p\n",fInOut,dir_ME,h_ME);
+  TH1F* h_ME = new TH1F("h_ME","h_ME",hD_ME->GetNbinsX(),
+  hD_ME->GetXaxis()->GetBinLowEdge(1),hD_ME->GetXaxis()->GetBinLowEdge(hD_ME->GetNbinsX()));
+  for(unsigned uBin=0; uBin<hD_ME->GetNbinsX(); uBin++){
+    h_ME->SetBinContent(uBin+1,hD_ME->GetBinContent(uBin+1));
+    h_ME->SetBinError(uBin+1,hD_ME->GetBinError(uBin+1));
+  }
+
+  DLM_Unfold dlmUnfold;
+  dlmUnfold.SetData(h_ME);
+  dlmUnfold.SetResponse(hResolution_pp);
+  dlmUnfold.SetSilentMode(false);
+  dlmUnfold.SetUnfoldPrecision(0.25,1000000.0);
+  dlmUnfold.SetFoldRange(0,kFold);
+  dlmUnfold.SetUnfoldRange(0,kUnfold);
+  dlmUnfold.SetUnfoldMinutes(30);
+  //return;
+  printf("Unfolding...\n");
+  DLM_Histo<float>*  dlm_ME_unfolded = dlmUnfold.Unfold(0);
+  printf("Unfolded\n");
+  fInOut->cd();
+  TH1F* h_ME_unfolded = Convert_DlmHisto_TH1F(dlm_ME_unfolded,HistoName+"_unfolded");
+  for(unsigned uBin=0; uBin<h_ME_unfolded->GetNbinsX(); uBin++){
+    h_ME_unfolded->SetBinError(uBin+1,0);
+  }
+  fInOut->cd();
+  //hResolution_pp->Write();
+  h_ME_unfolded->Write("",TObject::kOverwrite);
+  dlmUnfold.GetFitFoldOriginal()->Write("",TObject::kOverwrite);
+  dlmUnfold.GetFitUnfoldFinal()->Write("",TObject::kOverwrite);
+
+
+  delete h_ME_unfolded;
+  delete h_ME;
+  delete fInOut;
+}
+
+
 
 int PLAMBDA_1_MAIN(int argc, char *argv[]){
 printf("PLAMBDA_1_MAIN\n");
+
+  //Unfold_pL_ME(TString::Format("%s/CatsFiles/ExpData/ALICE_pp_13TeV_HM/DimiJun20/Norm240_340/DataSignal/",GetCernBoxDimi()),"TEST.root");
+  //Unfold_pL_ME(argv[1],argv[2]);
+  //return 0;
 
 //pLambda_DummyCk_DifferentRadii();
 //return 0;
@@ -15798,19 +15934,31 @@ printf("PLAMBDA_1_MAIN\n");
 //pLambda_Spline_Fit_Test();
 //pLambda_Spline_Fit_Test2();
 //pLambda_Spline_Fit_Unfold2(12,"L53_SL4_SR6_P96_0","/mnt/Ubuntu_Data/CernBox/Sync/CatsFiles/ExpData/ALICE_pp_13TeV_HM/DimiJun20/Norm240_340/DataSignal/Unfolded/ppMatrix/");
-//const unsigned& SEEDmin, const unsigned& NumIter, const unsigned& TimeLimit,
+//void pLambda_Spline_Fit_Unfold2(const unsigned& SEEDmin, const unsigned& NumIter, const unsigned& TimeLimit,
 //                                const double& Perfect_chi2ndf, const double& VeryGood_chi2ndf, const double& Unacceptable_chi2ndf,
-//                                const double& BinWidth, const TString& DataVariation,
-//                                const char* CatsFileFolder, const TString& OutputFolder
-//pLambda_Spline_Fit_Unfold2(atoi(argv[1]),25,75,0.2,0.4,0.8,12,"L53_SL4_SR6_P96_0",TString::Format("%s/CatsFiles/",GetCernBoxDimi()),
-//                           TString::Format("%s/pLambda/Unfolding/TestMomReso2/",GetFemtoOutputFolder()));
+//                                const double& BinWidth, const TString& DataVariation, const int& WhichPS,
+//                                const char* CatsFileFolder, const TString& OutputFolder)
+pLambda_Spline_Fit_Unfold2(atoi(argv[1]),5,30,0.2,0.4,0.8,12,"L53_SL4_SR6_P96_0",atoi(argv[2]),TString::Format("%s/CatsFiles/",GetCernBoxDimi()),
+                           TString::Format("%s/pLambda/Unfolding/TestUnfold1/",GetFemtoOutputFolder()));
 //const char* CatsFileFolder, const TString& InputFolderName,
 //                      const TString& InputFileName, const TString& DataVariation,
 //                      const int& BinWidth
+
 //UpdateUnfoldFile(TString::Format("%s/CatsFiles/",GetCernBoxDimi()),
-//                 TString::Format("%s/pLambda/Unfolding/TestMomReso2/",GetFemtoOutputFolder()),"CkSB_pL_L53_SL4_SR6_P96_0_Unfolded.root",
+//                 TString::Format("%s/pLambda/Unfolding/TestUnfold1/",GetFemtoOutputFolder()),TString::Format("CkSB_pL_L53_SL4_SR6_P96_0_Unfolded_1.root"),
 //                 "L53_SL4_SR6_P96_0",12);
-//return 0;
+/*
+UpdateUnfoldFile(TString::Format("%s/CatsFiles/",GetCernBoxDimi()),
+                 TString::Format("%s/pLambda/Unfolding/TestUnfold1/",GetFemtoOutputFolder()),"CkSB_pL_L53_SL4_SR6_P96_0_Unfolded_0_1.root",
+                 "L53_SL4_SR6_P96_0",12);
+UpdateUnfoldFile(TString::Format("%s/CatsFiles/",GetCernBoxDimi()),
+                 TString::Format("%s/pLambda/Unfolding/TestUnfold1/",GetFemtoOutputFolder()),"CkSB_pL_L53_SL4_SR6_P96_0_Unfolded_1_1.root",
+                 "L53_SL4_SR6_P96_0",12);
+UpdateUnfoldFile(TString::Format("%s/CatsFiles/",GetCernBoxDimi()),
+                 TString::Format("%s/pLambda/Unfolding/TestUnfold1/",GetFemtoOutputFolder()),"CkSB_pL_L53_SL4_SR6_P96_0_Unfolded_2_1.root",
+                 "L53_SL4_SR6_P96_0",12);
+*/
+return 0;
 //cout << argv[1] << endl;
 //cout << argv[2] << endl;
 //cout << argv[3] << endl;
@@ -15828,7 +15976,7 @@ printf("PLAMBDA_1_MAIN\n");
 //return 0;
 //printf("hello\n");
 
-
+/*
 Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(atoi(argv[4]))/10.,
                             ///home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/100720_Unfolded/
                             //TString::Format("%s/pLambda/100720_Unfolded/",GetCernBoxDimi()),
@@ -15847,7 +15995,7 @@ Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(at
 
 //MakeLATEXtable(TString::Format("%s/pLambda/180521_SillyTest/NoBootstrap/Plots/",GetCernBoxDimi()),true);
 return 0;
-
+*/
 //Plot_pL_SystematicsMay2020_2(2,10,1500,2.0,
 //        "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/040620_Gauss/",
 //        "Merged_pp13TeV_HM_Dec19_POT1500_BL10_SIG2.root",
@@ -15884,9 +16032,9 @@ return 0;
 //unsigned SEED, unsigned BASELINE_VAR, int POT_VAR, int Sigma0_Feed, int Data_Type,
                            //bool DataSyst, bool FitSyst, bool Bootstrap, unsigned NumIter,
                           // const char* CatsFileFolder, const char* OutputFolder
-//pL_SystematicsMay2020(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]), atoi(argv[6]), atoi(argv[7]), atoi(argv[8]), atoi(argv[9]),
-//TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data(),
-//TString::Format("%s/pLambda/Dump/",GetCernBoxDimi()).Data());
+pL_SystematicsMay2020(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]), atoi(argv[6]), atoi(argv[7]), atoi(argv[8]), atoi(argv[9]),
+TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data(),
+TString::Format("%s/pLambda/Dump/",GetCernBoxDimi()).Data());
 
 //pL_SystematicsMay2020(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]), atoi(argv[6]), atoi(argv[7]),
 //                      argv[8],argv[9]);
