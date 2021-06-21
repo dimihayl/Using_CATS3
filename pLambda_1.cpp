@@ -7538,7 +7538,7 @@ for(unsigned uBin=0; uBin<250; uBin++){
 }
 delete fitPS;
 */
-        const TString ME_FileName = TString::Format("%s/CatsFiles/ExpData/ALICE_pp_13TeV_HM/DimiJun20/Norm240_340/DataSignal/CkREW_pL_%u.root",GetCernBoxDimi(),WhichData);
+        const TString ME_FileName = TString::Format("%s/ExpData/ALICE_pp_13TeV_HM/DimiJun20/Norm240_340/DataSignal/CkREW_pL_%u.root",CatsFileFolder,WhichData);
         const TString DirName = "Binning_12";
         //this is the reweighted ME sample
         const TString HistoName = "hMEmultFinal_SUM";
