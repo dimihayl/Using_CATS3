@@ -2215,7 +2215,7 @@ DLM_Ck* DLM_CommonAnaFunctions::SetUpLednicky_pL(const unsigned& NumMomBins, con
         p0=2.66,p2=1.57,p1=2.67,p3=3.08;
     }
     else{
-        printf("\033[1;31mERROR:\033[0m The pΛ potential '%s' does not exist\n",POT.Data());
+        printf("\033[1;31mERROR (SetUpLednicky_pL):\033[0m The pΛ potential '%s' does not exist\n",POT.Data());
     }
     DLM_Ck* DlmCk = new DLM_Ck(1,4,NumMomBins,MomBins,Lednicky_SingletTriplet);//
 	DlmCk->SetPotPar(0,p0);
@@ -2251,7 +2251,7 @@ void DLM_CommonAnaFunctions::SetUpBinning_pp(const TString& DataSample, unsigned
         }
     }
     else if(DataSample=="pp13TeV_HM_March19"||DataSample=="pp13TeV_HM_Dec19"||DataSample=="pp13TeV_HM_RotPhiDec19"
-            ||DataSample=="pp13TeV_HM_DimiJun20"||DataSample=="pp13TeV_HM_DimiJul20"||DataSample=="pp13TeV_HM_DimiMay21"){
+            ||DataSample=="pp13TeV_HM_DimiJun20"||DataSample=="pp13TeV_HM_DimiJul20"||DataSample=="pp13TeV_HM_DimiMay21"||DataSample=="pp13TeV_HM_DimiJun21"){
         if(MomBinVar==0){
             kMin=4;
             kStep=4;
@@ -2315,7 +2315,7 @@ void DLM_CommonAnaFunctions::SetUpBinning_pp(const TString& DataSample, unsigned
         }
     }
     else{
-        printf("\033[1;31mERROR:\033[0m The data sample '%s' does not exist\n",DataSample.Data());
+        printf("\033[1;31mERROR (SetUpBinning_pp):\033[0m The data sample '%s' does not exist\n",DataSample.Data());
         NumMomBins=0;
         return;
     }
@@ -2434,7 +2434,7 @@ void DLM_CommonAnaFunctions::SetUpBinning_pL(const TString& DataSample, unsigned
         FitRegion[3] = MomBins[NumMomBins]+kCoarseStep*20.;//588
     }
     else if(DataSample=="pp13TeV_HM_March19"||DataSample=="pp13TeV_HM_Dec19"||DataSample=="pp13TeV_HM_RotPhiDec19"
-            ||DataSample=="pp13TeV_HM_DimiJun20"||DataSample=="pp13TeV_HM_DimiJul20"||DataSample=="pp13TeV_HM_DimiMay21"){
+            ||DataSample=="pp13TeV_HM_DimiJun20"||DataSample=="pp13TeV_HM_DimiJul20"||DataSample=="pp13TeV_HM_DimiMay21"||DataSample=="pp13TeV_HM_DimiJun21"){
         if(MomBinVar==0){
             kMin=0;
             kFineMin=336;//272//216
@@ -2652,7 +2652,7 @@ void DLM_CommonAnaFunctions::SetUpBinning_pL(const TString& DataSample, unsigned
         FitRegion[3] = MomBins[NumMomBins]+kCoarseStep*18.;//564
     }
     else{
-        printf("\033[1;31mERROR:\033[0m The data sample '%s' does not exist\n",DataSample.Data());
+        printf("\033[1;31mERROR (SetUpBinning_pL):\033[0m The data sample '%s' does not exist\n",DataSample.Data());
         NumMomBins=0;
         return;
     }
@@ -2666,7 +2666,7 @@ void DLM_CommonAnaFunctions::GetPurities_p(const TString& DataSample, const int&
         PurityProton = 0.989859;
     }
     else if(DataSample=="pp13TeV_HM_March19"||DataSample=="pp13TeV_HM_Dec19"||DataSample=="pp13TeV_HM_RotPhiDec19"
-            ||DataSample=="pp13TeV_HM_DimiJun20"||DataSample=="pp13TeV_HM_DimiJul20"||DataSample=="pp13TeV_HM_DimiMay21"){
+            ||DataSample=="pp13TeV_HM_DimiJun20"||DataSample=="pp13TeV_HM_DimiJul20"||DataSample=="pp13TeV_HM_DimiMay21"||DataSample=="pp13TeV_HM_DimiJun21"){
         PurityProton = 0.9943;
     }
     else if(DataSample=="pPb5TeV_Run2paper"){
@@ -2679,7 +2679,7 @@ void DLM_CommonAnaFunctions::GetPurities_p(const TString& DataSample, const int&
         PurityProton = 0.9943;
     }
     else{
-        printf("\033[1;31mERROR:\033[0m The data sample '%s' does not exist\n",DataSample.Data());
+        printf("\033[1;31mERROR (GetPurities_p):\033[0m The data sample '%s' does not exist\n",DataSample.Data());
         PurityProton = 1.0;
     }
 
@@ -2712,7 +2712,7 @@ void DLM_CommonAnaFunctions::GetPurities_L(const TString& DataSample, const int&
         else if(Variation==-1) PurityLambda = 1.0;//use for SB corrected correlations
         else PurityLambda = 0.9595;
     }
-    else if(DataSample=="pp13TeV_HM_DimiJun20"||DataSample=="pp13TeV_HM_DimiJul20"||DataSample=="pp13TeV_HM_DimiMay21"){
+    else if(DataSample=="pp13TeV_HM_DimiJun20"||DataSample=="pp13TeV_HM_DimiJul20"||DataSample=="pp13TeV_HM_DimiMay21"||DataSample=="pp13TeV_HM_DimiJun21"){
         PurityLambda = 1.0;//use for SB corrected correlations
     }
     else if(DataSample=="pPb5TeV_Run2paper"){
@@ -2722,7 +2722,7 @@ void DLM_CommonAnaFunctions::GetPurities_L(const TString& DataSample, const int&
         PurityLambda = 0.937761;
     }
     else{
-        printf("\033[1;31mERROR:\033[0m The data sample '%s' does not exist\n",DataSample.Data());
+        printf("\033[1;31mERROR (GetPurities_L):\033[0m The data sample '%s' does not exist\n",DataSample.Data());
         PurityLambda = 1.0;
     }
 
@@ -2745,7 +2745,7 @@ void DLM_CommonAnaFunctions::GetPurities_Xim(const TString& DataSample, const in
         PurityXim = 0.956;
     }
     else if(DataSample=="pp13TeV_HM_March19"||DataSample=="pp13TeV_HM_Dec19"||DataSample=="pp13TeV_HM_RotPhiDec19"
-            ||DataSample=="pp13TeV_HM_DimiJun20"||DataSample=="pp13TeV_HM_DimiJul20"||DataSample=="pp13TeV_HM_DimiMay21"){
+            ||DataSample=="pp13TeV_HM_DimiJun20"||DataSample=="pp13TeV_HM_DimiJul20"||DataSample=="pp13TeV_HM_DimiMay21"||DataSample=="pp13TeV_HM_DimiJun21"){
         PurityXim = 0.956;
     }
     else if(DataSample=="pPb5TeV_Run2paper"){
@@ -2755,7 +2755,7 @@ void DLM_CommonAnaFunctions::GetPurities_Xim(const TString& DataSample, const in
         PurityXim = 0.88;
     }
     else{
-        printf("\033[1;31mERROR:\033[0m The data sample '%s' does not exist\n",DataSample.Data());
+        printf("\033[1;31mERROR (GetPurities_Xim):\033[0m The data sample '%s' does not exist\n",DataSample.Data());
         PurityXim = 1.0;
     }
 
@@ -2798,7 +2798,7 @@ void DLM_CommonAnaFunctions::GetFractions_p(const TString& DataSample, const int
         pp_f1 = 0.0898;
     }
     else if(DataSample=="pp13TeV_HM_Dec19"||DataSample=="pp13TeV_HM_RotPhiDec19"
-            ||DataSample=="pp13TeV_HM_DimiJun20"||DataSample=="pp13TeV_HM_DimiJul20"||DataSample=="pp13TeV_HM_DimiMay21"){
+            ||DataSample=="pp13TeV_HM_DimiJun20"||DataSample=="pp13TeV_HM_DimiJul20"||DataSample=="pp13TeV_HM_DimiMay21"||DataSample=="pp13TeV_HM_DimiJun21"){
         pp_f0 = 0.823;
         pp_f1 = 0.125;
     }
@@ -2817,7 +2817,7 @@ void DLM_CommonAnaFunctions::GetFractions_p(const TString& DataSample, const int
         pp_f1 = 0.09603;
     }
     else{
-        printf("\033[1;31mERROR:\033[0m The data sample '%s' does not exist\n",DataSample.Data());
+        printf("\033[1;31mERROR (GetFractions_p):\033[0m The data sample '%s' does not exist\n",DataSample.Data());
         pp_f0 = 1.0;
         pp_f1 = 0.0;
     }
@@ -2874,7 +2874,7 @@ void DLM_CommonAnaFunctions::GetFractions_L(const TString& DataSample, const int
         pL_fm = 0;
     }
     else if(DataSample=="pp13TeV_HM_March19"||DataSample=="pp13TeV_HM_Dec19"||DataSample=="pp13TeV_HM_RotPhiDec19"
-            ||DataSample=="pp13TeV_HM_DimiJun20"||DataSample=="pp13TeV_HM_DimiJul20"||DataSample=="pp13TeV_HM_DimiMay21"){
+            ||DataSample=="pp13TeV_HM_DimiJun20"||DataSample=="pp13TeV_HM_DimiJul20"||DataSample=="pp13TeV_HM_DimiMay21"||DataSample=="pp13TeV_HM_DimiJun21"){
         pL_f0 = 0.576066;
         pL_f1 = 0.192022;
         pL_f2 = 0.115956;
@@ -2893,7 +2893,7 @@ void DLM_CommonAnaFunctions::GetFractions_L(const TString& DataSample, const int
         pL_fm = 0.0;
     }
     else{
-        printf("\033[1;31mERROR:\033[0m The data sample '%s' does not exist\n",DataSample.Data());
+        printf("\033[1;31mERROR (GetFractions_L):\033[0m The data sample '%s' does not exist\n",DataSample.Data());
         pL_f0 = 1.0;
         pL_f1 = 0.0;
         pL_f2 = 0.0;
@@ -3040,7 +3040,7 @@ TH2F* DLM_CommonAnaFunctions::GetResolutionMatrix(const TString& DataSample,cons
         FileName = CatsFilesFolder[0]+"/MomentumSmear/ALICE_pp_13TeV.root";
     }
     else if(DataSample=="pp13TeV_HM_March19"||DataSample=="pp13TeV_HM_Dec19"||DataSample=="pp13TeV_HM_RotPhiDec19"
-            ||DataSample=="pp13TeV_HM_DimiJun20"||DataSample=="pp13TeV_HM_DimiJul20"||DataSample=="pp13TeV_HM_DimiMay21"){
+            ||DataSample=="pp13TeV_HM_DimiJun20"||DataSample=="pp13TeV_HM_DimiJul20"||DataSample=="pp13TeV_HM_DimiMay21"||DataSample=="pp13TeV_HM_DimiJun21"){
         //N.B. special rule for pp and pLambda below
         FileName = CatsFilesFolder[0]+"/MomentumSmear/ALICE_pp_13TeV.root";
     }
@@ -3051,7 +3051,7 @@ TH2F* DLM_CommonAnaFunctions::GetResolutionMatrix(const TString& DataSample,cons
         FileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/CorrelationFiles_2018/ALICE_pPb_5TeV/ResolutionMatrices/Sample3_MeV_compact.root";
     }
     else{
-        printf("\033[1;31mERROR:\033[0m The data sample '%s' does not exist\n",DataSample.Data());
+        printf("\033[1;31mERROR (GetResolutionMatrix):\033[0m The data sample '%s' does not exist\n",DataSample.Data());
         FileName = "";
     }
 
@@ -3092,7 +3092,7 @@ TH2F* DLM_CommonAnaFunctions::GetResolutionMatrix(const TString& DataSample,cons
     }
 
     //this is the unfolded data
-    if(DataSample=="pp13TeV_HM_DimiJul20"||DataSample=="pp13TeV_HM_DimiMay21"){
+    if(DataSample=="pp13TeV_HM_DimiJul20"||DataSample=="pp13TeV_HM_DimiMay21"||DataSample=="pp13TeV_HM_DimiJun21"){
         return NULL;
     }
 
@@ -3303,6 +3303,20 @@ TH1F* DLM_CommonAnaFunctions::GetAliceExpCorrFun(const TString& DataSample,const
             printf("\033[1;31mERROR:\033[0m The system '%s' does not exist\n",System.Data());
         }
     }
+    else if(DataSample=="pp13TeV_HM_DimiJun21"){
+        if(System=="pLambda"){
+            if(mTbin==-1){
+                FileName = TString::Format(CatsFilesFolder[0]+"/ExpData/ALICE_pp_13TeV_HM/DimiJun21/UnfoldedNorm240_340/CkSB_pL_%s.root",CutVar.Data());
+                HistoName = TString::Format("hCkS_Norm_%.0fMeV",float(iReb+1)*4.);
+            }
+            else{
+                printf("\033[1;31mERROR:\033[0m The mT bin #%i is not defined for %s (%s)\n",mTbin,DataSample.Data(),System.Data());
+            }
+        }
+        else{
+            printf("\033[1;31mERROR:\033[0m The system '%s' does not exist\n",System.Data());
+        }
+    }
     else if(DataSample=="pp13TeV_HM_RotPhiDec19"){
         if(System=="pp"){
             if(mTbin==-1){
@@ -3451,7 +3465,7 @@ TH1F* DLM_CommonAnaFunctions::GetAliceExpCorrFun(const TString& DataSample,const
         }
     }
     else{
-        printf("\033[1;31mERROR:\033[0m The data sample '%s' does not exist\n",DataSample.Data());
+        printf("\033[1;31mERROR (GetAliceExpCorrFun):\033[0m The data sample '%s' does not exist\n",DataSample.Data());
         FileName = "";
     }
 

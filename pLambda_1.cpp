@@ -7035,14 +7035,17 @@ graph_FitMAX[5].Write();
 //1: corrected for SB (0/1 for no/yes)
 //2: unfolded (0/1 for no/yes)
 //3: corrected for flat feed and misid (0/1 for no/yes) -> done on the fly at the PLOTTING, no actual corrected datasets are available
-//->Special cases: 211 -> DimiMay21
+//->Special cases:  211 -> DimiMay21
+//                  311 -> DimiJun21 -> the correctly unfolded result (using the unfolded ME)
 //   3 is not used by this function at all
+//Sigma0_Feed 0/1/2 = flat/chiral/ESC16
 void pL_SystematicsMay2020(unsigned SEED, unsigned BASELINE_VAR, int POT_VAR, int Sigma0_Feed, int Data_Type,
                            bool DataSyst, bool FitSyst, bool Bootstrap, unsigned NumIter,
                            const char* CatsFileFolder, const char* OutputFolder){
 
 //made on the same/mixed events
-const bool IMPROVED_FEED=true;
+//0 no, 1 wrong, 2 correct
+const int IMPROVED_FEED=2;
 
     //if we go beyond the 1 hour 50 minutes mark, we stop
     //safety for the batch farm
@@ -7077,6 +7080,7 @@ TH1F* hGHETTO_PS=NULL;
     //TString DataSample = "pp13TeV_HM_RotPhiDec19";
     TString DataSample;
     if(Data_Type==211) DataSample = "pp13TeV_HM_DimiMay21";
+    else if(Data_Type==311) DataSample = "pp13TeV_HM_DimiJun21";
     //N.B. for this data we do not have the unfolded version
     else if(Data_Type%10==0) DataSample = "pp13TeV_HM_Dec19";//0,10...
     //corrected for SB, folded
@@ -7474,11 +7478,12 @@ TH1F* hGHETTO_PS=NULL;
         TString DataVar;
         //here we have new file naming, which allows for additional variations,
         //namely for the sideband correction, we can change the purity and the left-right SB fraction
-        if(DataSample=="pp13TeV_HM_DimiJun20"||DataSample=="pp13TeV_HM_DimiJul20"||DataSample=="pp13TeV_HM_DimiMay21"){
+        if(DataSample=="pp13TeV_HM_DimiJun20"||DataSample=="pp13TeV_HM_DimiJul20"||DataSample=="pp13TeV_HM_DimiMay21"||DataSample=="pp13TeV_HM_DimiJun21"){
             //data set variation
             WhichData = rangen.Integer(45);
             //0 is no phase space, 1 is folded ME, 2 is unfolded
-            if(IMPROVED_FEED) WhichPS = rangen.Integer(2)+1;
+            if(IMPROVED_FEED==1) WhichPS = 1;
+            else if(IMPROVED_FEED==2) WhichPS = 2;
             else WhichPS = 0;
 
             //purity variation (significant at the level of the stat. uncertainties)
@@ -7512,7 +7517,7 @@ TH1F* hGHETTO_PS=NULL;
             if(DefaultVariation||DataSyst==false) WhichData = 0;
             DataVar = TString::Format("_%i",WhichData);
         }
-
+/*
 if(hGHETTO_PS) delete hGHETTO_PS;
 hGHETTO_PS = new TH1F("hGHETTO_PS","hGHETTO_PS",250,0,3000);
 TF1* fitPS = new TF1("fitPS","[2]*(x*x*exp(-pow(x/sqrt(2)/[0],[1])))/pow([0],3.)",0,1000);
@@ -7532,7 +7537,7 @@ for(unsigned uBin=0; uBin<250; uBin++){
   hGHETTO_PS->SetBinContent(uBin+1,VAL);
 }
 delete fitPS;
-
+*/
         const TString ME_FileName = TString::Format("%s/CatsFiles/ExpData/ALICE_pp_13TeV_HM/DimiJun20/Norm240_340/DataSignal/CkREW_pL_%u.root",GetCernBoxDimi(),WhichData);
         const TString DirName = "Binning_12";
         //this is the reweighted ME sample
@@ -7802,22 +7807,25 @@ printf("\n");
     OutputFile->cd();
     //ntResult->Write("",TObject::kOverwrite);
     plambdaTree->Write();
-
+//printf("deleting stuff\n");
+    if(hGHETTO_PS) delete hGHETTO_PS;
     delete Ck_pL;
     delete Ck_pXim;
     delete Ck_pXi0;
     delete Ck_pS0_Chiral;
     delete Ck_pS0_ESC16;
+//printf("deleting stuff2 \n");
     if(hResolution_pL){delete hResolution_pL;hResolution_pL=NULL;}
     delete hResidual_pL_pSigma0;
     delete hResidual_pL_pXim;
     delete hResidual_pL_pXi0;
+//printf("deleting stuff3 \n");
     delete plambdaTree;
     delete OutputFile;
+//printf("deleting stuff4 \n");
     delete [] MomBins_pL;
     delete [] FitRegion_pL;
-
-if(hGHETTO_PS) delete hGHETTO_PS;
+//printf("DELETED \n");
 }
 
 
@@ -9584,7 +9592,7 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
         //NDF_300[uEntry] = 0;
         plambdaTree->GetEntry(uEntry);
         if(!hData_pL_Stat){
-            if(*DataSample=="pp13TeV_HM_DimiJun20"||*DataSample=="pp13TeV_HM_DimiJul20"||*DataSample=="pp13TeV_HM_DimiMay21")
+            if(*DataSample=="pp13TeV_HM_DimiJun20"||*DataSample=="pp13TeV_HM_DimiJul20"||*DataSample=="pp13TeV_HM_DimiMay21"||*DataSample=="pp13TeV_HM_DimiJun21")
               hData_pL_Stat = AnalysisObject.GetAliceExpCorrFun(DataSample[0],"pLambda",TString::Format("L%.0f_SL4_SR6_P%.0f_0",0.529*100,0.963*100),2,false,-1);
             else
               hData_pL_Stat = AnalysisObject.GetAliceExpCorrFun(DataSample[0],"pLambda",TString::Format("_0"),2,false,-1);
@@ -9593,7 +9601,7 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
         XiSigLamFrac=(lam_L_Xi0+lam_L_Xim)/(lam_L_genuine+lam_L_Sig0);
         unsigned WhichBin[7];
         //if(*DataSample=="pp13TeV_HM_DimiJun20") GetIterCombo170620(WhichBin,SourceSize,lam_L_genuine,CuspWeight,SourceAlpha);
-        if(*DataSample=="pp13TeV_HM_DimiJun20"||*DataSample=="pp13TeV_HM_DimiJul20"||*DataSample=="pp13TeV_HM_DimiMay21") {}//GetIterCombo040720(WhichBin,SourceSize,SBpur,SigLamFrac,XiSigLamFrac,CuspWeight,SourceAlpha,CkConv);
+        if(*DataSample=="pp13TeV_HM_DimiJun20"||*DataSample=="pp13TeV_HM_DimiJul20"||*DataSample=="pp13TeV_HM_DimiMay21"||*DataSample=="pp13TeV_HM_DimiJun21") {}//GetIterCombo040720(WhichBin,SourceSize,SBpur,SigLamFrac,XiSigLamFrac,CuspWeight,SourceAlpha,CkConv);
         else {printf("WARNING trouble, the function MIGHT not work unless you checkout an older version (before 4th July 2020\n)"); //abort();
         }
         GetIterCombo040720(WhichBin,SourceSize,SBpur,SigLamFrac,XiSigLamFrac,CuspWeight,SourceAlpha,CkConv);
@@ -10677,7 +10685,7 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
     //DataHisto_Inlet->GetYaxis()->SetTitleSize(hData_pL_Stat->GetYaxis()->GetTitleSize()*1.75);
     //DataHisto_Inlet->GetYaxis()->SetLabelSize(hData_pL_Stat->GetYaxis()->GetLabelSize()*1.75);
     //DataHisto_Inlet->GetYaxis()->SetTitleOffset(hData_pL_Stat->GetYaxis()->GetTitleOffset()*0.67);
-    if(*DataSample=="pp13TeV_HM_DimiJun20"||*DataSample=="pp13TeV_HM_DimiJul20"||*DataSample=="pp13TeV_HM_DimiMay21") DataHisto_Inlet->GetYaxis()->SetRangeUser(0.965, 1.065);
+    if(*DataSample=="pp13TeV_HM_DimiJun20"||*DataSample=="pp13TeV_HM_DimiJul20"||*DataSample=="pp13TeV_HM_DimiMay21"||*DataSample=="pp13TeV_HM_DimiJun21") DataHisto_Inlet->GetYaxis()->SetRangeUser(0.965, 1.065);
     else DataHisto_Inlet->GetYaxis()->SetRangeUser(0.985, 1.085);
 
     TGraph* grFemto_Inlet = (TGraph*)ge_Fit->Clone("grFemto_Inlet");
@@ -15952,9 +15960,10 @@ printf("PLAMBDA_1_MAIN\n");
 //                      const TString& InputFileName, const TString& DataVariation,
 //                      const int& BinWidth
 
-UpdateUnfoldFile(TString::Format("%s/CatsFiles/",GetCernBoxDimi()),
-                 TString::Format("%s/pLambda/Unfolding/TestUnfold1/",GetFemtoOutputFolder()),TString::Format("CkSB_pL_L53_SL4_SR6_P96_0_Unfolded_2.root"),
-                 "L53_SL4_SR6_P96_0",12);
+//UpdateUnfoldFile(TString::Format("%s/CatsFiles/",GetCernBoxDimi()),
+//                 //TString::Format("%s/pLambda/Unfolding/TestUnfold1/",GetFemtoOutputFolder()),TString::Format("CkSB_pL_L53_SL4_SR6_P96_0_Unfolded_2.root"),
+//                 "/home/dimihayl/Temp/","CkSB_pL_L53_SL4_SR6_P96_0.root",
+//                 "L53_SL4_SR6_P96_0",12);
 /*
 UpdateUnfoldFile(TString::Format("%s/CatsFiles/",GetCernBoxDimi()),
                  TString::Format("%s/pLambda/Unfolding/TestUnfold1/",GetFemtoOutputFolder()),"CkSB_pL_L53_SL4_SR6_P96_0_Unfolded_0_1.root",
@@ -15966,7 +15975,7 @@ UpdateUnfoldFile(TString::Format("%s/CatsFiles/",GetCernBoxDimi()),
                  TString::Format("%s/pLambda/Unfolding/TestUnfold1/",GetFemtoOutputFolder()),"CkSB_pL_L53_SL4_SR6_P96_0_Unfolded_2_1.root",
                  "L53_SL4_SR6_P96_0",12);
 */
-return 0;
+//return 0;
 //cout << argv[1] << endl;
 //cout << argv[2] << endl;
 //cout << argv[3] << endl;
@@ -15984,12 +15993,12 @@ return 0;
 //return 0;
 //printf("hello\n");
 
-/*
+//const int& SIGMA_FEED, const int& WhichBaseline, const int& WhichPotential, const float& ValSourceAlpha,
 Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(atoi(argv[4]))/10.,
                             ///home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/100720_Unfolded/
                             //TString::Format("%s/pLambda/100720_Unfolded/",GetCernBoxDimi()),
                             TString::Format("%s/pLambda/Dump/",GetCernBoxDimi()),
-                            TString::Format("Merged_pp13TeV_HM_DimiMay21_POT%i_BL%i_SIG%i.root",
+                            TString::Format("Merged_pp13TeV_HM_DimiJun21_POT%i_BL%i_SIG%i.root",
                             //TString::Format("Merged_pp13TeV_HM_Dec19_POT%i_BL%i_SIG%i.root",
                             //TString::Format("Output_pp13TeV_HM_DimiJul20_POT%i_BL%i_SIG%i_1000.root",
                             atoi(argv[1]),atoi(argv[2]),atoi(argv[3])),
@@ -16003,7 +16012,7 @@ Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(at
 
 //MakeLATEXtable(TString::Format("%s/pLambda/180521_SillyTest/NoBootstrap/Plots/",GetCernBoxDimi()),true);
 return 0;
-*/
+
 //Plot_pL_SystematicsMay2020_2(2,10,1500,2.0,
 //        "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/040620_Gauss/",
 //        "Merged_pp13TeV_HM_Dec19_POT1500_BL10_SIG2.root",
@@ -16036,14 +16045,14 @@ return 0;
 //STUPED_TEST();
 //CompareChiralNLO_pLambda();
 
-
+//Sigma0_Feed 0/1/2 = flat/chiral/ESC16
 //unsigned SEED, unsigned BASELINE_VAR, int POT_VAR, int Sigma0_Feed, int Data_Type,
                            //bool DataSyst, bool FitSyst, bool Bootstrap, unsigned NumIter,
                           // const char* CatsFileFolder, const char* OutputFolder
 pL_SystematicsMay2020(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]), atoi(argv[6]), atoi(argv[7]), atoi(argv[8]), atoi(argv[9]),
 TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data(),
 TString::Format("%s/pLambda/Dump/",GetCernBoxDimi()).Data());
-
+//printf("HELLO THERE\n");
 //pL_SystematicsMay2020(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]), atoi(argv[6]), atoi(argv[7]),
 //                      argv[8],argv[9]);
 //pL_SystematicsMay2020(1, 9, 11600, 0, 64,
