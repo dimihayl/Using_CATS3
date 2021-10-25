@@ -9115,6 +9115,7 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
     //if 1: as intended for the paper (cleaner)
     //if 2: as intended for the thesis
     const int PlotsType = 0;
+    const bool WriteToInfoFile=true;
     int Panel_X = 0;
     if(PlotsType==1){
       if(WhichPotential==11600 && SIGMA_FEED==1)Panel_X=0;
@@ -9144,7 +9145,7 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
 
     const bool Same_omega_siglam = PlotsType?false:false;
     //const bool COMPARE_TO_LO = true;
-    bool COMPARE_TO_LO = true;
+    bool COMPARE_TO_LO = false;
     if(PlotsType&&WhichPotential==1600) COMPARE_TO_LO = true;
     else if(PlotsType) COMPARE_TO_LO = false;
     if(WhichPotential==-11600) COMPARE_TO_LO = false;
@@ -10357,7 +10358,8 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
     hData_pL_Stat->SetTitle("; #it{k*} (MeV/#it{c}); #it{C}(#it{k*})");
     hData_pL_Stat->GetXaxis()->SetRangeUser(0, 456);
     hData_pL_Stat->GetXaxis()->SetNdivisions(505);
-    hData_pL_Stat->GetYaxis()->SetRangeUser(0.9, 2.0);
+    if(*DataSample=="pp13TeV_HM_DimiJun21") hData_pL_Stat->GetYaxis()->SetRangeUser(0.93, 2.25);
+    else hData_pL_Stat->GetYaxis()->SetRangeUser(0.9, 2.0);
     hData_pL_Stat->SetFillColor(kGray+1);
     if(PlotsType==1)SetStyleHisto_pLambda(hData_pL_Stat,2,0,1,Panel_X==0?false:true);
     else SetStyleHisto2a(hData_pL_Stat,2,0);
@@ -10775,90 +10777,98 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
 
     TFile* InfoFile = NULL;
     TTree* InfoTree = NULL;
-    char* InfoFileName = new char [512];
-    strcpy(InfoFileName,OutputFolder.Data());
-    strcat(InfoFileName,"Info.root");
-    int InfoFileStatus = file_status(InfoFileName);
-    //the file does not exist
-    if(InfoFileStatus==0){
-        InfoFile = new TFile(InfoFileName,"recreate");
-        InfoTree = new TTree("InfoTree","InfoTree");
-        InfoTree->Branch("BASELINE_VAR", &BASELINE_VAR, "BASELINE_VAR/i");//
-        InfoTree->Branch("POT_VAR", &POT_VAR, "POT_VAR/I");//
-        InfoTree->Branch("Sigma0_Feed", &Sigma0_Feed, "Sigma0_Feed/I");//
-        InfoTree->Branch("MinChi2NDF", &MinChi2NDF, "MinChi2NDF/F");
-        InfoTree->Branch("MinNsigma", &MinNsigma, "MinNsigma/F");
-        InfoTree->Branch("Best_SourceSize", &Best_SourceSize, "Best_SourceSize/F");
-        InfoTree->Branch("Best_SourceAlpha", &Best_SourceAlpha, "Best_SourceAlpha/F");
-        InfoTree->Branch("Best_Purity", &Best_Purity, "Best_Purity/F");
-        InfoTree->Branch("Best_lam_L_genuine", &Best_lam_L_genuine, "Best_lam_L_genuine/F");
-        InfoTree->Branch("Best_SigLamFrac", &Best_SigLamFrac, "Best_SigLamFrac/F");
-        InfoTree->Branch("Best_XiSigLamFrac", &Best_XiSigLamFrac, "Best_XiSigLamFrac/F");
-        InfoTree->Branch("Best_CuspWeight", &Best_CuspWeight, "Best_CuspWeight/F");
-        InfoTree->Branch("Best_CkConv", &Best_CkConv, "Best_CkConv/F");
+    if(WriteToInfoFile){
+      char* InfoFileName = new char [512];
+      strcpy(InfoFileName,OutputFolder.Data());
+      strcat(InfoFileName,"Info.root");
+      int InfoFileStatus = file_status(InfoFileName);
+      //the file does not exist
+      if(InfoFileStatus==0){
+          InfoFile = new TFile(InfoFileName,"recreate");
+          InfoTree = new TTree("InfoTree","InfoTree");
+          InfoTree->Branch("BASELINE_VAR", &BASELINE_VAR, "BASELINE_VAR/i");//
+          InfoTree->Branch("POT_VAR", &POT_VAR, "POT_VAR/I");//
+          InfoTree->Branch("Sigma0_Feed", &Sigma0_Feed, "Sigma0_Feed/I");//
+          InfoTree->Branch("MinChi2NDF", &MinChi2NDF, "MinChi2NDF/F");
+          InfoTree->Branch("MinNsigma", &MinNsigma, "MinNsigma/F");
+          InfoTree->Branch("Best_SourceSize", &Best_SourceSize, "Best_SourceSize/F");
+          InfoTree->Branch("Best_SourceAlpha", &Best_SourceAlpha, "Best_SourceAlpha/F");
+          InfoTree->Branch("Best_Purity", &Best_Purity, "Best_Purity/F");
+          InfoTree->Branch("Best_lam_L_genuine", &Best_lam_L_genuine, "Best_lam_L_genuine/F");
+          InfoTree->Branch("Best_SigLamFrac", &Best_SigLamFrac, "Best_SigLamFrac/F");
+          InfoTree->Branch("Best_XiSigLamFrac", &Best_XiSigLamFrac, "Best_XiSigLamFrac/F");
+          InfoTree->Branch("Best_CuspWeight", &Best_CuspWeight, "Best_CuspWeight/F");
+          InfoTree->Branch("Best_CkConv", &Best_CkConv, "Best_CkConv/F");
+      }
+      else{
+          DLM_Timer FileTimer;
+          long long FileWaitTime;//in micros
+          //we wait until the file is closed. If this is not the case in 10s => error
+          while(InfoFileStatus==-1&&FileWaitTime<60000e6){
+              //sleep for 10 s
+              usleep(60000e3);
+              FileWaitTime = FileTimer.Stop();
+              InfoFileStatus = file_status(InfoFileName);
+          }
+          if(InfoFileStatus==-1){
+              printf("\033[1;31mERROR:\033[0m Waited more than 60s to close the file %s\n",InfoFileName);
+              abort();
+          }
+
+          InfoFile = new TFile(InfoFileName,"update");
+          InfoTree = (TTree*)InfoFile->Get("InfoTree");
+          InfoTree->SetBranchAddress("BASELINE_VAR",&BASELINE_VAR);
+          InfoTree->SetBranchAddress("POT_VAR",&POT_VAR);
+          InfoTree->SetBranchAddress("Sigma0_Feed",&Sigma0_Feed);
+          InfoTree->SetBranchAddress("MinChi2NDF",&MinChi2NDF);
+          InfoTree->SetBranchAddress("MinNsigma",&MinNsigma);
+          InfoTree->SetBranchAddress("Best_SourceSize",&Best_SourceSize);
+          InfoTree->SetBranchAddress("Best_SourceAlpha",&Best_SourceAlpha);
+          InfoTree->SetBranchAddress("Best_Purity",&Best_Purity);
+          InfoTree->SetBranchAddress("Best_lam_L_genuine",&Best_lam_L_genuine);
+          InfoTree->SetBranchAddress("Best_SigLamFrac",&Best_SigLamFrac);
+          InfoTree->SetBranchAddress("Best_XiSigLamFrac",&Best_XiSigLamFrac);
+          InfoTree->SetBranchAddress("Best_CuspWeight",&Best_CuspWeight);
+          InfoTree->SetBranchAddress("Best_CkConv",&Best_CkConv);
+      }
+
+      InfoTree->Fill();
+
+      //geb_Xim->Write();
+      //geb_Sig->Write();
+      //geb_Bl->Write();
+      //geb_Fit->Write();
+      //hData_pL_Stat->Write();
+      //Tgraph_syserror->Write();
+      //gRelStatError.Write();
+      //gRelSystError.Write();
+      //geb_SigmaSlice->Write();
+      InfoTree->Write("",TObject::kOverwrite);
+
+      TH2F* HB_BL = (TH2F*)hb_bl->Clone("HB_BL");
+      if(WhichDataSet<0)
+          HB_BL->SetName(TString::Format("HB_BL%s_%s_%s_%s_%i",DataOnly?"Data":"",PotDescr.Data(),BlDescr.Data(),SigDescr.Data(),TMath::Nint(ValSourceAlpha*10.)));
+      else
+          HB_BL->SetName(TString::Format("HB_BL%s_%s_%s_%s_%i_DS%i",DataOnly?"Data":"",PotDescr.Data(),BlDescr.Data(),SigDescr.Data(),
+                                                               TMath::Nint(ValSourceAlpha*10.),WhichDataSet));
+      //HB_BL->Write("",TObject::kOverwrite);
+       delete HB_BL;
+
+      TH2F* HB_POL1 = (TH2F*)hb_pol1->Clone("HB_POL1");
+      if(WhichDataSet<0)
+          HB_POL1->SetName(TString::Format("HB_POL1%s_%s_%s_%s_%i",DataOnly?"Data":"",PotDescr.Data(),BlDescr.Data(),SigDescr.Data(),TMath::Nint(ValSourceAlpha*10.)));
+      else
+          HB_POL1->SetName(TString::Format("HB_POL1%s_%s_%s_%s_%i_DS%i",DataOnly?"Data":"",PotDescr.Data(),BlDescr.Data(),SigDescr.Data(),
+                                                               TMath::Nint(ValSourceAlpha*10.),WhichDataSet));
+      //HB_POL1->Write("",TObject::kOverwrite);
+      delete HB_POL1;
+
+      delete [] InfoFileName;
     }
-    else{
-        DLM_Timer FileTimer;
-        long long FileWaitTime;//in micros
-        //we wait until the file is closed. If this is not the case in 10s => error
-        while(InfoFileStatus==-1&&FileWaitTime<10000e6){
-            //sleep for 10 s
-            usleep(10000e3);
-            FileWaitTime = FileTimer.Stop();
-            InfoFileStatus = file_status(InfoFileName);
-        }
-        if(InfoFileStatus==-1){
-            printf("\033[1;31mERROR:\033[0m Waited more than 10s to close the file %s\n",InfoFileName);
-            abort();
-        }
 
-        InfoFile = new TFile(InfoFileName,"update");
-        InfoTree = (TTree*)InfoFile->Get("InfoTree");
-        InfoTree->SetBranchAddress("BASELINE_VAR",&BASELINE_VAR);
-        InfoTree->SetBranchAddress("POT_VAR",&POT_VAR);
-        InfoTree->SetBranchAddress("Sigma0_Feed",&Sigma0_Feed);
-        InfoTree->SetBranchAddress("MinChi2NDF",&MinChi2NDF);
-        InfoTree->SetBranchAddress("MinNsigma",&MinNsigma);
-        InfoTree->SetBranchAddress("Best_SourceSize",&Best_SourceSize);
-        InfoTree->SetBranchAddress("Best_SourceAlpha",&Best_SourceAlpha);
-        InfoTree->SetBranchAddress("Best_Purity",&Best_Purity);
-        InfoTree->SetBranchAddress("Best_lam_L_genuine",&Best_lam_L_genuine);
-        InfoTree->SetBranchAddress("Best_SigLamFrac",&Best_SigLamFrac);
-        InfoTree->SetBranchAddress("Best_XiSigLamFrac",&Best_XiSigLamFrac);
-        InfoTree->SetBranchAddress("Best_CuspWeight",&Best_CuspWeight);
-        InfoTree->SetBranchAddress("Best_CkConv",&Best_CkConv);
-    }
 
-    InfoTree->Fill();
 
-    geb_Xim->Write();
-    geb_Sig->Write();
-    geb_Bl->Write();
-    geb_Fit->Write();
-    hData_pL_Stat->Write();
-    Tgraph_syserror->Write();
-    gRelStatError.Write();
-    gRelSystError.Write();
-    geb_SigmaSlice->Write();
-    InfoTree->Write("",TObject::kOverwrite);
 
-    TH2F* HB_BL = (TH2F*)hb_bl->Clone("HB_BL");
-    if(WhichDataSet<0)
-        HB_BL->SetName(TString::Format("HB_BL%s_%s_%s_%s_%i",DataOnly?"Data":"",PotDescr.Data(),BlDescr.Data(),SigDescr.Data(),TMath::Nint(ValSourceAlpha*10.)));
-    else
-        HB_BL->SetName(TString::Format("HB_BL%s_%s_%s_%s_%i_DS%i",DataOnly?"Data":"",PotDescr.Data(),BlDescr.Data(),SigDescr.Data(),
-                                                             TMath::Nint(ValSourceAlpha*10.),WhichDataSet));
-    HB_BL->Write("",TObject::kOverwrite);
-     delete HB_BL;
-
-    TH2F* HB_POL1 = (TH2F*)hb_pol1->Clone("HB_POL1");
-    if(WhichDataSet<0)
-        HB_POL1->SetName(TString::Format("HB_POL1%s_%s_%s_%s_%i",DataOnly?"Data":"",PotDescr.Data(),BlDescr.Data(),SigDescr.Data(),TMath::Nint(ValSourceAlpha*10.)));
-    else
-        HB_POL1->SetName(TString::Format("HB_POL1%s_%s_%s_%s_%i_DS%i",DataOnly?"Data":"",PotDescr.Data(),BlDescr.Data(),SigDescr.Data(),
-                                                             TMath::Nint(ValSourceAlpha*10.),WhichDataSet));
-    HB_POL1->Write("",TObject::kOverwrite);
-    delete HB_POL1;
 
 
 
@@ -10940,11 +10950,11 @@ printf("Delete 2\n");
 //printf("Delete 4\n");
     if(fitLoDummy) delete fitLoDummy;
     delete InputFile;
-    delete [] InfoFileName;
+
     delete [] GoodCutVar;
-    if(InfoFileStatus==0){
-        delete InfoTree;
-    }
+    //if(InfoFileStatus==0){
+        if(InfoTree) {delete InfoTree;InfoTree=NULL;}
+    //}
     if(InfoFile) {InfoFile->Close(); delete InfoFile; InfoFile=NULL;}
 }
 
@@ -12122,10 +12132,10 @@ double* pLambda_Spline_Ck_ARRAY_SPLINE3_X=NULL;
 double* pLambda_Spline_Ck_ARRAY_SPLINE3_Y=NULL;
 double pLambda_Spline_Ck(const double& Momentum, const double* SourcePar, const double* PotPar){
     //[0] = NumKnots
-    //[1] = der at 0
-    //[2] = der at last
-    //[3]... posX
-    //[...]... poxY
+    //[1] = derivative at 0 point
+    //[2] = derivative at last point
+    //[3]... position in X of the points
+    //[...]... position in Y of the points
     const int MAX_KNOTS = 20;
     int NumKnots = TMath::Nint(SourcePar[0]);
     if(NumKnots<2) NumKnots=2;
@@ -15994,10 +16004,11 @@ UpdateUnfoldFile(TString::Format("%s/CatsFiles/",GetCernBoxDimi()),
 //printf("hello\n");
 
 //const int& SIGMA_FEED, const int& WhichBaseline, const int& WhichPotential, const float& ValSourceAlpha,
+/*
 Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(atoi(argv[4]))/10.,
                             ///home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/100720_Unfolded/
                             //TString::Format("%s/pLambda/100720_Unfolded/",GetCernBoxDimi()),
-                            TString::Format("%s/pLambda/Dump/",GetCernBoxDimi()),
+                            TString::Format("%s/pLambda/170721_NewUnfold/NoBoot/",GetCernBoxDimi()),
                             TString::Format("Merged_pp13TeV_HM_DimiJun21_POT%i_BL%i_SIG%i.root",
                             //TString::Format("Merged_pp13TeV_HM_Dec19_POT%i_BL%i_SIG%i.root",
                             //TString::Format("Output_pp13TeV_HM_DimiJul20_POT%i_BL%i_SIG%i_1000.root",
@@ -16005,12 +16016,12 @@ Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(at
                             //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/",
                             //"UnfoldRefine_pp13TeV_HM_DimiJul20_POT11600_BL10_SIG1.root",
                             //TString::Format("%s/pLambda/100720_Unfolded/PaperPlotsUpdate5/",GetCernBoxDimi()),
-                            TString::Format("%s/pLambda/Dump/Plots/",GetCernBoxDimi()),
+                            TString::Format("%s/pLambda/170721_NewUnfold/NoBoot/PlotsAnaNote/",GetCernBoxDimi()),
                             //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/"
                             atoi(argv[5])///REMOVE FOR THE OLD PLOTS
                           );
-
-//MakeLATEXtable(TString::Format("%s/pLambda/180521_SillyTest/NoBootstrap/Plots/",GetCernBoxDimi()),true);
+*/
+MakeLATEXtable(TString::Format("%s/pLambda/170721_NewUnfold/NoBoot/PlotsAnaNote/",GetCernBoxDimi()),false);
 return 0;
 
 //Plot_pL_SystematicsMay2020_2(2,10,1500,2.0,

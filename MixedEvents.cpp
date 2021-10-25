@@ -4277,7 +4277,8 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
     //const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/ReferenceSampleStudy_1/";
     //const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/AngleStudy_3/";
     //const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/Max/";
-    const TString OutputFolder = TString::Format("%s/CatsFiles/Source/EposAngularDist/",GetCernBoxDimi());
+    //const TString OutputFolder = TString::Format("%s/CatsFiles/Source/EposAngularDist/",GetCernBoxDimi());
+    const TString OutputFolder = TString::Format("%s/CatsFiles/Source/EposAngularDist/TEMP/",GetCernBoxDimi());
     const unsigned NumMomBins = DataSetDescr=="pp"?400:DataSetDescr=="pLambda"?200:DataSetDescr=="pXim"?200:200;
     const TString OutFileBaseName = OutputFolder+TranModDescr+"_"+DataSetDescr;
     //const TString InputFileName = DataSetDescr=="pp"?TransportFile_pp_Alice:DataSetDescr=="pLambda"?TransportFile_pL_Alice:
@@ -4309,9 +4310,9 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
         InputFileName = "/home/dimihayl/Mount/nx3/scratch6/dmihaylov/OutputEPOS/13TeV/EPOS_20200121/pPhi_All.f19";
     else if(DataSetDescr=="Lam_Xim"||DataSetDescr=="LamReso_Xim")
       InputFileName = "/home/dimihayl/Mount/nx3/scratch6/dmihaylov/OutputEPOS/13TeV/EPOS_20200121/LamXi_All.f19";
-    else
-        //InputFileName = "$PATH_NX1/scratch6/dmihaylov/OutputEPOS/13TeV/EPOS_LBF_pp200/pp200_pResoLamReso_Oct2019_4PI_ReducedWeights.f19";
-        InputFileName = "/home/dimihayl/Mount/nx1/scratch6/dmihaylov/OutputEPOS/13TeV/EPOS_LBF_pp200/pp200_pResoLamReso_Oct2019_4PI_ReducedWeights.f19";
+    else//
+        InputFileName = TString::Format("%s/scratch6/dmihaylov/OutputEPOS/13TeV/EPOS_LBF_pp200/pp200_pResoLamReso_Oct2019_4PI_ReducedWeights.f19",GetNx2Folder());
+        //InputFileName = "/home/dimihayl/Mount/nx1/scratch6/dmihaylov/OutputEPOS/13TeV/EPOS_LBF_pp200/pp200_pResoLamReso_Oct2019_4PI_ReducedWeights.f19";
 //
     //AvgResoMass = 1.354190 for VER2, around 1.38 for the first version. Basically VER2 has inly ior==0 reso
     //const TString InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp80/pp80_pReso_PRIM_4PI_VER2.f19";
@@ -5200,6 +5201,11 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
     TH1F* hResoMass = new TH1F("hResoMass","hResoMass",4096,0,4096);
     TH1I* hNbody = new TH1I("hNbody","hNbody",8,-0.5,7.5);
 
+    //angles between the radial spacial component and the momentum. Studied to see if it is
+    //consistent with zero, as in the case of pure radial expansion
+    TH1F* h_P1_KR_LAB = new TH1F("h_P1_KR_LAB","h_P1_KR_LAB",4096,-2*Pi,2*Pi);
+    TH1F* h_P2_KR_LAB = new TH1F("h_P2_KR_LAB","h_P2_KR_LAB",4096,-2*Pi,2*Pi);
+
     TFile* fOut = new TFile(OutFileBaseName+".root","recreate");
     //TFile* fOut = new TFile(OutFileBaseName+"_REPICK.root","recreate");
     TNtuple* InfoTuple = new TNtuple("InfoTuple","InfoTuple","k_D:P1:P2:M1:M2:Tau1:Tau2:AngleRcP1:AngleRcP2:AngleP1P2");
@@ -5754,6 +5760,24 @@ printf("NbodyDecayP2 set to %u\n",NbodyDecayP2);
 
             TLorentzVector TVL_Daughters = TLV_Daughter1 + TLV_Daughter2;
 
+//the lab coordinates
+            //angle between the radial spactial component and the momentum.
+            //we hope to get something close to zero, if a pure radial expansion is present
+            TVector3 P1_LAB_Space;
+            P1_LAB_Space.SetXYZ(Particle1.GetX(),Particle1.GetY(),Particle1.GetZ());
+            TVector3 P1_LAB_Mom;
+            P1_LAB_Mom.SetXYZ(Particle1.GetPx(),Particle1.GetPy(),Particle1.GetPz());
+            TVector3 P2_LAB_Space;
+            P2_LAB_Space.SetXYZ(Particle2.GetX(),Particle2.GetY(),Particle2.GetZ());
+            TVector3 P2_LAB_Mom;
+            P2_LAB_Mom.SetXYZ(Particle2.GetPx(),Particle2.GetPy(),Particle2.GetPz());
+
+            double P1_KR_LAB = P1_LAB_Space.Angle(P1_LAB_Mom);
+            double P2_KR_LAB = P2_LAB_Space.Angle(P2_LAB_Mom);
+
+            h_P1_KR_LAB->Fill(P1_KR_LAB);
+            h_P2_KR_LAB->Fill(P2_KR_LAB);
+
             //!THE NEW STUFF
             //boost into the rest frame of the daughters
             CatsLorentzVector BoostVector;
@@ -6253,6 +6277,8 @@ printf("d2 = %f(%.3f,%.3f) r %f(%.3f,%.3f)\n",DaughterOriginal2.GetP(),DaughterO
     h_AngleRCP1_P1P2_D->Write();
     h_AngleRCP2_P1P2_D->Write();
     hResoMass->Write();
+    h_P1_KR_LAB->Write();
+    h_P2_KR_LAB->Write();
     hNbody->Write();
     //InfoTuple->Write();
     InfoTuple_ClosePairs->Write();
@@ -6301,6 +6327,8 @@ printf("d2 = %f(%.3f,%.3f) r %f(%.3f,%.3f)\n",DaughterOriginal2.GetP(),DaughterO
     delete h_AngleRCP1_P1P2_D;
     delete h_AngleRCP2_P1P2_D;
     delete hResoMass;
+    delete h_P1_KR_LAB;
+    delete h_P2_KR_LAB;
     delete hNbody;
     delete InfoTuple;
     delete InfoTuple_ClosePairs;
@@ -6729,8 +6757,8 @@ int MIXEDEVENTS(int argc, char *argv[]){
 
     //DifferentTechniquesTest1("ForVale","pAp","Core");
     //DifferentTechniquesTest1("Bhawani","pp","with");
-    DifferentTechniquesTest1("Bhawani","pp","without");
-return 0;
+    //DifferentTechniquesTest1("Bhawani","pp","without");
+//return 0;
 
     //ReferenceSampleStudy_2("ForMax","pi_pi");
     //ReferenceSampleStudy_2("ForMax","pi_piReso");
@@ -6740,10 +6768,11 @@ return 0;
     //ReferenceSampleStudy_2("ForMaxRamona","pi_SigReso");
     //ReferenceSampleStudy_2("ForMaxRamona","piReso_Sig");
     //ReferenceSampleStudy_2("ForMaxRamona","piReso_SigReso");
-    if(atoi(argv[1])==1) ReferenceSampleStudy_2("ForRamona","p_KaonReso");
-    else if(atoi(argv[1])==2) ReferenceSampleStudy_2("ForRamona","pReso_Kaon");
-    else ReferenceSampleStudy_2("ForRamona","pReso_KaonReso");
-    return 0;
+
+    //if(atoi(argv[1])==1) ReferenceSampleStudy_2("ForRamona","p_KaonReso");
+    //else if(atoi(argv[1])==2) ReferenceSampleStudy_2("ForRamona","pReso_Kaon");
+    //else ReferenceSampleStudy_2("ForRamona","pReso_KaonReso");
+    //return 0;
 
 
     //SE_for_Vale("pL");
@@ -6804,7 +6833,7 @@ return 0;
     //ReferenceSampleStudy_2("EposDisto","pReso_pReso");
     //ReferenceSampleStudy_2("EposDisto","p_LamReso");
     //ReferenceSampleStudy_2("EposDisto","pReso_Lam");
-    //ReferenceSampleStudy_2("EposDisto","pReso_LamReso");
+    ReferenceSampleStudy_2("TEST","pReso_LamReso");
     //ReferenceSampleStudy_2("EposDisto","pReso_Xim");
     //ReferenceSampleStudy_2("EposDisto","pReso_Omega");
     //ReferenceSampleStudy_2("DimiPhi","p_p");
@@ -6818,11 +6847,12 @@ return 0;
     //ReferenceSampleStudy_2("Epos","pReso_Phi");
     //ReferenceSampleStudy_2("Epos","LamReso_Xim");
 
-    dEta_dPhi_Ck_QS("QS", "pp", true);
+    //dEta_dPhi_Ck_QS("QS", "pp", true);
     //CompareReferenceSamples("pp");
     //CompareSameMixedEventToBoltzmann();
     //RatioBetweenLevy();
     //Fit_pL_Splines();
     //updated version of the previous one, done from scratch to avoid bugs
     //DifferentTechniquesVer1("pp");
+    return 0;
 }

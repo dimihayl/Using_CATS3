@@ -3,6 +3,7 @@
 #include "CommonAnaFunctions.h"
 #include "CATS.h"
 #include "CATStools.h"
+#include "CATSconstants.h"
 #include "DLM_Source.h"
 #include "DLM_Potentials.h"
 #include "DLM_Histo.h"
@@ -25,6 +26,8 @@
 #include "TMath.h"
 #include "TNtuple.h"
 #include "TROOT.h"
+#include "TLorentzVector.h"
+#include "TVector3.h"
 
 //for the source paper, we compare C(k) and S(r) of pp and pL based on
 //Gaussian and Gaussian+Reso sources
@@ -2358,6 +2361,302 @@ void TestReadTTree(){
 
 }
 
+
+//random emission of single particles in the LAB frame
+//we combine them in pairs and look at all the angular distribtutions
+//relevant for the source.
+//the emission follows boltzmann for the pT, uniform eta, uniform phi
+//to get the spacial corrdinate, we assume some fixed mass of the particles
+//and propagate them assuming they were created at 0,0. The propagation is for a fixed amount of time
+void SinglePart_RandomLab(){
+  const double Mass = 1000;//MeV
+  //if its minus sign, the time is not fixed, rather proportional to abs(Time)/p
+  const double Time = -5.0;//fm/c
+  const double Temp = 700;//MeV, used for the boltzmann
+  const double SP_r0 = 0.4;
+  //probability to fix beta
+  const double fixed_beta_T = 0;
+
+  const unsigned NumEvents = 1024*32;
+  const unsigned Multiplicity = 16;
+
+  const TString OutputFolder = TString::Format("%s/SourceStudies/SinglePart_RandomLab/",GetFemtoOutputFolder());
+
+  DLM_Random rangen(11);
+
+  const unsigned NumMomBins = 1024;
+  const double MomMin = 0;
+  const double MomMax = 1024*8;
+  const unsigned NumEtaBins = 1024;
+  const double EtaMin = -2;
+  const double EtaMax = 2;
+  const unsigned NumPhiBins = 1024;
+  const double PhiMin = -Pi;
+  const double PhiMax = Pi;
+  const unsigned NumThetaBins = 1024;
+  const double ThetaMin = 0;
+  const double ThetaMax = 1.*Pi;
+  const unsigned NumRadBins = 4096;
+  const double RadMin = 0;
+  const double RadMax = 16;
+  const unsigned NumMtBins = 1024;
+  const double MtMin = 0;
+  const double MtMax = 1024*4;
+  const unsigned NumBetaBins = 1024;
+  const double betaMin = 0;
+  const double betaMax = 2;
+
+  const double FemtoRegion = 200;
+  const double EtaRegion = 0.8;
+  const double MinMom = 500;
+
+  //SP = SingleParticle
+  TH1F* SP_p_LAB = new TH1F("SP_p_LAB","SP_p_LAB",NumMomBins,MomMin,MomMax);
+  TH1F* SP_pT_LAB = new TH1F("SP_pT_LAB","SP_pT_LAB",NumMomBins,MomMin,MomMax);
+  TH1F* SP_eta_LAB = new TH1F("SP_eta_LAB","SP_eta_LAB",NumEtaBins,EtaMin,EtaMax);
+  TH1F* SP_phi_LAB = new TH1F("SP_phi_LAB","SP_phi_LAB",NumPhiBins,PhiMin,PhiMax);
+  TH1F* SP_theta_LAB = new TH1F("SP_theta_LAB","SP_theta_LAB",NumThetaBins,ThetaMin,ThetaMax);
+  TH1F* SP_costheta_LAB = new TH1F("SP_costheta_LAB","SP_costheta_LAB",NumThetaBins,-1,1);
+
+  TH1F* SP_Sr_LAB = new TH1F("SP_Sr_LAB","SP_Sr_LAB",NumRadBins,RadMin,RadMax);
+  TH2F* Pair_mT_Sr_LAB = new TH2F("Pair_mT_Sr_LAB","Pair_mT_Sr_LAB",NumMomBins,MomMin,MomMax,NumRadBins,RadMin,RadMax);
+  TH2F* Pair_mT_Sr_CM = new TH2F("Pair_mT_Sr_CM","Pair_mT_Sr_CM",NumMomBins,MomMin,MomMax,NumRadBins,RadMin,RadMax);
+
+  //only for femto pairs
+  TH2F* FemPair_mT_Sr_LAB = new TH2F("FemPair_mT_Sr_LAB","FemPair_mT_Sr_LAB",NumMtBins,MtMin,MtMax,NumRadBins,RadMin,RadMax);
+  TH2F* FemPair_mT_Sr_CM = new TH2F("FemPair_mT_Sr_CM","FemPair_mT_Sr_CM",NumMtBins,MtMin,MtMax,NumRadBins,RadMin,RadMax);
+  TH1F* FemPair_Sr_LAB = new TH1F("FemPair_Sr_LAB","FemPair_Sr_LAB",NumRadBins,RadMin,RadMax);
+  TH1F* FemPair_Sr_CM = new TH1F("FemPair_Sr_CM","FemPair_Sr_CM",NumRadBins,RadMin,RadMax);
+  TH1F* FemPair_betaT_LAB = new TH1F("FemPair_betaT_LAB","FemPair_betaT_LAB",NumBetaBins,betaMin,betaMax);
+
+  //TH1F* FemPair_Angle_kr_LAB = new TH1F("FemPair_Angle_kr_LAB","FemPair_Angle_kr_LAB",NumThetaBins,ThetaMin,ThetaMax);
+  TH1F* FemPair_Angle_kr_CM = new TH1F("FemPair_Angle_kr_CM","FemPair_Angle_kr_CM",NumThetaBins,ThetaMin,ThetaMax);
+
+
+  double p_tot;
+  double p_T;
+  double eta;
+  double phi;
+  double theta;
+  double beta;
+  double gamma;
+  for(unsigned uEvent=0; uEvent<NumEvents; uEvent++){
+    CatsEvent* KittyEvent_LAB = new CatsEvent(1,1);
+    CatsEvent* KittyEvent_CM = new CatsEvent(1,1);
+    double beta_T=0;
+    bool FIX_BETA = rangen.Uniform(0,1)<fixed_beta_T;
+    for(unsigned uMult=0; uMult<Multiplicity; uMult++){
+      p_T = rangen.GaussR(3,0,Temp);
+      //common tranverse flow velocity
+      if(FIX_BETA){
+        //printf("Hello\n");
+        //random first particle
+        if(uMult==0){
+          //theta = acos(rangen.Uniform(-1,1));
+          //this will be our leading particle
+          theta = acos(rangen.Uniform(-0.7,0.7));
+          eta = -log(tan(0.5*theta));
+          phi = rangen.Uniform(0.,2.*Pi);
+          //fix the beta_T from now on
+          p_tot = p_T/sin(theta);
+          gamma = sqrt(Mass*Mass+p_tot*p_tot)/Mass;
+          beta_T = p_T/sqrt(Mass*Mass+p_tot*p_tot);
+        }
+        else{
+          gamma = p_T/(Mass*beta_T);
+          gamma = p_T/(Mass*beta_T);
+          beta = sqrt(1.-1./gamma/gamma);
+          p_tot = Mass*beta*gamma;
+          theta = asin(p_T/p_tot);
+
+          //while(gamma<1 || fabs(cos(theta))>0.7){
+          //while(gamma<1){
+          while(gamma<1 || fabs(cos(theta))>0.7 || p_T/p_tot<0.7){
+            p_T = rangen.GaussR(3,0,Temp);
+            gamma = p_T/(Mass*beta_T);
+            beta = sqrt(1.-1./gamma/gamma);
+            p_tot = Mass*beta*gamma;
+            //printf("p_tot = %.2f\n",p_tot);
+            theta = asin(p_T/p_tot);
+          }
+
+          if(rangen.Uniform(0.,1.)<0.5) theta = Pi-theta;
+          eta = -log(tan(0.5*theta));
+          phi = rangen.Uniform(0.,2.*Pi);
+        }
+      }
+      else{
+        //eta = rangen.Uniform(-0.8,0.8);
+        //if we want it flat in all spacial directions
+        theta = acos(rangen.Uniform(-1,1));
+        eta = -log(tan(0.5*theta));
+        phi = rangen.Uniform(0.,2.*Pi);
+        p_tot = p_T/sin(theta);
+      }
+
+      double time;
+      if(Time>0) time=Time;
+      else{
+        time = fabs(Time*FmToNu/p_tot);
+      }
+      printf("Time = %.2f\n",Time);
+      printf("FmToNu = %.3f\n",FmToNu);
+      printf("p_tot = %.2f\n",p_tot);
+      printf("time = %.2f\n",time);
+      printf("calc = %.2f\n\n",Time*FmToNu/p_tot);
+      usleep(100e3);
+      TLorentzVector TLM_Part;
+      TLM_Part.SetPtEtaPhiM(p_T,eta,phi,Mass);
+      //printf(" TLM_Part.P()=%.2f\n",TLM_Part.P());
+      //this will come out in fm, it is the distance traveled
+      double BGT = TLM_Part.Beta()*TLM_Part.Gamma()*time;
+      FemPair_betaT_LAB->Fill(TLM_Part.Pt()/(TLM_Part.Gamma()*TLM_Part.M()));
+
+      //we simply set the radius vector pointing in the direction of travel
+      //at the estimated distance of travel assuming constant time for the formation
+      TLorentzVector TLS_Part;
+      TLS_Part = TLM_Part;
+      TLS_Part.SetT(time);
+      TLS_Part.SetRho(TLM_Part.Beta()*time+rangen.GaussR(3,0,SP_r0));
+      //TLS_Part.SetRho(BGT);
+      //TLS_Part.SetRho(BGT+rangen.GaussR(3,0,SP_r0));
+      //TLS_Part.SetRho(rangen.GaussR(3,0,BGT)+0*rangen.GaussR(3,0,SP_r0));
+      //TLS_Part.SetRho(rangen.GaussR(3,0,Time)+SP_r0);
+      //TLS_Part.SetRho(rangen.GaussR(3,0,SP_r0));
+
+      //those two lines are identical, as expected. Good.
+      //next to check: does the angular correlation between k and r changes?
+      //if so, check if this implies that the angular correlations are preserved compared to e.g. BGT,
+      //or are they now different and depending on rho?
+      //TLS_Part.SetRho(rangen.GaussR(3,0,SP_r0));
+      //TLS_Part.SetXYZT(rangen.Gauss(0,SP_r0),rangen.Gauss(0,SP_r0),rangen.Gauss(0,SP_r0),Time);
+
+      SP_p_LAB->Fill(TLM_Part.P());
+      SP_pT_LAB->Fill(TLM_Part.Pt());
+      SP_eta_LAB->Fill(TLM_Part.Eta());
+      SP_phi_LAB->Fill(TLM_Part.Phi());
+      SP_theta_LAB->Fill(TLM_Part.Theta());
+      SP_costheta_LAB->Fill(cos(TLM_Part.Theta()));
+      SP_Sr_LAB->Fill(TLS_Part.Rho());
+
+      CatsParticle KittyParticle;
+      KittyParticle.Set(TLS_Part.T(),TLS_Part.X(),TLS_Part.Y(),TLS_Part.Z(),TLM_Part.E(),TLM_Part.X(),TLM_Part.Y(),TLM_Part.Z());
+      KittyParticle.SetPid(1);
+      KittyParticle.SetMass(1000);
+
+      //printf("p = %.0f\n",KittyParticle.GetP());
+      KittyEvent_LAB->AddParticle(KittyParticle);
+      KittyEvent_CM->AddParticle(KittyParticle);
+    }
+    KittyEvent_LAB->ComputeParticlePairs(false,false);
+    KittyEvent_CM->ComputeParticlePairs(false,true);
+    //printf("NP = %u\n", KittyEvent->GetNumPairs());
+    for(unsigned uPair=0; uPair<KittyEvent_LAB->GetNumPairs(); uPair++){
+      //double rstar = KittyEvent_LAB->GetParticlePair(uPair).GetR();
+      //double kstar = KittyEvent_LAB->GetParticlePair(uPair).GetP()*0.5;
+      //printf("p0 = %.0f\n",KittyEvent->GetParticlePair(uPair).GetParticle(0).GetP());
+      //printf("p1 = %.0f\n",KittyEvent->GetParticlePair(uPair).GetParticle(1).GetP());
+      //printf("rstar = %.2f\n",rstar);
+      //printf("kstar = %.2f\n",kstar);
+      //printf("\n");
+      //usleep(500e3);
+
+      double kstar = KittyEvent_CM->GetParticlePair(uPair).GetP()*0.5;
+      double Eta0 = KittyEvent_LAB->GetParticlePair(uPair).GetParticle(0).GetPseudoRap();
+      double Eta1 = KittyEvent_LAB->GetParticlePair(uPair).GetParticle(1).GetPseudoRap();
+      double Mom0 = KittyEvent_LAB->GetParticlePair(uPair).GetParticle(0).GetP();
+      double Mom1 = KittyEvent_LAB->GetParticlePair(uPair).GetParticle(1).GetP();
+      bool FemtoPair = kstar<FemtoRegion && fabs(Eta0)<EtaRegion && fabs(Eta1)<EtaRegion && Mom0>MinMom && Mom1>MinMom;
+      //printf("kstar = %.2f\n",kstar);
+      //printf("Eta0 = %.2f\n",Eta0);
+      //printf("Eta1 = %.2f\n",Eta1);
+      //printf("Mom0 = %.2f\n",Mom0);
+      //printf("Mom1 = %.2f\n",Mom1);
+      //printf("\n");
+      //usleep(200e3);
+
+      Pair_mT_Sr_LAB->Fill(KittyEvent_LAB->GetParticlePair(uPair).GetP()*0.5, KittyEvent_LAB->GetParticlePair(uPair).GetR());
+      Pair_mT_Sr_CM->Fill(KittyEvent_CM->GetParticlePair(uPair).GetP()*0.5, KittyEvent_CM->GetParticlePair(uPair).GetR());
+
+      if(FemtoPair){
+        double avg_mass;
+        double avg_pt;
+        double mtee;
+
+        avg_mass = KittyEvent_LAB->GetParticlePair(uPair).GetParticle(0).GetMass();
+        avg_mass += KittyEvent_LAB->GetParticlePair(uPair).GetParticle(1).GetMass();
+        avg_mass *= 0.5;
+        avg_pt = KittyEvent_LAB->GetParticlePair(uPair).GetSum().GetPt()*0.5;
+        mtee = sqrt(avg_mass*avg_mass+avg_pt*avg_pt);
+        FemPair_mT_Sr_LAB->Fill(mtee, KittyEvent_LAB->GetParticlePair(uPair).GetR());
+
+        avg_mass = KittyEvent_CM->GetParticlePair(uPair).GetParticle(0).GetMass();
+        avg_mass += KittyEvent_CM->GetParticlePair(uPair).GetParticle(1).GetMass();
+        avg_mass *= 0.5;
+        avg_pt = KittyEvent_CM->GetParticlePair(uPair).GetSum().GetPt()*0.5;
+        mtee = sqrt(avg_mass*avg_mass+avg_pt*avg_pt);
+        FemPair_mT_Sr_CM->Fill(mtee, KittyEvent_CM->GetParticlePair(uPair).GetR());
+
+        FemPair_Sr_LAB->Fill(KittyEvent_LAB->GetParticlePair(uPair).GetR());
+        FemPair_Sr_CM->Fill(KittyEvent_CM->GetParticlePair(uPair).GetR());
+
+        FemPair_Angle_kr_CM->Fill(KittyEvent_LAB->GetParticlePair(uPair).GetScatAngle());
+      }
+    }
+
+    delete KittyEvent_LAB;
+    delete KittyEvent_CM;
+  }
+
+  SP_Sr_LAB->Scale(1./SP_Sr_LAB->Integral(),"width");
+  FemPair_Sr_LAB->Scale(1./FemPair_Sr_LAB->Integral(),"width");
+  FemPair_Sr_CM->Scale(1./FemPair_Sr_CM->Integral(),"width");
+  TF1* f_SP_Sr = new TF1(TString::Format("f_SP_Sr"),GaussSourceTF1,RadMin,RadMax,1);
+  f_SP_Sr->SetParameter(0,1.0);
+  f_SP_Sr->SetParLimits(0,0.5,2.0);
+  SP_Sr_LAB->Fit(f_SP_Sr,"Q, S, N, R, M");
+  printf("Single particle source size (LAB): %.3f fm\n",f_SP_Sr->GetParameter(0));
+
+  TFile fOutput(OutputFolder+"fOutput.root","recreate");
+  SP_p_LAB->Write();
+  SP_pT_LAB->Write();
+  SP_eta_LAB->Write();
+  SP_phi_LAB->Write();
+  SP_theta_LAB->Write();
+  SP_costheta_LAB->Write();
+  SP_Sr_LAB->Write();
+  f_SP_Sr->Write();
+  Pair_mT_Sr_LAB->Write();
+  Pair_mT_Sr_CM->Write();
+  FemPair_betaT_LAB->Write();
+  FemPair_mT_Sr_LAB->Write();
+  FemPair_mT_Sr_CM->Write();
+  FemPair_Sr_LAB->Write();
+  FemPair_Sr_CM->Write();
+  //FemPair_Angle_kr_LAB->Write();
+  FemPair_Angle_kr_CM->Write();
+
+  delete SP_p_LAB;
+  delete SP_pT_LAB;
+  delete SP_eta_LAB;
+  delete SP_phi_LAB;
+  delete SP_theta_LAB;
+  delete SP_costheta_LAB;
+  delete SP_Sr_LAB;
+  delete Pair_mT_Sr_LAB;
+  delete Pair_mT_Sr_CM;
+  delete FemPair_mT_Sr_LAB;
+  delete FemPair_mT_Sr_CM;
+  delete FemPair_Sr_LAB;
+  delete FemPair_Sr_CM;
+  //delete FemPair_Angle_kr_LAB;
+  delete FemPair_Angle_kr_CM;
+  delete FemPair_betaT_LAB;
+}
+
+
+
+
 int SOURCESTUDIES(int argc, char *argv[]){
     //CompareCkAndSr();
     //Compare_2_vs_3_body();
@@ -2373,11 +2672,14 @@ int SOURCESTUDIES(int argc, char *argv[]){
 
     //void SourcePaper_pp(const TString SourceVar, const int& SmearStrategy, const unsigned DataVar, const int imTbin, const TString OutputFolder)
     //SourcePaper_pp(argv[1],atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),argv[5]);
-    SourcePaper_pL(argv[1],atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),argv[5]);
+    //SourcePaper_pL(argv[1],atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),argv[5]);
     //SourcePaper_pL("McGauss_ResoTM",1,0,0,"/home/dimihayl/Software/LocalFemto/Output/SourceStudies/SourcePaper_pL/");
     //SourcePaper_pp("Gauss",1,0,0,"/home/dimihayl/Software/LocalFemto/Output/SourceStudies/SourcePaper_pp/");
     //SourcePaper_pp("McGauss_ResoTM",1,0,0,"/home/dimihayl/Software/LocalFemto/Output/SourceStudies/SourcePaper_pp/");
 
     //TestReadTTree();
+
+    SinglePart_RandomLab();
+
     return 0;
 }

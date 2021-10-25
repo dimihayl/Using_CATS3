@@ -6186,9 +6186,9 @@ TF1* MakeSmoothAngularCosine(TH1F* hCosDisto){
 //2 = fit the cos with 1/(1-exp)
 void Georgios_LXi_ResoTest(const int& SmoothSampling){
 
-    //const double CoreSize = 0.8934;
-    //const double CoreSize = 0.838728;
-    const double CoreSize = 0.946257;
+    //const double CoreSize = 0.842;
+    //const double CoreSize = 0.894;
+    const double CoreSize = 0.948;
     const unsigned SmoothEntires = 1024*128;
 
     //DLM_CleverMcLevyResoTM* MagicSource = new DLM_CleverMcLevyResoTM ();
@@ -8454,10 +8454,14 @@ void OkayishStartingPars( const TString Potential, const double& f0, const doubl
 }
 
 //Potential==Dynamic, means we try to do the double Gaussian, if it fails we repeat it all with Yukawa
+//FineTune < 1 to decrease the intrisic minimum step for the current potential
 void ManufacturePotential(const double f0, const double df0,
                                 const double d0, const double dd0, const double* Radii, const unsigned NumRad,
                                 double& V1, double& mu1, double& V2, double& mu2,
-                                const TString Potential, const TString OutputFolder, const int& SEED=11, const double* StartPars=NULL){
+                                const TString Potential, const TString OutputFolder, const int& SEED=11, const double* StartPars=NULL,
+                                const double RedMass=500, const double FineTune=1){
+
+
   //b = best, l = last, d = difference to desired
   TString CurrentPot = Potential;
   if(Potential=="Dynamic") CurrentPot = "DoubleGaussSum";
@@ -8501,18 +8505,19 @@ void ManufacturePotential(const double f0, const double df0,
   Kitty_SE.SetUseAnalyticSource(true);
   Kitty_SE.SetQ1Q2(0);
   Kitty_SE.SetQuantumStatistics(false);
+  Kitty_SE.SetRedMass( RedMass );
   //Kitty_SE.SetRedMass(Mass_L*0.5);
-Kitty_SE.SetRedMass(488.6);//pphi
+//Kitty_SE.SetRedMass(488.6);//pphi
   Kitty_SE.SetNumChannels(1);
   Kitty_SE.SetNumPW(0,1);
   Kitty_SE.SetSpin(0,0);
   Kitty_SE.SetChannelWeight(0, 1.);
-  Kitty_SE.SetEpsilonConv(5e-9);
-  Kitty_SE.SetEpsilonProp(5e-9);
-  Kitty_SE.SetMaxRad(96);
-  Kitty_SE.SetMaxRho(32);
+  Kitty_SE.SetEpsilonConv(1e-8);
+  Kitty_SE.SetEpsilonProp(1e-8);
+  //Kitty_SE.SetMaxRad(96);
+  //Kitty_SE.SetMaxRho(32);
   Kitty_SE.SetNotifications(CATS::nSilent);
-  Kitty_SE.SetGridEpsilon(1./512.);
+  //Kitty_SE.SetGridEpsilon(1./512.);
   double RadForGrid;
   Kitty_SE.KillTheCat();
   CATSparameters pPars(CATSparameters::tPotential,5,true);
@@ -8548,7 +8553,7 @@ Kitty_SE.SetRedMass(488.6);//pphi
   unsigned UnstuckCounter = 0;
   const unsigned StuckLimit = 64;
   //how many iterations to do by changing only single pars
-  const unsigned UnstuckPerPar = 32;
+  const unsigned UnstuckPerPar = 32*2;
   //1 is V1, 2 is mu1, 3 is V2 and 4 is mu2. 0 the normal mode
   unsigned SinglePar = 0;
   for(unsigned uf=0; uf<fluctN; uf++) fluct[uf]=-1000*dist_unit;
@@ -8562,7 +8567,9 @@ const bool DEBUG = false;
   TH2F* hif0d0Count = new TH2F("hf0d0Count","hf0d0Count",20,-10,10,20,0,40);
   bool FoundIt = false;
   while(uIter<MaxIter&&!FoundIt){
-    if(!DEBUG) printf("\r\033[K Goal: %s (f0,d0) [Achieved]: (%.3f,%.3f)+/-(%.3f,%.3f) [%3.0f%%,%3.0f%%], Break (%5u/%5u)",Potential.Data(),f0,d0,fabs(df0),fabs(dd0),fabs(df0/bdf_0*100.),fabs(dd0/bdd_0*100.),uIter,MaxIter);
+    if(!DEBUG){
+      printf("\r\033[K Goal: %s (f0,d0) [Achieved]: (%.3f,%.3f)+/-(%.3f,%.3f) [%3.0f%%,%3.0f%%], Break (%5u/%5u)",Potential.Data(),f0,d0,fabs(df0),fabs(dd0),fabs(df0/bdf_0*100.),fabs(dd0/bdd_0*100.),uIter,MaxIter);
+    }
     else printf("\nProgress: Break (%5u/%5u), Precision f0(%3.0f%%) d0(%3.0f%%)",uIter,MaxIter,fabs(df0/bdf_0*100.),fabs(dd0/bdd_0*100.));
     //printf("Progress %5u from %5u, bd=%.1f(%.1f)\n",uIter,MaxIter,bdist,sqrt(0.5*bdf_0*bdf_0/df0/df0+0.5*bdd_0*bdd_0/dd0/dd0));
 
@@ -8622,7 +8629,7 @@ const bool DEBUG = false;
         }
         if(!DEBUG){
           //cout<<flush;
-          printf("\n----- RESET (%s) -----\n",CurrentPot.Data());
+          printf("\n\n----- RESET (%s) -----\n",CurrentPot.Data());
           printf("\r\033[K Progress: Break (%5u/%5u)",uIter,MaxIter);
         }
         else{
@@ -8719,29 +8726,29 @@ const bool DEBUG = false;
     else{
       if(CurrentPot=="YukawaDimiCore"){
         if(!SinglePar||SinglePar==1){
-          do V_1 = rangen.Gaus(bV_1,0.005+5.*Convergence[1]*Convergence[0]);
+          do V_1 = rangen.Gaus(bV_1,0.005+5.*Convergence[1]*Convergence[0]*FineTune);
           while(V_1<0);
         }
         if(!SinglePar||SinglePar==2){
-          do{mu_1 = rangen.Gaus(bmu_1,0.001+1.*Convergence[2]*Convergence[0]);}
+          do{mu_1 = rangen.Gaus(bmu_1,0.001+1.*Convergence[2]*Convergence[0]*FineTune);}
           while(mu_1<0.||mu_1>3.0);
         }
         if(!SinglePar||SinglePar==3){
-          V_2 = rangen.Gaus(bV_2,0.2+200.*Convergence[3]*Convergence[0]);
+          V_2 = rangen.Gaus(bV_2,0.2+200.*Convergence[3]*Convergence[0]*FineTune);
           //do V_2 = rangen.Gaus(bV_2,0.2+200.*Convergence[3]*Convergence[0]);
           //while(V_2<0);
         }
         if(!SinglePar||SinglePar==4){
-          do{mu_2 = rangen.Gaus(bmu_2,0.0005+0.5*Convergence[4]*Convergence[0]);}
+          do{mu_2 = rangen.Gaus(bmu_2,0.0005+0.5*Convergence[4]*Convergence[0]*FineTune);}
           while(mu_2<0.1||mu_2>1.5);
         }
       }
       else if(CurrentPot=="Gaussian"){
         if(!SinglePar||SinglePar==1){
-          V_1 = rangen.Gaus(bV_1,0.05+40.*Convergence[1]*Convergence[0]);
+          V_1 = rangen.Gaus(bV_1,0.05+40.*Convergence[1]*Convergence[0]*FineTune);
         }
         if(!SinglePar||SinglePar==2){
-          do{mu_1 = rangen.Gaus(bmu_1,0.001+1.0*Convergence[2]*Convergence[0]);}//----
+          do{mu_1 = rangen.Gaus(bmu_1,0.001+1.0*Convergence[2]*Convergence[0]*FineTune);}//----
           while(mu_1<0.||mu_1>3.0);
         }
         V_2 = 0;
@@ -8749,11 +8756,11 @@ const bool DEBUG = false;
       }
       else if(CurrentPot=="Yukawa"){
         if(!SinglePar||SinglePar==1){
-          do V_1 = rangen.Gaus(bV_1,0.05+20.*Convergence[1]*Convergence[0]);
+          do V_1 = rangen.Gaus(bV_1,0.05+20.*Convergence[1]*Convergence[0]*FineTune);
           while(V_1<0);
         }
         if(!SinglePar||SinglePar==2){
-          do{mu_1 = rangen.Gaus(bmu_1,0.001+1.0*Convergence[2]*Convergence[0]);}
+          do{mu_1 = rangen.Gaus(bmu_1,0.001+1.0*Convergence[2]*Convergence[0]*FineTune);}
           while(mu_1<0.||mu_1>3.0);
         }
         V_2 = 0;
@@ -8763,23 +8770,23 @@ const bool DEBUG = false;
         //this is the long range guy, we expect it to be negative for positive f0
         //do {
         if(!SinglePar||SinglePar==1){
-          V_1 = rangen.Gaus(bV_1,0.2+500.*Convergence[1]*Convergence[0]);
+          V_1 = rangen.Gaus(bV_1,0.2+500.*Convergence[1]*Convergence[0]*FineTune);
         }
         //}
         //while(f0>0&&V_1>0);
         if(!SinglePar||SinglePar==2){
-          do{mu_1 = rangen.Gaus(bmu_1,0.001+1.*Convergence[2]*Convergence[0]);}
+          do{mu_1 = rangen.Gaus(bmu_1,0.001+1.*Convergence[2]*Convergence[0]*FineTune);}
           while(mu_1<0.||mu_1>2.5);
         }
         //the second gaussian should be short ranged and stronger in amplitude
         //do{
         if(!SinglePar||SinglePar==3){
-          V_2 = rangen.Gaus(bV_2,0.2+500.*Convergence[3]*Convergence[0]);
+          V_2 = rangen.Gaus(bV_2,0.2+500.*Convergence[3]*Convergence[0]*FineTune);
         }
         //}
         //while(fabs(V_2)<fabs(V_1));
         if(!SinglePar||SinglePar==4){
-          do{mu_2 = rangen.Gaus(bmu_2,0.001+1.*Convergence[4]*Convergence[0]);}
+          do{mu_2 = rangen.Gaus(bmu_2,0.001+1.*Convergence[4]*Convergence[0]*FineTune);}
           while(mu_2<0.||mu_2>2.5);
         }
       }
@@ -8791,7 +8798,12 @@ const bool DEBUG = false;
     Kitty_SE.SetShortRangePotential(0,0,1,mu_1);
     Kitty_SE.SetShortRangePotential(0,0,2,V_2);
     Kitty_SE.SetShortRangePotential(0,0,3,mu_2);
-    if(CurrentPot=="YukawaDimiCore") s_2 = mu_2*0.2;
+    if(CurrentPot=="YukawaDimiCore"){
+      if(StartPars&&StartPars[4]){
+        s_2 = StartPars[4];
+      }
+      else s_2 = mu_2*0.2;
+    }
     else if(CurrentPot=="Gaussian") s_2 = -1;
     else if(CurrentPot=="Yukawa") s_2 = -2;
     else s_2 = 0;
@@ -8803,6 +8815,13 @@ const bool DEBUG = false;
 
     if(DEBUG) printf("\n    V1=%.1f mu1=%.3f V2=%.1f mu2=%.3f",V_1,mu_1,V_2,mu_2);
     if(DEBUG) printf("\n b: V1=%.1f mu1=%.3f V2=%.1f mu2=%.3f",bV_1,bmu_1,bV_2,bmu_2);
+
+    if(!DEBUG){
+      printf("\n Current solution: V1=%.4e  mu1=%.4e  V2=%.4e  mu2=%.4e <--> f0=%.3f  d0=%.3f      ",
+      bV_1,bmu_1,bV_2,bmu_2,bf_0,bd_0);
+    }
+
+
     if(Eval_ScattParameters(Kitty_SE,f_0,d_0,hDummy,fDummy)) BadPhaseShifts = 0;
     else BadPhaseShifts++;
     //hDummy->Write();
@@ -8812,7 +8831,11 @@ const bool DEBUG = false;
     if(BadPhaseShifts) {
       //cout<<flush;cout<<"\033[F";cout<<flush;cout<<"\033[F";
       //cout<<flush;cout<<"\033[F";cout<<flush;cout<<"\033[F";
-      if(!DEBUG) cout << flush;
+      if(!DEBUG){
+        cout << flush;
+        cout << "\e[A";
+        cout << flush;
+      }
       else printf("\n ISSUE");
       continue;
     }
@@ -8902,7 +8925,12 @@ const bool DEBUG = false;
     //cout<<flush;cout<<"\033[F";cout<<flush;cout<<"\033[F";
     //cout<<flush;cout<<"\033[F";cout<<flush;cout<<"\033[F";
     //cout<<flush;cout<<"\033[F";
-    if(!DEBUG) cout << flush;
+    if(!DEBUG){
+      cout << flush;
+      cout << "\e[A";
+      cout << flush;
+    }
+
   }
   if(DEBUG){printf("\ndist: %.2f vs %.2f\n",bdist,FallBack[0]);}
   if(bdist>FallBack[0]){
@@ -9233,7 +9261,8 @@ void ManufacturePotential2(const double f0, const double df0,
 
 
 
-
+//!!!!!!!!! I have now introduced the mass as input, but I have set it only for Bhawani
+//each time you rerun, CHANGE the masses to the value you desire!
 void MakePotentials(int flag){
   double V1,V2,mu1,mu2;
   //ManufactureYukawaPotential(0.5,0.0025,1,0.005,V1,mu1,V2,mu2);
@@ -9362,11 +9391,11 @@ void MakePotentials(int flag){
   // 50X,51X - doublet potentials
   // 52X,53,54X - quarted potentials, if other -> perform all of them
   else if(flag/10>=50&&flag/10<=59){
-    ef0 = 0.1;
-    ed0 = 0.05;
+    ef0 = 0.1/10.;
+    ed0 = 0.05/5.;
     NumR = 1;
     Radii[0] = 1.2;
-    OutputFolder += "ProfS/";
+    OutputFolder += "ProfS_Dynamic/";
     int VAR_FLAG = (flag/10)%10;
     for(unsigned uVar=0; uVar<5; uVar++){
       if(VAR_FLAG<5&&uVar!=VAR_FLAG) continue;
@@ -9378,14 +9407,156 @@ void MakePotentials(int flag){
         case 4: f0=17.3; d0 = 3.6; break;
         default: printf("Weird flags for producing the potentials for Prof. S.\n"); return;
       }
-      double StartPars[4];
-      StartPars[0]=-8.999757e+02;
-      StartPars[1]=5.081559e-01;
-      StartPars[2]= -4.021392e+02;
-      StartPars[3]=1.019864e+00;
-      if(uVar==1) ManufacturePotential(f0,ef0,d0,ed0,Radii,NumR,V1,mu1,V2,mu2,Potential,OutputFolder,11,StartPars);
-      else ManufacturePotential(f0,ef0,d0,ed0,Radii,NumR,V1,mu1,V2,mu2,Potential,OutputFolder);
+      double StartPars[5];
+
+      if(Potential=="DoubleGaussSum"){
+        //this does not work, ones you have result for uVar==1, plug in those here
+        if(uVar==0){
+          //StartPars[0]=-8.999757e+02;
+          //StartPars[1]=5.081559e-01;
+          //StartPars[2]= -4.021392e+02;
+          //StartPars[3]=1.019864e+00;
+          //StartPars[4]=0;
+          //StartPars[0]=-1.943168e+02;
+          //StartPars[1]=1.372106e+00;
+          //StartPars[2]= 3.646892e+02;
+          //StartPars[3]=9.833930e-01;
+          //StartPars[4]=0;
+          StartPars[0]=-1.463711e+02;
+          StartPars[1]=1.151375e+00;
+          StartPars[2]=3.695934e+02;
+          StartPars[3]=6.549581e-01;
+          StartPars[4]=0;
+        }
+        else if(uVar==1){
+          //StartPars[0]=-8.999757e+02;
+          //StartPars[1]=5.081559e-01;
+          //StartPars[2]= -4.021392e+02;
+          //StartPars[3]=1.019864e+00;
+          //StartPars[4]=0;
+          StartPars[0]=-1.707025e+02;
+          StartPars[1]=1.495874e+00;
+          StartPars[2]= 3.626808e+02;
+          StartPars[3]=9.711152e-01;
+          StartPars[4]=0;
+        }
+        else if(uVar==2){
+          StartPars[0]=-1.008636e+01;
+          StartPars[1]=1.348757e+00;
+          StartPars[2]= -1.410447e+01;
+          StartPars[3]=2.147635e+00;
+          StartPars[4]=0;
+        }
+        else if(uVar==3){
+          StartPars[0]=-4.867921e+02;
+          StartPars[1]=1.175196e+00;
+          StartPars[2]= -8.110269e+02;
+          StartPars[3]=1.169148e-01;
+          StartPars[4]=0;
+        }
+        else{
+          StartPars[0]=-4.940004e+02;
+          StartPars[1]=1.177133e+00;
+          StartPars[2]= -8.133919e+02;
+          StartPars[3]=1.007169e-01;
+          StartPars[4]=0;
+        }
+        //if(uVar==1) ManufacturePotential(f0,ef0,d0,ed0,Radii,NumR,V1,mu1,V2,mu2,Potential,OutputFolder,11,StartPars);
+        //else ManufacturePotential(f0,ef0,d0,ed0,Radii,NumR,V1,mu1,V2,mu2,Potential,OutputFolder);
+        ManufacturePotential(f0,ef0,d0,ed0,Radii,NumR,V1,mu1,V2,mu2,Potential,OutputFolder,11,StartPars);
+
+      }
+      else{
+        ManufacturePotential(f0,ef0,d0,ed0,Radii,NumR,V1,mu1,V2,mu2,Potential,OutputFolder);
+      }
+
+
     }
+  }
+  //for fopra S 60X.
+  // pLambda fixed to NLO 600 scattering parameters. Effective single channel potential
+  else if(flag/10>=60&&flag/10<=69){
+    ef0 = 0.01;
+    ed0 = 0.01;
+    NumR = 1;
+    Radii[0] = 1.38;
+    OutputFolder += "FemtoFopra/";
+    int VAR_FLAG = (flag/10)%10;
+    for(unsigned uVar=0; uVar<4; uVar++){
+      if(VAR_FLAG<5&&uVar!=VAR_FLAG) continue;
+      switch (uVar) {
+        case 0: f0=1.88; d0 = 2.74; break;
+        case 1: f0=1.9; ef0=0.05; d0 = 2.75;  ed0=0.05; break;
+        case 2: f0=1.88; ef0=0.02; d0 = 2.74;  ed0=0.03; break;
+        case 3: f0=1.88; ef0=0.02; d0 = 2.75;  ed0=0.05; break;
+        default: printf("Weird flags for producing the potentials for the femto fopra\n"); return;
+      }
+      double StartPars[5];
+      if(VAR_FLAG==2){
+        StartPars[0] = 2.76705e+00;
+        StartPars[1] = 4.46223e-01;
+        StartPars[2] = 1.72309e+03;
+        StartPars[3] = 3.84851e-01;
+        StartPars[4] = 0.1;
+      }
+      else if(VAR_FLAG==3){
+        StartPars[0] = 5.04406e+00;
+        StartPars[1] = 3.88958e-01;
+        StartPars[2] = 1.83273e+03;
+        StartPars[3] = 3.63198e-01;
+        StartPars[4] = 1.03943e-01;
+      }
+      else OkayishStartingPars(Potential,f0,d0,StartPars[0],StartPars[1],StartPars[2],StartPars[3],StartPars[4]);
+      ManufacturePotential(f0,ef0,d0,ed0,Radii,NumR,V1,mu1,V2,mu2,Potential,OutputFolder,11,StartPars);
+    }
+  }
+  //for Bhawani, p-d (7XX)
+  //0 = Oers, Brockmann et al.(1967) (quartet)
+  //1 = Oers, Brockmann et al.(1967) (doublet)
+  //2 = Arvieux et al.(1973) (quartet)
+  //3 = Arvieux et al.(1973) (doublet)
+  //4 = Huttel et al.(1983) (quartet)
+  //5 = Huttel et al.(1983) (doublet)
+  //6 = Kievsky et al.(1997) (quartet)
+  //7 = Kievsky et al.(1997) (doublet)
+  //8 = Black et al. (1999) (quartet)
+  //9 = Black et al. (1999) (doublet)
+  //80X is something from the p-D meson I think, some check Bhawani needed
+  else if(flag/10>=70&&flag/10<=89){
+    NumR = 1;
+    Radii[0] = 1.2;
+    OutputFolder += "Bhawani/";
+    int VAR_FLAG = (flag/10)%10;
+    ef0 = VAR_FLAG%10==0?0.1:0.01;
+    ed0 = 1.0;
+    d0 = 1.2;
+    if(flag/10<80){
+      for(unsigned uVar=0; uVar<10; uVar++){
+        if(VAR_FLAG<10&&uVar!=VAR_FLAG) continue;
+        switch (uVar) {
+          case 0: f0=11.4; break;
+          case 1: f0=1.2; break;
+          case 2: f0=11.88; break;
+          case 3: f0=2.73; break;
+          case 4: f0=11.1; break;
+          case 5: f0=4.0; break;
+          case 6: f0=13.8; break;
+          case 7: f0=0.024; ef0=0.002; break;
+          case 8: f0=14.7; break;
+          case 9: f0=-0.13; break;
+          default: printf("Weird flags for producing the potentials for Bhawani\n"); return;
+        }
+      }
+    }
+    else{
+      //NEGATIVE EFFECTIVE RANGE FOR THIS MODEL, WE PUT IT ON HOLD
+    }
+
+    double StartPars[5];
+    //OkayishStartingPars(Potential,f0,d0,StartPars[0],StartPars[1],StartPars[2],StartPars[3],StartPars[4]);
+    //ManufacturePotential(f0,ef0,d0,ed0,Radii,NumR,V1,mu1,V2,mu2,Potential,OutputFolder,11,StartPars);
+    ManufacturePotential(f0,ef0,d0,ed0,Radii,NumR,V1,mu1,V2,mu2,Potential,OutputFolder,32,NULL,
+      (Mass_p*Mass_d)/(Mass_p+Mass_d),1./16.);
   }
   /*
   Suitable DoubleGaussSum potential found:
@@ -12483,7 +12654,7 @@ void Test_unfold_yield(){
   dlmUnfold.SetUnfoldRange(0,kUnfold);
   dlmUnfold.SetUnfoldMinutes(115);
   printf("Unfolding...\n");
-  DLM_Histo<float>*  dlm_yield_unfolded = dlmUnfold.Unfold(1); 
+  DLM_Histo<float>*  dlm_yield_unfolded = dlmUnfold.Unfold(1);
   printf("Unfolded\n");
   fOutput->cd();
   TH1F* h_yield_unfolded = Convert_DlmHisto_TH1F(dlm_yield_unfolded,"h_yield_unfolded");
@@ -12504,10 +12675,410 @@ void Test_unfold_yield(){
 }
 
 
+
+void Bhawani_pot(TString PotentialName) {
+
+	double Mass_p = 1116;
+	double Mass_Kch = 1116;
+	int NumMomBins = 60;
+	//const TString PotentialName = "NSC97b";
+	//const TString PotentialName = "NF48";
+	//const TString PotentialName = "emma";
+	//const TString PotentialName = "custom";
+
+	const double kMin = 0;
+	const double kMax = 300;
+	const double kStep = 3;
+	const unsigned nMom = TMath::Nint(kMax / kStep);
+	const double Radius = 1.0;
+
+	CATSparameters sPars(CATSparameters::tSource, 1, true);
+	sPars.SetParameter(0, Radius);
+	CATS Kitty_SE;
+	Kitty_SE.SetMomBins(nMom, kMin, kMax);
+	Kitty_SE.SetAnaSource(GaussSource, sPars);
+	Kitty_SE.SetUseAnalyticSource(true);
+	Kitty_SE.SetQ1Q2(0);
+	Kitty_SE.SetQuantumStatistics(false);
+	//Kitty_SE.SetRedMass(Mass_L*0.5);
+	Kitty_SE.SetRedMass((Mass_p * Mass_Kch) / (Mass_p + Mass_Kch));
+	Kitty_SE.SetNumChannels(1);
+	Kitty_SE.SetNumPW(0, 1);
+	Kitty_SE.SetSpin(0, 0);
+	Kitty_SE.SetChannelWeight(0, 1.);
+	CATSparameters pPars(CATSparameters::tPotential, 7, true);
+	double c_f0, c_d0;
+	if (PotentialName == "NSC97b") {
+		pPars.SetParameter(0, -78.42);
+		pPars.SetParameter(1, 1.0);
+		pPars.SetParameter(2, 741.76);
+		pPars.SetParameter(3, 0.45);
+		c_f0 = 0.397;
+		c_d0 = 10.360;
+	} else if (PotentialName == "NF48") {
+		pPars.SetParameter(0, -1647.40);
+		pPars.SetParameter(1, 0.6);
+		pPars.SetParameter(2, 3888.96);
+		pPars.SetParameter(3, 0.45);
+		c_f0 = 1.511;
+		c_d0 = 2.549;
+	} else if (PotentialName == "emma") {
+		//for emma -> NSC97f basis
+		pPars.SetParameter(0, -106.53 * 0.85);
+		pPars.SetParameter(1, 1.0 * 1.18);
+		pPars.SetParameter(2, 1469.33);
+		pPars.SetParameter(3, 0.45 * 1.1);
+		c_f0 = 0.350;
+		c_d0 = 16.330;
+	} else if (PotentialName == "Toy1") {
+		pPars.SetParameter(0, -144.5);
+		pPars.SetParameter(1, 2.11);
+		pPars.SetParameter(2, 520.0);
+		pPars.SetParameter(3, 0.54);
+		c_f0 = -0.73;
+		c_d0 = 7.72;
+	} else if (PotentialName == "ND46") {//bound
+		pPars.SetParameter(0, -144.89);
+		pPars.SetParameter(1, 1.0);
+		pPars.SetParameter(2, 127.87);
+		pPars.SetParameter(3, 0.45);
+		c_f0 = -4.621;
+		c_d0 = 1.3;
+	} else if (PotentialName == "Yukawa1") {
+		pPars.SetParameter(0, 1.0);
+		pPars.SetParameter(1, 1.0);
+		pPars.SetParameter(2, 100.0);
+		pPars.SetParameter(3, 1.0);
+		pPars.SetParameter(4, 0.4);
+		c_f0 = 0;
+		c_d0 = 1;
+	} else if (PotentialName == "pKplusI0") {
+		pPars.SetParameter(0, 0.0);
+		c_f0 = 0.03;
+		c_d0 = 0.0;
+	} else if (PotentialName == "pKplusI1") {
+		pPars.SetParameter(0, 1.0);
+		c_f0 = -0.3;
+		c_d0 = 0.0;
+	} else if (PotentialName == "pKplusYuki") {
+		pPars.SetParameter(0, 0.376); //0.376;0.335
+		pPars.SetParameter(1, sqrt(200.*(Mass_p * Mass_Kch) / (Mass_p + Mass_Kch)));
+		pPars.SetParameter(2, 3);
+		pPars.SetParameter(3, 2084);
+		pPars.SetParameter(4, 50.81);
+		pPars.SetParameter(5, 18.34);
+		pPars.SetParameter(6, -1.752);
+		c_f0 = -0.3;
+		c_d0 = 0.0;
+	} else {
+		pPars.SetParameter(0, -5.50337);
+		pPars.SetParameter(1, 1. / sqrt(2.148805));
+		pPars.SetParameter(2, 0);
+		pPars.SetParameter(3, 1);
+		//pPars.SetParameter(0,-78.42*0.39*4.5);//0.39,0.4
+		//pPars.SetParameter(1,1.0*1.35);
+		//pPars.SetParameter(2,741.76*4.5);
+		//pPars.SetParameter(3,0.45*1.4);
+		//NF46 as a stariting point
+		//pPars.SetParameter(0,-1327.26*1.0);
+		//pPars.SetParameter(1,0.6);
+		//pPars.SetParameter(2,2561.56);
+		//pPars.SetParameter(3,0.45);
+		c_f0 = 0.02;
+		c_d0 = 30.0;
+		printf(" Hello\n");
+
+	}
+	Kitty_SE.SetEpsilonConv(5e-9);
+	Kitty_SE.SetEpsilonProp(5e-9);
+	//if (PotentialName.Contains("Yukawa"))
+	//	Kitty_SE.SetShortRangePotential(0, 0, YukawaDimiCore, pPars);
+	if (PotentialName.Contains("pKplusI")) {
+		Kitty_SE.SetShortRangePotential(0, 0, KpProtonEquivalentPotential, pPars);
+		Kitty_SE.SetEpsilonConv(1e-9);
+		Kitty_SE.SetEpsilonProp(1e-9);
+	//} else if (PotentialName.Contains("pKplusYuki")) {
+	///	Kitty_SE.SetShortRangePotential(0, 0, SingleGaussDynamic, pPars);
+		//Kitty_SE.SetEpsilonConv(1e-9);
+		//Kitty_SE.SetEpsilonProp(1e-9);
+	} else Kitty_SE.SetShortRangePotential(0, 0, DoubleGaussSum, pPars);
+
+	Kitty_SE.KillTheCat();
+
+	TFile* OutputFile = new TFile(
+	    TString::Format("%s/OtherTasks/Bhawani_%s.root",GetFemtoOutputFolder(),PotentialName.Data()), "recreate");
+	printf("File Created\n");
+	TGraph gKitty;
+	gKitty.SetName(TString::Format("gKitty"));
+	gKitty.Set(NumMomBins);
+	for (unsigned uBin = 0; uBin < NumMomBins; uBin++) {
+		printf("C(%.2f) = %.2f\n", Kitty_SE.GetMomentum(uBin), Kitty_SE.GetCorrFun(uBin));
+		gKitty.SetPoint(uBin, Kitty_SE.GetMomentum(uBin), Kitty_SE.GetCorrFun(uBin));
+	}
+	gKitty.Write();
+	delete OutputFile;
+	//delete cPars;
+}
+
+
+//D0-Dstar_ch
+void DDstar_TetsuoTest1(){
+
+  const double Mass_D0 = 1864.84;
+  const double Mass_Dch = 1869.5;
+  const double Mass_Dstar0 = 2006.85;
+  const double Mass_Dstarch = 2010.26;
+  const double Mass_pi0 = 134.9768;
+
+  const int NumSource = 6;
+  double* SourceSize = new double[NumSource];
+  SourceSize[0] = 1.0;
+  SourceSize[1] = 1.5;
+  SourceSize[2] = 2.0;
+  SourceSize[3] = 3.0;
+  SourceSize[4] = 4.0;
+  SourceSize[5] = 5.0;
+
+  const int NumPots = 2;
+  double* par_V0 = new double[NumPots];
+  double* par_R = new double[NumPots];
+
+  par_V0[0] = -34.5;
+  par_R[0] = NuToFm*(1./Mass_pic);
+
+  par_V0[1] = -33.1;
+  par_R[1] = NuToFm*(1./Mass_pic);
+
+  TGraph** gCk = new TGraph* [NumPots];
+  for(unsigned uPot=0; uPot<NumPots; uPot++){
+    gCk[uPot] = new TGraph[NumSource];
+    for(unsigned uSor=0; uSor<NumSource; uSor++){
+      gCk[uPot][uSor].SetName(TString::Format("Ck_DDstar_%.1fMeV_%.1ffm",par_V0[uPot],SourceSize[uSor]));
+    }
+  }
+  TGraph* gYuki = new TGraph [NumSource];
+  for(unsigned uSor=0; uSor<NumSource; uSor++){
+    gYuki[uSor].SetName(TString::Format("Yuki_DDstar_%.1ffm",SourceSize[uSor]));
+  }
+
+  for(unsigned uPot=0; uPot<NumPots; uPot++){
+    CATS Kitty;
+    Kitty.SetMomBins(300,0,300);
+    CATSparameters cPars(CATSparameters::tSource,1,true);
+    cPars.SetParameter(0,1);
+    Kitty.SetAnaSource(GaussSource, cPars);
+    Kitty.SetUseAnalyticSource(true);
+    Kitty.SetAutoNormSource(false);
+    Kitty.SetQ1Q2(0);
+    Kitty.SetQuantumStatistics(false);
+    Kitty.SetRedMass( (Mass_D0*Mass_Dstarch)/(Mass_D0+Mass_Dstarch) );
+    Kitty.SetNumChannels(1);
+    Kitty.SetNumPW(0,1);
+    Kitty.SetSpin(0,0);
+    Kitty.SetChannelWeight(0, 1.);
+    Kitty.SetEpsilonConv(5e-9);
+    Kitty.SetEpsilonProp(5e-9);
+    Kitty.SetMaxRad(96);
+    Kitty.SetMaxRho(32);
+    Kitty.SetNotifications(CATS::nWarning);
+    CATSparameters pPars(CATSparameters::tPotential,2,true);
+    pPars.SetParameter(0,par_V0[uPot]);
+    pPars.SetParameter(1,par_R[uPot]);
+    Kitty.SetShortRangePotential(0,0,SingleGauss,pPars);
+    for(unsigned uSor=0; uSor<NumSource; uSor++){
+      Kitty.SetAnaSource(0,SourceSize[uSor],false);
+      printf("Killing %u %u / %u %u\n",uPot,uSor,NumPots,NumSource);
+      Kitty.KillTheCat();
+      for(unsigned uMom=0; uMom<Kitty.GetNumMomBins(); uMom++){
+        gCk[uPot][uSor].SetPoint(uMom,Kitty.GetMomentum(uMom),1.0*(Kitty.GetCorrFun(uMom)+0.0));
+      }
+    }
+    double ScatLen;
+    double EffRan;
+    TH1F* hFit;
+    TF1* fitSP;
+
+    Eval_ScattParameters(Kitty, ScatLen, EffRan, hFit, fitSP);
+
+    printf("f0, d0 = %.2f %.2f\n", ScatLen, EffRan);
+  }
+
+  for(unsigned uSor=0; uSor<NumSource; uSor++){
+    if(SourceSize[uSor]==1 || SourceSize[uSor]==2 || SourceSize[uSor]==3 || SourceSize[uSor]==5){
+      TString InputFileName = TString::Format("%s/OtherTasks/DDstar/corr_DDstar/%.0ffm.dat",GetFemtoOutputFolder(),SourceSize[uSor]);
+      FILE *InFile;
+      InFile = fopen(InputFileName.Data(), "r");
+      if(!InFile){
+          printf("          \033[1;31mERROR:\033[0m The file\033[0m %s cannot be opened!\n", InputFileName.Data());
+          return;
+      }
+      fseek ( InFile , 0 , SEEK_END );
+      long EndPos;
+      EndPos = ftell (InFile);
+      fseek ( InFile , 0 , SEEK_SET );
+      long CurPos;
+      float Mom;
+      float CkVal;
+      float fDummy;
+      unsigned uMom=0;
+      while(!feof(InFile)){
+        if(!fscanf(InFile,"%f %f %f",&Mom,&CkVal,&fDummy)){
+            printf("\033[1;33mWARNING!\033[0m Possible bad input-file, error when reading from %s!\n",InputFileName.Data());
+            continue;
+        }
+        gYuki[uSor].SetPoint(uMom++,Mom,CkVal);
+      }
+      fclose(InFile);
+    }
+    else{
+      CATS Kitty;
+      Kitty.SetMomBins(300,0,300);
+      for(unsigned uMom=0; uMom<Kitty.GetNumMomBins(); uMom++){
+        gYuki[uSor].SetPoint(uMom,Kitty.GetMomentum(uMom),0);
+      }
+    }
+  }
+
+  TFile fOutput(TString::Format("%s/OtherTasks/DDstar/TetsuoTest1.root",GetFemtoOutputFolder()),"recreate");
+  for(unsigned uPot=0; uPot<NumPots; uPot++){
+    for(unsigned uSor=0; uSor<NumSource; uSor++){
+      gCk[uPot][uSor].Write();
+    }
+  }
+  for(unsigned uSor=0; uSor<NumSource; uSor++){
+    gYuki[uSor].Write();
+  }
+
+  for(unsigned uPot=0; uPot<NumPots; uPot++){
+    delete [] gCk[uPot];
+  }
+  delete [] gCk;
+  delete [] gYuki;
+  delete [] SourceSize;
+  delete [] par_V0;
+  delete [] par_R;
+}
+
+//as a function of the reduced mass
+void AV18peak(){
+  const unsigned NumRedMass = 120;
+  const double RedMassMin = 200;
+  const double RedMassMax = 800;
+  const unsigned kStep = 38;
+  double* MomentumBins = new double[kStep+1];
+  MomentumBins[0] = 0;
+  for(unsigned uMom=1; uMom<=2; uMom++){
+    MomentumBins[uMom] = MomentumBins[uMom-1]+4.;
+  }
+  for(unsigned uMom=3; uMom<=26; uMom++){
+    MomentumBins[uMom] = MomentumBins[uMom-1]+1.;
+  }
+  for(unsigned uMom=27; uMom<=38; uMom++){
+    MomentumBins[uMom] = MomentumBins[uMom-1]+4.;
+  }
+  //for(unsigned uMom=0; uMom<kStep; uMom++){
+  //  printf("%u %.1f : %.1f\n",uMom,MomentumBins[uMom],MomentumBins[uMom+1]);
+  //}
+  //const double kMin = 0;
+  //const double kMax = 80;
+
+
+  TH1F* hRedMass_Peak = new TH1F("hRedMass_Peak","hRedMass_Peak",NumRedMass,RedMassMin,RedMassMax);
+  TH1F** hCk = new TH1F* [NumRedMass];
+
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
+  for(unsigned uMass=0; uMass<NumRedMass; uMass++){
+    printf("\r\033[K  Progress %.0f%%",100.*double(uMass)/double(NumRedMass));
+    cout << flush;
+    double RedMass = hRedMass_Peak->GetBinCenter(uMass+1);
+    hCk[uMass] = new TH1F(TString::Format("hCk_%.0fMeV",RedMass),TString::Format("hCk_%.0fMeV",RedMass),kStep,MomentumBins);
+    CATS Kitty;
+    Kitty.SetMomBins(kStep,MomentumBins);
+    CATSparameters cPars(CATSparameters::tSource,1,true);
+    cPars.SetParameter(0,1.2);
+    Kitty.SetAnaSource(GaussSource, cPars);
+    Kitty.SetUseAnalyticSource(true);
+    Kitty.SetAutoNormSource(false);
+    Kitty.SetMomentumDependentSource(false);
+    Kitty.SetRedMass(RedMass);
+    Kitty.SetQ1Q2(1);
+    Kitty.SetPdgId(2212, 2212);
+    Kitty.SetNumChannels(2);
+    Kitty.SetSpin(0,0);
+    Kitty.SetSpin(1,1);
+    Kitty.SetNumPW(0,1);
+    Kitty.SetNumPW(1,0);
+    Kitty.SetChannelWeight(0, 0.25);
+    Kitty.SetChannelWeight(1, 0.75);
+    double PotPars1S0[8]={NN_AV18,v18_Coupled3P2,1,1,1,0,0,0};
+    CATSparameters cPotPars1S0(CATSparameters::tPotential,8,true);
+    cPotPars1S0.SetParameters(PotPars1S0);
+    Kitty.SetShortRangePotential(0,0,fDlmPot,cPotPars1S0);
+
+    Kitty.SetEpsilonConv(1e-8);
+    Kitty.SetEpsilonProp(1e-8);
+    Kitty.SetMaxRad(96);
+    Kitty.SetMaxRho(32);
+    Kitty.SetNotifications(CATS::nWarning);
+    Kitty.KillTheCat();
+    double PeakPosition = -1;
+    double PeakValue = 0;
+    for(unsigned uMom=0; uMom<kStep; uMom++){
+      hCk[uMass]->SetBinContent(uMom+1,Kitty.GetCorrFun(uMom));
+      if(Kitty.GetCorrFun(uMom)>PeakValue){
+        PeakValue = Kitty.GetCorrFun(uMom);
+        PeakPosition = Kitty.GetMomentum(uMom);
+      }
+    }
+    hRedMass_Peak->SetBinContent(uMass+1,PeakPosition);
+  }
+  printf("\r\033[K  DONE!");
+  TFile fOutput(TString::Format("%s/OtherTasks/AV18peak.root",GetFemtoOutputFolder()),"recreate");
+  hRedMass_Peak->Write();
+  for(unsigned uMass=0; uMass<NumRedMass; uMass++){
+    hCk[uMass]->Write();
+  }
+
+  delete hRedMass_Peak;
+  for(unsigned uMass=0; uMass<NumRedMass; uMass++){
+    delete hCk[uMass];
+  }
+  delete [] hCk;
+}
+
+void TestDLM_Sample(){
+  const unsigned NumBins = 10;
+  const unsigned NumEntries = 1000000;
+  DLM_Histo<float> dlmHist;
+  dlmHist.SetUp(1);
+  dlmHist.SetUp(0,10,0,NumBins);
+  dlmHist.Initialize();
+  for(unsigned uBin=0; uBin<NumBins; uBin++){
+    dlmHist.SetBinContent(uBin,dlmHist.GetBinCenter(0,uBin));
+  }
+  TH1F* hSample = new TH1F("hSample","hSample",NumBins*10,0,10);
+  for(unsigned uSample=0; uSample<NumEntries; uSample++){
+    hSample->Fill(dlmHist.Sample());
+  }
+  TFile fOutput(TString::Format("%s/OtherTasks/TestDLM_Sample.root",GetFemtoOutputFolder()),"recreate");
+  hSample->Write();
+  delete hSample;
+
+}
+
 //
 int OTHERTASKS(int argc, char *argv[]){
+  TestDLM_Sample();
+  //AV18peak();
+//return 0;
+  //DDstar_TetsuoTest1();
+  //return 0;
+  //Bhawani_pot("Toy1");
+  //Bhawani_pot("ND46");
+  //Bhawani_pot("NF48");
     //rootmathboost_test1();
-    Test_unfold_yield();
+    //Test_unfold_yield();
     //Rafa_2body_expCk_CATS();
     //return 0;
 
