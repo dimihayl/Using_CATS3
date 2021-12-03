@@ -7,6 +7,7 @@
 #include "CommonAnaFunctions.h"
 #include "CATS.h"
 #include "DLM_CkDecomposition.h"
+#include "DLM_Ck.h"
 #include "DLM_Fitters.h"
 #include "DLM_Histo.h"
 #include "EnvVars.h"

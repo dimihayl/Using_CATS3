@@ -8,6 +8,7 @@
 #include "DLM_CkModels.h"
 #include "CATS.h"
 #include "DLM_CkDecomposition.h"
+#include "DLM_Ck.h"
 #include "DLM_Fitters.h"
 
 #include "TRandom3.h"
@@ -2813,4 +2814,3 @@ void CALL_BERNIE_AND_VALE(){
     //printf("Cock\n");
     RUN2_main(1,1,0);
 }
-

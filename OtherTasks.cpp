@@ -11,6 +11,7 @@
 #include "DLM_Potentials.h"
 #include "DLM_WfModel.h"
 #include "DLM_CkModels.h"
+#include "DLM_Ck.h"
 #include "DLM_RootWrapper.h"
 #include "DLM_HistoAnalysis.h"
 #include "EnvVars.h"
@@ -7134,9 +7135,9 @@ bool Eval_ScattParameters(CATS& Kitty, double& ScatLen, double& EffRan, TH1F*& h
   if(Fixd0) { fitSP2->FixParameter(1,EffRan);
               fitSP4->FixParameter(1,EffRan);
               fitSP6->FixParameter(1,EffRan);}
-  else {fitSP2->SetParameter(1,EffRan);fitSP2->SetParLimits(1,0,50);
-        fitSP4->SetParameter(1,EffRan);fitSP4->SetParLimits(1,0,50);
-        fitSP6->SetParameter(1,EffRan);fitSP6->SetParLimits(1,0,50);}
+  else {fitSP2->SetParameter(1,EffRan);fitSP2->SetParLimits(1,-50,50);
+        fitSP4->SetParameter(1,EffRan);fitSP4->SetParLimits(1,-50,50);
+        fitSP6->SetParameter(1,EffRan);fitSP6->SetParLimits(1,-50,50);}
   fitSP4->SetParameter(2,0);fitSP6->SetParameter(2,0);
   fitSP6->SetParameter(3,0);
 
@@ -8851,7 +8852,9 @@ const bool DEBUG = false;
     //we reduce df_0 or dd_0 (obsolete?)(df_0<bdf_0||dd_0<bdd_0)&&
     //we have the correct sign
     //we reduce the distance
-    GoodGoing = (dist<bdist&&(f_0*bf_0>0)&&(f_0*f0>0)&&(d_0*bd_0>0)&&(d_0*d0>0));
+    //GoodGoing = (dist<bdist&&(f_0*bf_0>0)&&(f_0*f0>0)&&(d_0*bd_0>0)&&(d_0*d0>0));
+    //the above line files for negative effective range
+    GoodGoing = (dist<bdist&&(f_0*bf_0>0)&&(f_0*f0>0));
     //if(bdist<1e15) fluct[ufluct] = fabs(dist-bdist);
     //if(bdist<1e15){
 //CHANGED TO BEST, SHOULD I???
@@ -9264,6 +9267,7 @@ void ManufacturePotential2(const double f0, const double df0,
 //!!!!!!!!! I have now introduced the mass as input, but I have set it only for Bhawani
 //each time you rerun, CHANGE the masses to the value you desire!
 void MakePotentials(int flag){
+  printf("Make a potential %i\n",flag);
   double V1,V2,mu1,mu2;
   //ManufactureYukawaPotential(0.5,0.0025,1,0.005,V1,mu1,V2,mu2);
   //ManufactureYukawaPotential(0.5,0.0025,2,0.005*2,V1,mu1,V2,mu2);
@@ -9551,13 +9555,53 @@ void MakePotentials(int flag){
     else{
       //NEGATIVE EFFECTIVE RANGE FOR THIS MODEL, WE PUT IT ON HOLD
     }
-
     double StartPars[5];
     //OkayishStartingPars(Potential,f0,d0,StartPars[0],StartPars[1],StartPars[2],StartPars[3],StartPars[4]);
     //ManufacturePotential(f0,ef0,d0,ed0,Radii,NumR,V1,mu1,V2,mu2,Potential,OutputFolder,11,StartPars);
     ManufacturePotential(f0,ef0,d0,ed0,Radii,NumR,V1,mu1,V2,mu2,Potential,OutputFolder,32,NULL,
       (Mass_p*Mass_d)/(Mass_p+Mass_d),1./16.);
   }
+  else if(flag/10>=90&&flag/10<=99){
+    NumR = 1;
+    Radii[0] = 1.2;
+    OutputFolder += "Rafa/";
+    int VAR_FLAG = (flag/10)%10;
+    for(unsigned uVar=0; uVar<10; uVar++){
+      if(VAR_FLAG<10&&uVar!=VAR_FLAG) continue;
+      switch (uVar) {
+////1) f0 = 0.1248 +/- 0.0011 MeV
+//2) f0 = -0.1810 +/- 0.0085 MeV
+        case 0: f0=0.1248; ef0=0.0011; d0=-0.22; ed0=0.02; break;
+        case 1: f0=-0.1810; ef0=0.0085; d0=-0.22; ed0=0.02; break;
+        default: printf("Weird flags for producing the potentials for Bhawani\n"); return;
+      }
+    }
+    double StartPars[5];
+    //OkayishStartingPars(Potential,f0,d0,StartPars[0],StartPars[1],StartPars[2],StartPars[3],StartPars[4]);
+    //ManufacturePotential(f0,ef0,d0,ed0,Radii,NumR,V1,mu1,V2,mu2,Potential,OutputFolder,11,StartPars);
+    double FineTune = 1.;
+    if(f0>0){
+      //V0 = 203.1 mu0 = 0.6203 V1 = -1106 mu1 = 0.4156
+      StartPars[0] = 200;
+      StartPars[1] = 0.6;
+      StartPars[2] = -1100;
+      StartPars[3] = 0.41;
+      FineTune = 1./256.;
+    }
+    else{
+      StartPars[0] = 750;
+      StartPars[1] = 0.4;
+      StartPars[2] = 650;
+      StartPars[3] = 0.45;
+      FineTune = 1./256.;
+    }
+    StartPars[4] = 0;
+    ManufacturePotential(f0,ef0,d0,ed0,Radii,NumR,V1,mu1,V2,mu2,Potential,OutputFolder,32,StartPars,
+      (Mass_p*Mass_pic)/(Mass_p+Mass_pic),FineTune);
+  }
+
+
+
   /*
   Suitable DoubleGaussSum potential found:
    f0 = -0.360 fm
@@ -11429,12 +11473,16 @@ void Test_new_fold(){
   }
   TH1F* hlm_pp_fold_reb = Convert_DlmHisto_TH1F(&dlm_pp_fold_reb,"hlm_pp_fold_reb");
 
-  dlm_pp_fold->Rebin(dlm_pp_fold_reb_2);
+  //!!N.B. see below
+  dlm_pp_fold->Rebin(dlm_pp_fold_reb_2,true);
   TH1F* hlm_pp_fold_reb_2 = Convert_DlmHisto_TH1F(&dlm_pp_fold_reb_2,"hlm_pp_fold_reb_2");
 
   DLM_Histo<float> dlm_pp_fold_reb_3(*dlm_pp_fold);
   unsigned REBIN_3 = 2;
   printf("before: %u\n",dlm_pp_fold_reb_3.GetNbins());
+  //N.B. there might be an issue with the scaling of this histo, or dlm_pp_fold
+  //there were some changes with Rebin in DLM_Histo, if problems, try to
+  //make above ,false
   dlm_pp_fold_reb_3.Rebin(&REBIN_3);
   printf("after: %u\n",dlm_pp_fold_reb_3.GetNbins());
   TH1F* hlm_pp_fold_reb_3 = Convert_DlmHisto_TH1F(&dlm_pp_fold_reb_3,"hlm_pp_fold_reb_3");
@@ -13058,8 +13106,10 @@ void TestDLM_Sample(){
     dlmHist.SetBinContent(uBin,dlmHist.GetBinCenter(0,uBin));
   }
   TH1F* hSample = new TH1F("hSample","hSample",NumBins*10,0,10);
+  double axis_val[3];
   for(unsigned uSample=0; uSample<NumEntries; uSample++){
-    hSample->Fill(dlmHist.Sample());
+    dlmHist.Sample(axis_val);
+    hSample->Fill(axis_val[0]);
   }
   TFile fOutput(TString::Format("%s/OtherTasks/TestDLM_Sample.root",GetFemtoOutputFolder()),"recreate");
   hSample->Write();
@@ -13067,9 +13117,314 @@ void TestDLM_Sample(){
 
 }
 
+void Test_div_any_th1f(){
+  TH1F* h1 = new TH1F("h1","h1",64,0,64);
+  TH1F* h2 = new TH1F("h2","h2",31,2,64);
+  //TH1F* h2 = new TH1F("h2","h2",4,0,4);
+
+  for(unsigned uBin=0; uBin<h1->GetNbinsX(); uBin++){
+    h1->SetBinContent(uBin+1,h1->GetBinCenter(uBin+1));
+  }
+  for(unsigned uBin=0; uBin<h2->GetNbinsX(); uBin++){
+    h2->SetBinContent(uBin+1,(h2->GetBinCenter(uBin+1))*1);
+  }
+  h1->Sumw2();
+  h2->Sumw2();
+
+  TH1F* hr = new TH1F("hr","hr",64,0,64);
+
+  DivideAnyTH1Fs(h1,h2,hr,true);
+  for(unsigned uBin=0; uBin<hr->GetNbinsX(); uBin++){
+    printf("%u %e %e\n",uBin,hr->GetBinContent(uBin+1),hr->GetBinError(uBin+1));
+  }
+
+  TFile fOut(TString::Format("%s/OtherTasks/DivideAnyTH1Fs.root",GetFemtoOutputFolder()),"recreate");
+  h1->Write();
+  h2->Write();
+  hr->Write();
+}
+
+void Test_align_th1f(){
+  TH1F* h1 = new TH1F("h1","h1",128,0,128);
+  TH1F* h2 = new TH1F("h2","h2",126,2,128);
+  TH1F* h3 = new TH1F("h3","h3",128,1,129);
+  TRandom3 rangen(11);
+  for(unsigned uBin=0; uBin<h1->GetNbinsX(); uBin++){
+    h1->SetBinContent(uBin+1,uBin>=2?(rangen.Integer(10)+10):0);
+    if(uBin>=2){
+      h2->SetBinContent(uBin+1-2,h1->GetBinContent(uBin+1));
+    }
+    if(uBin>=1){
+      h3->SetBinContent(uBin+1-1,h1->GetBinContent(uBin+1));
+    }
+  }
+  h1->Sumw2();
+  h2->Sumw2();
+  h3->Sumw2();
+  h2->Rebin(2);
+  h3->Rebin(2);
+  TH1F* h4 = (TH1F*)h3->Clone("h4");
+
+  AlignTH1Fs(h2,h4);
+
+  TFile fOut(TString::Format("%s/OtherTasks/Test_align_th1f.root",GetFemtoOutputFolder()),"recreate");
+  h1->Write();
+  h2->Write();
+  h3->Write();
+  h4->Write();
+
+}
+
+void RoughPiPiPotScan(
+  TNtuple* result,
+  TH1F* hV0, TH1F* hmu0, TH1F* hV1, TH1F* hmu1
+){
+  double RedMass = (Mass_p*Mass_pic)/(Mass_p+Mass_pic);
+  CATSparameters sPars(CATSparameters::tSource,1,true);
+  sPars.SetParameter(0,1.0);
+  CATS Kitty_SE;
+  Kitty_SE.SetMomBins(30,0,120);
+  Kitty_SE.SetAnaSource(GaussSource, sPars);
+  Kitty_SE.SetUseAnalyticSource(true);
+  Kitty_SE.SetQ1Q2(0);
+  Kitty_SE.SetQuantumStatistics(false);
+  Kitty_SE.SetRedMass( RedMass );
+  Kitty_SE.SetNumChannels(1);
+  Kitty_SE.SetNumPW(0,1);
+  Kitty_SE.SetSpin(0,0);
+  Kitty_SE.SetChannelWeight(0, 1.);
+  Kitty_SE.SetEpsilonConv(4e-8);
+  Kitty_SE.SetEpsilonProp(4e-8);
+  //Kitty_SE.SetMaxRad(96);
+  //Kitty_SE.SetMaxRho(32);
+  Kitty_SE.SetNotifications(CATS::nSilent);
+  CATSparameters pPars(CATSparameters::tPotential,4,true);
+  Kitty_SE.SetShortRangePotential(0,0,DoubleGaussSum,pPars);
+  Kitty_SE.SetShortRangePotential(0,0,0,0);
+  Kitty_SE.SetShortRangePotential(0,0,1,1);
+  Kitty_SE.SetShortRangePotential(0,0,2,0);
+  Kitty_SE.SetShortRangePotential(0,0,3,1);
+  Kitty_SE.SetAnaSource(0,1.0);
+  Kitty_SE.KillTheCat();
+
+  float BUFFER[6];
+  for(unsigned uV0=0; uV0<hV0->GetNbinsX(); uV0++){
+    for(unsigned umu0=0; umu0<hmu0->GetNbinsX(); umu0++){
+      for(unsigned uV1=0; uV1<hV1->GetNbinsX(); uV1++){
+        for(unsigned umu1=0; umu1<hmu1->GetNbinsX(); umu1++){
+          BUFFER[0] = hV0->GetBinCenter(uV0+1);
+          BUFFER[1] = hmu0->GetBinCenter(umu0+1);
+          BUFFER[2] = hV1->GetBinCenter(uV1+1);
+          BUFFER[3] = hmu1->GetBinCenter(umu1+1);
+          if(uV1==0 && umu1==0) printf("%.3f %.3f\n",BUFFER[0],BUFFER[1]);
+
+          Kitty_SE.SetShortRangePotential(0,0,0,BUFFER[0]);
+          Kitty_SE.SetShortRangePotential(0,0,1,BUFFER[1]);
+          Kitty_SE.SetShortRangePotential(0,0,2,BUFFER[2]);
+          Kitty_SE.SetShortRangePotential(0,0,3,BUFFER[3]);
+          Kitty_SE.KillTheCat();
+
+          TH1F* hDummy; TF1* fDummy;
+          double df0,dd0;
+          //potential with silly phase shifts
+          if(!Eval_ScattParameters(Kitty_SE,df0,dd0,hDummy,fDummy)){
+            df0=0;
+            dd0=0;
+          }
+          BUFFER[4] = df0;
+          BUFFER[5] = dd0;
+          result->Fill(BUFFER);
+          if(hDummy) delete hDummy;
+          if(fDummy) delete fDummy;
+        }
+      }
+    }
+  }
+}
+
+
+//The goal is:
+//1) f0 = 0.1248 +/- 0.0011 MeV
+//2) f0 = -0.1810 +/- 0.0085 MeV
+
+//Solution:
+//1): V0 = 203.1 mu0 = 0.6203 V1 = -1106 mu1 = 0.4156
+
+
+//COUNTING FROM 1 AS ROOT
+void RoughPiPiPotScan(int V0_first, int V0_last){
+
+  //printf("The goal is:\n");
+  //printf("1) f0 = %.4f +/- %.4f MeV\n",0.0883/Mass_pic*NuToFm,0.0008/Mass_pic*NuToFm);
+  //printf("2) f0 = %.4f +/- %.4f MeV\n",-0.128/Mass_pic*NuToFm,0.006/Mass_pic*NuToFm);
+
+  //originally I started with 16
+  const int BIN = 16;
+
+  TFile fOutput(TString::Format("%s/OtherTasks/RoughPiPiPotScan/fOutput%i_%i_%i.root",
+  GetFemtoOutputFolder(),BIN,V0_first,V0_last),"recreate");
+  TNtuple* ntPiPi = new TNtuple("ntPiPi", "ntPiPi",
+  "V0:mu0:V1:mu1:f0:d0");
+
+  //initial scan
+  /*
+  int V0_Bin=BIN; float V0_Min=-500; float V0_Max=1500;
+  int mu0_Bin=BIN; float mu0_Min=0.1; float mu0_Max=1.2;
+  int V1_Bin=BIN; float V1_Min=-1500; float V1_Max=500;
+  int mu1_Bin=BIN; float mu1_Min=0.1; float mu1_Max=1.2;
+  */
+  /*
+  //fine tune (1) for the attractive interaction
+  int V0_Bin=BIN; float V0_Min=-500; float V0_Max=500;
+  int mu0_Bin=BIN; float mu0_Min=0.1; float mu0_Max=0.7;
+  int V1_Bin=BIN; float V1_Min=-1500; float V1_Max=-1000;
+  int mu1_Bin=BIN; float mu1_Min=0.1; float mu1_Max=0.5;
+  */
+/*
+  //fine tune (2) for the attractive interaction
+  int V0_Bin=BIN; float V0_Min=0; float V0_Max=500;
+  int mu0_Bin=BIN; float mu0_Min=0.55; float mu0_Max=0.7;
+  int V1_Bin=BIN; float V1_Min=-1500; float V1_Max=-900;
+  int mu1_Bin=BIN; float mu1_Min=0.32; float mu1_Max=0.5;
+*/
+  //fine tune (1) for the repulsive interaction
+  int V0_Bin=BIN; float V0_Min=400; float V0_Max=1600;
+  int mu0_Bin=BIN; float mu0_Min=0.2; float mu0_Max=0.6;
+  int V1_Bin=BIN; float V1_Min=-500; float V1_Max=1000;
+  int mu1_Bin=BIN; float mu1_Min=0.0; float mu1_Max=0.8;
+
+
+  TH1F* hV0_tot = new TH1F("hV0_tot","hV0_tot",V0_Bin,V0_Min,V0_Max);
+
+  TH1F* hV0 = new TH1F("hV0","hV0",V0_last-V0_first+1,
+  hV0_tot->GetXaxis()->GetBinLowEdge(V0_first),
+  hV0_tot->GetXaxis()->GetBinUpEdge(V0_last));
+  TH1F* hmu0 = new TH1F("hmu0","hmu0",mu0_Bin,mu0_Min,mu0_Max);
+  TH1F* hV1 = new TH1F("hV1","hV1",V1_Bin,V1_Min,V1_Max);
+  TH1F* hmu1 = new TH1F("hmu1","hmu1",mu1_Bin,mu1_Min,mu1_Max);
+
+  RoughPiPiPotScan(ntPiPi,hV0,hmu0,hV1,hmu1);
+
+  ntPiPi->Write();
+
+  delete ntPiPi;
+}
+
+void pi_proton(){
+  const double Weight0 = 0.5;
+  double RedMass = (Mass_p*Mass_pic)/(Mass_p+Mass_pic);
+
+  const unsigned NumBins = 160;
+  const double kMin = 0;
+  const double kMax = 320;
+  const double SourceSize = 1.4;
+
+  CATSparameters sPars(CATSparameters::tSource,1,true);
+  sPars.SetParameter(0,SourceSize);
+  CATS Kitty_SE;
+  Kitty_SE.SetMomBins(NumBins,kMin,kMax);
+  Kitty_SE.SetAnaSource(GaussSource, sPars);
+  Kitty_SE.SetUseAnalyticSource(true);
+  Kitty_SE.SetQ1Q2(-1);
+  Kitty_SE.SetQuantumStatistics(false);
+  Kitty_SE.SetRedMass( RedMass );
+  Kitty_SE.SetNumChannels(2);
+  Kitty_SE.SetNumPW(0,1);
+  Kitty_SE.SetNumPW(1,1);
+  Kitty_SE.SetSpin(0,0);
+  Kitty_SE.SetSpin(1,1);
+  Kitty_SE.SetChannelWeight(0, Weight0);
+  Kitty_SE.SetChannelWeight(1, 1.-Weight0);
+  Kitty_SE.SetEpsilonConv(5e-9);
+  Kitty_SE.SetEpsilonProp(5e-9);
+  Kitty_SE.SetMaxRad(96);
+  Kitty_SE.SetMaxRho(32);
+  //Kitty_SE.SetNotifications(CATS::nSilent);
+  CATSparameters pPars0(CATSparameters::tPotential,4,true);
+  pPars0.SetParameter(0,1.973303e+02);
+  pPars0.SetParameter(1,6.187704e-01);
+  pPars0.SetParameter(2,-1.100288e+03);
+  pPars0.SetParameter(3,4.147391e-01);
+  Kitty_SE.SetShortRangePotential(0,0,DoubleGaussSum,pPars0);
+
+  CATSparameters pPars1(CATSparameters::tPotential,4,true);
+  pPars1.SetParameter(0,7.495875e+02);
+  pPars1.SetParameter(1,3.944096e-01);
+  pPars1.SetParameter(2,6.549811e+02);
+  pPars1.SetParameter(3,4.493379e-01);
+  Kitty_SE.SetShortRangePotential(0,0,DoubleGaussSum,pPars1);
+
+  Kitty_SE.KillTheCat();
+
+  TFile fOutput(TString::Format("%s/OtherTasks/RoughPiPiPotScan/pim_proton.root",GetFemtoOutputFolder()),"recreate");
+
+  TH1F* hCk = new TH1F("hCk","hCk",NumBins,kMin,kMax);
+  TH1F* hCkGeV = new TH1F("hCkGeV","hCkGeV",NumBins,kMin/1000.,kMax/1000.);
+  for(unsigned uBin=0; uBin<NumBins; uBin++){
+    hCk->SetBinContent(uBin+1,Kitty_SE.GetCorrFun(uBin));
+    hCkGeV->SetBinContent(uBin+1,Kitty_SE.GetCorrFun(uBin));
+  }
+  hCk->Write();
+  hCkGeV->Write();
+  delete hCk;
+  delete hCkGeV;
+}
+
+void Jaime_test1(){
+  unsigned numBins = 100;
+  double kmin = 0;
+  double kmax = 400;
+  double mass1 = 938;
+  double mass2 = 1116;
+  CATS Kitty;
+  Kitty.SetMomBins(numBins, kmin, kmax);
+  // Create the object as a pointer:
+  //CATS* Kitty;
+  //Kitty = new CATS();
+  //Kitty->SetMomBins(numBins, kmin, kmax);
+  // definition of the source:
+  CATSparameters source_func(CATSparameters::tSource, 1, true);
+  Kitty.SetAnaSource(GaussSource, source_func);
+  Kitty.SetAnaSource(0, 1.2);
+  Kitty.SetQ1Q2(0);
+  Kitty.SetQuantumStatistics(0);
+  Kitty.SetRedMass(mass1 * mass2 /(mass1 + mass2));
+  Kitty.SetNumChannels(2);
+  Kitty.SetNumPW(0,1);
+  Kitty.SetNumPW(1,1);
+  Kitty.SetSpin(0, 0);
+  Kitty.SetSpin(1, 1);
+  Kitty.SetChannelWeight(0, 1./4.);
+  Kitty.SetChannelWeight(1, 3./4.);
+  CATSparameters potential_spin0(CATSparameters::tPotential, 2, true);
+  potential_spin0.SetParameter(0, 0);
+  Kitty.SetShortRangePotential(0, 0, Gaussian, potential_spin0);
+  //Kitty.SetShortRangePotential(0, 0, 0, 0);
+  //Kitty.SetShortRangePotential(0, 0, 1, 1);
+  //Kitty.SetShortRangePotential(0, 0, 0, 0);
+  //Kitty.SetShortRangePotential(0, 0, 0, 0);
+  //Kitty.SetShortRangePotential(0, 0, 0, 0);
+  //Kitty.SetShortRangePotential(0, 0, 0, 0);
+  Kitty.KillTheCat();
+  TH1F* his = new TH1F("his","his", numBins, kmin, kmax);
+  for (int n=0; n<numBins; ++n){
+      double kstar = his->GetBinCenter(n+1);
+      his->SetBinContent(n + 1, Kitty.EvalCorrFun(kstar));
+  }
+  //his->Draw();
+
+  TFile* output = new TFile(TString::Format("%s/OtherTasks/Jaime_test1.root",GetFemtoOutputFolder()), "RECREATE");
+  //output->cd();
+  his->Write();
+
+}
+
 //
 int OTHERTASKS(int argc, char *argv[]){
-  TestDLM_Sample();
+  Jaime_test1();
+  //Test_div_any_th1f();
+  //Test_align_th1f();
+  //TestDLM_Sample();
   //AV18peak();
 //return 0;
   //DDstar_TetsuoTest1();
@@ -13177,7 +13532,9 @@ nsig 6 bins = 3.75
 */
 
     //Ledni_SmallRad_Random(atoi(argv[1]),atoi(argv[2]));
-    //MakePotentials(atoi(argv[1]));
+    //MakePotentials(atoi(argv[1]));return 0;
+  //RoughPiPiPotScan(atoi(argv[1]),atoi(argv[2]));
+  //pi_proton();
     //SelectEmmaPotential();
     //StableDisto_Test();
     //Andi_pDminus_1();

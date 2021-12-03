@@ -6,6 +6,7 @@
 #include "DLM_Source.h"
 #include "DLM_CkModels.h"
 #include "DLM_CkDecomposition.h"
+#include "DLM_Ck.h"
 #include "DLM_Potentials.h"
 #include "DLM_WfModel.h"
 #include "DLM_Random.h"

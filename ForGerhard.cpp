@@ -7,6 +7,7 @@
 #include "DLM_Source.h"
 #include "DLM_CkDecomposition.h"
 #include "DLM_CkModels.h"
+#include "DLM_Ck.h"
 #include "DLM_Fitters.h"
 #include "DLM_Histo.h"
 

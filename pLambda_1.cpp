@@ -25,6 +25,7 @@
 #include "CATS.h"
 #include "DLM_CkDecomposition.h"
 #include "DLM_CkModels.h"
+#include "DLM_Ck.h"
 #include "CommonAnaFunctions.h"
 #include "DLM_Fitters.h"
 #include "EnvVars.h"

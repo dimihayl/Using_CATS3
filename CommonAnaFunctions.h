@@ -1,7 +1,7 @@
 #ifndef COMMONANAFUNCTIONS_H
 #define COMMONANAFUNCTIONS_H
 
-#include "DLM_Histo.h"
+template <class Type> class DLM_Histo;
 
 class TString;
 class TH1F;
@@ -20,6 +20,7 @@ const double Mass_Kch = 493.677;
 const double Mass_K0 = 497.648;
 const double Mass_phi = 1019.461;
 const double Mass_p = 938.272;
+const double Mass_n = 939.565;
 const double Mass_L = 1115.683;
 const double Mass_Xim = 1321.7;
 const double Mass_Xi0 = 1314.86;

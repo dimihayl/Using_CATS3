@@ -6,6 +6,7 @@
 #include "DLM_Potentials.h"
 #include "DLM_Source.h"
 #include "DLM_CkDecomposition.h"
+#include "DLM_Ck.h"
 
 #include "CommonAnaFunctions.h"
 

@@ -8,12 +8,14 @@
 #include "DLM_DrawingTools.h"
 #include "DLM_CkDecomposition.h"
 #include "DLM_CkModels.h"
+#include "DLM_Ck.h"
 #include "DLM_Fitters.h"
 #include "DLM_WfModel.h"
 
 #include "DLM_SubPads.h"
 #include "EnvVars.h"
 #include "DLM_HistoAnalysis.h"
+#include "DLM_Sort.h"
 
 
 #include "TNtuple.h"
