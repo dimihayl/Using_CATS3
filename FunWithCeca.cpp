@@ -375,8 +375,8 @@ void TestBoost(){
 void Ghetto_Test1(){
   const unsigned NumPairs = 32*1000*1000;
   //const unsigned NumPairs = 1000;
-  const double r_SP = 1.35;
-  const double r_TR = 1.1;
+  const double r_SP = 1.0;//1.35
+  const double r_TR = 1.0;//1.1
   const double p_SP = 600;
   const double FemtoLimit = 255;
 
