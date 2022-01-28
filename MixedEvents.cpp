@@ -4050,6 +4050,53 @@ void ResoInfo(const int& ResoPid, int& ParentPid, double& Width, const TString& 
       }
     }
   }
+  //using the Omega_piReso (Omega instead of D)
+  else if(System=="D_piReso"){
+    //primordial
+    if(abs(ResoPid)==120||abs(ResoPid)==211||abs(ResoPid)==3331||abs(ResoPid)==3334) {Width=0; ParentPid=0;}
+    else{
+      switch (abs(ResoPid)) {
+        //pion resonances
+        case 120: Width=0; ParentPid=0; break;
+        case 111: Width=1; ParentPid=211; break;
+        case 121: Width=1; ParentPid=211; break;
+        case 131: Width=1; ParentPid=211; break;
+        case 231: Width=1; ParentPid=211; break;
+        case 10111: Width=1; ParentPid=211; break;
+        case 1111: Width=1; ParentPid=211; break;
+        case 2221: Width=1; ParentPid=211; break;
+        case 1221: Width=1; ParentPid=211; break;
+        case 1121: Width=1; ParentPid=211; break;
+        case 1122: Width=1; ParentPid=211; break;
+        case 1125: Width=1; ParentPid=211; break;
+        case 1126: Width=1; ParentPid=211; break;
+        case 1113: Width=1; ParentPid=211; break;
+        case 1127: Width=1; ParentPid=211; break;
+        case 1128: Width=1; ParentPid=211; break;
+        case 1114: Width=1; ParentPid=211; break;
+
+        case 211: Width=0; ParentPid=0; break;
+        case 113: Width=1; ParentPid=211; break;
+        case 213: Width=1; ParentPid=211; break;
+        case 323: Width=1; ParentPid=211; break;
+        case 313: Width=1; ParentPid=211; break;
+        case 20113: Width=1; ParentPid=211; break;
+        case 2224: Width=1; ParentPid=211; break;
+        //case 1114: Width=1; ParentPid=211; break;//duplicates, but in both cases it is a pion reso, so okay
+        case 2114: Width=1; ParentPid=211; break;
+        case 2214: Width=1; ParentPid=211; break;
+        case 12112: Width=1; ParentPid=211; break;
+        case 22212: Width=1; ParentPid=211; break;
+        case 2122: Width=1; ParentPid=211; break;
+        case 2222: Width=1; ParentPid=211; break;
+        case 32212: Width=1; ParentPid=211; break;
+        case 12214: Width=1; ParentPid=211; break;
+        case 12224: Width=1; ParentPid=211; break;
+
+        default : printf("\033[1;33mWARNING:\033[0m Unexpected D_piReso resonances!\n"); Width=0; ParentPid=1; break;
+      }
+    }
+  }
   //
   else if(System=="p_KaonReso"||System=="pReso_KaonReso"||System=="pReso_Kaon"){
     switch (abs(ResoPid)) {
@@ -4311,6 +4358,9 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
         InputFileName = "/home/dimihayl/Mount/nx3/scratch6/dmihaylov/OutputEPOS/13TeV/EPOS_20200121/pPhi_All.f19";
     else if(DataSetDescr=="Lam_Xim"||DataSetDescr=="LamReso_Xim")
       InputFileName = "/home/dimihayl/Mount/nx3/scratch6/dmihaylov/OutputEPOS/13TeV/EPOS_20200121/LamXi_All.f19";
+    else if(DataSetDescr=="Omega_piReso"||DataSetDescr=="D_piReso"){
+      InputFileName = "/home/dimihayl/Mount/nx3/scratch6/mkor/OutputEPOS/13TeV/EPOS_20200121/pp_piReso_Dmeson_ALICE_Acceptance_FullWeights_AddedIntSurrogate_IncludesAllHeavy_width60_omegaNo_fullscale.0";
+    }
     else//
         InputFileName = TString::Format("%s/scratch6/dmihaylov/OutputEPOS/13TeV/EPOS_LBF_pp200/pp200_pResoLamReso_Oct2019_4PI_ReducedWeights.f19",GetNx2Folder());
         //InputFileName = "/home/dimihayl/Mount/nx1/scratch6/dmihaylov/OutputEPOS/13TeV/EPOS_LBF_pp200/pp200_pResoLamReso_Oct2019_4PI_ReducedWeights.f19";
@@ -5114,6 +5164,61 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
 
         UseResoInfo = true;
     }
+    //DK correlation (D = Omega)
+    else if(DataSetDescr=="D_KaonReso"){
+        pdgID[0] = 3334;
+        pdgID[1] = 1;
+        Original_eposID[0] = 3331;
+        Original_eposID[1] = 130;
+        Original_pdgID[0] = 3334;
+        Original_pdgID[1] = 321;
+
+        DaughterMassP1[0] = -1;
+        DaughterMassP1[1] = -1;
+        DaughterMassP1[2] = -1;
+        DaughterMassP1[3] = -1;
+
+        DaughterMassP2[0] = Mass_Kch*0.001;
+        DaughterMassP2[1] = Mass_pi0*0.001;
+        DaughterMassP2[2] = -1;
+        DaughterMassP2[3] = -1;
+
+        ResoMass[0] = -1;
+        ResoMass[1] = 1.054;
+
+        FractionsNbody[0] = 1.0;
+        FractionsNbody[1] = 0.0;
+        FractionsNbody[2] = 0.0;
+
+        UseResoInfo = true;
+    }
+    else if(DataSetDescr=="D_piReso"){
+        pdgID[0] = 3334;
+        pdgID[1] = 1;
+        Original_eposID[0] = 3331;
+        Original_eposID[1] = 120;
+        Original_pdgID[0] = 3334;
+        Original_pdgID[1] = 211;
+
+        DaughterMassP1[0] = -1;
+        DaughterMassP1[1] = -1;
+        DaughterMassP1[2] = -1;
+        DaughterMassP1[3] = -1;
+
+        DaughterMassP2[0] = Mass_pic*0.001;
+        DaughterMassP2[1] = Mass_pic*0.001;
+        DaughterMassP2[2] = Mass_pic*0.001;
+        DaughterMassP2[3] = Mass_pic*0.001;
+
+        ResoMass[0] = -1;
+        ResoMass[1] = 1.124;
+
+        FractionsNbody[0] = 1.0;
+        FractionsNbody[1] = 0.0;
+        FractionsNbody[2] = 0.0;
+
+        UseResoInfo = true;
+    }
 
     FractionsNbodyC[0] = FractionsNbody[0];
     FractionsNbodyC[1] = FractionsNbodyC[0]+FractionsNbody[1];
@@ -5346,10 +5451,10 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
         if(ParentPID==Original_pdgID[0]||ParentPID==Original_eposID[0]) {KittyParticle.SetPid(0);}
         else if(ParentPID==Original_pdgID[1]||ParentPID==Original_eposID[1]) {KittyParticle.SetPid(1);}
         //unknown particle
-        else {printf(" AAA\n"); continue;}
+        else {printf(" AAA %i\n",ParentPID); continue;}
     }
     //unknown particle
-    else {printf(" BBB\n"); continue;}
+    else {printf(" BBB %i\n",ParentPID); continue;}
 
     //modify the mass of neutrons, which are used as dummies to model f0 and a0 (M = 1 GeV) decays into Kaons
     if(DataSetDescr=="p_KaonReso"||DataSetDescr=="pReso_KaonReso"){
@@ -6834,13 +6939,14 @@ int MIXEDEVENTS(int argc, char *argv[]){
     //ReferenceSampleStudy_2("EposDisto","pReso_pReso");
     //ReferenceSampleStudy_2("EposDisto","p_LamReso");
     //ReferenceSampleStudy_2("EposDisto","pReso_Lam");
-    ReferenceSampleStudy_2("TEST","pReso_LamReso");
+    //ReferenceSampleStudy_2("TEST","pReso_LamReso");
     //ReferenceSampleStudy_2("EposDisto","pReso_Xim");
     //ReferenceSampleStudy_2("EposDisto","pReso_Omega");
     //ReferenceSampleStudy_2("DimiPhi","p_p");
     //ReferenceSampleStudy_2("EposDisto","Lam_Lam");
     //ReferenceSampleStudy_2("EposDisto","Lam_LamReso");
     //ReferenceSampleStudy_2("EposDisto","LamReso_LamReso");
+    ReferenceSampleStudy_2("Dmesons","D_piReso");
 
     //ReferenceSampleStudy_2("Epos2body","p_pReso");
     //ReferenceSampleStudy_2("Only3body","p_pReso_3body");

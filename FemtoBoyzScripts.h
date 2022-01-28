@@ -16,6 +16,7 @@ void SetStyleHisto(TH1 *histo, int marker=-1, int color=-1);
 void SetStyleHisto2(TH1 *histo, int marker, int color, double factor=1);
 void SetStyleHisto2a(TH1 *histo, int marker, int color, double factor=1);
 void SetStyleHisto_pLambda(TH1 *histo, int marker, int color, double factor=1, bool NoYaxis=false);
+void SetStyleHisto_pLambda_PLB(TH1 *histo, int marker, int color, double factor=1, bool NoYaxis=false);
 
 void PlotDimiExclusion_ver1(const TString FolderName, const TString HistoNameEP, const TString FileNameLED, const TString HistoNameLED,
                             const unsigned RebinX, const unsigned RebinY,

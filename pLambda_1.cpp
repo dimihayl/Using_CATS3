@@ -9111,11 +9111,15 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
                                   const int& WhichPotential,
                                   const float& ValSourceAlpha,
                                   TString InputFolder, TString InputFileName, TString OutputFolder, const int& WhichDataSet=-1){
+
+    //300 or 108
+    const double Chi2RANGE = 108;
 //printf("debug\n");
     //if 0, we have much more info on the plots
     //if 1: as intended for the paper (cleaner)
     //if 2: as intended for the thesis
-    const int PlotsType = 0;
+    //if 3: as intended for PLB
+    const int PlotsType = 3;
     const bool WriteToInfoFile=true;
     int Panel_X = 0;
     if(PlotsType==1){
@@ -9123,6 +9127,12 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
       if(WhichPotential==11600 && SIGMA_FEED==0)Panel_X=1;
       if(WhichPotential==1600 && SIGMA_FEED==1)Panel_X=2;
       if(WhichPotential==1600 && SIGMA_FEED==0)Panel_X=3;
+    }
+    else if(PlotsType==3){
+      if(WhichPotential==11600 && SIGMA_FEED==1)Panel_X=0;
+      if(WhichPotential==11600 && SIGMA_FEED==0)Panel_X=1;
+      if(WhichPotential==1600 && SIGMA_FEED==1)Panel_X=0;
+      if(WhichPotential==1600 && SIGMA_FEED==0)Panel_X=1;
     }
     const bool WorkInProgress = false;
     const bool DataOnly = false;
@@ -9281,7 +9291,7 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
     TString XimName1 = "Residual p#Xi^{#minus}: HAL QCD";
     TString Xi0Name1 = "Residual p#Xi^{0}: HAL QCD";
     TString XiName1 = "Residual p#Xi^{#minus} #oplus p#Xi^{0}: HAL QCD";
-    if(PlotsType==1) XiName1 = "Residual p#kern[0.0]{#Xi^{#minus}} #oplus p#kern[0.0]{#Xi^{0}}";
+    if(PlotsType==1||PlotsType==3) XiName1 = "Residual p#kern[0.0]{#Xi^{#minus}} #oplus p#kern[0.0]{#Xi^{0}}";
     int PotFlag;
     switch(WhichPotential){
         case 1500 : PotName1 = "NLO13 (500)";
@@ -9685,7 +9695,7 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
                 nsigma_der_200_300 += nsigma_der_val*nsigma_der_val;
                 NDF_200_300++;
             }
-            if(mom_val[uBin%2]<=300){
+            if(mom_val[uBin%2]<=Chi2RANGE){
                 nsigma_0_300 += nsigma_val*nsigma_val;
                 nsigma_der_0_300 += nsigma_der_val*nsigma_der_val;
                 NDF_0_300++;
@@ -9857,7 +9867,7 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
                 nsigma_der_200_300 += nsigma_der_val*nsigma_der_val;
                 NDF_200_300++;
             }
-            if(mom_val[uBin%2]<=300){
+            if(mom_val[uBin%2]<=Chi2RANGE){
                 nsigma_0_300 += nsigma_val*nsigma_val;
                 nsigma_der_0_300 += nsigma_der_val*nsigma_der_val;
                 NDF_0_300++;
@@ -10250,7 +10260,7 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
 
 
     gStyle->SetCanvasPreferGL(1);
-    if(PlotsType==1) SetStyle_pLambda();
+    if(PlotsType==1||PlotsType==3) SetStyle_pLambda();
     else SetStyle();
 
 
@@ -10339,19 +10349,33 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
     fe_Sigma->SetLineWidth(3);
     fe_Sigma->SetLineStyle(2);
 
-    DLM_SubPads* DlmPad = new DLM_SubPads(720,1080);
-    DlmPad->AddSubPad(0,1,0.5,1);
-    DlmPad->AddSubPad(0,1,0.25,0.5);
-    DlmPad->AddSubPad(0,1,0.,0.25);
-    if(PlotsType==1){
-      DlmPad->SetMargin(0,0.18,0.02,0.0,0.02);
-      DlmPad->SetMargin(1,0.18,0.02,0.0,0.0);
-      DlmPad->SetMargin(2,0.18,0.02,0.1,0.0);
+    DLM_SubPads* DlmPad;
+    //PLB
+    if(PlotsType==3){
+      DlmPad = new DLM_SubPads(1080,1080);
+      DlmPad->AddSubPad(0,1,0.5,1);
+      DlmPad->AddSubPad(0,1,0.25,0.5);
+      DlmPad->AddSubPad(0,1,0.,0.25);
+      DlmPad->SetMargin(0,0.15,0.02,0.0,0.02);
+      DlmPad->SetMargin(1,0.15,0.02,0.0,0.0);
+      DlmPad->SetMargin(2,0.15,0.02,0.1,0.0);
     }
+    //OLD
     else{
-      DlmPad->SetMargin(0,0.14,0.02,0.0,0.02);
-      DlmPad->SetMargin(1,0.14,0.02,0.0,0.0);
-      DlmPad->SetMargin(2,0.14,0.02,0.07,0.0);
+      DlmPad = new DLM_SubPads(720,1080);
+      DlmPad->AddSubPad(0,1,0.5,1);
+      DlmPad->AddSubPad(0,1,0.25,0.5);
+      DlmPad->AddSubPad(0,1,0.,0.25);
+      if(PlotsType==1){
+        DlmPad->SetMargin(0,0.18,0.02,0.0,0.02);
+        DlmPad->SetMargin(1,0.18,0.02,0.0,0.0);
+        DlmPad->SetMargin(2,0.18,0.02,0.1,0.0);
+      }
+      else{
+        DlmPad->SetMargin(0,0.14,0.02,0.0,0.02);
+        DlmPad->SetMargin(1,0.14,0.02,0.0,0.0);
+        DlmPad->SetMargin(2,0.14,0.02,0.07,0.0);
+      }
     }
 
     DlmPad->cd(0);
@@ -10363,6 +10387,7 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
     else hData_pL_Stat->GetYaxis()->SetRangeUser(0.9, 2.0);
     hData_pL_Stat->SetFillColor(kGray+1);
     if(PlotsType==1)SetStyleHisto_pLambda(hData_pL_Stat,2,0,1,Panel_X==0?false:true);
+    else if(PlotsType==3)SetStyleHisto_pLambda_PLB(hData_pL_Stat,2,0,1,Panel_X==0?false:true);
     else SetStyleHisto2a(hData_pL_Stat,2,0);
 
     TGraphErrors *Tgraph_syserror = (TGraphErrors*)gdata_toterr->Clone("Tgraph_syserror");
@@ -10418,11 +10443,11 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
         if(XI_PLOT%100) geb_Xim->Draw("3L same");//3L to put a line
         if((XI_PLOT/10)%10 && fitSignal_pL_pXi0) geb_Xi0->Draw("3L same");
         if(XI_PLOT/100) geb_Xi->Draw("3L same");
-        if(PlotsType!=1 || SIGMA_FEED!=0) geb_Sig->Draw("3L same");
+        if( (PlotsType!=1&&PlotsType!=3) || SIGMA_FEED!=0) geb_Sig->Draw("3L same");
 
         if(fitLoDummy) fitLoDummy->Draw("3L same");
 
-        geb_Bl->Draw("3L same");
+        if(PlotsType!=3) geb_Bl->Draw("3L same");
         geb_Fit->Draw("3L same");
     }
 
@@ -10478,7 +10503,7 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
     DummyLegendEntry2.SetMarkerColor(kWhite);
     const float TextLeft = 0.31;//0.28 for CR1
     const float TextTop = 0.90;
-    const float TextSz = 0.07;
+    const float TextSz = PlotsType==3?0.08:0.07;
     const float TextH = TextSz+0.01;
     TLegend *legend;
     //if(PlotsType==1 && Panel_X==0) legend = new TLegend(TextLeft+0.01+0.03,TextTop-0.58,0.73,TextTop-0.22);//lbrt
@@ -10498,13 +10523,23 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
     //else if(PlotsType==1 && Panel_X==2) legend = new TLegend(TextLeft+0.01+0.03,TextTop-9.2*TextH,0.73,TextTop-2.1*TextH);//lbrt //suggestion 1
     else if(PlotsType==1 && Panel_X==2) legend = new TLegend(TextLeft+0.01+0.03,TextTop-2.37*TextH,0.73,TextTop-0.00*TextH);//lbrt //suggestion 2
     else if(PlotsType==1 && Panel_X==3) legend = new TLegend(TextLeft+0.01+0.03,TextTop-8.0*TextH,0.73,TextTop-2.1*TextH);//lbrt
+    else if(PlotsType==3 && Panel_X==0 && fitLoDummy) legend = new TLegend(TextLeft+0.01+0.03,TextTop-8.0*TextH,0.73,TextTop-2.1*TextH);//lbrt
+    else if(PlotsType==3 && Panel_X==0 && !fitLoDummy) legend = new TLegend(TextLeft+0.01+0.03,TextTop-6.8*TextH,0.73,TextTop-2.1*TextH);//lbrt
+    else if(PlotsType==3 && Panel_X==1) legend = new TLegend(TextLeft+0.01+0.03,TextTop-5.6*TextH,0.73,TextTop-2.1*TextH);//lbrt
     else if(PlotsType) legend = new TLegend(TextLeft-0.01,0.73-0.064*NumRows,0.73,TextTop-0.135);//lbrt
     else legend = new TLegend(TextLeft-0.01,0.73-0.054*NumRows,0.73,TextTop-0.135);//lbrt
     legend->SetBorderSize(0);
     legend->SetTextFont(42);
     //if(PlotsType==1) legend->SetTextSize(gStyle->GetTextSize()*1.3);
     if(PlotsType==1) legend->SetTextSize(TextSz);
+    else if(PlotsType==3) legend->SetTextSize(TextSz);
     else legend->SetTextSize(gStyle->GetTextSize()*0.90);
+
+    TLegend *midLegend=NULL;
+    if(PlotsType==3){
+      midLegend = new TLegend(TextLeft+0.01+0.13,TextTop-2.0*TextH,0.78,TextTop-0.6*TextH);//lbrt
+      midLegend->SetTextSize(TextSz*2.);
+    }
 
     TH1F* hCk_Fake;
     hCk_Fake = (TH1F*)hData_pL_Stat->Clone("hCk_Fake");
@@ -10557,6 +10592,21 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
         legend->AddEntry(ge_Bl,BlName1,"l");
       }
     }
+    else if(PlotsType==3){
+      if(Panel_X==0){
+        legend->AddEntry(hCk_Fake, "p#kern[0.0]{#Lambda} #oplus #bar{p}#kern[0.0]{#bar{#Lambda}} pairs", "fpe");
+        legend->AddEntry(ge_Fit,TString::Format("Fit %s",PotName1.Data()),"l");
+        if(fitLoDummy) legend->AddEntry(fitLoDummy,"LO (600)","l");
+        legend->AddEntry(ge_Sig,SigName1,"l");
+        legend->AddEntry(ge_Xi,XiName1,"l");
+        midLegend->AddEntry(ge_Bl,BlName1,"l");
+      }
+      if(Panel_X==1){
+        legend->AddEntry(hCk_Fake, "p#kern[0.0]{#Lambda} #oplus #bar{p}#kern[0.0]{#bar{#Lambda}} pairs", "fpe");
+        legend->AddEntry(ge_Fit,TString::Format("Fit %s",PotName1.Data()),"l");
+        legend->AddEntry(ge_Xi,XiName1,"l");
+      }
+    }
     else{
       legend->AddEntry(hCk_Fake, "p#Lambda #oplus #bar{p}#bar{#Lambda} pairs", "fpe");
       if(!DataOnly){
@@ -10581,14 +10631,16 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
     //legend->AddEntry(&DummyLegendEntry2,BlName2,"l");
     //}
 
-    const double Panel_L = 0.24;
+    const double Panel_L = PlotsType==3?0.28:0.24;
     const double Panel_T = 0.853;
     TLatex Panel_A;
-    Panel_A.SetTextSize(gStyle->GetTextSize()*1.6);
+    if(PlotsType==3) Panel_A.SetTextSize(gStyle->GetTextSize()*1.8);
+    else Panel_A.SetTextSize(gStyle->GetTextSize()*1.6);
+
     Panel_A.SetNDC(kTRUE);
     Panel_A.SetTextFont(22);
-    if(PlotsType==1 && Panel_X==0) Panel_A.DrawLatex(Panel_L, Panel_T, "a)");
-    if(PlotsType==1 && Panel_X==1) Panel_A.DrawLatex(Panel_L, Panel_T, "b)");
+    if((PlotsType==1||PlotsType==3) && Panel_X==0) Panel_A.DrawLatex(Panel_L, Panel_T, "a)");
+    if((PlotsType==1||PlotsType==3) && Panel_X==1) Panel_A.DrawLatex(Panel_L, Panel_T, "b)");
     if(PlotsType==1 && Panel_X==2) Panel_A.DrawLatex(Panel_L, Panel_T, "c)");
     if(PlotsType==1 && Panel_X==3) Panel_A.DrawLatex(Panel_L, Panel_T, "d)");
 
@@ -10611,7 +10663,7 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
     Panel_D.DrawLatex(Panel_L, Panel_T, "d)");
     */
 
-    if(PlotsType==1){
+    if(PlotsType==1||PlotsType==3){
       //if(Panel_X!=3)
       if(Panel_X==0||Panel_X==2)
         legend->Draw("same");
@@ -10620,7 +10672,7 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
 
     TLatex BeamText;
     BeamText.SetNDC(kTRUE);
-    if(PlotsType==1){
+    if(PlotsType==1||PlotsType==3){
       //if(Panel_X==0){
         //BeamText.SetTextSize(gStyle->GetTextSize()*1.25);
         //if(Panel_X==0||Panel_X==2){//Suggestion 1
@@ -10681,6 +10733,7 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
     DataHisto_Inlet->GetXaxis()->SetRangeUser(0, 456);
 
     if(PlotsType==1)SetStyleHisto_pLambda(DataHisto_Inlet,2,0,2,Panel_X==0?false:true);
+    else if(PlotsType==3)SetStyleHisto_pLambda_PLB(DataHisto_Inlet,2,0,2,Panel_X==0?false:true);
     else SetStyleHisto2a(DataHisto_Inlet,2,0,2);
     DataHisto_Inlet->GetXaxis()->SetNdivisions(505);
     DataHisto_Inlet->GetYaxis()->SetNdivisions(205);
@@ -10732,11 +10785,12 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
         if(XI_PLOT%100) geb_Xim->Draw(DrawOptions);
         if((XI_PLOT/10)%10) geb_Xi0->Draw(DrawOptions);
         if(XI_PLOT/100) geb_Xi->Draw(DrawOptions);
-        if(PlotsType!=1 || SIGMA_FEED!=0) geb_Sig->Draw(DrawOptions);
+        if((PlotsType!=1&&PlotsType!=3) || SIGMA_FEED!=0) geb_Sig->Draw(DrawOptions);
         if(fitLoDummy) fitLoDummy->Draw("3L same");
         geb_Bl->Draw(DrawOptions);
         grbFemto_Inlet->Draw(DrawOptions);
     }
+    if(midLegend) midLegend->Draw("same");
     DataHisto_Inlet->Draw("same");
     Tgraph_syserror->Draw("2 same");
 
@@ -10757,6 +10811,7 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
     }
     hAxis->GetXaxis()->SetNdivisions(505);
     if(PlotsType==1)SetStyleHisto_pLambda(hAxis,2,0,2,Panel_X==0?false:true);
+    else if(PlotsType==3)SetStyleHisto_pLambda_PLB(hAxis,2,0,2,Panel_X==0?false:true);
     else SetStyleHisto2a(hAxis,2,0,2);
     hAxis->GetYaxis()->SetNdivisions(504);
     hAxis->Draw("");
@@ -10916,6 +10971,7 @@ printf("Delete 2\n");
     delete hAxis;
     delete hCk_Fake;
     delete legend;
+    if(midLegend) delete midLegend;
     delete DataHisto_Inlet;
     delete grFemto_Inlet;
     delete grbFemto_Inlet;
@@ -13912,6 +13968,7 @@ double Fit_IMS_Splines(double* xVal, double* pars){
     double Splines = DLM_FITTER2_FUNCTION_SPLINE3(xVal,&pars[6]);
     return Splines+Peak;
 }
+
 double Fit_IMS_Signal3(double* xVal, double* pars){
     double& IM = *xVal;
     double& Ampl1 = pars[0];
@@ -14269,7 +14326,7 @@ printf(" uBin=%u k*=%.0f MeV\n",uBin,Momentum);
                 double* Nodes_x = new double [NumKnots];
                 Nodes_x[0] = IM_min;
                 Nodes_x[1] = 1098;
-                Nodes_x[2] = 1104;
+                Nodes_x[2] = 1104;//1116 MeV
                 Nodes_x[3] = 1128;
                 Nodes_x[4] = 1134;
                 Nodes_x[5] = IM_max;
@@ -15872,17 +15929,17 @@ void pLambda_DummyCk_DifferentRadii(){
 
 void Unfold_pL_ME(const TString InputFolder, const TString InputFile){
   //const TString OutputFile = InputFile.ReplaceAll(".root","_PS.root");
-  const TString DirName = "Binning_4";
+  const TString DirName = "Binning_12";
   //this is the reweighted ME sample
   const TString HistoName = "hMEmultFinal_SUM";
 
-  const unsigned NumBins = 1000/4;
+  //const unsigned NumBins = 1000/4;
   const double kMin = 0;
   const double kMax = 1000;
-  const double kFold = 600;
-  //const double kFold = 120;
-  const double kUnfold = 540;
-  //const double kUnfold = 80;
+  //const double kFold = 600;
+  const double kFold = 120;
+  //const double kUnfold = 540;
+  const double kUnfold = 80;
   TRandom3 rangen(11);
   DLM_CommonAnaFunctions AnalysisObject;
   AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
@@ -15908,7 +15965,7 @@ void Unfold_pL_ME(const TString InputFolder, const TString InputFile){
   dlmUnfold.SetUnfoldPrecision(0.25,1000000.0);
   dlmUnfold.SetFoldRange(0,kFold);
   dlmUnfold.SetUnfoldRange(0,kUnfold);
-  dlmUnfold.SetUnfoldMinutes(30);
+  dlmUnfold.SetUnfoldMinutes(0.1);
   //return;
   printf("Unfolding...\n");
   DLM_Histo<float>*  dlm_ME_unfolded = dlmUnfold.Unfold(0);
@@ -15924,10 +15981,11 @@ void Unfold_pL_ME(const TString InputFolder, const TString InputFile){
   dlmUnfold.GetFitFoldOriginal()->Write("",TObject::kOverwrite);
   dlmUnfold.GetFitUnfoldFinal()->Write("",TObject::kOverwrite);
 
-
+  printf("delete\n");
   delete h_ME_unfolded;
   delete h_ME;
   delete fInOut;
+  printf("destruct\n");
 }
 
 
@@ -15935,9 +15993,9 @@ void Unfold_pL_ME(const TString InputFolder, const TString InputFile){
 int PLAMBDA_1_MAIN(int argc, char *argv[]){
 printf("PLAMBDA_1_MAIN\n");
 
-  //Unfold_pL_ME(TString::Format("%s/CatsFiles/ExpData/ALICE_pp_13TeV_HM/DimiJun20/Norm240_340/DataSignal/",GetCernBoxDimi()),"TEST.root");
+  Unfold_pL_ME(TString::Format("%s/CatsFiles/ExpData/ALICE_pp_13TeV_HM/DimiJun20/Norm240_340/DataSignal/",GetCernBoxDimi()),"TEST.root");
   //Unfold_pL_ME(argv[1],argv[2]);
-  //return 0;
+  return 0;
 
 //pLambda_DummyCk_DifferentRadii();
 //return 0;
@@ -16010,6 +16068,7 @@ Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(at
                             ///home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/100720_Unfolded/
                             //TString::Format("%s/pLambda/100720_Unfolded/",GetCernBoxDimi()),
                             TString::Format("%s/pLambda/170721_NewUnfold/NoBoot/",GetCernBoxDimi()),
+                            //TString::Format("%s/pLambda/170721_NewUnfold/Full/",GetCernBoxDimi()),
                             TString::Format("Merged_pp13TeV_HM_DimiJun21_POT%i_BL%i_SIG%i.root",
                             //TString::Format("Merged_pp13TeV_HM_Dec19_POT%i_BL%i_SIG%i.root",
                             //TString::Format("Output_pp13TeV_HM_DimiJul20_POT%i_BL%i_SIG%i_1000.root",
@@ -16017,12 +16076,14 @@ Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(at
                             //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/",
                             //"UnfoldRefine_pp13TeV_HM_DimiJul20_POT11600_BL10_SIG1.root",
                             //TString::Format("%s/pLambda/100720_Unfolded/PaperPlotsUpdate5/",GetCernBoxDimi()),
-                            TString::Format("%s/pLambda/170721_NewUnfold/NoBoot/PlotsAnaNote/",GetCernBoxDimi()),
+                            //TString::Format("%s/pLambda/170721_NewUnfold/NoBoot/PlotsAnaNote/",GetCernBoxDimi()),
+                            //TString::Format("%s/pLambda/PLB/Full/Plots_v1/",GetCernBoxDimi()),
+                            TString::Format("%s/pLambda/PLB/NoBoot/Plots_v2/",GetCernBoxDimi()),
                             //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/"
                             atoi(argv[5])///REMOVE FOR THE OLD PLOTS
                           );
 */
-MakeLATEXtable(TString::Format("%s/pLambda/170721_NewUnfold/NoBoot/PlotsAnaNote/",GetCernBoxDimi()),false);
+MakeLATEXtable(TString::Format("%s/pLambda/PLB/NoBoot/Plots_v2/",GetCernBoxDimi()),false);
 return 0;
 
 //Plot_pL_SystematicsMay2020_2(2,10,1500,2.0,

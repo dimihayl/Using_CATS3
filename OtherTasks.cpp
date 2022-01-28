@@ -8816,12 +8816,11 @@ const bool DEBUG = false;
 
     if(DEBUG) printf("\n    V1=%.1f mu1=%.3f V2=%.1f mu2=%.3f",V_1,mu_1,V_2,mu_2);
     if(DEBUG) printf("\n b: V1=%.1f mu1=%.3f V2=%.1f mu2=%.3f",bV_1,bmu_1,bV_2,bmu_2);
-
+//printf("kfgnslkjglfkgnjdkf\n");
     if(!DEBUG){
       printf("\n Current solution: V1=%.4e  mu1=%.4e  V2=%.4e  mu2=%.4e <--> f0=%.3f  d0=%.3f      ",
       bV_1,bmu_1,bV_2,bmu_2,bf_0,bd_0);
     }
-
 
     if(Eval_ScattParameters(Kitty_SE,f_0,d_0,hDummy,fDummy)) BadPhaseShifts = 0;
     else BadPhaseShifts++;
@@ -8833,6 +8832,7 @@ const bool DEBUG = false;
       //cout<<flush;cout<<"\033[F";cout<<flush;cout<<"\033[F";
       //cout<<flush;cout<<"\033[F";cout<<flush;cout<<"\033[F";
       if(!DEBUG){
+        //cout << "JULI" <<endl;
         cout << flush;
         cout << "\e[A";
         cout << flush;
@@ -8924,7 +8924,7 @@ const bool DEBUG = false;
       printf("\n FoundIt=(df0>=df_0&&dd0>=dd_0); %i=(%.3f>=%.3f && %.3f>=%.3f)\n-----------------------------",FoundIt,fabs(df0),df_0,fabs(dd0),dd_0);
       usleep(500e3);
     }
-
+//printf("hi\n");
     //cout<<flush;cout<<"\033[F";cout<<flush;cout<<"\033[F";
     //cout<<flush;cout<<"\033[F";cout<<flush;cout<<"\033[F";
     //cout<<flush;cout<<"\033[F";
@@ -9601,6 +9601,92 @@ void MakePotentials(int flag){
   }
 
 
+
+  else if(flag/10>=110&&flag/10<=119){
+    NumR = 1;
+    Radii[0] = 1.2;
+    OutputFolder += "EmmaDani/";
+    int VAR_FLAG = (flag/10)%10;
+    double FT=1;
+    double StartPars[5];
+    StartPars[0]=1;
+    StartPars[1]=1;
+    StartPars[2]=-1;
+    StartPars[3]=1;
+    //if(flag/10<80){
+    double RedMass = 0;
+    for(unsigned uVar=0; uVar<10; uVar++){
+      if(VAR_FLAG<10&&uVar!=VAR_FLAG) continue;
+      switch (uVar) {
+        case 0: f0=-4.9e-2; ef0=-0.125*3e-3; d0=7.1644; ed0=0.125*0.164; FT=0.125/64.;
+                RedMass = (Mass_Kch*Mass_Dch)/(Mass_Kch+Mass_Dch);
+                // Current solution: V1=-5.0966e+01  mu1=8.9633e-01  V2=7.8366e+01  mu2=8.1096e-01 <--> f0=-0.042  d0=7.141
+                //Current solution: V1=-5.1056e+01  mu1=8.9607e-01  V2=7.9119e+01  mu2=8.0913e-01 <--> f0=-0.042  d0=7.140
+                //Current solution: V1=-5.1048e+01  mu1=8.9693e-01  V2=7.9520e+01  mu2=8.0884e-01 <--> f0=-0.043  d0=7.132
+                StartPars[0]=-5.176874e+01; StartPars[1]=9.056358e-01;
+                StartPars[2]=8.557196e+01; StartPars[3]=8.044966e-01;
+                break;
+        case 1: f0=-1.1038; ef0=0.005*0.5; d0=-3.3492; ed0=0.05*0.5; FT=1./64.;
+                StartPars[0]=-1.421800e+02; StartPars[1]=1.238405e+00;
+                StartPars[2]=7.358287e+01; StartPars[3]=1.845156e+00;
+                RedMass = (Mass_Kch*Mass_Dch)/(Mass_Kch+Mass_Dch);
+                break;
+        case 2: f0=-0.2633; ef0=0.002*1; d0=-2.2207; ed0=0.02*0.5; FT=0.25/64.;
+                StartPars[0]=3.017167e+01; StartPars[1]=1.131973e+00;
+                StartPars[2]=-1.253010e+00; StartPars[3]=1.777278e+00;
+                RedMass = (Mass_Kch*Mass_Dch)/(Mass_Kch+Mass_Dch);
+                break;
+        case 3:
+                //
+                //f0=0.3782; ef0=0.02; d0=-0.9374; ed0=0.2; FT=1./8.;
+                //StartPars[0]=9.214819e+01; StartPars[1]=1.124058e+00;
+                //StartPars[2]=-3.264728e+00; StartPars[3]=1.809686e+00;
+                f0=0.3782; ef0=0.001; d0=-0.9374; ed0=0.002; FT=1./256.;
+                StartPars[0]=-9.255770e+01; StartPars[1]=9.124695e-01;
+                StartPars[2]=1.613572e+01; StartPars[3]=1.406829e+00;
+                RedMass = (Mass_Kch*Mass_Dch)/(Mass_Kch+Mass_Dch);
+                //Current solution: V1=-8.8926e+01  mu1=1.0927e+00  V2=2.7415e+01  mu2=1.4687e+00 <--> f0=0.453  d0=-0.965
+                //f0 = 0.378 fm
+                //d0 = -0.94 fm
+                // V1 = -9.255770e+01
+                // mu1 = 9.124695e-01
+                // V2 = 1.613572e+01
+                // mu2 = 1.406829e+00
+
+                break;
+        case 4: f0=-0.1135; ef0=0.0005; d0=12.9067; ed0=0.2; FT=1./512.;
+                //StartPars[0]=-3.704255e+01; StartPars[1]=9.367889e-01;
+                //StartPars[2]=1.925511e+02; StartPars[3]=6.310400e-01;
+                //V1=-3.5850e+01  mu1=1.0085e+00  V2=2.1450e+02  mu2=7.3332e-01 <--> f0=-0.113  d0=14.003
+                StartPars[0]=-6.325317e+01; StartPars[1]=1.274817e+00;
+                StartPars[2]=2.986266e+02; StartPars[3]=8.529017e-01;
+                // Current solution: V1=-6.4271e+01  mu1=1.2460e+00  V2=2.8766e+02  mu2=8.4920e-01 <--> f0=-0.111  d0=11.222
+                //Current solution: V1=-6.8380e+01  mu1=1.2647e+00  V2=2.9255e+02  mu2=8.6874e-01 <--> f0=-0.113  d0=12.336
+                RedMass = (Mass_pic*Mass_Dch)/(Mass_pic+Mass_Dch);
+                break;
+        case 5: f0=0.3294; ef0=0.0004; d0=-3.5534; ed0=0.003; FT=1./512.;
+                //StartPars[0]=-3.704255e+01; StartPars[1]=9.367889e-01;
+                //StartPars[2]=1.925511e+02; StartPars[3]=6.310400e-01;
+                //StartPars[0]=9.214819e+01; StartPars[1]=1.124058e+00;
+                //StartPars[2]=-3.264728e+00; StartPars[3]=1.809686e+00;
+                StartPars[0]=-1.465727e+02; StartPars[1]=1.175136e+00;
+                StartPars[2]=2.718944e+01; StartPars[3]=1.832570e+00;
+                RedMass = (Mass_pic*Mass_Dch)/(Mass_pic+Mass_Dch);
+                break;
+        default: printf("Weird flags for producing the potentials for EmmaDani\n"); return;
+      }
+    }
+    //}
+    //else{
+      //NEGATIVE EFFECTIVE RANGE FOR THIS MODEL, WE PUT IT ON HOLD
+    //}
+
+    //ManufacturePotential(f0,ef0,d0,ed0,Radii,NumR,V1,mu1,V2,mu2,Potential,OutputFolder,11,StartPars);
+    //printf("Juli1\n");
+    ManufacturePotential(f0,ef0,d0,ed0,Radii,NumR,V1,mu1,V2,mu2,Potential,OutputFolder,11,StartPars,
+      RedMass,FT);
+      //printf("Juli2\n");
+  }
 
   /*
   Suitable DoubleGaussSum potential found:
@@ -13421,7 +13507,7 @@ void Jaime_test1(){
 
 //
 int OTHERTASKS(int argc, char *argv[]){
-  Jaime_test1();
+  //Jaime_test1();
   //Test_div_any_th1f();
   //Test_align_th1f();
   //TestDLM_Sample();
@@ -13532,7 +13618,7 @@ nsig 6 bins = 3.75
 */
 
     //Ledni_SmallRad_Random(atoi(argv[1]),atoi(argv[2]));
-    //MakePotentials(atoi(argv[1]));return 0;
+    MakePotentials(atoi(argv[1]));return 0;
   //RoughPiPiPotScan(atoi(argv[1]),atoi(argv[2]));
   //pi_proton();
     //SelectEmmaPotential();

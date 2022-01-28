@@ -475,6 +475,40 @@ void SetStyleHisto_pLambda(TH1 *histo, int marker, int color, double factor, boo
     }
 }
 
+//for the paper
+void SetStyleHisto_pLambda_PLB(TH1 *histo, int marker, int color, double factor, bool NoYaxis)
+{
+    //SetStyleHisto2a(histo,marker,color,factor); return;
+    histo->GetXaxis()->SetLabelSize(0.08*factor);
+    histo->GetXaxis()->SetTitleSize(0.09*factor);
+    histo->GetXaxis()->SetLabelOffset(0.01);
+    histo->GetXaxis()->SetTitleOffset(1.0);
+    histo->GetXaxis()->SetLabelFont(42);
+    if(NoYaxis){
+      histo->GetYaxis()->SetLabelSize(0.08*factor);
+      histo->GetYaxis()->SetTitleSize(0.09*factor);
+      histo->GetYaxis()->SetLabelOffset(0.05);
+      histo->GetYaxis()->SetTitleOffset(0.82/(factor));
+    }
+    else{
+      histo->GetYaxis()->SetLabelSize(0.08*factor);
+      histo->GetYaxis()->SetTitleSize(0.09*factor);
+      histo->GetYaxis()->SetLabelOffset(0.01);
+      histo->GetYaxis()->SetTitleOffset(0.82/(factor));
+    }
+
+
+    histo->SetMarkerSize(1.25);
+    if(marker>=0){
+        histo->SetLineWidth(2);
+        histo->SetMarkerStyle(fMarkers[marker]);
+    }
+    if(color>=0){
+        histo->SetMarkerColor(fColors[color]);
+        histo->SetLineColor(fColors[color]);
+    }
+}
+
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 TGraphErrors *DrawSystematicError(TH1F* histexp,TH1F *histerr,double errorwidth)
 {

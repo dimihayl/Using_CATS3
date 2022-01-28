@@ -26,7 +26,9 @@
 #include "TFile.h"
 #include "TF1.h"
 #include "TGenPhaseSpace.h"
+#include "TRandom3.h"
 
+#include <boost/algorithm/string.hpp>
 
 void Test1(){
   unsigned char ch_1 = 255;
@@ -146,6 +148,250 @@ void Test2(){
   printf("Database QA: %i\n",database_qa);
 
 }
+
+//test: we assume we have
+void TestingFractions(){
+  const int NumEvents = 1000000;
+  const int EventMult = 3;
+  std::vector<float> ResoFrac;
+  ResoFrac.push_back(0.24);//0   decay to A
+  ResoFrac.push_back(0.12);//1   decay to B
+  ResoFrac.push_back(0.11);//2  decay to C
+  ResoFrac.push_back(0.1);//3    decay to AB
+  ResoFrac.push_back(0.14);//4   decay to AC
+  ResoFrac.push_back(0.2);//5    decay to BC
+  ResoFrac.push_back(0.05);//6    decay to ABC
+  ResoFrac.push_back(0.04);//7   decay into CC
+
+  std::vector<float> ResoFracCum;
+  for(unsigned uR=0; uR<ResoFrac.size(); uR++){
+    if(uR) ResoFracCum.push_back(ResoFracCum.at(uR-1)+ResoFrac.at(uR));
+    else ResoFracCum.push_back(ResoFrac.at(uR));
+  }
+
+
+  TRandom3 RanGen(11);
+  TH1F* hFracReso = new TH1F("hFracReso","hFracReso",ResoFrac.size(),-0.5,-0.5+ResoFrac.size());
+  TH1F* hFracPart = new TH1F("hFracPart","hFracPart",EventMult,-0.5,-0.5+EventMult);
+  TH1F* hTrueMult = new TH1F("hTrueMult","hTrueMult",11,-0.5,10.5);
+  TH1F* hFracPart3 = new TH1F("hFracPart3","hFracPart3",EventMult,-0.5,-0.5+EventMult);
+  TH1F* hFracReso3 = new TH1F("hFracReso3","hFracReso3",ResoFrac.size(),-0.5,-0.5+ResoFrac.size());
+  TH1F* hFracPart3f = new TH1F("hFracPart3f","hFracPart3f",EventMult,-0.5,-0.5+EventMult);
+  TH1F* hFracReso3f = new TH1F("hFracReso3f","hFracReso3f",ResoFrac.size(),-0.5,-0.5+ResoFrac.size());
+  TH1F** hFracResoT_P = new TH1F* [3];
+  TH1F** hFracReso_P = new TH1F* [3];
+  TH1F** hFracReso3_P = new TH1F* [3];
+  TH1F** hFracReso3f_P = new TH1F* [3];
+  for(unsigned uP=0; uP<3; uP++){
+    hFracReso_P[uP] = new TH1F(TString::Format("hFracReso_P%u",uP),TString::Format("hFracReso_P%u",uP)
+    ,ResoFrac.size(),-0.5,-0.5+ResoFrac.size());
+    hFracReso3_P[uP] = new TH1F(TString::Format("hFracReso3_P%u",uP),TString::Format("hFracReso3_P%u",uP)
+    ,ResoFrac.size(),-0.5,-0.5+ResoFrac.size());
+    hFracReso3f_P[uP] = new TH1F(TString::Format("hFracReso3f_P%u",uP),TString::Format("hFracReso3f_P%u",uP)
+    ,ResoFrac.size(),-0.5,-0.5+ResoFrac.size());
+    hFracResoT_P[uP] = new TH1F(TString::Format("hFracResoT_P%u",uP),TString::Format("hFracResoT_P%u",uP)
+    ,ResoFrac.size(),-0.5,-0.5+ResoFrac.size());
+  }
+
+  //expected fractions of resonances feeding into particular species (0,1,2)
+  double** TheoMammaFrac = new double* [3];
+  double* TheoMammaNorm = new double [3];
+  for(unsigned uP=0; uP<3; uP++){
+    TheoMammaNorm[uP] = 0;
+    TheoMammaFrac[uP] = new double [ResoFrac.size()];
+    for(unsigned uR=0; uR<ResoFrac.size(); uR++) TheoMammaFrac[uP][uR]=0;
+    if(uP==0){
+      TheoMammaFrac[uP][0] = ResoFrac.at(0)*1.;
+      TheoMammaFrac[uP][3] = ResoFrac.at(3)*1.;
+      TheoMammaFrac[uP][4] = ResoFrac.at(4)*1.;
+      TheoMammaFrac[uP][6] = ResoFrac.at(6)*1.;
+    }
+    if(uP==1){
+      TheoMammaFrac[uP][1] = ResoFrac.at(1)*1.;
+      TheoMammaFrac[uP][3] = ResoFrac.at(3)*1.;
+      TheoMammaFrac[uP][5] = ResoFrac.at(5)*1.;
+      TheoMammaFrac[uP][6] = ResoFrac.at(6)*1.;
+    }
+    if(uP==2){
+      TheoMammaFrac[uP][2] = ResoFrac.at(2)*1.;
+      TheoMammaFrac[uP][4] = ResoFrac.at(4)*1.;
+      TheoMammaFrac[uP][5] = ResoFrac.at(5)*1.;
+      TheoMammaFrac[uP][6] = ResoFrac.at(6)*1.;
+      TheoMammaFrac[uP][7] = ResoFrac.at(7)*2.;
+    }
+    for(unsigned uR=0; uR<ResoFrac.size(); uR++)
+      TheoMammaNorm[uP] += TheoMammaFrac[uP][uR];
+    for(unsigned uR=0; uR<ResoFrac.size(); uR++)
+      TheoMammaFrac[uP][uR] /= TheoMammaNorm[uP];
+  }
+
+  for(unsigned uP=0; uP<3; uP++){
+    for(unsigned uR=0; uR<ResoFrac.size(); uR++){
+      hFracResoT_P[uP]->SetBinContent(uR+1,TheoMammaFrac[uP][uR]);
+      hFracResoT_P[uP]->SetBinError(uR+1,0);
+    }
+    hFracResoT_P[uP]->SetMarkerStyle(1);
+    hFracResoT_P[uP]->SetMarkerSize(1.5);
+  }
+  for(unsigned uP=0; uP<3; uP++) delete [] TheoMammaFrac[uP];
+  delete [] TheoMammaFrac;
+  delete [] TheoMammaNorm;
+
+  for(unsigned uEvent=0; uEvent<NumEvents; uEvent++){
+    std::vector<int> ResonanceID;
+    std::vector<int> ParticleID;
+    std::vector<int> MotherID;
+    for(unsigned uMult=0; uMult<EventMult; uMult++){
+      double sample = RanGen.Uniform();
+      unsigned WhichReso = ResoFrac.size()-1;
+      for(unsigned uR=0; uR<ResoFrac.size()-1; uR++){
+        if(sample<ResoFracCum.at(uR)){
+          WhichReso = uR;
+          break;
+        }
+      }
+      //the decays can be into particles 0 1 2, and the decay is
+      //either into 1,2 or all 3 of the studied species
+      ResonanceID.push_back(WhichReso);
+      switch (WhichReso) {
+        case 0: ParticleID.push_back(0);
+                MotherID.push_back(0);
+                break;
+        case 1: ParticleID.push_back(1);
+                MotherID.push_back(1);
+                break;
+        case 2: ParticleID.push_back(2);
+                MotherID.push_back(2);
+                break;
+        case 3: ParticleID.push_back(0);
+                ParticleID.push_back(1);
+                MotherID.push_back(3);
+                MotherID.push_back(3);
+                break;
+        case 4: ParticleID.push_back(0);
+                ParticleID.push_back(2);
+                MotherID.push_back(4);
+                MotherID.push_back(4);
+                break;
+        case 5: ParticleID.push_back(1);
+                ParticleID.push_back(2);
+                MotherID.push_back(5);
+                MotherID.push_back(5);
+                break;
+        case 6: ParticleID.push_back(0);
+                ParticleID.push_back(1);
+                ParticleID.push_back(2);
+                MotherID.push_back(6);
+                MotherID.push_back(6);
+                MotherID.push_back(6);
+                break;
+        case 7: ParticleID.push_back(2);
+                ParticleID.push_back(2);
+                MotherID.push_back(7);
+                MotherID.push_back(7);
+                break;
+        default : printf("!error!\n"); break;
+      }
+      hFracReso->Fill(WhichReso);
+    }//uMult
+
+
+    hTrueMult->Fill(ParticleID.size());
+    for(unsigned uPart=0; uPart<ParticleID.size(); uPart++){
+      hFracPart->Fill(ParticleID.at(uPart));
+      for(unsigned uP=0; uP<3; uP++)
+        if(ParticleID.at(uPart)==uP) hFracReso_P[uP]->Fill(MotherID.at(uPart));
+    }
+
+    for(unsigned uP0=0; uP0<ParticleID.size(); uP0++){
+      for(unsigned uP1=uP0; uP1<ParticleID.size(); uP1++){
+        for(unsigned uP2=uP1; uP2<ParticleID.size(); uP2++){
+          bool P0 = (ParticleID.at(uP0)==0||ParticleID.at(uP1)==0||ParticleID.at(uP2)==0);
+          bool P1 = (ParticleID.at(uP0)==1||ParticleID.at(uP1)==1||ParticleID.at(uP2)==1);
+          bool P2 = (ParticleID.at(uP0)==2||ParticleID.at(uP1)==2||ParticleID.at(uP2)==2);
+          //all species of interest
+          bool GoodTriplet = (P0&&P1&&P2);
+          //all specieas of interest + their mothers are different
+          //the latter is probably somewhat true for low k* / Q3 pairs (is it true for Q3 ??)
+          bool FemtoTriplet = GoodTriplet;
+          FemtoTriplet *= (MotherID.at(uP0)!=MotherID.at(uP1));
+          FemtoTriplet *= (MotherID.at(uP0)!=MotherID.at(uP2));
+          FemtoTriplet *= (MotherID.at(uP1)!=MotherID.at(uP2));
+          if(GoodTriplet){
+            hFracPart3->Fill(ParticleID.at(uP0));
+            hFracPart3->Fill(ParticleID.at(uP1));
+            hFracPart3->Fill(ParticleID.at(uP2));
+            hFracReso3->Fill(MotherID.at(uP0));
+            hFracReso3->Fill(MotherID.at(uP1));
+            hFracReso3->Fill(MotherID.at(uP2));
+            for(unsigned uP=0; uP<3; uP++){
+              if(ParticleID.at(uP)==0) hFracReso3_P[0]->Fill(MotherID.at(uP));
+              if(ParticleID.at(uP)==1) hFracReso3_P[1]->Fill(MotherID.at(uP));
+              if(ParticleID.at(uP)==2) hFracReso3_P[2]->Fill(MotherID.at(uP));
+            }
+          }
+          if(FemtoTriplet){
+            hFracPart3f->Fill(ParticleID.at(uP0));
+            hFracPart3f->Fill(ParticleID.at(uP1));
+            hFracPart3f->Fill(ParticleID.at(uP2));
+            hFracReso3f->Fill(MotherID.at(uP0));
+            hFracReso3f->Fill(MotherID.at(uP1));
+            hFracReso3f->Fill(MotherID.at(uP2));
+            for(unsigned uP=0; uP<3; uP++){
+              if(ParticleID.at(uP)==0) hFracReso3f_P[0]->Fill(MotherID.at(uP));
+              if(ParticleID.at(uP)==1) hFracReso3f_P[1]->Fill(MotherID.at(uP));
+              if(ParticleID.at(uP)==2) hFracReso3f_P[2]->Fill(MotherID.at(uP));
+            }
+          }
+        }
+      }
+    }
+  }//uEvent
+  hFracReso->Scale(1./hFracReso->Integral(),"width");
+  hFracPart->Scale(1./hFracPart->Integral(),"width");
+  hTrueMult->Scale(1./hTrueMult->Integral(),"width");
+  hFracPart3->Scale(1./hFracPart3->Integral(),"width");
+  hFracReso3->Scale(1./hFracReso3->Integral(),"width");
+  hFracPart3f->Scale(1./hFracPart3f->Integral(),"width");
+  hFracReso3f->Scale(1./hFracReso3f->Integral(),"width");
+  for(unsigned uP=0; uP<3; uP++){
+    hFracResoT_P[uP]->Scale(1./hFracResoT_P[uP]->Integral(),"width");
+    hFracReso_P[uP]->Scale(1./hFracReso_P[uP]->Integral(),"width");
+    hFracReso3_P[uP]->Scale(1./hFracReso3_P[uP]->Integral(),"width");
+    hFracReso3f_P[uP]->Scale(1./hFracReso3f_P[uP]->Integral(),"width");
+  }
+
+  TFile fOutput(TString::Format("%s/FunWithCeca/TestingFractions.root",GetFemtoOutputFolder()),"recreate");
+  for(unsigned uP=0; uP<3; uP++) hFracResoT_P[uP]->Write();
+  for(unsigned uP=0; uP<3; uP++) hFracReso_P[uP]->Write();
+  hFracReso->Write();
+  for(unsigned uP=0; uP<3; uP++) hFracReso3_P[uP]->Write();
+  hFracReso3->Write();
+  for(unsigned uP=0; uP<3; uP++) hFracReso3f_P[uP]->Write();
+  hFracReso3f->Write();
+  hFracPart->Write();
+  hFracPart3->Write();
+  hFracPart3f->Write();
+  hTrueMult->Write();
+
+
+  delete hFracReso;
+  delete hFracPart;
+  delete hTrueMult;
+  delete hFracPart3;
+  delete hFracReso3;
+  delete hFracPart3f;
+  delete hFracReso3f;
+  for(unsigned uP=0; uP<3; uP++){
+    delete hFracReso_P[uP];
+    delete hFracReso3_P[uP];
+    delete hFracReso3f_P[uP];
+  }
+  delete [] hFracReso_P;
+  delete [] hFracReso3_P;
+  delete [] hFracReso3f_P;
+}
+
 
 void TestTime(){
   DLM_Timer Timer;
@@ -381,7 +627,11 @@ void Ghetto_Test1(){
   const double FemtoLimit = 255;
 
   TREPNI Database(0);
-  CECA GT1(Database);
+  std::vector<std::string> ListOfParticles;
+  ListOfParticles.push_back("proton");
+  ListOfParticles.push_back("proton");
+  ListOfParticles.push_back("Lambda");
+  CECA GT1(Database, ListOfParticles);
   GT1.SetFemtoRegion(FemtoLimit);
   GT1.GhettoTest1(NumPairs,r_SP,p_SP);
 
@@ -659,14 +909,47 @@ void RandomParallel(const unsigned& NumThr){
   delete [] rnd_num;
 }
 
+void Test3(){
+  std::string ListOfParticles;
+  ListOfParticles = "proton,proton;,;Lambda";
+  std::vector<std::string> Particles = ParseString(ListOfParticles," ");
+  std::vector<std::string> Particles2;
+  for(std::string str : Particles){
+    std::cout << "|" << str << "|" << std::endl;
+    std::vector<std::string> tmp = ParseString(str,",");
+    for(std::string str2 : tmp){
+      Particles2.push_back(str2);
+      std::cout << "   " << str2 << std::endl;
+    }
+  }
+  for(std::string str : Particles2){
+    std::cout << "*" << str << "*" << std::endl;
+  }
+
+  printf("BOOST\n");
+  //std::string inputString("One!Two,Three:Four");
+  std::string delimiters(",;");
+  std::vector<std::string> parts;
+  boost::split(parts, ListOfParticles, boost::is_any_of(delimiters));
+  for(std::string str : parts){
+    std::cout << "*" << str << "*" << std::endl;
+  }
+
+}
+
 int FUN_WITH_CECA(int argc, char *argv[]){
+
+//DLM_Random rangen(1);
+//for(int i=0; i<20; i++) printf("%i\n", rangen.Int(1));
 
   //Test1();
   //Test2();
+  Test3();
+  //TestingFractions();
   //TestDecay();
   //TestBoost();
 
-  Ghetto_Test1();
+  //Ghetto_Test1();
 
   //RandomParallel(1);
   //RandomParallel(4);
