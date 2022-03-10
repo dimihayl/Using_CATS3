@@ -4051,7 +4051,7 @@ void ResoInfo(const int& ResoPid, int& ParentPid, double& Width, const TString& 
     }
   }
   //using the Omega_piReso (Omega instead of D)
-  else if(System=="D_piReso"){
+  else if(System=="D_piReso"||System=="AD_piReso"||System=="D_ApiReso"||System=="AD_ApiReso"){
     //primordial
     if(abs(ResoPid)==120||abs(ResoPid)==211||abs(ResoPid)==3331||abs(ResoPid)==3334) {Width=0; ParentPid=0;}
     else{
@@ -4094,6 +4094,53 @@ void ResoInfo(const int& ResoPid, int& ParentPid, double& Width, const TString& 
         case 12224: Width=1; ParentPid=211; break;
 
         default : printf("\033[1;33mWARNING:\033[0m Unexpected D_piReso resonances!\n"); Width=0; ParentPid=1; break;
+      }
+    }
+  }
+  else if(System=="D_KaonReso"||System=="D_AKaonReso"||System=="AD_KaonReso"||System=="AD_AKaonReso"){
+    //primordial
+    if(abs(ResoPid)==130||abs(ResoPid)==321||abs(ResoPid)==3331||abs(ResoPid)==3334) {Width=0; ParentPid=0;}
+    else{
+      switch (abs(ResoPid)) {
+        case 130: Width=0; ParentPid=0; break;
+        case 231: Width=1; ParentPid=321; break;
+        case 131: Width=1; ParentPid=321; break;
+        case 1220: Width=1; ParentPid=321; break;
+        case 2130: Width=1; ParentPid=321; break;
+        case 1233: Width=1; ParentPid=321; break;
+        case 1234: Width=1; ParentPid=321; break;
+        case 2330: Width=1; ParentPid=321; break;
+        case 1330: Width=1; ParentPid=321; break;
+        case 3331: Width=1; ParentPid=321; break;
+        case 2234: Width=1; ParentPid=321; break;
+        case 1134: Width=1; ParentPid=321; break;
+        case 1239: Width=1; ParentPid=321; break;
+
+        case 321: Width=0; ParentPid=0; break;
+        case 313: Width=1; ParentPid=321; break;
+        case 323: Width=1; ParentPid=321; break;
+        case 2112: Width=1; ParentPid=321; break;
+        case 315: Width=1; ParentPid=321; break;
+        case 10313: Width=1; ParentPid=321; break;
+        case 10323: Width=1; ParentPid=321; break;
+        case 9000225: Width=1; ParentPid=321; break;
+        case 325: Width=1; ParentPid=321; break;
+        case 9010221: Width=1; ParentPid=321; break;
+        case 9000111: Width=1; ParentPid=321; break;
+        case 10311: Width=1; ParentPid=321; break;
+        case 335: Width=1; ParentPid=321; break;
+        case 10333: Width=1; ParentPid=321; break;
+        case 3124: Width=1; ParentPid=321; break;
+        case 215: Width=1; ParentPid=321; break;
+        case 9000223: Width=1; ParentPid=321; break;
+        case 10321: Width=1; ParentPid=321; break;
+        case 30313: Width=1; ParentPid=321; break;
+        case 20333: Width=1; ParentPid=321; break;
+        case 327: Width=1; ParentPid=321; break;
+        case 100215: Width=1; ParentPid=321; break;
+        case 20223: Width=1; ParentPid=321; break;
+        case 225: Width=1; ParentPid=321; break;
+        default: printf("\033[1;33mWARNING:\033[0m Unexpected D_Kaon resonance (%i)!\n",ResoPid); Width=0; ParentPid=1; break;
       }
     }
   }
@@ -4200,6 +4247,116 @@ void ResoInfo(const int& ResoPid, int& ParentPid, double& Width, const TString& 
       case 225: Width=1; ParentPid=321; break;
       default: printf("\033[1;33mWARNING:\033[0m Unexpected p_Kaon resonances!\n"); Width=0; ParentPid=1; break;
     }
+  }
+  else if(System=="p_piReso"||System=="pReso_piReso"||System=="pReso_pi"||
+          System=="Ap_piReso"||System=="ApReso_piReso"||System=="ApReso_pi"||
+          System=="p_ApiReso"||System=="pReso_ApiReso"||System=="pReso_Api"||
+          System=="Ap_ApiReso"||System=="ApReso_ApiReso"||System=="ApReso_Api"){
+  /*
+    switch (abs(ResoPid)) {
+      case 1120: Width=0; ParentPid=0; break;
+      case 1111: Width=1; ParentPid=2212; break;
+      case 1121: Width=1; ParentPid=2212; break;
+      case 1221: Width=1; ParentPid=2212; break;
+      case 1122: Width=1; ParentPid=2212; break;
+      case 1222: Width=1; ParentPid=2212; break;
+      case 1123: Width=1; ParentPid=2212; break;
+      case 1223: Width=1; ParentPid=2212; break;
+      case 1112: Width=1; ParentPid=2212; break;
+      case 1124: Width=1; ParentPid=2212; break;
+      case 1224: Width=1; ParentPid=2212; break;
+      case 1125: Width=1; ParentPid=2212; break;
+      case 1225: Width=1; ParentPid=2212; break;
+      case 1113: Width=1; ParentPid=2212; break;
+      case 1126: Width=1; ParentPid=2212; break;
+      case 1226: Width=1; ParentPid=2212; break;
+      case 1127: Width=1; ParentPid=2212; break;
+      case 1227: Width=1; ParentPid=2212; break;
+      case 1114: Width=1; ParentPid=2212; break;
+      case 1128: Width=1; ParentPid=2212; break;
+      case 1228: Width=1; ParentPid=2212; break;
+
+      case 2212: Width=0; ParentPid=0; break;
+      case 2224: Width=1; ParentPid=2212; break;
+      case 2214: Width=1; ParentPid=2212; break;
+      case 2114: Width=1; ParentPid=2212; break;
+      case 12112: Width=1; ParentPid=2212; break;
+      case 1214: Width=1; ParentPid=2212; break;
+      case 12116: Width=1; ParentPid=2212; break;
+      case 22212: Width=1; ParentPid=2212; break;
+      case 12212: Width=1; ParentPid=2212; break;
+      case 2124: Width=1; ParentPid=2212; break;
+      case 2226: Width=1; ParentPid=2212; break;
+      case 12224: Width=1; ParentPid=2212; break;
+      case 2116: Width=1; ParentPid=2212; break;
+      case 31214: Width=1; ParentPid=2212; break;
+      case 12216: Width=1; ParentPid=2212; break;
+      case 12214: Width=1; ParentPid=2212; break;
+      case 22112: Width=1; ParentPid=2212; break;
+      case 2126: Width=1; ParentPid=2212; break;
+      case 32224: Width=1; ParentPid=2212; break;
+      case 32112: Width=1; ParentPid=2212; break;
+      case 2216: Width=1; ParentPid=2212; break;
+      case 2222: Width=1; ParentPid=2212; break;
+      case 32124: Width=1; ParentPid=2212; break;
+      case 32214: Width=1; ParentPid=2212; break;
+      case 32212: Width=1; ParentPid=2212; break;
+      case 12114: Width=1; ParentPid=2212; break;
+      case 2122: Width=1; ParentPid=2212; break;
+      case 1216: Width=1; ParentPid=2212; break;
+      case 22222: Width=1; ParentPid=2212; break;
+      case 32114: Width=1; ParentPid=2212; break;
+      case 42212: Width=1; ParentPid=2212; break;
+      case 22122: Width=1; ParentPid=2212; break;
+      case 1212: Width=1; ParentPid=2212; break;
+      case 42112: Width=1; ParentPid=2212; break;
+      case 21214: Width=1; ParentPid=2212; break;
+      case 21212: Width=1; ParentPid=2212; break;
+      case 22124: Width=1; ParentPid=2212; break;
+
+
+
+      case 120: Width=0; ParentPid=0; break;
+      case 111: Width=1; ParentPid=211; break;
+      case 121: Width=1; ParentPid=211; break;
+      case 131: Width=1; ParentPid=211; break;
+      case 231: Width=1; ParentPid=211; break;
+      case 10111: Width=1; ParentPid=211; break;
+      case 1111: Width=1; ParentPid=211; break;
+      case 2221: Width=1; ParentPid=211; break;
+      case 1221: Width=1; ParentPid=211; break;
+      case 1121: Width=1; ParentPid=211; break;
+      case 1122: Width=1; ParentPid=211; break;
+      case 1125: Width=1; ParentPid=211; break;
+      case 1126: Width=1; ParentPid=211; break;
+      case 1113: Width=1; ParentPid=211; break;
+      case 1127: Width=1; ParentPid=211; break;
+      case 1128: Width=1; ParentPid=211; break;
+      case 1114: Width=1; ParentPid=211; break;
+
+      case 211: Width=0; ParentPid=0; break;
+      case 113: Width=1; ParentPid=211; break;
+      case 213: Width=1; ParentPid=211; break;
+      case 323: Width=1; ParentPid=211; break;
+      case 313: Width=1; ParentPid=211; break;
+      case 20113: Width=1; ParentPid=211; break;
+      case 2224: Width=1; ParentPid=211; break;
+      //case 1114: Width=1; ParentPid=211; break;//duplicates, but in both cases it is a pion reso, so okay
+      case 2114: Width=1; ParentPid=211; break;
+      case 2214: Width=1; ParentPid=211; break;
+      case 12112: Width=1; ParentPid=211; break;
+      case 22212: Width=1; ParentPid=211; break;
+      case 2122: Width=1; ParentPid=211; break;
+      case 2222: Width=1; ParentPid=211; break;
+      case 32212: Width=1; ParentPid=211; break;
+      case 12214: Width=1; ParentPid=211; break;
+      case 12224: Width=1; ParentPid=211; break;
+
+
+
+      default: printf("\033[1;33mWARNING:\033[0m Unexpected p_pi resonances!\n"); Width=0; ParentPid=1; break;
+    }
+    */
   }
   else{
     switch(ResoPid){
@@ -4340,8 +4497,11 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
     //const TString InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp200/pp200_pReso_Oct2019_4PI.f19";
 
     TString InputFileName;
-    if( (DataSetDescr.Contains("Xim")||DataSetDescr.Contains("Omega"))&&!DataSetDescr.Contains("Lam"))
-        InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp200/pp200_pResoXimOmega_Oct2019_4PI_ReducedWeights.f19";
+    //if( (DataSetDescr.Contains("Xim")||DataSetDescr.Contains("Omega"))&&!DataSetDescr.Contains("Lam"))
+    //    InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp200/pp200_pResoXimOmega_Oct2019_4PI_ReducedWeights.f19";
+    if(DataSetDescr=="p_Omega"){
+      InputFileName = "/home/dimihayl/Mount/nx3/scratch6/dmihaylov/OutputEPOS/13TeV/EPOS_LBF_pp200/pp200_pResoXimOmega_Oct2019_4PI_ReducedWeights_10M.f19";
+    }
     else if(DataSetDescr=="Lam_Lam"||DataSetDescr=="Lam_LamReso"||DataSetDescr=="LamReso_LamReso")
         InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp200/pp200_LamResoLamReso_Oct2019_4PI_ReducedWeights.f19";
     else if(DataSetDescr=="pi_pi"||DataSetDescr=="pi_piReso"||DataSetDescr=="piReso_piReso")
@@ -4360,6 +4520,30 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
       InputFileName = "/home/dimihayl/Mount/nx3/scratch6/dmihaylov/OutputEPOS/13TeV/EPOS_20200121/LamXi_All.f19";
     else if(DataSetDescr=="Omega_piReso"||DataSetDescr=="D_piReso"){
       InputFileName = "/home/dimihayl/Mount/nx3/scratch6/mkor/OutputEPOS/13TeV/EPOS_20200121/pp_piReso_Dmeson_ALICE_Acceptance_FullWeights_AddedIntSurrogate_IncludesAllHeavy_width60_omegaNo_fullscale.0";
+    }
+    else if(DataSetDescr=="AD_piReso"){
+      InputFileName = "/home/dimihayl/Mount/nx3/scratch6/mkor/OutputEPOS/13TeV/EPOS_20200121/pp_piReso_ADmeson_ALICE_Acceptance_FullWeights_AddedIntSurrogate_IncludesAllHeavy_width60_omegaNo_fullscale.0";
+    }
+    else if(DataSetDescr=="D_ApiReso"){
+      InputFileName = "/home/dimihayl/Mount/nx3/scratch6/mkor/OutputEPOS/13TeV/EPOS_20200121/pp_ApiReso_Dmeson_ALICE_Acceptance_FullWeights_AddedIntSurrogate_IncludesAllHeavy_width60_omegaNo_fullscale.0";
+    }
+    else if(DataSetDescr=="AD_ApiReso"){
+      InputFileName = "/home/dimihayl/Mount/nx3/scratch6/mkor/OutputEPOS/13TeV/EPOS_20200121/pp_ApiReso_ADmeson_ALICE_Acceptance_FullWeights_AddedIntSurrogate_IncludesAllHeavy_width60_omegaNo_fullscale.0";
+    }
+    else if(DataSetDescr=="D_KaonReso"){
+      InputFileName = "/home/dimihayl/Mount/nx3/scratch6/mkor/OutputEPOS/13TeV/EPOS_20200121/pp_KaonReso_Dmeson_fixed_ALICE_Acceptance_FullWeights_AddedIntSurrogate_IncludesAllHeavy_width60_omegaNo_fullscale.0";
+    }
+    else if(DataSetDescr=="AD_KaonReso"){
+      InputFileName = "/home/dimihayl/Mount/nx3/scratch6/mkor/OutputEPOS/13TeV/EPOS_20200121/pp_KaonReso_ADmeson_fixed_ALICE_Acceptance_FullWeights_AddedIntSurrogate_IncludesAllHeavy_width60_omegaNo_fullscale.0";
+    }
+    else if(DataSetDescr=="D_AKaonReso"){
+      InputFileName = "/home/dimihayl/Mount/nx3/scratch6/mkor/OutputEPOS/13TeV/EPOS_20200121/pp_AKaonReso_Dmeson_fixed_ALICE_Acceptance_FullWeights_AddedIntSurrogate_IncludesAllHeavy_width60_omegaNo_fullscale.0";
+    }
+    else if(DataSetDescr=="AD_AKaonReso"){
+      InputFileName = "/home/dimihayl/Mount/nx3/scratch6/mkor/OutputEPOS/13TeV/EPOS_20200121/pp_AKaonReso_ADmeson_fixed_ALICE_Acceptance_FullWeights_AddedIntSurrogate_IncludesAllHeavy_width60_omegaNo_fullscale.0";
+    }
+    else if(DataSetDescr=="p_piReso"||DataSetDescr=="pReso_pi"||DataSetDescr=="pReso_piReso"){
+      InputFileName = TString::Format("%s/CatsFiles/Source/EposRawOutput/p_pi/pi_p.f19",GetCernBoxDimi());
     }
     else//
         InputFileName = TString::Format("%s/scratch6/dmihaylov/OutputEPOS/13TeV/EPOS_LBF_pp200/pp200_pResoLamReso_Oct2019_4PI_ReducedWeights.f19",GetNx2Folder());
@@ -4623,6 +4807,34 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
         DaughterMassP2[3] = -1;
 
         ResoMass[0] = 1.36;
+        ResoMass[1] = -1;
+
+        FractionsNbody[0] = 1;
+        FractionsNbody[1] = 0;
+        FractionsNbody[2] = 0;
+
+        UseResoInfo = true;
+    }
+    //p-p correlation
+    if(DataSetDescr=="p_Omega"){
+        pdgID[0] = 2212;
+        pdgID[1] = 3334;
+        Original_eposID[0] = 1120;
+        Original_eposID[1] = 3331;
+        Original_pdgID[0] = 2212;
+        Original_pdgID[1] = 3334;
+
+        DaughterMassP1[0] = -1;
+        DaughterMassP1[1] = -1;
+        DaughterMassP1[2] = -1;
+        DaughterMassP1[3] = -1;
+
+        DaughterMassP2[0] = -1;
+        DaughterMassP2[1] = -1;
+        DaughterMassP2[2] = -1;
+        DaughterMassP2[3] = -1;
+
+        ResoMass[0] = -1;
         ResoMass[1] = -1;
 
         FractionsNbody[0] = 1;
@@ -5165,7 +5377,7 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
         UseResoInfo = true;
     }
     //DK correlation (D = Omega)
-    else if(DataSetDescr=="D_KaonReso"){
+    else if(DataSetDescr=="D_KaonReso"||DataSetDescr=="D_AKaonReso"||DataSetDescr=="AD_KaonReso"||DataSetDescr=="AD_AKaonReso"){
         pdgID[0] = 3334;
         pdgID[1] = 1;
         Original_eposID[0] = 3331;
@@ -5192,7 +5404,7 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
 
         UseResoInfo = true;
     }
-    else if(DataSetDescr=="D_piReso"){
+    else if(DataSetDescr=="D_piReso"||DataSetDescr=="AD_piReso"||DataSetDescr=="D_ApiReso"||DataSetDescr=="AD_ApiReso"){
         pdgID[0] = 3334;
         pdgID[1] = 1;
         Original_eposID[0] = 3331;
@@ -5211,7 +5423,7 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
         DaughterMassP2[3] = Mass_pic*0.001;
 
         ResoMass[0] = -1;
-        ResoMass[1] = 1.124;
+        ResoMass[1] = 1.124;//should be 1.180 ?
 
         FractionsNbody[0] = 1.0;
         FractionsNbody[1] = 0.0;
@@ -5219,6 +5431,89 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
 
         UseResoInfo = true;
     }
+
+    else if(DataSetDescr=="p_piReso"||DataSetDescr=="p_ApiReso"||DataSetDescr=="Ap_piReso"||DataSetDescr=="Ap_ApiReso"){
+        pdgID[0] = 2212;
+        pdgID[1] = 1;
+        Original_eposID[0] = 1120;
+        Original_eposID[1] = 120;
+        Original_pdgID[0] = 2212;
+        Original_pdgID[1] = 211;
+
+        DaughterMassP1[0] = -1;
+        DaughterMassP1[1] = -1;
+        DaughterMassP1[2] = -1;
+        DaughterMassP1[3] = -1;
+
+        DaughterMassP2[0] = Mass_pic*0.001;
+        DaughterMassP2[1] = Mass_pic*0.001;
+        DaughterMassP2[2] = Mass_pic*0.001;
+        DaughterMassP2[3] = Mass_pic*0.001;
+
+        ResoMass[0] = -1;
+        ResoMass[1] = 1.180;
+
+        FractionsNbody[0] = 1;
+        FractionsNbody[1] = 0;
+        FractionsNbody[2] = 0;
+
+        UseResoInfo = true;
+    }
+    else if(DataSetDescr=="pReso_pi"||DataSetDescr=="pReso_Api"||DataSetDescr=="ApReso_pi"||DataSetDescr=="ApReso_Api"){
+        pdgID[0] = 0;
+        pdgID[1] = 211;
+        Original_eposID[0] = 1120;
+        Original_eposID[1] = 120;
+        Original_pdgID[0] = 2212;
+        Original_pdgID[1] = 211;
+
+        DaughterMassP1[0] = Mass_p*0.001;
+        DaughterMassP1[1] = Mass_pic*0.001;
+        DaughterMassP1[2] = -1;
+        DaughterMassP1[3] = -1;
+
+        DaughterMassP2[0] = -1;
+        DaughterMassP2[1] = -1;
+        DaughterMassP2[2] = -1;
+        DaughterMassP2[3] = -1;
+
+        ResoMass[0] = 1.36;
+        ResoMass[1] = -1;
+
+        FractionsNbody[0] = 1;
+        FractionsNbody[1] = 0;
+        FractionsNbody[2] = 0;
+
+        UseResoInfo = true;
+    }
+    else if(DataSetDescr=="pReso_piReso"||DataSetDescr=="pReso_ApiReso"||DataSetDescr=="ApReso_piReso"||DataSetDescr=="ApReso_ApiReso"){
+        pdgID[0] = 0;
+        pdgID[1] = 1;
+        Original_eposID[0] = 1120;
+        Original_eposID[1] = 120;
+        Original_pdgID[0] = 2212;
+        Original_pdgID[1] = 211;
+
+        DaughterMassP1[0] = Mass_p*0.001;
+        DaughterMassP1[1] = Mass_pic*0.001;
+        DaughterMassP1[2] = -1;
+        DaughterMassP1[3] = -1;
+
+        DaughterMassP2[0] = Mass_pic*0.001;
+        DaughterMassP2[1] = Mass_pic*0.001;
+        DaughterMassP2[2] = Mass_pic*0.001;
+        DaughterMassP2[3] = Mass_pic*0.001;
+
+        ResoMass[0] = 1.36;
+        ResoMass[1] = 1.180;
+
+        FractionsNbody[0] = 1;
+        FractionsNbody[1] = 0;
+        FractionsNbody[2] = 0;
+
+        UseResoInfo = true;
+    }
+
 
     FractionsNbodyC[0] = FractionsNbody[0];
     FractionsNbodyC[1] = FractionsNbodyC[0]+FractionsNbody[1];
@@ -5316,6 +5611,7 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
     //TFile* fOut = new TFile(OutFileBaseName+"_REPICK.root","recreate");
     TNtuple* InfoTuple = new TNtuple("InfoTuple","InfoTuple","k_D:P1:P2:M1:M2:Tau1:Tau2:AngleRcP1:AngleRcP2:AngleP1P2");
     TNtuple* InfoTuple_ClosePairs = new TNtuple("InfoTuple_ClosePairs","InfoTuple_ClosePairs","k_D:P1:P2:M1:M2:Tau1:Tau2:AngleRcP1:AngleRcP2:AngleP1P2");
+    TNtuple* InfoTuple_mT = new TNtuple("InfoTuple_mT","InfoTuple_mT","k_D:P1:P2:M1:M2:Tau1:Tau2:AngleRcP1:AngleRcP2:AngleP1P2:AngleRCP1_Lab:AngleRCP2_Lab:AngleP1P2_Lab:AngleRK_P1_Lab:AngleRK_P2_Lab:r_epos:mT_wrong:mT");
     const double ClosePairLimit = 300;
 
     CatsParticle KittyParticle;
@@ -5454,7 +5750,12 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
         else {printf(" AAA %i\n",ParentPID); continue;}
     }
     //unknown particle
-    else {printf(" BBB %i\n",ParentPID); continue;}
+    else {
+      if(DataSetDescr!="p_Omega"){
+        printf(" BBB %i\n",ParentPID);
+      }
+      continue;
+    }
 
     //modify the mass of neutrons, which are used as dummies to model f0 and a0 (M = 1 GeV) decays into Kaons
     if(DataSetDescr=="p_KaonReso"||DataSetDescr=="pReso_KaonReso"){
@@ -5664,6 +5965,13 @@ hResoMass->Fill(KittyParticle.GetMass()*1000.);
             double AngleRCP2_CmDaughters;
             //the angle between the momenta of the parents in CM of the daughters
             double AngleP1P2_CmDaughters;
+
+            double AngleRCP1_Lab;
+            double AngleRCP2_Lab;
+            double AngleP1P2_Lab;
+
+            double AngleRK_P1_Lab;
+            double AngleRK_P2_Lab;
 
             double MomP1_CmDaughters;
             double MomP2_CmDaughters;
@@ -5881,8 +6189,35 @@ printf("NbodyDecayP2 set to %u\n",NbodyDecayP2);
             double P1_KR_LAB = P1_LAB_Space.Angle(P1_LAB_Mom);
             double P2_KR_LAB = P2_LAB_Space.Angle(P2_LAB_Mom);
 
+            //it seems this does not work if we have high momenta particles,
+            //and for whatever reason from time to time we get momentum components of > 10 GeV !!!
+
+            double PairMT = TVL_Daughters.Mt();
+            //double PairMT = Part1Part2.GetMt()*0.5;
+            double WrongMT_m = (Particle1.Mag()+Particle2.Mag())*0.5;
+            double WrongMT_kt = (Particle1.GetPt()+Particle2.GetPt())*0.5;
+            double WrongMT = sqrt(WrongMT_m*WrongMT_m+WrongMT_kt*WrongMT_kt);
+
+            //if(Particle1.Mag()>0.500&&Particle2.Mag()>0.500)
+            //printf("mT = %.2f vs %.2f\n",PairMT,WrongMT);
+            //if(PairMT/WrongMT>2||PairMT<WrongMT>0.5){
+            //  printf("   p1 = %.2f %.2f %.2f %.2f (m=%.2f)\n",Particle1.GetE(),Particle1.GetPx(),Particle1.GetPy(),Particle1.GetPz(),Particle1.Mag());
+            //  printf("   p2 = %.2f %.2f %.2f %.2f (m=%.2f)\n",Particle2.GetE(),Particle2.GetPx(),Particle2.GetPy(),Particle2.GetPz(),Particle2.Mag());
+            //  printf("  p12 = %.2f %.2f %.2f %.2f (m=%.2f)\n",Part1Part2.GetE(),Part1Part2.GetPx(),Part1Part2.GetPy(),Part1Part2.GetPz(),Part1Part2.Mag());
+            //}
+
             h_P1_KR_LAB->Fill(P1_KR_LAB);
             h_P2_KR_LAB->Fill(P2_KR_LAB);
+
+            vecR.SetXYZ(Particle2.GetX()-Particle1.GetX(),Particle2.GetY()-Particle1.GetY(),Particle2.GetZ()-Particle1.GetZ());//r_core
+            vecP1.SetXYZ(Particle1.GetPx(),Particle1.GetPy(),Particle1.GetPz());
+            vecP2.SetXYZ(Particle2.GetPx(),Particle2.GetPy(),Particle2.GetPz());
+            AngleRCP1_Lab = vecR.Angle(vecP1);
+            AngleRCP2_Lab = vecR.Angle(vecP2);
+            AngleP1P2_Lab = vecP1.Angle(vecP2);
+
+            AngleRK_P1_Lab = Particle1.GetScatAngle();
+            AngleRK_P2_Lab = Particle2.GetScatAngle();
 
             //!THE NEW STUFF
             //boost into the rest frame of the daughters
@@ -5897,6 +6232,7 @@ printf("NbodyDecayP2 set to %u\n",NbodyDecayP2);
         //printf("p2 = %f (%.3f,%.3f,%.3f)\n",Particle2.GetP(),Particle2.GetPx(),Particle2.GetPy(),Particle2.GetPz());
         //printf("d1 = %f (%.3f,%.3f,%.3f)\n",Daughter1.GetP(),Daughter1.GetPx(),Daughter1.GetPy(),Daughter1.GetPz());
         //printf("d2 = %f (%.3f,%.3f,%.3f)\n",Daughter2.GetP(),Daughter2.GetPx(),Daughter2.GetPy(),Daughter2.GetPz());
+        //usleep(500e3);
             vecR.SetXYZ(Particle2.GetX()-Particle1.GetX(),Particle2.GetY()-Particle1.GetY(),Particle2.GetZ()-Particle1.GetZ());//r_core
             vecK.SetXYZ(Particle2.GetPx()-Particle1.GetPx(),Particle2.GetPy()-Particle1.GetPy(),Particle2.GetPz()-Particle1.GetPz());//k* of the parents
             TVector3 vecR_Daughters;
@@ -5927,6 +6263,17 @@ printf("NbodyDecayP2 set to %u\n",NbodyDecayP2);
             //if(vecP1.Dot(vecP2)<0)AngleP1P2_CmDaughters=-AngleP1P2_CmDaughters;
 
             TVector3 R_CORE = vecRP2-vecRP1;
+            //if(RelMomD_CmDaughters<200){
+            //  printf("\n");
+            //  printf("AngleRCP1 = %4.0f; %4.0f\n",AngleRCP1_CmDaughters*180./TMath::Pi(),AngleRCP1_Lab*180./TMath::Pi());
+            //  printf("AngleRCP2 = %4.0f; %4.0f\n",AngleRCP2_CmDaughters*180./TMath::Pi(),AngleRCP2_Lab*180./TMath::Pi());
+            //  printf("AngleP1P2 = %4.0f; %4.0f\n",AngleP1P2_CmDaughters*180./TMath::Pi(),AngleP1P2_Lab*180./TMath::Pi());
+            //  printf("length R_CORE = %.3f; length vecR = %.3f\n", R_CORE.Mag(), vecR.Mag());
+            //  printf("\n");
+            //  usleep(250e3);
+            //}
+
+
             TVector3 BGT1; BGT1.SetXYZ(Particle1.GetPx()/1.400*1.5,Particle1.GetPy()/1.400*1.5,Particle1.GetPz()/1.400*1.5);
             TVector3 BGT2; BGT2.SetXYZ(Particle2.GetPx()/1.400*1.5,Particle2.GetPy()/1.400*1.5,Particle2.GetPz()/1.400*1.5);
             TVector3 R_EFF = R_CORE - BGT1 + BGT2;
@@ -5947,8 +6294,6 @@ printf("NbodyDecayP2 set to %u\n",NbodyDecayP2);
 //printf("Dimi: A=%.3f; C=%.3f\n",D_A*RadToDeg,D_COS);
 //printf("Root: A=%.3f; C=%.3f\n",R_A*RadToDeg,R_COS);
 //}
-
-
 
 
             MomP1_CmDaughters = vecP1.Mag();
@@ -6251,7 +6596,7 @@ printf("p2 = %f(%.3f,%.3f) r %f(%.3f,%.3f)\n",ParticleOriginal2.GetP(),ParticleO
                 //printf( "Parents k* = %.1f\n",RelMom_CmParents);
                 //printf( "Daughters k* = %.1f\n",RelMomD_CmDaughters);
             }
-            Float_t CONTAINER[10];
+            Float_t CONTAINER[18];
             CONTAINER[0] = RelMomD_CmDaughters;
             CONTAINER[1] = MomP1_CmDaughters*1000.;
             CONTAINER[2] = MomP2_CmDaughters*1000.;
@@ -6264,6 +6609,15 @@ printf("p2 = %f(%.3f,%.3f) r %f(%.3f,%.3f)\n",ParticleOriginal2.GetP(),ParticleO
             CONTAINER[7] = AngleRCP1_CmDaughters;
             CONTAINER[8] = AngleRCP2_CmDaughters;
             CONTAINER[9] = AngleP1P2_CmDaughters;
+            CONTAINER[10] = AngleRCP1_Lab;
+            CONTAINER[11] = AngleRCP2_Lab;
+            CONTAINER[12] = AngleP1P2_Lab;
+            CONTAINER[13] = AngleRK_P1_Lab;
+            CONTAINER[14] = AngleRK_P2_Lab;
+            CONTAINER[15] = R_CORE.Mag();
+            CONTAINER[16] = WrongMT;
+            CONTAINER[17] = PairMT;
+
 
 
 const double r_core = R_CORE.Mag();
@@ -6304,7 +6658,10 @@ printf("d2 = %f(%.3f,%.3f) r %f(%.3f,%.3f)\n",DaughterOriginal2.GetP(),DaughterO
        DaughterOriginal2.GetR(),DaughterOriginal2.GetTheta(),DaughterOriginal2.GetPhi());
 }
             //InfoTuple->Fill(CONTAINER);
-            if(RelMomD_CmDaughters<ClosePairLimit) InfoTuple_ClosePairs->Fill(CONTAINER);
+            if(RelMomD_CmDaughters<ClosePairLimit){
+              InfoTuple_ClosePairs->Fill(CONTAINER);
+              InfoTuple_mT->Fill(CONTAINER);
+            }
         }
 
 
@@ -6388,6 +6745,7 @@ printf("d2 = %f(%.3f,%.3f) r %f(%.3f,%.3f)\n",DaughterOriginal2.GetP(),DaughterO
     hNbody->Write();
     //InfoTuple->Write();
     InfoTuple_ClosePairs->Write();
+    InfoTuple_mT->Write();
 
     delete KittyEvent;
     delete KittyFilteredEvent;
@@ -6438,6 +6796,7 @@ printf("d2 = %f(%.3f,%.3f) r %f(%.3f,%.3f)\n",DaughterOriginal2.GetP(),DaughterO
     delete hNbody;
     delete InfoTuple;
     delete InfoTuple_ClosePairs;
+    delete InfoTuple_mT;
     //delete h_kkAngle_Mom2;
     //delete eventRan;
     delete eventRan1;
@@ -6942,11 +7301,28 @@ int MIXEDEVENTS(int argc, char *argv[]){
     //ReferenceSampleStudy_2("TEST","pReso_LamReso");
     //ReferenceSampleStudy_2("EposDisto","pReso_Xim");
     //ReferenceSampleStudy_2("EposDisto","pReso_Omega");
+    //ReferenceSampleStudy_2("Bhawani","p_Omega");
     //ReferenceSampleStudy_2("DimiPhi","p_p");
     //ReferenceSampleStudy_2("EposDisto","Lam_Lam");
     //ReferenceSampleStudy_2("EposDisto","Lam_LamReso");
     //ReferenceSampleStudy_2("EposDisto","LamReso_LamReso");
-    ReferenceSampleStudy_2("Dmesons","D_piReso");
+    ReferenceSampleStudy_2("Philipp","p_piReso");
+    //ReferenceSampleStudy_2("Philipp","pReso_pi");
+    //ReferenceSampleStudy_2("Philipp","pReso_piReso");
+
+    //N.B. these two have different intput files, one is pi...D the other Api ... AD
+    //ReferenceSampleStudy_2("mT","D_piReso");
+    //ReferenceSampleStudy_2("Dmesons_ANEW","D_piReso");
+
+    //ReferenceSampleStudy_2("Dmesons","D_KaonReso");
+    //ReferenceSampleStudy_2("Dmesons","D_AKaonReso");
+    //ReferenceSampleStudy_2("Dmesons","AD_KaonReso");
+    //ReferenceSampleStudy_2("Dmesons","AD_AKaonReso");
+
+    //ReferenceSampleStudy_2("Dmesons","D_piReso");
+    //ReferenceSampleStudy_2("Dmesons","AD_piReso");
+    //ReferenceSampleStudy_2("Dmesons","D_ApiReso");
+    //ReferenceSampleStudy_2("Dmesons","AD_ApiReso");
 
     //ReferenceSampleStudy_2("Epos2body","p_pReso");
     //ReferenceSampleStudy_2("Only3body","p_pReso_3body");

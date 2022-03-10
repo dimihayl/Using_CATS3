@@ -6414,6 +6414,465 @@ void Georgios_LXi_ResoTest(const int& SmoothSampling){
 }
 
 
+void EmmaDaniel_piD(const double CoreSize=0.82, const int& SmoothSampling=0, bool IncludeBug = false){
+  printf("pi-D\n");
+    const unsigned SmoothEntires = 1024*128;
+
+    //DLM_CleverMcLevyResoTM* MagicSource = new DLM_CleverMcLevyResoTM ();
+    DLM_CleverMcLevyResoTM MagicSource;
+
+    //DO NOT CHANGE !!! Sets up numerical bullshit, tuned for a Gaussian source
+    MagicSource.InitStability(1,2-1e-6,2+1e-6);
+    MagicSource.InitScale(38,0.15,2.0);
+    MagicSource.InitRad(257*2,0,64);
+    MagicSource.InitType(2);
+    ///////////////////
+
+    //the amount of secondaries
+    //pions (64.22%)
+    MagicSource.SetUpReso(0,0.0);
+    //than for the Xis, here its 0% (we have ONLY primordials)
+    MagicSource.SetUpReso(1,0.682);
+    MagicSource.InitNumMcIter(1000000);
+
+    //the cut off scale in k*, for which the angular distributions from EPOS
+    //are evaluated. 200 MeV works okay, you can go up to 300 MeV for systematic checks
+    const double k_CutOff = 300;
+
+    //to be used for the NTuple later on
+    Float_t k_D;
+    Float_t fP1;
+    Float_t fP2;
+    Float_t fM1;
+    Float_t fM2;
+    Float_t Tau1;
+    Float_t Tau2;
+    Float_t AngleRcP1;
+    Float_t AngleRcP2;
+    Float_t AngleP1P2;
+    //random generator dimi style. The input is incompatible with the ROOT random generator,
+    //do not mix and match, do not ask me how I know this. Ask Bernie.
+    //11 is the seed, you can change that to you favorite number
+    DLM_Random RanGen(11);
+    //dummies to save random shit
+    double RanVal1;
+    double RanVal2;
+    double RanVal3;
+    double RanCos;
+    double MeanP2=0;
+//printf("1\n");
+    //open the magic file from dimi with the angular distributions.
+    TFile* F_EposDisto = new TFile(TString::Format("%s/CatsFiles/Source/EposAngularDist/TEMP/SecondTry/ALL_D_piReso.root",GetCernBoxDimi()));
+    //set up the ntuple, do not change anything unless told so by dimi
+    TNtuple* T_EposDisto = (TNtuple*)F_EposDisto->Get("InfoTuple_ClosePairs");
+    unsigned N_EposDisto = T_EposDisto->GetEntries();
+    T_EposDisto->SetBranchAddress("k_D",&k_D);
+    T_EposDisto->SetBranchAddress("P1",&fP1);
+    T_EposDisto->SetBranchAddress("P2",&fP2);
+    T_EposDisto->SetBranchAddress("M1",&fM1);
+    T_EposDisto->SetBranchAddress("M2",&fM2);
+    T_EposDisto->SetBranchAddress("Tau1",&Tau1);
+    T_EposDisto->SetBranchAddress("Tau2",&Tau2);
+    T_EposDisto->SetBranchAddress("AngleRcP1",&AngleRcP1);
+    T_EposDisto->SetBranchAddress("AngleRcP2",&AngleRcP2);
+    T_EposDisto->SetBranchAddress("AngleP1P2",&AngleP1P2);
+
+    //TH1F* hAngleRcP1 = new TH1F("hAngleRcP1","hAngleRcP1",1024,0,TMath::Pi());
+
+    gROOT->cd();
+    TH1F* hAngle = new TH1F("hAngle","hAngle",32,0,TMath::Pi());
+    TH1F* hCos = new TH1F("hCos","hCos",32,-1.,1.);
+    TH1F* hFinalAngle = new TH1F("hFinalAngle","hFinalAngle",32,0,TMath::Pi());
+    TH1F* hFinalCos = new TH1F("hFinalCos","hFinalCos",32,-1.,1.);
+    F_EposDisto->cd();
+    int NumUsefulEntries = 0;
+    for(unsigned uEntry=0; uEntry<N_EposDisto; uEntry++){
+      T_EposDisto->GetEntry(uEntry);
+      if(k_D>k_CutOff) continue;
+      hAngle->Fill(AngleRcP2);
+      hCos->Fill(cos(AngleRcP2));
+      MeanP2 += fP2;
+      NumUsefulEntries++;
+    }
+    MeanP2 /= double(NumUsefulEntries);
+
+    //hAngle->SetBinContent(hAngle->FindBin(0.275),0.31);
+    hCos->Scale(1./hAngle->Integral(),"width");
+//printf("2\n");
+
+    if(!SmoothSampling){
+      //iterate over the ntuple
+      for(unsigned uEntry=0; uEntry<N_EposDisto; uEntry++){
+          //get each entry
+          T_EposDisto->GetEntry(uEntry);
+          //disregard the entry of you are outside the desired k*
+          if(k_D>k_CutOff) continue;
+          //overwrite the value for the lifetime. This is computed from the
+          //stat. hadronization model (Vale) or thermal fist (Max)
+          //this is the value for the secondary protons
+          Tau1 = 0;
+          //for primoridials (the Xis) we put 0
+          Tau2 = 1.50;
+          //put in the average mass of the resonances (again from SHM or TF)
+          //this is the value for protons
+          fM2 = 1180;
+          //generate a random path length for the propagation of the resonances
+          //nothing to change!
+          RanVal2 = RanGen.Exponential(fM2/(fP2*Tau2));
+          //adds a single entry into the PDF for the angular distribution to be used
+          if(!IncludeBug) MagicSource.AddBGT_PR(RanVal2,cos(AngleRcP2));
+          else MagicSource.AddBGT_PR(RanVal2,-cos(AngleRcP2));
+          hFinalAngle->Fill(AngleRcP2);
+          hFinalCos->Fill(cos(AngleRcP2));
+      }
+    }
+    else if(SmoothSampling==1){
+      gROOT->cd();
+      TF1* fRandomAngle = MakeSmoothAngularSourceDisto(hAngle);
+      //TRandom3* ran_gen = new TRandom3(11);
+      for(unsigned uEntry=0; uEntry<SmoothEntires; uEntry++){
+          Tau1 = 0;
+          Tau2 = 1.50;
+          fM2 = 1180;
+          fP2 = MeanP2;
+          RanVal2 = RanGen.Exponential(fM2/(fP2*Tau2));
+          AngleRcP2 = fRandomAngle->GetRandom(0.,TMath::Pi());
+          if(!IncludeBug) MagicSource.AddBGT_PR(RanVal2,cos(AngleRcP2));
+          else MagicSource.AddBGT_PR(RanVal2,-cos(AngleRcP2));
+          hFinalAngle->Fill(AngleRcP2);
+          hFinalCos->Fill(cos(AngleRcP2));
+      }
+      gROOT->cd();
+      //delete ran_gen;
+      delete fRandomAngle;
+    }
+    else{
+      gROOT->cd();
+      TF1* fRandomCos = MakeSmoothAngularCosine(hCos);
+      //TRandom3* ran_gen = new TRandom3(11);
+      for(unsigned uEntry=0; uEntry<SmoothEntires; uEntry++){
+          Tau1 = 0;
+          Tau2 = 1.50;
+          fM2 = 1180;
+          fP2 = MeanP2;
+          RanVal2 = RanGen.Exponential(fM2/(fP2*Tau2));
+          RanCos = fRandomCos->GetRandom(-1.,1.);
+          if(!IncludeBug) MagicSource.AddBGT_PR(RanVal2,RanCos);
+          else MagicSource.AddBGT_PR(RanVal2,-RanCos);
+          hFinalAngle->Fill(acos(RanCos));
+          hFinalCos->Fill(RanCos);
+      }
+      gROOT->cd();
+      delete fRandomCos;
+    }
+
+    delete F_EposDisto;
+
+    //if you have resonances contributing to both particles, we need to repeat the above procedure
+    //for the prim-reso (AddBGT_PR) and reso-reso (AddBGT_RR) cases
+
+    const unsigned NumSourceBins = 128;
+    const double rMin = 0;
+    const double rMax = 16;
+    TFile* fOutput = new TFile(TString::Format("%s/OtherTasks/EmmaDaniel_Dmesons/fSecond%s_piD_%i_%.2f.root",GetFemtoOutputFolder(),IncludeBug?"BUG":"",
+    int(SmoothSampling),CoreSize),"recreate");
+    TH1F* hSource = new TH1F("hSource","hSource",NumSourceBins,rMin,rMax);
+
+    //fill the histo fro the source
+    for(unsigned uBin=0; uBin<NumSourceBins; uBin++){
+      //get the x-axis (r value) of the current bin
+      double xaxis = hSource->GetBinCenter(uBin+1);
+      //an array for the parameters, [0] is source size, [1] is == 2 (for a Gaussian)
+      double parameters[2];
+      parameters[0] = CoreSize;
+      parameters[1] = 2.0;
+      double SourceValue = MagicSource.RootEval(&xaxis, parameters);
+      hSource->SetBinContent(uBin+1,SourceValue);
+      //infinite errors for now
+      hSource->SetBinError(uBin+1,1000.);
+    }
+//printf("4\n");
+    //idea: fit the source distribution only in a range around its peak
+    //to do this: silly idea: put very large uncertainties in the bins outside of this range
+    //we can get this range automatically, by evaluating the central (median) integral of the source distribution
+    //with this set up, we fit the 68% most central yield of the source distribution
+    double lowerlimit;
+    double upperlimit;
+    GetCentralInterval(*hSource, 0.84, lowerlimit, upperlimit, true);
+    unsigned lowerbin = hSource->FindBin(lowerlimit);
+    unsigned upperbin = hSource->FindBin(upperlimit);
+    for(unsigned uBin=lowerbin; uBin<=upperbin; uBin++){
+      hSource->SetBinError(uBin+1,0.01);
+    }
+
+    printf("Core size of %.3f fm\n",CoreSize);
+    printf("The fit will be performed in the range [%.2f, %.2f] fm\n",lowerlimit,upperlimit);
+    //fyi, GaussSourceTF1 is in DLM_Source.h if you want to check it out.
+    TF1* fSource = new TF1("fSource",GaussSourceTF1,rMin,rMax,1);
+    fSource->SetParameter(0,CoreSize);
+    fSource->SetParLimits(0,CoreSize*0.5,CoreSize*2.0);
+    hSource->Fit(fSource,"Q, S, N, R, M");
+    printf("The effective Gaussian size is %.3f +/- %.3f fm\n",fSource->GetParameter(0),fSource->GetParError(0));
+
+    //get rid of weird plotting
+    for(unsigned uBin=0; uBin<NumSourceBins; uBin++){
+      hSource->SetBinError(uBin+1,0.01);
+    }
+    hSource->Write();
+    fSource->Write();
+    hAngle->Scale(1./hAngle->Integral(),"width");
+    hAngle->Write();
+    hCos->Write();
+    hFinalAngle->Scale(1./hFinalAngle->Integral(),"width");
+    hFinalAngle->Write();
+    hFinalCos->Scale(1./hFinalCos->Integral(),"width");
+    hFinalCos->Write();
+
+    //gROOT->cd();
+    //delete hAngle;
+
+    delete hSource;
+    delete fSource;
+    delete hAngle;
+    delete hCos;
+    delete hFinalAngle;
+    delete hFinalCos;
+    delete fOutput;
+    printf("-------------------\n");
+}
+
+
+void EmmaDaniel_KD(const double CoreSize=0.81, const int& SmoothSampling=0, bool IncludeBug = false){
+  printf("K-D\n");
+    const unsigned SmoothEntires = 1024*128;
+
+    //DLM_CleverMcLevyResoTM* MagicSource = new DLM_CleverMcLevyResoTM ();
+    DLM_CleverMcLevyResoTM MagicSource;
+
+    //DO NOT CHANGE !!! Sets up numerical bullshit, tuned for a Gaussian source
+    MagicSource.InitStability(1,2-1e-6,2+1e-6);
+    MagicSource.InitScale(38,0.15,2.0);
+    MagicSource.InitRad(257*2,0,64);
+    MagicSource.InitType(2);
+    ///////////////////
+
+    //the amount of secondaries
+    //pions (64.22%)
+    MagicSource.SetUpReso(0,0.0);
+    //than for the Xis, here its 0% (we have ONLY primordials)
+    MagicSource.SetUpReso(1,0.476);
+    MagicSource.InitNumMcIter(1000000);
+
+    //the cut off scale in k*, for which the angular distributions from EPOS
+    //are evaluated. 200 MeV works okay, you can go up to 300 MeV for systematic checks
+    const double k_CutOff = 300;
+
+    //to be used for the NTuple later on
+    Float_t k_D;
+    Float_t fP1;
+    Float_t fP2;
+    Float_t fM1;
+    Float_t fM2;
+    Float_t Tau1;
+    Float_t Tau2;
+    Float_t AngleRcP1;
+    Float_t AngleRcP2;
+    Float_t AngleP1P2;
+    //random generator dimi style. The input is incompatible with the ROOT random generator,
+    //do not mix and match, do not ask me how I know this. Ask Bernie.
+    //11 is the seed, you can change that to you favorite number
+    DLM_Random RanGen(11);
+    //dummies to save random shit
+    double RanVal1;
+    double RanVal2;
+    double RanVal3;
+    double RanCos;
+    double MeanP2=0;
+//printf("1\n");
+    //open the magic file from dimi with the angular distributions.
+    TFile* F_EposDisto = new TFile(TString::Format("%s/CatsFiles/Source/EposAngularDist/TEMP/SecondTry/ALL_D_KaonReso.root",GetCernBoxDimi()));
+    //set up the ntuple, do not change anything unless told so by dimi
+    TNtuple* T_EposDisto = (TNtuple*)F_EposDisto->Get("InfoTuple_ClosePairs");
+    unsigned N_EposDisto = T_EposDisto->GetEntries();
+    T_EposDisto->SetBranchAddress("k_D",&k_D);
+    T_EposDisto->SetBranchAddress("P1",&fP1);
+    T_EposDisto->SetBranchAddress("P2",&fP2);
+    T_EposDisto->SetBranchAddress("M1",&fM1);
+    T_EposDisto->SetBranchAddress("M2",&fM2);
+    T_EposDisto->SetBranchAddress("Tau1",&Tau1);
+    T_EposDisto->SetBranchAddress("Tau2",&Tau2);
+    T_EposDisto->SetBranchAddress("AngleRcP1",&AngleRcP1);
+    T_EposDisto->SetBranchAddress("AngleRcP2",&AngleRcP2);
+    T_EposDisto->SetBranchAddress("AngleP1P2",&AngleP1P2);
+
+    //TH1F* hAngleRcP1 = new TH1F("hAngleRcP1","hAngleRcP1",1024,0,TMath::Pi());
+
+    gROOT->cd();
+    TH1F* hAngle = new TH1F("hAngle","hAngle",32,0,TMath::Pi());
+    TH1F* hCos = new TH1F("hCos","hCos",32,-1.,1.);
+    TH1F* hFinalAngle = new TH1F("hFinalAngle","hFinalAngle",32,0,TMath::Pi());
+    TH1F* hFinalCos = new TH1F("hFinalCos","hFinalCos",32,-1.,1.);
+    F_EposDisto->cd();
+    int NumUsefulEntries = 0;
+    for(unsigned uEntry=0; uEntry<N_EposDisto; uEntry++){
+      T_EposDisto->GetEntry(uEntry);
+      if(k_D>k_CutOff) continue;
+      hAngle->Fill(AngleRcP2);
+      hCos->Fill(cos(AngleRcP2));
+      MeanP2 += fP2;
+      NumUsefulEntries++;
+    }
+    MeanP2 /= double(NumUsefulEntries);
+
+    //hAngle->SetBinContent(hAngle->FindBin(0.275),0.31);
+    hCos->Scale(1./hAngle->Integral(),"width");
+//printf("2\n");
+
+    if(!SmoothSampling){
+      //iterate over the ntuple
+      for(unsigned uEntry=0; uEntry<N_EposDisto; uEntry++){
+          //get each entry
+          T_EposDisto->GetEntry(uEntry);
+          //disregard the entry of you are outside the desired k*
+          if(k_D>k_CutOff) continue;
+          //overwrite the value for the lifetime. This is computed from the
+          //stat. hadronization model (Vale) or thermal fist (Max)
+          //this is the value for the secondary protons
+          Tau1 = 0;
+          //for primoridials (the Xis) we put 0
+          Tau2 = 3.66;
+          //put in the average mass of the resonances (again from SHM or TF)
+          //this is the value for protons
+          fM2 = 1054;
+          //generate a random path length for the propagation of the resonances
+          //nothing to change!
+          RanVal2 = RanGen.Exponential(fM2/(fP2*Tau2));
+          //adds a single entry into the PDF for the angular distribution to be used
+          if(!IncludeBug) MagicSource.AddBGT_PR(RanVal2,cos(AngleRcP2));
+          else MagicSource.AddBGT_PR(RanVal2,-cos(AngleRcP2));
+          hFinalAngle->Fill(AngleRcP2);
+          hFinalCos->Fill(cos(AngleRcP2));
+      }
+    }
+    else if(SmoothSampling==1){
+      gROOT->cd();
+      TF1* fRandomAngle = MakeSmoothAngularSourceDisto(hAngle);
+      //TRandom3* ran_gen = new TRandom3(11);
+      for(unsigned uEntry=0; uEntry<SmoothEntires; uEntry++){
+          Tau1 = 0;
+          Tau2 = 3.66;
+          fM2 = 1054;
+          fP2 = MeanP2;
+          RanVal2 = RanGen.Exponential(fM2/(fP2*Tau2));
+          AngleRcP2 = fRandomAngle->GetRandom(0.,TMath::Pi());
+          if(!IncludeBug) MagicSource.AddBGT_PR(RanVal2,cos(AngleRcP2));
+          else MagicSource.AddBGT_PR(RanVal2,-cos(AngleRcP2));
+          hFinalAngle->Fill(AngleRcP2);
+          hFinalCos->Fill(cos(AngleRcP2));
+      }
+      gROOT->cd();
+      //delete ran_gen;
+      delete fRandomAngle;
+    }
+    else{
+      gROOT->cd();
+      TF1* fRandomCos = MakeSmoothAngularCosine(hCos);
+      //TRandom3* ran_gen = new TRandom3(11);
+      for(unsigned uEntry=0; uEntry<SmoothEntires; uEntry++){
+          Tau1 = 0;
+          Tau2 = 3.66;
+          fM2 = 1054;
+          fP2 = MeanP2;
+          RanVal2 = RanGen.Exponential(fM2/(fP2*Tau2));
+          RanCos = fRandomCos->GetRandom(-1.,1.);
+          if(!IncludeBug) MagicSource.AddBGT_PR(RanVal2,RanCos);
+          else MagicSource.AddBGT_PR(RanVal2,RanCos);
+          hFinalAngle->Fill(acos(RanCos));
+          hFinalCos->Fill(RanCos);
+      }
+      gROOT->cd();
+      delete fRandomCos;
+    }
+
+    delete F_EposDisto;
+
+    //if you have resonances contributing to both particles, we need to repeat the above procedure
+    //for the prim-reso (AddBGT_PR) and reso-reso (AddBGT_RR) cases
+
+    const unsigned NumSourceBins = 128;
+    const double rMin = 0;
+    const double rMax = 16;
+    TFile* fOutput = new TFile(TString::Format("%s/OtherTasks/EmmaDaniel_Dmesons/fSecond%s_KaonD_%i_%.2f.root",GetFemtoOutputFolder(),IncludeBug?"BUG":"",
+    int(SmoothSampling),CoreSize),"recreate");
+    TH1F* hSource = new TH1F("hSource","hSource",NumSourceBins,rMin,rMax);
+
+    //fill the histo fro the source
+    for(unsigned uBin=0; uBin<NumSourceBins; uBin++){
+      //get the x-axis (r value) of the current bin
+      double xaxis = hSource->GetBinCenter(uBin+1);
+      //an array for the parameters, [0] is source size, [1] is == 2 (for a Gaussian)
+      double parameters[2];
+      parameters[0] = CoreSize;
+      parameters[1] = 2.0;
+      double SourceValue = MagicSource.RootEval(&xaxis, parameters);
+      hSource->SetBinContent(uBin+1,SourceValue);
+      //infinite errors for now
+      hSource->SetBinError(uBin+1,1000.);
+    }
+//printf("4\n");
+    //idea: fit the source distribution only in a range around its peak
+    //to do this: silly idea: put very large uncertainties in the bins outside of this range
+    //we can get this range automatically, by evaluating the central (median) integral of the source distribution
+    //with this set up, we fit the 68% most central yield of the source distribution
+    double lowerlimit;
+    double upperlimit;
+    GetCentralInterval(*hSource, 0.84, lowerlimit, upperlimit, true);
+    unsigned lowerbin = hSource->FindBin(lowerlimit);
+    unsigned upperbin = hSource->FindBin(upperlimit);
+    for(unsigned uBin=lowerbin; uBin<=upperbin; uBin++){
+      hSource->SetBinError(uBin+1,0.01);
+    }
+
+    printf("Core size of %.3f fm\n",CoreSize);
+    printf("The fit will be performed in the range [%.2f, %.2f] fm\n",lowerlimit,upperlimit);
+    //fyi, GaussSourceTF1 is in DLM_Source.h if you want to check it out.
+    TF1* fSource = new TF1("fSource",GaussSourceTF1,rMin,rMax,1);
+    fSource->SetParameter(0,CoreSize);
+    fSource->SetParLimits(0,CoreSize*0.5,CoreSize*2.0);
+    hSource->Fit(fSource,"Q, S, N, R, M");
+    printf("The effective Gaussian size is %.3f +/- %.3f fm\n",fSource->GetParameter(0),fSource->GetParError(0));
+
+    //get rid of weird plotting
+    for(unsigned uBin=0; uBin<NumSourceBins; uBin++){
+      hSource->SetBinError(uBin+1,0.01);
+    }
+    hSource->Write();
+    fSource->Write();
+    hAngle->Scale(1./hAngle->Integral(),"width");
+    hAngle->Write();
+    hCos->Write();
+    hFinalAngle->Scale(1./hFinalAngle->Integral(),"width");
+    hFinalAngle->Write();
+    hFinalCos->Scale(1./hFinalCos->Integral(),"width");
+    hFinalCos->Write();
+
+    //gROOT->cd();
+    //delete hAngle;
+
+    delete hSource;
+    delete fSource;
+    delete hAngle;
+    delete hCos;
+    delete hFinalAngle;
+    delete hFinalCos;
+    delete fOutput;
+
+    printf("-------------------\n");
+}
+
+
+
+
 double MakeMaxRamonaFit(double* x, double* pars){
   return pars[1]*GaussSourceTF1(x,pars)+(1.-pars[1]);
 }
@@ -6542,7 +7001,7 @@ void MaxRamona_piSig_ResoTest(){
 
 
     TFile* F_EposDisto_piReso_SigReso = new TFile(TString::Format("%s/CatsFiles/Source/EposAngularDist/ForMaxRamona_piReso_SigReso.root",GetCernBoxDimi()));
-    //TFile* F_EposDisto_piReso_SigReso = new TFile(TString::Format("%s/CatsFiles/Source/EposAngularDist/EposDisto_pReso_pReso.root",GetCernBoxDimi()));
+    //TFile* F_EposDisto_piReso_SigReso = new TFile(TString::Format("%s/CatsFiles/Source/EposAngularDist/EposDisto_pReso_dReso.root",GetCernBoxDimi()));
 
     TNtuple* T_EposDisto_piReso_SigReso = (TNtuple*)F_EposDisto_piReso_SigReso->Get("InfoTuple_ClosePairs");
     unsigned N_EposDisto_piReso_SigReso = T_EposDisto_piReso_SigReso->GetEntries();
@@ -6743,14 +7202,14 @@ void Ramona_pK_ResoTest(){
           Tau2 = 3.66;
           fM2 = 1054;
           RanVal2 = RanGen.Exponential(fM2/(fP2*Tau2));
-          MagicSource.AddBGT_PR(RanVal2,-cos(AngleRcP2));
+          MagicSource.AddBGT_PR(RanVal2,cos(AngleRcP2));
       }
       delete T_EposDisto_p_KaonReso;
       delete F_EposDisto_p_KaonReso;
 
 
       TFile* F_EposDisto_pReso_KaonReso = new TFile(TString::Format("%s/CatsFiles/Source/EposAngularDist/ForRamona_pReso_KaonReso.root",GetCernBoxDimi()));
-      //TFile* F_EposDisto_pReso_KaonReso = new TFile(TString::Format("%s/CatsFiles/Source/EposAngularDist/EposDisto_pReso_pReso.root",GetCernBoxDimi()));
+      //TFile* F_EposDisto_pReso_KaonReso = new TFile(TString::Format("%s/CatsFiles/Source/EposAngularDist/EposDisto_pReso_dReso.root",GetCernBoxDimi()));
 
       TNtuple* T_EposDisto_pReso_KaonReso = (TNtuple*)F_EposDisto_pReso_KaonReso->Get("InfoTuple_ClosePairs");
       unsigned N_EposDisto_pReso_KaonReso = T_EposDisto_pReso_KaonReso->GetEntries();
@@ -9284,7 +9743,7 @@ void MakePotentials(int flag){
   //Radii[0] = 0.9;Radii[1] = 1.1;Radii[2] = 1.3;Radii[3] = 1.5;
   //Radii[4] = 2.0;Radii[5] = 2.5;Radii[6] = 3.0;Radii[7] = 4.0;
 
-  NumR=3;
+  NumR=1;
   Radii[0]=1.08;Radii[1]=1.08*2;Radii[2]=1.08*4;
 
   double f0,d0;
@@ -9394,17 +9853,27 @@ void MakePotentials(int flag){
   //for Prof. S 50X, 51X....
   // 50X,51X - doublet potentials
   // 52X,53,54X - quarted potentials, if other -> perform all of them
-  else if(flag/10>=50&&flag/10<=59){
+  // the 1XXX are for systematics
+  // e.g. for the flag 50X, systematics are 150X, 160X, 170X, 180X,
+  // for flag 51X we will have 151X, 161X, 171X, 181X etc.
+  else if( (flag/10>=50&&flag/10<=59)||(flag/10>=150&&flag/10<=199) ){
     ef0 = 0.1/10.;
     ed0 = 0.05/5.;
     NumR = 1;
     Radii[0] = 1.2;
-    OutputFolder += "ProfS_Dynamic/";
+    OutputFolder += "ProfS/";
     int VAR_FLAG = (flag/10)%10;
-    for(unsigned uVar=0; uVar<5; uVar++){
-      if(VAR_FLAG<5&&uVar!=VAR_FLAG) continue;
-      switch (uVar) {
+    if(flag/10>=150){
+      VAR_FLAG += (flag/100)*10;//+150,160,170,180
+    }
+    //for(unsigned uVar=0; uVar<5; uVar++){
+      //if(VAR_FLAG<5&&uVar!=VAR_FLAG) continue;
+      switch (VAR_FLAG) {
         case 0: f0=-16.8; d0 = 2.3; break;
+        case 150: f0=-21.2; d0 = 2.3; break;
+        case 160: f0=-14.4; d0 = 2.3; break;
+        case 170: f0=-16.8; d0 = 2.6; break;
+        case 180: f0=-16.8; d0 = 2.0; break;
         case 1: f0=-16.3; d0 = 3.2; break;
         case 2: f0=7.6; d0 = 3.6; break;
         case 3: f0=10.8; d0 = 3.8; break;
@@ -9412,10 +9881,11 @@ void MakePotentials(int flag){
         default: printf("Weird flags for producing the potentials for Prof. S.\n"); return;
       }
       double StartPars[5];
+      double FT = 1;
 
       if(Potential=="DoubleGaussSum"){
         //this does not work, ones you have result for uVar==1, plug in those here
-        if(uVar==0){
+        if(VAR_FLAG==0){
           //StartPars[0]=-8.999757e+02;
           //StartPars[1]=5.081559e-01;
           //StartPars[2]= -4.021392e+02;
@@ -9426,13 +9896,70 @@ void MakePotentials(int flag){
           //StartPars[2]= 3.646892e+02;
           //StartPars[3]=9.833930e-01;
           //StartPars[4]=0;
-          StartPars[0]=-1.463711e+02;
-          StartPars[1]=1.151375e+00;
-          StartPars[2]=3.695934e+02;
-          StartPars[3]=6.549581e-01;
+          StartPars[0]=-1.455808e+02;
+          StartPars[1]=1.165081e+00;
+          StartPars[2]=3.700546e+02;
+          StartPars[3]=6.652901e-01;
           StartPars[4]=0;
         }
-        else if(uVar==1){
+        else if(VAR_FLAG==150){
+          StartPars[0]=-1.454633e+02;
+          StartPars[1]=1.156062e+00;
+          StartPars[2]=3.649164e+02;
+          StartPars[3]=6.643602e-01;
+          StartPars[4]=0;
+          FT = 1./128.;
+  //        Make a potential 1501
+  //         Goal: DoubleGaussSum (f0,d0) [Achieved]: (-21.200,2.300)+/-(0.010,0.010) [ 38%,251%], Break (   97/10000) stuck, but working on it...
+  //        Suitable DoubleGaussSum potential found:.1559e+00  V2=3.6454e+02  mu2=6.6436e-01 <--> f0=-21.174  d0=2.304
+  //         f0 = -21.197 fm
+  //         d0 = 2.30 fm
+  //          V1 = -1.454633e+02
+  //          mu1 = 1.156062e+00
+  //          V2 = 3.649164e+02
+  //          mu2 = 6.643602e-01
+
+
+        }
+        else if(VAR_FLAG==160){
+          StartPars[0]=-1.406252e+02;
+          StartPars[1]=1.183071e+00;
+          StartPars[2]=3.671337e+02;
+          StartPars[3]=6.646221e-01;
+          StartPars[4]=0;
+          FT = 1./1024.;
+          // Current solution: V1=-1.4051e+02  mu1=1.1833e+00  V2=3.6563e+02  mu2=6.6525e-01 <--> f0=-14.397  d0=2.289
+        }
+        else if(VAR_FLAG==170){
+          StartPars[0]=-1.442826e+02;
+          StartPars[1]=1.251641e+00;
+          StartPars[2]=3.755765e+02;
+          StartPars[3]=7.397668e-01;
+          StartPars[4]=0;
+          FT = 1./256.;
+          //ef0 = 1.0;
+
+    //      Make a potential 1701
+    //       Goal: DoubleGaussSum (f0,d0) [Achieved]: (-16.800,2.600)+/-(0.010,0.010) [ 15%,139%], Break (   89/10000) stuck, but working on it...
+    //      Suitable DoubleGaussSum potential found:.2535e+00  V2=3.7566e+02  mu2=7.4164e-01 <--> f0=-16.867  d0=2.593
+    //       f0 = -16.801 fm
+    //       d0 = 2.59 fm
+    //        V1 = -1.446716e+02
+    //        mu1 = 1.253497e+00
+    //        V2 = 3.756614e+02
+    //        mu2 = 7.415382e-01
+
+        }
+        else if(VAR_FLAG==180){
+          StartPars[0]=-1.420678e+02;
+          StartPars[1]=1.081553e+00;
+          StartPars[2]=3.579042e+02;
+          StartPars[3]=5.812257e-01;
+          StartPars[4]=0;
+          FT = 1./2048.;
+          //ef0 = 1.0;
+        }
+        else if(VAR_FLAG==1){
           //StartPars[0]=-8.999757e+02;
           //StartPars[1]=5.081559e-01;
           //StartPars[2]= -4.021392e+02;
@@ -9444,14 +9971,14 @@ void MakePotentials(int flag){
           StartPars[3]=9.711152e-01;
           StartPars[4]=0;
         }
-        else if(uVar==2){
+        else if(VAR_FLAG==2){
           StartPars[0]=-1.008636e+01;
           StartPars[1]=1.348757e+00;
           StartPars[2]= -1.410447e+01;
           StartPars[3]=2.147635e+00;
           StartPars[4]=0;
         }
-        else if(uVar==3){
+        else if(VAR_FLAG==3){
           StartPars[0]=-4.867921e+02;
           StartPars[1]=1.175196e+00;
           StartPars[2]= -8.110269e+02;
@@ -9467,15 +9994,17 @@ void MakePotentials(int flag){
         }
         //if(uVar==1) ManufacturePotential(f0,ef0,d0,ed0,Radii,NumR,V1,mu1,V2,mu2,Potential,OutputFolder,11,StartPars);
         //else ManufacturePotential(f0,ef0,d0,ed0,Radii,NumR,V1,mu1,V2,mu2,Potential,OutputFolder);
-        ManufacturePotential(f0,ef0,d0,ed0,Radii,NumR,V1,mu1,V2,mu2,Potential,OutputFolder,11,StartPars);
+        ManufacturePotential(f0,ef0,d0,ed0,Radii,NumR,V1,mu1,V2,mu2,Potential,OutputFolder,11,StartPars,
+          (Mass_L*Mass_d)/(Mass_L+Mass_d),FT);
 
       }
       else{
-        ManufacturePotential(f0,ef0,d0,ed0,Radii,NumR,V1,mu1,V2,mu2,Potential,OutputFolder);
+        ManufacturePotential(f0,ef0,d0,ed0,Radii,NumR,V1,mu1,V2,mu2,Potential,OutputFolder,11,NULL,
+          (Mass_L*Mass_d)/(Mass_L+Mass_d),FT);
       }
 
 
-    }
+    //}
   }
   //for fopra S 60X.
   // pLambda fixed to NLO 600 scattering parameters. Effective single channel potential
@@ -9566,6 +10095,13 @@ void MakePotentials(int flag){
     Radii[0] = 1.2;
     OutputFolder += "Rafa/";
     int VAR_FLAG = (flag/10)%10;
+
+    double StartPars[5];
+    //OkayishStartingPars(Potential,f0,d0,StartPars[0],StartPars[1],StartPars[2],StartPars[3],StartPars[4]);
+    //ManufacturePotential(f0,ef0,d0,ed0,Radii,NumR,V1,mu1,V2,mu2,Potential,OutputFolder,11,StartPars);
+    double FineTune = 1.;
+
+
     for(unsigned uVar=0; uVar<10; uVar++){
       if(VAR_FLAG<10&&uVar!=VAR_FLAG) continue;
       switch (uVar) {
@@ -9573,14 +10109,17 @@ void MakePotentials(int flag){
 //2) f0 = -0.1810 +/- 0.0085 MeV
         case 0: f0=0.1248; ef0=0.0011; d0=-0.22; ed0=0.02; break;
         case 1: f0=-0.1810; ef0=0.0085; d0=-0.22; ed0=0.02; break;
-        default: printf("Weird flags for producing the potentials for Bhawani\n"); return;
+        //p pim (Philipp thesis)
+        case 2: f0=0.12306; ef0=f0*0.0025; d0=11.56911; ed0=d0*0.0025; break;
+        case 3: f0=0.12306; ef0=f0*0.0025; d0=0; ed0=0.025; break;
+        //p pip (Philipp thesis)
+        case 4: f0=0.11819; ef0=f0*0.0025; d0=1.90136; ed0=d0*0.0025; break;
+        case 5: f0=0.11819; ef0=f0*0.0025; d0=0; ed0=0.025; break;
+        default: printf("Weird flags for producing the potentials for Rafa\n"); return;
       }
     }
-    double StartPars[5];
-    //OkayishStartingPars(Potential,f0,d0,StartPars[0],StartPars[1],StartPars[2],StartPars[3],StartPars[4]);
-    //ManufacturePotential(f0,ef0,d0,ed0,Radii,NumR,V1,mu1,V2,mu2,Potential,OutputFolder,11,StartPars);
-    double FineTune = 1.;
-    if(f0>0){
+
+    if(VAR_FLAG==0||VAR_FLAG==3){
       //V0 = 203.1 mu0 = 0.6203 V1 = -1106 mu1 = 0.4156
       StartPars[0] = 200;
       StartPars[1] = 0.6;
@@ -9588,7 +10127,31 @@ void MakePotentials(int flag){
       StartPars[3] = 0.41;
       FineTune = 1./256.;
     }
-    else{
+    else if(VAR_FLAG==2){
+      StartPars[0] = -3.259084e+01;
+      StartPars[1] = 1.071914e+00;
+      StartPars[2] = -2.225066e+02;
+      StartPars[3] = 9.515194e-02;
+      FineTune = 1./512.;
+    }
+    else if(VAR_FLAG==4){
+      // Current solution: V1=-4.4841e+02  mu1=1.8420e-01  V2=-1.5662e+03  mu2=2.1340e-01 <--> f0=0.062  d0=1.875
+      // Current solution: V1=-4.4897e+02  mu1=9.5603e-02  V2=-1.5418e+03  mu2=2.3632e-01 <--> f0=0.072  d0=1.847
+      //f0=0.15; ef0=0.05; d0=2.5; ed0=0.5;
+      StartPars[0] = 5.680787e+01;
+      StartPars[1] = 7.816589e-01;
+      StartPars[2] = -3.371110e+02;
+      StartPars[3] = 5.692803e-01;
+      FineTune = 1./256.;
+    }
+    else if(VAR_FLAG==5){
+      StartPars[0] = 2.041351e+02;
+      StartPars[1] = 5.924833e-01;
+      StartPars[2] = -1.105715e+03;
+      StartPars[3] = 4.042254e-01;
+      FineTune = 1./512.;
+    }
+    else if(VAR_FLAG==1){
       StartPars[0] = 750;
       StartPars[1] = 0.4;
       StartPars[2] = 650;
@@ -9596,7 +10159,8 @@ void MakePotentials(int flag){
       FineTune = 1./256.;
     }
     StartPars[4] = 0;
-    ManufacturePotential(f0,ef0,d0,ed0,Radii,NumR,V1,mu1,V2,mu2,Potential,OutputFolder,32,StartPars,
+
+    ManufacturePotential(f0,ef0,d0,ed0,Radii,NumR,V1,mu1,V2,mu2,Potential,OutputFolder,16,StartPars,
       (Mass_p*Mass_pic)/(Mass_p+Mass_pic),FineTune);
   }
 
@@ -13505,6 +14069,556 @@ void Jaime_test1(){
 
 }
 
+void pp_for_rock(){
+  const unsigned NumBins = 400;
+  const double kMin = 0;
+  const double kMax = 400;
+  CATS AB_pp;
+  AB_pp.SetMomBins(NumBins,kMin,kMax);
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
+  AnalysisObject.SetUpCats_pp(AB_pp,"AV18","Gauss",0,0);
+  AB_pp.SetAnaSource(0,1.8);
+  AB_pp.KillTheCat();
+  TH1F* hCk_pp_1p8 = new TH1F("hCk_pp_1p8","hCk_pp_1p8",NumBins,kMin,kMax);
+  for(unsigned uBin=0; uBin<NumBins; uBin++){
+    hCk_pp_1p8->SetBinContent(uBin+1,AB_pp.GetCorrFun(uBin));
+  }
+  TFile fOutput(TString::Format("%s/OtherTasks/pp_for_rock.root",GetFemtoOutputFolder()), "RECREATE");
+  hCk_pp_1p8->Write();
+  delete hCk_pp_1p8;
+}
+
+void ppSource_bugHunting(const bool IncludeBug){
+
+  const double CoreSize = 0.95;
+
+  DLM_CleverMcLevyResoTM MagicSource;
+
+  MagicSource.InitStability(1,2-1e-6,2+1e-6);
+  MagicSource.InitScale(38,0.15,2.0);
+  MagicSource.InitRad(257*2,0,64);
+  MagicSource.InitType(2);
+
+  MagicSource.SetUpReso(0,0.6422);
+  MagicSource.SetUpReso(1,0.6422);
+  MagicSource.InitNumMcIter(1000000);
+
+  const double k_CutOff = 200;
+  Float_t k_D;
+  Float_t fP1;
+  Float_t fP2;
+  Float_t fM1;
+  Float_t fM2;
+  Float_t Tau1;
+  Float_t Tau2;
+  Float_t AngleRcP1;
+  Float_t AngleRcP2;
+  Float_t AngleP1P2;
+  DLM_Random RanGen(11);
+  double RanVal1;
+  double RanVal2;
+  double RanVal3;
+
+  TFile* F_EposDisto_p_pReso;
+  F_EposDisto_p_pReso = new TFile(TString::Format("%s/CatsFiles/Source/EposAngularDist/EposDisto_p_pReso.root",GetCernBoxDimi()));
+  //printf("F_EposDisto_p_pReso=%p (%s)\n",F_EposDisto_p_pReso,TString(CatsFilesFolder[0]+"/Source/EposAngularDist/Epos3body_p_pReso_3body.root").Data());
+  TNtuple* T_EposDisto_p_pReso = (TNtuple*)F_EposDisto_p_pReso->Get("InfoTuple_ClosePairs");
+  unsigned N_EposDisto_p_pReso = T_EposDisto_p_pReso->GetEntries();
+  T_EposDisto_p_pReso->SetBranchAddress("k_D",&k_D);
+  T_EposDisto_p_pReso->SetBranchAddress("P1",&fP1);
+  T_EposDisto_p_pReso->SetBranchAddress("P2",&fP2);
+  T_EposDisto_p_pReso->SetBranchAddress("M1",&fM1);
+  T_EposDisto_p_pReso->SetBranchAddress("M2",&fM2);
+  T_EposDisto_p_pReso->SetBranchAddress("Tau1",&Tau1);
+  T_EposDisto_p_pReso->SetBranchAddress("Tau2",&Tau2);
+  T_EposDisto_p_pReso->SetBranchAddress("AngleRcP1",&AngleRcP1);
+  T_EposDisto_p_pReso->SetBranchAddress("AngleRcP2",&AngleRcP2);
+  T_EposDisto_p_pReso->SetBranchAddress("AngleP1P2",&AngleP1P2);
+  for(unsigned uEntry=0; uEntry<N_EposDisto_p_pReso; uEntry++){
+      T_EposDisto_p_pReso->GetEntry(uEntry);
+      Tau1 = 0;
+      Tau2 = 1.65;
+      fM2 = 1362;
+      if(k_D>k_CutOff) continue;
+      RanVal1 = RanGen.Exponential(fM2/(fP2*Tau2));
+      if(IncludeBug){
+        MagicSource.AddBGT_PR(RanVal1,-cos(AngleRcP2));
+        MagicSource.AddBGT_RP(RanVal1,cos(AngleRcP2));
+      }
+      else{
+        MagicSource.AddBGT_PR(RanVal1,cos(AngleRcP2));
+        MagicSource.AddBGT_RP(RanVal1,-cos(AngleRcP2));
+      }
+  }
+  delete F_EposDisto_p_pReso;
+
+  TFile* F_EposDisto_pReso_dReso;
+  F_EposDisto_pReso_dReso = new TFile(TString::Format("%s/CatsFiles/Source/EposAngularDist/EposDisto_pReso_dReso.root",GetCernBoxDimi()));
+  //printf("F_EposDisto_p_pReso=%p (%s)\n",F_EposDisto_p_pReso,TString(CatsFilesFolder[0]+"/Source/EposAngularDist/Epos3body_pReso_dReso_3body.root").Data());
+  TNtuple* T_EposDisto_pReso_dReso = (TNtuple*)F_EposDisto_pReso_dReso->Get("InfoTuple_ClosePairs");
+  unsigned N_EposDisto_pReso_dReso = T_EposDisto_pReso_dReso->GetEntries();
+  T_EposDisto_pReso_dReso->SetBranchAddress("k_D",&k_D);
+  T_EposDisto_pReso_dReso->SetBranchAddress("P1",&fP1);
+  T_EposDisto_pReso_dReso->SetBranchAddress("P2",&fP2);
+  T_EposDisto_pReso_dReso->SetBranchAddress("M1",&fM1);
+  T_EposDisto_pReso_dReso->SetBranchAddress("M2",&fM2);
+  T_EposDisto_pReso_dReso->SetBranchAddress("Tau1",&Tau1);
+  T_EposDisto_pReso_dReso->SetBranchAddress("Tau2",&Tau2);
+  T_EposDisto_pReso_dReso->SetBranchAddress("AngleRcP1",&AngleRcP1);
+  T_EposDisto_pReso_dReso->SetBranchAddress("AngleRcP2",&AngleRcP2);
+  T_EposDisto_pReso_dReso->SetBranchAddress("AngleP1P2",&AngleP1P2);
+  for(unsigned uEntry=0; uEntry<N_EposDisto_pReso_dReso; uEntry++){
+      T_EposDisto_pReso_dReso->GetEntry(uEntry);
+      Tau1 = 1.65;
+      Tau2 = 1.65;
+      fM1 = 1362;
+      fM2 = 1362;
+      if(k_D>k_CutOff) continue;
+      RanVal1 = RanGen.Exponential(fM1/(fP1*Tau1));
+      RanVal2 = RanGen.Exponential(fM2/(fP2*Tau2));
+      MagicSource.AddBGT_RR(RanVal1,cos(AngleRcP1),RanVal2,cos(AngleRcP2),cos(AngleP1P2));
+  }
+  delete F_EposDisto_pReso_dReso;
+
+
+  const unsigned NumSourceBins = 128;
+  const double rMin = 0;
+  const double rMax = 16;
+  TFile* fOutput = new TFile(TString::Format("%s/OtherTasks/ppSource_bugHunting/fOutput%s_pp_%.2f.root",GetFemtoOutputFolder(),IncludeBug?"BUG":"",
+  CoreSize),"recreate");
+  TH1F* hSource = new TH1F("hSource","hSource",NumSourceBins,rMin,rMax);
+
+  //fill the histo fro the source
+  for(unsigned uBin=0; uBin<NumSourceBins; uBin++){
+    //get the x-axis (r value) of the current bin
+    double xaxis = hSource->GetBinCenter(uBin+1);
+    //an array for the parameters, [0] is source size, [1] is == 2 (for a Gaussian)
+    double parameters[2];
+    parameters[0] = CoreSize;
+    parameters[1] = 2.0;
+    double SourceValue = MagicSource.RootEval(&xaxis, parameters);
+    hSource->SetBinContent(uBin+1,SourceValue);
+    //infinite errors for now
+    hSource->SetBinError(uBin+1,1000.);
+  }
+//printf("4\n");
+  //idea: fit the source distribution only in a range around its peak
+  //to do this: silly idea: put very large uncertainties in the bins outside of this range
+  //we can get this range automatically, by evaluating the central (median) integral of the source distribution
+  //with this set up, we fit the 68% most central yield of the source distribution
+  double lowerlimit;
+  double upperlimit;
+  GetCentralInterval(*hSource, 0.84, lowerlimit, upperlimit, true);
+  unsigned lowerbin = hSource->FindBin(lowerlimit);
+  unsigned upperbin = hSource->FindBin(upperlimit);
+  for(unsigned uBin=lowerbin; uBin<=upperbin; uBin++){
+    hSource->SetBinError(uBin+1,0.01);
+  }
+
+  printf("Core size of %.3f fm\n",CoreSize);
+  printf("The fit will be performed in the range [%.2f, %.2f] fm\n",lowerlimit,upperlimit);
+  //fyi, GaussSourceTF1 is in DLM_Source.h if you want to check it out.
+  TF1* fSource = new TF1("fSource",GaussSourceTF1,rMin,rMax,1);
+  fSource->SetParameter(0,CoreSize);
+  fSource->SetParLimits(0,CoreSize*0.5,CoreSize*2.0);
+  hSource->Fit(fSource,"S, N, R, M");
+  printf("The effective Gaussian size is %.3f +/- %.3f fm\n",fSource->GetParameter(0),fSource->GetParError(0));
+
+  //get rid of weird plotting
+  for(unsigned uBin=0; uBin<NumSourceBins; uBin++){
+    hSource->SetBinError(uBin+1,0.01);
+  }
+  hSource->Write();
+  fSource->Write();
+
+  delete hSource;
+  delete fSource;
+  delete fOutput;
+
+}
+
+
+void PlugInWaveFunction(){
+  //to be used for binning. In this example: 5 MeV bins
+  const unsigned NumMomBins = 40;
+  const double kstar_min = 0;
+  const double kstar_max = 200;
+
+  //later to be used for the radial relation of the wave function
+  //this is important to be rather fine. The maximum value should be such that
+  //the tail of the source function is negligible. As a rule of thumb, for
+  //a Gaussian source this corresponds to c.a. 10 times the r0 value.
+  const unsigned NumRadBins = 1000;
+  const double r_min = 0;
+  const double r_max = 50;
+
+  //the source size
+  const double r0 = 3.0;
+
+  //some "container" for the source parameters.
+  //here trivial, as we will use 1D Gauss source (single parameter)
+  CATSparameters cPars(CATSparameters::tSource,1,true);
+  CATS Kitty;
+  Kitty.SetMomBins(NumMomBins,kstar_min,kstar_max);
+  //definition of GaussSource in DLM_Source.h
+  Kitty.SetAnaSource(GaussSource, cPars);
+  Kitty.SetAnaSource(0,r0);
+  Kitty.SetUseAnalyticSource(true);
+  Kitty.SetMomentumDependentSource(false);
+
+  //charge, q1*q2
+  Kitty.SetQ1Q2(0);
+  Kitty.SetQuantumStatistics(false);
+  Kitty.SetRedMass( (Mass_p*Mass_Xim)/(Mass_p+Mass_Xim) );
+
+  //in case of different spin/isospin channels, they can be separately defined here
+  //in this example, we only define a single effective channel, that contains
+  //a single partial wave (PW) that is deviating from the asymptotic form
+  Kitty.SetNumChannels(1);
+  Kitty.SetNumPW(0,1);
+  //dummy value in this case, only relevant in case of identical particle
+  Kitty.SetSpin(0,0);
+  //as we have 1 channel, we take it with weight of 1 (100%)
+  Kitty.SetChannelWeight(0,1.);
+
+  //the wave function has to be passed by using some custom made histograms
+
+  //the histograms should be 2D, with one axis corresponding to momentum k (x)
+  //and the other to the distance r (y). The value (z-axis) corresponds to the
+  //value of the radial partial wave functions (k,r) for the corresponding channel
+  //in this example: single channel and single PW, thus a single wave function is needed
+  DLM_Histo<complex<double>> histWF;
+  //two dimensions
+  histWF.SetUp(2);
+  //how many bins/range in each dimension
+  histWF.SetUp(0,NumMomBins,kstar_min,kstar_max);
+  histWF.SetUp(1,NumRadBins,r_min,r_max);
+
+  histWF.Initialize();
+
+  //we can also provide phase shifts, but this is not needed, so concider
+  //this histogram a dummy
+  DLM_Histo<complex<double>> histPS(histWF);
+
+  //example how to set the bin values of the wave function histogram
+  //in this example, we will simply set it equal to the Coulomb solution (trivial),
+  //so we should get a flat correlation
+  unsigned axis[2];
+  /*
+  for(axis[0]=0; axis[0]<histWF.GetNbins(0); axis[0]++){//over kstar
+    for(axis[1]=0; axis[1]<histWF.GetNbins(1); axis[1]++){//over radial dependence
+      //this is a trick to evaluate the s coulomb partial wave using CATS
+      //outside of this example, here is where the wave function needs to be evaluated
+      //at a fixed kstar and as a function of its radial relation
+      //complex<double> CPW = Kitty.EvalReferenceRadialWF(
+      //              axis[0],0,histWF.GetBinCenter(1,axis[1]),false);
+//complex<double> CPW = Kitty.ReferencePartialWave(
+//                        histWF.GetBinCenter(1,axis[1]),
+//                        histWF.GetBinCenter(0,axis[0]), 0, -1);
+      //complex<double> RWF = Kitty.GetRadialWaveFunction(axis[0], 0, 0, axis[1]);
+      //printf("%e vs %e\n",abs(CPW),abs(RWF));
+
+double Rho = histWF.GetBinCenter(1,axis[1])*histWF.GetBinCenter(0,axis[0]);
+complex<double> CPW = histWF.GetBinCenter(1,axis[1])*sin(Rho)/Rho;
+//printf("%f %f\n", histWF.GetBinCenter(1,axis[1]), histWF.GetBinCenter(0,axis[0]));
+
+      histWF.SetBinContent(axis,CPW);
+    }
+  }
+*/
+  //Kitty.SetExternalWaveFunction(0,0,histWF,histPS);
+  Kitty.KillTheCat();
+
+  TH1F* h_CorrFunction = new TH1F("h_CorrFunction","h_CorrFunction",NumMomBins,kstar_min,kstar_max);
+  for(unsigned uBin=0; uBin<NumMomBins; uBin++){
+    h_CorrFunction->SetBinContent(uBin+1,Kitty.GetCorrFun(uBin));
+  }
+  //TFile fCatsExample("fCatsExample.root","recreate");
+  //h_CorrFunction->Write();
+}
+
+void pd_delayed(const double& delay, const bool& reso){
+
+    const double CoreSize = 0.97;
+
+  //  TH1F* hFemtoMom_p = TH1F("hFemtoMom_p","hFemtoMom_p",128,0,4096);
+  //  TH1F* hFemtoMom_pReso = TH1F("hFemtoMom_pReso","hFemtoMom_pReso",128,0,4096);
+  //  TH1F* hFemtoMom_d = TH1F("hFemtoMom_d","hFemtoMom_d",128,0,4096);
+
+    TH1F* p_Omega_AngleRcP2 = new TH1F("p_Omega_AngleRcP2","p_Omega_AngleRcP2",32,0,Pi);
+    TH1F* pReso_Omega_AngleRcP1 = new TH1F("pReso_Omega_AngleRcP1","pReso_Omega_AngleRcP1",32,0,Pi);
+    TH1F* pReso_dReso_AngleRcP1 = new TH1F("pReso_dReso_AngleRcP1","pReso_dReso_AngleRcP1",32,0,Pi);
+    TH1F* pReso_dReso_AngleRcP2 = new TH1F("pReso_dReso_AngleRcP2","pReso_dReso_AngleRcP2",32,0,Pi);
+    TH1F* pReso_dReso_AngleP1P2 = new TH1F("pReso_dReso_AngleP1P2","pReso_dReso_AngleP1P2",32,0,Pi);
+
+    DLM_CleverMcLevyResoTM MagicSource;
+
+    MagicSource.InitStability(1,2-1e-6,2+1e-6);
+    MagicSource.InitScale(38,0.15,2.0);
+    MagicSource.InitRad(257*2,0,64);
+    MagicSource.InitType(2);
+
+    MagicSource.SetUpReso(0,0.6422*reso);
+    MagicSource.SetUpReso(1,1.0*reso);
+    MagicSource.InitNumMcIter(1000000);
+
+    const double k_CutOff = 200;
+    Float_t k_D;
+    Float_t fP1;
+    Float_t fP2;
+    Float_t fM1;
+    Float_t fM2;
+    Float_t Tau1;
+    Float_t Tau2;
+    Float_t AngleRcP1;
+    Float_t AngleRcP2;
+    Float_t AngleP1P2;
+    DLM_Random RanGen(11);
+    double RanVal1;
+    double RanVal2;
+    double RanVal3;
+
+    TFile* F_EposDisto_p_dReso;
+    F_EposDisto_p_dReso = new TFile(TString::Format("%s/CatsFiles/Source/EposAngularDist/Bhawani_p_Omega.root",GetCernBoxDimi()));
+    TNtuple* T_EposDisto_p_dReso = (TNtuple*)F_EposDisto_p_dReso->Get("InfoTuple_ClosePairs");
+    unsigned N_EposDisto_p_dReso = T_EposDisto_p_dReso->GetEntries();
+    T_EposDisto_p_dReso->SetBranchAddress("k_D",&k_D);
+    T_EposDisto_p_dReso->SetBranchAddress("P1",&fP1);
+    T_EposDisto_p_dReso->SetBranchAddress("P2",&fP2);
+    T_EposDisto_p_dReso->SetBranchAddress("M1",&fM1);
+    T_EposDisto_p_dReso->SetBranchAddress("M2",&fM2);
+    T_EposDisto_p_dReso->SetBranchAddress("Tau1",&Tau1);
+    T_EposDisto_p_dReso->SetBranchAddress("Tau2",&Tau2);
+    T_EposDisto_p_dReso->SetBranchAddress("AngleRcP1",&AngleRcP1);
+    T_EposDisto_p_dReso->SetBranchAddress("AngleRcP2",&AngleRcP2);
+    T_EposDisto_p_dReso->SetBranchAddress("AngleP1P2",&AngleP1P2);
+    for(unsigned uEntry=0; uEntry<N_EposDisto_p_dReso; uEntry++){
+        T_EposDisto_p_dReso->GetEntry(uEntry);
+        Tau1 = 0;
+        Tau2 = delay;
+        fM2 = Mass_d*1.005;
+        if(k_D>k_CutOff) continue;
+        RanVal2 = fP2/fM2*Tau2;
+        if(RanVal2>1000){
+          printf("AddBGT_PR %.2e %.2e\n",RanVal2,cos(AngleRcP2));
+          usleep(100e3);
+        }
+        MagicSource.AddBGT_PR(RanVal2,cos(AngleRcP2));
+        p_Omega_AngleRcP2->Fill(AngleRcP2);
+    }
+    delete F_EposDisto_p_dReso;
+
+    TFile* F_EposDisto_pReso_d;
+    F_EposDisto_pReso_d = new TFile(TString::Format("%s/CatsFiles/Source/EposAngularDist/EposDisto_pReso_Omega.root",GetCernBoxDimi()));
+    //printf("F_EposDisto_p_pReso=%p (%s)\n",F_EposDisto_p_pReso,TString(CatsFilesFolder[0]+"/Source/EposAngularDist/Epos3body_pReso_d_3body.root").Data());
+    TNtuple* T_EposDisto_pReso_d = (TNtuple*)F_EposDisto_pReso_d->Get("InfoTuple_ClosePairs");
+    unsigned N_EposDisto_pReso_d = T_EposDisto_pReso_d->GetEntries();
+    T_EposDisto_pReso_d->SetBranchAddress("k_D",&k_D);
+    T_EposDisto_pReso_d->SetBranchAddress("P1",&fP1);
+    T_EposDisto_pReso_d->SetBranchAddress("P2",&fP2);
+    T_EposDisto_pReso_d->SetBranchAddress("M1",&fM1);
+    T_EposDisto_pReso_d->SetBranchAddress("M2",&fM2);
+    T_EposDisto_pReso_d->SetBranchAddress("Tau1",&Tau1);
+    T_EposDisto_pReso_d->SetBranchAddress("Tau2",&Tau2);
+    T_EposDisto_pReso_d->SetBranchAddress("AngleRcP1",&AngleRcP1);
+    T_EposDisto_pReso_d->SetBranchAddress("AngleRcP2",&AngleRcP2);
+    T_EposDisto_pReso_d->SetBranchAddress("AngleP1P2",&AngleP1P2);
+    for(unsigned uEntry=0; uEntry<N_EposDisto_pReso_d; uEntry++){
+        T_EposDisto_pReso_d->GetEntry(uEntry);
+        Tau1 = 1.65;
+        Tau2 = 0;
+        fM1 = 1362;
+        if(k_D>k_CutOff) continue;
+        RanVal1 = RanGen.Exponential(fM1/(fP1*Tau1));
+        MagicSource.AddBGT_RP(RanVal1,cos(AngleRcP1));
+        pReso_Omega_AngleRcP1->Fill(AngleRcP1);
+        //if(RanVal1>1000){
+        //  printf("AddBGT_PR %.2e %.2e\n",RanVal1,cos(RanVal1));
+        //  usleep(100e3);
+        //}
+
+    }
+    delete F_EposDisto_pReso_d;
+
+
+    TFile* F_EposDisto_pReso_dReso;
+    F_EposDisto_pReso_dReso = new TFile(TString::Format("%s/CatsFiles/Source/EposAngularDist/EposDisto_pReso_Omega.root",GetCernBoxDimi()));
+    //printf("F_EposDisto_p_pReso=%p (%s)\n",F_EposDisto_p_pReso,TString(CatsFilesFolder[0]+"/Source/EposAngularDist/Epos3body_pReso_dReso_3body.root").Data());
+    TNtuple* T_EposDisto_pReso_dReso = (TNtuple*)F_EposDisto_pReso_dReso->Get("InfoTuple_ClosePairs");
+    unsigned N_EposDisto_pReso_dReso = T_EposDisto_pReso_dReso->GetEntries();
+    T_EposDisto_pReso_dReso->SetBranchAddress("k_D",&k_D);
+    T_EposDisto_pReso_dReso->SetBranchAddress("P1",&fP1);
+    T_EposDisto_pReso_dReso->SetBranchAddress("P2",&fP2);
+    T_EposDisto_pReso_dReso->SetBranchAddress("M1",&fM1);
+    T_EposDisto_pReso_dReso->SetBranchAddress("M2",&fM2);
+    T_EposDisto_pReso_dReso->SetBranchAddress("Tau1",&Tau1);
+    T_EposDisto_pReso_dReso->SetBranchAddress("Tau2",&Tau2);
+    T_EposDisto_pReso_dReso->SetBranchAddress("AngleRcP1",&AngleRcP1);
+    T_EposDisto_pReso_dReso->SetBranchAddress("AngleRcP2",&AngleRcP2);
+    T_EposDisto_pReso_dReso->SetBranchAddress("AngleP1P2",&AngleP1P2);
+    for(unsigned uEntry=0; uEntry<N_EposDisto_pReso_dReso; uEntry++){
+        T_EposDisto_pReso_dReso->GetEntry(uEntry);
+        Tau1 = 1.65;
+        Tau2 = delay;
+        fM1 = 1362;
+        fM2 = Mass_d*1.005;
+        if(k_D>k_CutOff) continue;
+        RanVal1 = RanGen.Exponential(fM1/(fP1*Tau1));
+        RanVal2 = fP2/fM2*Tau2;
+        MagicSource.AddBGT_RR(RanVal1,cos(AngleRcP1),RanVal2,cos(AngleRcP2),cos(AngleP1P2));
+        pReso_dReso_AngleRcP1->Fill(AngleRcP1);
+        pReso_dReso_AngleRcP2->Fill(AngleRcP2);
+        pReso_dReso_AngleP1P2->Fill(AngleP1P2);
+        //if(RanVal1>1000||RanVal2>1000){
+        //  printf("AddBGT_RR %.2e %.2e %.2e %.2e %.2e\n",RanVal1,cos(AngleRcP1),RanVal2,cos(AngleRcP2),cos(AngleP1P2));
+        //  usleep(100e3);
+        //}
+    }
+    delete F_EposDisto_pReso_dReso;
+
+
+    const unsigned NumSourceBins = 128;
+    const double rMin = 0;
+    const double rMax = 16;
+    TFile* fOutput = new TFile(TString::Format("%s/OtherTasks/pd_delayed/fOutput_PR%i_DD%.0f.root",GetFemtoOutputFolder(),reso,delay),"recreate");
+    TH1F* hSource = new TH1F("hSource","hSource",NumSourceBins,rMin,rMax);
+
+    //fill the histo fro the source
+    for(unsigned uBin=0; uBin<NumSourceBins; uBin++){
+      //get the x-axis (r value) of the current bin
+      double xaxis = hSource->GetBinCenter(uBin+1);
+      //an array for the parameters, [0] is source size, [1] is == 2 (for a Gaussian)
+      double parameters[2];
+      parameters[0] = CoreSize;
+      parameters[1] = 2.0;
+      double SourceValue = MagicSource.RootEval(&xaxis, parameters);
+      hSource->SetBinContent(uBin+1,SourceValue);
+      //infinite errors for now
+      hSource->SetBinError(uBin+1,1000.);
+    }
+  //printf("4\n");
+    //idea: fit the source distribution only in a range around its peak
+    //to do this: silly idea: put very large uncertainties in the bins outside of this range
+    //we can get this range automatically, by evaluating the central (median) integral of the source distribution
+    //with this set up, we fit the 68% most central yield of the source distribution
+    double lowerlimit;
+    double upperlimit;
+    GetCentralInterval(*hSource, 0.9, lowerlimit, upperlimit, true);
+    unsigned lowerbin = hSource->FindBin(lowerlimit);
+    unsigned upperbin = hSource->FindBin(upperlimit);
+    for(unsigned uBin=lowerbin; uBin<=upperbin; uBin++){
+      hSource->SetBinError(uBin+1,0.01);
+    }
+
+    printf("Core size of %.3f fm\n",CoreSize);
+    printf("The fit will be performed in the range [%.2f, %.2f] fm\n",lowerlimit,upperlimit);
+    //fyi, GaussSourceTF1 is in DLM_Source.h if you want to check it out.
+    TF1* fSource = new TF1("fSource",GaussSourceTF1,lowerlimit,upperlimit,1);
+    fSource->SetParameter(0,CoreSize);
+    fSource->SetParLimits(0,CoreSize*0.5,CoreSize*10.0);
+    hSource->Fit(fSource,"S, N, R, M");
+    printf("The effective Gaussian size is %.3f +/- %.3f fm\n",fSource->GetParameter(0),fSource->GetParError(0));
+
+    p_Omega_AngleRcP2->Scale(1./p_Omega_AngleRcP2->Integral(),"width");
+    pReso_Omega_AngleRcP1->Scale(1./pReso_Omega_AngleRcP1->Integral(),"width");
+    pReso_dReso_AngleRcP1->Scale(1./pReso_dReso_AngleRcP1->Integral(),"width");
+    pReso_dReso_AngleRcP2->Scale(1./pReso_dReso_AngleRcP2->Integral(),"width");
+    pReso_dReso_AngleP1P2->Scale(1./pReso_dReso_AngleP1P2->Integral(),"width");
+
+    //get rid of weird plotting
+    for(unsigned uBin=0; uBin<NumSourceBins; uBin++){
+      hSource->SetBinError(uBin+1,0.01);
+    }
+    hSource->Write();
+    fSource->Write();
+    p_Omega_AngleRcP2->Write();
+    pReso_Omega_AngleRcP1->Write();
+    pReso_dReso_AngleRcP1->Write();
+    pReso_dReso_AngleRcP2->Write();
+    pReso_dReso_AngleP1P2->Write();
+
+    delete hSource;
+    delete fSource;
+    delete p_Omega_AngleRcP2;
+    delete pReso_Omega_AngleRcP1;
+    delete pReso_dReso_AngleRcP1;
+    delete pReso_dReso_AngleRcP2;
+    delete pReso_dReso_AngleP1P2;
+    delete fOutput;
+
+}
+
+
+
+void pp_C_vs_SI(){
+
+  const unsigned NumMomBins = 80;
+  const double kMin = 0;
+  const double kMax = 320;
+
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
+  CATSparameters cPar(CATSparameters::tSource,1,true);
+
+  CATS Cat;
+  Cat.SetMomBins(NumMomBins,kMin,kMax);
+  AnalysisObject.SetUpCats_pp(Cat,"AV18","Gauss",0,0);
+  Cat.SetAnaSource(0,1.2);
+
+  Cat.KillTheCat();
+  TH1F* CkFull = new TH1F("CkFull","CkFull",NumMomBins,kMin,kMax);
+  CkFull->SetLineColor(kBlack);
+  CkFull->SetLineWidth(6);
+  for(unsigned uBin=0; uBin<Cat.GetNumMomBins(); uBin++){
+    CkFull->SetBinContent(uBin+1,Cat.GetCorrFun(uBin));
+  }
+
+  Cat.SetQ1Q2(0);
+  Cat.KillTheCat();
+  TH1F* CkSI = new TH1F("CkSI","CkSI",NumMomBins,kMin,kMax);
+  CkSI->SetLineColor(kRed);
+  CkSI->SetLineWidth(5);
+  for(unsigned uBin=0; uBin<Cat.GetNumMomBins(); uBin++){
+    CkSI->SetBinContent(uBin+1,Cat.GetCorrFun(uBin));
+  }
+
+  Cat.SetQ1Q2(1);
+  Cat.RemoveShortRangePotential();
+  Cat.KillTheCat();
+  TH1F* CkC = new TH1F("CkC","CkC",NumMomBins,kMin,kMax);
+  CkC->SetLineColor(kBlue);
+  CkC->SetLineWidth(4);
+  for(unsigned uBin=0; uBin<Cat.GetNumMomBins(); uBin++){
+    CkC->SetBinContent(uBin+1,Cat.GetCorrFun(uBin));
+  }
+
+  TH1F* Cumulant = (TH1F*)CkFull->Clone("Cumulant");
+  TH1F* CumulantRed = (TH1F*)CkFull->Clone("CumulantRed");
+  CumulantRed->SetLineColor(kGreen+1);
+  CumulantRed->SetLineWidth(6);
+  TH1F* CumulantExp = (TH1F*)CkFull->Clone("CumulantExp");
+  TH1F* CkExp = (TH1F*)CkFull->Clone("CkExp");
+  CumulantRed->SetLineColor(kGreen+1);
+  CumulantRed->SetLineWidth(4);
+  for(unsigned uBin=0; uBin<Cat.GetNumMomBins(); uBin++){
+    Cumulant->SetBinContent(uBin+1,Cumulant->GetBinContent(uBin+1)-1);
+    CkExp->SetBinContent(uBin+1,CkSI->GetBinContent(uBin+1)*CkC->GetBinContent(uBin+1));
+    CumulantExp->SetBinContent(uBin+1,CkSI->GetBinContent(uBin+1)*CkC->GetBinContent(uBin+1)-1);
+    CumulantRed->SetBinContent(uBin+1,Cumulant->GetBinContent(uBin+1)-CumulantExp->GetBinContent(uBin+1));
+  }
+
+  TFile fOutput(TString::Format("%s/OtherTasks/pp_C_vs_SI.root",GetFemtoOutputFolder()),"recreate");
+  CkFull->Write();
+  CkC->Write();
+  CkSI->Write();
+  CkExp->Write();
+  Cumulant->Write();
+  CumulantExp->Write();
+  CumulantRed->Write();
+
+}
+
 //
 int OTHERTASKS(int argc, char *argv[]){
   //Jaime_test1();
@@ -13617,8 +14731,9 @@ nsig 3 bins = 4.28
 nsig 6 bins = 3.75
 */
 
+    //pp_for_rock();
     //Ledni_SmallRad_Random(atoi(argv[1]),atoi(argv[2]));
-    MakePotentials(atoi(argv[1]));return 0;
+    //MakePotentials(atoi(argv[1]));return 0;
   //RoughPiPiPotScan(atoi(argv[1]),atoi(argv[2]));
   //pi_proton();
     //SelectEmmaPotential();
@@ -13628,7 +14743,31 @@ nsig 6 bins = 3.75
     //MakeSmoothAngularSourceDisto(NULL);
     //MaxRamona_piSig_ResoTest();
     //Ramona_pK_ResoTest();
+/*
+    EmmaDaniel_piD(0.82);
+    EmmaDaniel_piD(0.89);
+    EmmaDaniel_piD(0.75);
+    //EmmaDaniel_piD(0,true);
+    //printf("\n----------------------\n");
+    EmmaDaniel_KD(0.81);
+    EmmaDaniel_KD(0.89);
+    EmmaDaniel_KD(0.74);
+*/
+    //EmmaDaniel_KD(1.04);
+    //EmmaDaniel_KD(1.10);
+    //EmmaDaniel_KD(1.13);
 
+    //PlugInWaveFunction();
+    //ppSource_bugHunting(true);
+    //ppSource_bugHunting(false);
+
+    //pd_delayed(0,false);
+    //pd_delayed(100,true);
+
+    pp_C_vs_SI();
+
+
+    //EmmaDaniel_KD(0,true);
     //const double RAD = 5.11;
     //printf("u(%.2f) = %.4f\n",RAD,Evaluate_d_u(RAD));
     //printf(" w(%.2f) = %.4f\n",RAD,Evaluate_d_w(RAD));

@@ -15990,10 +15990,195 @@ void Unfold_pL_ME(const TString InputFolder, const TString InputFile){
 
 
 
+
+
+//0 = Original
+//1 = fit the angle with splines
+//2 = fit the cos with 1/(1-exp)
+void pL_EffectiveRadius(double CoreSize){
+
+    //DLM_CleverMcLevyResoTM* MagicSource = new DLM_CleverMcLevyResoTM ();
+    DLM_CleverMcLevyResoTM MagicSource;
+
+    //DO NOT CHANGE !!! Sets up numerical bullshit, tuned for a Gaussian source
+    MagicSource.InitStability(1,2-1e-6,2+1e-6);
+    MagicSource.InitScale(38,0.15,2.0);
+    MagicSource.InitRad(257*2,0,64);
+    MagicSource.InitType(2);
+    ///////////////////
+
+    MagicSource.SetUpReso(0,0.6422);
+    MagicSource.SetUpReso(1,0.6438);
+    MagicSource.InitNumMcIter(1000000);
+
+    //the cut off scale in k*, for which the angular distributions from EPOS
+    //are evaluated. 200 MeV works okay, you can go up to 300 MeV for systematic checks
+    const double k_CutOff = 200;
+
+    //to be used for the NTuple later on
+    Float_t k_D;
+    Float_t fP1;
+    Float_t fP2;
+    Float_t fM1;
+    Float_t fM2;
+    Float_t Tau1;
+    Float_t Tau2;
+    Float_t AngleRcP1;
+    Float_t AngleRcP2;
+    Float_t AngleP1P2;
+    //random generator dimi style. The input is incompatible with the ROOT random generator,
+    //do not mix and match, do not ask me how I know this. Ask Bernie.
+    //11 is the seed, you can change that to you favorite number
+    DLM_Random RanGen(11);
+    //dummies to save random shit
+    double RanVal1;
+    double RanVal2;
+    double RanVal3;
+    double RanCos;
+    double MeanP1=0;
+
+
+
+    TFile* F_EposDisto_p_LamReso = new TFile(TString::Format("%s/CatsFiles/Source/EposAngularDist/EposDisto_p_LamReso.root",GetCernBoxDimi()));
+    TNtuple* T_EposDisto_p_LamReso = (TNtuple*)F_EposDisto_p_LamReso->Get("InfoTuple_ClosePairs");
+    unsigned N_EposDisto_p_LamReso = T_EposDisto_p_LamReso->GetEntries();
+    T_EposDisto_p_LamReso->SetBranchAddress("k_D",&k_D);
+    T_EposDisto_p_LamReso->SetBranchAddress("P1",&fP1);
+    T_EposDisto_p_LamReso->SetBranchAddress("P2",&fP2);
+    T_EposDisto_p_LamReso->SetBranchAddress("M1",&fM1);
+    T_EposDisto_p_LamReso->SetBranchAddress("M2",&fM2);
+    T_EposDisto_p_LamReso->SetBranchAddress("Tau1",&Tau1);
+    T_EposDisto_p_LamReso->SetBranchAddress("Tau2",&Tau2);
+    T_EposDisto_p_LamReso->SetBranchAddress("AngleRcP1",&AngleRcP1);
+    T_EposDisto_p_LamReso->SetBranchAddress("AngleRcP2",&AngleRcP2);
+    T_EposDisto_p_LamReso->SetBranchAddress("AngleP1P2",&AngleP1P2);
+    for(unsigned uEntry=0; uEntry<N_EposDisto_p_LamReso; uEntry++){
+        T_EposDisto_p_LamReso->GetEntry(uEntry);
+        Tau1 = 0;
+        Tau2 = 4.69;
+        fM2 = 1462;
+        if(k_D>k_CutOff) continue;
+        RanVal2 = RanGen.Exponential(fM2/(fP2*Tau2));
+        MagicSource.AddBGT_PR(RanVal2,cos(AngleRcP2));
+    }
+    delete F_EposDisto_p_LamReso;
+
+    TFile* F_EposDisto_pReso_Lam = new TFile(TString::Format("%s/CatsFiles/Source/EposAngularDist/EposDisto_pReso_Lam.root",GetCernBoxDimi()));
+    TNtuple* T_EposDisto_pReso_Lam = (TNtuple*)F_EposDisto_pReso_Lam->Get("InfoTuple_ClosePairs");
+    unsigned N_EposDisto_pReso_Lam = T_EposDisto_pReso_Lam->GetEntries();
+    T_EposDisto_pReso_Lam->SetBranchAddress("k_D",&k_D);
+    T_EposDisto_pReso_Lam->SetBranchAddress("P1",&fP1);
+    T_EposDisto_pReso_Lam->SetBranchAddress("P2",&fP2);
+    T_EposDisto_pReso_Lam->SetBranchAddress("M1",&fM1);
+    T_EposDisto_pReso_Lam->SetBranchAddress("M2",&fM2);
+    T_EposDisto_pReso_Lam->SetBranchAddress("Tau1",&Tau1);
+    T_EposDisto_pReso_Lam->SetBranchAddress("Tau2",&Tau2);
+    T_EposDisto_pReso_Lam->SetBranchAddress("AngleRcP1",&AngleRcP1);
+    T_EposDisto_pReso_Lam->SetBranchAddress("AngleRcP2",&AngleRcP2);
+    T_EposDisto_pReso_Lam->SetBranchAddress("AngleP1P2",&AngleP1P2);
+    for(unsigned uEntry=0; uEntry<N_EposDisto_pReso_Lam; uEntry++){
+        T_EposDisto_pReso_Lam->GetEntry(uEntry);
+        Tau1 = 1.65;
+        Tau2 = 0;
+        fM1 = 1362;
+        if(k_D>k_CutOff) continue;
+        RanVal1 = RanGen.Exponential(fM1/(fP1*Tau1));
+        MagicSource.AddBGT_RP(RanVal1,cos(AngleRcP1));
+    }
+    delete F_EposDisto_pReso_Lam;
+
+    TFile* F_EposDisto_pReso_LamReso = new TFile(TString::Format("%s/CatsFiles/Source/EposAngularDist/EposDisto_pReso_LamReso.root",GetCernBoxDimi()));
+    TNtuple* T_EposDisto_pReso_LamReso = (TNtuple*)F_EposDisto_pReso_LamReso->Get("InfoTuple_ClosePairs");
+    unsigned N_EposDisto_pReso_LamReso = T_EposDisto_pReso_LamReso->GetEntries();
+    T_EposDisto_pReso_LamReso->SetBranchAddress("k_D",&k_D);
+    T_EposDisto_pReso_LamReso->SetBranchAddress("P1",&fP1);
+    T_EposDisto_pReso_LamReso->SetBranchAddress("P2",&fP2);
+    T_EposDisto_pReso_LamReso->SetBranchAddress("M1",&fM1);
+    T_EposDisto_pReso_LamReso->SetBranchAddress("M2",&fM2);
+    T_EposDisto_pReso_LamReso->SetBranchAddress("Tau1",&Tau1);
+    T_EposDisto_pReso_LamReso->SetBranchAddress("Tau2",&Tau2);
+    T_EposDisto_pReso_LamReso->SetBranchAddress("AngleRcP1",&AngleRcP1);
+    T_EposDisto_pReso_LamReso->SetBranchAddress("AngleRcP2",&AngleRcP2);
+    T_EposDisto_pReso_LamReso->SetBranchAddress("AngleP1P2",&AngleP1P2);
+    for(unsigned uEntry=0; uEntry<N_EposDisto_pReso_LamReso; uEntry++){
+        T_EposDisto_pReso_LamReso->GetEntry(uEntry);
+        Tau1 = 1.65;
+        Tau2 = 4.69;
+        fM1 = 1362;
+        fM2 = 1462;
+        if(k_D>k_CutOff) continue;
+        RanVal1 = RanGen.Exponential(fM1/(fP1*Tau1));
+        RanVal2 = RanGen.Exponential(fM2/(fP2*Tau2));
+        MagicSource.AddBGT_RR(RanVal1,cos(AngleRcP1),RanVal2,cos(AngleRcP2),cos(AngleP1P2));
+    }
+    delete F_EposDisto_pReso_LamReso;
+
+
+
+
+    //if you have resonances contributing to both particles, we need to repeat the above procedure
+    //for the prim-reso (AddBGT_PR) and reso-reso (AddBGT_RR) cases
+
+    const unsigned NumSourceBins = 128;
+    const double rMin = 0;
+    const double rMax = 16;
+    TFile* fOutput = new TFile(TString::Format("%s/pLambda/rcore_%.2f.root",GetFemtoOutputFolder(),CoreSize),"recreate");
+    TH1F* hSource = new TH1F("hSource","hSource",NumSourceBins,rMin,rMax);
+
+    //fill the histo fro the source
+    for(unsigned uBin=0; uBin<NumSourceBins; uBin++){
+      //get the x-axis (r value) of the current bin
+      double xaxis = hSource->GetBinCenter(uBin+1);
+      //an array for the parameters, [0] is source size, [1] is == 2 (for a Gaussian)
+      double parameters[2];
+      parameters[0] = CoreSize;
+      parameters[1] = 2.0;
+      double SourceValue = MagicSource.RootEval(&xaxis, parameters);
+      hSource->SetBinContent(uBin+1,SourceValue);
+      //infinite errors for now
+      hSource->SetBinError(uBin+1,1000.);
+    }
+//printf("4\n");
+    //idea: fit the source distribution only in a range around its peak
+    //to do this: silly idea: put very large uncertainties in the bins outside of this range
+    //we can get this range automatically, by evaluating the central (median) integral of the source distribution
+    //with this set up, we fit the 68% most central yield of the source distribution
+    double lowerlimit;
+    double upperlimit;
+    GetCentralInterval(*hSource, 0.84, lowerlimit, upperlimit, true);
+    unsigned lowerbin = hSource->FindBin(lowerlimit);
+    unsigned upperbin = hSource->FindBin(upperlimit);
+    for(unsigned uBin=lowerbin; uBin<=upperbin; uBin++){
+      hSource->SetBinError(uBin+1,0.01);
+    }
+
+    printf("Core size of %.3f fm\n",CoreSize);
+    printf("The fit will be performed in the range [%.2f, %.2f] fm\n",lowerlimit,upperlimit);
+    //fyi, GaussSourceTF1 is in DLM_Source.h if you want to check it out.
+    TF1* fSource = new TF1("fSource",GaussSourceTF1,rMin,rMax,1);
+    fSource->SetParameter(0,CoreSize);
+    fSource->SetParLimits(0,CoreSize*0.5,CoreSize*2.0);
+    hSource->Fit(fSource,"S, N, R, M");
+    printf("The effective Gaussian size is %.3f +/- %.3f fm\n",fSource->GetParameter(0),fSource->GetParError(0));
+
+    //get rid of weird plotting
+    for(unsigned uBin=0; uBin<NumSourceBins; uBin++){
+      hSource->SetBinError(uBin+1,0.01);
+    }
+    hSource->Write();
+    fSource->Write();
+
+    delete hSource;
+    delete fSource;
+    delete fOutput;
+}
+
+
+
 int PLAMBDA_1_MAIN(int argc, char *argv[]){
 printf("PLAMBDA_1_MAIN\n");
-
-  Unfold_pL_ME(TString::Format("%s/CatsFiles/ExpData/ALICE_pp_13TeV_HM/DimiJun20/Norm240_340/DataSignal/",GetCernBoxDimi()),"TEST.root");
+  pL_EffectiveRadius(1.2);
+  //Unfold_pL_ME(TString::Format("%s/CatsFiles/ExpData/ALICE_pp_13TeV_HM/DimiJun20/Norm240_340/DataSignal/",GetCernBoxDimi()),"TEST.root");
   //Unfold_pL_ME(argv[1],argv[2]);
   return 0;
 
@@ -16063,7 +16248,7 @@ UpdateUnfoldFile(TString::Format("%s/CatsFiles/",GetCernBoxDimi()),
 //printf("hello\n");
 
 //const int& SIGMA_FEED, const int& WhichBaseline, const int& WhichPotential, const float& ValSourceAlpha,
-/*
+
 Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(atoi(argv[4]))/10.,
                             ///home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/100720_Unfolded/
                             //TString::Format("%s/pLambda/100720_Unfolded/",GetCernBoxDimi()),
@@ -16082,9 +16267,9 @@ Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(at
                             //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/"
                             atoi(argv[5])///REMOVE FOR THE OLD PLOTS
                           );
-*/
-MakeLATEXtable(TString::Format("%s/pLambda/PLB/NoBoot/Plots_v2/",GetCernBoxDimi()),false);
-return 0;
+
+//MakeLATEXtable(TString::Format("%s/pLambda/PLB/NoBoot/Plots_v2/",GetCernBoxDimi()),false);
+//return 0;
 
 //Plot_pL_SystematicsMay2020_2(2,10,1500,2.0,
 //        "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/040620_Gauss/",
