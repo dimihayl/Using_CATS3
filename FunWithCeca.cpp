@@ -31,6 +31,8 @@
 #include "TGraphErrors.h"
 #include "TGraph.h"
 #include "TNtuple.h"
+#include "TSystem.h"
+#include "TROOT.h"
 
 #include <boost/algorithm/string.hpp>
 
@@ -1189,7 +1191,7 @@ void CecaTest_0(){
       prt->GetDecay(0)->SetBranching(100);
     }
 
-    prt->SetPtEtaPhi(Sigma*prt->GetMass());
+    prt->SetPtPz(Sigma*prt->GetMass(),Sigma*prt->GetMass());
   }
 
   std::vector<std::string> ListOfParticles;
@@ -1209,7 +1211,6 @@ void CecaTest_0(){
   Ivana.GoBabyGo(1);
 
 }
-
 
 
 void CecaTest_1(){
@@ -1278,7 +1279,7 @@ void CecaTest_1(){
       prt->GetDecay(0)->AddDaughter(*Database.GetParticle("Pion"));
       prt->GetDecay(0)->SetBranching(100);
     }
-    prt->SetPtEtaPhi(Sigma*prt->GetMass());
+    prt->SetPtPz(Sigma*prt->GetMass(),Sigma*prt->GetMass());
   }
 
 
@@ -1533,7 +1534,7 @@ void CecaTest_pipi_1(){
       prt->GetDecay(0)->AddDaughter(*Database.GetParticle("Pion"));
       prt->GetDecay(0)->SetBranching(100);
     }
-    prt->SetPtEtaPhi(Sigma*prt->GetMass());
+    prt->SetPtPz(Sigma*prt->GetMass(),Sigma*prt->GetMass());
   }
 
 
@@ -1782,7 +1783,7 @@ void CecaTest_pd_1(){
       prt->GetDecay(0)->AddDaughter(*Database.GetParticle("Photon"));
       prt->GetDecay(0)->SetBranching(100);
     }
-    prt->SetPtEtaPhi(Sigma*prt->GetMass());
+    prt->SetPtPz(Sigma*prt->GetMass(),Sigma*prt->GetMass());
   }
 
   std::vector<std::string> ListOfParticles;
@@ -1960,8 +1961,10 @@ double GaussFromMean(const double mean){
   return fHist.GetParameter(0);
 }
 
-//0.97 -> 1.059
+//0.97 -> 1.059 (pd) + 0.04 error => 1.10
+//1.04 -> 1.216 (Kd)  upper => 1.314
 //we can use the same for pd pr Kd, type == pd or Kd
+//
 void Ceca_pd_1(const double& d_delay, const bool& EffFix, const TString type="pd"){
 
   if(type!="pd"&&type!="Kd"){
@@ -1973,13 +1976,13 @@ void Ceca_pd_1(const double& d_delay, const bool& EffFix, const TString type="pd
   const double EtaCut = 0.8;
   const bool PROTON_RESO = true;
   const bool EQUALIZE_TAU = true;
-  const double TIMEOUT = 180/6;
+  const double TIMEOUT = 180;
   //we run to either reproduce the core of 0.97,
   //or the upper limit of reff = 1.06+0.04
   //this leads to a 10% difference in the SP core source
   double rSP_core;
-  if(type=="pd") rSP_core = EffFix?0.815*1.10:0.815;
-  if(type=="Kd") rSP_core = EffFix?0.815*1.10:0.815;
+  if(type=="pd") rSP_core = EffFix?0.915*1.100:0.915;
+  if(type=="Kd") rSP_core = EffFix?0.950*1.075:0.950;
 
   TREPNI Database(0);
   Database.SetSeed(11);
@@ -1997,7 +2000,7 @@ void Ceca_pd_1(const double& d_delay, const bool& EffFix, const TString type="pd
   if(EffFix) OutputFolderName = "FunWithCeca/Ceca_"+type+"_EffFix";
   else OutputFolderName = "FunWithCeca/Ceca_"+type+"_CoreFix";
   //OutputFolderName = "FunWithCeca";
-  TFile fOutput(TString::Format("%s/%s/Ceca_%s_ET%i_PR%i_DD%.0f.root",
+  TFile fOutput(TString::Format("%s/%s/SillyMomCeca_%s_ET%i_PR%i_DD%.0f.root",
   GetFemtoOutputFolder(),OutputFolderName.Data(),type.Data(),EQUALIZE_TAU,PROTON_RESO,d_delay),"recreate");
 
   DLM_Histo<float>* dlm_pT_p = NULL;
@@ -2012,44 +2015,53 @@ void Ceca_pd_1(const double& d_delay, const bool& EffFix, const TString type="pd
   TH1F* h_pT_ad = NULL;
 
   TString FilePath;
-  TString FileNameP1,FileNameAP1,FileNameP2,FileNameAP2;
   if(type=="pd"){
     FilePath = TString::Format("%s/CatsFiles/Source/CECA/pd/pT_spectra/",GetCernBoxDimi());
+    TString FileNameP1,FileNameAP1,FileNameP2,FileNameAP2;
     FileNameP1 = "protonSpectra.root";
     FileNameAP1 = "AntiProtonSpectra.root";
     FileNameP2 = "deuteronSpectra.root";
     FileNameAP2 = "AntiDeuteronSpectra.root";
+
+    TFile file_p(FilePath+FileNameP1,"read");
+    h_pT_p = (TH1F*)file_p.Get("pTDist_after");
+    if(!h_pT_p) printf("ISSUE with h_pT_p\n");
+    fOutput.cd();
+    h_pT_p_all = (TH1F*)h_pT_p->Clone("h_pT_p_all");
+
+    TFile file_ap(FilePath+FileNameAP1,"read");
+    h_pT_ap = (TH1F*)file_ap.Get("pTDist_after");
+    if(!h_pT_ap) printf("ISSUE with h_pT_ap\n");
+    h_pT_p_all->Add(h_pT_ap);
+
+    TFile file_d(FilePath+FileNameP2,"read");
+    h_pT_d = (TH1F*)file_d.Get("pTDist_after");
+    if(!h_pT_d) printf("ISSUE with h_pT_d\n");
+    fOutput.cd();
+    h_pT_d_all = (TH1F*)h_pT_d->Clone("h_pT_d_all");
+
+    TFile file_ad(FilePath+FileNameAP2,"read");
+    h_pT_ad = (TH1F*)file_ad.Get("pTDist_after");
+    if(!h_pT_ad) printf("ISSUE with h_pT_ad\n");
+    h_pT_d_all->Add(h_pT_ad);
   }
   if(type=="Kd"){
-    printf("NB The Kd path not set yet!!!\n");
-    FilePath = TString::Format("%s/CatsFiles/Source/CECA/pd/pT_spectra/",GetCernBoxDimi());
-    FileNameP1 = "protonSpectra.root";
-    FileNameAP1 = "AntiProtonSpectra.root";
-    FileNameP2 = "deuteronSpectra.root";
-    FileNameAP2 = "AntiDeuteronSpectra.root";
+    FilePath = TString::Format("%s/CatsFiles/Source/CECA/Kd/",GetCernBoxDimi());
+    TFile file(FilePath+"outKD_mydeuteronsOpenSyst.root","read");
+    TDirectoryFile *dir=(TDirectoryFile*)(file.FindObjectAny(Form("PtEtaPhi")));
+
+    dir->GetObject(Form("h_kp_pT"),h_pT_p);
+    dir->GetObject(Form("h_km_pT"),h_pT_ap);
+    fOutput.cd();
+    h_pT_p_all = (TH1F*)h_pT_p->Clone("h_pT_p_all");
+    h_pT_p_all->Add(h_pT_ap);
+
+    dir->GetObject(Form("h_d_pT"),h_pT_d);
+    dir->GetObject(Form("h_ad_pT"),h_pT_ad);
+    fOutput.cd();
+    h_pT_d_all = (TH1F*)h_pT_d->Clone("h_pT_d_all");
+    h_pT_d_all->Add(h_pT_ad);
   }
-
-  TFile file_p(FilePath+FileNameP1,"read");
-  h_pT_p = (TH1F*)file_p.Get("pTDist_after");
-  if(!h_pT_p) printf("ISSUE with h_pT_p\n");
-  fOutput.cd();
-  h_pT_p_all = (TH1F*)h_pT_p->Clone("h_pT_p_all");
-
-  TFile file_ap(FilePath+FileNameAP1,"read");
-  h_pT_ap = (TH1F*)file_ap.Get("pTDist_after");
-  if(!h_pT_ap) printf("ISSUE with h_pT_ap\n");
-  h_pT_p_all->Add(h_pT_ap);
-
-  TFile file_d(FilePath+FileNameP2,"read");
-  h_pT_d = (TH1F*)file_d.Get("pTDist_after");
-  if(!h_pT_d) printf("ISSUE with h_pT_d\n");
-  fOutput.cd();
-  h_pT_d_all = (TH1F*)h_pT_d->Clone("h_pT_d_all");
-
-  TFile file_ad(FilePath+FileNameAP2,"read");
-  h_pT_ad = (TH1F*)file_ad.Get("pTDist_after");
-  if(!h_pT_ad) printf("ISSUE with h_pT_ad\n");
-  h_pT_d_all->Add(h_pT_ad);
 
   dlm_pT_p = Convert_TH1F_DlmHisto(h_pT_p_all);
   dlm_pT_d = Convert_TH1F_DlmHisto(h_pT_d_all);
@@ -2151,6 +2163,7 @@ void Ceca_pd_1(const double& d_delay, const bool& EffFix, const TString type="pd
       prt->GetDecay(0)->AddDaughter(*Database.GetParticle("Pion"));
       prt->GetDecay(0)->SetBranching(100);
     }
+    //prt->SetPtPz(0.85*prt->GetMass(),0.85*prt->GetMass());
   }
 
   std::vector<std::string> ListOfParticles;
@@ -2357,6 +2370,7 @@ void Ceca_pd_1(const double& d_delay, const bool& EffFix, const TString type="pd
 
   delete h_pT_p_all;
   delete h_pT_d_all;
+  delete hSampleQA_p;
 
   delete h_Ghetto_rstar;
   delete h_GhettoFemto_rstar;
@@ -2382,10 +2396,16 @@ void Ceca_pd_1(const double& d_delay, const bool& EffFix, const TString type="pd
 }
 
 
-void pd_rstar_vs_KstarTau_CreateTH2F(){
-  const TString BaseName1 = TString::Format("%s/FunWithCeca/Ceca_pd_CoreFix/Ceca_pd_ET1_PR1_",GetFemtoOutputFolder());
-  const TString BaseName2 = TString::Format("%s/FunWithCeca/Ceca_pd_EffFix/Ceca_pd_ET1_PR1_",GetFemtoOutputFolder());
-  const TString OutputFile = TString::Format("%s/FunWithCeca/Ceca_pd_rstar_vs_KstarTau_040322.root",GetFemtoOutputFolder());
+void pd_rstar_vs_KstarTau_CreateTH2F(const TString type = "pd"){
+  TString BaseName1 = TString::Format("%s/FunWithCeca/Ceca_pd_CoreFix/Ceca_pd_ET1_PR1_",GetFemtoOutputFolder());
+  TString BaseName2 = TString::Format("%s/FunWithCeca/Ceca_pd_EffFix/Ceca_pd_ET1_PR1_",GetFemtoOutputFolder());
+  TString OutputFile = TString::Format("%s/FunWithCeca/Ceca_pd_rstar_vs_KstarTau_040322.root",GetFemtoOutputFolder());
+  if(type=="Kd"){
+    BaseName1 = TString::Format("%s/FunWithCeca/Ceca_Kd_CoreFix/Ceca_Kd_ET1_PR1_",GetFemtoOutputFolder());
+    BaseName2 = TString::Format("%s/FunWithCeca/Ceca_Kd_EffFix/Ceca_Kd_ET1_PR1_",GetFemtoOutputFolder());
+    OutputFile = TString::Format("%s/FunWithCeca/Ceca_Kd_rstar_vs_KstarTau_040322.root",GetFemtoOutputFolder());
+  }
+
 
   const unsigned NumMomBins = 60;
   const double kMin = 0;
@@ -2393,6 +2413,9 @@ void pd_rstar_vs_KstarTau_CreateTH2F(){
   const unsigned NumTauBins = 25;
   const double tMin = -2.5;
   const double tMax = 122.5;
+  //const unsigned NumTauBins = 7;
+  //const double tMin = -10;
+  //const double tMax = 130.0;
   TH2F* rstar_vs_KstarTau = new TH2F("rstar_vs_KstarTau","rstar_vs_KstarTau",NumMomBins,kMin,kMax,NumTauBins,tMin,tMax);
 
   TFile* fInput1 = NULL;
@@ -2811,45 +2834,32 @@ void Ceca_mT_1(){
 
 
 
-double Get_reff(TH1F* hsource, const float lambda=1, const float CEI=0.9){
-  TH1F* hfit4325 = (TH1F*)hsource->Clone("hfit4325");
-  hfit4325->Scale(1./hfit4325->Integral(),"width");
-
-  double lowerlimit;
-  double upperlimit;
-  GetCentralInterval(*hfit4325, CEI, lowerlimit, upperlimit, true);
-
-  TF1* fit4325 = new TF1("fit4325","[0]*4.*TMath::Pi()*x*x*pow(4.*TMath::Pi()*[1]*[1],-1.5)*exp(-(x*x)/(4.*[1]*[1]))+1.-[0]",lowerlimit,upperlimit);
-  fit4325->FixParameter(1,lambda);
-  fit4325->SetParameter(1,hfit4325->GetMean()/2.3);
-  fit4325->SetParLimits(1,hfit4325->GetMean()/10.,hfit4325->GetMean()*2.);
-
-  hfit4325->Fit(fit4325,"Q, S, N, R, M");
-
-  return fit4325->GetParameter(1);
-}
 
 
-void Ceca_vs_RSM_1(){
+void Ceca_vs_RSM_1(const std::string part1, const std::string part2){
   const double reff = 1.32*1.00;
-  const double HadronSize = 0.75;
-  const double HadronSlope = 0.2;
+  const double HadronSize = 0.75*0;
+  const double HadronSlope = 0.2*0;
   const double EtaCut = 0.8;
   const bool EQUALIZE_TAU = true;
-  const double TIMEOUT = 60;
+  const double TIMEOUT = 30;
   const double TempPP = 171;//171 or 154
-  const double Asym = 6;
-  const double PancakeT = 2.09;
-  const double PancakeZ = 0.42;
-  const double Tau = 0.0;
+  const double Asym = 40;
+  //const double PancakeT = 7.06*1.0;
+  //const double PancakeZ = 0.5*3;
+  //const double PancakeT = 5.3;
+  //const double PancakeZ = 0.1;
+  const double Tau = 0.00;
   const double PancakeFluct = 0;//in % !!!
-  const double DisplT = 1.05;
-  const double DisplZ = 0.21;
+  //const double DisplT = 0.18*0;
+  //const double DisplZ = 0.10*0;
+  const double DisplT = 0.4;
+  const double DisplZ = DisplT/Asym;
   unsigned THREADS = 0;
-  const double MomSpread = 850;
+  const double MomSpread = 1061;
   const bool THERMAL_KICK = false;
 
-  const double Sensitivity = 0.0033*10;
+  const double Sensitivity = 0.0033*10000;
 
   const double VolumeHI = 5000;
   const double TempHI = 154;
@@ -2860,18 +2870,23 @@ void Ceca_vs_RSM_1(){
   const double EngyDenst_PP_HI = 0.029412*TempPP-3.5294;//ratio
   const double VolumePP = TempPP?EngyPP/EngyHI*VolumeHI/EngyDenst_PP_HI:0;
   const double ProtonGamma = ProtonEngy/938.;
-  //const double PancakeT = pow(3.*VolumePP*Asym/4./Pi,1./3.);
-  //const double PancakeZ = PancakeT/Asym;
+  const double PancakeT = pow(3.*VolumePP*Asym/4./Pi,1./3.);
+  const double PancakeZ = PancakeT/Asym;
+  //const double PancakeT = pow(3.*VolumePP*ProtonGamma/4./Pi,1./3.);
+  //const double PancakeZ = PancakeT/ProtonGamma;
 
   const double q_CutOff = 200;
 
+  double PancakeV = PancakeT*PancakeT*PancakeZ*4./3.*Pi;
   printf("The pp volume is %.2f fm^3\n",VolumePP);
   //printf("Pancake  : %.2f x %.2f x %.2f\n", PancakeT,PancakeT,PancakeZ);
   printf("Displacement: %.2f %.2f %.2f fm\n",DisplT,DisplT,DisplZ);
   printf("Pancake     : %.2f %.2f %.2f fm\n",PancakeT,PancakeT,PancakeZ);
+  printf("PancakeV    : %.2f fm^3\n",PancakeV);
+
 
   const double Tau_Proton = 1.65;
-  const double Tau_Lambda = 4.69;
+  const double Tau_Lambda = 4.69;//4.69
 
   const double Mass_ProtonReso = 1362;
   const double Mass_LambdaReso = 1462;
@@ -3057,18 +3072,24 @@ void Ceca_vs_RSM_1(){
       prt->SetAbundance((1.-FracProtonReso));
       prt->SetRadius(HadronSize);
       prt->SetRadiusSlope(HadronSlope);
+
+      prt->SetPtPz(prt->GetMass()*MomSpread*0.001,prt->GetMass()*MomSpread*0.001);
     }
     else if(prt->GetName()=="Lambda"){
       prt->SetMass(Mass_L);
       prt->SetAbundance((1.-FracLambdaReso));
       prt->SetRadius(HadronSize);
       prt->SetRadiusSlope(HadronSlope);
+
+      prt->SetPtPz(prt->GetMass()*MomSpread*0.001*1.3,prt->GetMass()*MomSpread*0.001*1.3);
     }
     else if(prt->GetName()=="Pion"){
       prt->SetMass(Mass_pic);
       prt->SetAbundance(0);
       prt->SetRadius(HadronSize);
       prt->SetRadiusSlope(HadronSlope);
+
+      prt->SetPtPz(prt->GetMass()*MomSpread*0.001,prt->GetMass()*MomSpread*0.001);
     }
     else if(prt->GetName()=="ProtonReso"){
       prt->SetMass(Mass_ProtonReso);
@@ -3081,6 +3102,8 @@ void Ceca_vs_RSM_1(){
       prt->GetDecay(0)->AddDaughter(*Database.GetParticle("Proton"));
       prt->GetDecay(0)->AddDaughter(*Database.GetParticle("Pion"));
       prt->GetDecay(0)->SetBranching(100);
+
+      prt->SetPtPz(prt->GetMass()*MomSpread*0.001,prt->GetMass()*MomSpread*0.001);
     }
     else if(prt->GetName()=="LambdaReso"){
       prt->SetMass(Mass_LambdaReso);
@@ -3093,20 +3116,24 @@ void Ceca_vs_RSM_1(){
       prt->GetDecay(0)->AddDaughter(*Database.GetParticle("Lambda"));
       prt->GetDecay(0)->AddDaughter(*Database.GetParticle("Pion"));
       prt->GetDecay(0)->SetBranching(100);
+
+      prt->SetPtPz(prt->GetMass()*MomSpread*0.001*1.3,prt->GetMass()*MomSpread*0.001*1.3);
     }
 
     //prt->SetPtEtaPhi(MomSpread*);
-    prt->SetPtEtaPhi(prt->GetMass()*MomSpread*0.001);
+    prt->SetAcceptance_Eta(-EtaCut,EtaCut);
+    prt->SetAcceptance_pT(500,1e6);
+
   }
   std::vector<std::string> ListOfParticles;
-  ListOfParticles.push_back("Proton");
-  ListOfParticles.push_back("Lambda");
+  ListOfParticles.push_back(part1);
+  ListOfParticles.push_back(part2);
   CECA Ivana(Database,ListOfParticles);
   Ivana.SetDisplacementT(DisplT);
   Ivana.SetDisplacementZ(DisplZ);
   Ivana.SetHadronizationT(PancakeT);
   Ivana.SetHadronizationZ(PancakeZ);
-  Ivana.SetHadrFluctuation(PancakeFluct);
+  Ivana.SetHadrFluctuation(PancakeFluct*0.01);
   Ivana.SetTau(Tau);
   Ivana.SetThermalKick(THERMAL_KICK*ThKick);
   Ivana.SetTargetStatistics(10);
@@ -3148,6 +3175,23 @@ void Ceca_vs_RSM_1(){
   Ivana.GetDisplacementT(),Ivana.GetDisplacementZ(),Ivana.GetHadronizationT(),Ivana.GetHadronizationZ(),r_fit,h_rstar_Ceca->GetMean());
   h_rstar_Ceca->Scale(1./h_rstar_Ceca->Integral(),"width");
 
+  double TotPairs = Ivana.GhettoPrimReso[0]+Ivana.GhettoPrimReso[1]+Ivana.GhettoPrimReso[2]+Ivana.GhettoPrimReso[3];
+  double TotPP = double(Ivana.GhettoPrimReso[0])/TotPairs;
+  double TotPR = double(Ivana.GhettoPrimReso[1])/TotPairs;
+  double TotRP = double(Ivana.GhettoPrimReso[2])/TotPairs;
+  double TotRR = double(Ivana.GhettoPrimReso[3])/TotPairs;
+  double FemtoPairs = Ivana.GhettoFemtoPrimReso[0]+Ivana.GhettoFemtoPrimReso[1]+Ivana.GhettoFemtoPrimReso[2]+Ivana.GhettoFemtoPrimReso[3];
+  double FemtoPP = double(Ivana.GhettoFemtoPrimReso[0])/FemtoPairs;
+  double FemtoPR = double(Ivana.GhettoFemtoPrimReso[1])/FemtoPairs;
+  double FemtoRP = double(Ivana.GhettoFemtoPrimReso[2])/FemtoPairs;
+  double FemtoRR = double(Ivana.GhettoFemtoPrimReso[3])/FemtoPairs;
+  printf("   Expected  Total  Femto\n");
+  printf("PP %6.2f%% %6.2f%% %6.2f\n",ExpPP*100.,TotPP*100.,FemtoPP*100.);
+  printf("PR %6.2f%% %6.2f%% %6.2f\n",ExpPR*100.,TotPR*100.,FemtoPR*100.);
+  printf("RP %6.2f%% %6.2f%% %6.2f\n",ExpRP*100.,TotRP*100.,FemtoRP*100.);
+  printf("RR %6.2f%% %6.2f%% %6.2f\n",ExpRR*100.,TotRR*100.,FemtoRR*100.);
+
+
   Ivana.Ghetto_RP_AngleRcP1->ComputeError();
   Ivana.Ghetto_PR_AngleRcP2->ComputeError();
   Ivana.Ghetto_RR_AngleRcP1->ComputeError();
@@ -3188,16 +3232,17 @@ void Ceca_vs_RSM_1(){
     delete hProj;
   }
 
-  //TFile fMtEff(TString::Format("%s/SourceStudies/SourcePaper_pp/Systematics/gMt_pp.root",GetFemtoOutputFolder()),"read");
-  //TGraphErrors* gMtEff_pp = (TGraphErrors*)fMtEff.Get("gMtStatGauss_pp");
+  TFile fMtEff_pp(TString::Format("%s/SourceStudies/SourcePaper_pp/Systematics/gMt_pp.root",GetFemtoOutputFolder()),"read");
+  TGraphErrors* gMtEff_pp = (TGraphErrors*)fMtEff_pp.Get("gMtStatGauss_pp");
   //TGraphErrors* gMtCore_pp = (TGraphErrors*)fMtEff.Get("gMtStatCore_pp");
-  TFile fMtEff(TString::Format("%s/SourceStudies/SourcePaper_pL/Systematics/gMt_pL.root",GetFemtoOutputFolder()),"read");
-  TGraphErrors* gMtEff_pp = (TGraphErrors*)fMtEff.Get("gMtStatGauss_pL_NLO");
-  TGraphErrors* gMtCore_pp = (TGraphErrors*)fMtEff.Get("gMtStatCore_pL_NLO");
+  TFile fMtEff_pL(TString::Format("%s/SourceStudies/SourcePaper_pL/Systematics/gMt_pL.root",GetFemtoOutputFolder()),"read");
+  TGraphErrors* gMtEff_pL = (TGraphErrors*)fMtEff_pL.Get("gMtStatGauss_pL_NLO");
+  //TGraphErrors* gMtCore_pp = (TGraphErrors*)fMtEff_pL.Get("gMtStatCore_pL_NLO");
 
   printf("--- CECA core ---\n");
   Database.GetParticle("ProtonReso")->SetAbundance(0);
   Database.GetParticle("LambdaReso")->SetAbundance(0);
+  Ivana.SetThreadTimeout(TIMEOUT/4);
   Ivana.GoBabyGo(THREADS);
   Ivana.GhettoFemto_rstar->ComputeError();
   h_rcore_Ceca = Convert_DlmHisto_TH1F(Ivana.GhettoFemto_rstar,"h_rcore_Ceca");
@@ -3269,8 +3314,9 @@ void Ceca_vs_RSM_1(){
     h_rcore_Rsm->SetBinError(uBin+1,1e-3);
   }
 
-  TFile fOutput(TString::Format("%s/FunWithCeca/Ceca_vs_RSM_EqTau%i_Tau%.0f_Dsp%.0f-%.0f_Pnk%.0f-%.0f_Fct%.0f_Kick%.0f_Hds%.0f-%.0f.root",
-  GetFemtoOutputFolder(),EQUALIZE_TAU,Tau*100.,Ivana.GetDisplacementT()*100.,Ivana.GetDisplacementZ()*100.,
+  TFile fOutput(TString::Format("%s/FunWithCeca/Ceca_%s_%s_vs_RSM_EqTau%i_Tau%.0f_Dsp%.0f-%.0f_Pnk%.0f-%.0f_Fct%.0f_Kick%.0f_Hds%.0f-%.0f.root",
+  GetFemtoOutputFolder(),ListOfParticles.at(0).c_str(),ListOfParticles.at(1).c_str(),
+  EQUALIZE_TAU,Tau*100.,Ivana.GetDisplacementT()*100.,Ivana.GetDisplacementZ()*100.,
   Ivana.GetHadronizationT()*100.,Ivana.GetHadronizationZ()*100.,Ivana.GetHadrFluctuation()*100.,
   ThKick*THERMAL_KICK,HadronSize*.100,HadronSlope*100.),"recreate");
 
@@ -3302,9 +3348,10 @@ void Ceca_vs_RSM_1(){
   h_GhettoFemto_mT_rstar->Write();
   g_GhettoFemto_mT_rstar.Write();
   gMtEff_pp->Write();
+  gMtEff_pL->Write();
   h_GhettoFemto_mT_core->Write();
   g_GhettoFemto_mT_core.Write();
-  gMtCore_pp->Write();
+  //gMtCore_pp->Write();
 
   h_GhettoFemto_mT_kstar->Write();
 
@@ -3332,27 +3379,27 @@ void Ceca_vs_RSM_1(){
   delete f_rcore_Rsm;
 }
 
-void CecaTest_p_pi_1(const bool& CecaAngles=false){
+void CecaTest_p_pi_1(){
 
-  const double reff = 1.32*1.00;
+  const double reff = 1.3*1.00;
   const double HadronSize = 0.75;
   const double HadronSlope = 0.2;
   const double EtaCut = 0.8;
   const bool EQUALIZE_TAU = true;
-  const double TIMEOUT = 20;
+  const double TIMEOUT = 40;
   const double TempPP = 171;//171 or 154
   const double Asym = 6;
   const double PancakeT = 0.0;
   const double PancakeZ = 0.0;
   const double Tau = 0.0;
   const double PancakeFluct = 0;//in % !!!
-  const double DisplT = 1.35;
-  const double DisplZ = 0.25;
+  const double DisplT = 1.06;
+  const double DisplZ = 1.06;
   unsigned THREADS = 0;
   const double MomSpread = 850;
   const bool THERMAL_KICK = false;
 
-  const double Sensitivity = 0.0033*30;
+  const double Sensitivity = 0.005;
 
   const double VolumeHI = 5000;
   const double TempHI = 154;
@@ -3390,6 +3437,7 @@ void CecaTest_p_pi_1(const bool& CecaAngles=false){
   //TH1F* h_rstar_Ceca = new TH1F("h_rstar_Ceca","h_rstar_Ceca",NumRadBins,rMin,rMax);
   TH1F* h_rstar_Ceca = NULL;
   TH1F* h_rstar_Rsm = new TH1F("h_rstar_Rsm","h_rstar_Rsm",NumRadBins,rMin,rMax);
+  TH1F* h_rstar_RsmCeca = new TH1F("h_rstar_RsmCeca","h_rstar_RsmCeca",NumRadBins,rMin,rMax);
   TH1F* h_rcore_Rsm = new TH1F("h_rcore_Rsm","h_rcore_Rsm",NumRadBins,rMin,rMax);
   TH1F* h_rcore_Ceca;// = new TH1F("h_rcore_Ceca","h_rcore_Ceca",NumRadBins,rMin,rMax);
 
@@ -3427,6 +3475,14 @@ void CecaTest_p_pi_1(const bool& CecaAngles=false){
   MagicSource.SetUpReso(1,FracpiReso);
   MagicSource.InitNumMcIter(1000000);
 
+  DLM_CleverMcLevyResoTM MagicSourceCeca;
+  MagicSourceCeca.InitStability(1,2-1e-6,2+1e-6);
+  MagicSourceCeca.InitScale(38,0.15,2.0);
+  MagicSourceCeca.InitRad(257*2,0,64);
+  MagicSourceCeca.InitType(2);
+  MagicSourceCeca.SetUpReso(0,FracProtonReso);
+  MagicSourceCeca.SetUpReso(1,FracpiReso);
+  MagicSourceCeca.InitNumMcIter(1000000);
 
   Float_t k_D;
   Float_t fP1;
@@ -3442,6 +3498,13 @@ void CecaTest_p_pi_1(const bool& CecaAngles=false){
   double RanVal1;
   double RanVal2;
   double RanVal3;
+
+  gROOT->cd();
+  //type treated as 3 digit integer (XYZ), where:
+  //X00,X01,X10,X11 are the options, each stating if we have a resonance. E.g. 00 would be two primordials.
+  //the first digit can be 0 (EPOS) or 1 (CECA)
+  TNtuple* ntPiPi = new TNtuple("nt_p_pi","nt_p_pi","Type:k_D:P1:P2:M1:M2:Tau1:Tau2:AngleRcP1:AngleRcP2:AngleP1P2");
+  float nt_array[11];
 
   TFile* F_EposDisto_pi_LamReso = new TFile(TString::Format("%s/CatsFiles/Source/EposAngularDist/ForMaxRamona_pi_SigReso.root",GetCernBoxDimi()));
   TNtuple* T_EposDisto_pi_LamReso = (TNtuple*)F_EposDisto_pi_LamReso->Get("InfoTuple_ClosePairs");
@@ -3462,11 +3525,15 @@ void CecaTest_p_pi_1(const bool& CecaAngles=false){
       Tau2 = 0;
       fM1 = Mass_ProtonReso;
       if(k_D>q_CutOff) continue;
-      RanVal1 = RanGen.Exponential(fM1/(fP1*Tau1));
-      if(!CecaAngles) MagicSource.AddBGT_RP(RanVal1,cos(Pi-AngleRcP2));
-      //MagicSource.AddBGT_RP(1,0.5);
+      RanVal1 = RanGen.Exponential(fM1/(fP2*Tau1));
+      MagicSource.AddBGT_RP(RanVal1,cos(Pi-AngleRcP2));
+      //MagicSource.AddBGT_RP(1,0.0);
       //printf("RP %f : %f\n",RanVal1,cos(Pi-AngleRcP2));
       h_RP_AngleRcP1_Rsm->Fill(Pi-AngleRcP2);
+      nt_array[0]=10; nt_array[1]=k_D; nt_array[2]=fP2; nt_array[3]=0;
+      nt_array[4]=fM1; nt_array[5]=0; nt_array[6]=Tau1; nt_array[7]=0;
+      nt_array[8]=Pi-AngleRcP2; nt_array[9]=0; nt_array[10]=0;
+      ntPiPi->Fill(nt_array);
   }
   delete F_EposDisto_pi_LamReso;
 
@@ -3489,10 +3556,15 @@ void CecaTest_p_pi_1(const bool& CecaAngles=false){
       Tau2 = Tau_pi;
       fM2 = Mass_pic;
       if(k_D>q_CutOff) continue;
-      RanVal2 = RanGen.Exponential(fM2/(fP2*Tau2));
-      if(!CecaAngles) MagicSource.AddBGT_PR(RanVal2,cos(Pi-AngleRcP1));
+      RanVal2 = RanGen.Exponential(fM2/(fP1*Tau2));
+      MagicSource.AddBGT_PR(RanVal2,cos(Pi-AngleRcP1));
+      //MagicSource.AddBGT_PR(1,0.0);
       //printf("PR %f : %f\n",RanVal2,cos(Pi-AngleRcP1));
       h_PR_AngleRcP2_Rsm->Fill(Pi-AngleRcP1);
+      nt_array[0]=1; nt_array[1]=k_D; nt_array[2]=0; nt_array[3]=fP1;
+      nt_array[4]=0; nt_array[5]=fM2; nt_array[6]=0; nt_array[7]=Tau2;
+      nt_array[8]=0; nt_array[9]=Pi-AngleRcP1; nt_array[10]=0;
+      ntPiPi->Fill(nt_array);
   }
   delete F_EposDisto_piReso_Lam;
 
@@ -3516,15 +3588,24 @@ void CecaTest_p_pi_1(const bool& CecaAngles=false){
       fM1 = Mass_ProtonReso;
       fM2 = Mass_pic;
       if(k_D>q_CutOff) continue;
-      RanVal1 = RanGen.Exponential(fM1/(fP1*Tau1));
-      RanVal2 = RanGen.Exponential(fM2/(fP2*Tau2));
-      if(!CecaAngles) MagicSource.AddBGT_RR(RanVal1,cos(Pi-AngleRcP2),RanVal2,cos(Pi-AngleRcP1),cos(AngleP1P2));
+      //RanVal1 = RanGen.Exponential(fM1/(fP2*Tau1));
+      //RanVal2 = RanGen.Exponential(fM2/(fP1*Tau2));
+      RanVal1 = fP2*Tau1/fM1;
+      RanVal2 = fP1*Tau2/fM2;
+      //MagicSource.AddBGT_RR(RanVal1,cos(Pi-AngleRcP2),RanVal2,cos(Pi-AngleRcP1),cos(AngleP1P2));
+      MagicSource.AddBGT_RR(RanVal1,cos(Pi-AngleRcP2),RanVal2,cos(Pi-AngleRcP1),cos(AngleP1P2));
+
+      //MagicSource.AddBGT_RR(1,0.0,1,0,0);
       //MagicSource.AddBGT_RR(RanVal1,cos(Pi-AngleRcP2),RanVal2,cos(Pi-AngleRcP1),RanGen.Uniform(-1,1));
       //printf("RR %f : %f : %f : %f : %f\n",RanVal1,cos(Pi-AngleRcP2),RanVal2,cos(Pi-AngleRcP1),cos(Pi-AngleP1P2));
       //usleep(200e3);
       h_RR_AngleRcP1_Rsm->Fill(Pi-AngleRcP2);
       h_RR_AngleRcP2_Rsm->Fill(Pi-AngleRcP1);
-      h_RR_AngleP1P2_Rsm->Fill(Pi-AngleP1P2);
+      h_RR_AngleP1P2_Rsm->Fill(AngleP1P2);
+      nt_array[0]=11; nt_array[1]=k_D; nt_array[2]=fP2; nt_array[3]=fP1;
+      nt_array[4]=fM1; nt_array[5]=fM2; nt_array[6]=Tau1; nt_array[7]=Tau2;
+      nt_array[8]=Pi-AngleRcP2; nt_array[9]=Pi-AngleRcP1; nt_array[10]=AngleP1P2;
+      ntPiPi->Fill(nt_array);
   }
   delete F_EposDisto_piReso_LamReso;
 
@@ -3603,7 +3684,8 @@ void CecaTest_p_pi_1(const bool& CecaAngles=false){
     }
 
     //prt->SetPtEtaPhi(MomSpread*);
-    prt->SetPtEtaPhi(prt->GetMass()*MomSpread*0.001);
+    //prt->SetPtEtaPhi(prt->GetMass()*MomSpread*0.001);
+    prt->SetPtPz(prt->GetMass()*MomSpread*0.001,prt->GetMass()*MomSpread*0.001);
   }
   std::vector<std::string> ListOfParticles;
   ListOfParticles.push_back("Proton");
@@ -3651,10 +3733,17 @@ void CecaTest_p_pi_1(const bool& CecaAngles=false){
     r_fit = Get_reff(h_rstar_Ceca);
     DEV = fabs(r_fit-reff)/fabs(reff);
   }
-  if(CecaAngles){
-    Ivana.SetUp_RSM = &MagicSource;
-    Ivana.GoBabyGo(THREADS);
-    Ivana.SetUp_RSM = NULL;
+
+  Ivana.SetUp_RSM = &MagicSourceCeca;
+  std::vector<float*> buffer_ntPiPi;
+  Ivana.Buffer_RSM = &buffer_ntPiPi;
+  Ivana.GoBabyGo(THREADS);
+  Ivana.SetUp_RSM = NULL;
+  Ivana.Buffer_RSM = NULL;
+  for(float* entry : buffer_ntPiPi){
+    ntPiPi->Fill(entry);
+    delete [] entry;
+    entry = NULL;
   }
 
   printf(" Final parameters: Disp = %.2f %.2f fm; Hadr = %.2f %.2f fm => reff = %.4f <r*> = %.4f\n",
@@ -3753,13 +3842,18 @@ void CecaTest_p_pi_1(const bool& CecaAngles=false){
     parameters[1] = 2.0;
     //printf("rstar = %f; rcore = %f\n",rstar,rcore);
     double val = MagicSource.RootEval(&rstar,parameters);
-    //printf(" val = %f\n",val);
+
     h_rstar_Rsm->SetBinContent(uBin+1,val);
     h_rstar_Rsm->SetBinError(uBin+1,1e-3);
+
+    val = MagicSourceCeca.RootEval(&rstar,parameters);
+    h_rstar_RsmCeca->SetBinContent(uBin+1,val);
+    h_rstar_RsmCeca->SetBinError(uBin+1,1e-3);
   }
 
   r_fit = Get_reff(h_rstar_Rsm);
   DEV = fabs(r_fit-reff)/fabs(reff);
+  /*
   while(DEV>Sensitivity){
     rcore *= reff/r_fit;
     printf(" Redo with (DEV=%.2f%%): rcore = %.3f fm\n",DEV*100.,rcore);
@@ -3771,13 +3865,22 @@ void CecaTest_p_pi_1(const bool& CecaAngles=false){
       double val = MagicSource.RootEval(&rstar,parameters);
       h_rstar_Rsm->SetBinContent(uBin+1,val);
       h_rstar_Rsm->SetBinError(uBin+1,1e-3);
+      //printf(" vale(%.4f) = %.4f\n",rstar,val);
+
+      val = MagicSourceCeca.RootEval(&rstar,parameters);
+      //printf(" valc(%.4f) = %.4f\n",rstar,val);
+      h_rstar_RsmCeca->SetBinContent(uBin+1,val);
+      h_rstar_RsmCeca->SetBinError(uBin+1,1e-3);
     }
     r_fit = Get_reff(h_rstar_Rsm);
     DEV = fabs(r_fit-reff)/fabs(reff);
   }
+  */
 
   printf(" Final rcore = %.4f fm; reff = %.4f fm; <r*> = %.4f\n",rcore,r_fit,h_rstar_Rsm->GetMean());
+  printf("   N.B. reff Rsm vs RsmCeca: %.3f fm %.3f fm\n",r_fit,Get_reff(h_rstar_RsmCeca));
   h_rstar_Rsm->Scale(1./h_rstar_Rsm->Integral(),"width");
+  h_rstar_RsmCeca->Scale(1./h_rstar_RsmCeca->Integral(),"width");
 
   printf("--- RSM core ---\n");
   f_rcore_Rsm->FixParameter(0,1);
@@ -3788,16 +3891,17 @@ void CecaTest_p_pi_1(const bool& CecaAngles=false){
     h_rcore_Rsm->SetBinError(uBin+1,1e-3);
   }
 
-  TFile fOutput(TString::Format("%s/FunWithCeca/CecaTest_p_pi_EqTau%i_Tau%.0f_Dsp%.0f-%.0f_Pnk%.0f-%.0f_Fct%.0f_Kick%.0f_Hds%.0f-%.0f_%s.root",
+  TFile fOutput(TString::Format("%s/FunWithCeca/CecaTest_p_pi_EqTau%i_Tau%.0f_Dsp%.0f-%.0f_Pnk%.0f-%.0f_Fct%.0f_Kick%.0f_Hds%.0f-%.0f.root",
   GetFemtoOutputFolder(),EQUALIZE_TAU,Tau*100.,Ivana.GetDisplacementT()*100.,Ivana.GetDisplacementZ()*100.,
   Ivana.GetHadronizationT()*100.,Ivana.GetHadronizationZ()*100.,Ivana.GetHadrFluctuation()*100.,
-  ThKick*THERMAL_KICK,HadronSize*.100,HadronSlope*100.,CecaAngles?"CECA":"EPOS"),"recreate");
+  ThKick*THERMAL_KICK,HadronSize*.100,HadronSlope*100.),"recreate");
 
   fOutput.cd();
   h_reff->Write();
   f_reff->Write();
   h_rstar_Ceca->Write();
   h_rstar_Rsm->Write();
+  h_rstar_RsmCeca->Write();
   h_rcore_Ceca->Write();
   f_rcore_Ceca->Write();
   h_rcore_Rsm->Write();
@@ -3826,10 +3930,12 @@ void CecaTest_p_pi_1(const bool& CecaAngles=false){
   gMtCore_pp->Write();
 
   h_GhettoFemto_mT_kstar->Write();
+  ntPiPi->Write();
 
   delete h_reff;
   if(h_rstar_Ceca){delete h_rstar_Ceca; h_rstar_Ceca=NULL;}
   delete h_rstar_Rsm;
+  delete h_rstar_RsmCeca;
   delete h_rcore_Rsm;
   delete h_rcore_Ceca;
   delete h_PR_AngleRcP2_Rsm;
@@ -3849,6 +3955,715 @@ void CecaTest_p_pi_1(const bool& CecaAngles=false){
   delete f_rstar_Rsm;
   delete f_rcore_Ceca;
   delete f_rcore_Rsm;
+  delete ntPiPi;
+}
+
+
+
+
+
+
+
+
+
+//for LK -> rcore = 1.11 +/- 0.04
+void Ceca_pK_1(const bool Swap_p_with_Lambda=false){
+  const double reff = 1.2*1.00;
+  const double HadronSize = 0.0;
+  const double HadronSlope = 0.0;
+  const double EtaCut = 0.8;
+  const double PtCut = 500;
+  const bool EQUALIZE_TAU = true;
+  const double TIMEOUT = 60;
+  const double TempPP = 171;//171 or 154
+  const double Asym = 6;
+  const double PancakeT = 0.0;
+  const double PancakeZ = 0.0;
+  const double Tau = 0.0;
+  const double PancakeFluct = 0;//in % !!!
+  const double DisplT = 0.88;
+  const double DisplZ = 0.88;
+  unsigned THREADS = 0;
+  const double MomSpread = 850;
+  const bool THERMAL_KICK = false;
+
+  const double Sensitivity = 0.005;
+
+  const double VolumeHI = 5000;
+  const double TempHI = 154;
+  const double ThKick = TempPP/sqrt(3.);
+  const double EngyHI = 208.*5.02e6;
+  const double ProtonEngy = 6.5e6;
+  const double EngyPP = 2.*ProtonEngy;
+  const double EngyDenst_PP_HI = 0.029412*TempPP-3.5294;//ratio
+  const double VolumePP = TempPP?EngyPP/EngyHI*VolumeHI/EngyDenst_PP_HI:0;
+  const double ProtonGamma = ProtonEngy/938.;
+  //const double PancakeT = pow(3.*VolumePP*Asym/4./Pi,1./3.);
+  //const double PancakeZ = PancakeT/Asym;
+
+  const double q_CutOff = 200;
+
+  printf("The pp volume is %.2f fm^3\n",VolumePP);
+  //printf("Pancake  : %.2f x %.2f x %.2f\n", PancakeT,PancakeT,PancakeZ);
+  printf("Displacement: %.2f %.2f %.2f fm\n",DisplT,DisplT,DisplZ);
+  printf("Pancake     : %.2f %.2f %.2f fm\n",PancakeT,PancakeT,PancakeZ);
+
+  const double Tau_Proton = Swap_p_with_Lambda?4.69:1.65;
+  const double Tau_Kaon = 3.66;
+
+  const double Mass_ProtonReso =  Swap_p_with_Lambda?1463:1362;
+  const double Mass_KaonReso = 1054;
+
+  const double FracProtonReso = Swap_p_with_Lambda?0.6438:0.6422;
+  const double FracKaonReso = 0.476;
+
+  const unsigned NumRadBins = 256;
+  const double rMin = 0;
+  const double rMax = 32;
+
+
+
+  TH1F* h_reff = new TH1F("h_reff","h_reff",NumRadBins,rMin,rMax);
+  //TH1F* h_rstar_Ceca = new TH1F("h_rstar_Ceca","h_rstar_Ceca",NumRadBins,rMin,rMax);
+  TH1F* h_rstar_Ceca = NULL;
+  TH1F* h_rcore_Ceca;// = new TH1F("h_rcore_Ceca","h_rcore_Ceca",NumRadBins,rMin,rMax);
+  TH1F* h_rstar_Rsm = new TH1F("h_rstar_Rsm","h_rstar_Rsm",NumRadBins,rMin,rMax);
+  TH1F* h_rcore_Rsm = new TH1F("h_rcore_Rsm","h_rcore_Rsm",NumRadBins,rMin,rMax);
+  TH1F* h_rstar_RsmCeca = new TH1F("h_rstar_RsmCeca","h_rstar_RsmCeca",NumRadBins,rMin,rMax);
+
+  TH1F* h_PR_AngleRcP2_Rsm = new TH1F("h_PR_AngleRcP2_Rsm","h_PR_AngleRcP2_Rsm",64,0,Pi);
+  TH1F* h_RP_AngleRcP1_Rsm = new TH1F("h_RP_AngleRcP1_Rsm","h_RP_AngleRcP1_Rsm",64,0,Pi);
+  TH1F* h_RR_AngleRcP2_Rsm = new TH1F("h_RR_AngleRcP2_Rsm","h_RR_AngleRcP2_Rsm",64,0,Pi);
+  TH1F* h_RR_AngleRcP1_Rsm = new TH1F("h_RR_AngleRcP1_Rsm","h_RR_AngleRcP1_Rsm",64,0,Pi);
+  TH1F* h_RR_AngleP1P2_Rsm = new TH1F("h_RR_AngleP1P2_Rsm","h_RR_AngleP1P2_Rsm",64,0,Pi);
+
+  TF1* f_reff = new TF1("f_reff","[0]*4.*TMath::Pi()*x*x*pow(4.*TMath::Pi()*[1]*[1],-1.5)*exp(-(x*x)/(4.*[1]*[1]))+1.-[0]",rMin,rMax);
+  TF1* f_rstar_Ceca = new TF1("f_rstar_Ceca","[0]*4.*TMath::Pi()*x*x*pow(4.*TMath::Pi()*[1]*[1],-1.5)*exp(-(x*x)/(4.*[1]*[1]))+1.-[0]",rMin,rMax);
+  TF1* f_rstar_Rsm = new TF1("f_rstar_Rsm","[0]*4.*TMath::Pi()*x*x*pow(4.*TMath::Pi()*[1]*[1],-1.5)*exp(-(x*x)/(4.*[1]*[1]))+1.-[0]",rMin,rMax);
+  TF1* f_rcore_Ceca = new TF1("f_rcore_Ceca","[0]*4.*TMath::Pi()*x*x*pow(4.*TMath::Pi()*[1]*[1],-1.5)*exp(-(x*x)/(4.*[1]*[1]))+1.-[0]",rMin,rMax);
+  TF1* f_rcore_Rsm = new TF1("f_rcore_Rsm","[0]*4.*TMath::Pi()*x*x*pow(4.*TMath::Pi()*[1]*[1],-1.5)*exp(-(x*x)/(4.*[1]*[1]))+1.-[0]",rMin,rMax);
+
+
+  f_reff->FixParameter(0,1);
+  f_reff->FixParameter(1,reff);
+  for(unsigned uBin=0; uBin<NumRadBins; uBin++){
+    double rad = h_reff->GetBinCenter(uBin+1);
+    double val = f_reff->Eval(rad);
+    double err = 1e-3;
+    h_reff->SetBinContent(uBin+1,val);
+    h_reff->SetBinError(uBin+1,err);
+  }
+
+  //set up the RSM
+  DLM_CleverMcLevyResoTM MagicSource;
+  MagicSource.InitStability(1,2-1e-6,2+1e-6);
+  MagicSource.InitScale(38,0.15,2.0);
+  MagicSource.InitRad(257*2,0,64);
+  MagicSource.InitType(2);
+  MagicSource.SetUpReso(0,FracProtonReso);
+  MagicSource.SetUpReso(1,FracKaonReso);
+  MagicSource.InitNumMcIter(1000000);
+
+  DLM_CleverMcLevyResoTM MagicSourceCeca;
+  MagicSourceCeca.InitStability(1,2-1e-6,2+1e-6);
+  MagicSourceCeca.InitScale(38,0.15,2.0);
+  MagicSourceCeca.InitRad(257*2,0,64);
+  MagicSourceCeca.InitType(2);
+  MagicSourceCeca.SetUpReso(0,FracProtonReso);
+  MagicSourceCeca.SetUpReso(1,FracKaonReso);
+  MagicSourceCeca.InitNumMcIter(1000000);
+
+  Float_t k_D;
+  Float_t fP1;
+  Float_t fP2;
+  Float_t fM1;
+  Float_t fM2;
+  Float_t Tau1;
+  Float_t Tau2;
+  Float_t AngleRcP1;
+  Float_t AngleRcP2;
+  Float_t AngleP1P2;
+  DLM_Random RanGen(11);
+  double RanVal1;
+  double RanVal2;
+  double RanVal3;
+
+  gROOT->cd();
+  TString NKname = Swap_p_with_Lambda?"LK":"pK";
+  TNtuple* ntNK = new TNtuple("nt_"+NKname,"nt_"+NKname,"Type:k_D:P1:P2:M1:M2:Tau1:Tau2:AngleRcP1:AngleRcP2:AngleP1P2");
+  float nt_array[11];
+
+  TFile* F_EposDisto_p_KaonReso = new TFile(TString::Format("%s/CatsFiles/Source/EposAngularDist/ForRamona_p_KaonReso.root",GetCernBoxDimi()));
+  TNtuple* T_EposDisto_p_KaonReso = (TNtuple*)F_EposDisto_p_KaonReso->Get("InfoTuple_ClosePairs");
+  unsigned N_EposDisto_p_KaonReso = T_EposDisto_p_KaonReso->GetEntries();
+  T_EposDisto_p_KaonReso->SetBranchAddress("k_D",&k_D);
+  T_EposDisto_p_KaonReso->SetBranchAddress("P1",&fP1);
+  T_EposDisto_p_KaonReso->SetBranchAddress("P2",&fP2);
+  T_EposDisto_p_KaonReso->SetBranchAddress("M1",&fM1);
+  T_EposDisto_p_KaonReso->SetBranchAddress("M2",&fM2);
+  T_EposDisto_p_KaonReso->SetBranchAddress("Tau1",&Tau1);
+  T_EposDisto_p_KaonReso->SetBranchAddress("Tau2",&Tau2);
+  T_EposDisto_p_KaonReso->SetBranchAddress("AngleRcP1",&AngleRcP1);
+  T_EposDisto_p_KaonReso->SetBranchAddress("AngleRcP2",&AngleRcP2);
+  T_EposDisto_p_KaonReso->SetBranchAddress("AngleP1P2",&AngleP1P2);
+  for(unsigned uEntry=0; uEntry<N_EposDisto_p_KaonReso; uEntry++){
+      T_EposDisto_p_KaonReso->GetEntry(uEntry);
+      Tau1 = 0;
+      Tau2 = Tau_Kaon;
+      fM2 = Mass_KaonReso;
+      if(k_D>q_CutOff) continue;
+      RanVal2 = RanGen.Exponential(fM2/(fP2*Tau2));
+      MagicSource.AddBGT_PR(RanVal2,cos(AngleRcP2));
+      h_PR_AngleRcP2_Rsm->Fill(AngleRcP2);
+      nt_array[0]=1; nt_array[1]=k_D; nt_array[2]=0; nt_array[3]=fP2;
+      nt_array[4]=0; nt_array[5]=fM2; nt_array[6]=0; nt_array[7]=Tau2;
+      nt_array[8]=0; nt_array[9]=AngleRcP2; nt_array[10]=0;
+      gROOT->cd();
+      ntNK->Fill(nt_array);
+      F_EposDisto_p_KaonReso->cd();
+  }
+  delete F_EposDisto_p_KaonReso;
+
+  TFile* F_EposDisto_pReso_Kaon = new TFile(TString::Format("%s/CatsFiles/Source/EposAngularDist/ForRamona_pReso_Kaon.root",GetCernBoxDimi()));
+  TNtuple* T_EposDisto_pReso_Kaon = (TNtuple*)F_EposDisto_pReso_Kaon->Get("InfoTuple_ClosePairs");
+  unsigned N_EposDisto_pReso_Kaon = T_EposDisto_pReso_Kaon->GetEntries();
+  T_EposDisto_pReso_Kaon->SetBranchAddress("k_D",&k_D);
+  T_EposDisto_pReso_Kaon->SetBranchAddress("P1",&fP1);
+  T_EposDisto_pReso_Kaon->SetBranchAddress("P2",&fP2);
+  T_EposDisto_pReso_Kaon->SetBranchAddress("M1",&fM1);
+  T_EposDisto_pReso_Kaon->SetBranchAddress("M2",&fM2);
+  T_EposDisto_pReso_Kaon->SetBranchAddress("Tau1",&Tau1);
+  T_EposDisto_pReso_Kaon->SetBranchAddress("Tau2",&Tau2);
+  T_EposDisto_pReso_Kaon->SetBranchAddress("AngleRcP1",&AngleRcP1);
+  T_EposDisto_pReso_Kaon->SetBranchAddress("AngleRcP2",&AngleRcP2);
+  T_EposDisto_pReso_Kaon->SetBranchAddress("AngleP1P2",&AngleP1P2);
+  for(unsigned uEntry=0; uEntry<N_EposDisto_pReso_Kaon; uEntry++){
+      T_EposDisto_pReso_Kaon->GetEntry(uEntry);
+      Tau1 = Tau_Proton;
+      Tau2 = 0;
+      fM1 = Mass_ProtonReso;
+      if(k_D>q_CutOff) continue;
+      RanVal1 = RanGen.Exponential(fM1/(fP1*Tau1));
+      MagicSource.AddBGT_RP(RanVal1,cos(AngleRcP1));
+      h_RP_AngleRcP1_Rsm->Fill(AngleRcP1);
+      nt_array[0]=10; nt_array[1]=k_D; nt_array[2]=fP1; nt_array[3]=0;
+      nt_array[4]=fM1; nt_array[5]=0; nt_array[6]=Tau1; nt_array[7]=0;
+      nt_array[8]=AngleRcP1; nt_array[9]=0; nt_array[10]=0;
+      gROOT->cd();
+      ntNK->Fill(nt_array);
+      F_EposDisto_pReso_Kaon->cd();
+  }
+  delete F_EposDisto_pReso_Kaon;
+
+  TFile* F_EposDisto_pReso_KaonReso = new TFile(TString::Format("%s/CatsFiles/Source/EposAngularDist/ForRamona_pReso_KaonReso.root",GetCernBoxDimi()));
+  TNtuple* T_EposDisto_pReso_KaonReso = (TNtuple*)F_EposDisto_pReso_KaonReso->Get("InfoTuple_ClosePairs");
+  unsigned N_EposDisto_pReso_KaonReso = T_EposDisto_pReso_KaonReso->GetEntries();
+  T_EposDisto_pReso_KaonReso->SetBranchAddress("k_D",&k_D);
+  T_EposDisto_pReso_KaonReso->SetBranchAddress("P1",&fP1);
+  T_EposDisto_pReso_KaonReso->SetBranchAddress("P2",&fP2);
+  T_EposDisto_pReso_KaonReso->SetBranchAddress("M1",&fM1);
+  T_EposDisto_pReso_KaonReso->SetBranchAddress("M2",&fM2);
+  T_EposDisto_pReso_KaonReso->SetBranchAddress("Tau1",&Tau1);
+  T_EposDisto_pReso_KaonReso->SetBranchAddress("Tau2",&Tau2);
+  T_EposDisto_pReso_KaonReso->SetBranchAddress("AngleRcP1",&AngleRcP1);
+  T_EposDisto_pReso_KaonReso->SetBranchAddress("AngleRcP2",&AngleRcP2);
+  T_EposDisto_pReso_KaonReso->SetBranchAddress("AngleP1P2",&AngleP1P2);
+  for(unsigned uEntry=0; uEntry<N_EposDisto_pReso_KaonReso; uEntry++){
+      T_EposDisto_pReso_KaonReso->GetEntry(uEntry);
+      Tau1 = Tau_Proton;
+      Tau2 = Tau_Kaon;
+      fM1 = Mass_ProtonReso;
+      fM2 = Mass_KaonReso;
+      if(k_D>q_CutOff) continue;
+      RanVal1 = RanGen.Exponential(fM1/(fP1*Tau1));
+      RanVal2 = RanGen.Exponential(fM2/(fP2*Tau2));
+      MagicSource.AddBGT_RR(RanVal1,cos(AngleRcP1),RanVal2,cos(AngleRcP2),cos(AngleP1P2));
+      h_RR_AngleRcP1_Rsm->Fill(AngleRcP1);
+      h_RR_AngleRcP2_Rsm->Fill(AngleRcP2);
+      h_RR_AngleP1P2_Rsm->Fill(AngleP1P2);
+      nt_array[0]=11; nt_array[1]=k_D; nt_array[2]=fP1; nt_array[3]=fP2;
+      nt_array[4]=fM1; nt_array[5]=fM2; nt_array[6]=Tau1; nt_array[7]=Tau2;
+      nt_array[8]=AngleRcP1; nt_array[9]=AngleRcP2; nt_array[10]=AngleP1P2;
+      gROOT->cd();
+      ntNK->Fill(nt_array);
+      F_EposDisto_pReso_KaonReso->cd();
+  }
+  delete F_EposDisto_pReso_KaonReso;
+
+  h_PR_AngleRcP2_Rsm->Sumw2();
+  h_RP_AngleRcP1_Rsm->Sumw2();
+  h_RR_AngleRcP1_Rsm->Sumw2();
+  h_RR_AngleRcP2_Rsm->Sumw2();
+  h_RR_AngleP1P2_Rsm->Sumw2();
+
+  h_PR_AngleRcP2_Rsm->Scale(1./h_PR_AngleRcP2_Rsm->Integral(),"width");
+  h_RP_AngleRcP1_Rsm->Scale(1./h_RP_AngleRcP1_Rsm->Integral(),"width");
+  h_RR_AngleRcP1_Rsm->Scale(1./h_RR_AngleRcP1_Rsm->Integral(),"width");
+  h_RR_AngleRcP2_Rsm->Scale(1./h_RR_AngleRcP2_Rsm->Integral(),"width");
+  h_RR_AngleP1P2_Rsm->Scale(1./h_RR_AngleP1P2_Rsm->Integral(),"width");
+
+  ///////////////////////////
+
+  TREPNI Database(0);
+  Database.SetSeed(11);
+  std::vector<TreParticle*> ParticleList;
+  ParticleList.push_back(Database.NewParticle("Proton"));
+  ParticleList.push_back(Database.NewParticle("Kaon"));
+  ParticleList.push_back(Database.NewParticle("Pion"));
+
+  ParticleList.push_back(Database.NewParticle("ProtonReso"));
+  ParticleList.push_back(Database.NewParticle("KaonReso"));
+
+  double ExpPP,ExpPR,ExpRP,ExpRR;
+  ExpPP = (1.-FracProtonReso)*(1.-FracKaonReso);
+  ExpPR = (1.-FracProtonReso)*FracKaonReso;
+  ExpRP = FracProtonReso*(1.-FracKaonReso);
+  ExpRR = FracProtonReso*FracKaonReso;
+
+  for(TreParticle* prt : ParticleList){
+    if(prt->GetName()=="Proton"){
+      prt->SetMass(Swap_p_with_Lambda?Mass_L:Mass_p);
+      prt->SetAbundance((1.-FracProtonReso));
+      prt->SetRadius(HadronSize);
+      prt->SetRadiusSlope(HadronSlope);
+      //prt->SetDelayTau(0.5);
+    }
+    else if(prt->GetName()=="Kaon"){
+      prt->SetMass(Mass_Kch);
+      prt->SetAbundance((1.-FracKaonReso));
+      prt->SetRadius(HadronSize);
+      prt->SetRadiusSlope(HadronSlope);
+      prt->SetDelayTau(1.0);
+    }
+    else if(prt->GetName()=="Pion"){
+      prt->SetMass(Mass_pic);
+      prt->SetAbundance(0);
+      prt->SetRadius(HadronSize);
+      prt->SetRadiusSlope(HadronSlope);
+    }
+    else if(prt->GetName()=="ProtonReso"){
+      prt->SetMass(Mass_ProtonReso);
+      prt->SetAbundance(FracProtonReso);
+      prt->SetWidth(hbarc/Tau_Proton);
+      prt->SetRadius(HadronSize);
+      prt->SetRadiusSlope(HadronSlope);
+      //prt->SetDelayTau(0.6);
+
+      prt->NewDecay();
+      prt->GetDecay(0)->AddDaughter(*Database.GetParticle("Proton"));
+      prt->GetDecay(0)->AddDaughter(*Database.GetParticle("Pion"));
+      prt->GetDecay(0)->SetBranching(100);
+    }
+    else if(prt->GetName()=="KaonReso"){
+      prt->SetMass(Mass_KaonReso);
+      prt->SetAbundance(FracKaonReso);
+      prt->SetWidth(hbarc/Tau_Kaon);
+      prt->SetRadius(HadronSize);
+      prt->SetRadiusSlope(HadronSlope);
+      //prt->SetDelayTau(0.0);
+
+      prt->NewDecay();
+      prt->GetDecay(0)->AddDaughter(*Database.GetParticle("Kaon"));
+      prt->GetDecay(0)->AddDaughter(*Database.GetParticle("Pion"));
+      prt->GetDecay(0)->SetBranching(100);
+    }
+
+    //prt->SetPtEtaPhi(MomSpread*);
+    //prt->SetPtEtaPhi(prt->GetMass()*MomSpread*0.001);
+    prt->SetPtPz(prt->GetMass()*MomSpread*0.001,prt->GetMass()*MomSpread*0.001);
+    prt->SetAcceptance_pT(PtCut,1e16);
+    prt->SetAcceptance_Eta(-EtaCut,EtaCut);
+  }
+  std::vector<std::string> ListOfParticles;
+  ListOfParticles.push_back("Proton");
+  ListOfParticles.push_back("Kaon");
+  CECA Ivana(Database,ListOfParticles);
+  Ivana.SetDisplacementT(DisplT);
+  Ivana.SetDisplacementZ(DisplZ);
+  Ivana.SetHadronizationT(PancakeT);
+  Ivana.SetHadronizationZ(PancakeZ);
+  Ivana.SetHadrFluctuation(PancakeFluct);
+  Ivana.SetTau(Tau);
+  Ivana.SetThermalKick(THERMAL_KICK*ThKick);
+  Ivana.SetTargetStatistics(10);
+  Ivana.SetEventMult(2);
+  Ivana.SetSourceDim(2);
+  Ivana.SetThreadTimeout(TIMEOUT);
+  Ivana.SetFemtoRegion(q_CutOff*0.5);
+  Ivana.GHETTO_EVENT = true;
+  printf("Goal for reff = %.4f fm; <r*> = %.4f fm\n",reff,h_reff->GetMean());
+  printf("--- CECA source ---\n");
+  Ivana.SetDebugMode(false);
+  Ivana.GoBabyGo(THREADS);
+
+  double r_fit;
+  double adjust;
+
+  Ivana.GhettoFemto_rstar->ComputeError();
+  h_rstar_Ceca = Convert_DlmHisto_TH1F(Ivana.GhettoFemto_rstar,"h_rstar_Ceca");
+  r_fit = Get_reff(h_rstar_Ceca);
+  printf(" Starting parameters: Disp = %.2f %.2f fm; Hadr = %.2f %.2f fm\n",
+  Ivana.GetDisplacementT(),Ivana.GetDisplacementZ(),Ivana.GetHadronizationT(),Ivana.GetHadronizationZ());
+  double DEV = fabs(r_fit-reff)/fabs(reff);
+  while(DEV>Sensitivity){
+    adjust = reff/r_fit;
+    Ivana.SetDisplacementT(Ivana.GetDisplacementT()*adjust);
+    Ivana.SetDisplacementZ(Ivana.GetDisplacementZ()*adjust);
+    Ivana.SetHadronizationT(Ivana.GetHadronizationT()*adjust);
+    Ivana.SetHadronizationZ(Ivana.GetHadronizationZ()*adjust);
+    Ivana.SetTau(Ivana.GetTau()*adjust);
+    printf(" Redo with (DEV=%.2f%%): Disp = %.2f %.2f; Hadr = %.2f %.2f; Tau = %.2f\n",
+    DEV*100.,Ivana.GetDisplacementT(),Ivana.GetDisplacementZ(),Ivana.GetHadronizationT(),Ivana.GetHadronizationZ(), Ivana.GetTau());
+    Ivana.GoBabyGo(THREADS);
+    delete h_rstar_Ceca;
+    Ivana.GhettoFemto_rstar->ComputeError();
+    h_rstar_Ceca = Convert_DlmHisto_TH1F(Ivana.GhettoFemto_rstar,"h_rstar_Ceca");
+    r_fit = Get_reff(h_rstar_Ceca);
+    DEV = fabs(r_fit-reff)/fabs(reff);
+  }
+
+  Ivana.SetUp_RSM = &MagicSourceCeca;
+  std::vector<float*> buffer_ntNK;
+  Ivana.Buffer_RSM = &buffer_ntNK;
+  Ivana.GoBabyGo(THREADS);
+  Ivana.SetUp_RSM = NULL;
+  Ivana.Buffer_RSM = NULL;
+  for(float* entry : buffer_ntNK){
+  ntNK->Fill(entry);
+  delete [] entry;
+  entry = NULL;
+  }
+
+  printf(" Final parameters: Disp = %.2f %.2f fm; Hadr = %.2f %.2f fm => reff = %.4f <r*> = %.4f\n",
+  Ivana.GetDisplacementT(),Ivana.GetDisplacementZ(),Ivana.GetHadronizationT(),Ivana.GetHadronizationZ(),r_fit,h_rstar_Ceca->GetMean());
+  h_rstar_Ceca->Scale(1./h_rstar_Ceca->Integral(),"width");
+  printf("Creating the MagicSourceCeca\n");
+  Ivana.SetUp_RSM = &MagicSourceCeca;
+  Ivana.GoBabyGo(THREADS);
+  Ivana.SetUp_RSM = NULL;
+  printf("  --> done\n");
+
+
+  Ivana.Ghetto_RP_AngleRcP1->ComputeError();
+  Ivana.Ghetto_PR_AngleRcP2->ComputeError();
+  Ivana.Ghetto_RR_AngleRcP1->ComputeError();
+  Ivana.Ghetto_RR_AngleRcP2->ComputeError();
+  Ivana.Ghetto_RR_AngleP1P2->ComputeError();
+  TH1F* h_RP_AngleRcP1_Ceca = Convert_DlmHisto_TH1F(Ivana.Ghetto_RP_AngleRcP1,"h_RP_AngleRcP1_Ceca");
+  TH1F* h_PR_AngleRcP2_Ceca = Convert_DlmHisto_TH1F(Ivana.Ghetto_PR_AngleRcP2,"h_PR_AngleRcP2_Ceca");
+  TH1F* h_RR_AngleRcP1_Ceca = Convert_DlmHisto_TH1F(Ivana.Ghetto_RR_AngleRcP1,"h_RR_AngleRcP1_Ceca");
+  TH1F* h_RR_AngleRcP2_Ceca = Convert_DlmHisto_TH1F(Ivana.Ghetto_RR_AngleRcP2,"h_RR_AngleRcP2_Ceca");
+  TH1F* h_RR_AngleP1P2_Ceca = Convert_DlmHisto_TH1F(Ivana.Ghetto_RR_AngleP1P2,"h_RR_AngleP1P2_Ceca");
+
+  h_RP_AngleRcP1_Ceca->Scale(1./h_RP_AngleRcP1_Ceca->Integral(),"width");
+  h_PR_AngleRcP2_Ceca->Scale(1./h_PR_AngleRcP2_Ceca->Integral(),"width");
+  h_RR_AngleRcP1_Ceca->Scale(1./h_RR_AngleRcP1_Ceca->Integral(),"width");
+  h_RR_AngleRcP2_Ceca->Scale(1./h_RR_AngleRcP2_Ceca->Integral(),"width");
+  h_RR_AngleP1P2_Ceca->Scale(1./h_RR_AngleP1P2_Ceca->Integral(),"width");
+
+  Ivana.GhettoFemto_mT_kstar->ComputeError();
+  TH2F* h_GhettoFemto_mT_kstar = Convert_DlmHisto_TH2F(Ivana.GhettoFemto_mT_kstar,"GhettoFemto_mT_kstar");
+
+  Ivana.GhettoFemto_mT_rstar->ComputeError();
+  TH2F* h_GhettoFemto_mT_rstar = Convert_DlmHisto_TH2F(Ivana.GhettoFemto_mT_rstar,"GhettoFemto_mT_rstar");
+
+  TGraphErrors g_GhettoFemto_mT_rstar;
+  g_GhettoFemto_mT_rstar.SetName("g_GhettoFemto_mT_rstar");
+  g_GhettoFemto_mT_rstar.SetMarkerStyle(20);
+  g_GhettoFemto_mT_rstar.SetMarkerSize(2);
+  g_GhettoFemto_mT_rstar.SetLineWidth(3);
+
+  unsigned uPoint = 0;
+  for(unsigned uBin=0; uBin<h_GhettoFemto_mT_rstar->GetXaxis()->GetNbins(); uBin++){
+    TH1F* hProj = (TH1F*)h_GhettoFemto_mT_rstar->ProjectionY(TString::Format("hProj"),uBin+1,uBin+1);
+    if(hProj->GetEntries()<200) {delete hProj; continue;}
+    hProj->Scale(1./hProj->Integral(),"width");
+    double mT = h_GhettoFemto_mT_rstar->GetXaxis()->GetBinCenter(uBin+1);
+    g_GhettoFemto_mT_rstar.SetPoint(uPoint,mT*0.001,Get_reff(hProj));
+    uPoint++;
+    delete hProj;
+  }
+
+  //TFile fMtEff(TString::Format("%s/SourceStudies/SourcePaper_pp/Systematics/gMt_pp.root",GetFemtoOutputFolder()),"read");
+  //TGraphErrors* gMtEff_pp = (TGraphErrors*)fMtEff.Get("gMtStatGauss_pp");
+  //TGraphErrors* gMtCore_pp = (TGraphErrors*)fMtEff.Get("gMtStatCore_pp");
+  TFile fMtEff(TString::Format("%s/SourceStudies/SourcePaper_pL/Systematics/gMt_pL.root",GetFemtoOutputFolder()),"read");
+  TGraphErrors* gMtEff_pp = (TGraphErrors*)fMtEff.Get("gMtStatGauss_pL_NLO");
+  TGraphErrors* gMtCore_pp = (TGraphErrors*)fMtEff.Get("gMtStatCore_pL_NLO");
+
+  printf("--- CECA core ---\n");
+  Database.GetParticle("ProtonReso")->SetAbundance(0);
+  Database.GetParticle("KaonReso")->SetAbundance(0);
+  Ivana.GoBabyGo(THREADS);
+  Ivana.GhettoFemto_rstar->ComputeError();
+  h_rcore_Ceca = Convert_DlmHisto_TH1F(Ivana.GhettoFemto_rstar,"h_rcore_Ceca");
+  h_rcore_Ceca->Scale(1./h_rcore_Ceca->Integral(),"width");
+  printf(" Final r_core = %.4f fm; reff = %.4f fm; <r*> = %.4f\n",Get_reff(h_rcore_Ceca),r_fit,h_rcore_Ceca->GetMean());
+
+  Ivana.GhettoFemto_mT_rstar->ComputeError();
+  TH2F* h_GhettoFemto_mT_core = Convert_DlmHisto_TH2F(Ivana.GhettoFemto_mT_rstar,"h_GhettoFemto_mT_core");
+
+  TGraphErrors g_GhettoFemto_mT_core;
+  g_GhettoFemto_mT_core.SetName("g_GhettoFemto_mT_core");
+  g_GhettoFemto_mT_core.SetMarkerStyle(20);
+  g_GhettoFemto_mT_core.SetMarkerSize(2);
+  g_GhettoFemto_mT_core.SetLineWidth(3);
+
+  uPoint = 0;
+  for(unsigned uBin=0; uBin<h_GhettoFemto_mT_core->GetXaxis()->GetNbins(); uBin++){
+    TH1F* hProj = (TH1F*)h_GhettoFemto_mT_core->ProjectionY(TString::Format("hProj"),uBin+1,uBin+1);
+    if(hProj->GetEntries()<200) {delete hProj; continue;}
+    hProj->Scale(1./hProj->Integral(),"width");
+    double mT = h_GhettoFemto_mT_core->GetXaxis()->GetBinCenter(uBin+1);
+    g_GhettoFemto_mT_core.SetPoint(uPoint,mT*0.001,Get_reff(hProj));
+    uPoint++;
+    delete hProj;
+  }
+
+
+  printf("--- RSM source ---\n");
+  double rcore = reff*0.819;
+  //double rcore = reff*1.46;
+  printf(" Starting parameter: rcore = %.4f fm\n",rcore);
+  for(unsigned uBin=0; uBin<NumRadBins; uBin++){
+    double rstar = h_rstar_Rsm->GetBinCenter(uBin+1);
+    double parameters[2];
+    parameters[0] = rcore;
+    parameters[1] = 2.0;
+    double val = MagicSource.RootEval(&rstar,parameters);
+    h_rstar_Rsm->SetBinContent(uBin+1,val);
+    h_rstar_Rsm->SetBinError(uBin+1,1e-3);
+
+    val = MagicSourceCeca.RootEval(&rstar,parameters);
+    h_rstar_RsmCeca->SetBinContent(uBin+1,val);
+    h_rstar_RsmCeca->SetBinError(uBin+1,1e-3);
+  }
+
+  r_fit = Get_reff(h_rstar_Rsm);
+  DEV = fabs(r_fit-reff)/fabs(reff);
+  while(DEV>Sensitivity){
+    rcore *= reff/r_fit;
+    printf(" Redo with (DEV=%.2f%%): rcore = %.3f fm\n",DEV*100.,rcore);
+    for(unsigned uBin=0; uBin<NumRadBins; uBin++){
+      double rstar = h_rstar_Rsm->GetBinCenter(uBin+1);
+      double parameters[2];
+      parameters[0] = rcore;
+      parameters[1] = 2.0;
+      double val = MagicSource.RootEval(&rstar,parameters);
+      h_rstar_Rsm->SetBinContent(uBin+1,val);
+      h_rstar_Rsm->SetBinError(uBin+1,1e-3);
+
+      val = MagicSourceCeca.RootEval(&rstar,parameters);
+      h_rstar_RsmCeca->SetBinContent(uBin+1,val);
+      h_rstar_RsmCeca->SetBinError(uBin+1,1e-3);
+    }
+    r_fit = Get_reff(h_rstar_Rsm);
+    DEV = fabs(r_fit-reff)/fabs(reff);
+  }
+
+  printf(" Final rcore = %.4f fm; reff = %.4f fm; <r*> = %.4f\n",rcore,r_fit,h_rstar_Rsm->GetMean());
+  printf("   N.B. reff Rsm vs RsmCeca: %.3f fm %.3f fm\n",r_fit,Get_reff(h_rstar_RsmCeca));
+  h_rstar_Rsm->Scale(1./h_rstar_Rsm->Integral(),"width");
+  h_rstar_RsmCeca->Scale(1./h_rstar_RsmCeca->Integral(),"width");
+
+  printf("--- RSM core ---\n");
+  f_rcore_Rsm->FixParameter(0,1);
+  f_rcore_Rsm->FixParameter(1,rcore);
+  for(unsigned uBin=0; uBin<NumRadBins; uBin++){
+    double rstar = h_rcore_Rsm->GetBinCenter(uBin+1);
+    h_rcore_Rsm->SetBinContent(uBin+1,f_rcore_Rsm->Eval(rstar));
+    h_rcore_Rsm->SetBinError(uBin+1,1e-3);
+  }
+
+  TFile fOutput(TString::Format("%s/FunWithCeca/CecaRSM_%s_EqTau%i_Tau%.0f_Dsp%.0f-%.0f_Pnk%.0f-%.0f_Fct%.0f_Kick%.0f_Hds%.0f-%.0f.XXX.root",
+  GetFemtoOutputFolder(),Swap_p_with_Lambda?"LK":"pK",EQUALIZE_TAU,Tau*100.,Ivana.GetDisplacementT()*100.,Ivana.GetDisplacementZ()*100.,
+  Ivana.GetHadronizationT()*100.,Ivana.GetHadronizationZ()*100.,Ivana.GetHadrFluctuation()*100.,
+  ThKick*THERMAL_KICK,HadronSize*.100,HadronSlope*100.),"recreate");
+
+  fOutput.cd();
+  h_reff->Write();
+  f_reff->Write();
+  h_rstar_Ceca->Write();
+  h_rstar_Rsm->Write();
+  h_rstar_RsmCeca->Write();
+  h_rcore_Ceca->Write();
+  f_rcore_Ceca->Write();
+  h_rcore_Rsm->Write();
+  f_rcore_Rsm->Write();
+
+  h_PR_AngleRcP2_Ceca->Write();
+  h_PR_AngleRcP2_Rsm->Write();
+
+  h_RP_AngleRcP1_Ceca->Write();
+  h_RP_AngleRcP1_Rsm->Write();
+
+  h_RR_AngleRcP1_Ceca->Write();
+  h_RR_AngleRcP1_Rsm->Write();
+
+  h_RR_AngleRcP2_Ceca->Write();
+  h_RR_AngleRcP2_Rsm->Write();
+
+  h_RR_AngleP1P2_Ceca->Write();
+  h_RR_AngleP1P2_Rsm->Write();
+
+  h_GhettoFemto_mT_rstar->Write();
+  g_GhettoFemto_mT_rstar.Write();
+  gMtEff_pp->Write();
+  h_GhettoFemto_mT_core->Write();
+  g_GhettoFemto_mT_core.Write();
+  gMtCore_pp->Write();
+
+  h_GhettoFemto_mT_kstar->Write();
+  ntNK->Write();
+
+  delete h_reff;
+  if(h_rstar_Ceca){delete h_rstar_Ceca; h_rstar_Ceca=NULL;}
+  delete h_rstar_Rsm;
+  delete h_rstar_RsmCeca;
+  delete h_rcore_Rsm;
+  delete h_rcore_Ceca;
+  delete h_PR_AngleRcP2_Rsm;
+  delete h_RP_AngleRcP1_Rsm;
+  delete h_RR_AngleRcP1_Rsm;
+  delete h_RR_AngleRcP2_Rsm;
+  delete h_RR_AngleP1P2_Rsm;
+  delete h_PR_AngleRcP2_Ceca;
+  delete h_RP_AngleRcP1_Ceca;
+  delete h_RR_AngleRcP1_Ceca;
+  delete h_RR_AngleRcP2_Ceca;
+  delete h_RR_AngleP1P2_Ceca;
+  delete h_GhettoFemto_mT_rstar;
+  delete h_GhettoFemto_mT_kstar;
+  delete f_reff;
+  delete f_rstar_Ceca;
+  delete f_rstar_Rsm;
+  delete f_rcore_Ceca;
+  delete f_rcore_Rsm;
+  delete h_GhettoFemto_mT_core;
+  delete ntNK;
+}
+
+
+
+
+void LK_Source(const double& CoreSize){
+  //this one is c.a. 2% smaller than Rsm (based on pK comparison)
+  TH1F* hSr_Ceca = new TH1F("hSr_Ceca","hSr_Ceca",512,0,64);
+  TH1F* hSr_Epos = new TH1F("hSr_Epos","hSr_Epos",512,0,64);
+
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
+
+  DLM_CleverMcLevyResoTM* Source_Epos = AnalysisObject.GaussCoreRsm_LK(200);
+  DLM_CleverMcLevyResoTM* Source_Ceca = AnalysisObject.GaussCoreRsm_LK(201);
+
+
+  for(unsigned uRad=0; uRad<hSr_Ceca->GetNbinsX(); uRad++){
+    double rad = hSr_Ceca->GetBinCenter(uRad+1);
+    double pars[2];
+    pars[0] = CoreSize;
+    pars[1] = 2.0;
+    hSr_Epos->SetBinContent(uRad+1,Source_Epos->RootEval(&rad,pars));
+    hSr_Ceca->SetBinContent(uRad+1,Source_Ceca->RootEval(&rad,pars));
+
+  }
+
+  double lowerlimit;
+  double upperlimit;
+  double redmean;
+
+  GetCentralInterval(*hSr_Epos, 0.95, lowerlimit, upperlimit, true);
+  TF1* f_Epos = new TF1("f_Epos",NormDoubleGaussSourceTF1,lowerlimit,upperlimit,4);
+  redmean = hSr_Epos->GetMean()/2.3;
+  f_Epos->SetParameter(0,redmean*0.5);
+  f_Epos->SetParLimits(0,redmean*0.125,redmean*2);
+  f_Epos->SetParameter(1,redmean*1.5);
+  f_Epos->SetParLimits(1,redmean*0.5,redmean*8);
+  f_Epos->SetParameter(2,0.5);//weight
+  f_Epos->SetParLimits(2,0,1);
+  f_Epos->SetParameter(3,0.8);//norm
+  f_Epos->SetParLimits(3,0,1);
+  hSr_Epos->Fit(f_Epos,"S, N, R, M");
+
+  GetCentralInterval(*hSr_Ceca, 0.95, lowerlimit, upperlimit, true);
+  TF1* f_Ceca = new TF1("f_Ceca",NormDoubleGaussSourceTF1,lowerlimit,upperlimit,4);
+  redmean = hSr_Ceca->GetMean()/2.3;
+  f_Ceca->SetParameter(0,redmean*0.5);
+  f_Ceca->SetParLimits(0,redmean*0.125,redmean*2);
+  f_Ceca->SetParameter(1,redmean*1.5);
+  f_Ceca->SetParLimits(1,redmean*0.5,redmean*8);
+  f_Ceca->SetParameter(2,0.5);//weight
+  f_Ceca->SetParLimits(2,0,1);
+  f_Ceca->SetParameter(3,0.8);//norm
+  f_Ceca->SetParLimits(3,0,1);
+  //f_Ceca->FixParameter(3,1.0);
+  hSr_Ceca->Fit(f_Ceca,"S, N, R, M");
+
+  TFile fOutput(TString::Format("%s/FunWithCeca/LK_Source_%.2ffm.root",GetFemtoOutputFolder(),CoreSize),"recreate");
+  hSr_Epos->Write();
+  f_Epos->Write();
+  hSr_Ceca->Write();
+  f_Ceca->Write();
+
+  delete Source_Ceca;
+  delete Source_Epos;
+  delete hSr_Epos;
+  delete f_Epos;
+  delete hSr_Ceca;
+  delete f_Ceca;
+}
+
+
+void pd_paper_sources(const bool& anchored){
+
+  const unsigned NumMomBins = 50;
+  const double kMin = 0;
+  const double kMax = 250;
+
+  const unsigned NumRadBins = 1024;
+  const double rMin = 0;
+  const double rMax = 64;
+
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles/",GetCernBoxDimi()));
+
+  CATS Cat_pp;
+  Cat_pp.SetMomBins(NumMomBins,kMin,kMax);
+  AnalysisObject.SetUpCats_pp(Cat_pp,"AV18","McGauss_ResoTM",0,202);
+
+  CATS Cat_pL;
+  Cat_pL.SetMomBins(NumMomBins,kMin,kMax);
+  AnalysisObject.SetUpCats_pL(Cat_pL,"Chiral_Coupled_SPD","McGauss_ResoTM",11600,202);
+
+  DLM_CleverMcLevyResoTM* s_pp = AnalysisObject.GetCleverMcLevyResoTM_pp();
+  DLM_CleverMcLevyResoTM* s_pL = AnalysisObject.GetCleverMcLevyResoTM_pL();
+  DLM_CleverMcLevyResoTM* s_pK = AnalysisObject.GaussCoreRsm_pK(200);
+
+  TH1F* hs_pp = new TH1F("hs_pp","hs_pp",NumRadBins,rMin,rMax);
+  TH1F* hs_pL = new TH1F("hs_pL","hs_pL",NumRadBins,rMin,rMax);
+  TH1F* hs_pK = new TH1F("hs_pK","hs_pK",NumRadBins,rMin,rMax);
+
+  for(unsigned uRad=0; uRad<NumRadBins; uRad++){
+    double rad = hs_pp->GetBinCenter(uRad+1);
+    double pars[2];
+    pars[0] = anchored?1.10:1.10;
+    pars[1] = 2.0;
+    hs_pp->SetBinContent(uRad+1,s_pp->RootEval(&rad,pars));
+    pars[0] = anchored?1.02:1.10;
+    hs_pL->SetBinContent(uRad+1,s_pL->RootEval(&rad,pars));
+    pars[0] = anchored?1.30:1.10;
+    hs_pK->SetBinContent(uRad+1,s_pK->RootEval(&rad,pars));
+  }
+
+  TFile fOutput(TString::Format("%s/FunWithCeca/pd_paper_sources_%i.root",GetFemtoOutputFolder(),anchored),"recreate");
+  hs_pp->Write();
+  hs_pL->Write();
+  hs_pK->Write();
+
+  delete s_pK;
+  delete hs_pp;
+  delete hs_pL;
+  delete hs_pK;
 }
 
 
@@ -3867,19 +4682,37 @@ int FUN_WITH_CECA(int argc, char *argv[]){
   //CecaTest_0();
   //CecaTest_1();
   //CecaTest_pd_1();
-  //CecaTest_p_pi_1(false);
+  //CecaTest_p_pi_1();
   //CecaTest_p_pi_1(true);
 
 //printf("GaussFromMean 2.97 = %f\n",GaussFromMean(2.97));
-  for(int TAU=0; TAU<=120; TAU+=40){
-    Ceca_pd_1(TAU,true,"pd");
-    Ceca_pd_1(TAU,false,"pd");
-  }
+
+  //for(int TAU=0; TAU<=120; TAU+=5){
+  //  if(TMath::Nint(TAU)%20==0) continue;
+  ////for(int TAU=0; TAU<=120; TAU+=20){
+  //  Ceca_pd_1(TAU,true,"Kd");
+  //  Ceca_pd_1(TAU,false,"Kd");
+  //}
+  //Ceca_pd_1(0,true,"pd");
+  //Ceca_pd_1(30,true,"pd");
+  //Ceca_pd_1(60,true,"pd");
+  //Ceca_pd_1(90,true,"pd");
+
   //Ceca_pd_1(65,true);
-  //pd_rstar_vs_KstarTau_CreateTH2F();
+  //pd_rstar_vs_KstarTau_CreateTH2F("Kd");
+
+  //Ceca_pK_1(false);
+  //Ceca_pK_1(true);
+  //LK_Source(1.07);
+  //LK_Source(1.11);
+  //LK_Source(1.15);
+
+  //pd_paper_sources(true);
+  //pd_paper_sources(false);
 
   //Ceca_mT_1();
-  //Ceca_vs_RSM_1();
+  //Ceca_vs_RSM_1("Proton","Proton");
+  Ceca_vs_RSM_1("Proton","Lambda");
   //ceca_test();
 
 

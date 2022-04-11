@@ -10251,6 +10251,62 @@ void MakePotentials(int flag){
       RedMass,FT);
       //printf("Juli2\n");
   }
+  //toy models to demonstrate effects on cumulant
+  //used mass - p Lambda
+  else if(flag/10>=120&&flag/10<=139){
+    NumR = 1;
+    Radii[0] = 1.2;
+    OutputFolder += "CumToy/";
+    int VAR_FLAG = (flag/10)-120;
+    double FT=1;
+    double StartPars[5];
+    StartPars[0]=100;
+    StartPars[1]=0.5;
+    StartPars[2]=-100;
+    StartPars[3]=0.5;
+    //if(flag/10<80){
+    double RedMass = (Mass_p*Mass_L)/(Mass_p+Mass_L);
+    switch (VAR_FLAG) {
+      case 0: f0=0.25; ef0=f0*0.01; d0=0; ed0=1.0; FT=1./32.;//done
+              //StartPars[0]=-3.003428e+01; StartPars[1]=6.119355e-01;
+              //StartPars[2]=-3.860350e+02; StartPars[3]=2.728766e-01;
+              StartPars[0]=-5.471780e+01; StartPars[1]=3.656692e-01;
+              StartPars[2]=-5.085896e+02; StartPars[3]=2.699276e-01;
+              break;
+      case 1: f0=0.50; ef0=f0*0.01; d0=0; ed0=1.0; FT=1./32.;//done
+              StartPars[0]=-2.491145e+01; StartPars[1]=6.789944e-01;
+              StartPars[2]=-4.202059e+02; StartPars[3]=3.223011e-01;
+              break;
+      case 2: f0=0.75; ef0=f0*0.01; ed0=1.0; FT=1./32.;//done
+      // Current solution: V1=7.5986e+00  mu1=7.6563e-01  V2=-7.6076e+01  mu2=8.0932e-01 <--> f0=0.750  d0=2.090
+              StartPars[0]=-4.996459e+02; StartPars[1]=4.707076e-02;
+              StartPars[2]=-1.119795e+03; StartPars[3]=2.561758e-01;
+              break;
+      case 3: f0=1.00; ef0=f0*0.01; d0=0; ed0=1.0; FT=1./32.;//done
+              //StartPars[0]=-1.356962e+01; StartPars[1]=7.758964e-01;
+              //StartPars[2]=-6.924030e+01; StartPars[3]=8.038734e-01;
+              StartPars[0]=-4.819020e+02; StartPars[1]=6.510546e-02;
+              StartPars[2]=-1.204676e+03; StartPars[3]=2.554564e-01;
+              break;
+      case 4: f0=1.5; ef0=f0*0.01; d0=0; ed0=1.0; FT=1./32.;//done
+              StartPars[0]=-4.117917e+02; StartPars[1]=3.102178e-02;
+              StartPars[2]=-1.100670e+03; StartPars[3]=2.753894e-01;
+              break;
+      case 5: f0=2.0; ef0=f0*0.01; d0=0; ed0=1.0; FT=1./32.;//done
+              StartPars[0]=-4.372201e+02; StartPars[1]=1.757978e-01;
+              StartPars[2]=-1.146283e+03; StartPars[3]=2.594236e-01;
+              break;
+      default: printf("Weird flags for producing the potentials for CumToy\n"); return;
+    }
+
+    ManufacturePotential(f0,ef0,d0,ed0,Radii,NumR,V1,mu1,V2,mu2,Potential,OutputFolder,11,StartPars,
+      RedMass,FT);
+  }
+
+
+
+
+
 
   /*
   Suitable DoubleGaussSum potential found:
@@ -14069,24 +14125,37 @@ void Jaime_test1(){
 
 }
 
-void pp_for_rock(){
+void pp_for_rock(const double SourceSize){
   const unsigned NumBins = 400;
   const double kMin = 0;
   const double kMax = 400;
+  const bool RSM = true;
   CATS AB_pp;
   AB_pp.SetMomBins(NumBins,kMin,kMax);
   DLM_CommonAnaFunctions AnalysisObject;
-  AnalysisObject.SetCatsFilesFolder("/home/dmihaylov/CernBox/CatsFiles");
-  AnalysisObject.SetUpCats_pp(AB_pp,"AV18","Gauss",0,0);
-  AB_pp.SetAnaSource(0,1.8);
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
+  AnalysisObject.SetUpCats_pp(AB_pp,"AV18",RSM?"McGauss_ResoTM":"Gauss",0,RSM?202:0);
+  AB_pp.SetAnaSource(0,SourceSize);
   AB_pp.KillTheCat();
-  TH1F* hCk_pp_1p8 = new TH1F("hCk_pp_1p8","hCk_pp_1p8",NumBins,kMin,kMax);
+  TH1F* hCk_pp = new TH1F("hCk_pp","hCk_pp",NumBins,kMin,kMax);
+  TH1F* hSr_pp = new TH1F("hSr_pp","hSr_pp",512,0,64);
   for(unsigned uBin=0; uBin<NumBins; uBin++){
-    hCk_pp_1p8->SetBinContent(uBin+1,AB_pp.GetCorrFun(uBin));
+    hCk_pp->SetBinContent(uBin+1,AB_pp.GetCorrFun(uBin));
   }
-  TFile fOutput(TString::Format("%s/OtherTasks/pp_for_rock.root",GetFemtoOutputFolder()), "RECREATE");
-  hCk_pp_1p8->Write();
-  delete hCk_pp_1p8;
+  for(unsigned uRad=0; uRad<hSr_pp->GetNbinsX(); uRad++){
+    double rad = hSr_pp->GetBinCenter(uRad+1);
+    hSr_pp->SetBinContent(uRad+1,AB_pp.EvaluateTheSource(0,rad,0));
+    hSr_pp->SetBinError(uRad+1,AB_pp.EvaluateTheSource(0,rad,0)*0.01);
+  }
+  double reff = Get_reff(hSr_pp);
+  printf("r_core = %.3f\n",SourceSize);
+  printf("r_eff = %.3f\n",reff);
+
+  TFile fOutput(TString::Format("%s/OtherTasks/pp_for_rock_%s%.2f.root",GetFemtoOutputFolder(),RSM?"rcore":"reff",SourceSize), "RECREATE");
+  hCk_pp->Write();
+  hSr_pp->Write();
+  delete hCk_pp;
+  delete hSr_pp;
 }
 
 void ppSource_bugHunting(const bool IncludeBug){
@@ -14619,8 +14688,216 @@ void pp_C_vs_SI(){
 
 }
 
+
+void p_pi_CommonTest1(){
+  const unsigned NumBins = 200;
+  const double kMin = 0;
+  const double kMax = 400;
+  bool RSM = true;
+  const int source_settings = 201;
+  const double SourceSize = 1.2;
+  CATS Cat;
+  Cat.SetMomBins(NumBins,kMin,kMax);
+
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
+  AnalysisObject.SetUpCats_ppic(Cat,"DG_pip_d",RSM?"McGauss_ResoTM":"Gauss",0,RSM?source_settings:0);
+  Cat.SetAnaSource(0,SourceSize);
+  //if(RSM) Cat.SetAnaSource(1,2.0);
+  Cat.KillTheCat();
+
+  TH1F* hCk_ppi = new TH1F("hCk_ppi","hCk_ppi",NumBins,kMin,kMax);
+  for(unsigned uBin=0; uBin<NumBins; uBin++){
+    hCk_ppi->SetBinContent(uBin+1,Cat.GetCorrFun(uBin));
+  }
+
+  TH1F* hSource = new TH1F("hSource","hSource",1024,0,32);
+  for(unsigned uBin=0; uBin<hSource->GetNbinsX(); uBin++){
+    double rstar = hSource->GetBinCenter(uBin+1);
+    hSource->SetBinContent(uBin+1,Cat.EvaluateTheSource(0,rstar,0));
+  }
+
+
+  TFile fOutput(TString::Format("%s/OtherTasks/p_pi_CommonTest1_%s%.2f.root",GetFemtoOutputFolder(),RSM?"rcore":"reff",SourceSize), "RECREATE");
+  hCk_ppi->Write();
+  hSource->Write();
+
+  delete hCk_ppi;
+  delete hSource;
+}
+
+//0 1
+//2 3 4 5
+//6 7 8 9
+double TwoDoubleGauss(double* Pars){
+  double Pars1[6];
+  double Pars2[6];
+
+  for(unsigned u=0; u<2; u++){
+    Pars1[u] = Pars[u];
+    Pars2[u] = Pars[u];
+  }
+  for(unsigned u=2; u<6; u++){
+    Pars1[u] = Pars[u];
+    Pars2[u] = Pars[u+4];
+  }
+  return DoubleGaussSum(Pars1)+DoubleGaussSum(Pars2);
+}
+
+void ShowEffectOfCum(){
+
+  const double kMin = 0;
+  const double kMax = 320;
+  const unsigned NumMomBins = 160;
+  const double SourceSize = 1.2;
+  std::vector<double> f0_val;
+  f0_val.push_back(0.001);
+  f0_val.push_back(0.002);
+  f0_val.push_back(0.005);
+  f0_val.push_back(0.01);
+  f0_val.push_back(0.02);
+  f0_val.push_back(0.05);
+  TH1F* hCk1 = new TH1F(TString::Format("hCk1_f%.3f",2.0),TString::Format("hCk1_f%.3f",2.0),NumMomBins,kMin,kMax);
+  TH1F** hCk2 = new TH1F* [f0_val.size()+1];
+  TH1F** hCk12 = new TH1F* [f0_val.size()+1];
+  TH1F** hCk12M = new TH1F* [f0_val.size()+1];
+
+  hCk2[0] = new TH1F(TString::Format("hCk2_f%.3f",0.0),TString::Format("hCk2_f%.3f",0.0),NumMomBins,kMin,kMax);
+  hCk12[0] = new TH1F(TString::Format("hCk12_f%.3f",0.0),TString::Format("hCk12_f%.3f",0.0),NumMomBins,kMin,kMax);
+  hCk12M[0] = new TH1F(TString::Format("hCk12M_f%.3f",0.0),TString::Format("hCk12M_f%.3f",0.0),NumMomBins,kMin,kMax);
+  for(unsigned uF=0; uF<f0_val.size(); uF++){
+    hCk2[uF+1] = new TH1F(TString::Format("hCk2_f%.3f",f0_val.at(uF)),TString::Format("hCk2_f%.3f",f0_val.at(uF)),NumMomBins,kMin,kMax);
+    hCk12[uF+1] = new TH1F(TString::Format("hCk12_f%.3f",f0_val.at(uF)),TString::Format("hCk12_f%.3f",f0_val.at(uF)),NumMomBins,kMin,kMax);
+    hCk12M[uF+1] = new TH1F(TString::Format("hCk12M_f%.3f",f0_val.at(uF)),TString::Format("hCk12M_f%.3f",f0_val.at(uF)),NumMomBins,kMin,kMax);
+  }
+
+  CATSparameters cSource(CATSparameters::tSource,2,true);
+  cSource.SetParameter(0,SourceSize);
+  cSource.SetParameter(1,2);
+
+  CATS Cat1;
+  Cat1.SetMomBins(NumMomBins,kMin,kMax);
+  Cat1.SetThetaDependentSource(false);
+  Cat1.SetAnaSource(GaussSource, cSource);
+  Cat1.SetUseAnalyticSource(true);
+  Cat1.SetMomentumDependentSource(false);
+  Cat1.SetExcludeFailedBins(false);
+  Cat1.SetQ1Q2(0);
+  Cat1.SetQuantumStatistics(false);
+  Cat1.SetRedMass( (Mass_p*Mass_L)/(Mass_p+Mass_L) );
+  Cat1.SetNumChannels(1);
+  Cat1.SetNumPW(0,1);
+  Cat1.SetSpin(0,0);
+  Cat1.SetChannelWeight(0, 1.);
+  Cat1.SetEpsilonConv(2e-8);
+  Cat1.SetEpsilonProp(2e-8);
+  CATSparameters pPars(CATSparameters::tPotential,8,true);
+  pPars.SetParameter(0,-4.372201e+02);
+  pPars.SetParameter(1,1.757978e-01);
+  pPars.SetParameter(2,-1.146283e+03);
+  pPars.SetParameter(3,2.594236e-01);
+  Cat1.SetShortRangePotential(0,0,DoubleGaussSum,pPars);
+  Cat1.KillTheCat();
+  for(unsigned uBin=0; uBin<NumMomBins; uBin++){
+    hCk1->SetBinContent(uBin+1,Cat1.GetCorrFun(uBin));
+  }
+
+  CATS Cat2;
+  Cat2.SetMomBins(NumMomBins,kMin,kMax);
+  Cat2.SetThetaDependentSource(false);
+  Cat2.SetAnaSource(GaussSource, cSource);
+  Cat2.SetUseAnalyticSource(true);
+  Cat2.SetMomentumDependentSource(false);
+  Cat2.SetExcludeFailedBins(false);
+  Cat2.SetQ1Q2(0);
+  Cat2.SetQuantumStatistics(false);
+  Cat2.SetRedMass( (Mass_p*Mass_L)/(Mass_p+Mass_L) );
+  Cat2.SetNumChannels(1);
+  Cat2.SetNumPW(0,1);
+  Cat2.SetSpin(0,0);
+  Cat2.SetChannelWeight(0, 1.);
+  Cat2.SetEpsilonConv(2e-8);
+  Cat2.SetEpsilonProp(2e-8);
+  Cat2.KillTheCat();
+
+  CATS Cat12;
+  Cat12.SetMomBins(NumMomBins,kMin,kMax);
+  Cat12.SetThetaDependentSource(false);
+  Cat12.SetAnaSource(GaussSource, cSource);
+  Cat12.SetUseAnalyticSource(true);
+  Cat12.SetMomentumDependentSource(false);
+  Cat12.SetExcludeFailedBins(false);
+  Cat12.SetQ1Q2(0);
+  Cat12.SetQuantumStatistics(false);
+  Cat12.SetRedMass( (Mass_p*Mass_L)/(Mass_p+Mass_L) );
+  Cat12.SetNumChannels(1);
+  Cat12.SetNumPW(0,1);
+  Cat12.SetSpin(0,0);
+  Cat12.SetChannelWeight(0, 1.);
+  Cat12.SetEpsilonConv(2e-8);
+  Cat12.SetEpsilonProp(2e-8);
+  pPars.SetParameter(0,-4.372201e+02);
+  pPars.SetParameter(1,1.757978e-01);
+  pPars.SetParameter(2,-1.146283e+03);
+  pPars.SetParameter(3,2.594236e-01);
+  Cat12.SetShortRangePotential(0,0,DoubleGaussSum,pPars);
+  Cat12.KillTheCat();
+
+  for(unsigned uBin=0; uBin<NumMomBins; uBin++){
+    hCk2[0]->SetBinContent(uBin+1,Cat2.GetCorrFun(uBin));
+    hCk12[0]->SetBinContent(uBin+1,Cat12.GetCorrFun(uBin));
+    hCk12M[0]->SetBinContent(uBin+1,Cat1.GetCorrFun(uBin)*Cat2.GetCorrFun(uBin));
+  }
+
+
+  for(unsigned uF=0; uF<f0_val.size(); uF++){
+    pPars.SetParameter(4,-4.372201e+02);
+    pPars.SetParameter(5,1.757978e-01);
+    pPars.SetParameter(6,-1.146283e+03);
+    pPars.SetParameter(7,2.594236e-01);
+
+    pPars.SetParameter(0,pPars.GetParameter(4)*f0_val.at(uF));
+    pPars.SetParameter(1,pPars.GetParameter(5));
+    pPars.SetParameter(2,pPars.GetParameter(6)*f0_val.at(uF));
+    pPars.SetParameter(3,pPars.GetParameter(7));
+
+    Cat2.SetShortRangePotential(0,0,DoubleGaussSum,pPars);
+    Cat2.KillTheCat();
+
+    //pPars.SetParameter(4,0);
+    //pPars.SetParameter(5,1);
+    //pPars.SetParameter(6,0);
+    //pPars.SetParameter(7,1);
+    Cat12.SetShortRangePotential(0,0,TwoDoubleGauss,pPars);
+    Cat12.KillTheCat();
+
+    for(unsigned uBin=0; uBin<NumMomBins; uBin++){
+      hCk2[uF+1]->SetBinContent(uBin+1,Cat2.GetCorrFun(uBin));
+      hCk12[uF+1]->SetBinContent(uBin+1,Cat12.GetCorrFun(uBin));
+      hCk12M[uF+1]->SetBinContent(uBin+1,Cat1.GetCorrFun(uBin)*Cat2.GetCorrFun(uBin));
+    }
+  }
+printf("OUTPUT\n");
+  TFile fOutput(TString::Format("%s/OtherTasks/ShowEffectOfCum.root",GetFemtoOutputFolder()), "RECREATE");
+  for(unsigned uF=0; uF<=f0_val.size(); uF++){
+    hCk2[uF]->Write();
+    hCk12[uF]->Write();
+    hCk12M[uF]->Write();
+    delete hCk2[uF];
+    delete hCk12[uF];
+    delete hCk12M[uF];
+  }
+  delete [] hCk2;
+  delete [] hCk12;
+  delete [] hCk12M;
+}
+
+
 //
 int OTHERTASKS(int argc, char *argv[]){
+
+
+  //ShowEffectOfCum(); return 0;
   //Jaime_test1();
   //Test_div_any_th1f();
   //Test_align_th1f();
@@ -14731,7 +15008,10 @@ nsig 3 bins = 4.28
 nsig 6 bins = 3.75
 */
 
-    //pp_for_rock();
+    //pp_for_rock(1.2-0.12);
+    //pp_for_rock(1.2);
+    //pp_for_rock(1.2+0.12);
+
     //Ledni_SmallRad_Random(atoi(argv[1]),atoi(argv[2]));
     //MakePotentials(atoi(argv[1]));return 0;
   //RoughPiPiPotScan(atoi(argv[1]),atoi(argv[2]));
@@ -14743,16 +15023,19 @@ nsig 6 bins = 3.75
     //MakeSmoothAngularSourceDisto(NULL);
     //MaxRamona_piSig_ResoTest();
     //Ramona_pK_ResoTest();
-/*
-    EmmaDaniel_piD(0.82);
-    EmmaDaniel_piD(0.89);
-    EmmaDaniel_piD(0.75);
+
+    //EmmaDaniel_piD(0.82);
+    //EmmaDaniel_piD(0.89);
+    //EmmaDaniel_piD(0.75);
+    //EmmaDaniel_piD(1.00);
+
     //EmmaDaniel_piD(0,true);
     //printf("\n----------------------\n");
-    EmmaDaniel_KD(0.81);
-    EmmaDaniel_KD(0.89);
-    EmmaDaniel_KD(0.74);
-*/
+    //EmmaDaniel_KD(0.81);
+    //EmmaDaniel_KD(0.89);
+    //EmmaDaniel_KD(0.74);
+    //EmmaDaniel_KD(1.00);
+
     //EmmaDaniel_KD(1.04);
     //EmmaDaniel_KD(1.10);
     //EmmaDaniel_KD(1.13);
@@ -14764,7 +15047,10 @@ nsig 6 bins = 3.75
     //pd_delayed(0,false);
     //pd_delayed(100,true);
 
-    pp_C_vs_SI();
+    //pp_C_vs_SI();
+    //p_pi_CommonTest1();
+
+
 
 
     //EmmaDaniel_KD(0,true);

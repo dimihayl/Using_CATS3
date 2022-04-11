@@ -122,6 +122,7 @@ private:
 //mode 10: same as 0, but only interaction between 12
 //mode 11: same as 1, but only interaction between 12
 //mode 2: only QS and no interaction
+//mode 1213: we dont have any 3 body, and we only have the 12 and 13 two body (no 23)
 void MC1(const unsigned NumEvents, const int Mode){
   const float p_sigma = 150*4;
   const unsigned NumMomBins = 128*1;
@@ -310,7 +311,7 @@ printf("Change this to 7 to run faster, or simply do not random generate >FSI_AL
       }
     }
     for(unsigned uSce=0; uSce<NumScenario; uSce++){
-      if(Mode==0||Mode==1||Mode==10||Mode==11){
+      if(Mode==0||Mode==1||Mode==10||Mode==11||Mode==1213){
         //say 1,2 are protons, 3 is pion
         if(uSce==FSI_12 || uSce==FSI_2B || uSce>=FSI_ALL){
           for(int i=0; i<3; i++){
@@ -326,7 +327,7 @@ printf("Change this to 7 to run faster, or simply do not random generate >FSI_AL
         }
         if(uSce==FSI_13 || uSce==FSI_2B || uSce>=FSI_ALL){
           for(int i=0; i<3; i++){
-            if(Mode==0||Mode==1){
+            if(Mode==0||Mode==1||Mode==1213){
               //Part1_fsi[ThId][uSce][i] += (Part3[ThId][i]-Part1[ThId][i])*MC1_FSI_XY(k13,0,-0.5,40);
               //Part3_fsi[ThId][uSce][i] += (Part1[ThId][i]-Part3[ThId][i])*MC1_FSI_XY(k13,0,-0.5,40);
               Part1_fsi[ThId][uSce][i] += (Part3[ThId][i]-Part1[ThId][i])*MC1_FSI_XY(k13,0,-0.6,75);
@@ -347,8 +348,8 @@ printf("Change this to 7 to run faster, or simply do not random generate >FSI_AL
             if(Mode==0||Mode==1){
               //Part2_fsi[ThId][uSce][i] += (Part3[ThId][i]-Part2[ThId][i])*MC1_FSI_XY(k23,0,-0.3,80,200,-0.05,80);
               //Part3_fsi[ThId][uSce][i] += (Part2[ThId][i]-Part3[ThId][i])*MC1_FSI_XY(k23,0,-0.3,80,200,-0.05,80);
-      //      Part2_fsi[ThId][uSce][i] += (Part3[ThId][i]-Part2[ThId][i])*MC1_FSI_XY(k23,0,-1.00,20);
-      //      Part3_fsi[ThId][uSce][i] += (Part2[ThId][i]-Part3[ThId][i])*MC1_FSI_XY(k23,0,-1.00,20);
+            Part2_fsi[ThId][uSce][i] += (Part3[ThId][i]-Part2[ThId][i])*MC1_FSI_XY(k23,0,-1.00,20);
+            Part3_fsi[ThId][uSce][i] += (Part2[ThId][i]-Part3[ThId][i])*MC1_FSI_XY(k23,0,-1.00,20);
             //Part2_fsi[ThId][uSce][i] += (Part3[ThId][i]-Part2[ThId][i])*MC1_FSI_XY(k23,0,0.3,400,320,0.1,40);//p pi-
             //Part3_fsi[ThId][uSce][i] += (Part2[ThId][i]-Part3[ThId][i])*MC1_FSI_XY(k23,0,0.3,400,320,0.1,40);
             //Part2_fsi[ThId][uSce][i] += (Part3[ThId][i]-Part2[ThId][i])*MC1_FSI_XY(k23,0,-0.05,300,500,0.05,250);//p pi+
@@ -1074,6 +1075,7 @@ int MCUM(int argc, char *argv[]){
   //MC1(atoi(argv[1]), 0);
   //MC1(atoi(argv[1]), 10);
   //MC1(atoi(argv[1]), 11);
+  MC1(atoi(argv[1]), 1213);
 
   //MC2(atoi(argv[1])*1000000);
 

@@ -5768,7 +5768,7 @@ double dimi_pL_Schleching_Fitter(double* x, double* par){
 //if par[0]==-1e6 : use splines
 //else
 //par[0] is an overall normalization
-//than we have a pol4 = p0*(1+p1*k+p2*k^2+p3*k^4+p4*k^4), which has 3 free arguments and the following properties
+//than we have a pol4 = p0*(1+p1*k+p2*k^2+p3*k^3+p4*k^4), which has 3 free arguments and the following properties
 //par4!=0 (pol4 flat at 0)
 //	par1,par2 the two extrema, par3 is the p4, par4 is dummy
 //par4==0&&par3!=0 (pol3)
