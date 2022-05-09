@@ -44,6 +44,8 @@ void CompareCkAndSr(){
     const double R_pL = 1.414;
     //works only for p-p at the moment
     const bool Use_3body = true;
+    //the error with the minus sign for pp
+    const bool CorrectSign = false;
 
     const unsigned kNumBins=100;
     const double kMin = 0;
@@ -92,7 +94,7 @@ void CompareCkAndSr(){
     CATS AB_pp_Epos;
     AB_pp_Epos.SetMomBins(kNumBins,kMin,kMax);
 printf("Set up p-p EPOS source...\n");
-    AnalysisObject.SetUpCats_pp(AB_pp_Epos,"AV18","McGauss_ResoTM",0,Use_3body?204:202);
+    AnalysisObject.SetUpCats_pp(AB_pp_Epos,"AV18","McGauss_ResoTM",0,Use_3body?204:CorrectSign?-202:202);
 printf("Done!\n");
     AB_pp_Epos.SetAnaSource(0,R_core);
     AB_pp_Epos.KillTheCat();
@@ -1526,10 +1528,13 @@ double Fit_BernieSource(double* x, double* par){
   return Femto_BernieSource(x,par)*Baseline_BernieSource(x,&par[2]);
 }
 
+//SmearStrategy == 1 is the new one
 void SourcePaper_pp(const TString SourceVar, const int& SmearStrategy, const unsigned DataVar, const int imTbin, const TString OutputFolder){
-printf("0\n");
+//printf("0\n");
   gROOT->ProcessLine("gErrorIgnoreLevel = 2001;");
   const bool Silent = true;
+  //for the pp source, the error on the sign
+  const bool CorrectSign = true;
   //std::vector<TString> SourceVar = {"Gauss","McGauss_ResoTM"};//done
 //std::vector<TString> SourceVar = {"McLevy_ResoTM"};
   std::vector<int> pp_lam_var = {0,1,2};//done
@@ -1578,14 +1583,14 @@ std::vector<float> FemtoRegion = {376};
   const double Scale_pXi = 1.0;
   const double Scale_core = 1.0;
   //the difference in the effectiv Gaussian compered to pp
-printf("1\n");
+//printf("1\n");
   const unsigned NumSourcePars = 1;
   //std::vector<float> pSigma0Radii = {1.55,1.473,1.421,1.368,1.295,1.220,1.124};
 
   DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
 
   //gROOT->cd();
-  TFile* fOutputFile = new TFile(OutputFolder+TString::Format("/fOut_%s_SS%i_D%u_mT%i.root",SourceVar.Data(),SmearStrategy,DataVar,imTbin),"recreate");
+  TFile* fOutputFile = new TFile(OutputFolder+TString::Format("/fOut_%s_SS%i_D%u_mT%i_ppSign%i.root",SourceVar.Data(),SmearStrategy,DataVar,imTbin,CorrectSign),"recreate");
 
   TH1F* HDATA = NULL;
   //GDATA->Set(TotMomBins);
@@ -1630,16 +1635,17 @@ printf("1\n");
   ppTree->Branch("rad",&RADIUS,"rad/F");//
   ppTree->Branch("raderr",&RADERR,"raderr/F");//
 
-printf("2\n");
+//printf("2\n");
   //for(TString varSource : SourceVar){
     CATS AB_pp;
     AB_pp.SetMomBins(NumMomBins_pp,0,FemtoRegion.back());
-    AnalysisObject.SetUpCats_pp(AB_pp,"AV18",SourceVar,0,202);
+    AnalysisObject.SetUpCats_pp(AB_pp,"AV18",SourceVar,0,CorrectSign?-202:202);
     AB_pp.SetAnaSource(0,ExpectedRadii.at(imTbin));
     if(SourceVar.Contains("Levy")) AB_pp.SetAnaSource(1,1.7);
+    else AB_pp.SetAnaSource(1,2.0);
     AB_pp.SetNotifications(CATS::nWarning);
     AB_pp.KillTheCat();
-printf("3\n");
+//printf("3\n");
     CATS AB_pXim;
     //same binning as pL, as we only use pXim as feed-down
     AB_pXim.SetMomBins(NumMomBins_feed,0,FemtoRegion.back());
@@ -1647,14 +1653,14 @@ printf("3\n");
     AB_pXim.SetAnaSource(0,ExpectedRadii.at(imTbin)*Scale_pXi);
     AB_pXim.SetNotifications(CATS::nWarning);
     AB_pXim.KillTheCat();
-printf("4\n");
+//printf("4\n");
     CATS AB_pXi1530;
     AB_pXi1530.SetMomBins(NumMomBins_feed,0,FemtoRegion.back());
     AB_pXi1530.SetNotifications(CATS::nWarning);
     AnalysisObject.SetUpCats_pXim(AB_pXi1530,"pXim1530","Gauss");//McLevyNolan_Reso
     AB_pXi1530.SetAnaSource(0,ExpectedRadii.at(imTbin)*Scale_pXi);
     AB_pXi1530.KillTheCat();
-printf("5\n");
+//printf("5\n");
     CATS AB_pS0_Chiral;
     //the minus one is to to avoid going above 350 MeV, since we do not have the WF there
     AB_pS0_Chiral.SetMomBins(NumMomBins_feed,0,FemtoRegion.back());
@@ -1662,7 +1668,7 @@ printf("5\n");
     AB_pS0_Chiral.SetAnaSource(0,ExpectedRadii.at(imTbin)*Scale_pS0);
     AB_pS0_Chiral.SetNotifications(CATS::nWarning);
     AB_pS0_Chiral.KillTheCat();
-printf("6\n");
+//printf("6\n");
     for(int varPL : pL_pot_var){
       CATS AB_pL;
       AB_pL.SetMomBins(NumMomBins_feed,0,FemtoRegion.back());
@@ -1705,7 +1711,7 @@ printf("6\n");
             AnalysisObject.SetUpLambdaPars_pL("pp13TeV_HM_Dec19",varLam+imTbin*10,0,lambda_pL);
             double lambda_pXim[5];
             AnalysisObject.SetUpLambdaPars_pXim("pp13TeV_HM_Dec19",varLam+imTbin*10,0,lambda_pXim);
-printf("SetUp\n");
+//printf("SetUp\n");
             //for(int varSS : SmearStrategy){
               TH1F* hPhaseSpace_pp=NULL;
               if(SmearStrategy==1){
@@ -1726,7 +1732,7 @@ printf("SetUp\n");
                 hPhaseSpace_pp->Add(hME_APAP);
                 delete inFile;
               }
-printf("GotData\n");
+//printf("GotData\n");
               for(unsigned ipS0=!(pS0_Var); ipS0<2; ipS0++){
               //for(unsigned ipS0=0; ipS0<2; ipS0++){
                 DLM_CkDecomposition CkDec_pp("pp",3,*Ck_pp,hResolution_pp);
@@ -1765,10 +1771,10 @@ printf("GotData\n");
                 CkDec_pSigma0.Update();
                 CkDec_pXim.Update();
                 CkDec_pXim1530.Update();
-printf("Updated\n");
+//printf("Updated\n");
                 gROOT->cd();
                 TH1F* hData = AnalysisObject.GetAliceExpCorrFun("pp13TeV_HM_BernieSource","pp",TString::Format("%u",DataVar),0,0,imTbin);
-printf("GetAliceExpCorrFun %p\n",hData);
+//printf("GetAliceExpCorrFun %p\n",hData);
                 for(float varFit : FemtoRegion){
                   for(int varBL : BaselineVar){
                     double FitRange = varFit;
@@ -1779,9 +1785,9 @@ printf("GetAliceExpCorrFun %p\n",hData);
                     TF1* fData = new TF1("fData",Fit_BernieSource,0,FitRange,7);
                     TF1* fBl = new TF1("fBl",Baseline_BernieSource,0,FitRange,5);
                     fData->SetParameter(0,SourceVar=="Gauss"?ExpectedRadii.at(imTbin):ExpectedRadii.at(imTbin)*Scale_core);
-                    //fData->SetParLimits(0,fData->GetParameter(0)*0.5,fData->GetParameter(0)*2.0);
+                    fData->SetParLimits(0,fData->GetParameter(0)*0.5,fData->GetParameter(0)*2.0);
                     //fData->SetParLimits(0,fData->GetParameter(0)*0.75,fData->GetParameter(0)*1.25);
-fData->FixParameter(0,1.3);
+//fData->FixParameter(0,1.3);
 //fData->SetParameter(0,1.366);
 //fData->SetParLimits(0,1.1,1.5);
                     fData->FixParameter(1,0);
@@ -1816,6 +1822,15 @@ fData->FixParameter(0,1.3);
                     printf("BL=%i FIT=%.0f PS0=%i SS=%i LAM=%i SMR=%s PL=%i SRC=%s lam_pp=%.1f lam_ppl=%.1f\n",
                             varBL,varFit,ipS0,SmearStrategy,varLam,varSmear.Data(),varPL,SourceVar.Data(),lambda_pp[0]*100.,lambda_pp[1]*100.);
                     hData->Fit(fData,"Q, S, N, R, M");
+//fData->FixParameter(0,1.4);
+//fData->FixParameter(2,1);
+//TFile TempF(OutputFolder+"/TempF.root","recreate");
+//hData->Write();
+//fData->Write();
+//CkDec_pp.Update(true,true);
+//printf("C(20) = %f; cats %f; Ck_pp %f; CkDec_pp %f\n",fData->Eval(20),AB_pp.EvalCorrFun(20),Ck_pp->Eval(20),CkDec_pp.EvalCk(20));
+//return;
+//printf("fitted\n");
                     fData->SetNpx(TotMomBins);
 
                     fBl->FixParameter(0,fData->GetParameter(2));
@@ -1829,8 +1844,8 @@ printf(" r = %.3f +/- %.3f\n",fData->GetParameter(0),fData->GetParError(0));
                     double NDF = fData->GetNDF();
                     double pval = TMath::Prob(Chi2,NDF);
                     double nsig = sqrt(2)*TMath::ErfcInverse(pval);
-                    //printf(" chi2/ndf = %.2f\n",Chi2/NDF);
-                    //printf(" nsig = %.2f\n",nsig);
+                    printf(" chi2/ndf = %.2f\n",Chi2/NDF);
+                    printf(" nsig = %.2f\n",nsig);
 
                     //gROOT->cd();
                     fOutputFile->cd();
@@ -1907,25 +1922,25 @@ printf(" r = %.3f +/- %.3f\n",fData->GetParameter(0),fData->GetParError(0));
                     //return;
                     delete fData;
                     delete fBl;
-break;
+//break;
                   }//varBL (3x)
                 }//varFit (3x)
                 delete hData;
-break;
+//break;
               }//ipS0 (2x)
             //}//varSS (2x)
-break;
+//break;
           }//varLam (3x)
-break;
+//break;
         }//varSmear (2x)
         delete Ck_pp;
         delete Ck_pL;
         delete Ck_pS0;
         delete Ck_pXim;
         delete Ck_pXim1530;
-break;
+//break;
       }//varCutOff (1x)
-break;
+//break;
     }//varPL (2x)
   //}//varSource (2x)
 
@@ -2210,7 +2225,7 @@ std::vector<float> FemtoRegion = {204,228,240};
                     fBl->FixParameter(3,fData->GetParameter(5));
                     fBl->FixParameter(4,fData->GetParameter(6));
 
-                    //printf(" r = %.3f +/- %.3f\n",fData->GetParameter(0),fData->GetParError(0));
+                    printf(" r = %.3f +/- %.3f\n",fData->GetParameter(0),fData->GetParError(0));
                     double Chi2 = fData->GetChisquare();
                     double NDF = fData->GetNDF();
                     double pval = TMath::Prob(Chi2,NDF);
@@ -2683,7 +2698,9 @@ int SOURCESTUDIES(int argc, char *argv[]){
     //TestEposDistos(1.0);
 
     //void SourcePaper_pp(const TString SourceVar, const int& SmearStrategy, const unsigned DataVar, const int imTbin, const TString OutputFolder)
-    SourcePaper_pp(argv[1],atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),argv[5]);
+    //SourcePaper_pp(argv[1],atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),argv[5]);
+    //SourcePaper_pp("McGauss_ResoTM",1,0,0,"/home/dimihayl/Software/LocalFemto/Output/SourceStudies/SourcePaper_pp/");
+    SourcePaper_pp("McGauss_ResoTM",0,0,0,"/home/dimihayl/Software/LocalFemto/Output/SourceStudies/SourcePaper_pp/");
     //SourcePaper_pL(argv[1],atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),argv[5]);
     //SourcePaper_pL("McGauss_ResoTM",1,0,0,"/home/dimihayl/Software/LocalFemto/Output/SourceStudies/SourcePaper_pL/");
     //SourcePaper_pp("Gauss",1,0,0,"/home/dimihayl/Software/LocalFemto/Output/SourceStudies/SourcePaper_pp/");

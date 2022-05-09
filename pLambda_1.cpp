@@ -7052,7 +7052,10 @@ const int IMPROVED_FEED=2;
     //safety for the batch farm
     const double TIME_LIMIT = 110;
     //do extra variations
-    const bool ExtendedSyst = false;
+    //0 - standarad
+    //1 - extend cusp radius whatever it was back in the day
+    //2 - extend the variations such, only to cover more radii
+    const int ExtendedSyst = 2;
     DLM_Timer TIMER_SYST;
 
     //pol(0/1/2/3)s: pol(0/1/2/3) with a small fit range
@@ -7359,7 +7362,7 @@ TH1F* hGHETTO_PS=NULL;
         //1 is 27% (20% lower, kind of compatible with experiment)
         //2 is 40% (20% larger)
         //3 is free fit in the range [17%, 50%]
-        unsigned WhichCuspStrength = rangen.Integer(ExtendedSyst?5:3);
+        unsigned WhichCuspStrength = rangen.Integer(ExtendedSyst==1?5:3);
         if(DefaultVariation||FitSyst==false) WhichCuspStrength = 0;
 //0.2,0.267,0.333,0.4,0.467
         switch(WhichCuspStrength){
@@ -7383,7 +7386,7 @@ TH1F* hGHETTO_PS=NULL;
             default : CkConv = 700; break;
         }
 
-        unsigned WhichSourceRad = rangen.Integer(ExtendedSyst?5:3);
+        unsigned WhichSourceRad = rangen.Integer(ExtendedSyst==0?3:ExtendedSyst==1?5:6);
         if(DefaultVariation||FitSyst==false) {WhichSourceRad=0;}
         //if(DefaultVariation) SourceRad = SourceSize;
         //else SourceRad = rangen.Gaus(SourceSize,SourceSizeErr);
@@ -7393,6 +7396,7 @@ TH1F* hGHETTO_PS=NULL;
             case 2 : SourceRad = SourceSize+SourceSizeErr; break;
             case 3 : SourceRad = SourceSize+2.*SourceSizeErr; break;
             case 4 : SourceRad = SourceSize-2.*SourceSizeErr; break;
+            case 5 : SourceRad = SourceSize-3.*SourceSizeErr; break;
             default : SourceRad = SourceSize; break;
         }
 
@@ -7414,7 +7418,7 @@ TH1F* hGHETTO_PS=NULL;
         //int WhichProtonVar = rangen.Integer(3);
         //if(DefaultVariation||FitSyst==false) WhichProtonVar = 0;
         int WhichProtonVar = 0;
-        int WhichLambdaVar = rangen.Integer(ExtendedSyst?5:3);
+        int WhichLambdaVar = rangen.Integer(ExtendedSyst==1?5:3);
         if(DefaultVariation||FitSyst==false) WhichLambdaVar = 0;
 
         //the modification of the amount of Xi secondaries with respect to lambda+sigma0
@@ -7422,7 +7426,7 @@ TH1F* hGHETTO_PS=NULL;
         else WhichLambdaVar += 10*(0+3.*rangen.Integer(2));
 
         //has no effect if you run with the data that is SB corrected
-        if(DefaultVariation||FitSyst==false||!ExtendedSyst) WhichLambdaVar += 100;//the new purities
+        if(DefaultVariation||FitSyst==false||(ExtendedSyst!=1)) WhichLambdaVar += 100;//the new purities
         else WhichLambdaVar += 100*(1+rangen.Integer(3));//new purities with variations
 
         AnalysisObject.SetUpLambdaPars_pL(DataSample,WhichProtonVar,WhichLambdaVar,lam_pL);
@@ -9113,24 +9117,26 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
                                   TString InputFolder, TString InputFileName, TString OutputFolder, const int& WhichDataSet=-1){
 
     //300 or 108
-    const double Chi2RANGE = 108;
+    //const double Chi2RANGE = 108;
+    const double Chi2RANGE = 300;
 //printf("debug\n");
     //if 0, we have much more info on the plots
     //if 1: as intended for the paper (cleaner)
     //if 2: as intended for the thesis
     //if 3: as intended for PLB
-    const int PlotsType = 3;
+    const int PlotsType = 0;
     const bool WriteToInfoFile=true;
     int Panel_X = 0;
+
     if(PlotsType==1){
-      if(WhichPotential==11600 && SIGMA_FEED==1)Panel_X=0;
-      if(WhichPotential==11600 && SIGMA_FEED==0)Panel_X=1;
+      if((WhichPotential==11600||WhichPotential>100000) && SIGMA_FEED==1)Panel_X=0;
+      if((WhichPotential==11600||WhichPotential>100000) && SIGMA_FEED==0)Panel_X=1;
       if(WhichPotential==1600 && SIGMA_FEED==1)Panel_X=2;
       if(WhichPotential==1600 && SIGMA_FEED==0)Panel_X=3;
     }
     else if(PlotsType==3){
-      if(WhichPotential==11600 && SIGMA_FEED==1)Panel_X=0;
-      if(WhichPotential==11600 && SIGMA_FEED==0)Panel_X=1;
+      if((WhichPotential==11600||WhichPotential>100000) && SIGMA_FEED==1)Panel_X=0;
+      if((WhichPotential==11600||WhichPotential>100000) && SIGMA_FEED==0)Panel_X=1;
       if(WhichPotential==1600 && SIGMA_FEED==1)Panel_X=0;
       if(WhichPotential==1600 && SIGMA_FEED==0)Panel_X=1;
     }
@@ -9339,6 +9345,26 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
                     PotDescr = "LO13-600";
                     PotFlag = -11600;
                     break;//
+        case 131600:  PotName1 = "Def,f1.3";
+                      PotName2 = "s,d waves";
+                      PotDescr = "Def,f1.3";
+                      PotFlag = 131600;
+                      break;//
+        case 221600:  PotName1 = "CSB,CSB";
+                      PotName2 = "s,d waves";
+                      PotDescr = "CSB,CSB";
+                      PotFlag = 221600;
+                      break;//
+        case 231600:  PotName1 = "CSB,f1.3";
+                      PotName2 = "s,d waves";
+                      PotDescr = "CSB,f1.3";
+                      PotFlag = 231600;
+                      break;//
+        case 211600:  PotName1 = "def,CSB";
+                      PotName2 = "s,d waves";
+                      PotDescr = "def,CSB";
+                      PotFlag = 211600;
+                      break;//
         case 100:   PotName1 = "Usmani";
                     PotName2 = "original";
                     PotDescr = "Usmani";
@@ -9639,7 +9665,7 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
         if(GoodCutVar[WhichData]<MinGoodCut||GoodCutVar[WhichData]>MaxGoodCut) continue;
         if(rangenfrac1.Uniform()>FractionOfSolutions) continue;
 //if(uEntry<20){
-//    printf("uEntry=%u\n",uEntry);
+    //printf("uEntry=%u\n",uEntry);
 //}
 //printf("8\n");
 //printf(" PROCEED!\n");
@@ -10267,13 +10293,14 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
     //TColor SigmaColor(6000,132,112,255);
     int ColorNLO13 = kRed;//+1
     int ColorNLO19 = kCyan;
+    int ColorFT = kViolet+1;
     int ColorLO13 = kGreen;//+1
     int ColorSigmaNLO = kAzure;//kBlue-7 or //kTeal
     int ColorXiLattice = kPink+1;//kOrange+2 or +1
     int ColorBaseline = kGray+3;//kGray+1
 
     int ColorInteraction =  WhichPotential<0?ColorLO13:
-                            WhichPotential<10000?ColorNLO13:ColorNLO19;
+                            WhichPotential<10000?ColorNLO13:WhichPotential<100000?ColorNLO19:ColorFT;
     //if(WhichPotential==-11600) ColorInteraction = kGreen;
 
     if(fitLoDummy){
@@ -10668,7 +10695,7 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
       if(Panel_X==0||Panel_X==2)
         legend->Draw("same");
     }
-    else if(PlotsType!=2 || WhichPotential==11600) legend->Draw("same");
+    else if(PlotsType!=2 || (WhichPotential==11600||WhichPotential>100000)) legend->Draw("same");
 
     TLatex BeamText;
     BeamText.SetNDC(kTRUE);
@@ -10830,6 +10857,7 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
                                                              TMath::Nint(ValSourceAlpha*10.),WhichDataSet));
 
     float MinChi2NDF = MinChi2/double(MinNdf);
+    float NDF = double(MinNdf);
 
     TFile* InfoFile = NULL;
     TTree* InfoTree = NULL;
@@ -10846,6 +10874,7 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
           InfoTree->Branch("POT_VAR", &POT_VAR, "POT_VAR/I");//
           InfoTree->Branch("Sigma0_Feed", &Sigma0_Feed, "Sigma0_Feed/I");//
           InfoTree->Branch("MinChi2NDF", &MinChi2NDF, "MinChi2NDF/F");
+          InfoTree->Branch("NDF", &NDF, "NDF/F");
           InfoTree->Branch("MinNsigma", &MinNsigma, "MinNsigma/F");
           InfoTree->Branch("Best_SourceSize", &Best_SourceSize, "Best_SourceSize/F");
           InfoTree->Branch("Best_SourceAlpha", &Best_SourceAlpha, "Best_SourceAlpha/F");
@@ -10860,6 +10889,7 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
           DLM_Timer FileTimer;
           long long FileWaitTime;//in micros
           //we wait until the file is closed. If this is not the case in 10s => error
+          /*
           while(InfoFileStatus==-1&&FileWaitTime<60000e6){
               //sleep for 10 s
               usleep(60000e3);
@@ -10870,6 +10900,7 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
               printf("\033[1;31mERROR:\033[0m Waited more than 60s to close the file %s\n",InfoFileName);
               abort();
           }
+          */
 
           InfoFile = new TFile(InfoFileName,"update");
           InfoTree = (TTree*)InfoFile->Get("InfoTree");
@@ -10877,6 +10908,7 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
           InfoTree->SetBranchAddress("POT_VAR",&POT_VAR);
           InfoTree->SetBranchAddress("Sigma0_Feed",&Sigma0_Feed);
           InfoTree->SetBranchAddress("MinChi2NDF",&MinChi2NDF);
+          InfoTree->SetBranchAddress("NDF",&NDF);
           InfoTree->SetBranchAddress("MinNsigma",&MinNsigma);
           InfoTree->SetBranchAddress("Best_SourceSize",&Best_SourceSize);
           InfoTree->SetBranchAddress("Best_SourceAlpha",&Best_SourceAlpha);
@@ -11523,7 +11555,9 @@ void Quick_pLambda_plotter_NLO13_vs_LO13(){
 
 //with the chi2 from the Info.root of the above function
 //Compact = no ESC16
-void MakeLATEXtable(TString InputFolder, bool Compact=false){
+//Type == 0: LO,NLO13/19
+//Type == 1: + the CSB and fine tunes
+void MakeLATEXtable(TString InputFolder, bool Compact=false, int Type=0){
     TString OutputFileName;
     TString OutputFileNameNsig;
     TString OutputFileNameSigDev;
@@ -11538,21 +11572,34 @@ void MakeLATEXtable(TString InputFolder, bool Compact=false){
     strcpy(InfoFileName,InputFolder.Data());
     strcat(InfoFileName,"Info.root");
 
-    const unsigned NumLamVars = 9;
+    const unsigned NumLamVars = Type==0?9:13;
     TString* PotName_pL = new TString [NumLamVars];
-    PotName_pL[0] = "LO13-600";
-    PotName_pL[1] = "NLO13-500";
-    PotName_pL[2] = "NLO13-550";
-    PotName_pL[3] = "NLO13-600";
-    PotName_pL[4] = "NLO13-650";
-    PotName_pL[5] = "NLO19-500";
-    PotName_pL[6] = "NLO19-550";
-    PotName_pL[7] = "NLO19-600";
-    PotName_pL[8] = "NLO19-650";
+    if(Type==0||Type==1){
+      PotName_pL[0] = "LO13-600";
+      PotName_pL[1] = "NLO13-500";
+      PotName_pL[2] = "NLO13-550";
+      PotName_pL[3] = "NLO13-600";
+      PotName_pL[4] = "NLO13-650";
+      PotName_pL[5] = "NLO19-500";
+      PotName_pL[6] = "NLO19-550";
+      PotName_pL[7] = "NLO19-600";
+      PotName_pL[8] = "NLO19-650";
+    }
+
+    if(Type==1){
+      PotName_pL[9]  = "Def-f1.3";
+      PotName_pL[10] = "CSB-f1.3";
+      PotName_pL[11] = "CSB-CSB";
+      PotName_pL[12] = "CSB-Def";
+    }
+
     double BestChi2_const = 1e6;
     double BestChi2_cubic = 1e6;
 
     int* PotFlag_pL = new int [NumLamVars];
+    if(Type==0){
+
+    }
     PotFlag_pL[0] = -11600;
     PotFlag_pL[1] = 1500;
     PotFlag_pL[2] = 1550;
@@ -11562,6 +11609,12 @@ void MakeLATEXtable(TString InputFolder, bool Compact=false){
     PotFlag_pL[6] = 11550;
     PotFlag_pL[7] = 11600;
     PotFlag_pL[8] = 11650;
+    if(Type==1){
+      PotFlag_pL[9]  = 131600;
+      PotFlag_pL[10] = 231600;
+      PotFlag_pL[11] = 221600;
+      PotFlag_pL[12] = 211600;
+    }
 
     //const unsigned NumSigVars = 3;
     //TString* PotName_pS0 = new TString [NumSigVars];
@@ -11576,8 +11629,8 @@ void MakeLATEXtable(TString InputFolder, bool Compact=false){
     unsigned BASELINE_VAR;
     int POT_VAR;
     int Sigma0_Feed;
-//! hard coded for 12 MeV bins up to 300 MeV
-    const float NDF = 25;
+//! hard coded for 12 MeV bins up to 300 MeV (not any more)
+    float NDF;
     float MinChi2NDF;
     float MinNsigma;
     float Best_SourceSize;
@@ -11595,6 +11648,7 @@ void MakeLATEXtable(TString InputFolder, bool Compact=false){
     InfoTree->SetBranchAddress("POT_VAR",&POT_VAR);
     InfoTree->SetBranchAddress("Sigma0_Feed",&Sigma0_Feed);
     InfoTree->SetBranchAddress("MinChi2NDF",&MinChi2NDF);
+    InfoTree->SetBranchAddress("NDF",&NDF);
     InfoTree->SetBranchAddress("MinNsigma",&MinNsigma);
     InfoTree->SetBranchAddress("Best_SourceSize",&Best_SourceSize);
     InfoTree->SetBranchAddress("Best_SourceAlpha",&Best_SourceAlpha);
@@ -11682,9 +11736,9 @@ void MakeLATEXtable(TString InputFolder, bool Compact=false){
     fprintf(fptr,"\\hline \\hline \n");
     fprintf(fptr,"\\end{tabular} \n");
     fprintf(fptr,"\\caption{Values of $\\chi^2/$NDF for the different interaction hypotheses "
-            "of $\\text{p--}\\Lambda$ and $\\text{p--}\\Sigma^0$, evaluated for $k^{*}\\in[0,300]~$MeV. "
+            "of $\\text{p--}\\Lambda$ and $\\text{p--}\\Sigma^0$, evaluated for $k^{*}\\in[0,%.0f]~$MeV. "
             "The default values correspond to the fit with a cubic baseline, the values in brackets represent the results from using a constant baseline. "
-            "The default model (in bold) is the $\\chi$EFT NLO calculation, at a cutoff of 600~MeV. } \n");
+            "The default model (in bold) is the $\\chi$EFT NLO calculation, at a cutoff of 600~MeV. } \n",NDF*12.);
     fprintf(fptr,"\\label{tab:chi2_2020} \n");
     fprintf(fptr,"\\end{center} \n");
     fprintf(fptr,"\\end{table} \n");
@@ -16177,10 +16231,10 @@ void pL_EffectiveRadius(double CoreSize){
 
 int PLAMBDA_1_MAIN(int argc, char *argv[]){
 printf("PLAMBDA_1_MAIN\n");
-  pL_EffectiveRadius(1.2);
+  //pL_EffectiveRadius(1.2);
   //Unfold_pL_ME(TString::Format("%s/CatsFiles/ExpData/ALICE_pp_13TeV_HM/DimiJun20/Norm240_340/DataSignal/",GetCernBoxDimi()),"TEST.root");
   //Unfold_pL_ME(argv[1],argv[2]);
-  return 0;
+  //return 0;
 
 //pLambda_DummyCk_DifferentRadii();
 //return 0;
@@ -16254,6 +16308,8 @@ Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(at
                             //TString::Format("%s/pLambda/100720_Unfolded/",GetCernBoxDimi()),
                             TString::Format("%s/pLambda/170721_NewUnfold/NoBoot/",GetCernBoxDimi()),
                             //TString::Format("%s/pLambda/170721_NewUnfold/Full/",GetCernBoxDimi()),
+                            //TString::Format("%s/pLambda/PLB/NoBoot/",GetCernBoxDimi()),
+                            //TString::Format("%s/pLambda/020522/Full/",GetCernBoxDimi()),
                             TString::Format("Merged_pp13TeV_HM_DimiJun21_POT%i_BL%i_SIG%i.root",
                             //TString::Format("Merged_pp13TeV_HM_Dec19_POT%i_BL%i_SIG%i.root",
                             //TString::Format("Output_pp13TeV_HM_DimiJul20_POT%i_BL%i_SIG%i_1000.root",
@@ -16263,13 +16319,20 @@ Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(at
                             //TString::Format("%s/pLambda/100720_Unfolded/PaperPlotsUpdate5/",GetCernBoxDimi()),
                             //TString::Format("%s/pLambda/170721_NewUnfold/NoBoot/PlotsAnaNote/",GetCernBoxDimi()),
                             //TString::Format("%s/pLambda/PLB/Full/Plots_v1/",GetCernBoxDimi()),
-                            TString::Format("%s/pLambda/PLB/NoBoot/Plots_v2/",GetCernBoxDimi()),
+                            //TString::Format("%s/pLambda/PLB/NoBoot/Plots_v2/",GetCernBoxDimi()),
+                            //TString::Format("%s/pLambda/PLB/NoBoot/Plots_v4/",GetCernBoxDimi()),
+                            //TString::Format("%s/pLambda/020522/Full/Plots/",GetCernBoxDimi()),
+                            TString::Format("%s/pLambda/020522/NoBoot/Plots/",GetCernBoxDimi()),
                             //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/"
                             atoi(argv[5])///REMOVE FOR THE OLD PLOTS
                           );
 
-//MakeLATEXtable(TString::Format("%s/pLambda/PLB/NoBoot/Plots_v2/",GetCernBoxDimi()),false);
-//return 0;
+return 0;
+
+//MakeLATEXtable(TString::Format("%s/pLambda/PLB/NoBoot/Plots_v4/",GetCernBoxDimi()),false);
+//MakeLATEXtable(TString::Format("%s/pLambda/020522/NoBoot/Plots/",GetCernBoxDimi()),true,1);
+//MakeLATEXtable(TString::Format("%s/pLambda/020522/NoBoot/Plots108/",GetCernBoxDimi()),true,1);
+return 0;
 
 //Plot_pL_SystematicsMay2020_2(2,10,1500,2.0,
 //        "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/040620_Gauss/",

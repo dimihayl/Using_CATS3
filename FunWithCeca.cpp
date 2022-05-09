@@ -2834,10 +2834,49 @@ void Ceca_mT_1(){
 
 
 
+DLM_Histo<float>* GetPtEtaDist(TString FileNameP, TString FileNameAP,
+  TString HistoNameP="pTDist_after", TString HistoNameAP="pTDist_after", const double EtaCut = 0.8){
+
+  TH1F* h_pT_p;
+  TH1F* h_pT_ap;
+  TH1F* h_pT_all;
+
+  TFile file_p(FileNameP,"read");
+  h_pT_p = (TH1F*)file_p.Get(HistoNameP);
+  if(!h_pT_p) printf("ISSUE with h_pT_p\n");
+  gROOT->cd();
+  h_pT_all = (TH1F*)h_pT_p->Clone("h_pT_all");
+
+  TFile file_ap(FileNameAP,"read");
+  h_pT_ap = (TH1F*)file_ap.Get(HistoNameAP);
+  if(!h_pT_ap) printf("ISSUE with h_pT_ap\n");
+  h_pT_all->Add(h_pT_ap);
+
+  DLM_Histo<float>* dlm_pT_p = Convert_TH1F_DlmHisto(h_pT_all);
+  dlm_pT_p->RescaleAxis(0,1000,false);
+
+  double* BinRange = NULL;
+  double axis[2];
+
+  DLM_Histo<float>* dlm_pT_eta = new DLM_Histo<float>();
+  dlm_pT_eta->SetUp(2);
+  BinRange = dlm_pT_p->GetBinRange(0);
+  dlm_pT_eta->SetUp(0,dlm_pT_p->GetNbins(),BinRange);
+  delete [] BinRange;
+  dlm_pT_eta->SetUp(1,1,-EtaCut,EtaCut);
+  dlm_pT_eta->Initialize();
+  for(unsigned uBin=0; uBin<dlm_pT_p->GetNbins(); uBin++){
+    dlm_pT_eta->SetBinContent(uBin,0,dlm_pT_p->GetBinContent(uBin));
+  }
+
+  return dlm_pT_eta;
+}
+
+
 
 
 void Ceca_vs_RSM_1(const std::string part1, const std::string part2){
-  const double reff = 1.32*1.00;
+  const double reff = sqrt(2);
   const double HadronSize = 0.75*0;
   const double HadronSlope = 0.2*0;
   const double EtaCut = 0.8;
@@ -2847,19 +2886,20 @@ void Ceca_vs_RSM_1(const std::string part1, const std::string part2){
   const double Asym = 40;
   //const double PancakeT = 7.06*1.0;
   //const double PancakeZ = 0.5*3;
-  //const double PancakeT = 5.3;
-  //const double PancakeZ = 0.1;
-  const double Tau = 0.00;
+  const double PancakeT = 3.85*0.0;
+  const double PancakeZ = 3.85*0.0;
+  const double Tau = 2.95*0.0;
   const double PancakeFluct = 0;//in % !!!
   //const double DisplT = 0.18*0;
   //const double DisplZ = 0.10*0;
-  const double DisplT = 0.4;
-  const double DisplZ = DisplT/Asym;
-  unsigned THREADS = 0;
+  const double DisplT = 1.0*1.0;
+  const double DisplZ = 1.0*1.0;
+  //const double DisplZ = DisplT/Asym;
+  unsigned THREADS = 1;
   const double MomSpread = 1061;
   const bool THERMAL_KICK = false;
 
-  const double Sensitivity = 0.0033*10000;
+  const double Sensitivity = 0.0033*10000000;
 
   const double VolumeHI = 5000;
   const double TempHI = 154;
@@ -2870,8 +2910,9 @@ void Ceca_vs_RSM_1(const std::string part1, const std::string part2){
   const double EngyDenst_PP_HI = 0.029412*TempPP-3.5294;//ratio
   const double VolumePP = TempPP?EngyPP/EngyHI*VolumeHI/EngyDenst_PP_HI:0;
   const double ProtonGamma = ProtonEngy/938.;
-  const double PancakeT = pow(3.*VolumePP*Asym/4./Pi,1./3.);
-  const double PancakeZ = PancakeT/Asym;
+  //const double PancakeT = pow(3.*VolumePP*Asym/4./Pi,1./3.);
+  //const double PancakeZ = PancakeT/Asym;
+
   //const double PancakeT = pow(3.*VolumePP*ProtonGamma/4./Pi,1./3.);
   //const double PancakeZ = PancakeT/ProtonGamma;
 
@@ -2899,6 +2940,79 @@ void Ceca_vs_RSM_1(const std::string part1, const std::string part2){
   const double rMax = 32;
 
 
+
+  TString FilePath = TString::Format("%s/Jaime/",GetCernBoxDimi());
+  TString FileNameP1,FileNameAP1,FileNameP2,FileNameAP2;
+  FileNameP1 = "p_pT.root";
+  FileNameAP1 = "ap_pT.root";
+  FileNameP2 = "L_pT.root";
+  FileNameAP2 = "aL_pT.root";
+
+
+  TH1F* h_pT_p;
+  TH1F* h_pT_ap;
+  TH1F* h_pT_p_all;
+  TH1F* h_pT_d;
+  TH1F* h_pT_ad;
+  TH1F* h_pT_d_all;
+
+
+  TFile file_p(FilePath+FileNameP1,"read");
+  h_pT_p = (TH1F*)file_p.Get("pTDist_after");
+  if(!h_pT_p) printf("ISSUE with h_pT_p\n");
+  //fOutput.cd();
+  gROOT->cd();
+  h_pT_p_all = (TH1F*)h_pT_p->Clone("h_pT_p_all");
+
+  TFile file_ap(FilePath+FileNameAP1,"read");
+  h_pT_ap = (TH1F*)file_ap.Get("pTDist_after");
+  if(!h_pT_ap) printf("ISSUE with h_pT_ap\n");
+  h_pT_p_all->Add(h_pT_ap);
+
+  TFile file_d(FilePath+FileNameP2,"read");
+  h_pT_d = (TH1F*)file_d.Get("pTDist_after");
+  if(!h_pT_d) printf("ISSUE with h_pT_d\n");
+  //fOutput.cd();
+  gROOT->cd();
+  h_pT_d_all = (TH1F*)h_pT_d->Clone("h_pT_d_all");
+
+  TFile file_ad(FilePath+FileNameAP2,"read");
+  h_pT_ad = (TH1F*)file_ad.Get("pTDist_after");
+  if(!h_pT_ad) printf("ISSUE with h_pT_ad\n");
+  h_pT_d_all->Add(h_pT_ad);
+
+  DLM_Histo<float>* dlm_pT_p = Convert_TH1F_DlmHisto(h_pT_p_all);
+  DLM_Histo<float>* dlm_pT_d = Convert_TH1F_DlmHisto(h_pT_d_all);
+  dlm_pT_p->RescaleAxis(0,1000,false);
+  dlm_pT_d->RescaleAxis(0,1000,false);
+
+  double* BinRange = NULL;
+  double axis[2];
+
+  DLM_Histo<float> dlm_pT_eta_p;
+  dlm_pT_eta_p.SetUp(2);
+  BinRange = dlm_pT_p->GetBinRange(0);
+  dlm_pT_eta_p.SetUp(0,dlm_pT_p->GetNbins(),BinRange);
+  delete [] BinRange;
+  dlm_pT_eta_p.SetUp(1,1,-EtaCut,EtaCut);
+  dlm_pT_eta_p.Initialize();
+  for(unsigned uBin=0; uBin<dlm_pT_p->GetNbins(); uBin++){
+    dlm_pT_eta_p.SetBinContent(uBin,0,dlm_pT_p->GetBinContent(uBin));
+    //printf("b%u %.3e\n",uBin,dlm_pT_p->GetBinContent(uBin));
+  }
+
+  DLM_Histo<float> dlm_pT_eta_d;
+  dlm_pT_eta_d.SetUp(2);
+  BinRange = dlm_pT_d->GetBinRange(0);
+  dlm_pT_eta_d.SetUp(0,dlm_pT_d->GetNbins(),BinRange);
+  delete [] BinRange;
+  dlm_pT_eta_d.SetUp(1,1,-EtaCut,EtaCut);
+  dlm_pT_eta_d.Initialize();
+  for(unsigned uBin=0; uBin<dlm_pT_d->GetNbins(); uBin++){
+    dlm_pT_eta_d.SetBinContent(uBin,0,dlm_pT_d->GetBinContent(uBin));
+  }
+
+  gROOT->cd();
 
   TH1F* h_reff = new TH1F("h_reff","h_reff",NumRadBins,rMin,rMax);
   //TH1F* h_rstar_Ceca = new TH1F("h_rstar_Ceca","h_rstar_Ceca",NumRadBins,rMin,rMax);
@@ -3073,7 +3187,8 @@ void Ceca_vs_RSM_1(const std::string part1, const std::string part2){
       prt->SetRadius(HadronSize);
       prt->SetRadiusSlope(HadronSlope);
 
-      prt->SetPtPz(prt->GetMass()*MomSpread*0.001,prt->GetMass()*MomSpread*0.001);
+      //prt->SetPtPz(prt->GetMass()*MomSpread*0.001,prt->GetMass()*MomSpread*0.001);
+      prt->SetPtEtaPhi(dlm_pT_eta_p);
     }
     else if(prt->GetName()=="Lambda"){
       prt->SetMass(Mass_L);
@@ -3081,7 +3196,8 @@ void Ceca_vs_RSM_1(const std::string part1, const std::string part2){
       prt->SetRadius(HadronSize);
       prt->SetRadiusSlope(HadronSlope);
 
-      prt->SetPtPz(prt->GetMass()*MomSpread*0.001*1.3,prt->GetMass()*MomSpread*0.001*1.3);
+      //prt->SetPtPz(prt->GetMass()*MomSpread*0.001,prt->GetMass()*MomSpread*0.001);
+      prt->SetPtEtaPhi(dlm_pT_eta_d);
     }
     else if(prt->GetName()=="Pion"){
       prt->SetMass(Mass_pic);
@@ -3103,7 +3219,8 @@ void Ceca_vs_RSM_1(const std::string part1, const std::string part2){
       prt->GetDecay(0)->AddDaughter(*Database.GetParticle("Pion"));
       prt->GetDecay(0)->SetBranching(100);
 
-      prt->SetPtPz(prt->GetMass()*MomSpread*0.001,prt->GetMass()*MomSpread*0.001);
+      //prt->SetPtPz(prt->GetMass()*MomSpread*0.001,prt->GetMass()*MomSpread*0.001);
+      prt->SetPtEtaPhi(dlm_pT_eta_p);
     }
     else if(prt->GetName()=="LambdaReso"){
       prt->SetMass(Mass_LambdaReso);
@@ -3117,13 +3234,15 @@ void Ceca_vs_RSM_1(const std::string part1, const std::string part2){
       prt->GetDecay(0)->AddDaughter(*Database.GetParticle("Pion"));
       prt->GetDecay(0)->SetBranching(100);
 
-      prt->SetPtPz(prt->GetMass()*MomSpread*0.001*1.3,prt->GetMass()*MomSpread*0.001*1.3);
+      //prt->SetPtPz(prt->GetMass()*MomSpread*0.001,prt->GetMass()*MomSpread*0.001);
+      prt->SetPtEtaPhi(dlm_pT_eta_d);
     }
 
-    //prt->SetPtEtaPhi(MomSpread*);
     prt->SetAcceptance_Eta(-EtaCut,EtaCut);
-    prt->SetAcceptance_pT(500,1e6);
-
+    //prt->SetPtPz(prt->GetMass()*MomSpread*0.001,prt->GetMass()*MomSpread*0.001);
+    //prt->SetPtEtaPhi(MomSpread*);
+    //
+    //prt->SetAcceptance_pT(500,1e6);
   }
   std::vector<std::string> ListOfParticles;
   ListOfParticles.push_back(part1);
@@ -3141,6 +3260,7 @@ void Ceca_vs_RSM_1(const std::string part1, const std::string part2){
   Ivana.SetSourceDim(2);
   Ivana.SetThreadTimeout(TIMEOUT);
   Ivana.SetFemtoRegion(q_CutOff*0.5);
+  Ivana.EqualizeFsiTime(EQUALIZE_TAU);
   Ivana.GHETTO_EVENT = true;
   printf("Goal for reff = %.4f fm; <r*> = %.4f fm\n",reff,h_reff->GetMean());
   printf("--- CECA source ---\n");
@@ -3271,8 +3391,9 @@ void Ceca_vs_RSM_1(const std::string part1, const std::string part2){
 
 
   printf("--- RSM source ---\n");
-  double rcore = reff*0.819;
+  //double rcore = reff*0.819;
   //double rcore = reff*1.46;
+  double rcore = reff;
   printf(" Starting parameter: rcore = %.4f fm\n",rcore);
   for(unsigned uBin=0; uBin<NumRadBins; uBin++){
     double rstar = h_rstar_Rsm->GetBinCenter(uBin+1);
@@ -3378,6 +3499,639 @@ void Ceca_vs_RSM_1(const std::string part1, const std::string part2){
   delete f_rcore_Ceca;
   delete f_rcore_Rsm;
 }
+
+void Ceca_vs_RSM_2(const std::string part1, const std::string part2, const bool PropMother){
+  const double reff = sqrt(2);
+  const double rSP = 1.0;//1.0
+
+  const double EtaCut = 0.8;
+  const bool EQUALIZE_TAU = true;
+  const double TIMEOUT = 30;
+  const double FracProtonReso = 0.6422*1;
+  const double FracLambdaReso = 0.6438*1;
+  const double PancakeT = 0.0;
+  const double PancakeZ = 0.0;
+  const double Tau = 0.0;
+  const double PancakeFluct = 0;//in % !!!
+  unsigned THREADS = 0;
+  const double MomSpread = 1061;
+  const bool THERMAL_KICK = false;
+  const double q_CutOff = 200;
+  const double DisplT = rSP;
+  const double DisplZ = rSP;
+
+  int Type = 0;
+  if(part1=="Proton"&&part2=="Proton") Type = 1;
+  else if(part1=="Proton"&&part2=="Lambda") Type = 2;
+  else {printf("Cannot do it\n"); return;}
+
+  double PancakeV = PancakeT*PancakeT*PancakeZ*4./3.*Pi;
+  printf("Displacement: %.2f %.2f %.2f fm\n",DisplT,DisplT,DisplZ);
+  printf("Pancake     : %.2f %.2f %.2f fm\n",PancakeT,PancakeT,PancakeZ);
+  printf("PancakeV    : %.2f fm^3\n",PancakeV);
+
+  const double Tau_Proton = 1.65;
+  const double Tau_Lambda = 4.69;//4.69
+
+  const double Mass_ProtonReso = 1362;
+  const double Mass_LambdaReso = 1462;
+
+  const unsigned NumRadBins = 256;
+  const double rMin = 0;
+  const double rMax = 32;
+
+  DLM_Histo<float>* dlm_pT_eta_p = GetPtEtaDist(
+    TString::Format("%s/Jaime/p_pT.root",GetCernBoxDimi()),
+    TString::Format("%s/Jaime/ap_pT.root",GetCernBoxDimi()));
+
+  DLM_Histo<float>* dlm_pT_eta_L = GetPtEtaDist(
+    TString::Format("%s/Jaime/L_pT.root",GetCernBoxDimi()),
+    TString::Format("%s/Jaime/aL_pT.root",GetCernBoxDimi()));
+
+  TH1F* h_reff = new TH1F("h_reff","h_reff",NumRadBins,rMin,rMax);
+  //TH1F* h_rstar_Ceca = new TH1F("h_rstar_Ceca","h_rstar_Ceca",NumRadBins,rMin,rMax);
+  TH2F* h_kstar_rstar_Ceca;
+  TH1F* h_rstar_CecaAll = NULL;
+  TH1F* h_rstar_Ceca = NULL;
+  TH1F* h_rstar_Rsm = new TH1F("h_rstar_Rsm","h_rstar_Rsm",NumRadBins,rMin,rMax);
+  TH1F* h_rstar_RsmWS = new TH1F("h_rstar_RsmWS","h_rstar_RsmWS",NumRadBins,rMin,rMax);
+  TH1F* h_rstar_RsmCeca = new TH1F("h_rstar_RsmCeca","h_rstar_RsmCeca",NumRadBins,rMin,rMax);
+  TH1F* h_rcore_Rsm = new TH1F("h_rcore_Rsm","h_rcore_Rsm",NumRadBins,rMin,rMax);
+  TH1F* h_rcore_Ceca;// = new TH1F("h_rcore_Ceca","h_rcore_Ceca",NumRadBins,rMin,rMax);
+  TH1F* h_rcore_CecaAll;
+
+  TH1F* h_PR_AngleRcP2_Rsm = new TH1F("h_PR_AngleRcP2_Rsm","h_PR_AngleRcP2_Rsm",64,0,Pi);
+  TH1F* h_RP_AngleRcP1_Rsm = new TH1F("h_RP_AngleRcP1_Rsm","h_RP_AngleRcP1_Rsm",64,0,Pi);
+  TH1F* h_RR_AngleRcP2_Rsm = new TH1F("h_RR_AngleRcP2_Rsm","h_RR_AngleRcP2_Rsm",64,0,Pi);
+  TH1F* h_RR_AngleRcP1_Rsm = new TH1F("h_RR_AngleRcP1_Rsm","h_RR_AngleRcP1_Rsm",64,0,Pi);
+  TH1F* h_RR_AngleP1P2_Rsm = new TH1F("h_RR_AngleP1P2_Rsm","h_RR_AngleP1P2_Rsm",64,0,Pi);
+
+  TH1F* h_PR_AngleRcP2_RsmWS = new TH1F("h_PR_AngleRcP2_RsmWS","h_PR_AngleRcP2_RsmWS",64,0,Pi);
+  TH1F* h_RP_AngleRcP1_RsmWS = new TH1F("h_RP_AngleRcP1_RsmWS","h_RP_AngleRcP1_RsmWS",64,0,Pi);
+
+  TF1* f_reff = new TF1("f_reff","[0]*4.*TMath::Pi()*x*x*pow(4.*TMath::Pi()*[1]*[1],-1.5)*exp(-(x*x)/(4.*[1]*[1]))+1.-[0]",rMin,rMax);
+  TF1* f_rstar_Ceca = new TF1("f_rstar_Ceca","[0]*4.*TMath::Pi()*x*x*pow(4.*TMath::Pi()*[1]*[1],-1.5)*exp(-(x*x)/(4.*[1]*[1]))+1.-[0]",rMin,rMax);
+  TF1* f_rstar_Rsm = new TF1("f_rstar_Rsm","[0]*4.*TMath::Pi()*x*x*pow(4.*TMath::Pi()*[1]*[1],-1.5)*exp(-(x*x)/(4.*[1]*[1]))+1.-[0]",rMin,rMax);
+  TF1* f_rcore_Ceca = new TF1("f_rcore_Ceca","[0]*4.*TMath::Pi()*x*x*pow(4.*TMath::Pi()*[1]*[1],-1.5)*exp(-(x*x)/(4.*[1]*[1]))+1.-[0]",rMin,rMax);
+  TF1* f_rcore_Rsm = new TF1("f_rcore_Rsm","[0]*4.*TMath::Pi()*x*x*pow(4.*TMath::Pi()*[1]*[1],-1.5)*exp(-(x*x)/(4.*[1]*[1]))+1.-[0]",rMin,rMax);
+
+  f_reff->FixParameter(0,1);
+  f_reff->FixParameter(1,reff);
+  for(unsigned uBin=0; uBin<NumRadBins; uBin++){
+    double rad = h_reff->GetBinCenter(uBin+1);
+    double val = f_reff->Eval(rad);
+    double err = 1e-3;
+    h_reff->SetBinContent(uBin+1,val);
+    h_reff->SetBinError(uBin+1,err);
+  }
+
+  //set up the RSM
+  DLM_CleverMcLevyResoTM MagicSource;
+  MagicSource.InitStability(1,2-1e-6,2+1e-6);
+  MagicSource.InitScale(38,0.15,2.0);
+  MagicSource.InitRad(257*2,0,64);
+  MagicSource.InitType(2);
+  MagicSource.SetUpReso(0,FracProtonReso);
+  MagicSource.SetUpReso(1,Type==1?FracProtonReso:FracLambdaReso);
+  MagicSource.InitNumMcIter(1000000);
+
+  DLM_CleverMcLevyResoTM MagicSourceWrongSign;
+  MagicSourceWrongSign.InitStability(1,2-1e-6,2+1e-6);
+  MagicSourceWrongSign.InitScale(38,0.15,2.0);
+  MagicSourceWrongSign.InitRad(257*2,0,64);
+  MagicSourceWrongSign.InitType(2);
+  MagicSourceWrongSign.SetUpReso(0,FracProtonReso);
+  MagicSourceWrongSign.SetUpReso(1,Type==1?FracProtonReso:FracLambdaReso);
+  MagicSourceWrongSign.InitNumMcIter(1000000);
+
+  DLM_CleverMcLevyResoTM MagicSourceCeca;
+  MagicSourceCeca.InitStability(1,2-1e-6,2+1e-6);
+  MagicSourceCeca.InitScale(38,0.15,2.0);
+  MagicSourceCeca.InitRad(257*2,0,64);
+  MagicSourceCeca.InitType(2);
+  MagicSourceCeca.SetUpReso(0,FracProtonReso);
+  MagicSourceCeca.SetUpReso(1,Type==1?FracProtonReso:FracLambdaReso);
+  MagicSourceCeca.InitNumMcIter(1000000);
+
+  Float_t k_D;
+  Float_t fP1;
+  Float_t fP2;
+  Float_t fM1;
+  Float_t fM2;
+  Float_t Tau1;
+  Float_t Tau2;
+  Float_t AngleRcP1;
+  Float_t AngleRcP2;
+  Float_t AngleP1P2;
+  DLM_Random RanGen(11);
+  double RanVal1;
+  double RanVal2;
+  double RanVal3;
+
+  if(Type==1){
+    TFile* F_EposDisto_p_pReso;
+    F_EposDisto_p_pReso = new TFile(TString::Format("%s/CatsFiles/Source/EposAngularDist/EposDisto_p_pReso.root",GetCernBoxDimi()));
+    TNtuple* T_EposDisto_p_pReso = (TNtuple*)F_EposDisto_p_pReso->Get("InfoTuple_ClosePairs");
+    unsigned N_EposDisto_p_pReso = T_EposDisto_p_pReso->GetEntries();
+    T_EposDisto_p_pReso->SetBranchAddress("k_D",&k_D);
+    T_EposDisto_p_pReso->SetBranchAddress("P1",&fP1);
+    T_EposDisto_p_pReso->SetBranchAddress("P2",&fP2);
+    T_EposDisto_p_pReso->SetBranchAddress("M1",&fM1);
+    T_EposDisto_p_pReso->SetBranchAddress("M2",&fM2);
+    T_EposDisto_p_pReso->SetBranchAddress("Tau1",&Tau1);
+    T_EposDisto_p_pReso->SetBranchAddress("Tau2",&Tau2);
+    T_EposDisto_p_pReso->SetBranchAddress("AngleRcP1",&AngleRcP1);
+    T_EposDisto_p_pReso->SetBranchAddress("AngleRcP2",&AngleRcP2);
+    T_EposDisto_p_pReso->SetBranchAddress("AngleP1P2",&AngleP1P2);
+    for(unsigned uEntry=0; uEntry<N_EposDisto_p_pReso; uEntry++){
+        T_EposDisto_p_pReso->GetEntry(uEntry);
+        Tau1 = 0;
+        Tau2 = Tau_Proton;
+        fM2 = Mass_ProtonReso;
+        if(k_D>q_CutOff) continue;
+        RanVal1 = RanGen.Exponential(fM2/(fP2*Tau2));
+        //this is with the correct sign
+        MagicSource.AddBGT_PR(RanVal1,cos(AngleRcP2));
+        MagicSource.AddBGT_RP(RanVal1,-cos(AngleRcP2));
+        MagicSourceWrongSign.AddBGT_PR(RanVal1,-cos(AngleRcP2));
+        MagicSourceWrongSign.AddBGT_RP(RanVal1,cos(AngleRcP2));
+
+        h_PR_AngleRcP2_Rsm->Fill(AngleRcP2);
+        h_RP_AngleRcP1_Rsm->Fill(Pi-AngleRcP2);
+
+        h_PR_AngleRcP2_RsmWS->Fill(Pi-AngleRcP2);
+        h_RP_AngleRcP1_RsmWS->Fill(AngleRcP2);
+    }
+    delete F_EposDisto_p_pReso;
+
+    TFile* F_EposDisto_pReso_pReso;
+    F_EposDisto_pReso_pReso = new TFile(TString::Format("%s/CatsFiles/Source/EposAngularDist/EposDisto_pReso_pReso.root",GetCernBoxDimi()));
+    TNtuple* T_EposDisto_pReso_pReso = (TNtuple*)F_EposDisto_pReso_pReso->Get("InfoTuple_ClosePairs");
+    unsigned N_EposDisto_pReso_pReso = T_EposDisto_pReso_pReso->GetEntries();
+    T_EposDisto_pReso_pReso->SetBranchAddress("k_D",&k_D);
+    T_EposDisto_pReso_pReso->SetBranchAddress("P1",&fP1);
+    T_EposDisto_pReso_pReso->SetBranchAddress("P2",&fP2);
+    T_EposDisto_pReso_pReso->SetBranchAddress("M1",&fM1);
+    T_EposDisto_pReso_pReso->SetBranchAddress("M2",&fM2);
+    T_EposDisto_pReso_pReso->SetBranchAddress("Tau1",&Tau1);
+    T_EposDisto_pReso_pReso->SetBranchAddress("Tau2",&Tau2);
+    T_EposDisto_pReso_pReso->SetBranchAddress("AngleRcP1",&AngleRcP1);
+    T_EposDisto_pReso_pReso->SetBranchAddress("AngleRcP2",&AngleRcP2);
+    T_EposDisto_pReso_pReso->SetBranchAddress("AngleP1P2",&AngleP1P2);
+    for(unsigned uEntry=0; uEntry<N_EposDisto_pReso_pReso; uEntry++){
+        T_EposDisto_pReso_pReso->GetEntry(uEntry);
+        Tau1 = Tau_Proton;
+        Tau2 = Tau_Proton;
+        fM1 = Mass_ProtonReso;
+        fM2 = Mass_ProtonReso;
+        if(k_D>q_CutOff) continue;
+        RanVal1 = RanGen.Exponential(fM1/(fP1*Tau1));
+        RanVal2 = RanGen.Exponential(fM2/(fP2*Tau2));
+        MagicSource.AddBGT_RR(RanVal1,cos(AngleRcP1),RanVal2,cos(AngleRcP2),cos(AngleP1P2));
+        MagicSourceWrongSign.AddBGT_RR(RanVal1,cos(AngleRcP1),RanVal2,cos(AngleRcP2),cos(AngleP1P2));
+        h_RR_AngleRcP1_Rsm->Fill(AngleRcP1);
+        h_RR_AngleRcP2_Rsm->Fill(AngleRcP2);
+        h_RR_AngleP1P2_Rsm->Fill(AngleP1P2);
+    }
+    delete F_EposDisto_pReso_pReso;
+
+  }
+  else{
+    TFile* F_EposDisto_p_LamReso = new TFile(TString::Format("%s/CatsFiles/Source/EposAngularDist/EposDisto_p_LamReso.root",GetCernBoxDimi()));
+    TNtuple* T_EposDisto_p_LamReso = (TNtuple*)F_EposDisto_p_LamReso->Get("InfoTuple_ClosePairs");
+    unsigned N_EposDisto_p_LamReso = T_EposDisto_p_LamReso->GetEntries();
+    T_EposDisto_p_LamReso->SetBranchAddress("k_D",&k_D);
+    T_EposDisto_p_LamReso->SetBranchAddress("P1",&fP1);
+    T_EposDisto_p_LamReso->SetBranchAddress("P2",&fP2);
+    T_EposDisto_p_LamReso->SetBranchAddress("M1",&fM1);
+    T_EposDisto_p_LamReso->SetBranchAddress("M2",&fM2);
+    T_EposDisto_p_LamReso->SetBranchAddress("Tau1",&Tau1);
+    T_EposDisto_p_LamReso->SetBranchAddress("Tau2",&Tau2);
+    T_EposDisto_p_LamReso->SetBranchAddress("AngleRcP1",&AngleRcP1);
+    T_EposDisto_p_LamReso->SetBranchAddress("AngleRcP2",&AngleRcP2);
+    T_EposDisto_p_LamReso->SetBranchAddress("AngleP1P2",&AngleP1P2);
+    for(unsigned uEntry=0; uEntry<N_EposDisto_p_LamReso; uEntry++){
+        T_EposDisto_p_LamReso->GetEntry(uEntry);
+        Tau1 = 0;
+        Tau2 = Tau_Lambda;
+        fM2 = Mass_LambdaReso;
+        if(k_D>q_CutOff) continue;
+        RanVal2 = RanGen.Exponential(fM2/(fP2*Tau2));
+        MagicSource.AddBGT_PR(RanVal2,cos(AngleRcP2));
+        MagicSourceWrongSign.AddBGT_PR(RanVal2,cos(AngleRcP2));
+        h_PR_AngleRcP2_Rsm->Fill(AngleRcP2);
+        h_PR_AngleRcP2_RsmWS->Fill(AngleRcP2);
+    }
+    delete F_EposDisto_p_LamReso;
+
+    TFile* F_EposDisto_pReso_Lam = new TFile(TString::Format("%s/CatsFiles/Source/EposAngularDist/EposDisto_pReso_Lam.root",GetCernBoxDimi()));
+    TNtuple* T_EposDisto_pReso_Lam = (TNtuple*)F_EposDisto_pReso_Lam->Get("InfoTuple_ClosePairs");
+    unsigned N_EposDisto_pReso_Lam = T_EposDisto_pReso_Lam->GetEntries();
+    T_EposDisto_pReso_Lam->SetBranchAddress("k_D",&k_D);
+    T_EposDisto_pReso_Lam->SetBranchAddress("P1",&fP1);
+    T_EposDisto_pReso_Lam->SetBranchAddress("P2",&fP2);
+    T_EposDisto_pReso_Lam->SetBranchAddress("M1",&fM1);
+    T_EposDisto_pReso_Lam->SetBranchAddress("M2",&fM2);
+    T_EposDisto_pReso_Lam->SetBranchAddress("Tau1",&Tau1);
+    T_EposDisto_pReso_Lam->SetBranchAddress("Tau2",&Tau2);
+    T_EposDisto_pReso_Lam->SetBranchAddress("AngleRcP1",&AngleRcP1);
+    T_EposDisto_pReso_Lam->SetBranchAddress("AngleRcP2",&AngleRcP2);
+    T_EposDisto_pReso_Lam->SetBranchAddress("AngleP1P2",&AngleP1P2);
+    for(unsigned uEntry=0; uEntry<N_EposDisto_pReso_Lam; uEntry++){
+        T_EposDisto_pReso_Lam->GetEntry(uEntry);
+        Tau1 = Tau_Proton;
+        Tau2 = 0;
+        fM1 = Mass_ProtonReso;
+        if(k_D>q_CutOff) continue;
+        RanVal1 = RanGen.Exponential(fM1/(fP1*Tau1));
+        MagicSource.AddBGT_RP(RanVal1,cos(AngleRcP1));
+        MagicSourceWrongSign.AddBGT_RP(RanVal1,cos(AngleRcP1));
+        h_RP_AngleRcP1_Rsm->Fill(AngleRcP1);
+        h_RP_AngleRcP1_RsmWS->Fill(AngleRcP1);
+    }
+    delete F_EposDisto_pReso_Lam;
+
+    TFile* F_EposDisto_pReso_LamReso = new TFile(TString::Format("%s/CatsFiles/Source/EposAngularDist/EposDisto_pReso_LamReso.root",GetCernBoxDimi()));
+    TNtuple* T_EposDisto_pReso_LamReso = (TNtuple*)F_EposDisto_pReso_LamReso->Get("InfoTuple_ClosePairs");
+    unsigned N_EposDisto_pReso_LamReso = T_EposDisto_pReso_LamReso->GetEntries();
+    T_EposDisto_pReso_LamReso->SetBranchAddress("k_D",&k_D);
+    T_EposDisto_pReso_LamReso->SetBranchAddress("P1",&fP1);
+    T_EposDisto_pReso_LamReso->SetBranchAddress("P2",&fP2);
+    T_EposDisto_pReso_LamReso->SetBranchAddress("M1",&fM1);
+    T_EposDisto_pReso_LamReso->SetBranchAddress("M2",&fM2);
+    T_EposDisto_pReso_LamReso->SetBranchAddress("Tau1",&Tau1);
+    T_EposDisto_pReso_LamReso->SetBranchAddress("Tau2",&Tau2);
+    T_EposDisto_pReso_LamReso->SetBranchAddress("AngleRcP1",&AngleRcP1);
+    T_EposDisto_pReso_LamReso->SetBranchAddress("AngleRcP2",&AngleRcP2);
+    T_EposDisto_pReso_LamReso->SetBranchAddress("AngleP1P2",&AngleP1P2);
+    for(unsigned uEntry=0; uEntry<N_EposDisto_pReso_LamReso; uEntry++){
+        T_EposDisto_pReso_LamReso->GetEntry(uEntry);
+        Tau1 = Tau_Proton;
+        Tau2 = Tau_Lambda;
+        fM1 = Mass_ProtonReso;
+        fM2 = Mass_LambdaReso;
+        if(k_D>q_CutOff) continue;
+        RanVal1 = RanGen.Exponential(fM1/(fP1*Tau1));
+        RanVal2 = RanGen.Exponential(fM2/(fP2*Tau2));
+        MagicSource.AddBGT_RR(RanVal1,cos(AngleRcP1),RanVal2,cos(AngleRcP2),cos(AngleP1P2));
+        MagicSourceWrongSign.AddBGT_RR(RanVal1,cos(AngleRcP1),RanVal2,cos(AngleRcP2),cos(AngleP1P2));
+        h_RR_AngleRcP1_Rsm->Fill(AngleRcP1);
+        h_RR_AngleRcP2_Rsm->Fill(AngleRcP2);
+        h_RR_AngleP1P2_Rsm->Fill(AngleP1P2);
+    }
+    delete F_EposDisto_pReso_LamReso;
+  }
+
+  h_PR_AngleRcP2_Rsm->Sumw2();
+  h_RP_AngleRcP1_Rsm->Sumw2();
+  h_RR_AngleRcP1_Rsm->Sumw2();
+  h_RR_AngleRcP2_Rsm->Sumw2();
+  h_RR_AngleP1P2_Rsm->Sumw2();
+
+  h_PR_AngleRcP2_RsmWS->Sumw2();
+  h_RP_AngleRcP1_RsmWS->Sumw2();
+
+  h_PR_AngleRcP2_Rsm->Scale(1./h_PR_AngleRcP2_Rsm->Integral(),"width");
+  h_RP_AngleRcP1_Rsm->Scale(1./h_RP_AngleRcP1_Rsm->Integral(),"width");
+  h_RR_AngleRcP1_Rsm->Scale(1./h_RR_AngleRcP1_Rsm->Integral(),"width");
+  h_RR_AngleRcP2_Rsm->Scale(1./h_RR_AngleRcP2_Rsm->Integral(),"width");
+  h_RR_AngleP1P2_Rsm->Scale(1./h_RR_AngleP1P2_Rsm->Integral(),"width");
+
+  h_PR_AngleRcP2_RsmWS->Scale(1./h_PR_AngleRcP2_Rsm->Integral(),"width");
+  h_RP_AngleRcP1_RsmWS->Scale(1./h_RP_AngleRcP1_Rsm->Integral(),"width");
+  ///////////////////////////
+
+  TREPNI Database(0);
+  Database.SetSeed(11);
+  std::vector<TreParticle*> ParticleList;
+  ParticleList.push_back(Database.NewParticle("Proton"));
+  ParticleList.push_back(Database.NewParticle("Lambda"));
+  ParticleList.push_back(Database.NewParticle("Pion"));
+
+  ParticleList.push_back(Database.NewParticle("ProtonReso"));
+  ParticleList.push_back(Database.NewParticle("LambdaReso"));
+
+  double ExpPP,ExpPR,ExpRP,ExpRR;
+  ExpPP = (1.-FracProtonReso)*(1.-FracLambdaReso);
+  ExpPR = (1.-FracProtonReso)*FracLambdaReso;
+  ExpRP = FracProtonReso*(1.-FracLambdaReso);
+  ExpRR = FracProtonReso*FracLambdaReso;
+
+  for(TreParticle* prt : ParticleList){
+    if(prt->GetName()=="Proton"){
+      prt->SetMass(Mass_p);
+      prt->SetAbundance((1.-FracProtonReso));
+      prt->SetPtEtaPhi(*dlm_pT_eta_p);
+    }
+    else if(prt->GetName()=="Lambda"){
+      prt->SetMass(Mass_L);
+      if(Type==1) prt->SetAbundance(0);
+      else prt->SetAbundance((1.-FracLambdaReso));
+      prt->SetPtEtaPhi(*dlm_pT_eta_L);
+    }
+    else if(prt->GetName()=="Pion"){
+      prt->SetMass(Mass_pic);
+      prt->SetAbundance(0);
+    }
+    else if(prt->GetName()=="ProtonReso"){
+      prt->SetMass(Mass_ProtonReso);
+      prt->SetAbundance(FracProtonReso);
+      prt->SetWidth(hbarc/Tau_Proton);
+
+      prt->NewDecay();
+      prt->GetDecay(0)->AddDaughter(*Database.GetParticle("Proton"));
+      prt->GetDecay(0)->AddDaughter(*Database.GetParticle("Pion"));
+      prt->GetDecay(0)->SetBranching(100);
+
+      prt->SetPtEtaPhi(*dlm_pT_eta_p);
+    }
+    else if(prt->GetName()=="LambdaReso"){
+      prt->SetMass(Mass_LambdaReso);
+      if(Type==1) prt->SetAbundance(0);
+      else prt->SetAbundance(FracLambdaReso);
+      prt->SetWidth(hbarc/Tau_Lambda);
+
+      prt->NewDecay();
+      prt->GetDecay(0)->AddDaughter(*Database.GetParticle("Lambda"));
+      prt->GetDecay(0)->AddDaughter(*Database.GetParticle("Pion"));
+      prt->GetDecay(0)->SetBranching(100);
+
+      prt->SetPtEtaPhi(*dlm_pT_eta_L);
+    }
+
+    //prt->SetPtPz(prt->GetMass()*MomSpread*0.001,prt->GetMass()*MomSpread*0.001);
+    //prt->SetAcceptance_Eta(-EtaCut,EtaCut);
+    //prt->SetAcceptance_pT(500,1e6);
+
+  }
+  std::vector<std::string> ListOfParticles;
+  ListOfParticles.push_back(part1);
+  ListOfParticles.push_back(part2);
+  CECA Ivana(Database,ListOfParticles);
+  Ivana.SetDisplacementT(DisplT);
+  Ivana.SetDisplacementZ(DisplZ);
+  Ivana.SetHadronizationT(PancakeT);
+  Ivana.SetHadronizationZ(PancakeZ);
+  Ivana.SetHadrFluctuation(PancakeFluct*0.01);
+  Ivana.SetTau(Tau);
+  //Ivana.SetThermalKick(THERMAL_KICK*ThKick);
+  Ivana.SetTargetStatistics(10);
+  Ivana.SetEventMult(2);
+  Ivana.SetSourceDim(2);
+  Ivana.SetThreadTimeout(TIMEOUT);
+  Ivana.SetFemtoRegion(q_CutOff*0.5);
+  Ivana.EqualizeFsiTime(EQUALIZE_TAU);
+  Ivana.SetPropagateMother(PropMother);
+  Ivana.GHETTO_EVENT = true;
+  Ivana.SetUp_RSM = &MagicSourceCeca;
+  printf("--- CECA source ---\n");
+  Ivana.GoBabyGo(THREADS);
+  Ivana.SetUp_RSM=NULL;
+
+  double r_fit;
+  double r_eff_Rsm;
+  double r_eff_RsmCeca;
+  double r_eff_RsmWS;
+  double r_eff_Ceca;
+  double adjust;
+
+  Ivana.GhettoFemto_rstar->ComputeError();
+  h_rstar_Ceca = Convert_DlmHisto_TH1F(Ivana.GhettoFemto_rstar,"h_rstar_Ceca");
+  r_eff_Ceca = Get_reff(h_rstar_Ceca);
+
+  Ivana.Ghetto_kstar_rstar->ComputeError();
+  h_kstar_rstar_Ceca = Convert_DlmHisto_TH2F(Ivana.Ghetto_kstar_rstar,"h_kstar_rstar_Ceca");
+  Ivana.Ghetto_rstar->ComputeError();
+  h_rstar_CecaAll = Convert_DlmHisto_TH1F(Ivana.Ghetto_rstar,"h_rstar_CecaAll");
+  h_rstar_CecaAll->Scale(1./h_rstar_CecaAll->Integral(),"width");
+
+  printf(" Final parameters: Disp = %.2f %.2f fm; Hadr = %.2f %.2f fm => reff = %.4f <r*> = %.4f\n",
+  Ivana.GetDisplacementT(),Ivana.GetDisplacementZ(),Ivana.GetHadronizationT(),Ivana.GetHadronizationZ(),r_eff_Ceca,h_rstar_Ceca->GetMean());
+  h_rstar_Ceca->Scale(1./h_rstar_Ceca->Integral(),"width");
+
+  Ivana.GhettoFemto_rcore->ComputeError();
+  TH1F* h_rcore_Ceca_alt = Convert_DlmHisto_TH1F(Ivana.GhettoFemto_rcore,"h_rcore_Ceca_alt");
+  h_rcore_Ceca_alt->Scale(1./h_rcore_Ceca_alt->Integral(),"width");
+  double rcore_alt = Get_reff(h_rcore_Ceca_alt);
+
+  double TotPairs = Ivana.GhettoPrimReso[0]+Ivana.GhettoPrimReso[1]+Ivana.GhettoPrimReso[2]+Ivana.GhettoPrimReso[3];
+  double TotPP = double(Ivana.GhettoPrimReso[0])/TotPairs;
+  double TotPR = double(Ivana.GhettoPrimReso[1])/TotPairs;
+  double TotRP = double(Ivana.GhettoPrimReso[2])/TotPairs;
+  double TotRR = double(Ivana.GhettoPrimReso[3])/TotPairs;
+  double FemtoPairs = Ivana.GhettoFemtoPrimReso[0]+Ivana.GhettoFemtoPrimReso[1]+Ivana.GhettoFemtoPrimReso[2]+Ivana.GhettoFemtoPrimReso[3];
+  double FemtoPP = double(Ivana.GhettoFemtoPrimReso[0])/FemtoPairs;
+  double FemtoPR = double(Ivana.GhettoFemtoPrimReso[1])/FemtoPairs;
+  double FemtoRP = double(Ivana.GhettoFemtoPrimReso[2])/FemtoPairs;
+  double FemtoRR = double(Ivana.GhettoFemtoPrimReso[3])/FemtoPairs;
+  printf("   Expected  Total  Femto\n");
+  printf("PP %6.2f%% %6.2f%% %6.2f\n",ExpPP*100.,TotPP*100.,FemtoPP*100.);
+  printf("PR %6.2f%% %6.2f%% %6.2f\n",ExpPR*100.,TotPR*100.,FemtoPR*100.);
+  printf("RP %6.2f%% %6.2f%% %6.2f\n",ExpRP*100.,TotRP*100.,FemtoRP*100.);
+  printf("RR %6.2f%% %6.2f%% %6.2f\n",ExpRR*100.,TotRR*100.,FemtoRR*100.);
+
+  Ivana.Ghetto_RP_AngleRcP1->ComputeError();
+  Ivana.Ghetto_PR_AngleRcP2->ComputeError();
+  Ivana.Ghetto_RR_AngleRcP1->ComputeError();
+  Ivana.Ghetto_RR_AngleRcP2->ComputeError();
+  Ivana.Ghetto_RR_AngleP1P2->ComputeError();
+  TH1F* h_RP_AngleRcP1_Ceca = Convert_DlmHisto_TH1F(Ivana.Ghetto_RP_AngleRcP1,"h_RP_AngleRcP1_Ceca");
+  TH1F* h_PR_AngleRcP2_Ceca = Convert_DlmHisto_TH1F(Ivana.Ghetto_PR_AngleRcP2,"h_PR_AngleRcP2_Ceca");
+  TH1F* h_RR_AngleRcP1_Ceca = Convert_DlmHisto_TH1F(Ivana.Ghetto_RR_AngleRcP1,"h_RR_AngleRcP1_Ceca");
+  TH1F* h_RR_AngleRcP2_Ceca = Convert_DlmHisto_TH1F(Ivana.Ghetto_RR_AngleRcP2,"h_RR_AngleRcP2_Ceca");
+  TH1F* h_RR_AngleP1P2_Ceca = Convert_DlmHisto_TH1F(Ivana.Ghetto_RR_AngleP1P2,"h_RR_AngleP1P2_Ceca");
+
+  h_RP_AngleRcP1_Ceca->Scale(1./h_RP_AngleRcP1_Ceca->Integral(),"width");
+  h_PR_AngleRcP2_Ceca->Scale(1./h_PR_AngleRcP2_Ceca->Integral(),"width");
+  h_RR_AngleRcP1_Ceca->Scale(1./h_RR_AngleRcP1_Ceca->Integral(),"width");
+  h_RR_AngleRcP2_Ceca->Scale(1./h_RR_AngleRcP2_Ceca->Integral(),"width");
+  h_RR_AngleP1P2_Ceca->Scale(1./h_RR_AngleP1P2_Ceca->Integral(),"width");
+
+  Ivana.GhettoFemto_mT_kstar->ComputeError();
+  TH2F* h_GhettoFemto_mT_kstar = Convert_DlmHisto_TH2F(Ivana.GhettoFemto_mT_kstar,"GhettoFemto_mT_kstar");
+
+  Ivana.GhettoFemto_mT_rstar->ComputeError();
+  TH2F* h_GhettoFemto_mT_rstar = Convert_DlmHisto_TH2F(Ivana.GhettoFemto_mT_rstar,"GhettoFemto_mT_rstar");
+
+  TGraphErrors g_GhettoFemto_mT_rstar;
+  g_GhettoFemto_mT_rstar.SetName("g_GhettoFemto_mT_rstar");
+  g_GhettoFemto_mT_rstar.SetMarkerStyle(20);
+  g_GhettoFemto_mT_rstar.SetMarkerSize(2);
+  g_GhettoFemto_mT_rstar.SetLineWidth(3);
+
+  unsigned uPoint = 0;
+  for(unsigned uBin=0; uBin<h_GhettoFemto_mT_rstar->GetXaxis()->GetNbins(); uBin++){
+    TH1F* hProj = (TH1F*)h_GhettoFemto_mT_rstar->ProjectionY(TString::Format("hProj"),uBin+1,uBin+1);
+    if(hProj->GetEntries()<200) {delete hProj; continue;}
+    hProj->Scale(1./hProj->Integral(),"width");
+    double mT = h_GhettoFemto_mT_rstar->GetXaxis()->GetBinCenter(uBin+1);
+    g_GhettoFemto_mT_rstar.SetPoint(uPoint,mT*0.001,Get_reff(hProj));
+    uPoint++;
+    delete hProj;
+  }
+
+  TFile fMtEff_pp(TString::Format("%s/SourceStudies/SourcePaper_pp/Systematics/gMt_pp.root",GetFemtoOutputFolder()),"read");
+  TGraphErrors* gMtEff_pp = (TGraphErrors*)fMtEff_pp.Get("gMtStatGauss_pp");
+  //TGraphErrors* gMtCore_pp = (TGraphErrors*)fMtEff.Get("gMtStatCore_pp");
+  TFile fMtEff_pL(TString::Format("%s/SourceStudies/SourcePaper_pL/Systematics/gMt_pL.root",GetFemtoOutputFolder()),"read");
+  TGraphErrors* gMtEff_pL = (TGraphErrors*)fMtEff_pL.Get("gMtStatGauss_pL_NLO");
+  //TGraphErrors* gMtCore_pp = (TGraphErrors*)fMtEff_pL.Get("gMtStatCore_pL_NLO");
+
+  printf("--- CECA core ---\n");
+  Database.GetParticle("ProtonReso")->SetAbundance(0);
+  Database.GetParticle("LambdaReso")->SetAbundance(0);
+  Ivana.SetThreadTimeout(TIMEOUT);
+  Ivana.GoBabyGo(THREADS);
+  Ivana.GhettoFemto_rstar->ComputeError();
+  h_rcore_Ceca = Convert_DlmHisto_TH1F(Ivana.GhettoFemto_rstar,"h_rcore_Ceca");
+  h_rcore_Ceca->Scale(1./h_rcore_Ceca->Integral(),"width");
+  double rcore = Get_reff(h_rcore_Ceca);
+  printf(" Final r_core = %.4f fm; reff = %.4f fm; <r*> = %.4f\n",rcore,r_eff_Ceca,h_rcore_Ceca->GetMean());
+  Ivana.Ghetto_rstar->ComputeError();
+  h_rcore_CecaAll = Convert_DlmHisto_TH1F(Ivana.Ghetto_rstar,"h_rcore_CecaAll");
+  h_rcore_CecaAll->Scale(1./h_rcore_CecaAll->Integral(),"width");
+
+  Ivana.GhettoFemto_mT_rstar->ComputeError();
+  TH2F* h_GhettoFemto_mT_core = Convert_DlmHisto_TH2F(Ivana.GhettoFemto_mT_rstar,"h_GhettoFemto_mT_core");
+
+  TGraphErrors g_GhettoFemto_mT_core;
+  g_GhettoFemto_mT_core.SetName("g_GhettoFemto_mT_core");
+  g_GhettoFemto_mT_core.SetMarkerStyle(20);
+  g_GhettoFemto_mT_core.SetMarkerSize(2);
+  g_GhettoFemto_mT_core.SetLineWidth(3);
+
+  uPoint = 0;
+  for(unsigned uBin=0; uBin<h_GhettoFemto_mT_core->GetXaxis()->GetNbins(); uBin++){
+    TH1F* hProj = (TH1F*)h_GhettoFemto_mT_core->ProjectionY(TString::Format("hProj"),uBin+1,uBin+1);
+    if(hProj->GetEntries()<200) {delete hProj; continue;}
+    hProj->Scale(1./hProj->Integral(),"width");
+    double mT = h_GhettoFemto_mT_core->GetXaxis()->GetBinCenter(uBin+1);
+    g_GhettoFemto_mT_core.SetPoint(uPoint,mT*0.001,Get_reff(hProj));
+    uPoint++;
+    delete hProj;
+  }
+
+  printf("--- RSM source ---\n");
+  printf(" Starting parameter: rcore = %.4f fm\n",rcore);
+  for(unsigned uBin=0; uBin<NumRadBins; uBin++){
+    double rstar = h_rstar_Rsm->GetBinCenter(uBin+1);
+    double parameters[2];
+    parameters[0] = rcore;
+    parameters[1] = 2.0;
+
+    double val = MagicSource.RootEval(&rstar,parameters);
+    h_rstar_Rsm->SetBinContent(uBin+1,val);
+    h_rstar_Rsm->SetBinError(uBin+1,1e-3);
+
+    val = MagicSourceWrongSign.RootEval(&rstar,parameters);
+    h_rstar_RsmWS->SetBinContent(uBin+1,val);
+    h_rstar_RsmWS->SetBinError(uBin+1,1e-3);
+
+    val = MagicSourceCeca.RootEval(&rstar,parameters);
+    h_rstar_RsmCeca->SetBinContent(uBin+1,val);
+    h_rstar_RsmCeca->SetBinError(uBin+1,1e-3);
+  }
+
+  r_eff_Rsm = Get_reff(h_rstar_Rsm);
+  r_eff_RsmCeca = Get_reff(h_rstar_RsmCeca);
+  r_eff_RsmWS = Get_reff(h_rstar_RsmWS);
+  printf(" Final rcore = %.4f fm; reff = %.4f fm; <r*> = %.4f\n",rcore,r_eff_Rsm,h_rstar_Rsm->GetMean());
+  printf(" Ceca  rcore = %.4f fm\n",rcore_alt);
+  printf("         With wrong sign: reff = %.4f fm; <r*> = %.4f\n",r_eff_RsmWS,h_rstar_RsmWS->GetMean());
+  printf("          CECA based RSM: reff = %.4f fm; <r*> = %.4f\n",r_eff_RsmCeca,h_rstar_RsmCeca->GetMean());
+  printf("               From CECA: reff = %.4f fm; <r*> = %.4f\n",r_eff_Ceca,h_rstar_Ceca->GetMean());
+  h_rstar_Rsm->Scale(1./h_rstar_Rsm->Integral(),"width");
+  h_rstar_RsmWS->Scale(1./h_rstar_RsmWS->Integral(),"width");
+  h_rstar_RsmCeca->Scale(1./h_rstar_Rsm->Integral(),"width");
+
+  printf("--- RSM core ---\n");
+  f_rcore_Rsm->FixParameter(0,1);
+  f_rcore_Rsm->FixParameter(1,rcore);
+  for(unsigned uBin=0; uBin<NumRadBins; uBin++){
+    double rstar = h_rcore_Rsm->GetBinCenter(uBin+1);
+    h_rcore_Rsm->SetBinContent(uBin+1,f_rcore_Rsm->Eval(rstar));
+    h_rcore_Rsm->SetBinError(uBin+1,1e-3);
+  }
+
+  TFile fOutput(TString::Format("%s/FunWithCeca/Ceca_%s_%s_vs2_RSM_EqTau%i_Tau%.0f_Dsp%.0f-%.0f_Pnk%.0f-%.0f_Fct%.0f_PM%i.root",
+  GetFemtoOutputFolder(),ListOfParticles.at(0).c_str(),ListOfParticles.at(1).c_str(),
+  EQUALIZE_TAU,Tau*100.,Ivana.GetDisplacementT()*100.,Ivana.GetDisplacementZ()*100.,
+  Ivana.GetHadronizationT()*100.,Ivana.GetHadronizationZ()*100.,Ivana.GetHadrFluctuation()*100.,PropMother),"recreate");
+
+  fOutput.cd();
+  h_reff->Write();
+  f_reff->Write();
+  h_kstar_rstar_Ceca->Write();
+  h_rstar_Ceca->Write();
+  h_rstar_CecaAll->Write();
+  h_rstar_Rsm->Write();
+  h_rstar_RsmCeca->Write();
+  h_rcore_Ceca->Write();
+  h_rcore_CecaAll->Write();
+  f_rcore_Ceca->Write();
+  h_rcore_Rsm->Write();
+  f_rcore_Rsm->Write();
+
+  h_PR_AngleRcP2_Ceca->Write();
+  h_PR_AngleRcP2_Rsm->Write();
+
+  h_RP_AngleRcP1_Ceca->Write();
+  h_RP_AngleRcP1_Rsm->Write();
+
+  h_RR_AngleRcP1_Ceca->Write();
+  h_RR_AngleRcP1_Rsm->Write();
+
+  h_RR_AngleRcP2_Ceca->Write();
+  h_RR_AngleRcP2_Rsm->Write();
+
+  h_RR_AngleP1P2_Ceca->Write();
+  h_RR_AngleP1P2_Rsm->Write();
+
+  h_GhettoFemto_mT_rstar->Write();
+  g_GhettoFemto_mT_rstar.Write();
+  gMtEff_pp->Write();
+  gMtEff_pL->Write();
+  h_GhettoFemto_mT_core->Write();
+  g_GhettoFemto_mT_core.Write();
+  //gMtCore_pp->Write();
+
+  h_GhettoFemto_mT_kstar->Write();
+
+  delete h_reff;
+  if(h_rstar_Ceca){delete h_rstar_Ceca; h_rstar_Ceca=NULL;}
+  delete h_rstar_Rsm;
+  delete h_rstar_RsmWS;
+  delete h_rstar_RsmCeca;
+  delete h_rcore_Rsm;
+  delete h_rcore_Ceca;
+  delete h_PR_AngleRcP2_Rsm;
+  delete h_RP_AngleRcP1_Rsm;
+  delete h_PR_AngleRcP2_RsmWS;
+  delete h_RP_AngleRcP1_RsmWS;
+  delete h_RR_AngleRcP1_Rsm;
+  delete h_RR_AngleRcP2_Rsm;
+  delete h_RR_AngleP1P2_Rsm;
+  delete h_PR_AngleRcP2_Ceca;
+  delete h_RP_AngleRcP1_Ceca;
+  delete h_RR_AngleRcP1_Ceca;
+  delete h_RR_AngleRcP2_Ceca;
+  delete h_RR_AngleP1P2_Ceca;
+  delete h_GhettoFemto_mT_rstar;
+  delete h_GhettoFemto_mT_kstar;
+  delete h_kstar_rstar_Ceca;
+  delete h_rstar_CecaAll;
+  delete h_rcore_CecaAll;
+  delete h_GhettoFemto_mT_core;
+  delete h_rcore_Ceca_alt;
+  delete f_reff;
+  delete f_rstar_Ceca;
+  delete f_rstar_Rsm;
+  delete f_rcore_Ceca;
+  delete f_rcore_Rsm;
+  delete dlm_pT_eta_p;
+  delete dlm_pT_eta_L;
+}
+
 
 void CecaTest_p_pi_1(){
 
@@ -3959,12 +4713,583 @@ void CecaTest_p_pi_1(){
 }
 
 
+void BasicSetUp_MS(DLM_CleverMcLevyResoTM& MagicSource, double frac1, double frac2){
+  MagicSource.InitStability(1,2-1e-6,2+1e-6);
+  MagicSource.InitScale(38,0.15,2.0);
+  MagicSource.InitRad(257*2,0,64);
+  MagicSource.InitType(2);
+  MagicSource.SetUpReso(0,frac1);
+  MagicSource.SetUpReso(1,frac2);
+  MagicSource.InitNumMcIter(1000000);
+}
+
+//const double FracProtonReso = 0.6422*1;
+//const double FracLambdaReso = 0.6438*1;
+void SetUp_RSM_pp(DLM_CleverMcLevyResoTM& MagicSource, const bool WrongSign=false){
+  Float_t k_D;
+  Float_t fP1;
+  Float_t fP2;
+  Float_t fM1;
+  Float_t fM2;
+  Float_t Tau1;
+  Float_t Tau2;
+  Float_t AngleRcP1;
+  Float_t AngleRcP2;
+  Float_t AngleP1P2;
+  DLM_Random RanGen(11);
+  double RanVal1;
+  double RanVal2;
+  double RanVal3;
+
+  BasicSetUp_MS(MagicSource,0.6422,0.6438);
+  const double Tau_Proton = 1.65;
+  const double Mass_ProtonReso = 1362;
+  const double q_CutOff = 200;
+
+  TFile* F_EposDisto_p_pReso;
+  F_EposDisto_p_pReso = new TFile(TString::Format("%s/CatsFiles/Source/EposAngularDist/EposDisto_p_pReso.root",GetCernBoxDimi()));
+  TNtuple* T_EposDisto_p_pReso = (TNtuple*)F_EposDisto_p_pReso->Get("InfoTuple_ClosePairs");
+  unsigned N_EposDisto_p_pReso = T_EposDisto_p_pReso->GetEntries();
+  T_EposDisto_p_pReso->SetBranchAddress("k_D",&k_D);
+  T_EposDisto_p_pReso->SetBranchAddress("P1",&fP1);
+  T_EposDisto_p_pReso->SetBranchAddress("P2",&fP2);
+  T_EposDisto_p_pReso->SetBranchAddress("M1",&fM1);
+  T_EposDisto_p_pReso->SetBranchAddress("M2",&fM2);
+  T_EposDisto_p_pReso->SetBranchAddress("Tau1",&Tau1);
+  T_EposDisto_p_pReso->SetBranchAddress("Tau2",&Tau2);
+  T_EposDisto_p_pReso->SetBranchAddress("AngleRcP1",&AngleRcP1);
+  T_EposDisto_p_pReso->SetBranchAddress("AngleRcP2",&AngleRcP2);
+  T_EposDisto_p_pReso->SetBranchAddress("AngleP1P2",&AngleP1P2);
+  for(unsigned uEntry=0; uEntry<N_EposDisto_p_pReso; uEntry++){
+      T_EposDisto_p_pReso->GetEntry(uEntry);
+      Tau1 = 0;
+      Tau2 = Tau_Proton;
+      fM2 = Mass_ProtonReso;
+      if(k_D>q_CutOff) continue;
+      RanVal1 = RanGen.Exponential(fM2/(fP2*Tau2));
+      //this is with the correct sign
+      if(WrongSign){
+        MagicSource.AddBGT_PR(RanVal1,-cos(AngleRcP2));
+        MagicSource.AddBGT_RP(RanVal1,cos(AngleRcP2));
+      }
+      else{
+        MagicSource.AddBGT_PR(RanVal1,cos(AngleRcP2));
+        MagicSource.AddBGT_RP(RanVal1,-cos(AngleRcP2));
+
+      }
+  }
+  delete F_EposDisto_p_pReso;
+
+  TFile* F_EposDisto_pReso_pReso;
+  F_EposDisto_pReso_pReso = new TFile(TString::Format("%s/CatsFiles/Source/EposAngularDist/EposDisto_pReso_pReso.root",GetCernBoxDimi()));
+  TNtuple* T_EposDisto_pReso_pReso = (TNtuple*)F_EposDisto_pReso_pReso->Get("InfoTuple_ClosePairs");
+  unsigned N_EposDisto_pReso_pReso = T_EposDisto_pReso_pReso->GetEntries();
+  T_EposDisto_pReso_pReso->SetBranchAddress("k_D",&k_D);
+  T_EposDisto_pReso_pReso->SetBranchAddress("P1",&fP1);
+  T_EposDisto_pReso_pReso->SetBranchAddress("P2",&fP2);
+  T_EposDisto_pReso_pReso->SetBranchAddress("M1",&fM1);
+  T_EposDisto_pReso_pReso->SetBranchAddress("M2",&fM2);
+  T_EposDisto_pReso_pReso->SetBranchAddress("Tau1",&Tau1);
+  T_EposDisto_pReso_pReso->SetBranchAddress("Tau2",&Tau2);
+  T_EposDisto_pReso_pReso->SetBranchAddress("AngleRcP1",&AngleRcP1);
+  T_EposDisto_pReso_pReso->SetBranchAddress("AngleRcP2",&AngleRcP2);
+  T_EposDisto_pReso_pReso->SetBranchAddress("AngleP1P2",&AngleP1P2);
+  for(unsigned uEntry=0; uEntry<N_EposDisto_pReso_pReso; uEntry++){
+      T_EposDisto_pReso_pReso->GetEntry(uEntry);
+      Tau1 = Tau_Proton;
+      Tau2 = Tau_Proton;
+      fM1 = Mass_ProtonReso;
+      fM2 = Mass_ProtonReso;
+      if(k_D>q_CutOff) continue;
+      RanVal1 = RanGen.Exponential(fM1/(fP1*Tau1));
+      RanVal2 = RanGen.Exponential(fM2/(fP2*Tau2));
+      MagicSource.AddBGT_RR(RanVal1,cos(AngleRcP1),RanVal2,cos(AngleRcP2),cos(AngleP1P2));
+  }
+  delete F_EposDisto_pReso_pReso;
+}
+
+void SetUp_RSM_pL(DLM_CleverMcLevyResoTM& MagicSource){
+  Float_t k_D;
+  Float_t fP1;
+  Float_t fP2;
+  Float_t fM1;
+  Float_t fM2;
+  Float_t Tau1;
+  Float_t Tau2;
+  Float_t AngleRcP1;
+  Float_t AngleRcP2;
+  Float_t AngleP1P2;
+  DLM_Random RanGen(11);
+  double RanVal1;
+  double RanVal2;
+  double RanVal3;
+
+  BasicSetUp_MS(MagicSource,0.6438,0.6438);
+  const double Tau_Proton = 1.65;
+  const double Tau_Lambda = 4.69;//4.69
+  const double Mass_ProtonReso = 1362;
+  const double Mass_LambdaReso = 1462;
+  const double q_CutOff = 200;
+
+  TFile* F_EposDisto_p_LamReso = new TFile(TString::Format("%s/CatsFiles/Source/EposAngularDist/EposDisto_p_LamReso.root",GetCernBoxDimi()));
+  TNtuple* T_EposDisto_p_LamReso = (TNtuple*)F_EposDisto_p_LamReso->Get("InfoTuple_ClosePairs");
+  unsigned N_EposDisto_p_LamReso = T_EposDisto_p_LamReso->GetEntries();
+  T_EposDisto_p_LamReso->SetBranchAddress("k_D",&k_D);
+  T_EposDisto_p_LamReso->SetBranchAddress("P1",&fP1);
+  T_EposDisto_p_LamReso->SetBranchAddress("P2",&fP2);
+  T_EposDisto_p_LamReso->SetBranchAddress("M1",&fM1);
+  T_EposDisto_p_LamReso->SetBranchAddress("M2",&fM2);
+  T_EposDisto_p_LamReso->SetBranchAddress("Tau1",&Tau1);
+  T_EposDisto_p_LamReso->SetBranchAddress("Tau2",&Tau2);
+  T_EposDisto_p_LamReso->SetBranchAddress("AngleRcP1",&AngleRcP1);
+  T_EposDisto_p_LamReso->SetBranchAddress("AngleRcP2",&AngleRcP2);
+  T_EposDisto_p_LamReso->SetBranchAddress("AngleP1P2",&AngleP1P2);
+  for(unsigned uEntry=0; uEntry<N_EposDisto_p_LamReso; uEntry++){
+      T_EposDisto_p_LamReso->GetEntry(uEntry);
+      Tau1 = 0;
+      Tau2 = Tau_Lambda;
+      fM2 = Mass_LambdaReso;
+      if(k_D>q_CutOff) continue;
+      RanVal2 = RanGen.Exponential(fM2/(fP2*Tau2));
+      MagicSource.AddBGT_PR(RanVal2,cos(AngleRcP2));
+  }
+  delete F_EposDisto_p_LamReso;
+
+  TFile* F_EposDisto_pReso_Lam = new TFile(TString::Format("%s/CatsFiles/Source/EposAngularDist/EposDisto_pReso_Lam.root",GetCernBoxDimi()));
+  TNtuple* T_EposDisto_pReso_Lam = (TNtuple*)F_EposDisto_pReso_Lam->Get("InfoTuple_ClosePairs");
+  unsigned N_EposDisto_pReso_Lam = T_EposDisto_pReso_Lam->GetEntries();
+  T_EposDisto_pReso_Lam->SetBranchAddress("k_D",&k_D);
+  T_EposDisto_pReso_Lam->SetBranchAddress("P1",&fP1);
+  T_EposDisto_pReso_Lam->SetBranchAddress("P2",&fP2);
+  T_EposDisto_pReso_Lam->SetBranchAddress("M1",&fM1);
+  T_EposDisto_pReso_Lam->SetBranchAddress("M2",&fM2);
+  T_EposDisto_pReso_Lam->SetBranchAddress("Tau1",&Tau1);
+  T_EposDisto_pReso_Lam->SetBranchAddress("Tau2",&Tau2);
+  T_EposDisto_pReso_Lam->SetBranchAddress("AngleRcP1",&AngleRcP1);
+  T_EposDisto_pReso_Lam->SetBranchAddress("AngleRcP2",&AngleRcP2);
+  T_EposDisto_pReso_Lam->SetBranchAddress("AngleP1P2",&AngleP1P2);
+  for(unsigned uEntry=0; uEntry<N_EposDisto_pReso_Lam; uEntry++){
+      T_EposDisto_pReso_Lam->GetEntry(uEntry);
+      Tau1 = Tau_Proton;
+      Tau2 = 0;
+      fM1 = Mass_ProtonReso;
+      if(k_D>q_CutOff) continue;
+      RanVal1 = RanGen.Exponential(fM1/(fP1*Tau1));
+      MagicSource.AddBGT_RP(RanVal1,cos(AngleRcP1));
+  }
+  delete F_EposDisto_pReso_Lam;
+
+  TFile* F_EposDisto_pReso_LamReso = new TFile(TString::Format("%s/CatsFiles/Source/EposAngularDist/EposDisto_pReso_LamReso.root",GetCernBoxDimi()));
+  TNtuple* T_EposDisto_pReso_LamReso = (TNtuple*)F_EposDisto_pReso_LamReso->Get("InfoTuple_ClosePairs");
+  unsigned N_EposDisto_pReso_LamReso = T_EposDisto_pReso_LamReso->GetEntries();
+  T_EposDisto_pReso_LamReso->SetBranchAddress("k_D",&k_D);
+  T_EposDisto_pReso_LamReso->SetBranchAddress("P1",&fP1);
+  T_EposDisto_pReso_LamReso->SetBranchAddress("P2",&fP2);
+  T_EposDisto_pReso_LamReso->SetBranchAddress("M1",&fM1);
+  T_EposDisto_pReso_LamReso->SetBranchAddress("M2",&fM2);
+  T_EposDisto_pReso_LamReso->SetBranchAddress("Tau1",&Tau1);
+  T_EposDisto_pReso_LamReso->SetBranchAddress("Tau2",&Tau2);
+  T_EposDisto_pReso_LamReso->SetBranchAddress("AngleRcP1",&AngleRcP1);
+  T_EposDisto_pReso_LamReso->SetBranchAddress("AngleRcP2",&AngleRcP2);
+  T_EposDisto_pReso_LamReso->SetBranchAddress("AngleP1P2",&AngleP1P2);
+  for(unsigned uEntry=0; uEntry<N_EposDisto_pReso_LamReso; uEntry++){
+      T_EposDisto_pReso_LamReso->GetEntry(uEntry);
+      Tau1 = Tau_Proton;
+      Tau2 = Tau_Lambda;
+      fM1 = Mass_ProtonReso;
+      fM2 = Mass_LambdaReso;
+      if(k_D>q_CutOff) continue;
+      RanVal1 = RanGen.Exponential(fM1/(fP1*Tau1));
+      RanVal2 = RanGen.Exponential(fM2/(fP2*Tau2));
+      MagicSource.AddBGT_RR(RanVal1,cos(AngleRcP1),RanVal2,cos(AngleRcP2),cos(AngleP1P2));
+  }
+  delete F_EposDisto_pReso_LamReso;
+
+}
 
 
 
 
+void Ceca_pp_pL_source(){
+
+  const double EtaCut = 0.8;
+  const double PtCut = 500;
+  const bool EQUALIZE_TAU = true;
+  const double TIMEOUT = 20;
+  const double FracProtonReso = 0.6422*1;
+  const double FracLambdaReso = 0.6438*1;
+  const double DisplT = 1.2;
+  const double DisplZ = 1.2;
+  const double PancakeT = 0.0;
+  const double PancakeZ = 0;
+  const double Tau = 0.0;
+  const double TauFluct = 0;
+  const double PancakeFluct = 0;//in % !!!
+  unsigned THREADS = 0;
+  const double MomSpread = 1061;
+  const double THERMAL_KICK = 0;
+  const double q_CutOff = 200;
+
+  double PancakeV = PancakeT*PancakeT*PancakeZ*4./3.*Pi;
+  printf("Displacement: %.2f %.2f %.2f fm\n",DisplT,DisplT,DisplZ);
+  printf("Pancake     : %.2f %.2f %.2f fm\n",PancakeT,PancakeT,PancakeZ);
+  printf("PancakeV    : %.2f fm^3\n",PancakeV);
+
+  const double Tau_Proton = 1.65;
+  const double Tau_Lambda = 4.69;//4.69
+
+  const double Mass_ProtonReso = 1362;
+  const double Mass_LambdaReso = 1462;
+
+  const unsigned NumRadBins = 256;
+  const double rMin = 0;
+  const double rMax = 32;
+
+  DLM_Histo<float>* dlm_pT_eta_p = GetPtEtaDist(
+    TString::Format("%s/Jaime/p_pT.root",GetCernBoxDimi()),
+    TString::Format("%s/Jaime/ap_pT.root",GetCernBoxDimi()));
+
+  DLM_Histo<float>* dlm_pT_eta_L = GetPtEtaDist(
+    TString::Format("%s/Jaime/L_pT.root",GetCernBoxDimi()),
+    TString::Format("%s/Jaime/aL_pT.root",GetCernBoxDimi()));
+
+  TREPNI Database(0);
+  Database.SetSeed(11);
+  std::vector<TreParticle*> ParticleList;
+  ParticleList.push_back(Database.NewParticle("Proton"));
+  ParticleList.push_back(Database.NewParticle("Lambda"));
+  ParticleList.push_back(Database.NewParticle("Pion"));
+
+  ParticleList.push_back(Database.NewParticle("ProtonReso"));
+  ParticleList.push_back(Database.NewParticle("LambdaReso"));
+
+  double ExpPP,ExpPR,ExpRP,ExpRR;
+  ExpPP = (1.-FracProtonReso)*(1.-FracLambdaReso);
+  ExpPR = (1.-FracProtonReso)*FracLambdaReso;
+  ExpRP = FracProtonReso*(1.-FracLambdaReso);
+  ExpRR = FracProtonReso*FracLambdaReso;
+
+  for(TreParticle* prt : ParticleList){
+    if(prt->GetName()=="Proton"){
+      prt->SetMass(Mass_p);
+      prt->SetAbundance((1.-FracProtonReso));
+      prt->SetPtEtaPhi(*dlm_pT_eta_p);
+    }
+    else if(prt->GetName()=="Lambda"){
+      prt->SetMass(Mass_L);
+      prt->SetAbundance((1.-FracLambdaReso));
+      prt->SetPtEtaPhi(*dlm_pT_eta_L);
+    }
+    else if(prt->GetName()=="Pion"){
+      prt->SetMass(Mass_pic);
+      prt->SetAbundance(0);
+    }
+    else if(prt->GetName()=="ProtonReso"){
+      prt->SetMass(Mass_ProtonReso);
+      prt->SetAbundance(FracProtonReso);
+      prt->SetWidth(hbarc/Tau_Proton);
+
+      prt->NewDecay();
+      prt->GetDecay(0)->AddDaughter(*Database.GetParticle("Proton"));
+      prt->GetDecay(0)->AddDaughter(*Database.GetParticle("Pion"));
+      prt->GetDecay(0)->SetBranching(100);
+
+      prt->SetPtEtaPhi(*dlm_pT_eta_p);
+    }
+    else if(prt->GetName()=="LambdaReso"){
+      prt->SetMass(Mass_LambdaReso);
+      prt->SetAbundance(FracLambdaReso);
+      prt->SetWidth(hbarc/Tau_Lambda);
+
+      prt->NewDecay();
+      prt->GetDecay(0)->AddDaughter(*Database.GetParticle("Lambda"));
+      prt->GetDecay(0)->AddDaughter(*Database.GetParticle("Pion"));
+      prt->GetDecay(0)->SetBranching(100);
+
+      prt->SetPtEtaPhi(*dlm_pT_eta_L);
+    }
+
+    //prt->SetPtPz(prt->GetMass()*MomSpread*0.001,prt->GetMass()*MomSpread*0.001);
+    prt->SetAcceptance_Eta(-EtaCut,EtaCut);
+    prt->SetAcceptance_pT(PtCut,1e6);
+
+  }
 
 
+  DLM_CleverMcLevyResoTM MagicSource_Uni_pp;
+  DLM_CleverMcLevyResoTM MagicSource_EposWS_pp;
+  DLM_CleverMcLevyResoTM MagicSource_Epos_pp;
+  DLM_CleverMcLevyResoTM MagicSource_BB_pp;
+  DLM_CleverMcLevyResoTM MagicSource_Ceca_pp;
+
+  DLM_CleverMcLevyResoTM MagicSource_Uni_pL;
+  DLM_CleverMcLevyResoTM MagicSource_Epos_pL;
+  DLM_CleverMcLevyResoTM& MagicSource_EposWS_pL = MagicSource_Epos_pL;
+  DLM_CleverMcLevyResoTM MagicSource_BB_pL;
+  DLM_CleverMcLevyResoTM MagicSource_Ceca_pL;
+
+  BasicSetUp_MS(MagicSource_Uni_pp,FracProtonReso,FracProtonReso);
+  BasicSetUp_MS(MagicSource_EposWS_pp,FracProtonReso,FracProtonReso);
+  BasicSetUp_MS(MagicSource_Epos_pp,FracProtonReso,FracProtonReso);
+  BasicSetUp_MS(MagicSource_BB_pp,FracProtonReso,FracProtonReso);
+  BasicSetUp_MS(MagicSource_Ceca_pp,FracProtonReso,FracProtonReso);
+
+  BasicSetUp_MS(MagicSource_Uni_pL,FracProtonReso,FracLambdaReso);
+  BasicSetUp_MS(MagicSource_Epos_pL,FracProtonReso,FracLambdaReso);
+  BasicSetUp_MS(MagicSource_BB_pL,FracProtonReso,FracLambdaReso);
+  BasicSetUp_MS(MagicSource_Ceca_pL,FracProtonReso,FracLambdaReso);
+
+
+  std::vector<std::string> ListOfParticles;
+
+
+  printf("--- CECA pp ---\n");
+  ListOfParticles.clear();
+  ListOfParticles.push_back("Proton");
+  ListOfParticles.push_back("Proton");
+  CECA Ivana_pp(Database,ListOfParticles);
+  Ivana_pp.SetDisplacementT(DisplT);
+  Ivana_pp.SetDisplacementZ(DisplZ);
+  Ivana_pp.SetHadronizationT(PancakeT);
+  Ivana_pp.SetHadronizationZ(PancakeZ);
+  Ivana_pp.SetHadrFluctuation(PancakeFluct*0.01);
+  Ivana_pp.SetTau(Tau,TauFluct*0.01);
+  Ivana_pp.SetTargetStatistics(10);
+  Ivana_pp.SetEventMult(2);
+  Ivana_pp.SetSourceDim(2);
+  Ivana_pp.SetThreadTimeout(TIMEOUT);
+  Ivana_pp.SetFemtoRegion(q_CutOff*0.5);
+  Ivana_pp.EqualizeFsiTime(EQUALIZE_TAU);
+  Ivana_pp.SetThermalKick(THERMAL_KICK);
+  //Ivana_pp.SetPropagateMother(PropMother);
+  Ivana_pp.GHETTO_EVENT = true;
+  Database.GetParticle("Proton")->SetAbundance(1.-FracProtonReso);
+  Database.GetParticle("Lambda")->SetAbundance(0);
+  Database.GetParticle("ProtonReso")->SetAbundance(FracProtonReso);
+  Database.GetParticle("LambdaReso")->SetAbundance(0);
+  Ivana_pp.SetUp_RSM = &MagicSource_Ceca_pp;
+  Ivana_pp.SetUp_RSM_UNI = &MagicSource_Uni_pp;
+  Ivana_pp.SetUp_RSM_BB = &MagicSource_BB_pp;
+  Ivana_pp.GoBabyGo(THREADS);
+  Ivana_pp.GhettoFemto_mT_rstar->ComputeError();
+  TH2F* h_GhettoFemto_mT_rstar_pp = Convert_DlmHisto_TH2F(Ivana_pp.GhettoFemto_mT_rstar,"h_GhettoFemto_mT_rstar_pp");
+  Ivana_pp.GhettoFemto_mT_rcore->ComputeError();
+  TH2F* h_GhettoFemto_mT_rcore_pp = Convert_DlmHisto_TH2F(Ivana_pp.GhettoFemto_mT_rcore,"h_GhettoFemto_mT_rcore_pp");
+  TGraphErrors pp_GhettoFemto_mT_rstar;
+  pp_GhettoFemto_mT_rstar.SetName("pp_GhettoFemto_mT_rstar");
+  pp_GhettoFemto_mT_rstar.SetMarkerStyle(20);
+  pp_GhettoFemto_mT_rstar.SetMarkerSize(2);
+  pp_GhettoFemto_mT_rstar.SetLineWidth(3);
+  unsigned uPoint = 0;
+  for(unsigned uBin=0; uBin<h_GhettoFemto_mT_rstar_pp->GetXaxis()->GetNbins(); uBin++){
+    TH1F* hProj = (TH1F*)h_GhettoFemto_mT_rstar_pp->ProjectionY(TString::Format("hProj"),uBin+1,uBin+1);
+    if(hProj->GetEntries()<200) {delete hProj; continue;}
+    hProj->Scale(1./hProj->Integral(),"width");
+    double mT = h_GhettoFemto_mT_rstar_pp->GetXaxis()->GetBinCenter(uBin+1);
+    pp_GhettoFemto_mT_rstar.SetPoint(uPoint,mT*0.001,Get_reff(hProj));
+    uPoint++;
+    delete hProj;
+  }
+  TGraphErrors pp_GhettoFemto_mT_rcore;
+  pp_GhettoFemto_mT_rcore.SetName("pp_GhettoFemto_mT_rcore");
+  pp_GhettoFemto_mT_rcore.SetMarkerStyle(20);
+  pp_GhettoFemto_mT_rcore.SetMarkerSize(2);
+  pp_GhettoFemto_mT_rcore.SetLineWidth(3);
+  uPoint = 0;
+  for(unsigned uBin=0; uBin<h_GhettoFemto_mT_rcore_pp->GetXaxis()->GetNbins(); uBin++){
+    TH1F* hProj = (TH1F*)h_GhettoFemto_mT_rcore_pp->ProjectionY(TString::Format("hProj"),uBin+1,uBin+1);
+    if(hProj->GetEntries()<200) {delete hProj; continue;}
+    hProj->Scale(1./hProj->Integral(),"width");
+    double mT = h_GhettoFemto_mT_rcore_pp->GetXaxis()->GetBinCenter(uBin+1);
+    pp_GhettoFemto_mT_rcore.SetPoint(uPoint,mT*0.001,Get_reff(hProj));
+    uPoint++;
+    delete hProj;
+  }
+
+
+  printf("--- CECA pL ---\n");
+  ListOfParticles.clear();
+  ListOfParticles.push_back("Proton");
+  ListOfParticles.push_back("Lambda");
+  CECA Ivana_pL(Database,ListOfParticles);
+  Ivana_pL.SetDisplacementT(DisplT);
+  Ivana_pL.SetDisplacementZ(DisplZ);
+  Ivana_pL.SetHadronizationT(PancakeT);
+  Ivana_pL.SetHadronizationZ(PancakeZ);
+  Ivana_pL.SetHadrFluctuation(PancakeFluct*0.01);
+  Ivana_pL.SetTau(Tau);
+  Ivana_pL.SetTargetStatistics(10);
+  Ivana_pL.SetEventMult(2);
+  Ivana_pL.SetSourceDim(2);
+  Ivana_pL.SetThreadTimeout(TIMEOUT);
+  Ivana_pL.SetFemtoRegion(q_CutOff*0.5);
+  Ivana_pL.EqualizeFsiTime(EQUALIZE_TAU);
+  Ivana_pL.SetThermalKick(THERMAL_KICK);
+  //Ivana_pL.SetPropagateMother(PropMother);
+  Ivana_pL.GHETTO_EVENT = true;
+  Database.GetParticle("Proton")->SetAbundance(1.-FracProtonReso);
+  Database.GetParticle("Lambda")->SetAbundance(1.-FracLambdaReso);
+  Database.GetParticle("ProtonReso")->SetAbundance(FracProtonReso);
+  Database.GetParticle("LambdaReso")->SetAbundance(FracLambdaReso);
+  Ivana_pL.SetUp_RSM = &MagicSource_Ceca_pL;
+  Ivana_pL.SetUp_RSM_UNI = &MagicSource_Uni_pL;
+  Ivana_pL.SetUp_RSM_BB = &MagicSource_BB_pL;
+  Ivana_pL.GoBabyGo(THREADS);
+  Ivana_pL.GhettoFemto_mT_rstar->ComputeError();
+  TH2F* h_GhettoFemto_mT_rstar_pL = Convert_DlmHisto_TH2F(Ivana_pL.GhettoFemto_mT_rstar,"h_GhettoFemto_mT_rstar_pL");
+  Ivana_pL.GhettoFemto_mT_rcore->ComputeError();
+  TH2F* h_GhettoFemto_mT_rcore_pL = Convert_DlmHisto_TH2F(Ivana_pL.GhettoFemto_mT_rcore,"h_GhettoFemto_mT_rcore_pL");
+  TGraphErrors pL_GhettoFemto_mT_rstar;
+  pL_GhettoFemto_mT_rstar.SetName("pL_GhettoFemto_mT_rstar");
+  pL_GhettoFemto_mT_rstar.SetMarkerStyle(20);
+  pL_GhettoFemto_mT_rstar.SetMarkerSize(2);
+  pL_GhettoFemto_mT_rstar.SetLineWidth(3);
+  uPoint = 0;
+  for(unsigned uBin=0; uBin<h_GhettoFemto_mT_rstar_pL->GetXaxis()->GetNbins(); uBin++){
+    TH1F* hProj = (TH1F*)h_GhettoFemto_mT_rstar_pL->ProjectionY(TString::Format("hProj"),uBin+1,uBin+1);
+    if(hProj->GetEntries()<200) {delete hProj; continue;}
+    hProj->Scale(1./hProj->Integral(),"width");
+    double mT = h_GhettoFemto_mT_rstar_pL->GetXaxis()->GetBinCenter(uBin+1);
+    pL_GhettoFemto_mT_rstar.SetPoint(uPoint,mT*0.001,Get_reff(hProj));
+    uPoint++;
+    delete hProj;
+  }
+  TGraphErrors pL_GhettoFemto_mT_rcore;
+  pL_GhettoFemto_mT_rcore.SetName("pL_GhettoFemto_mT_rcore");
+  pL_GhettoFemto_mT_rcore.SetMarkerStyle(20);
+  pL_GhettoFemto_mT_rcore.SetMarkerSize(2);
+  pL_GhettoFemto_mT_rcore.SetLineWidth(3);
+  uPoint = 0;
+  for(unsigned uBin=0; uBin<h_GhettoFemto_mT_rcore_pL->GetXaxis()->GetNbins(); uBin++){
+    TH1F* hProj = (TH1F*)h_GhettoFemto_mT_rcore_pL->ProjectionY(TString::Format("hProj"),uBin+1,uBin+1);
+    if(hProj->GetEntries()<200) {delete hProj; continue;}
+    hProj->Scale(1./hProj->Integral(),"width");
+    double mT = h_GhettoFemto_mT_rcore_pL->GetXaxis()->GetBinCenter(uBin+1);
+    pL_GhettoFemto_mT_rcore.SetPoint(uPoint,mT*0.001,Get_reff(hProj));
+    uPoint++;
+    delete hProj;
+  }
+
+
+  TFile fMtEff_pp(TString::Format("%s/SourceStudies/SourcePaper_pp/Systematics/gMt_pp.root",GetFemtoOutputFolder()),"read");
+  TGraphErrors* gMtEff_pp = (TGraphErrors*)fMtEff_pp.Get("gMtStatGauss_pp");
+  TFile fMtEff_pL(TString::Format("%s/SourceStudies/SourcePaper_pL/Systematics/gMt_pL.root",GetFemtoOutputFolder()),"read");
+  TGraphErrors* gMtEff_pL = (TGraphErrors*)fMtEff_pL.Get("gMtStatGauss_pL_NLO");
+
+
+  const double avg_mT = 0.001*0.5*(h_GhettoFemto_mT_rstar_pp->GetMean(1)+h_GhettoFemto_mT_rstar_pL->GetMean(1));
+  const int mt_bin_pp = h_GhettoFemto_mT_rstar_pp->GetXaxis()->FindBin(avg_mT*1000.);
+  const int mt_bin_pL = h_GhettoFemto_mT_rstar_pL->GetXaxis()->FindBin(avg_mT*1000.);
+  TH1F* h_rstar_avgmt_pp = (TH1F*)h_GhettoFemto_mT_rstar_pp->ProjectionY(TString::Format("h_rstar_avgmt_pp"),mt_bin_pp,mt_bin_pp);
+  TH1F* h_rstar_avgmt_pL = (TH1F*)h_GhettoFemto_mT_rstar_pL->ProjectionY(TString::Format("h_rstar_avgmt_pL"),mt_bin_pL,mt_bin_pL);
+  TH1F* h_rcore_avgmt_pp = (TH1F*)h_GhettoFemto_mT_rcore_pp->ProjectionY(TString::Format("h_rcore_avgmt_pp"),mt_bin_pp,mt_bin_pp);
+  TH1F* h_rcore_avgmt_pL = (TH1F*)h_GhettoFemto_mT_rcore_pL->ProjectionY(TString::Format("h_rcore_avgmt_pL"),mt_bin_pL,mt_bin_pL);
+
+  double rcore_pp = Get_reff(h_rcore_avgmt_pp);
+  double rcore_pL = Get_reff(h_rcore_avgmt_pL);
+  double rstar_pp = Get_reff(h_rstar_avgmt_pp);
+  double rstar_pL = Get_reff(h_rstar_avgmt_pL);
+
+  TH1F* h_rstar_RsmCeca_pp = new TH1F("h_rstar_RsmCeca_pp","h_rstar_RsmCeca_pp",NumRadBins,rMin,rMax);
+  TH1F* h_rstar_RsmUni_pp = new TH1F("h_rstar_RsmUni_pp","h_rstar_RsmUni_pp",NumRadBins,rMin,rMax);
+  TH1F* h_rstar_RsmBB_pp = new TH1F("h_rstar_RsmBB_pp","h_rstar_RsmBB_pp",NumRadBins,rMin,rMax);
+  TH1F* h_rstar_RsmCeca_pL = new TH1F("h_rstar_RsmCeca_pL","h_rstar_RsmCeca_pL",NumRadBins,rMin,rMax);
+  TH1F* h_rstar_RsmUni_pL = new TH1F("h_rstar_RsmUni_pL","h_rstar_RsmUni_pL",NumRadBins,rMin,rMax);
+  TH1F* h_rstar_RsmBB_pL = new TH1F("h_rstar_RsmBB_pL","h_rstar_RsmBB_pL",NumRadBins,rMin,rMax);
+  for(unsigned uBin=0; uBin<NumRadBins; uBin++){
+    double rstar = h_rstar_RsmCeca_pp->GetBinCenter(uBin+1);
+    double parameters[2];
+    parameters[0] = rcore_pp;
+    parameters[1] = 2.0;
+    double val;
+
+    val = MagicSource_Ceca_pp.RootEval(&rstar,parameters);
+    h_rstar_RsmCeca_pp->SetBinContent(uBin+1,val);
+    h_rstar_RsmCeca_pp->SetBinError(uBin+1,1e-3);
+
+    val = MagicSource_Uni_pp.RootEval(&rstar,parameters);
+    h_rstar_RsmUni_pp->SetBinContent(uBin+1,val);
+    h_rstar_RsmUni_pp->SetBinError(uBin+1,1e-3);
+
+    val = MagicSource_BB_pp.RootEval(&rstar,parameters);
+    h_rstar_RsmBB_pp->SetBinContent(uBin+1,val);
+    h_rstar_RsmBB_pp->SetBinError(uBin+1,1e-3);
+
+    val = MagicSource_Ceca_pL.RootEval(&rstar,parameters);
+    h_rstar_RsmCeca_pL->SetBinContent(uBin+1,val);
+    h_rstar_RsmCeca_pL->SetBinError(uBin+1,1e-3);
+
+    val = MagicSource_Uni_pL.RootEval(&rstar,parameters);
+    h_rstar_RsmUni_pL->SetBinContent(uBin+1,val);
+    h_rstar_RsmUni_pL->SetBinError(uBin+1,1e-3);
+
+    val = MagicSource_BB_pL.RootEval(&rstar,parameters);
+    h_rstar_RsmBB_pL->SetBinContent(uBin+1,val);
+    h_rstar_RsmBB_pL->SetBinError(uBin+1,1e-3);
+  }
+
+  double reff_RsmCeca_pp = Get_reff(h_rstar_RsmCeca_pp);
+  double reff_RsmUni_pp = Get_reff(h_rstar_RsmUni_pp);
+  double reff_RsmBB_pp = Get_reff(h_rstar_RsmBB_pp);
+  double reff_RsmCeca_pL = Get_reff(h_rstar_RsmCeca_pL);
+  double reff_RsmUni_pL = Get_reff(h_rstar_RsmUni_pL);
+  double reff_RsmBB_pL = Get_reff(h_rstar_RsmBB_pL);
+
+  printf("<mT> = %.2f GeV\n",avg_mT);
+  printf(" CECA rcore pp  = %.2f fm\n", rcore_pp);
+  printf(" CECA reff (pp) = %.2f (%.2f) fm\n", rstar_pp, pp_GhettoFemto_mT_rstar.Eval(avg_mT));
+  printf("  RsmCeca       = %.2f fm\n", reff_RsmCeca_pp);
+  printf("  RsmUni        = %.2f fm\n", reff_RsmUni_pp);
+  printf("  RsmBB         = %.2f fm\n", reff_RsmBB_pp);
+  printf(" Data reff (pp) = %.2f fm\n", gMtEff_pp->Eval(avg_mT));
+  printf("-------------------\n");
+  printf(" CECA rcore pL  = %.2f fm\n", rcore_pL);
+  printf(" CECA reff (pL) = %.2f (%.2f) fm\n", rstar_pL, pL_GhettoFemto_mT_rstar.Eval(avg_mT));
+  printf("  RsmCeca       = %.2f fm\n", reff_RsmCeca_pL);
+  printf("  RsmUni        = %.2f fm\n", reff_RsmUni_pL);
+  printf("  RsmBB         = %.2f fm\n", reff_RsmBB_pL);
+  printf(" Data reff (pL) = %.2f fm\n", gMtEff_pL->Eval(avg_mT));
+  printf("  CECA Δr = %.2f fm\n",pL_GhettoFemto_mT_rstar.Eval(avg_mT)-pp_GhettoFemto_mT_rstar.Eval(avg_mT));
+  printf("  Data Δr = %.2f fm\n",gMtEff_pL->Eval(avg_mT)-gMtEff_pp->Eval(avg_mT));
+
+
+
+  TFile fOutput(TString::Format("%s/FunWithCeca/Ceca_pp_pL_EqTau%i_Tau%.0f_Dsp%.0f-%.0f_Pnk%.0f-%.0f_Fct%.0f.root",
+  GetFemtoOutputFolder(),
+  EQUALIZE_TAU,Tau*100.,Ivana_pp.GetDisplacementT()*100.,Ivana_pp.GetDisplacementZ()*100.,
+  Ivana_pp.GetHadronizationT()*100.,Ivana_pp.GetHadronizationZ()*100.,Ivana_pp.GetHadrFluctuation()*100.),"recreate");
+
+  fOutput.cd();
+  h_GhettoFemto_mT_rcore_pp->Write();
+  h_rcore_avgmt_pp->Write();
+  h_GhettoFemto_mT_rstar_pp->Write();
+  h_rstar_avgmt_pp->Write();
+  pp_GhettoFemto_mT_rstar.Write();
+  gMtEff_pp->Write();
+  h_GhettoFemto_mT_rcore_pL->Write();
+  h_rcore_avgmt_pL->Write();
+  h_GhettoFemto_mT_rstar_pL->Write();
+  h_rstar_avgmt_pL->Write();
+  pL_GhettoFemto_mT_rstar.Write();
+  gMtEff_pL->Write();
+
+
+
+  delete h_GhettoFemto_mT_rstar_pp;
+  delete h_GhettoFemto_mT_rstar_pL;
+  delete h_rstar_avgmt_pp;
+  delete h_rstar_avgmt_pL;
+  delete h_rcore_avgmt_pp;
+  delete h_rcore_avgmt_pL;
+  delete h_rstar_RsmCeca_pp;
+  delete h_rstar_RsmUni_pp;
+  delete h_rstar_RsmBB_pp;
+  delete h_rstar_RsmCeca_pL;
+  delete h_rstar_RsmUni_pL;
+  delete h_rstar_RsmBB_pL;
+  delete dlm_pT_eta_p;
+  delete dlm_pT_eta_L;
+}
 
 //for LK -> rcore = 1.11 +/- 0.04
 void Ceca_pK_1(const bool Swap_p_with_Lambda=false){
@@ -4543,9 +5868,6 @@ void Ceca_pK_1(const bool Swap_p_with_Lambda=false){
   delete ntNK;
 }
 
-
-
-
 void LK_Source(const double& CoreSize){
   //this one is c.a. 2% smaller than Rsm (based on pK comparison)
   TH1F* hSr_Ceca = new TH1F("hSr_Ceca","hSr_Ceca",512,0,64);
@@ -4613,7 +5935,6 @@ void LK_Source(const double& CoreSize){
   delete f_Ceca;
 }
 
-
 void pd_paper_sources(const bool& anchored){
 
   const unsigned NumMomBins = 50;
@@ -4660,11 +5981,528 @@ void pd_paper_sources(const bool& anchored){
   hs_pL->Write();
   hs_pK->Write();
 
-  
+
   delete s_pK;
   delete hs_pp;
   delete hs_pL;
   delete hs_pK;
+}
+
+
+//last digit: propmother*2 + displ flag
+//the dist flag 0: we fit disp. if it is 1 we fit hadr only
+void Ceca_rcore_vs_reff(const double TIMEOUT, const int flag, const TString system, DLM_Histo<float>& rcore_vs_reff, DLM_Histo<float>& disp_vs_reff,
+                          DLM_CleverMcLevyResoTM* MagicSourceCeca=NULL){
+
+  const double EtaCut = 0.8;
+  const double PtCut = 500;
+  const bool EQUALIZE_TAU = true;
+  const double FracProtonReso = 0.6422*1;
+  const double FracLambdaReso = 0.6438*1;
+  unsigned THREADS = 0;
+  const double q_CutOff = 200;
+  const bool PropMother = (flag%10)%2;
+  printf("Ceca_rcore_vs_reff called:\n");
+  printf(" TIMEOUT = %.0f\n",TIMEOUT);
+  printf(" flag = %i\n",flag);
+  printf(" system = %s\n",system.Data());
+  printf(" PropMother = %i\n",PropMother);
+
+  double disp_min = rcore_vs_reff.GetLowEdge(0)/1.5;
+  double disp_max = rcore_vs_reff.GetUpEdge(0);
+  //2 or 3
+  if((flag%10)/2==1){
+    disp_min = 3.0;
+    disp_max = 10.0;
+  }
+
+  //const unsigned disp_bins = (rcore_vs_reff.GetNbins()*3)/2;
+  const unsigned disp_bins = rcore_vs_reff.GetNbins();
+  //const unsigned disp_bins = 8;
+  const double disp_step = (disp_max-disp_min)/double(disp_bins);
+  TGraph g_disp_reff;
+  g_disp_reff.SetName("g_disp_reff");
+  TGraph g_rcore_disp;
+  g_rcore_disp.SetName("g_rcore_disp");
+
+  int Type = 0;
+  if(system=="pp") Type = 1;
+  else if(system=="pL") Type = 2;
+  else {printf("Cannot do it\n"); return;}
+
+  const double Tau_Proton = 1.65;
+  const double Tau_Lambda = 4.69;//4.69
+
+  const double Mass_ProtonReso = 1362;
+  const double Mass_LambdaReso = 1462;
+
+  const unsigned NumRadBins = 256;
+  const double rMin = 0;
+  const double rMax = 32;
+
+  DLM_Histo<float>* dlm_pT_eta_p = GetPtEtaDist(
+    TString::Format("%s/Jaime/p_pT.root",GetCernBoxDimi()),
+    TString::Format("%s/Jaime/ap_pT.root",GetCernBoxDimi()));
+
+  DLM_Histo<float>* dlm_pT_eta_L = GetPtEtaDist(
+    TString::Format("%s/Jaime/L_pT.root",GetCernBoxDimi()),
+    TString::Format("%s/Jaime/aL_pT.root",GetCernBoxDimi()));
+
+
+  TREPNI Database(0);
+  Database.SetSeed(11);
+
+  std::vector<TreParticle*> ParticleList;
+  ParticleList.push_back(Database.NewParticle("Proton"));
+  ParticleList.push_back(Database.NewParticle("Lambda"));
+  ParticleList.push_back(Database.NewParticle("Pion"));
+  ParticleList.push_back(Database.NewParticle("ProtonReso"));
+  ParticleList.push_back(Database.NewParticle("LambdaReso"));
+
+  for(TreParticle* prt : ParticleList){
+    if(prt->GetName()=="Proton"){
+      prt->SetMass(Mass_p);
+      prt->SetAbundance((1.-FracProtonReso));
+      prt->SetPtEtaPhi(*dlm_pT_eta_p);
+    }
+    else if(prt->GetName()=="Lambda"){
+      prt->SetMass(Mass_L);
+      if(Type==1) prt->SetAbundance(0);
+      else prt->SetAbundance((1.-FracLambdaReso));
+      prt->SetPtEtaPhi(*dlm_pT_eta_L);
+    }
+    else if(prt->GetName()=="Pion"){
+      prt->SetMass(Mass_pic);
+      prt->SetAbundance(0);
+    }
+    else if(prt->GetName()=="ProtonReso"){
+      prt->SetMass(Mass_ProtonReso);
+      prt->SetAbundance(FracProtonReso);
+      prt->SetWidth(hbarc/Tau_Proton);
+
+      prt->NewDecay();
+      prt->GetDecay(0)->AddDaughter(*Database.GetParticle("Proton"));
+      prt->GetDecay(0)->AddDaughter(*Database.GetParticle("Pion"));
+      prt->GetDecay(0)->SetBranching(100);
+
+      prt->SetPtEtaPhi(*dlm_pT_eta_p);
+    }
+    else if(prt->GetName()=="LambdaReso"){
+      prt->SetMass(Mass_LambdaReso);
+      if(Type==1) prt->SetAbundance(0);
+      else prt->SetAbundance(FracLambdaReso);
+      prt->SetWidth(hbarc/Tau_Lambda);
+
+      prt->NewDecay();
+      prt->GetDecay(0)->AddDaughter(*Database.GetParticle("Lambda"));
+      prt->GetDecay(0)->AddDaughter(*Database.GetParticle("Pion"));
+      prt->GetDecay(0)->SetBranching(100);
+
+      prt->SetPtEtaPhi(*dlm_pT_eta_L);
+    }
+
+    //prt->SetPtPz(prt->GetMass()*MomSpread*0.001,prt->GetMass()*MomSpread*0.001);
+    prt->SetAcceptance_Eta(-EtaCut,EtaCut);
+    prt->SetAcceptance_pT(PtCut,1e6);
+  }
+
+  std::vector<std::string> ListOfParticles;
+  ListOfParticles.push_back("Proton");
+  ListOfParticles.push_back(system=="pp"?"Proton":"Lambda");
+  CECA Ivana(Database,ListOfParticles);
+  Ivana.SetTargetStatistics(10);
+  Ivana.SetEventMult(2);
+  Ivana.SetSourceDim(2);
+  Ivana.SetThreadTimeout(TIMEOUT);
+  Ivana.SetFemtoRegion(q_CutOff*0.5);
+  Ivana.EqualizeFsiTime(EQUALIZE_TAU);
+  Ivana.SetPropagateMother(PropMother);
+  Ivana.GHETTO_EVENT = true;
+
+  for(unsigned uDisp=0; uDisp<disp_bins; uDisp++){
+    //printf("%u / %u\n",uDisp,disp_bins);
+    double disp = disp_min+disp_step*double(uDisp);
+    if((flag%10)/2==0){
+      Ivana.SetDisplacement(disp);
+      Ivana.SetHadronization(0);
+    }
+    else{
+      Ivana.SetDisplacement(0);
+      Ivana.SetHadronization(disp);
+    }
+    if(uDisp==disp_bins/2) Ivana.SetUp_RSM = MagicSourceCeca;
+    //if(uDisp==0) Ivana.SetUp_RSM = MagicSourceCeca;
+    else Ivana.SetUp_RSM = NULL;
+    Ivana.GoBabyGo(THREADS);
+
+    Ivana.GhettoFemto_rstar->ComputeError();
+    TH1F* h_rstar_Ceca = Convert_DlmHisto_TH1F(Ivana.GhettoFemto_rstar,"h_rstar_Ceca");
+    h_rstar_Ceca->Scale(1./h_rstar_Ceca->Integral(),"width");
+    g_disp_reff.SetPoint(uDisp,Get_reff(h_rstar_Ceca),disp);
+
+    Ivana.GhettoFemto_rcore->ComputeError();
+    TH1F* h_rcore_Ceca = Convert_DlmHisto_TH1F(Ivana.GhettoFemto_rcore,"h_rcore_Ceca");
+    h_rcore_Ceca->Scale(1./h_rcore_Ceca->Integral(),"width");
+    g_rcore_disp.SetPoint(uDisp,disp,Get_reff(h_rcore_Ceca));
+
+    delete h_rstar_Ceca;
+    delete h_rcore_Ceca;
+  }
+
+  for(unsigned uBin=0; uBin<rcore_vs_reff.GetNbins(); uBin++){
+    double reff = rcore_vs_reff.GetBinCenter(0,uBin);
+    double disp = g_disp_reff.Eval(reff);
+    double rcore = g_rcore_disp.Eval(disp);
+    rcore_vs_reff.SetBinContent(uBin,rcore);
+    disp_vs_reff.SetBinContent(uBin,disp);
+  }
+
+}
+
+
+double GetRcore(DLM_CleverMcLevyResoTM& MagicSource, const double& reff){
+  const unsigned NumRadBins = 256;
+  const double rMin = 0;
+  const double rMax = 32;
+  double rcore = reff;
+  const double Eps = reff*0.001;
+  TH1F* h_rstar = new TH1F("fgsgsdfg","fgsgsdfg",NumRadBins,rMin,rMax);
+  double reff_fit;
+  while(true){
+    for(unsigned uBin=0; uBin<NumRadBins; uBin++){
+      double rstar = h_rstar->GetBinCenter(uBin+1);
+      double parameters[2];
+      parameters[0] = rcore;
+      parameters[1] = 2.0;
+      double val;
+      val = MagicSource.RootEval(&rstar,parameters);
+      h_rstar->SetBinContent(uBin+1,val);
+      h_rstar->SetBinError(uBin+1,1e-3);
+    }
+    reff_fit = Get_reff(h_rstar);
+    if(fabs(reff_fit-reff)>Eps){
+      if(reff_fit>reff)
+      rcore *= (reff/reff_fit);
+    }
+    else break;
+  }
+  delete h_rstar;
+  return rcore;
+}
+
+//FLAG==0 Ceca is set up normally
+//FLAG==1 Ceca propagates the mothers
+void HowWrongIsOurSource(const int FLAG){
+
+  //TFile fMtEff_pp(TString::Format("%s/SourceStudies/SourcePaper_pp/Systematics/gMt_pp.root",GetFemtoOutputFolder()),"read");
+  //TGraphErrors* gMtEff_pp = (TGraphErrors*)fMtEff_pp.Get("gMtStatGauss_pp");
+  //TFile fMtEff_pL(TString::Format("%s/SourceStudies/SourcePaper_pL/Systematics/gMt_pL.root",GetFemtoOutputFolder()),"read");
+  //TGraphErrors* gMtEff_pL = (TGraphErrors*)fMtEff_pL.Get("gMtStatGauss_pL_NLO");
+
+  const double TIMEOUT = 20;
+  const double mT_min = 1.2124;
+  const double mT_max = 2.2116;
+  const unsigned mT_bins = 16;
+  const double mT_step = (mT_max-mT_min)/double(mT_bins);
+
+  //const unsigned NumRadBins = 256;
+  //const double rMin = 0;
+  //const double rMax = 32;
+
+  const unsigned NumMtBins_pp = 7;
+  double* BinRange_pp = new double[NumMtBins_pp+1];
+  double* BinCenter_pp = new double[NumMtBins_pp];
+  BinCenter_pp[0] = 1.1077;
+  BinCenter_pp[1] = 1.1683;
+  BinCenter_pp[2] = 1.2284;
+  BinCenter_pp[3] = 1.3156;
+  BinCenter_pp[4] = 1.4628;
+  BinCenter_pp[5] = 1.6872;
+  BinCenter_pp[6] = 2.2116;
+  BinRange_pp[0] = BinCenter_pp[0]-BinCenter_pp[1]+BinCenter_pp[0];
+  for(int i=1; i<=6; i++) BinRange_pp[i] = (BinCenter_pp[i-1]+BinCenter_pp[i])*0.5;
+  BinRange_pp[7] = BinCenter_pp[6]+BinCenter_pp[6]-BinCenter_pp[5];
+
+  const unsigned NumMtBins_pL = 6;
+  double* BinRange_pL = new double[NumMtBins_pL];
+  double* BinCenter_pL = new double[NumMtBins_pL];
+  BinCenter_pL[0] = 1.2124;
+  BinCenter_pL[1] = 1.2896;
+  BinCenter_pL[2] = 1.376;
+  BinCenter_pL[3] = 1.5407;
+  BinCenter_pL[4] = 1.756;
+  BinCenter_pL[5] = 2.2594;
+  BinRange_pL[0] = BinCenter_pL[0]-BinCenter_pL[1]+BinCenter_pL[0];
+  for(int i=1; i<=5; i++) BinRange_pL[i] = (BinCenter_pL[i-1]+BinCenter_pL[i])*0.5;
+  BinRange_pL[6] = BinCenter_pL[5]+BinCenter_pL[5]-BinCenter_pL[4];
+
+  DLM_Histo<float> dlm_reff_pp;
+  dlm_reff_pp.SetUp(1);
+  dlm_reff_pp.SetUp(0,NumMtBins_pp,BinRange_pp,BinCenter_pp);
+  dlm_reff_pp.Initialize();
+
+  DLM_Histo<float> dlm_reff_pL;
+  dlm_reff_pL.SetUp(1);
+  dlm_reff_pL.SetUp(0,NumMtBins_pL,BinRange_pL,BinCenter_pL);
+  dlm_reff_pL.Initialize();
+
+  dlm_reff_pp.SetBinContent(unsigned(0),1.3717);
+  dlm_reff_pp.SetBinError(unsigned(0),0.02648);
+  dlm_reff_pp.SetBinContent(1,1.3005);
+  dlm_reff_pp.SetBinError(1,0.02477);
+  dlm_reff_pp.SetBinContent(2,1.2709);
+  dlm_reff_pp.SetBinError(2,0.02654);
+  dlm_reff_pp.SetBinContent(3,1.2138);
+  dlm_reff_pp.SetBinError(3,0.02491);
+  dlm_reff_pp.SetBinContent(4,1.1423);
+  dlm_reff_pp.SetBinError(4,0.02936);
+  dlm_reff_pp.SetBinContent(5,1.0482);
+  dlm_reff_pp.SetBinError(5,0.02433);
+  dlm_reff_pp.SetBinContent(6,0.95678);
+  dlm_reff_pp.SetBinError(6,0.02014);
+
+  dlm_reff_pL.SetBinContent(unsigned(0),1.45835);
+  dlm_reff_pL.SetBinError(unsigned(0),0.12951);
+  dlm_reff_pL.SetBinContent(1,1.39835);
+  dlm_reff_pL.SetBinError(1,0.12552);
+  dlm_reff_pL.SetBinContent(2,1.38725);
+  dlm_reff_pL.SetBinError(2,0.09747);
+  dlm_reff_pL.SetBinContent(3,1.3022);
+  dlm_reff_pL.SetBinError(3,0.11191);
+  dlm_reff_pL.SetBinContent(4,1.19395);
+  dlm_reff_pL.SetBinError(4,0.10734);
+  dlm_reff_pL.SetBinContent(5,1.017725);
+  dlm_reff_pL.SetBinError(5,0.11363);
+
+  DLM_Histo<float> dlm_reff_diff(dlm_reff_pL);
+  dlm_reff_diff = dlm_reff_pL;
+  dlm_reff_diff -= dlm_reff_pp;
+
+  TGraphErrors gDiffHalf;
+  gDiffHalf.SetName("gDiffHalf");
+  gDiffHalf.SetFillColorAlpha(kGreen+1,0.3);
+  gDiffHalf.SetLineColor(kGreen+1);
+  gDiffHalf.SetLineWidth(3);
+  TGraphErrors gDiff;
+  gDiff.SetName("gDiff");
+  gDiff.SetFillColorAlpha(kOrange+1,0.3);
+  gDiff.SetLineColor(kOrange+1);
+  gDiff.SetLineWidth(3);
+  for(unsigned uBin=0; uBin<mT_bins; uBin++){
+    double mT = double(uBin)*mT_step+mT_min;
+    gDiffHalf.SetPoint(uBin,mT,dlm_reff_diff.Eval(&mT));
+    gDiffHalf.SetPointError(uBin,0,dlm_reff_diff.Eval(&mT,true)*0.5);
+    gDiff.SetPoint(uBin,mT,dlm_reff_diff.Eval(&mT));
+    gDiff.SetPointError(uBin,0,dlm_reff_diff.Eval(&mT,true));
+  }
+
+  //hos
+  DLM_Histo<float> dlm_Ceca_rcore_vs_reff_pp;
+  dlm_Ceca_rcore_vs_reff_pp.SetUp(1);
+  dlm_Ceca_rcore_vs_reff_pp.SetUp(0,16,0.92,1.42);
+  dlm_Ceca_rcore_vs_reff_pp.Initialize();
+
+  DLM_Histo<float> dlm_Ceca_disp_vs_reff_pp;
+  dlm_Ceca_disp_vs_reff_pp.SetUp(1);
+  dlm_Ceca_disp_vs_reff_pp.SetUp(0,16,0.92,1.42);
+  dlm_Ceca_disp_vs_reff_pp.Initialize();
+
+  DLM_Histo<float> dlm_Ceca_rcore_vs_reff_pL;
+  dlm_Ceca_rcore_vs_reff_pL.SetUp(1);
+  dlm_Ceca_rcore_vs_reff_pL.SetUp(0,24,0.88,1.64);
+  dlm_Ceca_rcore_vs_reff_pL.Initialize();
+
+  DLM_Histo<float> dlm_Ceca_disp_vs_reff_pL;
+  dlm_Ceca_disp_vs_reff_pL.SetUp(1);
+  dlm_Ceca_disp_vs_reff_pL.SetUp(0,24,0.88,1.64);
+  dlm_Ceca_disp_vs_reff_pL.Initialize();
+
+  DLM_CleverMcLevyResoTM MagicSource_Epos_pp;
+  DLM_CleverMcLevyResoTM MagicSource_EposWs_pp;
+  DLM_CleverMcLevyResoTM MagicSource_Epos_pL;
+  SetUp_RSM_pp(MagicSource_Epos_pp,false);
+  SetUp_RSM_pp(MagicSource_EposWs_pp,true);
+  SetUp_RSM_pL(MagicSource_Epos_pL);
+
+  DLM_CleverMcLevyResoTM MagicSource_RsmCeca_pp;
+  DLM_CleverMcLevyResoTM MagicSource_RsmCeca_pL;
+  BasicSetUp_MS(MagicSource_RsmCeca_pp,0.6422,0.6422);
+  BasicSetUp_MS(MagicSource_RsmCeca_pL,0.6422,0.6438);
+
+  //settings flag, pp or pL, histo rcore, disp,
+  Ceca_rcore_vs_reff(TIMEOUT,FLAG,"pp",dlm_Ceca_rcore_vs_reff_pp,dlm_Ceca_disp_vs_reff_pp,&MagicSource_RsmCeca_pp);
+  Ceca_rcore_vs_reff(TIMEOUT,FLAG,"pL",dlm_Ceca_rcore_vs_reff_pL,dlm_Ceca_disp_vs_reff_pL,&MagicSource_RsmCeca_pL);
+
+  TH1F* h_Ceca_rcore_vs_reff_pp = Convert_DlmHisto_TH1F(&dlm_Ceca_rcore_vs_reff_pp,"h_Ceca_rcore_vs_reff_pp");
+  TH1F* h_Ceca_rcore_vs_reff_pL = Convert_DlmHisto_TH1F(&dlm_Ceca_rcore_vs_reff_pL,"h_Ceca_rcore_vs_reff_pL");
+
+  TH1F* h_Ceca_disp_vs_reff_pp = Convert_DlmHisto_TH1F(&dlm_Ceca_disp_vs_reff_pp,"h_Ceca_disp_vs_reff_pp");
+  TH1F* h_Ceca_disp_vs_reff_pL = Convert_DlmHisto_TH1F(&dlm_Ceca_disp_vs_reff_pL,"h_Ceca_disp_vs_reff_pL");
+
+  TGraphErrors mT_rcore_pp_Ceca;
+  mT_rcore_pp_Ceca.SetName("mT_rcore_pp_Ceca");
+  TGraphErrors mT_rcore_pL_Ceca;
+  mT_rcore_pL_Ceca.SetName("mT_rcore_pL_Ceca");
+
+  TGraphErrors mT_rcore_pp_EposWs;
+  mT_rcore_pp_EposWs.SetName("mT_rcore_pp_EposWs");
+  TGraphErrors mT_rcore_pL_EposWs;
+  mT_rcore_pL_EposWs.SetName("mT_rcore_pL_EposWs");
+
+  TGraphErrors mT_rcore_pp_Epos;
+  mT_rcore_pp_Epos.SetName("mT_rcore_pp_Epos");
+  TGraphErrors mT_rcore_pL_Epos;
+  mT_rcore_pL_Epos.SetName("mT_rcore_pL_Epos");
+
+  TGraphErrors mT_rcore_pp_RsmCeca;
+  mT_rcore_pp_RsmCeca.SetName("mT_rcore_pp_RsmCeca");
+  TGraphErrors mT_rcore_pL_RsmCeca;
+  mT_rcore_pL_RsmCeca.SetName("mT_rcore_pL_RsmCeca");
+
+  double Chi2_rcore_Epos = 0;
+  double Chi2_rcore_EposWs = 0;
+  double Chi2_rcore_Ceca = 0;
+  double Chi2_rcore_RsmCeca = 0;
+  //do this for all but the last pL bin (we skip the last, too large error and no pp data)
+  for(unsigned umT=0; umT<NumMtBins_pL-1; umT++){
+    //double mT = double(umT)*mT_step+mT_min;
+    double mT = BinCenter_pL[umT];
+
+    double reff_pp = dlm_reff_pp.Eval(&mT);
+    double refferr_pp = dlm_reff_pp.Eval(&mT,true);
+    double reff_pL = dlm_reff_pL.Eval(&mT);
+    double refferr_pL = dlm_reff_pL.Eval(&mT,true);
+
+    double min_reff_pp = reff_pp-refferr_pp;
+    double max_reff_pp = reff_pp+refferr_pp;
+    double min_reff_pL = reff_pL-refferr_pL;
+    double max_reff_pL = reff_pL+refferr_pL;
+
+    //goal: for each mT bin, based on the reff in pp and pL,
+    //evaluate the corresponding rcore (pp and pL) and the correponding errors
+    //for the errors: simply evaluate the +/-1sigma limits and assume the rcore
+    //is the average of those two
+    //than: evaluate the descrepancy for each mT bin for the hypothesis of a common core
+    //combine the descrepancy for all bins to get a total significance. Hope to stay within 1 sigma, 2 max
+
+    double min_rcore_pp, max_rcore_pp, min_rcore_pL, max_rcore_pL, rcore_pp, rcore_pL, rcore_diff, rcore_err_pp, rcore_err_pL, rcore_err_diff;
+    double rcore_nsig;
+
+    ///////////////
+
+    min_rcore_pp = dlm_Ceca_rcore_vs_reff_pp.Eval(&min_reff_pp);
+    max_rcore_pp = dlm_Ceca_rcore_vs_reff_pp.Eval(&max_reff_pp);
+    min_rcore_pL = dlm_Ceca_rcore_vs_reff_pL.Eval(&min_reff_pL);
+    max_rcore_pL = dlm_Ceca_rcore_vs_reff_pL.Eval(&max_reff_pL);
+
+    rcore_pp = (max_rcore_pp+min_rcore_pp)*0.5;
+    rcore_err_pp = (max_rcore_pp-min_rcore_pp)*0.5;
+    rcore_pL = (max_rcore_pL+min_rcore_pL)*0.5;
+    rcore_err_pL = (max_rcore_pL-min_rcore_pL)*0.5;
+    rcore_diff = rcore_pL-rcore_pp;
+    rcore_err_diff = sqrt(rcore_err_pp*rcore_err_pp+rcore_err_pL*rcore_err_pL);
+    rcore_nsig = fabs(rcore_diff/rcore_err_diff);
+    Chi2_rcore_Ceca += rcore_nsig*rcore_nsig;
+
+    mT_rcore_pp_Ceca.SetPoint(umT,mT,rcore_pp);
+    mT_rcore_pp_Ceca.SetPointError(umT,0,rcore_err_pp);
+
+    mT_rcore_pL_Ceca.SetPoint(umT,mT,rcore_pL);
+    mT_rcore_pL_Ceca.SetPointError(umT,0,rcore_err_pL);
+
+    ///////////////
+
+    max_rcore_pp = GetRcore(MagicSource_EposWs_pp,max_reff_pp);
+    min_rcore_pp = GetRcore(MagicSource_EposWs_pp,min_reff_pp);
+    max_rcore_pL = GetRcore(MagicSource_Epos_pL,max_reff_pL);
+    min_rcore_pL = GetRcore(MagicSource_Epos_pL,min_reff_pL);
+
+    rcore_pp = (max_rcore_pp+min_rcore_pp)*0.5;
+    rcore_err_pp = (max_rcore_pp-min_rcore_pp)*0.5;
+    rcore_pL = (max_rcore_pL+min_rcore_pL)*0.5;
+    rcore_err_pL = (max_rcore_pL-min_rcore_pL)*0.5;
+    rcore_diff = rcore_pL-rcore_pp;
+    rcore_err_diff = sqrt(rcore_err_pp*rcore_err_pp+rcore_err_pL*rcore_err_pL);
+    rcore_nsig = fabs(rcore_diff/rcore_err_diff);
+    Chi2_rcore_EposWs += rcore_nsig*rcore_nsig;
+
+    mT_rcore_pp_EposWs.SetPoint(umT,mT,rcore_pp);
+    mT_rcore_pp_EposWs.SetPointError(umT,0,rcore_err_pp);
+
+    mT_rcore_pL_EposWs.SetPoint(umT,mT,rcore_pL);
+    mT_rcore_pL_EposWs.SetPointError(umT,0,rcore_err_pL);
+    ///////////////
+
+    max_rcore_pp = GetRcore(MagicSource_Epos_pp,max_reff_pp);
+    min_rcore_pp = GetRcore(MagicSource_Epos_pp,min_reff_pp);
+    max_rcore_pL = GetRcore(MagicSource_Epos_pL,max_reff_pL);
+    min_rcore_pL = GetRcore(MagicSource_Epos_pL,min_reff_pL);
+
+    rcore_pp = (max_rcore_pp+min_rcore_pp)*0.5;
+    rcore_err_pp = (max_rcore_pp-min_rcore_pp)*0.5;
+    rcore_pL = (max_rcore_pL+min_rcore_pL)*0.5;
+    rcore_err_pL = (max_rcore_pL-min_rcore_pL)*0.5;
+    rcore_diff = rcore_pL-rcore_pp;
+    rcore_err_diff = sqrt(rcore_err_pp*rcore_err_pp+rcore_err_pL*rcore_err_pL);
+    rcore_nsig = fabs(rcore_diff/rcore_err_diff);
+    Chi2_rcore_Epos += rcore_nsig*rcore_nsig;
+
+    mT_rcore_pp_Epos.SetPoint(umT,mT,rcore_pp);
+    mT_rcore_pp_Epos.SetPointError(umT,0,rcore_err_pp);
+
+    mT_rcore_pL_Epos.SetPoint(umT,mT,rcore_pL);
+    mT_rcore_pL_Epos.SetPointError(umT,0,rcore_err_pL);
+
+    ///////////////
+
+    max_rcore_pp = GetRcore(MagicSource_RsmCeca_pp,max_reff_pp);
+    min_rcore_pp = GetRcore(MagicSource_RsmCeca_pp,min_reff_pp);
+    max_rcore_pL = GetRcore(MagicSource_RsmCeca_pL,max_reff_pL);
+    min_rcore_pL = GetRcore(MagicSource_RsmCeca_pL,min_reff_pL);
+
+    rcore_pp = (max_rcore_pp+min_rcore_pp)*0.5;
+    rcore_err_pp = (max_rcore_pp-min_rcore_pp)*0.5;
+    rcore_pL = (max_rcore_pL+min_rcore_pL)*0.5;
+    rcore_err_pL = (max_rcore_pL-min_rcore_pL)*0.5;
+    rcore_diff = rcore_pL-rcore_pp;
+    rcore_err_diff = sqrt(rcore_err_pp*rcore_err_pp+rcore_err_pL*rcore_err_pL);
+    rcore_nsig = fabs(rcore_diff/rcore_err_diff);
+    Chi2_rcore_RsmCeca += rcore_nsig*rcore_nsig;
+
+    mT_rcore_pp_RsmCeca.SetPoint(umT,mT,rcore_pp);
+    mT_rcore_pp_RsmCeca.SetPointError(umT,0,rcore_err_pp);
+
+    mT_rcore_pL_RsmCeca.SetPoint(umT,mT,rcore_pL);
+    mT_rcore_pL_RsmCeca.SetPointError(umT,0,rcore_err_pL);
+  }
+  //double Nsigma_rcore = GetNsigma(Chi2_rcore,NumMtBins_pL-1);
+
+
+  TFile fOutput(TString::Format("%s/FunWithCeca/HowWrongIsOurSource_FLAG%i.root",GetFemtoOutputFolder(),FLAG),"recreate");
+  gDiffHalf.Write();
+  gDiff.Write();
+  h_Ceca_rcore_vs_reff_pp->Write();
+  h_Ceca_rcore_vs_reff_pL->Write();
+  h_Ceca_disp_vs_reff_pp->Write();
+  h_Ceca_disp_vs_reff_pL->Write();
+  mT_rcore_pp_Ceca.Write();
+  mT_rcore_pL_Ceca.Write();
+  mT_rcore_pp_EposWs.Write();
+  mT_rcore_pL_EposWs.Write();
+  mT_rcore_pp_Epos.Write();
+  mT_rcore_pL_Epos.Write();
+  mT_rcore_pp_RsmCeca.Write();
+  mT_rcore_pL_RsmCeca.Write();
+
+  delete [] BinRange_pp;
+  delete [] BinCenter_pp;
+  delete [] BinRange_pL;
+  delete [] BinCenter_pL;
+
+  delete h_Ceca_rcore_vs_reff_pp;
+  delete h_Ceca_rcore_vs_reff_pL;
+  delete h_Ceca_disp_vs_reff_pp;
+  delete h_Ceca_disp_vs_reff_pL;
 }
 
 
@@ -4713,9 +6551,19 @@ int FUN_WITH_CECA(int argc, char *argv[]){
 
   //Ceca_mT_1();
   //Ceca_vs_RSM_1("Proton","Proton");
-  Ceca_vs_RSM_1("Proton","Lambda");
+  //Ceca_vs_RSM_1("Proton","Lambda");
   //ceca_test();
 
+//concentrate on this one, in particular the prop mother ceca based rsm, seems to almost work
+  //Ceca_vs_RSM_2("Proton","Proton",true);
+  //Ceca_vs_RSM_2("Proton","Lambda",true);
+  //Ceca_vs_RSM_2("Proton","Proton",false);
+  //Ceca_vs_RSM_2("Proton","Lambda",false);
+
+  //HowWrongIsOurSource(0);
+  //HowWrongIsOurSource(1);
+
+  //Ceca_pp_pL_source();
 
   //Ghetto_Test1();
 
