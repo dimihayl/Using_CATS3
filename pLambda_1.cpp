@@ -16302,7 +16302,7 @@ UpdateUnfoldFile(TString::Format("%s/CatsFiles/",GetCernBoxDimi()),
 //printf("hello\n");
 
 //const int& SIGMA_FEED, const int& WhichBaseline, const int& WhichPotential, const float& ValSourceAlpha,
-
+/*
 Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(atoi(argv[4]))/10.,
                             ///home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/100720_Unfolded/
                             //TString::Format("%s/pLambda/100720_Unfolded/",GetCernBoxDimi()),
@@ -16328,7 +16328,7 @@ Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(at
                           );
 
 return 0;
-
+*/
 //MakeLATEXtable(TString::Format("%s/pLambda/PLB/NoBoot/Plots_v4/",GetCernBoxDimi()),false);
 //MakeLATEXtable(TString::Format("%s/pLambda/020522/NoBoot/Plots/",GetCernBoxDimi()),true,1);
 //MakeLATEXtable(TString::Format("%s/pLambda/020522/NoBoot/Plots108/",GetCernBoxDimi()),true,1);

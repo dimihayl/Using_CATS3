@@ -6199,7 +6199,7 @@ void HowWrongIsOurSource(const int FLAG){
   //TFile fMtEff_pL(TString::Format("%s/SourceStudies/SourcePaper_pL/Systematics/gMt_pL.root",GetFemtoOutputFolder()),"read");
   //TGraphErrors* gMtEff_pL = (TGraphErrors*)fMtEff_pL.Get("gMtStatGauss_pL_NLO");
 
-  const double TIMEOUT = 20;
+  const double TIMEOUT = 20/10;
   const double mT_min = 1.2124;
   const double mT_max = 2.2116;
   const unsigned mT_bins = 16;
@@ -6274,9 +6274,139 @@ void HowWrongIsOurSource(const int FLAG){
   dlm_reff_pL.SetBinContent(5,1.017725);
   dlm_reff_pL.SetBinError(5,0.11363);
 
+
+
+
+
+  DLM_Histo<float> dlm_rcore_pp;
+  dlm_rcore_pp.SetUp(1);
+  dlm_rcore_pp.SetUp(0,NumMtBins_pp,BinRange_pp,BinCenter_pp);
+  dlm_rcore_pp.Initialize();
+
+  DLM_Histo<float> dlm_rcore_pL;
+  dlm_rcore_pL.SetUp(1);
+  dlm_rcore_pL.SetUp(0,NumMtBins_pL,BinRange_pL,BinCenter_pL);
+  dlm_rcore_pL.Initialize();
+
+  dlm_rcore_pp.SetBinContent(unsigned(0),1.3064);
+  dlm_rcore_pp.SetBinError(unsigned(0),sqrt(pow(0.027805,2.)+pow(0.0085539,2.)));
+  dlm_rcore_pp.SetBinContent(1,1.2316);
+  dlm_rcore_pp.SetBinError(1,sqrt(pow(0.022773,2.)+pow(0.010501,2.)));
+  dlm_rcore_pp.SetBinContent(2,1.2006);
+  dlm_rcore_pp.SetBinError(2,sqrt(pow(0.022552,2.)+pow(0.014732,2.)));
+  dlm_rcore_pp.SetBinContent(3,1.1402);
+  dlm_rcore_pp.SetBinError(3,sqrt(pow(0.025014,2.)+pow(0.011086,2.)));
+  dlm_rcore_pp.SetBinContent(4,1.0628);
+  dlm_rcore_pp.SetBinError(4,sqrt(pow(0.025221,2.)+pow(0.010027,2.)));
+  dlm_rcore_pp.SetBinContent(5,0.96238);
+  dlm_rcore_pp.SetBinError(5,sqrt(pow(0.025234,2.)+pow(0.0098228,2.)));
+  dlm_rcore_pp.SetBinContent(6,0.86503);
+  dlm_rcore_pp.SetBinError(6,sqrt(pow(0.020369,2.)+pow(0.010841,2.)));
+
+
+  for(unsigned uBin=0; uBin<6; uBin++){
+    double nlo_val,nlo_stat,nlo_syst;
+    double lo_val,lo_stat,lo_syst;
+    switch (uBin) {
+      case 0:   nlo_val = 1.2634;
+                nlo_syst = 0.0876;
+                nlo_stat = 0.041731;
+                lo_val = 1.1816;
+                lo_syst = 0.060069;
+                lo_stat = 0.042102;
+                break;
+      case 1:   nlo_val = 1.1926;
+                nlo_syst = 0.10035;
+                nlo_stat = 0.050217;
+                lo_val = 1.1381;
+                lo_syst = 0.057701;
+                lo_stat = 0.048758;
+                break;
+      case 2:   nlo_val = 1.1804;
+                nlo_syst = 0.065382;
+                nlo_stat = 0.042162;
+                lo_val = 1.1279;
+                lo_syst = 0.070412;
+                lo_stat = 0.041525;
+                break;
+      case 3:   nlo_val = 1.0902;
+                nlo_syst = 0.092647;
+                nlo_stat = 0.035456;
+                lo_val = 1.0516;
+                lo_syst = 0.055087;
+                lo_stat = 0.033123;
+                break;
+      case 4:   nlo_val = 0.9717;
+                nlo_syst = 0.0825;
+                nlo_stat = 0.041914;
+                lo_val = 0.94642;
+                lo_syst = 0.055;
+                lo_stat = 0.038272;
+                break;
+      case 5:   nlo_val = 0.73832;
+                nlo_syst = 0.18077;
+                nlo_stat = 0.03668;
+                lo_val = 0.82714;
+                lo_syst = 0.050213;
+                lo_stat = 0.033311;
+                break;
+      default:  break;
+    }
+    double avg_val = 0.5*(nlo_val+lo_val);
+    double avg_stat = 0.5*(nlo_stat+lo_stat);
+    double avg_syst = 0.5*(nlo_syst+lo_syst);
+    double diff = nlo_val-lo_val;
+    double tot_err = sqrt(avg_stat*avg_stat+avg_syst*avg_syst+diff*diff);
+    dlm_rcore_pL.SetBinContent(uBin,avg_val);
+    dlm_rcore_pL.SetBinError(uBin,tot_err);
+  }
+
+
   DLM_Histo<float> dlm_reff_diff(dlm_reff_pL);
   dlm_reff_diff = dlm_reff_pL;
   dlm_reff_diff -= dlm_reff_pp;
+
+  TGraphErrors g_reff_pp;
+  g_reff_pp.SetName("g_reff_pp");
+  g_reff_pp.SetFillColorAlpha(kBlue+1,0.3);
+  g_reff_pp.SetLineColor(kBlue+1);
+  g_reff_pp.SetLineWidth(3);
+  for(unsigned uBin=0; uBin<dlm_reff_pp.GetNbins(); uBin++){
+    g_reff_pp.SetPoint(uBin,dlm_reff_pp.GetBinCenter(0,uBin),dlm_reff_pp.GetBinContent(uBin));
+    g_reff_pp.SetPointError(uBin,0,dlm_reff_pp.GetBinError(uBin));
+  }
+
+  TGraphErrors g_reff_pL;
+  g_reff_pL.SetName("g_reff_pL");
+  g_reff_pL.SetFillColorAlpha(kRed+1,0.3);
+  g_reff_pL.SetLineColor(kRed+1);
+  g_reff_pL.SetLineWidth(3);
+  for(unsigned uBin=0; uBin<dlm_reff_pL.GetNbins(); uBin++){
+    g_reff_pL.SetPoint(uBin,dlm_reff_pL.GetBinCenter(0,uBin),dlm_reff_pL.GetBinContent(uBin));
+    g_reff_pL.SetPointError(uBin,0,dlm_reff_pL.GetBinError(uBin));
+  }
+
+
+  TGraphErrors g_rcore_pp;
+  g_rcore_pp.SetName("g_core_pp");
+  g_rcore_pp.SetFillColorAlpha(kBlue+1,0.3);
+  g_rcore_pp.SetLineColor(kBlue+1);
+  g_rcore_pp.SetLineWidth(3);
+  for(unsigned uBin=0; uBin<dlm_rcore_pp.GetNbins(); uBin++){
+    g_rcore_pp.SetPoint(uBin,dlm_rcore_pp.GetBinCenter(0,uBin),dlm_rcore_pp.GetBinContent(uBin));
+    g_rcore_pp.SetPointError(uBin,0,dlm_rcore_pp.GetBinError(uBin));
+  }
+
+  TGraphErrors g_rcore_pL;
+  g_rcore_pL.SetName("g_rcore_pL");
+  g_rcore_pL.SetFillColorAlpha(kRed+1,0.3);
+  g_rcore_pL.SetLineColor(kRed+1);
+  g_rcore_pL.SetLineWidth(3);
+  for(unsigned uBin=0; uBin<dlm_rcore_pL.GetNbins(); uBin++){
+    g_rcore_pL.SetPoint(uBin,dlm_rcore_pL.GetBinCenter(0,uBin),dlm_rcore_pL.GetBinContent(uBin));
+    g_rcore_pL.SetPointError(uBin,0,dlm_rcore_pL.GetBinError(uBin));
+  }
+
 
   TGraphErrors gDiffHalf;
   gDiffHalf.SetName("gDiffHalf");
@@ -6478,9 +6608,13 @@ void HowWrongIsOurSource(const int FLAG){
   //double Nsigma_rcore = GetNsigma(Chi2_rcore,NumMtBins_pL-1);
 
 
-  TFile fOutput(TString::Format("%s/FunWithCeca/HowWrongIsOurSource_FLAG%i.root",GetFemtoOutputFolder(),FLAG),"recreate");
-  gDiffHalf.Write();
-  gDiff.Write();
+  TFile fOutput(TString::Format("%s/FunWithCeca/HowWrongIsOurSource/HowWrongIsOurSource_FLAG%i.root",GetFemtoOutputFolder(),FLAG),"recreate");
+  //gDiffHalf.Write();
+  //gDiff.Write();
+  g_reff_pp.Write();
+  g_reff_pL.Write();
+  g_rcore_pp.Write();
+  g_rcore_pL.Write();
   h_Ceca_rcore_vs_reff_pp->Write();
   h_Ceca_rcore_vs_reff_pL->Write();
   h_Ceca_disp_vs_reff_pp->Write();
@@ -6560,7 +6694,7 @@ int FUN_WITH_CECA(int argc, char *argv[]){
   //Ceca_vs_RSM_2("Proton","Proton",false);
   //Ceca_vs_RSM_2("Proton","Lambda",false);
 
-  //HowWrongIsOurSource(0);
+  HowWrongIsOurSource(0);
   //HowWrongIsOurSource(1);
 
   //Ceca_pp_pL_source();
