@@ -2807,27 +2807,33 @@ void Jaime_pL(int RndSeed, int imTbin, int pL_inter, int AnalysisType, int Error
       WhichCutOffVar = RanGen.Integer(cutoff_var.size());
       WhichProtonVar = RanGen.Integer(lampar_p_var.size());
       WhichLambdaVar = RanGen.Integer(lampar_l_var.size());
-      WhichXiVar = RanGen.Integer(lampar_xi_var.size());
       WhichSigmaVar = RanGen.Integer(lampar_sig_var.size());
+      WhichXiVar = RanGen.Integer(lampar_xi_var.size());
       WhichBaselineVar = RanGen.Integer(baseline_var.size());
       WhichFemtoRegVar = RanGen.Integer(femtoregion_var.size());
       WhichData = RanGen.Integer(43);
     }
 
     if(DEBUG){
-      printf("VAR: %i %i %i %i %i %i\n",
+      printf("VAR: %i %i %i %i %i %i %i %i %i\n",
       WhichCuspVar,
       WhichCutOffVar,
       WhichProtonVar,
       WhichLambdaVar,
+      WhichSigmaVar,
+      WhichXiVar,
       WhichBaselineVar,
-      WhichFemtoRegVar);
+      WhichFemtoRegVar,
+      WhichData);
     }
+
+    gROOT->cd();
+    TH1F* hData = AnalysisObject.GetAliceExpCorrFun("pp13TeV_HM_BernieSource","pLambda",TString::Format("%u",WhichData),0,0,imTbin);
+    TH1F* hDataToFit = NULL;
 
     //WhichProtonVar and WhichLambdaVar
     if(imTbin){
       AnalysisObject.SetUpLambdaPars_pL("pp13TeV_HM_BernieSource",lampar_p_var.at(WhichProtonVar),lampar_l_var.at(WhichLambdaVar),lam_pars_pl);
-
     }
     else{
       AnalysisObject.SetUpLambdaPars_pL("pp13TeV_HM_Dec19",lampar_p_var.at(WhichProtonVar),lampar_l_var.at(WhichLambdaVar),lam_pars_pl);
@@ -2982,6 +2988,7 @@ void Jaime_pL(int RndSeed, int imTbin, int pL_inter, int AnalysisType, int Error
       CkDec_pXi0->AddContribution(1,lam_pXi_flt,DLM_CkDecomposition::cFeedDown);
     }
 
+    //CkDec_pL
 
 // UP TO HERE, NOW TIME TO FIT I GUESS
 
@@ -2990,7 +2997,14 @@ void Jaime_pL(int RndSeed, int imTbin, int pL_inter, int AnalysisType, int Error
     CompletedIters++;
     //usleep(100e3);
     break;
-  }
+    delete hData;
+    delete hDataToFit;
+    if(CkDec_pL) delete CkDec_pL;
+    if(CkDec_pS0) delete CkDec_pS0;
+    if(CkDec_pXim) delete CkDec_pXim;
+    if(CkDec_pXi0) delete CkDec_pXi0;
+    if(CkDec_pXim1530) delete CkDec_pXim1530;
+  }//while
 
   //for(float CuspWeight : cusp_var){
 
@@ -3210,7 +3224,6 @@ void Jaime_pL(int RndSeed, int imTbin, int pL_inter, int AnalysisType, int Error
 */
 
 
-
   delete hResolution_pL;
   delete hResidual_pp_pL;
   delete hResidual_pL_pSigma0;
@@ -3219,6 +3232,14 @@ void Jaime_pL(int RndSeed, int imTbin, int pL_inter, int AnalysisType, int Error
   delete [] lam_pars_pl;
   delete [] lam_pars_pxi;
   delete pLTree;
+  delete gFit;
+  delete gBl;
+  if(Ck_pL) delete Ck_pL;
+  if(Ck_pS0) delete Ck_pS0;
+  if(Ck_pXim) delete Ck_pXim;
+  if(Ck_pXi0) delete Ck_pXi0;
+  if(Ck_pXim1530) delete Ck_pXim1530;
+  delete gFemto;
   delete fOutputFile;
 }
 

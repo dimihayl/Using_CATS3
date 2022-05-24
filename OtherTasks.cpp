@@ -10090,6 +10090,7 @@ void MakePotentials(int flag){
     ManufacturePotential(f0,ef0,d0,ed0,Radii,NumR,V1,mu1,V2,mu2,Potential,OutputFolder,32,NULL,
       (Mass_p*Mass_d)/(Mass_p+Mass_d),1./16.);
   }
+  //901,911,921,... (for double gauss)
   else if(flag/10>=90&&flag/10<=99){
     NumR = 1;
     Radii[0] = 1.2;
@@ -10115,6 +10116,7 @@ void MakePotentials(int flag){
         //p pip (Philipp thesis)
         case 4: f0=0.11819; ef0=f0*0.0025; d0=1.90136; ed0=d0*0.0025; break;
         case 5: f0=0.11819; ef0=f0*0.0025; d0=0; ed0=0.025; break;
+        case 6: f0=0.11819; ef0=f0*0.0035; d0=21.5; ed0=d0*0.0035; break;
         default: printf("Weird flags for producing the potentials for Rafa\n"); return;
       }
     }
@@ -10156,6 +10158,13 @@ void MakePotentials(int flag){
       StartPars[1] = 0.4;
       StartPars[2] = 650;
       StartPars[3] = 0.45;
+      FineTune = 1./256.;
+    }
+    else if(VAR_FLAG==6){
+      StartPars[0] = -1.306545e+01;
+      StartPars[1] = 1.455581e+00;
+      StartPars[2] = -2.321616e+01;
+      StartPars[3] = 1.100759e-01;
       FineTune = 1./256.;
     }
     StartPars[4] = 0;
@@ -15013,7 +15022,7 @@ nsig 6 bins = 3.75
     //pp_for_rock(1.2+0.12);
 
     //Ledni_SmallRad_Random(atoi(argv[1]),atoi(argv[2]));
-    //MakePotentials(atoi(argv[1]));return 0;
+    MakePotentials(atoi(argv[1]));return 0;
   //RoughPiPiPotScan(atoi(argv[1]),atoi(argv[2]));
   //pi_proton();
     //SelectEmmaPotential();
