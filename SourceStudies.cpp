@@ -1529,10 +1529,28 @@ double Femto_BernieSource(double* x, double* par){
   if(!SOURCE_FIT) return 0;
   SOURCE_FIT->GetCk()->SetSourcePar(0,par[0]);
   SOURCE_FIT->Update(false,false);
+  //SOURCE_FIT->Update(true,true);
+  //printf(" DECOMP: pL: %.3f; pS0: %.3f; pXim: %.3f; pXi0: %.3f\n",
+  //  SOURCE_FIT->GetContribution("pLambda")->EvalCk(*x),
+  //  SOURCE_FIT->GetContribution("pSigma0")->EvalCk(*x),
+  //  SOURCE_FIT->GetContribution("pXim")->EvalCk(*x),
+  //  SOURCE_FIT->GetContribution("pXi0")->EvalCk(*x));
+  //printf(" DLMCK:  pL: %.3f; pS0: %.3f; pXim: %.3f; pXi0: %.3f\n",
+  //  SOURCE_FIT->GetContribution("pLambda")->GetCk()->Eval(*x),
+  //  SOURCE_FIT->GetContribution("pSigma0")->GetCk()->Eval(*x),
+  //  SOURCE_FIT->GetContribution("pXim")->GetCk()->Eval(*x),
+  //  SOURCE_FIT->GetContribution("pXi0")->GetCk()->Eval(*x));
   return SOURCE_FIT->EvalCk(*x);
+  //return SOURCE_FIT->GetCk()->Eval(*x);
 }
 double Fit_BernieSource(double* x, double* par){
-  return Femto_BernieSource(x,par)*Baseline_BernieSource(x,&par[2]);
+  double Femto = Femto_BernieSource(x,par);
+  double Baseline = Baseline_BernieSource(x,&par[2]);
+  //printf("k* = %.0f\n",*x);
+  //printf(" par = %.3e %.3e %.3e %.3e %.3e %.3e %.3e\n",par[0],par[1],par[2],par[3],par[4],par[5],par[6]);
+  //printf(" Femto = %.3f; Baseline = %.3f\n",Femto,Baseline);
+  //usleep(100e3);
+  return Femto*Baseline;
 }
 
 //SmearStrategy == 1 is the new one
@@ -2359,8 +2377,8 @@ std::vector<float> FemtoRegion = {204,228,240};
 //         in the original version we use for a baseline either pol0 or pol1, in the new version we ALWAYS use the pol3 without linear term
 //         for the lambda pars, 0 is the default in the source paper (not implemented yet), 1 is as used for the pL paper
 //      examples: ABCD = 0 is the exact settings as the original, fitting with Gauss
-//      ABCD = 1101 are the settings for a Gaussian fit using the set up as in the pL paper
-//      ABCD = 1111 are the exact settings of the pL paper (i.e. where RSM was used)
+//      ABCD = 1201 are the settings for a Gaussian fit using the set up as in the pL paper
+//      ABCD = 1211 are the exact settings of the pL paper (i.e. where RSM was used)
 //      N.B. in any case, the one major difference to the pL paper is that we do NOT unfold the data, but apply the momentum smearing on top
 //NewAgeFlag: placeholder for anything new we might thing of. So far:
 //      last digit: Variations of the feed-down radius.
@@ -2388,6 +2406,9 @@ void Jaime_pL(int RndSeed, int imTbin, int pL_inter, int AnalysisType, int Error
   const bool Silent = true;
   TRandom3 RanGen(RndSeed);
 
+  int SystVar = (ErrorType/10)%10;
+  int Bootstrap = (ErrorType)%10;
+
   TString SourceType;
   unsigned NumSourcePars;
   int SourceVar;
@@ -2413,24 +2434,27 @@ void Jaime_pL(int RndSeed, int imTbin, int pL_inter, int AnalysisType, int Error
   }
   if(DEBUG){
     printf(" SmearStrategy = %i\n",SmearStrategy);
+    printf(" FeedDownType = %i\n",FeedDownType);
+    printf(" FitType = %i\n",FitType);
+    printf(" SourceType = %s\n",SourceType.Data());
   }
 
-  std::vector<float> femtoregion_var;
+  std::vector<float> fitregion_var;
   if(FitType==0){
-    femtoregion_var.push_back(228);
-    femtoregion_var.push_back(204);
-    femtoregion_var.push_back(240);
+    fitregion_var.push_back(228);
+    fitregion_var.push_back(204);
+    fitregion_var.push_back(240);
   }
   else if(FitType==1){
-    femtoregion_var.push_back(456);
-    femtoregion_var.push_back(432);
-    femtoregion_var.push_back(480);
+    fitregion_var.push_back(456);
+    fitregion_var.push_back(432);
+    fitregion_var.push_back(480);
   }
   else{printf("Unknown FitType, aborting!\n"); abort();}
 
   if(DEBUG){
-    printf(" femtoregion_var = { ");
-    for( float& frv : femtoregion_var ){
+    printf(" fitregion_var = { ");
+    for( float& frv : fitregion_var ){
       printf("%.0f ",frv);
     }
     printf("}\n");
@@ -2511,8 +2535,6 @@ void Jaime_pL(int RndSeed, int imTbin, int pL_inter, int AnalysisType, int Error
   std::vector<float> lampar_sig_var = {0.18,0.14,0.21};
 
 
-  const unsigned NumMomBins_pL = TMath::Nint(femtoregion_var.back()/12.);
-  //const unsigned NumMomBins_feed = TMath::Nint(femtoregion_var.back()/12.);
 
   std::vector<float> cutoff_var = {700};//done
   std::vector<TString> MomSmearVar = {"pp13TeV_HM_DimiJun20"};//done
@@ -2529,14 +2551,23 @@ void Jaime_pL(int RndSeed, int imTbin, int pL_inter, int AnalysisType, int Error
 
   //the region for which the DLM_Ck objects will be defined
   //we put some extra to get away from the edge effects of the smearing
-  const double kMin = 0;
-  const double kMax = 528;
-  const unsigned TotMomBins = TMath::Nint(kMax/12.);
+  const double kMinTot = 0;
+  const double kMaxTot = 528;
+  const unsigned MomBinsTot = TMath::Nint(kMaxTot/12.);
   const unsigned NumMtBins = 6;
   if(imTbin>=NumMtBins || imTbin<-1){
     printf("\033[1;31mERROR:\033[0m Only %u mT bins are available!\n",NumMtBins);
     abort();
   }
+
+  const double kMinCats = 0;
+  const double kMaxCats = 336;
+  const unsigned MomBinsCats = TMath::Nint(kMaxCats/12.);
+  //const unsigned NumMomBins_feed = TMath::Nint(fitregion_var.back()/12.);
+
+  const double kMinPlot = 0;
+  const double kMaxPlot = fitregion_var.at(1);
+  const unsigned MomBinsPlot = TMath::Nint(fitregion_var.at(1)/12.);
 
   int PotVar = pL_inter;
   TString PotType;
@@ -2545,7 +2576,7 @@ void Jaime_pL(int RndSeed, int imTbin, int pL_inter, int AnalysisType, int Error
   //      potential ID as in the pL paper (s and d waves). In practice we will try out:
   //      11600: NLO-600
   //      131600: NLO-600 with reduced scattering length in the 3S1
-  //      231600: NLO-600 with reduced scattering length in the 3S1, anc charge symmetry breaking (CSB) in 1S0
+  //      231600: NLO-600 with reduced scattering length in the 3S1, and charge symmetry breaking (CSB) in 1S0
   if(pL_inter==-1){
     PotType = "LO";
   }
@@ -2569,6 +2600,7 @@ void Jaime_pL(int RndSeed, int imTbin, int pL_inter, int AnalysisType, int Error
   float ExpectedRadius;
   float FeedDownRadius;
 
+  //values of the radii (as used in the source paper)
   std::vector<float> pS0_rad_srcPaper = { 1.473, 1.421, 1.368, 1.295, 1.220, 1.124 };
   //from the source paper
   std::vector<float> pp_reff = { 1.279, 1.231, 1.184, 1.110, 1.036, 0.948 };
@@ -2576,8 +2608,10 @@ void Jaime_pL(int RndSeed, int imTbin, int pL_inter, int AnalysisType, int Error
   std::vector<float> pL_reff = { 1.458, 1.398, 1.387, 1.302, 1.194, 1.018 };
   //with the correct sign (done)
   std::vector<float> pp_rcore_new = { 1.114, 1.066, 1.020, 0.946, 0.873, 0.786 };
-  std::vector<float> pp_rcore_plb = { 1.209, 1.158, 1.108, 1.028, 0.950, 0.856 };
+  //from the source paper published in PLB
+  std::vector<float> pp_rcore_srcPaper = { 1.209, 1.158, 1.108, 1.028, 0.950, 0.856 };
 
+  //here we set out FeedDownRadius (will be used both for pS0 and pXi)
   if(imTbin>=0){
     if(NewAgeFlag%10==0){
       FeedDownRadius = pS0_rad_srcPaper.at(imTbin);
@@ -2586,7 +2620,7 @@ void Jaime_pL(int RndSeed, int imTbin, int pL_inter, int AnalysisType, int Error
       FeedDownRadius = pp_reff.at(imTbin);
     }
     else if(NewAgeFlag%10==2){
-      FeedDownRadius = RanGen.Uniform((pp_rcore_new.at(imTbin)+pp_rcore_plb.at(imTbin))*0.5,pL_reff.at(imTbin));
+      FeedDownRadius = RanGen.Uniform((pp_rcore_new.at(imTbin)+pp_rcore_srcPaper.at(imTbin))*0.5,pL_reff.at(imTbin));
     }
   }
   else{
@@ -2598,7 +2632,7 @@ void Jaime_pL(int RndSeed, int imTbin, int pL_inter, int AnalysisType, int Error
       FeedDownRadius = pp_reff.at(3);
     }
     else if(NewAgeFlag%10==2){
-      FeedDownRadius = RanGen.Uniform((pp_rcore_new.at(3)+pp_rcore_plb.at(3))*0.5,pL_reff.at(3));
+      FeedDownRadius = RanGen.Uniform((pp_rcore_new.at(3)+pp_rcore_srcPaper.at(3))*0.5,pL_reff.at(3));
     }
   }
 
@@ -2606,20 +2640,25 @@ void Jaime_pL(int RndSeed, int imTbin, int pL_inter, int AnalysisType, int Error
 
   //gROOT->cd();
 //const int RndSeed, const int imTbin, const int pL_inter, const int AnalysisType, const int NewAgeFlag, const char* InputFolder, const char* OutputFolder
-  TFile* fOutputFile = new TFile(OutputFolder+TString::Format("/fOut_rnd%i_mT%i_Pot%i_at%i_et%i_naf%i.root",RndSeed,imTbin,pL_inter,AnalysisType,ErrorType,NewAgeFlag),"recreate");
+  TFile* fOutputFile = new TFile(OutputFolder+TString::Format("/fOut_rnd%i_mT%i_Pot%i_at%i_et%i_naf%i.root",
+  RndSeed,imTbin,pL_inter,AnalysisType,ErrorType,NewAgeFlag),"recreate");
 
 //WE NEED TO DELETE!!!!
   TH1F* hData = NULL;
+  TH1F* hDataToFit = NULL;
   //GDATA->Set(TotMomBins);
   TGraph* gFit = new TGraph();
+  gFit->SetName("gFit");
   //GFIT->Set(TotMomBins);
   TGraph* gBl = new TGraph();
+  gBl->SetName("gBl");
   //GBL->Set(TotMomBins);
   TGraph* gFemto = new TGraph();
+  gFemto->SetName("gFemto");
 
   //GFEMTO->Set(TotMomBins);
   int Baseline;
-  float FemtoRegion;
+  float FitRegion;
   float CkCutOff;
   float CuspWeight;
 
@@ -2640,6 +2679,8 @@ void Jaime_pL(int RndSeed, int imTbin, int pL_inter, int AnalysisType, int Error
   float lam_pS0_flt;
   float chi2_full;
   int ndf_full;
+  int ndp_full;
+  float nsig_full;
   float chi2_300;
   float chi2_204;
   float chi2_108;
@@ -2649,11 +2690,14 @@ void Jaime_pL(int RndSeed, int imTbin, int pL_inter, int AnalysisType, int Error
   fOutputFile->cd();
   TTree* pLTree = new TTree("pLTree","pLTree");
   pLTree->Branch("hData","TH1F",&hData,32000,0);//
+  pLTree->Branch("hDataToFit","TH1F",&hDataToFit,32000,0);//
   pLTree->Branch("gFit","TGraph",&gFit,32000,0);//
   pLTree->Branch("gBl","TGraph",&gBl,32000,0);//
   pLTree->Branch("gFemto","TGraph",&gFemto,32000,0);//
   pLTree->Branch("Baseline",&Baseline,"Baseline/I");//
-  pLTree->Branch("FemtoRegion",&FemtoRegion,"FemtoRegion/F");//
+  pLTree->Branch("FitRegion",&FitRegion,"FitRegion/F");//
+  pLTree->Branch("Bootstrap",&Bootstrap,"Bootstrap/I");//
+  pLTree->Branch("SystVar",&SystVar,"SystVar/I");//
   pLTree->Branch("AnalysisType",&AnalysisType,"AnalysisType/I");//
   pLTree->Branch("SourceType","TString",&SourceType,8000,0);//
   pLTree->Branch("SourceVar",&SourceVar,"SourceVar/I");//
@@ -2677,6 +2721,8 @@ void Jaime_pL(int RndSeed, int imTbin, int pL_inter, int AnalysisType, int Error
   pLTree->Branch("CuspWeight",&CuspWeight,"CuspWeight/F");
   pLTree->Branch("chi2_full",&chi2_full,"chi2_full/F");
   pLTree->Branch("ndf_full",&ndf_full,"ndf_full/I");
+  pLTree->Branch("ndp_full",&ndp_full,"ndp_full/I");
+  pLTree->Branch("nsig_full",&nsig_full,"nsig_full/F");
   pLTree->Branch("chi2_300",&chi2_300,"chi2_300/F");
   pLTree->Branch("chi2_204",&chi2_204,"chi2_204/F");
   pLTree->Branch("chi2_108",&chi2_108,"chi2_108/F");
@@ -2686,37 +2732,39 @@ void Jaime_pL(int RndSeed, int imTbin, int pL_inter, int AnalysisType, int Error
 
   CATS AB_pXim;
   //same binning as pL, as we only use pXim as feed-down
-  AB_pXim.SetMomBins(NumMomBins_pL,0,femtoregion_var.back());
+  AB_pXim.SetMomBins(MomBinsCats,kMinCats,kMaxCats);
   if(FeedDownType==0||FeedDownType==1){
+    //old, historic, used in the source paper
     AnalysisObject.SetUpCats_pXim(AB_pXim,"pXim_HALQCD1","Gauss");
   }
   else{
+    //the one used in the Nature paper
     AnalysisObject.SetUpCats_pXim(AB_pXim,"pXim_HALQCDPaper2020","Gauss");
   }
   AB_pXim.SetAnaSource(0,FeedDownRadius);
   AB_pXim.SetNotifications(CATS::nWarning);
   AB_pXim.KillTheCat();
-  DLM_Ck* Ck_pXim = new DLM_Ck(1, 0, AB_pXim, TotMomBins, kMin, kMax);
+  DLM_Ck* Ck_pXim = new DLM_Ck(1,0,AB_pXim,MomBinsTot,kMinTot,kMaxTot);
 
   CATS AB_pXi0;
   //same binning as pL, as we only use pXim as feed-down
-  AB_pXi0.SetMomBins(NumMomBins_pL,0,femtoregion_var.back());
+  AB_pXi0.SetMomBins(MomBinsCats,kMinCats,kMaxCats);
   AnalysisObject.SetUpCats_pXi0(AB_pXi0,"pXim_HALQCDPaper2020","Gauss");
   AB_pXi0.SetAnaSource(0,FeedDownRadius);
   AB_pXi0.SetNotifications(CATS::nWarning);
   AB_pXi0.KillTheCat();
   DLM_Ck* Ck_pXi0 = NULL;
-  if(FitType==1) Ck_pXi0 = new DLM_Ck(1,0,AB_pXi0,TotMomBins, kMin, kMax);
+  if(FitType==1) Ck_pXi0 = new DLM_Ck(1,0,AB_pXi0,MomBinsTot,kMinTot,kMaxTot);
 
 
   CATS AB_pXi1530;
-  AB_pXi1530.SetMomBins(NumMomBins_pL,0,femtoregion_var.back());
+  AB_pXi1530.SetMomBins(MomBinsCats,kMinCats,kMaxCats);
   AB_pXi1530.SetNotifications(CATS::nWarning);
   AnalysisObject.SetUpCats_pXim(AB_pXi1530,"pXim1530","Gauss");//McLevyNolan_Reso
   AB_pXi1530.SetAnaSource(0,FeedDownRadius);
   AB_pXi1530.SetNotifications(CATS::nWarning);
   AB_pXi1530.KillTheCat();
-  DLM_Ck* Ck_pXim1530 = Ck_pXim1530 = new DLM_Ck(1, 0, AB_pXi1530, TotMomBins, kMin, kMax);;
+  DLM_Ck* Ck_pXim1530 = Ck_pXim1530 = new DLM_Ck(1,0,AB_pXi1530,MomBinsTot,kMinTot,kMaxTot);;
 
 
 
@@ -2725,7 +2773,7 @@ void Jaime_pL(int RndSeed, int imTbin, int pL_inter, int AnalysisType, int Error
   DLM_Ck* Ck_pS0 = NULL;
   if(FeedDownType==1||FeedDownType==2){
     //the minus one is to to avoid going above 350 MeV, since we do not have the WF there
-    AB_pS0.SetMomBins(NumMomBins_pL,0,femtoregion_var.back());
+    AB_pS0.SetMomBins(MomBinsCats,kMinCats,kMaxCats);
     if(FeedDownType==1){
       AnalysisObject.SetUpCats_pS0(AB_pS0,"ESC16","Gauss");
     }
@@ -2735,17 +2783,18 @@ void Jaime_pL(int RndSeed, int imTbin, int pL_inter, int AnalysisType, int Error
     AB_pS0.SetAnaSource(0,FeedDownRadius);
     AB_pS0.SetNotifications(CATS::nWarning);
     AB_pS0.KillTheCat();
-    Ck_pS0 = new DLM_Ck(1, 0, AB_pS0, TotMomBins, kMin, kMax);
+    Ck_pS0 = new DLM_Ck(1,0,AB_pS0,MomBinsTot,kMinTot,kMaxTot);
   }
   else{
     if(FeedDownType==0){
-      Ck_pS0 = new DLM_Ck(1, 0, TotMomBins, kMin, kMax, Lednicky_gauss_Sigma0);
+      Ck_pS0 = new DLM_Ck(1,0,MomBinsTot,kMinTot,kMaxTot,Lednicky_gauss_Sigma0);
+      Ck_pS0->SetSourcePar(0,FeedDownRadius);
     }
   }
 
 
   CATS AB_pL;
-  AB_pL.SetMomBins(NumMomBins_pL,0,femtoregion_var.back());
+  AB_pL.SetMomBins(MomBinsCats,kMinCats,kMaxCats);
   AnalysisObject.SetUpCats_pL(AB_pL,PotType,SourceType,PotVar,SourceVar);
   if(SourceType=="Gauss"){
     AB_pL.SetAnaSource(0,pL_reff.at(imTbin));
@@ -2756,7 +2805,7 @@ void Jaime_pL(int RndSeed, int imTbin, int pL_inter, int AnalysisType, int Error
   }
   AB_pL.SetNotifications(CATS::nError);
   AB_pL.KillTheCat();
-  DLM_Ck* Ck_pL = new DLM_Ck(NumSourcePars, 0, AB_pL, TotMomBins, kMin, kMax);
+  DLM_Ck* Ck_pL = new DLM_Ck(NumSourcePars,0,AB_pL,MomBinsTot,kMinTot,kMaxTot);
 
   TH2F* hResolution_pL = AnalysisObject.GetResolutionMatrix("pp13TeV_HM_DimiJun20","pLambda");
   TH2F* hResidual_pp_pL = AnalysisObject.GetResidualMatrix("pp","pLambda");
@@ -2764,12 +2813,14 @@ void Jaime_pL(int RndSeed, int imTbin, int pL_inter, int AnalysisType, int Error
   TH2F* hResidual_pL_pXim = AnalysisObject.GetResidualMatrix("pLambda","pXim");
   TH2F* hResidual_pXi_pXi1530 = AnalysisObject.GetResidualMatrix("pXim","pXim1530");
 
-  std::vector<float> cusp_var = {0.40,0.33,0.27};
+  std::vector<float> cusp_var;
+  //the case where we use the new chiral calculations
   if(PotType=="Chiral_Coupled_SPD"){
+    cusp_var.push_back(0.40);
     cusp_var.push_back(0.27);
     cusp_var.push_back(0.33);
-    cusp_var.push_back(0.40);
   }
+  //for the old calcs we dont even have this peak
   else{
     cusp_var.push_back(0);
   }
@@ -2789,9 +2840,9 @@ void Jaime_pL(int RndSeed, int imTbin, int pL_inter, int AnalysisType, int Error
     int WhichXiVar;
     int WhichSigmaVar;
     int WhichBaselineVar;
-    int WhichFemtoRegVar;
+    int WhichFitRegVar;
     int WhichData;
-    if(CompletedIters==0 && RndSeed==1){
+    if( (CompletedIters==0 && RndSeed==1) || !SystVar){
       WhichCuspVar = 0;
       WhichCutOffVar = 0;
       WhichProtonVar = 0;
@@ -2799,7 +2850,7 @@ void Jaime_pL(int RndSeed, int imTbin, int pL_inter, int AnalysisType, int Error
       WhichXiVar = 0;
       WhichSigmaVar = 0;
       WhichBaselineVar = 0;
-      WhichFemtoRegVar = 0;
+      WhichFitRegVar = 0;
       WhichData = 0;
     }
     else{
@@ -2810,7 +2861,7 @@ void Jaime_pL(int RndSeed, int imTbin, int pL_inter, int AnalysisType, int Error
       WhichSigmaVar = RanGen.Integer(lampar_sig_var.size());
       WhichXiVar = RanGen.Integer(lampar_xi_var.size());
       WhichBaselineVar = RanGen.Integer(baseline_var.size());
-      WhichFemtoRegVar = RanGen.Integer(femtoregion_var.size());
+      WhichFitRegVar = RanGen.Integer(fitregion_var.size());
       WhichData = RanGen.Integer(43);
     }
 
@@ -2823,13 +2874,29 @@ void Jaime_pL(int RndSeed, int imTbin, int pL_inter, int AnalysisType, int Error
       WhichSigmaVar,
       WhichXiVar,
       WhichBaselineVar,
-      WhichFemtoRegVar,
+      WhichFitRegVar,
       WhichData);
     }
 
     gROOT->cd();
-    TH1F* hData = AnalysisObject.GetAliceExpCorrFun("pp13TeV_HM_BernieSource","pLambda",TString::Format("%u",WhichData),0,0,imTbin);
-    TH1F* hDataToFit = NULL;
+//what about mt integrated !!!!
+    hData = AnalysisObject.GetAliceExpCorrFun("pp13TeV_HM_BernieSource","pLambda",TString::Format("%u",WhichData),0,0,imTbin);
+    hDataToFit = (TH1F*)hData->Clone("hDataToFit");
+    if(Bootstrap){
+      for(unsigned uBin=0; uBin<MomBinsTot; uBin++){
+        double BootVal = hData->GetBinContent(uBin+1);
+        double BootErr = hData->GetBinError(uBin+1);
+        //assuming E/N = sqrt(N)/N = 1/sqrt(N) = relErr; N = 1/relErr^2
+        //the effective counts N represent the number of counts in the same event, assuming that
+        //the error of the correlation stems ONLY from the same event
+        double EffectiveCounts = pow(BootErr/BootVal,-2.);
+        //we sample from poisson to avoid the chance of getting negative values
+        BootVal = RanGen.Poisson(EffectiveCounts)*BootVal/EffectiveCounts;
+        //BootVal = RanGen.Gaus(BootVal,BootErr);
+        hDataToFit->SetBinContent(uBin+1,BootVal);
+        hDataToFit->SetBinError(uBin+1,BootErr);
+      }
+    }
 
     //WhichProtonVar and WhichLambdaVar
     if(imTbin){
@@ -2909,16 +2976,16 @@ void Jaime_pL(int RndSeed, int imTbin, int pL_inter, int AnalysisType, int Error
 
     //WhichCutOffVar and WhichFemtoRegVar
     CkCutOff = cutoff_var.at(WhichCutOffVar);
-    FemtoRegion = femtoregion_var.at(WhichFemtoRegVar);
-    Ck_pL->SetCutOff(FemtoRegion,CkCutOff);
-    if(Ck_pS0) Ck_pS0->SetCutOff(FemtoRegion,CkCutOff);
-    Ck_pXim->SetCutOff(FemtoRegion,CkCutOff);
-    if(Ck_pXi0) Ck_pXi0->SetCutOff(FemtoRegion,CkCutOff);
-    if(Ck_pXim1530) Ck_pXim1530->SetCutOff(FemtoRegion,CkCutOff);
+    FitRegion = fitregion_var.at(WhichFitRegVar);
+    Ck_pL->SetCutOff(kMaxCats,CkCutOff);
+    if(Ck_pS0) Ck_pS0->SetCutOff(kMaxCats,CkCutOff);
+    if(Ck_pXim) Ck_pXim->SetCutOff(kMaxCats,CkCutOff);
+    if(Ck_pXi0) Ck_pXi0->SetCutOff(kMaxCats,CkCutOff);
+    if(Ck_pXim1530) Ck_pXim1530->SetCutOff(kMaxCats,CkCutOff);
 
     if(DEBUG){
       printf(" CkCutOff = %.0f MeV\n",CkCutOff);
-      printf(" FemtoRegion = %.0f MeV\n",FemtoRegion);
+      printf(" FitRegion = %.0f MeV\n",FitRegion);
       usleep(200e3);
     }
 
@@ -2939,13 +3006,13 @@ void Jaime_pL(int RndSeed, int imTbin, int pL_inter, int AnalysisType, int Error
       gROOT->cd();
       hPhaseSpace_pL = (TH1F*)hME_PP->Clone("hPhaseSpace_pL");
       hPhaseSpace_pL->Add(hME_APAP);
+      hPhaseSpace_pL->GetXaxis()->SetLimits(hPhaseSpace_pL->GetXaxis()->GetXmin()*1000.,hPhaseSpace_pL->GetXaxis()->GetXmax()*1000.);
       //printf("hPhaseSpace_pL %p\n",hPhaseSpace_pL);
       delete inFile;
     }
 
     //fOutputFile->cd();
     //if(hPhaseSpace_pL) hPhaseSpace_pL->Write();
-
 
     DLM_CkDecomposition* CkDec_pL = NULL;
     DLM_CkDecomposition* CkDec_pS0 = NULL;
@@ -2957,20 +3024,25 @@ void Jaime_pL(int RndSeed, int imTbin, int pL_inter, int AnalysisType, int Error
     CkDec_pL = new DLM_CkDecomposition("pLambda",5,*Ck_pL,hResolution_pL);
     if(Ck_pS0) CkDec_pS0 = new DLM_CkDecomposition("pSigma0",0,*Ck_pS0,NULL);
     //xi1530,flat
-    CkDec_pXim = new DLM_CkDecomposition("pXim",2,*Ck_pXim,NULL);
+    if(Ck_pXim) CkDec_pXim = new DLM_CkDecomposition("pXim",2,*Ck_pXim,NULL);
     if(Ck_pXi0) CkDec_pXi0 = new DLM_CkDecomposition("pXi0",2,*Ck_pXi0,NULL);
     if(Ck_pXim1530) CkDec_pXim1530 = new DLM_CkDecomposition("pXim1530",0,*Ck_pXim1530,NULL);
 
-    printf(" lam_pXi_gen = %.2f%%\n",lam_pXi_gen*100.);
-    printf(" lam_pXi_pXi1530 = %.2f%%\n",lam_pXi_pXi1530*100.);
-    printf(" lam_pXi_flt = %.2f%%\n",lam_pXi_flt*100.);
-    if(SmearStrategy==1) {CkDec_pL->AddPhaseSpace(hPhaseSpace_pL);}
+    if(DEBUG){
+      printf(" lam_pXi_gen = %.2f%%\n",lam_pXi_gen*100.);
+      printf(" lam_pXi_pXi1530 = %.2f%%\n",lam_pXi_pXi1530*100.);
+      printf(" lam_pXi_flt = %.2f%%\n",lam_pXi_flt*100.);
+    }
+
+
+    if(SmearStrategy==1) {CkDec_pL->AddPhaseSpace(hPhaseSpace_pL);}//momentum smear correction
     CkDec_pL->AddContribution(0,lam_pS0,DLM_CkDecomposition::cFeedDown,CkDec_pS0?CkDec_pS0:NULL,CkDec_pS0?hResidual_pL_pSigma0:NULL);
-    if(SmearStrategy==1&&CkDec_pS0) {CkDec_pL->AddPhaseSpace(0,hPhaseSpace_pL);}
+    if(SmearStrategy==1&&CkDec_pS0) {CkDec_pL->AddPhaseSpace(0,hPhaseSpace_pL);}//feed-down smear correction
     CkDec_pL->AddContribution(1,lam_pXim,DLM_CkDecomposition::cFeedDown,CkDec_pXim?CkDec_pXim:NULL,CkDec_pXim?hResidual_pL_pXim:NULL);
-    if(SmearStrategy==1&&CkDec_pXim) {CkDec_pL->AddPhaseSpace(1,hPhaseSpace_pL);}
+    if(SmearStrategy==1&&CkDec_pXim) {CkDec_pL->AddPhaseSpace(1,hPhaseSpace_pL);}//feed-down smear correction
     CkDec_pL->AddContribution(2,lam_pXi0,DLM_CkDecomposition::cFeedDown,CkDec_pXi0?CkDec_pXi0:NULL,CkDec_pXi0?hResidual_pL_pXim:NULL);
-    if(SmearStrategy==1&&CkDec_pXi0) {CkDec_pL->AddPhaseSpace(2,hPhaseSpace_pL);}
+    if(SmearStrategy==1&&CkDec_pXi0) {CkDec_pL->AddPhaseSpace(2,hPhaseSpace_pL);}//feed-down smear correction
+
     CkDec_pL->AddContribution(3,lam_flt,DLM_CkDecomposition::cFeedDown);
     CkDec_pL->AddContribution(4,lam_mid,DLM_CkDecomposition::cFake);
 
@@ -2988,17 +3060,95 @@ void Jaime_pL(int RndSeed, int imTbin, int pL_inter, int AnalysisType, int Error
       CkDec_pXi0->AddContribution(1,lam_pXi_flt,DLM_CkDecomposition::cFeedDown);
     }
 
-    //CkDec_pL
+    if(CkDec_pL) CkDec_pL->Update();
+    if(CkDec_pS0) CkDec_pS0->Update();
+    if(CkDec_pXim) CkDec_pXim->Update();
+    if(CkDec_pXi0) CkDec_pXi0->Update();
+    if(CkDec_pXim1530) CkDec_pXim1530->Update();
 
-// UP TO HERE, NOW TIME TO FIT I GUESS
+    SOURCE_FIT = CkDec_pL;
+    TF1* fData = new TF1("fData",Fit_BernieSource,0,FitRegion,7);
+    TF1* fBl = new TF1("fBl",Baseline_BernieSource,0,FitRegion,5);
+    fData->SetParameter(0,SourceType=="Gauss"?pL_reff.at(imTbin):pp_rcore_srcPaper.at(imTbin));
+    fData->SetParLimits(0,fData->GetParameter(0)*0.5,fData->GetParameter(0)*2.0);
+    fData->FixParameter(1,0);
 
+    //BL
+    fData->SetParameter(2,1);
+
+    Baseline = baseline_var.at(WhichBaselineVar);
+    //pol0s,pol1s,dpol3e
+    if(Baseline==pol1s){
+      fData->SetParameter(3,0);
+      fData->SetParLimits(3,-1e-2,1e-2);
+      fData->FixParameter(4,0);
+      fData->FixParameter(5,0);
+      fData->FixParameter(6,0);
+    }
+    else if(Baseline==dpol3e){
+      fData->FixParameter(3,0);
+      fData->SetParameter(4,100);
+      fData->SetParLimits(4,0,400);
+      fData->SetParameter(5,0);
+      fData->SetParLimits(5,-1e-6,1e-6);
+      fData->FixParameter(6,0);
+    }
+    else{
+      fData->FixParameter(3,0);
+      fData->FixParameter(4,0);
+      fData->FixParameter(5,0);
+      fData->FixParameter(6,0);
+    }
+
+    //printf("BL=%i FIT=%.0f PS0=%i SS=%i LAM=%i SMR=%s PL=%i SRC=%s lam_pL=%.1f XXX=%.1f\n",
+    //        varBL,varFit,ipS0,SmearStrategy,varLam,varSmear.Data(),varPL,SourceVar.Data(),lambda_pL[0]*100.,lambda_pL[1]*100.);
+    if(DEBUG) hDataToFit->Fit(fData,"S, N, R, M");
+    else hDataToFit->Fit(fData,"Q, S, N, R, M");
+    fData->SetNpx(3*MomBinsTot);
+
+    for(unsigned uPar=0; uPar<5; uPar++){
+      fBl->FixParameter(uPar,fData->GetParameter(uPar+2));
+    }
+
+    for(unsigned uBin=0; uBin<MomBinsPlot; uBin++){
+      double Momentum = Ck_pL->GetBinCenter(0,uBin);
+      bool MomQA = fabs(hData->GetBinCenter(uBin+1)-Momentum)<1e-6;
+      if(!MomQA){
+        printf("WARNING: Something is fishy with the binning of the data (%.2f vs %.2f)!!! Thank you GentleFemto!\n",Momentum,hData->GetBinCenter(uBin+1));
+      }
+      gFit->SetPoint(uBin,Momentum,fData->Eval(Momentum));
+      gBl->SetPoint(uBin,Momentum,fBl->Eval(Momentum));
+      gFemto->SetPoint(uBin,Momentum,fData->Eval(Momentum)/fBl->Eval(Momentum));
+    }
+
+
+    radius = fData->GetParameter(0);
+    raderr = fData->GetParError(0);
+    chi2_full = fData->GetChisquare();
+    ndf_full = fData->GetNDF();
+    ndp_full = fData->GetNumberFitPoints();
+    nsig_full = GetNsigma(chi2_full, ndf_full);
+
+    if(DEBUG){
+      fOutputFile->cd();
+      hData->Write();
+      hDataToFit->Write();
+      fData->Write();
+      fBl->Write();
+      gFit->Write();
+      gBl->Write();
+      gFemto->Write();
+    }
+
+    fOutputFile->cd();
+    pLTree->Fill();
 
     TotalTime = JaimeTimer.Stop()/1000000.;
     CompletedIters++;
-    //usleep(100e3);
-    break;
-    delete hData;
-    delete hDataToFit;
+    if(hData) delete hData;
+    if(hDataToFit) delete hDataToFit;
+    if(fData) delete fData;
+    if(fBl) delete fBl;
     if(CkDec_pL) delete CkDec_pL;
     if(CkDec_pS0) delete CkDec_pS0;
     if(CkDec_pXim) delete CkDec_pXim;
@@ -3006,223 +3156,8 @@ void Jaime_pL(int RndSeed, int imTbin, int pL_inter, int AnalysisType, int Error
     if(CkDec_pXim1530) delete CkDec_pXim1530;
   }//while
 
-  //for(float CuspWeight : cusp_var){
-
-
-      //for( float& CkCutOff_val : CkCutOff ){
-        //CKCUTOFF = CkCutOff_val;
-        //for( float& FemtoRegion_val : FemtoRegion ){
-        //  FEMTOREGION = FemtoRegion_val;
-
-
-
-          //printf("QA: lam_gen = %.2f%% vs %.2f%%\n",lam_gen*100.,(1.-lam_pars_pl[1]-lam_pars_pl[2]-lam_pars_pl[3]-lam_pars_pl[4])*100.);
-          //AnalysisObject.SetUpLambdaPars_pXim("pp13TeV_HM_DimiJun20",0,0,lam_pXim);
-//UP TO HERE
-          //lam_L_genuine = 1.-lam_pL[1]-lam_pL[2]-lam_pL[3]-lam_pL[4];
-          //lam_L_Sig0 = lam_pL[1];
-          //lam_L_Xim = lam_pL[2];
-          //lam_L_Xi0 = lam_pL[2];
-          //lam_L_Flat = lam_pL[3]-lam_L_Xi0;
-
-        //}//FemtoRegion
-  /*
-        for(TString varSmear : MomSmearVar){
-          for(int varLam : pL_lam_var){
-            double lambda_pL[5];
-            AnalysisObject.SetUpLambdaPars_pL("pp13TeV_HM_Dec19",0,varLam,lambda_pL);
-            double lambda_pXim[5];
-            AnalysisObject.SetUpLambdaPars_pXim("pp13TeV_HM_Dec19",0,0,lambda_pXim);
-
-            //for(int varSS : SmearStrategy){
-              TH1F* hPhaseSpace_pL=NULL;
-              if(SmearStrategy==1){
-                TList* list1_tmp;
-                TList* list2_tmp;
-                TString FileName = TString::Format("%s/CatsFiles/ExpData/Bernie_Source/pLData/mTBin_%i/CFOutput_mT_pLVar%u_HM_%i.root",
-                                                    GetCernBoxDimi(),imTbin+1,DataVar,imTbin);
-                TFile* inFile = new TFile(FileName,"read");
-                //PARTICLES
-                list1_tmp = (TList*)inFile->Get("PairDist");
-                list2_tmp = (TList*)list1_tmp->FindObject("PairFixShifted");//there is also PairShifted ?? which one ??
-                TH1F* hME_PP = (TH1F*)list2_tmp->FindObject(TString::Format("MEPart_mT_%i_FixShifted",imTbin));
-                list1_tmp = (TList*)inFile->Get("AntiPairDist");
-                list2_tmp = (TList*)list1_tmp->FindObject("PairFixShifted");
-                TH1F* hME_APAP = (TH1F*)list2_tmp->FindObject(TString::Format("MEAntiPart_mT_%i_FixShifted",imTbin));
-                gROOT->cd();
-                hPhaseSpace_pL = (TH1F*)hME_PP->Clone("hPhaseSpace_pL");
-                hPhaseSpace_pL->Add(hME_APAP);
-                delete inFile;
-              }
-              for(unsigned ipS0=!(pS0_Var); ipS0<2; ipS0++){
-              //for(unsigned ipS0=0; ipS0<2; ipS0++){
-                DLM_CkDecomposition CkDec_pL("pLambda", 4,*Ck_pL,hResolution_pL);
-                DLM_CkDecomposition CkDec_pSigma0("pSigma0",0,*Ck_pS0,NULL);
-                DLM_CkDecomposition CkDec_pXim("pXim",3,*Ck_pXim,NULL);
-                DLM_CkDecomposition CkDec_pXim1530("pXim1530",0,*Ck_pXim1530,NULL);
-
-                if(ipS0==0) CkDec_pL.AddContribution(0,lambda_pL[1],DLM_CkDecomposition::cFeedDown);
-                else CkDec_pL.AddContribution(0,lambda_pL[1],DLM_CkDecomposition::cFeedDown,&CkDec_pSigma0,hResidual_pL_pSigma0);
-                CkDec_pL.AddContribution(1, lambda_pL[2],DLM_CkDecomposition::cFeedDown,&CkDec_pXim,hResidual_pL_pXim);
-                CkDec_pL.AddContribution(2, lambda_pL[3],DLM_CkDecomposition::cFeedDown);
-                CkDec_pL.AddContribution(3, lambda_pL[4],DLM_CkDecomposition::cFake);
-                if(hPhaseSpace_pL){
-                  if(ipS0==1) CkDec_pL.AddPhaseSpace(0,hPhaseSpace_pL);
-                  CkDec_pL.AddPhaseSpace(1,hPhaseSpace_pL);
-                }
-
-                CkDec_pXim.AddContribution(0, lambda_pXim[1],DLM_CkDecomposition::cFeedDown,&CkDec_pXim1530,hResidual_pXi_pXi1530);  //from Xi-(1530)
-                CkDec_pXim.AddContribution(1, lambda_pXim[2]+lambda_pXim[3],DLM_CkDecomposition::cFeedDown);  //other feed-down (flat)
-                CkDec_pXim.AddContribution(2, lambda_pXim[4], DLM_CkDecomposition::cFake);
-                if(hPhaseSpace_pL){
-                  CkDec_pXim.AddPhaseSpace(0,hPhaseSpace_pL);
-                }
-
-                CkDec_pL.Update();
-                CkDec_pSigma0.Update();
-                CkDec_pXim.Update();
-                CkDec_pXim1530.Update();
-
-                gROOT->cd();
-                TH1F* hData = AnalysisObject.GetAliceExpCorrFun("pp13TeV_HM_BernieSource","pLambda",TString::Format("%u",DataVar),0,0,imTbin);
-                for(float varFit : FemtoRegion){
-                  for(int varBL : BaselineVar){
-                    double FitRange = varFit;
-                    //if(varBL==dpol3e) FitRange=BaselineRegion.at(0);
-                    //gROOT->cd();
-                    fOutputFile->cd();
-                    //2 femto and 5 BL fit pars (the BL are norm, pol1,2,3,4)
-                    TF1* fData = new TF1("fData",Fit_BernieSource,0,FitRange,7);
-                    TF1* fBl = new TF1("fBl",Baseline_BernieSource,0,FitRange,5);
-                    fData->SetParameter(0,SourceVar=="Gauss"?ExpectedRadii.at(imTbin):ExpectedRadii.at(imTbin)*Scale_core);
-                    fData->SetParLimits(0,fData->GetParameter(0)*0.5,fData->GetParameter(0)*2.0);
-//fData->FixParameter(0,1.366);
-                    fData->FixParameter(1,0);
-
-                    //BL
-                    fData->SetParameter(2,1);
-
-                    //pol0s,pol1s,dpol3e
-                    if(varBL==pol1s){
-                      fData->SetParameter(3,0);
-                      fData->SetParLimits(3,-1e-2,1e-2);
-                      fData->FixParameter(4,0);
-                      fData->FixParameter(5,0);
-                      fData->FixParameter(6,0);
-                    }
-                    else if(varBL==dpol3e){
-                      fData->SetParameter(3,0);
-                      fData->SetParLimits(3,-100000,100);
-                      fData->SetParameter(4,100);
-                      fData->SetParLimits(4,0,400);
-                      fData->SetParameter(5,0);
-                      fData->SetParLimits(5,-1e-6,1e-6);
-                      fData->FixParameter(6,0);
-                    }
-                    else{
-                      fData->FixParameter(3,0);
-                      fData->FixParameter(4,0);
-                      fData->FixParameter(5,0);
-                      fData->FixParameter(6,0);
-                    }
-                    SOURCE_FIT = &CkDec_pL;
-                    //printf("BL=%i FIT=%.0f PS0=%i SS=%i LAM=%i SMR=%s PL=%i SRC=%s lam_pL=%.1f XXX=%.1f\n",
-                    //        varBL,varFit,ipS0,SmearStrategy,varLam,varSmear.Data(),varPL,SourceVar.Data(),lambda_pL[0]*100.,lambda_pL[1]*100.);
-                    hData->Fit(fData,"Q, S, N, R, M");
-                    fData->SetNpx(TotMomBins);
-
-                    fBl->FixParameter(0,fData->GetParameter(2));
-                    fBl->FixParameter(1,fData->GetParameter(3));
-                    fBl->FixParameter(2,fData->GetParameter(4));
-                    fBl->FixParameter(3,fData->GetParameter(5));
-                    fBl->FixParameter(4,fData->GetParameter(6));
-
-                    printf(" r = %.3f +/- %.3f\n",fData->GetParameter(0),fData->GetParError(0));
-                    double Chi2 = fData->GetChisquare();
-                    double NDF = fData->GetNDF();
-                    double pval = TMath::Prob(Chi2,NDF);
-                    double nsig = sqrt(2)*TMath::ErfcInverse(pval);
-                    //printf(" chi2/ndf = %.2f\n",Chi2/NDF);
-                    //printf(" nsig = %.2f\n",nsig);
-
-                    //gROOT->cd();
-                    fOutputFile->cd();
-
-                    BASELINEVAR = varBL;
-                    FEMTOREGION = varFit;
-                    PS0 = ipS0;
-                    SMEARSTRATEGY = SmearStrategy;
-                    PL_LAM_VAR = varLam;
-                    MOMSMEARVAR = varSmear;
-                    CKCUTOFF = varCutOff;
-                    PL_POT_VAR = varPL;
-                    SOURCEVAR = SourceVar;
-                    LAM_PL = lambda_pL[0];
-                    //LAM_PPL = lambda_pp[1];
-                    NSIG = nsig;
-                    RADIUS = fData->GetParameter(0);
-                    RADERR = fData->GetParError(0);
-
-                    if(HDATA)delete HDATA;
-                    HDATA = (TH1F*)hData->Clone("HDATA");
-                    delete GFIT;
-                    GFIT = new TGraph();
-                    GFIT->SetName("GFIT");
-                    delete GBL;
-                    GBL = new TGraph();
-                    GBL->SetName("GBL");
-                    delete GFEMTO;
-                    GFEMTO = new TGraph();
-                    GFEMTO->SetName("GFEMTO");
-                    for(unsigned uBin=0; uBin<NumMomBins_pL; uBin++){
-                      double MOM = AB_pL.GetMomentum(uBin);
-                      if(MOM>FitRange) break;
-                      //GDATA->SetPoint(uBin,MOM,hData->GetBinContent(hData->FindBin(MOM)));
-                      GFIT->SetPoint(uBin,MOM,fData->Eval(MOM));
-                      GBL->SetPoint(uBin,MOM,fBl->Eval(MOM));
-                      GFEMTO->SetPoint(uBin,MOM,fData->Eval(MOM)/fBl->Eval(MOM));
-                    }
-
-                    pLTree->Fill();
-                    //ppTree->Branch("gData","TH1F",&GDATA,32000,0);//
-                    //ppTree->Branch("gFit","TGraph",&GFIT,32000,0);//
-                    //ppTree->Branch("gBl","TGraph",&GBL,32000,0);//
-                    //ppTree->Branch("gFemto","TGraph",&GFEMTO,32000,0);//
-
-                    //return;
-                    delete fData;
-                    delete fBl;
-//break;
-                  }//varBL (3x)
-                }//varFit (3x)
-                delete hData;
-//break;
-              }//ipS0 (2x)
-            //}//varSS (2x)
-//break;
-          }//varLam (3x)
-//break;
-        }//varSmear (2x)
-        delete Ck_pL;
-        delete Ck_pS0;
-        delete Ck_pXim;
-        delete Ck_pXim1530;
-//break;
-*/
-      //}//CkCutOff (1x)
-//break;
-
-  //}//cusp_var
-  //}//varSource (2x)
-/*
-//const unsigned DataVar, const int imTbin
   fOutputFile->cd();
   pLTree->Write();
-
-  delete pLTree;
-  delete fOutputFile;
-*/
-
 
   delete hResolution_pL;
   delete hResidual_pp_pL;
@@ -3234,12 +3169,12 @@ void Jaime_pL(int RndSeed, int imTbin, int pL_inter, int AnalysisType, int Error
   delete pLTree;
   delete gFit;
   delete gBl;
+  delete gFemto;
   if(Ck_pL) delete Ck_pL;
   if(Ck_pS0) delete Ck_pS0;
   if(Ck_pXim) delete Ck_pXim;
   if(Ck_pXi0) delete Ck_pXi0;
   if(Ck_pXim1530) delete Ck_pXim1530;
-  delete gFemto;
   delete fOutputFile;
 }
 
@@ -3961,9 +3896,11 @@ int SOURCESTUDIES(int argc, char *argv[]){
     //printf("------------------\n");
 
     //SinglePart_RandomLab();
-    //int RndSeed, int imTbin, int pL_inter, int AnalysisType, int ErrorType, double Timeout
-    //Jaime_pL(1, 0, 11600, 0, 0, -0.1, 0, TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data(), "");
-    Jaime_pL(1, 0, 11600, 1001, 0, -0.2, 0, TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data(), "/home/dimihayl/Software/LocalFemto/Output/SourceStudies/Jaime_pL/");//
+    //int RndSeed, int imTbin, int pL_inter, int AnalysisType, int ErrorType, double Timeout, int NewAgeFlag
+    ////ErrorType = XY, where X is syst vars, Y is bootstrap
+    //Jaime_pL(1, 0, 11600, 1101, 0, -0.1, 0, TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data(), "/home/dimihayl/Software/LocalFemto/Output/SourceStudies/Jaime_pL/");
+    Jaime_pL(1, 0, 11600, 1201, 10, 3, 0, TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data(), "/home/dimihayl/Software/LocalFemto/Output/SourceStudies/Jaime_pL/tmp/");
+    //Jaime_pL(1, 0, 0, 0, 0, -0.1, 0, TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data(), "/home/dimihayl/Software/LocalFemto/Output/SourceStudies/Jaime_pL/");
     printf("Terminating\n");
     return 0;
 }
