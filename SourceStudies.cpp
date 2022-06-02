@@ -2367,7 +2367,7 @@ std::vector<float> FemtoRegion = {204,228,240};
 //      potential ID as in the pL paper (s and d waves). In practice we will try out:
 //      11600: NLO-600
 //      131600: NLO-600 with reduced scattering length in the 3S1
-//      231600: NLO-600 with reduced scattering length in the 3S1, anc charge symmetry breaking (CSB) in 1S0
+//      231600: NLO-600 with reduced scattering length in the 3S1, and charge symmetry breaking (CSB) in 1S0
 //AnalysisType consisting of 4 digits (ABCD):
 //      A: the smearing strategy, 0 is orginal, 1 is improved based on limited phase space (more accurate)
 //      B:  the feed-down, 0 (fss2) and 1 (esc16) are the two original variations for pS0 + the old pXi,
@@ -3899,8 +3899,11 @@ int SOURCESTUDIES(int argc, char *argv[]){
     //int RndSeed, int imTbin, int pL_inter, int AnalysisType, int ErrorType, double Timeout, int NewAgeFlag
     ////ErrorType = XY, where X is syst vars, Y is bootstrap
     //Jaime_pL(1, 0, 11600, 1101, 0, -0.1, 0, TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data(), "/home/dimihayl/Software/LocalFemto/Output/SourceStudies/Jaime_pL/");
-    Jaime_pL(1, 0, 11600, 1201, 10, 3, 0, TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data(), "/home/dimihayl/Software/LocalFemto/Output/SourceStudies/Jaime_pL/tmp/");
+    //Jaime_pL(1, 0, 11600, 1201, 10, 3, 0, TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data(), "/home/dimihayl/Software/LocalFemto/Output/SourceStudies/Jaime_pL/tmp/");
     //Jaime_pL(1, 0, 0, 0, 0, -0.1, 0, TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data(), "/home/dimihayl/Software/LocalFemto/Output/SourceStudies/Jaime_pL/");
+////r,0,11600/131600,12(3)01,11,10,2
+    Jaime_pL(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]), atoi(argv[6]), atoi(argv[7]), TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data(), "/home/dimihayl/Software/LocalFemto/Output/SourceStudies/Jaime_pL/310522/");
+    //1, 0-6, 0, (0)(0/1)(0)(0) 11 15 0 INPUT OUTPUT
     printf("Terminating\n");
     return 0;
 }

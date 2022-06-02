@@ -2054,7 +2054,7 @@ void TestKyoto2019(const double& RADIUS){
         }
     }
 
-    TFile fOutput(TString::Format("%s/KaonProton/TestKyoto2019/fOutput141220_%.2f.root",GetFemtoOutputFolder(),
+    TFile fOutput(TString::Format("%s/KaonProton/Max_010622/fOutput010622_%.2f.root",GetFemtoOutputFolder(),
                                   RADIUS),"recreate");
 
     for(unsigned uCh=0; uCh<=NumChannels; uCh++){
@@ -2070,7 +2070,7 @@ void TestKyoto2019(const double& RADIUS){
         hWfStrong[uCh]->Write();
         hWfFull[uCh]->Write();
     }
-
+/*
     FILE * CkFile;
     CkFile = fopen (TString::Format("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/TestKyoto2019/CkProtonKaon130520.txt"),"w");
     fprintf (CkFile, "%10s%10s%10s%10s\n","k* (MeV)","C_S(k*)","C_G(k*)","C_C(k*)");
@@ -2084,7 +2084,7 @@ void TestKyoto2019(const double& RADIUS){
 		fprintf (CkFile, "%10.1f%10.3f%10.3f%10.3f\n",kVal_S,CkVal_S,CkVal_G,CkVal_C);
 	}
 	fclose(CkFile);
-
+*/
     delete [] gStrong;
     delete [] gGamow;
     delete [] gFull;
@@ -2627,12 +2627,12 @@ int KAONPROTON_MAIN(int argc, char *argv[]){
     //SmallerYukiFile();
 
     //TestKyoto2019(1.2);
-    //for(double rad=1; rad<=7.5; rad+=0.5){
+    for(double rad=1; rad<=7.5; rad+=0.5){
     //for(double rad=5.0; rad<=8.0; rad+=0.5){
-    //    TestKyoto2019(rad);
-    //}
+        TestKyoto2019(rad);
+    }
     //TestKyoto2019(1.0);
-    TestKyoto2019_pK0(1.0);
+    //TestKyoto2019_pK0(1.0);
 
     //PbPb_Paper_CkWithErrors();
 

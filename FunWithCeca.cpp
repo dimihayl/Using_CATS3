@@ -3502,15 +3502,15 @@ void Ceca_vs_RSM_1(const std::string part1, const std::string part2){
 
 void Ceca_vs_RSM_2(const std::string part1, const std::string part2, const bool PropMother){
   const double reff = sqrt(2);
-  const double rSP = 1.0;//1.0
+  const double rSP = 0.4;//1.0
 
   const double EtaCut = 0.8;
   const bool EQUALIZE_TAU = true;
   const double TIMEOUT = 30;
   const double FracProtonReso = 0.6422*1;
   const double FracLambdaReso = 0.6438*1;
-  const double PancakeT = 0.0;
-  const double PancakeZ = 0.0;
+  const double PancakeT = 6.5;
+  const double PancakeZ = 6.5;
   const double Tau = 0.0;
   const double PancakeFluct = 0;//in % !!!
   unsigned THREADS = 0;
@@ -6522,10 +6522,10 @@ int FUN_WITH_CECA(int argc, char *argv[]){
 //concentrate on this one, in particular the prop mother ceca based rsm, seems to almost work
   //Ceca_vs_RSM_2("Proton","Proton",true);
   //Ceca_vs_RSM_2("Proton","Lambda",true);
-  //Ceca_vs_RSM_2("Proton","Proton",false);
+  Ceca_vs_RSM_2("Proton","Proton",false);
   //Ceca_vs_RSM_2("Proton","Lambda",false);
 
-  HowWrongIsOurSource(0);
+  //HowWrongIsOurSource(0);
   //HowWrongIsOurSource(1);
 
   //Ceca_pp_pL_source();
