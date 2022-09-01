@@ -7,8 +7,13 @@
 #include "DLM_Source.h"
 #include "DLM_CkDecomposition.h"
 #include "DLM_Ck.h"
+#include "TREPNI.h"
+#include "CATStools.h"
+#include "CECA.h"
+#include "DLM_RootWrapper.h"
 
 #include "CommonAnaFunctions.h"
+#include "EnvVars.h"
 
 #include "TString.h"
 #include "TGraph.h"
@@ -23,6 +28,7 @@
 #include "TPaveText.h"
 #include "TNtuple.h"
 #include "TVector3.h"
+#include "TAxis.h"
 
 
 
@@ -1349,14 +1355,415 @@ void FAST_MT_PLOTS(){
 
 }
 
+//evaluate the r_core based on mt
+//create RSM prediction for r_eff
+//create CECA r_eff based on some fixed disp or Jaime pars.
+
+void pion_proton_FirstLook(){
+  const double avg_mt = 1.1;
+  const double rsm_core = 0;
+  const double hadr_t = 3.55;
+  const double time_d = 2.30;
+  const double displ = 0.25;
+  const double ceca_sp = 1.0;
+
+  const double tau_p = 1.65;
+  const double resoM_p = 1362;
+  const double resoF_p = 64.22;
+
+  const double tau_pi = 1.50;
+  const double resoM_pi = 1180;
+  const double resoF_pi = 68.2;
+
+  //PP - easy
+  //R - non-comon reso;
+  TREPNI Database(0);
+  Database.SetSeed(11);
+  std::vector<TreParticle*> ParticleList;
+  ParticleList.push_back(Database.NewParticle("Proton"));
+  ParticleList.push_back(Database.NewParticle("Pion"));
+  ParticleList.push_back(Database.NewParticle("Daughter"));//decay daughters (pions)
+  ParticleList.push_back(Database.NewParticle("KaonReso"));
+  ParticleList.push_back(Database.NewParticle("PionReso"));
+
+}
+
+//To get a fast first look: make few correlations using a Gaussian source
+//we assume 100% purity
+//double SourceSize, double LambdaGen, double Lambda_P1, double Lambda_P2, double Lambda_P3
+//AVG_MT is 0.96
+void pion_proton_FastLook(){
+  //this seems okay, and perhaps the effective source will have long enough of a tail to put an extra lambda par
+  double SourceSize=1.2;
+  double SourceNorm=0.9;
+  //the 0.876 (0.824) is for the pions, and I think it includes the long lived reso
+  //this way L_gen is around 66.7%
+  double LambdaGen=0.823*0.824*0.994*0.99*SourceNorm; double Lambda_P1=0.004; double Lambda_P2=0.002; double Lambda_P3=0.001;
+  //N.B. we rely on the 4 MeV bin width!!!
+  const unsigned NumMomBins = 200;
+  const double kMin = 0;
+  const double kMax = 800;
+  //const double Weight0 = 0.5;
+  //const double LambdaGen = 0.6;
+  const double LambdaFlat = 1. - LambdaGen;
+
+  //1.06012 / 1.006 = 1.54
+  //-0.000143092
+  //const double Pol0 = 1.06012 / 1.006;
+  //const double Pol1 = -0.000143092 / 1.006;
+  const double Pol0 = 1;
+  const double Pol1 = 0;
+  const double Pol2 = 0;
+  const double Pol3 = 0;
+  //const double Pol0 = 1.006;
+  //const double Pol1 = 0;
+
+
+  //const double Pol0 = 1.034;
+  //const double Pol1 = 0;
+  //const double Pol2 = 3.21e-7;
+  //const double Pol3 = 3.92e-10;
+
+
+
+  CATS Kitty;
+  Kitty.SetMomBins(NumMomBins,kMin,kMax);
+  Kitty.SetThetaDependentSource(false);
+  CATSparameters cPars(CATSparameters::tSource,1,true);
+  cPars.SetParameter(0,SourceSize);
+  Kitty.SetAnaSource(GaussSource, cPars);
+  Kitty.SetAnaSource(0,SourceSize);
+  Kitty.SetUseAnalyticSource(true);
+  Kitty.SetAutoNormSource(false);
+  Kitty.SetMomentumDependentSource(false);
+
+  Kitty.SetExcludeFailedBins(false);
+  //same charged
+  Kitty.SetQ1Q2(1);
+  Kitty.SetQuantumStatistics(false);
+  Kitty.SetRedMass( (Mass_p*Mass_pic)/(Mass_p+Mass_pic) );
+
+  Kitty.SetNumChannels(1);
+  Kitty.SetNumPW(0,1);
+  //Kitty.SetNumPW(1,1);
+  Kitty.SetSpin(0,0);
+  //Kitty.SetSpin(1,1);
+  Kitty.SetChannelWeight(0, 1.0);
+  //Kitty.SetChannelWeight(1, 1.-Weight0);
+
+  Kitty.SetEpsilonConv(5e-9);
+  Kitty.SetEpsilonProp(5e-9);
+  Kitty.SetMaxRad(96);
+  Kitty.SetMaxRho(32);
+
+
+  DLM_Ck Ck_P1(NumMomBins,kMin,kMax);
+  DLM_Ck Ck_P2(NumMomBins,kMin,kMax);
+  DLM_Ck Ck_P3(NumMomBins,kMin,kMax);
+
+  TFile fIn_ppim(TString::Format("%s/Proton_Pion/Resonances/Proton_AntiPion/proton_pim_GeV.root",GetCernBoxDimi()),"read");
+  TH1D* h_ppim_GeV = (TH1D*)fIn_ppim.Get("CF_Total_ProtonAntiPion_Norm");
+  h_ppim_GeV->GetXaxis()->SetLimits(h_ppim_GeV->GetXaxis()->GetBinLowEdge(1)*1000,h_ppim_GeV->GetXaxis()->GetBinUpEdge(h_ppim_GeV->GetNbinsX())*1000);
+
+  TFile fIn_ppip(TString::Format("%s/Proton_Pion/Resonances/Proton_AntiPion/proton_pip_GeV.root",GetCernBoxDimi()),"read");
+  TH1D* h_ppip_GeV = (TH1D*)fIn_ppip.Get("CF_Total_ProtonPion_Norm");
+  h_ppip_GeV->GetXaxis()->SetLimits(h_ppip_GeV->GetXaxis()->GetBinLowEdge(1)*1000,h_ppip_GeV->GetXaxis()->GetBinUpEdge(h_ppip_GeV->GetNbinsX())*1000);
+
+  TH1D* h_ppi_ratio = (TH1D*)h_ppim_GeV->Clone("h_ppi_ratio");
+  h_ppi_ratio->Divide(h_ppip_GeV);
+
+  //N.B. we rely on the 4 MeV bin width!!!
+  TFile fInput(TString::Format("%s/Proton_Pion/Resonances/Proton_AntiPion/FISTReso_Output_BenjaminBW_2.root",GetCernBoxDimi()),"read");
+  TH1D* h_P1 = (TH1D*)fInput.Get("CF_FirstPeak");
+  TH1D* h_P2 = (TH1D*)fInput.Get("CF_SecondPeak");
+  TH1D* h_P3 = (TH1D*)fInput.Get("CF_ThirdPeak");
+  for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+if(uMom>=12*0)
+    //Ck_P1.SetBinContent(uMom,h_P1->GetBinContent(uMom+1));
+    Ck_P1.SetBinContent(uMom-12*0,h_P1->GetBinContent(uMom+1));
+    //Ck_P1.SetBinContent(uMom,1);
+    Ck_P2.SetBinContent(uMom,h_P2->GetBinContent(uMom+1));
+    //Ck_P2.SetBinContent(uMom,1);
+    Ck_P3.SetBinContent(uMom,h_P3->GetBinContent(uMom+1));
+    //printf("uB%u: %f\n",uMom,h_P1->GetBinContent(uMom+1));
+    //usleep(250e3);
+  }
+  fInput.Close();
+
+  Ck_P1.Update();
+  Ck_P2.Update();
+  Ck_P3.Update();
+
+  DLM_CkDecomposition CkDec_P1("P1",0,Ck_P1,NULL);
+  DLM_CkDecomposition CkDec_P2("P2",0,Ck_P2,NULL);
+  DLM_CkDecomposition CkDec_P3("P3",0,Ck_P3,NULL);
+  CkDec_P1.Update();
+  CkDec_P2.Update();
+  CkDec_P3.Update();
+
+//SET UP THE ABOVE DLM_Ck
+
+  DLM_Ck Ck_ppi(Kitty.GetNumSourcePars(),0,Kitty,NumMomBins,kMin,kMax);
+  Ck_ppi.Update();
+  //the contributions (apart from genuine):
+  //0 : FlatFeed
+
+  TFile fOutput(TString::Format("%s/Proton_Pion/Resonances/pion_proton_FastLook_SS=%.2f_GEN-%.0f_P1-%.0f_P2-%.0f_P3-%.0f_PerMil.root",
+                        GetCernBoxDimi(),SourceSize,LambdaGen*1000.,Lambda_P1*1000.,Lambda_P2*1000.,Lambda_P3*1000.),"recreate");
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles/",GetCernBoxDimi()).Data());
+  TH2F* hResolution_pp = AnalysisObject.GetResolutionMatrix("pp13TeV_HM_DimiJun20","pp");
+//printf("1\n");
+  //DLM_Histo<float>* dlm_RESO = Convert_TH2F_DlmHisto(hResolution_pp);
+
+  fOutput.cd();
+  h_ppim_GeV->Write();
+  h_ppip_GeV->Write();
+  h_ppi_ratio->Write();
+  double reso_kminX = hResolution_pp->GetXaxis()->GetBinLowEdge(1);
+  double reso_kmaxX = hResolution_pp->GetXaxis()->GetBinUpEdge(hResolution_pp->GetNbinsX());
+  double reso_kminY = hResolution_pp->GetYaxis()->GetBinLowEdge(1);
+  double reso_kmaxY = hResolution_pp->GetYaxis()->GetBinUpEdge(hResolution_pp->GetNbinsY());
+  TH2F* h_RESO = new TH2F("h_RESO","h_RESO",hResolution_pp->GetNbinsX(),reso_kminX,reso_kmaxX,hResolution_pp->GetNbinsY(),reso_kminY,reso_kmaxY);
+  for(unsigned uBinX=0; uBinX<hResolution_pp->GetNbinsX(); uBinX++){
+    for(unsigned uBinY=0; uBinY<hResolution_pp->GetNbinsY(); uBinY++){
+      h_RESO->SetBinContent(uBinX+1,uBinY+1,hResolution_pp->GetBinContent(uBinX+1,uBinY+1));
+    }
+  }
+
+  delete hResolution_pp; hResolution_pp=NULL;
+//printf("2\n");
+  //fOutput.cd();
+  //h_RESO->Write();
+  //return;
+
+  //1,2,3 : The 3 peaks from resonances (excluding Lambda decay!)
+//!!!!! DLM_CkDecomposition CkDec_ppi("ppi",1,Ck_ppi,hResolution_ppi);
+  DLM_CkDecomposition CkDec_ppi("ppi",4,Ck_ppi,h_RESO);
+//0.02,0.004,0.002
+  CkDec_ppi.QA_LambdaPar(false);
+  CkDec_ppi.AddContribution(0,LambdaFlat,DLM_CkDecomposition::cFeedDown);
+  printf("1\n");
+  CkDec_ppi.AddContribution(1,0.004,DLM_CkDecomposition::cFeedDown,&CkDec_P1);
+  //CkDec_ppi.AddContribution(1,Lambda_P1,DLM_CkDecomposition::cFeedDown,&CkDec_P1);
+  printf("2\n");
+  CkDec_ppi.AddContribution(2,0.002,DLM_CkDecomposition::cFeedDown,&CkDec_P2);
+  //CkDec_ppi.AddContribution(2,Lambda_P2,DLM_CkDecomposition::cFeedDown,&CkDec_P2);
+  printf("3\n");
+  CkDec_ppi.AddContribution(3,0.001,DLM_CkDecomposition::cFeedDown,&CkDec_P3);
+  //CkDec_ppi.AddContribution(3,Lambda_P3,DLM_CkDecomposition::cFeedDown,&CkDec_P3);
+  printf("4\n");
+
+  CkDec_ppi.SetLambdaMain(LambdaGen);
+//return;
+  //same charged, coulomb only
+  Kitty.KillTheCat();
+  Ck_ppi.Update(true);
+  CkDec_ppi.Update(true,true);
+
+  TGraph gCk_ppi_SameCh_Coul;
+  gCk_ppi_SameCh_Coul.SetName("gCk_ppi_SameCh_Coul");
+  gCk_ppi_SameCh_Coul.SetMarkerColor(kRed);
+  gCk_ppi_SameCh_Coul.SetMarkerStyle(3);
+  gCk_ppi_SameCh_Coul.SetMarkerSize(1);
+  gCk_ppi_SameCh_Coul.SetLineColor(kRed);
+  gCk_ppi_SameCh_Coul.SetLineWidth(4);
+
+  TGraph dCk_ppi_SameCh_Coul;
+  dCk_ppi_SameCh_Coul.SetName("dCk_ppi_SameCh_Coul");
+  dCk_ppi_SameCh_Coul.SetMarkerColor(kRed);
+  dCk_ppi_SameCh_Coul.SetMarkerStyle(3);
+  dCk_ppi_SameCh_Coul.SetMarkerSize(1);
+  dCk_ppi_SameCh_Coul.SetLineColor(kRed);
+  dCk_ppi_SameCh_Coul.SetLineWidth(4);
+
+  TGraph ThCk_ppi_SameCh_Coul;
+  ThCk_ppi_SameCh_Coul.SetName("ThCk_ppi_SameCh_Coul");
+  ThCk_ppi_SameCh_Coul.SetMarkerColor(kRed);
+  ThCk_ppi_SameCh_Coul.SetMarkerStyle(3);
+  ThCk_ppi_SameCh_Coul.SetMarkerSize(1);
+  ThCk_ppi_SameCh_Coul.SetLineColor(kRed);
+  ThCk_ppi_SameCh_Coul.SetLineWidth(4);
+  for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+      double MOM = Kitty.GetMomentum(uMom);
+      double BL = (Pol0+Pol1*MOM+Pol2*MOM+Pol3*MOM);
+      gCk_ppi_SameCh_Coul.SetPoint(uMom,MOM,BL*CkDec_ppi.EvalCk(MOM));
+      ThCk_ppi_SameCh_Coul.SetPoint(uMom,MOM,Kitty.GetCorrFun(uMom));
+      dCk_ppi_SameCh_Coul.SetPoint(uMom,MOM,h_ppip_GeV->GetBinContent(uMom+1)/BL/CkDec_ppi.EvalCk(MOM));
+  }
+  fOutput.cd();
+  gCk_ppi_SameCh_Coul.Write();
+  dCk_ppi_SameCh_Coul.Write();
+  ThCk_ppi_SameCh_Coul.Write();
+
+  //opposite charged, coulomb only
+  Kitty.SetQ1Q2(-1);
+  Kitty.KillTheCat();
+  Ck_ppi.Update(true);
+  CkDec_ppi.Update(true,true);
+
+  TGraph gCk_ppi_OppCh_Coul;
+  gCk_ppi_OppCh_Coul.SetName("gCk_ppi_OppCh_Coul");
+  gCk_ppi_OppCh_Coul.SetMarkerColor(kBlue);
+  gCk_ppi_OppCh_Coul.SetMarkerStyle(3);
+  gCk_ppi_OppCh_Coul.SetMarkerSize(1);
+  gCk_ppi_OppCh_Coul.SetLineColor(kBlue);
+  gCk_ppi_OppCh_Coul.SetLineWidth(4);
+
+  TGraph dCk_ppi_OppCh_Coul;
+  dCk_ppi_OppCh_Coul.SetName("dCk_ppi_OppCh_Coul");
+  dCk_ppi_OppCh_Coul.SetMarkerColor(kBlue);
+  dCk_ppi_OppCh_Coul.SetMarkerStyle(3);
+  dCk_ppi_OppCh_Coul.SetMarkerSize(1);
+  dCk_ppi_OppCh_Coul.SetLineColor(kBlue);
+  dCk_ppi_OppCh_Coul.SetLineWidth(4);
+
+
+  TGraph ThCk_ppi_OppCh_Coul;
+  ThCk_ppi_OppCh_Coul.SetName("ThCk_ppi_OppCh_Coul");
+  ThCk_ppi_OppCh_Coul.SetMarkerColor(kBlue);
+  ThCk_ppi_OppCh_Coul.SetMarkerStyle(3);
+  ThCk_ppi_OppCh_Coul.SetMarkerSize(1);
+  ThCk_ppi_OppCh_Coul.SetLineColor(kBlue);
+  ThCk_ppi_OppCh_Coul.SetLineWidth(4);
+
+  for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+    double MOM = Kitty.GetMomentum(uMom);
+    double BL = (Pol0+Pol1*MOM+Pol2*MOM+Pol3*MOM / 1.006);
+      gCk_ppi_OppCh_Coul.SetPoint(uMom,MOM,BL*CkDec_ppi.EvalCk(MOM));
+      ThCk_ppi_OppCh_Coul.SetPoint(uMom,MOM,Kitty.GetCorrFun(uMom));
+      dCk_ppi_OppCh_Coul.SetPoint(uMom,MOM,h_ppim_GeV->GetBinContent(uMom+1)/BL/CkDec_ppi.EvalCk(MOM));
+  }
+  fOutput.cd();
+  gCk_ppi_OppCh_Coul.Write();
+  dCk_ppi_OppCh_Coul.Write();
+  ThCk_ppi_OppCh_Coul.Write();
+
+  CATSparameters pPars0(CATSparameters::tPotential,4,true);
+  //pPars0.SetParameter(0,1.973303e+02);
+  //pPars0.SetParameter(1,6.187704e-01);
+  //pPars0.SetParameter(2,-1.100288e+03);
+  //pPars0.SetParameter(3,4.147391e-01);
+  Kitty.SetShortRangePotential(0,0,DoubleGaussSum,pPars0);
+  Kitty.SetShortRangePotential(0,0,0,-3.227447e+01);
+  Kitty.SetShortRangePotential(0,0,1,1.077665e+00);
+  Kitty.SetShortRangePotential(0,0,2,-2.228376e+02);
+  Kitty.SetShortRangePotential(0,0,3,9.697892e-02 );
+
+  //CATSparameters pPars1(CATSparameters::tPotential,4,true);
+  //pPars1.SetParameter(0,7.495875e+02);
+  //pPars1.SetParameter(1,3.944096e-01);
+  //pPars1.SetParameter(2,6.549811e+02);
+  //pPars1.SetParameter(3,4.493379e-01);
+
+  //opposite charged, SI + Coulomb
+  Kitty.KillTheCat();
+  Ck_ppi.Update(true);
+  CkDec_ppi.Update(true,true);
+
+  TGraph gCk_ppi_OppCh_Full;
+  gCk_ppi_OppCh_Full.SetName("gCk_ppi_OppCh_Full");
+  gCk_ppi_OppCh_Full.SetMarkerColor(kBlue+2);
+  gCk_ppi_OppCh_Full.SetMarkerStyle(3);
+  gCk_ppi_OppCh_Full.SetMarkerSize(1);
+  gCk_ppi_OppCh_Full.SetLineColor(kBlue+2);
+  gCk_ppi_OppCh_Full.SetLineWidth(4);
+
+  TGraph dCk_ppi_OppCh_Full;
+  dCk_ppi_OppCh_Full.SetName("dCk_ppi_OppCh_Full");
+  dCk_ppi_OppCh_Full.SetMarkerColor(kBlue+2);
+  dCk_ppi_OppCh_Full.SetMarkerStyle(3);
+  dCk_ppi_OppCh_Full.SetMarkerSize(1);
+  dCk_ppi_OppCh_Full.SetLineColor(kBlue+2);
+  dCk_ppi_OppCh_Full.SetLineWidth(4);
+
+  TGraph ThCk_ppi_OppCh_Full;
+  ThCk_ppi_OppCh_Full.SetName("ThCk_ppi_OppCh_Full");
+  ThCk_ppi_OppCh_Full.SetMarkerColor(kBlue+2);
+  ThCk_ppi_OppCh_Full.SetMarkerStyle(3);
+  ThCk_ppi_OppCh_Full.SetMarkerSize(1);
+  ThCk_ppi_OppCh_Full.SetLineColor(kBlue+2);
+  ThCk_ppi_OppCh_Full.SetLineWidth(4);
+
+  for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+    double MOM = Kitty.GetMomentum(uMom);
+    double BL = (Pol0+Pol1*MOM+Pol2*MOM+Pol3*MOM / 1.006);
+      gCk_ppi_OppCh_Full.SetPoint(uMom,MOM,BL*CkDec_ppi.EvalCk(MOM));
+      ThCk_ppi_OppCh_Full.SetPoint(uMom,MOM,Kitty.GetCorrFun(uMom));
+      dCk_ppi_OppCh_Full.SetPoint(uMom,MOM,h_ppim_GeV->GetBinContent(uMom+1)/BL/CkDec_ppi.EvalCk(MOM));
+  }
+  fOutput.cd();
+  gCk_ppi_OppCh_Full.Write();
+  dCk_ppi_OppCh_Full.Write();
+  ThCk_ppi_OppCh_Full.Write();
+
+
+  Kitty.SetQ1Q2(1);
+  Kitty.SetShortRangePotential(0,0,0,-1.298001e+01);
+  Kitty.SetShortRangePotential(0,0,1,1.453815e+00);
+  Kitty.SetShortRangePotential(0,0,2,-2.392445e+01);
+  Kitty.SetShortRangePotential(0,0,3,1.114436e-01);
+  //same charged, SI + Coulomb
+  Kitty.KillTheCat();
+  Ck_ppi.Update(true);
+  CkDec_ppi.Update(true,true);
+
+  TGraph gCk_ppi_SameCh_Full;
+  gCk_ppi_SameCh_Full.SetName("gCk_ppi_SameCh_Full");
+  gCk_ppi_SameCh_Full.SetMarkerColor(kRed+2);
+  gCk_ppi_SameCh_Full.SetMarkerStyle(3);
+  gCk_ppi_SameCh_Full.SetMarkerSize(1);
+  gCk_ppi_SameCh_Full.SetLineColor(kRed+2);
+  gCk_ppi_SameCh_Full.SetLineWidth(4);
+
+  TGraph dCk_ppi_SameCh_Full;
+  dCk_ppi_SameCh_Full.SetName("dCk_ppi_SameCh_Full");
+  dCk_ppi_SameCh_Full.SetMarkerColor(kRed+2);
+  dCk_ppi_SameCh_Full.SetMarkerStyle(3);
+  dCk_ppi_SameCh_Full.SetMarkerSize(1);
+  dCk_ppi_SameCh_Full.SetLineColor(kRed+2);
+  dCk_ppi_SameCh_Full.SetLineWidth(4);
+
+  TGraph ThCk_ppi_SameCh_Full;
+  ThCk_ppi_SameCh_Full.SetName("ThCk_ppi_SameCh_Full");
+  ThCk_ppi_SameCh_Full.SetMarkerColor(kRed+2);
+  ThCk_ppi_SameCh_Full.SetMarkerStyle(3);
+  ThCk_ppi_SameCh_Full.SetMarkerSize(1);
+  ThCk_ppi_SameCh_Full.SetLineColor(kRed+2);
+  ThCk_ppi_SameCh_Full.SetLineWidth(4);
+  for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+    double MOM = Kitty.GetMomentum(uMom);
+    double BL = (Pol0+Pol1*MOM+Pol2*MOM+Pol3*MOM / 1.006);
+      gCk_ppi_SameCh_Full.SetPoint(uMom,MOM,BL*CkDec_ppi.EvalCk(MOM));
+      ThCk_ppi_SameCh_Full.SetPoint(uMom,MOM,Kitty.GetCorrFun(uMom));
+      dCk_ppi_SameCh_Full.SetPoint(uMom,MOM,h_ppip_GeV->GetBinContent(uMom+1)/BL/CkDec_ppi.EvalCk(MOM));
+  }
+  fOutput.cd();
+  gCk_ppi_SameCh_Full.Write();
+  dCk_ppi_SameCh_Full.Write();
+  ThCk_ppi_SameCh_Full.Write();
+  h_RESO->Write();
+
+  delete h_RESO;
+  delete h_ppi_ratio;
+}
+
 
 int PION_ANA(int narg, char** ARGS){
     //FAST_MT_PLOTS();
     //pion_core_effect(false);
-    pion_core_effect(true);
+    //pion_core_effect(true);
     //pipi_alarm();
     //pipi_test();
     //pipi_omega();
     //ProveWeDoNotNeedOmega();
     //EffectOnTailFor_pp_pL();
+
+    //pion_proton_FirstLook();
+    //pion_proton_FastLook(1.0,0.6,0.02,0.004,0.002);
+    pion_proton_FastLook();
+    //pion_proton_FastLook(1.0,0.6,0.1,0.1,0.1);
+    //pion_proton_FastLook(1.2,0.6,0.1,0.1,0.1);
+
+    return 0;
 }

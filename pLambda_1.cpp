@@ -9116,6 +9116,11 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
                                   const float& ValSourceAlpha,
                                   TString InputFolder, TString InputFileName, TString OutputFolder, const int& WhichDataSet=-1){
 
+//printf("%s\n",InputFolder.Data());
+//printf("%s\n",InputFileName.Data());
+//printf("%s\n",OutputFolder.Data());
+//return;
+
     //300 or 108
     //const double Chi2RANGE = 108;
     const double Chi2RANGE = 300;
@@ -9124,7 +9129,7 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
     //if 1: as intended for the paper (cleaner)
     //if 2: as intended for the thesis
     //if 3: as intended for PLB
-    const int PlotsType = 0;
+    const int PlotsType = 1;
     const bool WriteToInfoFile=true;
     int Panel_X = 0;
 
@@ -9141,7 +9146,7 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
       if(WhichPotential==1600 && SIGMA_FEED==0)Panel_X=1;
     }
     const bool WorkInProgress = false;
-    const bool DataOnly = false;
+    const bool DataOnly = true;
 
     enum BLTYPE { pol0s,pol1s,pol2s,pol3s,dpol2s,dpol3s,dpol4s,pol2e,pol3e,dpol2e,dpol3e,dpol4e,spl1 };
     TString BlName1;
@@ -10545,7 +10550,8 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
     //else if(PlotsType) legend = new TLegend(TextLeft-0.01,0.73-0.064*NumRows,0.73,TextTop-0.135);//lbrt
     //else legend = new TLegend(TextLeft-0.01,0.73-0.054*NumRows,0.73,TextTop-0.135);//lbrt
     //going into CR2, 2.1 3.2 4.4 5.6 6.8 8.0 9.2
-    if(PlotsType==1 && Panel_X==0) legend = new TLegend(TextLeft+0.01+0.03,TextTop-8.0*TextH,0.73,TextTop-2.1*TextH);//lbrt
+    if(DataOnly) legend = new TLegend(TextLeft+0.01+0.03,TextTop-3.275*TextH,0.73,TextTop-2.1*TextH);//lbrt
+    else if(PlotsType==1 && Panel_X==0) legend = new TLegend(TextLeft+0.01+0.03,TextTop-8.0*TextH,0.73,TextTop-2.1*TextH);//lbrt
     else if(PlotsType==1 && Panel_X==1) legend = new TLegend(TextLeft+0.01+0.03,TextTop-6.8*TextH,0.73,TextTop-2.1*TextH);//lbrt
     //else if(PlotsType==1 && Panel_X==2) legend = new TLegend(TextLeft+0.01+0.03,TextTop-9.2*TextH,0.73,TextTop-2.1*TextH);//lbrt //suggestion 1
     else if(PlotsType==1 && Panel_X==2) legend = new TLegend(TextLeft+0.01+0.03,TextTop-2.37*TextH,0.73,TextTop-0.00*TextH);//lbrt //suggestion 2
@@ -10574,64 +10580,75 @@ printf("k=%.0f, bl=%.5f\n",mom_val[uBin%2],bl_val);
     hCk_Fake->SetLineColor(hCk_Fake->GetFillColor());
 
     if(PlotsType==1){
-      if(Panel_X==0){
-        //legend->AddEntry(hCk_Fake, "p#minus#kern[0.0]{#Lambda} #oplus #bar{p}#minus#kern[0.0]{#bar{#Lambda}} pairs", "fpe");
-        //legend->AddEntry(ge_Fit,TString::Format("Fit %s",PotName1.Data()),"l");
-        //legend->AddEntry(ge_Sig,SigName1,"l");
-
-        legend->AddEntry(hCk_Fake, "p#kern[0.0]{#Lambda} #oplus #bar{p}#kern[0.0]{#bar{#Lambda}} pairs", "fpe");
-        legend->AddEntry(ge_Fit,TString::Format("Fit %s",PotName1.Data()),"l");
-        legend->AddEntry(ge_Sig,SigName1,"l");
-        legend->AddEntry(ge_Xi,XiName1,"l");
-        legend->AddEntry(ge_Bl,BlName1,"l");
+      if(DataOnly){
+        //legend->AddEntry(hCk_Fake, "p#kern[0.0]{#Lambda} #oplus #bar{p}#kern[0.0]{#bar{#Lambda}} pairs", "fpe");
+        legend->AddEntry(hCk_Fake, "p#minus#kern[0.0]{#Lambda} #oplus #bar{p}#minus#kern[0.0]{#bar{#Lambda}} pairs", "fpe");
       }
-      if(Panel_X==1){
-        //legend->AddEntry(ge_Bl,BlName1,"l");
-        //legend->AddEntry(ge_Xi,XiName1,"l");
+      else{
+        if(Panel_X==0){
+          //legend->AddEntry(hCk_Fake, "p#minus#kern[0.0]{#Lambda} #oplus #bar{p}#minus#kern[0.0]{#bar{#Lambda}} pairs", "fpe");
+          //legend->AddEntry(ge_Fit,TString::Format("Fit %s",PotName1.Data()),"l");
+          //legend->AddEntry(ge_Sig,SigName1,"l");
 
-        legend->AddEntry(hCk_Fake, "p#kern[0.0]{#Lambda} #oplus #bar{p}#kern[0.0]{#bar{#Lambda}} pairs", "fpe");
-        legend->AddEntry(ge_Fit,TString::Format("Fit %s",PotName1.Data()),"l");
-        legend->AddEntry(ge_Xi,XiName1,"l");
-        legend->AddEntry(ge_Bl,BlName1,"l");
-      }
-      if(Panel_X==2){
-        //legend->AddEntry(ge_Fit,TString::Format("Fit %s",PotName1.Data()),"l");
-        //legend->AddEntry(fitLoDummy,"LO13 (600)","l");
+          legend->AddEntry(hCk_Fake, "p#kern[0.0]{#Lambda} #oplus #bar{p}#kern[0.0]{#bar{#Lambda}} pairs", "fpe");
+          legend->AddEntry(ge_Fit,TString::Format("Fit %s",PotName1.Data()),"l");
+          legend->AddEntry(ge_Sig,SigName1,"l");
+          legend->AddEntry(ge_Xi,XiName1,"l");
+          legend->AddEntry(ge_Bl,BlName1,"l");
+        }
+        if(Panel_X==1){
+          //legend->AddEntry(ge_Bl,BlName1,"l");
+          //legend->AddEntry(ge_Xi,XiName1,"l");
 
-        //suggestion 1
-        //legend->AddEntry(hCk_Fake, "p#minus#kern[0.0]{#Lambda} #oplus #bar{p}#minus#kern[0.0]{#bar{#Lambda}} pairs", "fpe");
-        //legend->AddEntry(ge_Fit,TString::Format("Fit %s",PotName1.Data()),"l");
-        //legend->AddEntry(fitLoDummy,"LO13 (600)","l");
-        //legend->AddEntry(ge_Sig,SigName1,"l");
-        //legend->AddEntry(ge_Xi,XiName1,"l");
-        //legend->AddEntry(ge_Bl,BlName1,"l");
+          legend->AddEntry(hCk_Fake, "p#kern[0.0]{#Lambda} #oplus #bar{p}#kern[0.0]{#bar{#Lambda}} pairs", "fpe");
+          legend->AddEntry(ge_Fit,TString::Format("Fit %s",PotName1.Data()),"l");
+          legend->AddEntry(ge_Xi,XiName1,"l");
+          legend->AddEntry(ge_Bl,BlName1,"l");
+        }
+        if(Panel_X==2){
+          //legend->AddEntry(ge_Fit,TString::Format("Fit %s",PotName1.Data()),"l");
+          //legend->AddEntry(fitLoDummy,"LO13 (600)","l");
 
-        //suggestion 2
-        legend->AddEntry(ge_Fit,TString::Format("Fit %s",PotName1.Data()),"l");
-        legend->AddEntry(fitLoDummy,"LO (600)","l");
-      }
-      if(Panel_X==3){
-//printf("EHEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\n");
-        legend->AddEntry(hCk_Fake, "p#kern[0.0]{#Lambda} #oplus #bar{p}#kern[0.0]{#bar{#Lambda}} pairs", "fpe");
-        legend->AddEntry(ge_Fit,TString::Format("Fit %s",PotName1.Data()),"l");
-        legend->AddEntry(fitLoDummy,"LO (600)","l");
-        legend->AddEntry(ge_Xi,XiName1,"l");
-        legend->AddEntry(ge_Bl,BlName1,"l");
+          //suggestion 1
+          //legend->AddEntry(hCk_Fake, "p#minus#kern[0.0]{#Lambda} #oplus #bar{p}#minus#kern[0.0]{#bar{#Lambda}} pairs", "fpe");
+          //legend->AddEntry(ge_Fit,TString::Format("Fit %s",PotName1.Data()),"l");
+          //legend->AddEntry(fitLoDummy,"LO13 (600)","l");
+          //legend->AddEntry(ge_Sig,SigName1,"l");
+          //legend->AddEntry(ge_Xi,XiName1,"l");
+          //legend->AddEntry(ge_Bl,BlName1,"l");
+
+          //suggestion 2
+          legend->AddEntry(ge_Fit,TString::Format("Fit %s",PotName1.Data()),"l");
+          legend->AddEntry(fitLoDummy,"LO (600)","l");
+        }
+        if(Panel_X==3){
+  //printf("EHEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\n");
+          legend->AddEntry(hCk_Fake, "p#kern[0.0]{#Lambda} #oplus #bar{p}#kern[0.0]{#bar{#Lambda}} pairs", "fpe");
+          legend->AddEntry(ge_Fit,TString::Format("Fit %s",PotName1.Data()),"l");
+          legend->AddEntry(fitLoDummy,"LO (600)","l");
+          legend->AddEntry(ge_Xi,XiName1,"l");
+          legend->AddEntry(ge_Bl,BlName1,"l");
+        }
       }
     }
     else if(PlotsType==3){
-      if(Panel_X==0){
+      if(DataOnly){
         legend->AddEntry(hCk_Fake, "p#kern[0.0]{#Lambda} #oplus #bar{p}#kern[0.0]{#bar{#Lambda}} pairs", "fpe");
-        legend->AddEntry(ge_Fit,TString::Format("Fit %s",PotName1.Data()),"l");
-        if(fitLoDummy) legend->AddEntry(fitLoDummy,"LO (600)","l");
-        legend->AddEntry(ge_Sig,SigName1,"l");
-        legend->AddEntry(ge_Xi,XiName1,"l");
-        midLegend->AddEntry(ge_Bl,BlName1,"l");
       }
-      if(Panel_X==1){
-        legend->AddEntry(hCk_Fake, "p#kern[0.0]{#Lambda} #oplus #bar{p}#kern[0.0]{#bar{#Lambda}} pairs", "fpe");
-        legend->AddEntry(ge_Fit,TString::Format("Fit %s",PotName1.Data()),"l");
-        legend->AddEntry(ge_Xi,XiName1,"l");
+      else{
+        if(Panel_X==0){
+          legend->AddEntry(hCk_Fake, "p#kern[0.0]{#Lambda} #oplus #bar{p}#kern[0.0]{#bar{#Lambda}} pairs", "fpe");
+          legend->AddEntry(ge_Fit,TString::Format("Fit %s",PotName1.Data()),"l");
+          if(fitLoDummy) legend->AddEntry(fitLoDummy,"LO (600)","l");
+          legend->AddEntry(ge_Sig,SigName1,"l");
+          legend->AddEntry(ge_Xi,XiName1,"l");
+          midLegend->AddEntry(ge_Bl,BlName1,"l");
+        }
+        if(Panel_X==1){
+          legend->AddEntry(hCk_Fake, "p#kern[0.0]{#Lambda} #oplus #bar{p}#kern[0.0]{#bar{#Lambda}} pairs", "fpe");
+          legend->AddEntry(ge_Fit,TString::Format("Fit %s",PotName1.Data()),"l");
+          legend->AddEntry(ge_Xi,XiName1,"l");
+        }
       }
     }
     else{
@@ -16231,10 +16248,10 @@ void pL_EffectiveRadius(double CoreSize){
 
 int PLAMBDA_1_MAIN(int argc, char *argv[]){
 printf("PLAMBDA_1_MAIN\n");
-  pL_EffectiveRadius(1.02);
+  //pL_EffectiveRadius(1.02);
   //Unfold_pL_ME(TString::Format("%s/CatsFiles/ExpData/ALICE_pp_13TeV_HM/DimiJun20/Norm240_340/DataSignal/",GetCernBoxDimi()),"TEST.root");
   //Unfold_pL_ME(argv[1],argv[2]);
-  return 0;
+  //return 0;
 
 //pLambda_DummyCk_DifferentRadii();
 //return 0;
@@ -16302,16 +16319,17 @@ UpdateUnfoldFile(TString::Format("%s/CatsFiles/",GetCernBoxDimi()),
 //printf("hello\n");
 
 //const int& SIGMA_FEED, const int& WhichBaseline, const int& WhichPotential, const float& ValSourceAlpha,
-/*
+
 Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(atoi(argv[4]))/10.,
                             ///home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/100720_Unfolded/
-                            //TString::Format("%s/pLambda/100720_Unfolded/",GetCernBoxDimi()),
-                            TString::Format("%s/pLambda/170721_NewUnfold/NoBoot/",GetCernBoxDimi()),
+                            TString::Format("%s/pLambda/100720_Unfolded/",GetCernBoxDimi()),
+                            //TString::Format("%s/pLambda/170721_NewUnfold/NoBoot/",GetCernBoxDimi()),
                             //TString::Format("%s/pLambda/170721_NewUnfold/Full/",GetCernBoxDimi()),
                             //TString::Format("%s/pLambda/PLB/NoBoot/",GetCernBoxDimi()),
                             //TString::Format("%s/pLambda/020522/Full/",GetCernBoxDimi()),
-                            TString::Format("Merged_pp13TeV_HM_DimiJun21_POT%i_BL%i_SIG%i.root",
+                            //TString::Format("Merged_pp13TeV_HM_DimiJun21_POT%i_BL%i_SIG%i.root",
                             //TString::Format("Merged_pp13TeV_HM_Dec19_POT%i_BL%i_SIG%i.root",
+                            TString::Format("Merged_pp13TeV_HM_DimiJul20_POT%i_BL%i_SIG%i.root",
                             //TString::Format("Output_pp13TeV_HM_DimiJul20_POT%i_BL%i_SIG%i_1000.root",
                             atoi(argv[1]),atoi(argv[2]),atoi(argv[3])),
                             //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/",
@@ -16322,13 +16340,13 @@ Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(at
                             //TString::Format("%s/pLambda/PLB/NoBoot/Plots_v2/",GetCernBoxDimi()),
                             //TString::Format("%s/pLambda/PLB/NoBoot/Plots_v4/",GetCernBoxDimi()),
                             //TString::Format("%s/pLambda/020522/Full/Plots/",GetCernBoxDimi()),
-                            TString::Format("%s/pLambda/020522/NoBoot/Plots/",GetCernBoxDimi()),
+                            TString::Format("%s/pLambda/020522/FullData/Plots/",GetCernBoxDimi()),
                             //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/"
                             atoi(argv[5])///REMOVE FOR THE OLD PLOTS
                           );
 
 return 0;
-*/
+
 //MakeLATEXtable(TString::Format("%s/pLambda/PLB/NoBoot/Plots_v4/",GetCernBoxDimi()),false);
 //MakeLATEXtable(TString::Format("%s/pLambda/020522/NoBoot/Plots/",GetCernBoxDimi()),true,1);
 //MakeLATEXtable(TString::Format("%s/pLambda/020522/NoBoot/Plots108/",GetCernBoxDimi()),true,1);

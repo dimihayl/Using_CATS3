@@ -14067,6 +14067,7 @@ void pi_proton(){
   pPars1.SetParameter(1,3.944096e-01);
   pPars1.SetParameter(2,6.549811e+02);
   pPars1.SetParameter(3,4.493379e-01);
+  //CHANNEL IS WRONG!!!
   Kitty_SE.SetShortRangePotential(0,0,DoubleGaussSum,pPars1);
 
   Kitty_SE.KillTheCat();
@@ -15022,7 +15023,7 @@ nsig 6 bins = 3.75
     //pp_for_rock(1.2+0.12);
 
     //Ledni_SmallRad_Random(atoi(argv[1]),atoi(argv[2]));
-    MakePotentials(atoi(argv[1]));return 0;
+    //MakePotentials(atoi(argv[1]));return 0;
   //RoughPiPiPotScan(atoi(argv[1]),atoi(argv[2]));
   //pi_proton();
     //SelectEmmaPotential();
@@ -15045,9 +15046,14 @@ nsig 6 bins = 3.75
     //EmmaDaniel_KD(0.74);
     //EmmaDaniel_KD(1.00);
 
+//for Oton
     //EmmaDaniel_KD(1.04);
     //EmmaDaniel_KD(1.10);
     //EmmaDaniel_KD(1.13);
+    EmmaDaniel_KD(1.04);
+    EmmaDaniel_KD(1.04);
+    EmmaDaniel_KD(1.04);
+
 
     //PlugInWaveFunction();
     //ppSource_bugHunting(true);

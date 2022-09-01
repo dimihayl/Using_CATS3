@@ -2899,12 +2899,12 @@ void Jaime_pL(int RndSeed, int imTbin, int pL_inter, int AnalysisType, int Error
     }
 
     //WhichProtonVar and WhichLambdaVar
-    if(imTbin){
-      AnalysisObject.SetUpLambdaPars_pL("pp13TeV_HM_BernieSource",lampar_p_var.at(WhichProtonVar),lampar_l_var.at(WhichLambdaVar),lam_pars_pl);
-    }
-    else{
+    //if(imTbin>=0){
+    //  AnalysisObject.SetUpLambdaPars_pL("pp13TeV_HM_BernieSource",lampar_p_var.at(WhichProtonVar),lampar_l_var.at(WhichLambdaVar),lam_pars_pl);
+    //}
+    //else{
       AnalysisObject.SetUpLambdaPars_pL("pp13TeV_HM_Dec19",lampar_p_var.at(WhichProtonVar),lampar_l_var.at(WhichLambdaVar),lam_pars_pl);
-    }
+    //}
     AnalysisObject.SetUpLambdaPars_pXim("pp13TeV_HM_Dec19",lampar_p_var.at(WhichProtonVar),0,lam_pars_pxi);
 
     if(FitType==0){
@@ -3178,7 +3178,362 @@ void Jaime_pL(int RndSeed, int imTbin, int pL_inter, int AnalysisType, int Error
   delete fOutputFile;
 }
 
+void SourcePaper_Published(TString OutputFolder){
 
+  const unsigned NumMtBins_pp = 7;
+  double* BinRange_pp = new double[NumMtBins_pp+1];
+  double* BinCenter_pp = new double[NumMtBins_pp];
+  BinCenter_pp[0] = 1.1077;
+  BinCenter_pp[1] = 1.1683;
+  BinCenter_pp[2] = 1.2284;
+  BinCenter_pp[3] = 1.3156;
+  BinCenter_pp[4] = 1.4628;
+  BinCenter_pp[5] = 1.6872;
+  BinCenter_pp[6] = 2.2116;
+  BinRange_pp[0] = BinCenter_pp[0]-BinCenter_pp[1]+BinCenter_pp[0];
+  for(int i=1; i<=6; i++) BinRange_pp[i] = (BinCenter_pp[i-1]+BinCenter_pp[i])*0.5;
+  BinRange_pp[7] = BinCenter_pp[6]+BinCenter_pp[6]-BinCenter_pp[5];
+
+  const unsigned NumMtBins_pL = 6;
+  double* BinRange_pL = new double[NumMtBins_pL+1];
+  double* BinCenter_pL = new double[NumMtBins_pL];
+  BinCenter_pL[0] = 1.2124;
+  BinCenter_pL[1] = 1.2896;
+  BinCenter_pL[2] = 1.376;
+  BinCenter_pL[3] = 1.5407;
+  BinCenter_pL[4] = 1.756;
+  BinCenter_pL[5] = 2.2594;
+  BinRange_pL[0] = BinCenter_pL[0]-BinCenter_pL[1]+BinCenter_pL[0];
+  for(int i=1; i<=5; i++) BinRange_pL[i] = (BinCenter_pL[i-1]+BinCenter_pL[i])*0.5;
+  BinRange_pL[6] = BinCenter_pL[5]+BinCenter_pL[5]-BinCenter_pL[4];
+
+
+  DLM_Histo<float> dlm_rcore_pp;
+  dlm_rcore_pp.SetUp(1);
+  dlm_rcore_pp.SetUp(0,NumMtBins_pp,BinRange_pp,BinCenter_pp);
+  dlm_rcore_pp.Initialize();
+  for(unsigned uBin=0; uBin<7; uBin++){
+    double val,stat,syst;
+    switch (uBin) {
+      case 0:   val = 1.3064;
+                syst = 0.027805;
+                stat = 0.0085539;
+                break;
+      case 1:   val = 1.2316;
+                syst = 0.022773;
+                stat = 0.010501;
+                break;
+      case 2:   val = 1.2006;
+                syst = 0.022552;
+                stat = 0.014732;
+                break;
+      case 3:   val = 1.1402;
+                syst = 0.025014;
+                stat = 0.011086;
+                break;
+      case 4:   val = 1.0628;
+                syst = 0.025221;
+                stat = 0.010027;
+                break;
+      case 5:   val = 0.96238;
+                syst = 0.025234;
+                stat = 0.0098228;
+                break;
+      case 6:   val = 0.86503;
+                syst = 0.020369;
+                stat = 0.010841;
+                break;
+      default:  break;
+    }
+    dlm_rcore_pp.SetBinContent(uBin,val);
+    dlm_rcore_pp.SetBinError(uBin,sqrt(syst*syst+stat*stat));
+  }
+
+  DLM_Histo<float> dlm_rcore_pL;
+  dlm_rcore_pL.SetUp(1);
+  dlm_rcore_pL.SetUp(0,NumMtBins_pL,BinRange_pL,BinCenter_pL);
+  dlm_rcore_pL.Initialize();
+  DLM_Histo<float> dlm_rcore_pL_LO;
+  dlm_rcore_pL_LO.SetUp(1);
+  dlm_rcore_pL_LO.SetUp(0,NumMtBins_pL,BinRange_pL,BinCenter_pL);
+  dlm_rcore_pL_LO.Initialize();
+  DLM_Histo<float> dlm_rcore_pL_NLO;
+  dlm_rcore_pL_NLO.SetUp(1);
+  dlm_rcore_pL_NLO.SetUp(0,NumMtBins_pL,BinRange_pL,BinCenter_pL);
+  dlm_rcore_pL_NLO.Initialize();
+  for(unsigned uBin=0; uBin<6; uBin++){
+    double nlo_val,nlo_stat,nlo_syst;
+    double lo_val,lo_stat,lo_syst;
+    switch (uBin) {
+      case 0:   nlo_val = 1.2634;
+                nlo_syst = 0.0876;
+                nlo_stat = 0.041731;
+                lo_val = 1.1816;
+                lo_syst = 0.060069;
+                lo_stat = 0.042102;
+                break;
+      case 1:   nlo_val = 1.1926;
+                nlo_syst = 0.10035;
+                nlo_stat = 0.050217;
+                lo_val = 1.1381;
+                lo_syst = 0.057701;
+                lo_stat = 0.048758;
+                break;
+      case 2:   nlo_val = 1.1804;
+                nlo_syst = 0.065382;
+                nlo_stat = 0.042162;
+                lo_val = 1.1279;
+                lo_syst = 0.070412;
+                lo_stat = 0.041525;
+                break;
+      case 3:   nlo_val = 1.0902;
+                nlo_syst = 0.092647;
+                nlo_stat = 0.035456;
+                lo_val = 1.0516;
+                lo_syst = 0.055087;
+                lo_stat = 0.033123;
+                break;
+      case 4:   nlo_val = 0.9717;
+                nlo_syst = 0.0825;
+                nlo_stat = 0.041914;
+                lo_val = 0.94642;
+                lo_syst = 0.055;
+                lo_stat = 0.038272;
+                break;
+      case 5:   nlo_val = 0.73832;
+                nlo_syst = 0.18077;
+                nlo_stat = 0.03668;
+                lo_val = 0.82714;
+                lo_syst = 0.050213;
+                lo_stat = 0.033311;
+                break;
+      default:  break;
+    }
+    double avg_val = 0.5*(nlo_val+lo_val);
+    double avg_stat = 0.5*(nlo_stat+lo_stat);
+    double avg_syst = 0.5*(nlo_syst+lo_syst);
+    double diff = nlo_val-lo_val;
+    double tot_err = sqrt(avg_stat*avg_stat+avg_syst*avg_syst+diff*diff);
+    dlm_rcore_pL.SetBinContent(uBin,avg_val);
+    dlm_rcore_pL.SetBinError(uBin,tot_err);
+
+    dlm_rcore_pL_LO.SetBinContent(uBin,lo_val);
+    dlm_rcore_pL_LO.SetBinError(uBin,sqrt(lo_syst*lo_syst+lo_stat*lo_stat));
+
+    dlm_rcore_pL_NLO.SetBinContent(uBin,nlo_val);
+    dlm_rcore_pL_NLO.SetBinError(uBin,sqrt(nlo_syst*nlo_syst+nlo_stat*nlo_stat));
+  }
+  TGraphErrors g_rcore_pp;
+  g_rcore_pp.SetName("g_rcore_pp");
+  g_rcore_pp.SetFillColorAlpha(kBlue+1,0.3);
+  g_rcore_pp.SetLineColor(kBlue+1);
+  g_rcore_pp.SetLineWidth(3);
+  for(unsigned uBin=0; uBin<dlm_rcore_pp.GetNbins(); uBin++){
+    g_rcore_pp.SetPoint(uBin,dlm_rcore_pp.GetBinCenter(0,uBin),dlm_rcore_pp.GetBinContent(uBin));
+    g_rcore_pp.SetPointError(uBin,0,dlm_rcore_pp.GetBinError(uBin));
+  }
+  TGraphErrors g_rcore_pL;
+  g_rcore_pL.SetName("g_rcore_pL");
+  g_rcore_pL.SetFillColorAlpha(kRed+1,0.3);
+  g_rcore_pL.SetLineColor(kRed+1);
+  g_rcore_pL.SetLineWidth(3);
+  for(unsigned uBin=0; uBin<dlm_rcore_pL.GetNbins(); uBin++){
+    g_rcore_pL.SetPoint(uBin,dlm_rcore_pL.GetBinCenter(0,uBin),dlm_rcore_pL.GetBinContent(uBin));
+    g_rcore_pL.SetPointError(uBin,0,dlm_rcore_pL.GetBinError(uBin));
+  }
+  TGraphErrors g_rcore_pL_LO;
+  g_rcore_pL_LO.SetName("g_rcore_pL_LO");
+  g_rcore_pL_LO.SetFillColorAlpha(kRed+1,0.3);
+  g_rcore_pL_LO.SetLineColor(kRed+1);
+  g_rcore_pL_LO.SetLineWidth(3);
+  for(unsigned uBin=0; uBin<dlm_rcore_pL_LO.GetNbins(); uBin++){
+    g_rcore_pL_LO.SetPoint(uBin,dlm_rcore_pL_LO.GetBinCenter(0,uBin),dlm_rcore_pL_LO.GetBinContent(uBin));
+    g_rcore_pL_LO.SetPointError(uBin,0,dlm_rcore_pL_LO.GetBinError(uBin));
+  }
+  TGraphErrors g_rcore_pL_NLO;
+  g_rcore_pL_NLO.SetName("g_rcore_pL_NLO");
+  g_rcore_pL_NLO.SetFillColorAlpha(kRed+1,0.3);
+  g_rcore_pL_NLO.SetLineColor(kRed+1);
+  g_rcore_pL_NLO.SetLineWidth(3);
+  for(unsigned uBin=0; uBin<dlm_rcore_pL_NLO.GetNbins(); uBin++){
+    g_rcore_pL_NLO.SetPoint(uBin,dlm_rcore_pL_NLO.GetBinCenter(0,uBin),dlm_rcore_pL_NLO.GetBinContent(uBin));
+    g_rcore_pL_NLO.SetPointError(uBin,0,dlm_rcore_pL_NLO.GetBinError(uBin));
+  }
+
+
+
+
+
+  DLM_Histo<float> dlm_reff_pp;
+  dlm_reff_pp.SetUp(1);
+  dlm_reff_pp.SetUp(0,NumMtBins_pp,BinRange_pp,BinCenter_pp);
+  dlm_reff_pp.Initialize();
+
+  for(unsigned uBin=0; uBin<7; uBin++){
+    double val,stat,syst;
+    switch (uBin) {
+      case 0:   val = 1.3717;
+                syst = 0.025241;
+                stat = 0.0079898;
+                break;
+      case 1:   val = 1.3005;
+                syst = 0.022749;
+                stat = 0.0098079;
+                break;
+      case 2:   val = 1.2709;
+                syst = 0.022641;
+                stat = 0.013852;
+                break;
+      case 3:   val = 1.2138;
+                syst = 0.022693;
+                stat = 0.010282;
+                break;
+      case 4:   val = 1.1423;
+                syst = 0.027803;
+                stat = 0.0094262;
+                break;
+      case 5:   val = 1.0482;
+                syst = 0.022569;
+                stat = 0.0090911;
+                break;
+      case 6:   val = 0.95678;
+                syst = 0.017544;
+                stat = 0.0099002;
+                break;
+      default:  break;
+    }
+    dlm_reff_pp.SetBinContent(uBin,val);
+    dlm_reff_pp.SetBinError(uBin,sqrt(syst*syst+stat*stat));
+  }
+
+  DLM_Histo<float> dlm_reff_pL;
+  dlm_reff_pL.SetUp(1);
+  dlm_reff_pL.SetUp(0,NumMtBins_pL,BinRange_pL,BinCenter_pL);
+  dlm_reff_pL.Initialize();
+  DLM_Histo<float> dlm_reff_pL_LO;
+  dlm_reff_pL_LO.SetUp(1);
+  dlm_reff_pL_LO.SetUp(0,NumMtBins_pL,BinRange_pL,BinCenter_pL);
+  dlm_reff_pL_LO.Initialize();
+  DLM_Histo<float> dlm_reff_pL_NLO;
+  dlm_reff_pL_NLO.SetUp(1);
+  dlm_reff_pL_NLO.SetUp(0,NumMtBins_pL,BinRange_pL,BinCenter_pL);
+  dlm_reff_pL_NLO.Initialize();
+  for(unsigned uBin=0; uBin<6; uBin++){
+    double nlo_val,nlo_stat,nlo_syst;
+    double lo_val,lo_stat,lo_syst;
+    switch (uBin) {
+      case 0:   nlo_val = 1.502;
+                nlo_syst = 0.085193;
+                nlo_stat = 0.043523;
+                lo_val = 1.4147;
+                lo_syst = 0.060136;
+                lo_stat = 0.042372;
+                break;
+      case 1:   nlo_val = 1.428;
+                nlo_syst = 0.098118;
+                nlo_stat = 0.051097;
+                lo_val = 1.3687;
+                lo_syst = 0.052833;
+                lo_stat = 0.049813;
+                break;
+      case 2:   nlo_val = 1.4163;
+                nlo_syst = 0.065325;
+                nlo_stat = 0.043093;
+                lo_val = 1.3582;
+                lo_syst = 0.077887;
+                lo_stat = 0.041928;
+                break;
+      case 3:   nlo_val = 1.3256;
+                nlo_syst = 0.095299;
+                nlo_stat = 0.035395;
+                lo_val = 1.2788;
+                lo_syst = 0.052665;
+                lo_stat = 0.034165;
+                break;
+      case 4:   nlo_val = 1.2145;
+                nlo_syst = 0.090394;
+                nlo_stat = 0.040756;
+                lo_val = 1.1734;
+                lo_syst = 0.057752;
+                lo_stat = 0.038961;
+                break;
+      case 5:   nlo_val = 0.98815;
+                nlo_syst = 0.0825;
+                nlo_stat = 0.051054;
+                lo_val = 1.0473;
+                lo_syst = 0.06;
+                lo_stat = 0.03544;
+                break;
+      default:  break;
+    }
+    double avg_val = 0.5*(nlo_val+lo_val);
+    double avg_stat = 0.5*(nlo_stat+lo_stat);
+    double avg_syst = 0.5*(nlo_syst+lo_syst);
+    double diff = nlo_val-lo_val;
+    double tot_err = sqrt(avg_stat*avg_stat+avg_syst*avg_syst+diff*diff);
+    dlm_reff_pL.SetBinContent(uBin,avg_val);
+    dlm_reff_pL.SetBinError(uBin,tot_err);
+
+    dlm_reff_pL_LO.SetBinContent(uBin,lo_val);
+    dlm_reff_pL_LO.SetBinError(uBin,sqrt(lo_syst*lo_syst+lo_stat*lo_stat));
+
+    dlm_reff_pL_NLO.SetBinContent(uBin,nlo_val);
+    dlm_reff_pL_NLO.SetBinError(uBin,sqrt(nlo_syst*nlo_syst+nlo_stat*nlo_stat));
+  }
+  TGraphErrors g_reff_pp;
+  g_reff_pp.SetName("g_reff_pp");
+  g_reff_pp.SetFillColorAlpha(kBlue+1,0.3);
+  g_reff_pp.SetLineColor(kBlue+1);
+  g_reff_pp.SetLineWidth(3);
+  for(unsigned uBin=0; uBin<dlm_reff_pp.GetNbins(); uBin++){
+    g_reff_pp.SetPoint(uBin,dlm_reff_pp.GetBinCenter(0,uBin),dlm_reff_pp.GetBinContent(uBin));
+    g_reff_pp.SetPointError(uBin,0,dlm_reff_pp.GetBinError(uBin));
+  }
+  TGraphErrors g_reff_pL;
+  g_reff_pL.SetName("g_reff_pL");
+  g_reff_pL.SetFillColorAlpha(kRed+1,0.3);
+  g_reff_pL.SetLineColor(kRed+1);
+  g_reff_pL.SetLineWidth(3);
+  for(unsigned uBin=0; uBin<dlm_reff_pL.GetNbins(); uBin++){
+    g_reff_pL.SetPoint(uBin,dlm_reff_pL.GetBinCenter(0,uBin),dlm_reff_pL.GetBinContent(uBin));
+    g_reff_pL.SetPointError(uBin,0,dlm_reff_pL.GetBinError(uBin));
+  }
+  TGraphErrors g_reff_pL_LO;
+  g_reff_pL_LO.SetName("g_reff_pL_LO");
+  g_reff_pL_LO.SetFillColorAlpha(kRed+1,0.3);
+  g_reff_pL_LO.SetLineColor(kRed+1);
+  g_reff_pL_LO.SetLineWidth(3);
+  for(unsigned uBin=0; uBin<dlm_reff_pL_LO.GetNbins(); uBin++){
+    g_reff_pL_LO.SetPoint(uBin,dlm_reff_pL_LO.GetBinCenter(0,uBin),dlm_reff_pL_LO.GetBinContent(uBin));
+    g_reff_pL_LO.SetPointError(uBin,0,dlm_reff_pL_LO.GetBinError(uBin));
+  }
+  TGraphErrors g_reff_pL_NLO;
+  g_reff_pL_NLO.SetName("g_reff_pL_NLO");
+  g_reff_pL_NLO.SetFillColorAlpha(kRed+1,0.3);
+  g_reff_pL_NLO.SetLineColor(kRed+1);
+  g_reff_pL_NLO.SetLineWidth(3);
+  for(unsigned uBin=0; uBin<dlm_reff_pL_NLO.GetNbins(); uBin++){
+    g_reff_pL_NLO.SetPoint(uBin,dlm_reff_pL_NLO.GetBinCenter(0,uBin),dlm_reff_pL_NLO.GetBinContent(uBin));
+    g_reff_pL_NLO.SetPointError(uBin,0,dlm_reff_pL_NLO.GetBinError(uBin));
+  }
+
+  TFile fOutputFile(OutputFolder+TString::Format("/SourcePaper_Published.root"),"recreate");
+  g_rcore_pp.Write();
+  g_rcore_pL.Write();
+  g_rcore_pL_LO.Write();
+  g_rcore_pL_NLO.Write();
+  g_reff_pp.Write();
+  g_reff_pL.Write();
+  g_reff_pL_LO.Write();
+  g_reff_pL_NLO.Write();
+
+
+  delete [] BinRange_pp;
+  delete [] BinCenter_pp;
+  delete [] BinRange_pL;
+  delete [] BinCenter_pL;
+
+}
 
 
 
@@ -3590,17 +3945,7 @@ DLM_Histo<float>* Fit_mT(const double nsigma, const int mode=0){
     dlm_rcore_pp.SetBinContent(6,0.95678);
     dlm_rcore_pp.SetBinError(6,sqrt(pow(0.017544,2.)+pow(0.0099002,2.)));
   }
-/*
-  TGraphErrors g_rcore_pp;
-  g_rcore_pp.SetName("g_core_pp");
-  g_rcore_pp.SetFillColorAlpha(kBlue+1,0.3);
-  g_rcore_pp.SetLineColor(kBlue+1);
-  g_rcore_pp.SetLineWidth(3);
-  for(unsigned uBin=0; uBin<dlm_rcore_pp.GetNbins(); uBin++){
-    g_rcore_pp.SetPoint(uBin,dlm_rcore_pp.GetBinCenter(0,uBin),dlm_rcore_pp.GetBinContent(uBin));
-    g_rcore_pp.SetPointError(uBin,0,dlm_rcore_pp.GetBinError(uBin));
-  }
-*/
+
   TRandom3 RanGen(11);
   double ran_mean;
   double ran_stdv;
@@ -3644,8 +3989,6 @@ DLM_Histo<float>* Fit_mT(const double nsigma, const int mode=0){
     result->SetBinContent(uBin,(lowerlimit+upperlimit)*0.5);
     result->SetBinError(uBin,(upperlimit-lowerlimit)*0.5);
   }
-  //h_pp_mt->Write();
-  //result->Write();
 
   delete [] BinRange_pp;
   delete [] BinCenter_pp;
@@ -3654,11 +3997,6 @@ DLM_Histo<float>* Fit_mT(const double nsigma, const int mode=0){
 
   return result;
 }
-
-
-
-
-
 
 //type = oton => power law + const
 //type = dimi => power law
@@ -3765,6 +4103,15 @@ void Estimate_Reff(const TString system, const TString type, const TString model
     }
     else SetUp_RSM_pOmega(MagicSource_system,GetCernBoxDimi(),0);
   }
+  else if(system=="pd"||system=="pd_min"||system=="pd_max"){
+    avg_mT = 1.64;//1.65
+    if(model=="RSM_FLAT"){
+      SetUp_RSMflat_pOmega(MagicSource_system);
+    }
+    else SetUp_RSM_pOmega(MagicSource_system,GetCernBoxDimi(),0);
+    if(system=="pd_min") MagicSource_system.SetUpReso(0,0.6422-0.06422);
+    if(system=="pd_max") MagicSource_system.SetUpReso(0,0.6422+0.06422);
+  }
   else if(system=="pLambda"){
     avg_mT = 1.55;
     if(model=="RSM_FLAT"){
@@ -3837,6 +4184,8 @@ void Estimate_Reff(const TString system, const TString type, const TString model
   printf(" rcore = %.3f +/- %.3f fm\n", rcore_avg, rcore_err);
   printf("  reff = %.3f +/- %.3f fm\n", reff_avg, reff_err);
   printf("    QA = %.3f\n",Get_reff_TF1(hSource,freff,1,0.84));
+  TF1 *freff_full = (TF1*)freff->Clone("freff_full");
+  freff_full->SetRange(rMin,rMax);
 
   TFile fOutput(TString::Format("%s/SourceStudies/Estimate_Reff/Reff_%s_%s_%s_%.1f.root",GetFemtoOutputFolder(),system.Data(),type.Data(),model.Data(),nsigma),"recreate");
   TGraphErrors g_fit_rcore_pp;
@@ -3848,6 +4197,7 @@ void Estimate_Reff(const TString system, const TString type, const TString model
   g_fit_rcore_pp.Write();
   hSource->Write();
   if(freff) freff->Write();
+  freff_full->Write();
 
   if(dlm_fit_rcore_pp) delete dlm_fit_rcore_pp;
   if(dlm_fit_reff_pp) delete dlm_fit_reff_pp;
@@ -3855,6 +4205,133 @@ void Estimate_Reff(const TString system, const TString type, const TString model
   if(freff) delete freff;
 }
 
+//a sphere, on which we randomly populate particles
+//we build up all their distances (i.e. building pairs) but than we concider
+//to have a reconstruction efficiency, where we only keep a fraction of random particles.
+//we want to see if the final two-particle source changes.
+
+//RESULT: the efficiency and acceptence do NOT matter for the average distance we see between the pairs.
+//Also, what surprised me, the density does not play a direct role as well, i.e. for higher density we still get
+//the same average distace between pairs (more pairs = more combinatorics, so averages do not change)
+//The ONLY think on which the pair distance depends is the SIZE of the system itself. SIZE (Volume if you will), not density!!!
+void SourceDensity(){
+  const unsigned NumEvents = 1;
+  const double SystemSize = 2.0;
+  const unsigned Multiplicity = 10000;
+  const double Efficiecy = 0.5;
+
+  const double EtaAcc = 0.5;
+  //if the diff in Theta/Phi is no larger than that number, we take the pair
+  //simulates the region of homogenity
+  const double dAngle = 0.2;
+
+  double Theta,Phi,CosTheta,CosPhi,SinPhi,SinTheta,xcrd,ycrd,zcrd;
+  TRandom3 rangen(11);
+
+  TH1F* h_X = new TH1F("h_X","h_X",512,0,32);
+  TH1F* h_Y = new TH1F("h_Y","h_Y",512,0,32);
+  TH1F* h_Z = new TH1F("h_Z","h_Z",512,0,32);
+  TH1F* h_CosTh = new TH1F("h_CosTh","h_CosTh",512,-1,1);
+  TH1F* h_Phi = new TH1F("h_Phi","h_Phi",512,0,2.*TMath::Pi());
+
+  TH1F* h_Rad = new TH1F("h_Rad","h_Rad",512,0,32);
+  TH1F* h_RadDet = new TH1F("h_RadDet","h_RadDet",512,0,32);
+
+
+  TH1F* h_Rad_Acc = new TH1F("h_Rad_Acc","h_Rad_Acc",512,0,32);
+  TH1F* h_RadDet_Acc = new TH1F("h_RadDet_Acc","h_RadDet_Acc",512,0,32);
+
+  TH1F* h_Rad_AccHom = new TH1F("h_Rad_AccHom","h_Rad_AccHom",512,0,32);
+  TH1F* h_RadDet_AccHom = new TH1F("h_RadDet_AccHom","h_RadDet_AccHom",512,0,32);
+
+  CatsLorentzVector* Particle = new CatsLorentzVector[Multiplicity];
+  CatsLorentzVector* ParticleDet = new CatsLorentzVector[Multiplicity];
+
+  for(unsigned uEvent=0; uEvent<NumEvents; uEvent++){
+    unsigned DetectedPart = 0;
+    for(unsigned uPart=0; uPart<Multiplicity; uPart++){
+      CosTheta = rangen.Uniform(-1,1);
+      Theta = acos(CosTheta);
+      SinTheta = sin(Theta);
+      Phi = rangen.Uniform(0,2.*TMath::Pi());
+      CosPhi = cos(Phi);
+      SinPhi = sin(Phi);
+      xcrd = SystemSize*CosPhi*SinTheta;
+      ycrd = SystemSize*SinPhi*SinTheta;
+      zcrd = SystemSize*CosTheta;
+      Particle[uPart].SetTXYZ(0,xcrd,ycrd,zcrd);
+
+      //detected
+      if(rangen.Uniform()<Efficiecy){
+        ParticleDet[DetectedPart].SetTXYZ(0,xcrd,ycrd,zcrd);
+        DetectedPart++;
+      }
+
+      h_X->Fill(xcrd);
+      h_Y->Fill(ycrd);
+      h_Z->Fill(zcrd);
+
+      h_CosTh->Fill(CosTheta);
+      h_Phi->Fill(Phi);
+    }
+
+    CatsLorentzVector Diff;
+    //particle pairs
+    for(unsigned uPart0=0; uPart0<Multiplicity; uPart0++){
+      for(unsigned uPart1=uPart0+1; uPart1<Multiplicity; uPart1++){
+        Diff = Particle[uPart0] - Particle[uPart1];
+        h_Rad->Fill(Diff.GetR());
+        if(fabs(Particle[uPart0].GetPseudoRapR())<EtaAcc && fabs(Particle[uPart1].GetPseudoRapR())<EtaAcc){
+          h_Rad_Acc->Fill(Diff.GetR());
+          if(fabs(Particle[uPart0].GetPhi()-Particle[uPart1].GetPhi())<dAngle && fabs(Particle[uPart0].GetTheta()-Particle[uPart1].GetTheta())<dAngle){
+            h_Rad_AccHom->Fill(Diff.GetR());
+          }
+        }
+      }
+    }
+    for(unsigned uPart0=0; uPart0<DetectedPart; uPart0++){
+      for(unsigned uPart1=uPart0+1; uPart1<DetectedPart; uPart1++){
+        Diff = ParticleDet[uPart0] - ParticleDet[uPart1];
+        h_RadDet->Fill(Diff.GetR());
+        if(fabs(ParticleDet[uPart0].GetPseudoRapR())<EtaAcc && fabs(ParticleDet[uPart1].GetPseudoRapR())<EtaAcc){
+          h_RadDet_Acc->Fill(Diff.GetR());
+          if(fabs(ParticleDet[uPart0].GetPhi()-ParticleDet[uPart1].GetPhi())<dAngle && fabs(ParticleDet[uPart0].GetTheta()-ParticleDet[uPart1].GetTheta())<dAngle){
+            h_RadDet_AccHom->Fill(Diff.GetR());
+          }
+        }
+      }
+    }
+
+  }
+
+
+  TFile fOutput(TString::Format("%s/SourceStudies/SourceDensity.root",GetFemtoOutputFolder()),"recreate");
+  h_X->Write();
+  h_Y->Write();
+  h_Z->Write();
+  h_CosTh->Write();
+  h_Phi->Write();
+  h_Rad->Write();
+  h_RadDet->Write();
+  h_Rad_Acc->Write();
+  h_RadDet_Acc->Write();
+  h_Rad_AccHom->Write();
+  h_RadDet_AccHom->Write();
+
+  delete [] Particle;
+  delete [] ParticleDet;
+  delete h_X;
+  delete h_Y;
+  delete h_Z;
+  delete h_CosTh;
+  delete h_Phi;
+  delete h_Rad;
+  delete h_RadDet;
+  delete h_Rad_Acc;
+  delete h_RadDet_Acc;
+  delete h_Rad_AccHom;
+  delete h_RadDet_AccHom;
+}
 
 
 int SOURCESTUDIES(int argc, char *argv[]){
@@ -3893,6 +4370,13 @@ int SOURCESTUDIES(int argc, char *argv[]){
     //Estimate_Reff("pOmega","oton","RSM_PLB",3.0);
     //Estimate_Reff("pOmega","oton","RSM_GHETTO",3.0);
     //Estimate_Reff("pOmega","oton","RSM_FLAT",3.0);
+
+    //Estimate_Reff("pd_min","oton","RSM_PLB",3.0);
+    //Estimate_Reff("pd","oton","RSM_PLB",3.0);
+    //Estimate_Reff("pd_max","oton","RSM_PLB",3.0);
+
+    SourceDensity();
+
     //printf("------------------\n");
 
     //SinglePart_RandomLab();
@@ -3902,7 +4386,8 @@ int SOURCESTUDIES(int argc, char *argv[]){
     //Jaime_pL(1, 0, 11600, 1201, 10, 3, 0, TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data(), "/home/dimihayl/Software/LocalFemto/Output/SourceStudies/Jaime_pL/tmp/");
     //Jaime_pL(1, 0, 0, 0, 0, -0.1, 0, TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data(), "/home/dimihayl/Software/LocalFemto/Output/SourceStudies/Jaime_pL/");
 ////r,0,11600/131600,12(3)01,11,10,2
-    Jaime_pL(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]), atoi(argv[6]), atoi(argv[7]), TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data(), "/home/dimihayl/Software/LocalFemto/Output/SourceStudies/Jaime_pL/310522/");
+    //Jaime_pL(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]), atoi(argv[6]), atoi(argv[7]), TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data(), "/home/dimihayl/Software/LocalFemto/Output/SourceStudies/Jaime_pL/310522/");
+    //SourcePaper_Published(TString::Format("%s/Jaime",GetCernBoxDimi()).Data());
     //1, 0-6, 0, (0)(0/1)(0)(0) 11 15 0 INPUT OUTPUT
     printf("Terminating\n");
     return 0;
