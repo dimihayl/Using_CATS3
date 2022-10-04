@@ -1,6 +1,7 @@
 
 #include "pLambda_1.h"
 #include "FemtoBoyzScripts.h"
+#include "OtherTasks.h"
 
 #include "TString.h"
 #include "TCanvas.h"
@@ -16245,9 +16246,208 @@ void pL_EffectiveRadius(double CoreSize){
 }
 
 
+CATS* Cat_FitUsmani;
+//for BOTH S=0 and S=1
+//par[0,1,2] = baseline
+//par[3,4,5] = repulsive core (2137,0.5,0.2)
+//par[6,7] = V4 (6.2,0.25)
+//par[8,9] = pion exchange (0.7,2.0)
+static int Count_FitUsmani=0;
+double FitUsmani(double* x, double* par){
+  double& kstar = *x;
+  for(int is=0; is<2; is++){
+    for(int ip=0; ip<7; ip++){
+      Cat_FitUsmani->SetShortRangePotential(is,0,ip+1,par[ip+3]);
+    }
+  }
+  Cat_FitUsmani->SetNotifications(CATS::nWarning);
+  Cat_FitUsmani->KillTheCat();
+  if(Cat_FitUsmani->GetMomBin(kstar)==0){
+    Count_FitUsmani++;
+    if(Count_FitUsmani%10==0){
+      printf("\r\033[K Count_FitUsmani=%i",Count_FitUsmani);
+      cout << flush;
+    }
+  }
+  //printf("\r\033[K");
+  //printf("\n");
+  double Baseline = par[0]+par[1]*kstar+par[2]*kstar*kstar;
+  return Cat_FitUsmani->EvalCorrFun(kstar)*Baseline;
+}
+
+
+
+
+void Match_Usmani_NLO(const int& RndSeed, const unsigned& NumRndSteps=1){
+
+  const unsigned NumMomBins = 33/3;
+  const double kMin = 0;
+  const double kMax = 396/3;
+
+  const double rcore = 1.02;
+  const double f0_1S0 = 2.91;
+  const double d0_1S0 = 2.78;
+  const double f0_3S1 = 1.41;
+  const double d0_3S1 = 2.53;
+
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
+
+  CATS Kitty_pL_NLO;
+  Kitty_pL_NLO.SetMomBins(NumMomBins,kMin,kMax);
+  AnalysisObject.SetUpCats_pL(Kitty_pL_NLO,"Chiral_Coupled_SPD","McGauss_ResoTM",11600,202);
+  Kitty_pL_NLO.SetAnaSource(0,rcore);
+
+  CATS Kitty_pL_Usmani;
+  Kitty_pL_Usmani.SetMomBins(NumMomBins,kMin,kMax);
+  AnalysisObject.SetUpCats_pL(Kitty_pL_Usmani,"UsmaniFitAll","McGauss_ResoTM",0,202);
+  Kitty_pL_Usmani.SetAnaSource(0,rcore);
+
+
+  Kitty_pL_Usmani.SetShortRangePotential(0,0,1,1228);
+  Kitty_pL_Usmani.SetShortRangePotential(1,0,1,1228);
+  Kitty_pL_Usmani.SetShortRangePotential(0,0,4,4.02);
+  Kitty_pL_Usmani.SetShortRangePotential(1,0,4,4.02);
+  Kitty_pL_Usmani.SetShortRangePotential(0,0,5,0.1);
+  Kitty_pL_Usmani.SetShortRangePotential(1,0,5,0.1);
+
+  Kitty_pL_NLO.KillTheCat();
+  Kitty_pL_Usmani.KillTheCat();
+
+  TGraph grNLO;
+  grNLO.SetName("grNLO");
+  grNLO.SetLineWidth(5);
+  grNLO.SetLineColor(kCyan);
+  TH1F* hNLO = new TH1F("hNLO","hNLO",NumMomBins,kMin,kMax);
+
+  TGraph grUsmani;
+  grUsmani.SetName("grUsmani");
+  grUsmani.SetLineWidth(5);
+  grUsmani.SetLineColor(kBlue+1);
+
+  for(unsigned uBin=0; uBin<NumMomBins; uBin++){
+    double kstar = Kitty_pL_NLO.GetMomentum(uBin);
+    grNLO.SetPoint(uBin,kstar,Kitty_pL_NLO.GetCorrFun(uBin));
+    hNLO->SetBinContent(uBin+1,Kitty_pL_NLO.GetCorrFun(uBin));
+    hNLO->SetBinError(uBin+1,Kitty_pL_NLO.GetCorrFun(uBin)*0.005);
+    grUsmani.SetPoint(uBin,kstar,Kitty_pL_Usmani.GetCorrFun(uBin));
+  }
+
+  Cat_FitUsmani = &Kitty_pL_Usmani;
+  TF1* fit_Usmani = new TF1("fit_Usmani",FitUsmani,kMin,kMax,10);
+  fit_Usmani->FixParameter(0,1);
+  fit_Usmani->FixParameter(1,0);
+  //fit_Usmani->SetParLimits(1,-2e-3,2e-3);
+  fit_Usmani->FixParameter(2,0);
+  //fit_Usmani->SetParLimits(2,-2e-5,2e-5);
+
+  fit_Usmani->FixParameter(3,1228);
+  //fit_Usmani->SetParLimits(3,2000,2300);
+  fit_Usmani->FixParameter(4,0.5);
+  //fit_Usmani->SetParLimits(4,0.45,0.55);
+  fit_Usmani->FixParameter(5,0.2);
+  //fit_Usmani->SetParLimits(5,0.18,0.22);
+  fit_Usmani->FixParameter(6,4.02);
+  //fit_Usmani->SetParLimits(6,6.0,6.4);
+  fit_Usmani->FixParameter(7,0.1);
+  //fit_Usmani->SetParLimits(7,0.0,0.5);
+  fit_Usmani->FixParameter(8,0.7);
+  fit_Usmani->FixParameter(9,2.0);
+
+  hNLO->Fit(fit_Usmani,"S, N, R, M");
+  printf("\n\n");
+
+  const double wc_min = 1250-200;
+  const double wc_max = 1250+100;
+  const double v4_min = 4.0-1.0;
+  const double v4_max = 4.0+0.5;
+  const double vst_min = 0.25-0.25;
+  const double vst_max = 0.25-0.15;
+
+  TRandom3 rangen(RndSeed);
+
+  //chi2_low only the first 4 bins, i.e. below 50 MeV
+  TNtuple* ntRND = new TNtuple("ntRND", "ntRND","wc:v4:vst:f0s:d0s:f0t:d0t:chi2:chi2_low");
+  Float_t ntBUFFER[9];
+  Kitty_pL_Usmani.SetNotifications(CATS::nWarning);
+  for(unsigned uStep=0; uStep<NumRndSteps; uStep++){
+    double wc_val = rangen.Uniform(wc_min,wc_max);
+    double v4_val = rangen.Uniform(v4_min,v4_max);
+    double vst_val = rangen.Uniform(vst_min,vst_max);
+
+    Kitty_pL_Usmani.SetShortRangePotential(0,0,1,wc_val);
+    Kitty_pL_Usmani.SetShortRangePotential(1,0,1,wc_val);
+
+    Kitty_pL_Usmani.SetShortRangePotential(0,0,4,v4_val);
+    Kitty_pL_Usmani.SetShortRangePotential(1,0,4,v4_val);
+
+    Kitty_pL_Usmani.SetShortRangePotential(0,0,5,vst_val);
+    Kitty_pL_Usmani.SetShortRangePotential(1,0,5,vst_val);
+
+    Kitty_pL_Usmani.KillTheCat();
+
+    ntBUFFER[0] = wc_val;
+    ntBUFFER[1] = v4_val;
+    ntBUFFER[2] = vst_val;
+
+    double f0_val;
+    double d0_val;
+    TH1F* hDummy;
+    TF1* fDummy;
+
+    Eval_ScattParameters(Kitty_pL_Usmani,f0_val,d0_val,hDummy,fDummy,2,false,false,0);
+    //printf("1S0 f0_val = %.2f\n",f0_val);
+    //printf("1S0 d0_val = %.2f\n",d0_val);
+    ntBUFFER[3] = f0_val;
+    ntBUFFER[4] = d0_val;
+    delete hDummy;
+    delete fDummy;
+
+    Eval_ScattParameters(Kitty_pL_Usmani,f0_val,d0_val,hDummy,fDummy,2,false,false,1);
+    //printf("3S1 f0_val = %.2f\n",f0_val);
+    //printf("3S1 d0_val = %.2f\n",d0_val);
+    ntBUFFER[5] = f0_val;
+    ntBUFFER[6] = d0_val;
+    delete hDummy;
+    delete fDummy;
+
+    double chi2=0;
+    double chi2_low=0;
+    double nlo_val, usm_val, nlo_err;
+    for(unsigned uBin=0; uBin<NumMomBins; uBin++){
+      nlo_val = hNLO->GetBinContent(uBin+1);
+      nlo_err = hNLO->GetBinError(uBin+1);
+      usm_val = Kitty_pL_Usmani.GetCorrFun(uBin);
+      chi2 += pow((nlo_val-usm_val)/nlo_err,2.);
+      if(uBin<4){
+        chi2_low += pow((nlo_val-usm_val)/nlo_err,2.);
+      }
+    }
+    ntBUFFER[7] = chi2;
+    ntBUFFER[8] = chi2_low;
+    ntRND->Fill(ntBUFFER);
+
+  }
+
+
+  TFile fOutput(TString::Format("%s/pLambda/Match_Usmani_NLO_%s%i.root",GetFemtoOutputFolder(),RndSeed?"rs":"def",RndSeed),"recreate");
+  grNLO.Write();
+  grUsmani.Write();
+  fit_Usmani->Write();
+  hNLO->Write();
+  ntRND->Write();
+
+  delete hNLO;
+}
+
+
 
 int PLAMBDA_1_MAIN(int argc, char *argv[]){
 printf("PLAMBDA_1_MAIN\n");
+
+Match_Usmani_NLO(atoi(argv[1]),atoi(argv[2]));//32768
+return 0;
+
   //pL_EffectiveRadius(1.02);
   //Unfold_pL_ME(TString::Format("%s/CatsFiles/ExpData/ALICE_pp_13TeV_HM/DimiJun20/Norm240_340/DataSignal/",GetCernBoxDimi()),"TEST.root");
   //Unfold_pL_ME(argv[1],argv[2]);

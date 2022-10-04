@@ -7563,14 +7563,15 @@ void Fast_Bootstrap_Example(){
   //delete [] Constant;
 }
 
-bool Eval_ScattParameters(CATS& Kitty, double& ScatLen, double& EffRan, TH1F*& hFit, TF1*& fitSP, const int& Nterms=2, const bool& Fixf0=false, const bool& Fixd0=false){
+bool Eval_ScattParameters(CATS& Kitty, double& ScatLen, double& EffRan, TH1F*& hFit, TF1*& fitSP,
+  const int& Nterms, const bool& Fixf0, const bool& Fixd0, const unsigned short& usCh){
   Kitty.KillTheCat();
   double* MomBins = Kitty.CopyMomBin();
   hFit = new TH1F("hFit","hFit",Kitty.GetNumMomBins(),MomBins);
   double LAST_POINT;
   double CURRENT_POINT;
   for(unsigned uMom=0; uMom<Kitty.GetNumMomBins(); uMom++){
-    CURRENT_POINT = Kitty.GetMomentum(uMom)/tan(Kitty.GetPhaseShift(uMom,0,0));
+    CURRENT_POINT = Kitty.GetMomentum(uMom)/tan(Kitty.GetPhaseShift(uMom,usCh,0));
     if(uMom){
       if(CURRENT_POINT*LAST_POINT<0&&fabs(CURRENT_POINT-LAST_POINT)>1000&&Kitty.GetMomentum(uMom)<120)
       {fitSP=NULL;delete[]MomBins;return false;}
@@ -14903,6 +14904,95 @@ printf("OUTPUT\n");
 }
 
 
+void pp_QS_Tests(){
+  const int NumMomBin = 100;
+  const double kMin = 0;
+  const double kMax = 200;
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles/",GetCernBoxDimi()));
+  CATS Kitty;
+  Kitty.SetMomBins(NumMomBin,kMin,kMax);
+  AnalysisObject.SetUpCats_pp(Kitty,"AV18","Gauss",0,0);
+  Kitty.SetAnaSource(0,1.2);
+  Kitty.SetEpsilonConv(1e-8);
+  Kitty.SetEpsilonProp(1e-8);
+  Kitty.KillTheCat();
+
+  TGraph gCk_QS;
+  gCk_QS.SetName("gCk_QS");
+  gCk_QS.SetLineWidth(3);
+  gCk_QS.SetLineColor(kBlack);
+  TGraph gCk_CO;
+  gCk_CO.SetName("gCk_CO");
+  gCk_CO.SetLineWidth(3);
+  gCk_CO.SetLineColor(kGreen+1);
+  TGraph gCk_SI;
+  gCk_SI.SetName("gCk_SI");
+
+  TGraph gCk_SI_CO;
+  gCk_SI_CO.SetName("gCk_SI_CO");
+  gCk_SI_CO.SetLineWidth(3);
+  gCk_SI_CO.SetLineColor(kOrange+1);
+
+
+  TGraph gCk_QS_CO;
+  gCk_QS_CO.SetName("gCk_QS_CO");
+  gCk_QS_CO.SetLineWidth(3);
+  gCk_QS_CO.SetLineColor(kRed);
+
+
+  TGraph gCk_Full;
+  gCk_Full.SetName("gCk_Full");
+  gCk_Full.SetLineWidth(3);
+  gCk_Full.SetLineColor(kBlue+1);
+
+
+
+  for(unsigned uBin=0; uBin<NumMomBin; uBin++){
+    gCk_Full.SetPoint(uBin,Kitty.GetMomentum(uBin),Kitty.GetCorrFun(uBin));
+  }
+
+  Kitty.SetQuantumStatistics(false);
+  Kitty.KillTheCat();
+  for(unsigned uBin=0; uBin<NumMomBin; uBin++){
+    gCk_SI_CO.SetPoint(uBin,Kitty.GetMomentum(uBin),Kitty.GetCorrFun(uBin));
+  }
+
+
+  Kitty.RemoveShortRangePotential(0,0);
+  Kitty.RemoveShortRangePotential(0,2);
+  Kitty.RemoveShortRangePotential(1,1);
+  Kitty.RemoveShortRangePotential(2,1);
+  Kitty.RemoveShortRangePotential(3,1);
+  Kitty.SetQuantumStatistics(true);
+  Kitty.KillTheCat();
+  for(unsigned uBin=0; uBin<NumMomBin; uBin++){
+    gCk_QS_CO.SetPoint(uBin,Kitty.GetMomentum(uBin),Kitty.GetCorrFun(uBin));
+  }
+
+  Kitty.SetQuantumStatistics(false);
+  Kitty.KillTheCat();
+  for(unsigned uBin=0; uBin<NumMomBin; uBin++){
+    gCk_CO.SetPoint(uBin,Kitty.GetMomentum(uBin),Kitty.GetCorrFun(uBin));
+  }
+
+  Kitty.SetQuantumStatistics(true);
+  Kitty.SetQ1Q2(0);
+  Kitty.KillTheCat();
+  for(unsigned uBin=0; uBin<NumMomBin; uBin++){
+    gCk_QS.SetPoint(uBin,Kitty.GetMomentum(uBin),Kitty.GetCorrFun(uBin));
+  }
+
+  TFile fOutput(TString::Format("%s/OtherTasks/pp_QS_Tests.root",GetFemtoOutputFolder()), "RECREATE");
+  gCk_Full.Write();
+  gCk_SI_CO.Write();
+  gCk_QS_CO.Write();
+  gCk_CO.Write();
+  gCk_QS.Write();
+
+
+}
+
 //
 int OTHERTASKS(int argc, char *argv[]){
 
@@ -15050,10 +15140,10 @@ nsig 6 bins = 3.75
     //EmmaDaniel_KD(1.04);
     //EmmaDaniel_KD(1.10);
     //EmmaDaniel_KD(1.13);
-    EmmaDaniel_KD(1.04);
-    EmmaDaniel_KD(1.04);
-    EmmaDaniel_KD(1.04);
-
+    //EmmaDaniel_KD(1.04);
+    //EmmaDaniel_KD(1.04);
+    //EmmaDaniel_KD(1.04);
+    pp_QS_Tests();
 
     //PlugInWaveFunction();
     //ppSource_bugHunting(true);
