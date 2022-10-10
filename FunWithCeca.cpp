@@ -8267,7 +8267,7 @@ void HowWrongIsOurSource(const int FLAG){
 //look at the k* dependence.
 void Sources_In_SourcePaper(const TString WhichSystem, const int mode){
 
-  const float TIMEOUT = 60*40;
+  const float TIMEOUT = 60*8;
   const float k_CutOff = 108;
   const unsigned NumThreads = 0;
   const float EtaCut = 0.8;
@@ -8339,7 +8339,19 @@ void Sources_In_SourcePaper(const TString WhichSystem, const int mode){
   FileNameMomAP1 = "ap_pT.root";
   FileNameMomP2 = "L_pT.root";
   FileNameMomAP2 = "aL_pT.root";
-
+/*
+  TGraph gCkRelError;
+  gCkRelError.SetName("gCkRelError");
+  //this is Ck in the 0th mT bin (def). We use it to get reallisitc errors on C(k)
+  //note that in all mT bins we have approx the same yield, hence similar uncertainties,
+  //i.e. we asssume that those errors are constant with mT
+  TFile fData_def(FilePathMom+"pL_Data_Def_TotUnc.root","read");
+  TH1F* hData_def = (TH1F*)fData_def.Get("hData_0");
+  for(unsigned uMomBin=0; uMomBin<hData_def->GetNbinsX(); uMomBin++){
+    gCkRelError.SetPoint(uMomBin,hData_def->GetBinCenter(uMomBin+1),
+                      hData_def->GetBinError(uMomBin+1)/hData_def->GetBinContent(uMomBin+1));
+  }
+*/
   TH1F* h_pT_p;
   TH1F* h_pT_ap;
   TH1F* h_pT_p_all;
@@ -8534,7 +8546,7 @@ void Sources_In_SourcePaper(const TString WhichSystem, const int mode){
     Ivana.Ghetto_NumMtBins = 14;
     Ivana.Ghetto_MtMin = 1000;
     Ivana.Ghetto_MtMax = 2400;
-    Ivana.Ghetto_NumRadBins = 128;
+    Ivana.Ghetto_NumRadBins = 128*2;
     Ivana.Ghetto_RadMin = 0;
     Ivana.Ghetto_RadMax = 32;
     Ivana.Ghetto_NumMomBins = NumMomBins*8;
@@ -8671,6 +8683,16 @@ void Sources_In_SourcePaper(const TString WhichSystem, const int mode){
     }
     Kitty_G.SetNotifications(CATS::nWarning);
 
+    CATS Kitty_G2;
+    Kitty_G2.SetMomBins(NumMomBins,kMin,kMax);
+    if(WhichSystem=="pp"){
+      AnalysisObject.SetUpCats_pp(Kitty_G2,"AV18","Gauss",0,0);
+    }
+    else if(WhichSystem=="pL"){
+      AnalysisObject.SetUpCats_pL(Kitty_G2,"Chiral_Coupled_SPD","Gauss",11600,0);
+    }
+    Kitty_G2.SetNotifications(CATS::nWarning);
+
     CATS Kitty_RSM;
     Kitty_RSM.SetMomBins(NumMomBins,kMin,kMax);
     if(WhichSystem=="pp"){
@@ -8711,10 +8733,12 @@ void Sources_In_SourcePaper(const TString WhichSystem, const int mode){
       //printf("--hProj\n");
       TF1* fmT;
       TGraph* gCk_G;
+      TGraph* gCk_G2;
       TGraph* gCk_C;
       TGraph* gCk_Ckstar;
       TGraph* gCk_RSM;
       TGraph* gCk_RatGC;
+      TGraph* gCk_RatG2C;
       TGraph* gCk_RatRC;
       double Mean = hProj->GetMean();
       double Err = hProj->GetStdDev();
@@ -8724,7 +8748,7 @@ void Sources_In_SourcePaper(const TString WhichSystem, const int mode){
         //printf("--AFT IF\n");
         hProj->Scale(1./hProj->Integral(),"width");
         //printf("0\n");
-        reff_Ceca = Get_reff_TF1(hProj,fmT);
+        reff_Ceca = Get_reff_TF1(hProj,fmT,1,0.95);
       //reff_Ceca = g_mT_reff->Eval(mT*0.001);
         //printf("reff_Ceca=%f\n",reff_Ceca);
         g_GhettoFemto_mT_rstar_G.SetPoint(uPointRS,mT*0.001,reff_Ceca);
@@ -8749,11 +8773,22 @@ void Sources_In_SourcePaper(const TString WhichSystem, const int mode){
         gCk_G->SetName(TString::Format("gCk_G_mT%u",uBin));
         gCk_G->SetLineWidth(4);
         gCk_G->SetLineColor(kBlue+1);
+
+        gCk_G2 = new TGraph();
+        gCk_G2->SetName(TString::Format("gCk_G2_mT%u",uBin));
+        gCk_G2->SetLineWidth(4);
+        gCk_G2->SetLineColor(kBlue-3);
+
         //printf("4\n");
         gCk_RatGC = new TGraph();
         gCk_RatGC->SetName(TString::Format("gCk_RatGC_mT%u",uBin));
         gCk_RatGC->SetLineWidth(6);
         gCk_RatGC->SetLineColor(kBlack);
+
+        gCk_RatG2C = new TGraph();
+        gCk_RatG2C->SetName(TString::Format("gCk_RatG2C_mT%u",uBin));
+        gCk_RatG2C->SetLineWidth(6);
+        gCk_RatG2C->SetLineColor(kBlack);
 
         gCk_RatRC = new TGraph();
         gCk_RatRC->SetName(TString::Format("gCk_RatRC_mT%u",uBin));
@@ -8761,6 +8796,7 @@ void Sources_In_SourcePaper(const TString WhichSystem, const int mode){
         gCk_RatRC->SetLineColor(kBlack);
 
         Kitty_G.SetAnaSource(0,reff_Ceca);
+        Kitty_G2.SetAnaSource(0,reff_Ceca*0.98);
 
         double DeltaREFF = g_mT_reff->Eval(mT*0.001)-reff_Ceca;
         double rcore = g_mT_rcore->Eval(mT*0.001)-DeltaREFF;
@@ -8803,6 +8839,10 @@ void Sources_In_SourcePaper(const TString WhichSystem, const int mode){
           }
           #pragma omp section
           {
+          Kitty_G2.KillTheCat();
+          }
+          #pragma omp section
+          {
           Kitty_RSM.KillTheCat();
           }
           #pragma omp section
@@ -8818,10 +8858,12 @@ void Sources_In_SourcePaper(const TString WhichSystem, const int mode){
         //printf("KillTheCat done\n");
         for(unsigned uMomBin=0; uMomBin<NumMomBins; uMomBin++){
           gCk_G->SetPoint(uMomBin,Kitty_G.GetMomentum(uMomBin),Kitty_G.GetCorrFun(uMomBin));
+          gCk_G2->SetPoint(uMomBin,Kitty_G2.GetMomentum(uMomBin),Kitty_G2.GetCorrFun(uMomBin));
           gCk_C->SetPoint(uMomBin,Kitty_C.GetMomentum(uMomBin),Kitty_C.GetCorrFun(uMomBin));
           gCk_Ckstar->SetPoint(uMomBin,Kitty_Ckstar.GetMomentum(uMomBin),Kitty_Ckstar.GetCorrFun(uMomBin));
           gCk_RSM->SetPoint(uMomBin,Kitty_RSM.GetMomentum(uMomBin),Kitty_RSM.GetCorrFun(uMomBin));
           gCk_RatGC->SetPoint(uMomBin,Kitty_C.GetMomentum(uMomBin),Kitty_G.GetCorrFun(uMomBin)/Kitty_C.GetCorrFun(uMomBin));
+          gCk_RatG2C->SetPoint(uMomBin,Kitty_C.GetMomentum(uMomBin),Kitty_G2.GetCorrFun(uMomBin)/Kitty_C.GetCorrFun(uMomBin));
           gCk_RatRC->SetPoint(uMomBin,Kitty_C.GetMomentum(uMomBin),Kitty_RSM.GetCorrFun(uMomBin)/Kitty_C.GetCorrFun(uMomBin));
         }
 
@@ -8831,10 +8873,12 @@ void Sources_In_SourcePaper(const TString WhichSystem, const int mode){
         hProj->Write();
         fmT->Write();
         gCk_G->Write();
+        gCk_G2->Write();
         gCk_RSM->Write();
         gCk_C->Write();
         gCk_Ckstar->Write();
         gCk_RatGC->Write();
+        gCk_RatG2C->Write();
         gCk_RatRC->Write();
 
         uPointRS++;
@@ -8843,10 +8887,12 @@ void Sources_In_SourcePaper(const TString WhichSystem, const int mode){
         //delete dlmSkstar;
         delete fmT;
         delete gCk_G;
+        delete gCk_G2;
         delete gCk_RSM;
         delete gCk_C;
         delete gCk_Ckstar;
         delete gCk_RatGC;
+        delete gCk_RatG2C;
         delete gCk_RatRC;
         //printf("Deleted\n");
       }
@@ -8865,7 +8911,7 @@ void Sources_In_SourcePaper(const TString WhichSystem, const int mode){
       if(Mean&&Err&&hProj->GetEntries()>160){
         hProj->Scale(1./hProj->Integral(),"width");
         //printf("AA\n");
-        rcore_Ceca = Get_reff_TF1(hProj,fmT);
+        rcore_Ceca = Get_reff_TF1(hProj,fmT,1,0.95);
         g_GhettoFemto_mT_rcore_G.SetPoint(uPointRC,mT*0.001,rcore_Ceca);
         g_GhettoFemto_mT_rcore_G.SetPointError(uPointRC,0,0);
 
