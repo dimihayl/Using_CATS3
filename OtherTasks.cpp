@@ -14993,6 +14993,22 @@ void pp_QS_Tests(){
 
 }
 
+void pn_potential(){
+  unsigned NumRadBins = 1024;
+  double rMin = 0;
+  double rMax = 5;
+  TH1F* hPot_3S1 = new TH1F("hPot_3S1","hPot_3S1",NumRadBins,rMin,rMax);
+
+  for(unsigned uRad=0; uRad<NumRadBins; uRad++){
+    double rad = hPot_3S1->GetBinCenter(uRad+1);
+    double Vrad = fDlmPot(NN_AV18,v18_Coupled3P2,0,1,-1,1,0,1,&rad,0);
+    hPot_3S1->SetBinContent(uRad+1,Vrad);
+  }
+  TFile fOutput(TString::Format("%s/OtherTasks/pn_potential.root",GetFemtoOutputFolder()), "RECREATE");
+  hPot_3S1->Write();
+  delete hPot_3S1;
+}
+
 //
 int OTHERTASKS(int argc, char *argv[]){
 
@@ -15143,7 +15159,8 @@ nsig 6 bins = 3.75
     //EmmaDaniel_KD(1.04);
     //EmmaDaniel_KD(1.04);
     //EmmaDaniel_KD(1.04);
-    pp_QS_Tests();
+    //pp_QS_Tests();
+    pn_potential();
 
     //PlugInWaveFunction();
     //ppSource_bugHunting(true);

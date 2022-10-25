@@ -235,15 +235,65 @@ void Plot_CorrFunFits(const int& mode, TString FitSettings){
 //can be done for pp and pL, we compare the cases of Gaussian, RSM, CECA (<100 MeV), CECA (kstar dep)
 //we further plot the differences onto the correlation function
 void Plot_SourceFunMt(){
-  
+
 }
 
+
+void WhatAreOurLambdaPars(){
+
+
+
+  const bool SourcePaper = true;
+  std::vector<int> lampar_p_var;
+  std::vector<int> lampar_l_var;
+  if(SourcePaper){
+    //actually for source paper it is mt diff, but we ignore to spare details, so it is 0/1/2 within syst (0 is def)
+    lampar_p_var.push_back(0);
+    lampar_p_var.push_back(1);
+    lampar_p_var.push_back(2);
+
+    //0 is for the source paper, with systematics 1 and 2
+    lampar_l_var.push_back(0);
+    lampar_l_var.push_back(1);
+    lampar_l_var.push_back(2);
+  }
+
+
+  for(unsigned ulp=0; ulp<lampar_p_var.size(); ulp++){
+    for(unsigned ull=0; ull<lampar_l_var.size(); ull++{
+      if(!ulp && !ull){
+        printf("DEFAULT:\n");
+      }
+      DLM_CommonAnaFunctions AnalysisObject;
+      double lam_pars_pl[5];
+      AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
+      AnalysisObject.SetUpLambdaPars_pL("pp13TeV_HM_Dec19",lampar_p_var.at(ulp),lampar_l_var.at(ull),lam_pars_pl);
+
+      double SUM=0;
+      for(unsigned uLam=0; uLam<5; uLam++){
+          //printf("λ(pΛ)_%u = %.1f\n",uLam,lam_pars_pl[uLam]*100.);
+          SUM+=lam_pars_pl[uLam]*100.;
+      }
+      //printf("SUM: %.1f\n------------\n",SUM);
+
+      printf(" gen = %.2f%%; S0 = %.2f%%; Xim=%.2f%%; Xi0=%.2f%%; fake=%.2f%%; sum=%.2f%%\n",
+      lam_pars_pl[0]*100.,lam_pars_pl[1]*100.,lam_pars_pl[2]*100.,lam_pars_pl[3]*100.,lam_pars_pl[4]*100.,SUM);
+      
+    }
+  }
+
+
+
+
+
+}
 
 int JAIME_THESIS(int argc, char *argv[]){
 
   //Plot_CorrFunFits(0,"cl2741_p11600-a1201-e11-f0");
   //Plot_CorrFunFits(0,"cl2741_p131600-a1201-e11-f2");
-  Plot_SourceFunMt();
+  //Plot_SourceFunMt();
+  WhatAreOurLambdaPars();
 
   return 0;
 }
