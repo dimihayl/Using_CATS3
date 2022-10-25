@@ -127,6 +127,9 @@ void Plot_CorrFunFits(const int& mode, TString FitSettings){
   else if(FitSettings.Contains("p131600-")){
     ColorInteraction = ColorNLO19_Red3S1;
   }
+  else if(FitSettings.Contains("pot0-")){
+    ColorInteraction = ColorNLO19_Red3S1;
+  }
 
 
   for(unsigned uMt=0; uMt<NumMtBins; uMt++){
@@ -278,7 +281,7 @@ void WhatAreOurLambdaPars(){
 
       printf(" gen = %.2f%%; S0 = %.2f%%; Xim=%.2f%%; Xi0=%.2f%%; fake=%.2f%%; sum=%.2f%%\n",
       lam_pars_pl[0]*100.,lam_pars_pl[1]*100.,lam_pars_pl[2]*100.,lam_pars_pl[3]*100.,lam_pars_pl[4]*100.,SUM);
-      
+
     }
   }
 

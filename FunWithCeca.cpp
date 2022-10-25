@@ -8267,7 +8267,7 @@ void HowWrongIsOurSource(const int FLAG){
 //look at the k* dependence.
 void Sources_In_SourcePaper(const TString WhichSystem, const int mode){
 
-  const float TIMEOUT = 60*8;
+  const float TIMEOUT = 60*32;
   const float k_CutOff = 108;
   const unsigned NumThreads = 0;
   const float EtaCut = 0.8;
@@ -8543,9 +8543,9 @@ void Sources_In_SourcePaper(const TString WhichSystem, const int mode){
     Ivana.SetFixedHadr(fixed_hadron);
     Ivana.SetFragmentBeta(frag_beta);
     Ivana.GHETTO_EVENT = true;
-    Ivana.Ghetto_NumMtBins = 14;
+    Ivana.Ghetto_NumMtBins = 9;
     Ivana.Ghetto_MtMin = 1000;
-    Ivana.Ghetto_MtMax = 2400;
+    Ivana.Ghetto_MtMax = 2350;
     Ivana.Ghetto_NumRadBins = 128*2;
     Ivana.Ghetto_RadMin = 0;
     Ivana.Ghetto_RadMax = 32;
