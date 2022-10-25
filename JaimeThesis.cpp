@@ -127,6 +127,9 @@ void Plot_CorrFunFits(const int& mode, TString FitSettings){
   else if(FitSettings.Contains("p131600-")){
     ColorInteraction = ColorNLO19_Red3S1;
   }
+  else if(FitSettings.Contains("pot0-")){
+    ColorInteraction = ColorNLO19_Red3S1;
+  }
 
 
   for(unsigned uMt=0; uMt<NumMtBins; uMt++){
@@ -235,15 +238,16 @@ void Plot_CorrFunFits(const int& mode, TString FitSettings){
 //can be done for pp and pL, we compare the cases of Gaussian, RSM, CECA (<100 MeV), CECA (kstar dep)
 //we further plot the differences onto the correlation function
 void Plot_SourceFunMt(){
-  
+
 }
 
 
 int JAIME_THESIS(int argc, char *argv[]){
 
   //Plot_CorrFunFits(0,"cl2741_p11600-a1201-e11-f0");
-  //Plot_CorrFunFits(0,"cl2741_p131600-a1201-e11-f2");
-  Plot_SourceFunMt();
+  Plot_CorrFunFits(0,"cl2741_p131600-a1201-e11-f2");
+  //Plot_CorrFunFits(0,"pot0-at0-et11-naf0");
+  //Plot_SourceFunMt();
 
   return 0;
 }
