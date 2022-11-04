@@ -5263,16 +5263,16 @@ void Ceca_vs_RSM_1(const std::string part1, const std::string part2){
 
 void Ceca_vs_RSM_2(const std::string part1, const std::string part2, const bool PropMother){
   const double reff = sqrt(2);
-  const double rSP = 0.4;//1.0
+  const double rSP = 1.0;//1.0
 
   const double EtaCut = 0.8;
   const bool EQUALIZE_TAU = true;
-  const double TIMEOUT = 30;
+  const double TIMEOUT = 60;
   const double FracProtonReso = 0.6422*1;
   const double FracLambdaReso = 0.6438*1;
-  const double PancakeT = 6.5;
-  const double PancakeZ = 6.5;
-  const double Tau = 0.0;
+  const double PancakeT = 2.3*0;
+  const double PancakeZ = 0.0;
+  const double Tau = 3.55*0;
   const double PancakeFluct = 0;//in % !!!
   unsigned THREADS = 0;
   const double MomSpread = 1061;
@@ -8267,7 +8267,7 @@ void HowWrongIsOurSource(const int FLAG){
 //look at the k* dependence.
 void Sources_In_SourcePaper(const TString WhichSystem, const int mode){
 
-  const float TIMEOUT = 60*32;
+  const float TIMEOUT = 60*16;
   const float k_CutOff = 108;
   const unsigned NumThreads = 0;
   const float EtaCut = 0.8;
@@ -8728,10 +8728,12 @@ void Sources_In_SourcePaper(const TString WhichSystem, const int mode){
     Kitty_Ckstar.SetNotifications(CATS::nWarning);
 
     for(unsigned uBin=0; uBin<h_GhettoFemto_mT_rstar->GetXaxis()->GetNbins(); uBin++){
-      printf("uBin=%u\n",uBin);
+      //printf("uBin=%u\n",uBin);
       TH1F* hProj = (TH1F*)h_GhettoFemto_mT_rstar->ProjectionY(TString::Format("hProj"),uBin+1,uBin+1);
       //printf("--hProj\n");
       TF1* fmT;
+      TF1* fmT_full = NULL;
+
       TGraph* gCk_G;
       TGraph* gCk_G2;
       TGraph* gCk_C;
@@ -8749,8 +8751,13 @@ void Sources_In_SourcePaper(const TString WhichSystem, const int mode){
         hProj->Scale(1./hProj->Integral(),"width");
         //printf("0\n");
         reff_Ceca = Get_reff_TF1(hProj,fmT,1,0.95);
+
+        fmT_full = new TF1("fmT_full","[0]*4.*TMath::Pi()*x*x*pow(4.*TMath::Pi()*[1]*[1],-1.5)*exp(-(x*x)/(4.*[1]*[1]))+1.-[0]",0,16);
+        fmT_full->SetNpx(1024);
+        fmT_full->SetParameter(0,fmT->GetParameter(0));
+        fmT_full->SetParameter(1,fmT->GetParameter(1));
       //reff_Ceca = g_mT_reff->Eval(mT*0.001);
-        //printf("reff_Ceca=%f\n",reff_Ceca);
+        printf("reff_Ceca @ %.2f = %f\n",mT*0.001,reff_Ceca);
         g_GhettoFemto_mT_rstar_G.SetPoint(uPointRS,mT*0.001,reff_Ceca);
         g_GhettoFemto_mT_rstar_G.SetPointError(uPointRS,0,0);
         //printf("2\n");
@@ -8869,9 +8876,11 @@ void Sources_In_SourcePaper(const TString WhichSystem, const int mode){
 
         hProj->SetName(TString::Format("h_reff_mT%u",uBin));
         fmT->SetName(TString::Format("f_reff_mT%u",uBin));
+        if(fmT_full) fmT_full->SetName(TString::Format("full_reff_mT%u",uBin));
         fOutput.cd();
         hProj->Write();
         fmT->Write();
+        if(fmT_full) fmT_full->Write();
         gCk_G->Write();
         gCk_G2->Write();
         gCk_RSM->Write();
@@ -8886,6 +8895,7 @@ void Sources_In_SourcePaper(const TString WhichSystem, const int mode){
         delete dlmProj;
         //delete dlmSkstar;
         delete fmT;
+        if(fmT_full) {delete fmT_full;fmT_full=NULL;}
         delete gCk_G;
         delete gCk_G2;
         delete gCk_RSM;
@@ -8907,19 +8917,27 @@ void Sources_In_SourcePaper(const TString WhichSystem, const int mode){
       Mean = hProj->GetMean();
       Err = hProj->GetStdDev();
       mT = h_GhettoFemto_mT_rcore->GetXaxis()->GetBinCenter(uBin+1);
+      fmT_full = NULL;
       //printf("A\n");
       if(Mean&&Err&&hProj->GetEntries()>160){
         hProj->Scale(1./hProj->Integral(),"width");
         //printf("AA\n");
         rcore_Ceca = Get_reff_TF1(hProj,fmT,1,0.95);
+        fmT_full = new TF1("fmT_full","[0]*4.*TMath::Pi()*x*x*pow(4.*TMath::Pi()*[1]*[1],-1.5)*exp(-(x*x)/(4.*[1]*[1]))+1.-[0]",0,16);
+        fmT_full->SetNpx(1024);
+        fmT_full->SetParameter(0,fmT->GetParameter(0));
+        fmT_full->SetParameter(1,fmT->GetParameter(1));
+        printf("rcore_Ceca @ %.2f = %f\n",mT*0.001,rcore_Ceca);
         g_GhettoFemto_mT_rcore_G.SetPoint(uPointRC,mT*0.001,rcore_Ceca);
         g_GhettoFemto_mT_rcore_G.SetPointError(uPointRC,0,0);
 
         hProj->SetName(TString::Format("h_rcore_mT%u",uBin));
         fmT->SetName(TString::Format("f_rcore_mT%u",uBin));
+        if(fmT_full) fmT_full->SetName(TString::Format("full_rcore_mT%u",uBin));
         fOutput.cd();
         hProj->Write();
         fmT->Write();
+        fmT_full->Write();
 
         uPointRC++;
         //printf("DEL\n");
@@ -8929,6 +8947,7 @@ void Sources_In_SourcePaper(const TString WhichSystem, const int mode){
 
       gROOT->cd();
       //if(fmT) {delete fmT; fmT=NULL;}
+      if(fmT_full) {delete fmT_full;fmT_full=NULL;}
       //printf("end\n");
       delete hProj;
       //printf("enddel\n");
@@ -8941,8 +8960,8 @@ void Sources_In_SourcePaper(const TString WhichSystem, const int mode){
 
 
 int FUN_WITH_CECA(int argc, char *argv[]){
-  //Sources_In_SourcePaper("pp",1);
-  Sources_In_SourcePaper("pL",1);
+  Sources_In_SourcePaper("pp",1);
+  //Sources_In_SourcePaper("pL",1);
   return 0;
 //DLM_Random rangen(1);
 //for(int i=0; i<20; i++) printf("%i\n", rangen.Int(1));

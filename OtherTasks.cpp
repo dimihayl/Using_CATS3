@@ -21,7 +21,7 @@
 
 #include "TGraph.h"
 #include "TGraphErrors.h"
-#include "TGraphMultiErrors.h"
+//#include "TGraphMultiErrors.h"
 #include "TGraphAsymmErrors.h"
 #include "TFile.h"
 #include "TCanvas.h"
@@ -10528,6 +10528,7 @@ void Raffa_Errors(){
   delete hME2;
 }
 
+/*
 //FeedDown = 0 NO
 //FeedDown = 1 Yes, but a constant
 //FeedDown = 2 Yes, sample form TH2F
@@ -10751,7 +10752,7 @@ void ppp_errors(int FeedDown, bool Projector){
   hMe_2_w_3x->Scale(3.);
   TH1F* hMe_2_w_3xm = (TH1F*)hMe_2_w->Clone("hMe_2_w_3xm");
   hMe_2_w_3xm->Scale(-3.);
-
+*/
 /*
   printf("Last bin:\n");
   printf(" S3 = %.2f\n",hSe_3->GetBinContent(9));
@@ -10767,6 +10768,7 @@ void ppp_errors(int FeedDown, bool Projector){
   printf("  c = %.2f\n",hSe_3->GetBinContent(9)/hMe_3->GetBinContent(9)*hMe_3_w->GetBinContent(9)+
     hSe_3_exp->GetBinContent(9)/hMe_3->GetBinContent(9)*hMe_3exp_w->GetBinContent(9)+2.);
 */
+/*
 //1.27-1.07*3+2 = 0.06
   TH1F* hFeed = (TH1F*)hSe_3->Clone("hFeed");
   if(FeedDown==0){
@@ -10857,6 +10859,7 @@ void ppp_errors(int FeedDown, bool Projector){
     HAD.SetIgnoreUncertainty(4);
   }
 */
+/*
   HAD.SetConstant(3,0,0);
   HAD.SetConstant(4,0,0);
   HAD.SetExpectationUncertainty(true);
@@ -10908,7 +10911,7 @@ void ppp_errors(int FeedDown, bool Projector){
   gaseResult_1s->Write();
   gaseResult_3s->Write();
 }
-
+*/
 
 void ppL_errors(int FeedDown, bool Projector){
   //the 3 body thing, I need to scale by 3 and than subrtract 2, related to how we build the cumulant
@@ -15009,6 +15012,100 @@ void pn_potential(){
   delete hPot_3S1;
 }
 
+//compare AV18 vs Hulthen HulthenSmooth (3S1)
+void pn_Ck(const double SourceSize=1.3){
+  const unsigned NumMomBins = 75;
+  const double kMin = 0;
+  const double kMax = 300;
+
+  const unsigned NumPots = 3;
+  TGraph* gPot = new TGraph[NumPots];
+  TGraph* gCk = new TGraph[NumPots];
+
+  CATS* Kitty = new CATS[NumPots];
+  TString* PotName = new TString[NumPots];
+  CATSparameters sPars(CATSparameters::tSource,1,true);
+  CATSparameters pPars(CATSparameters::tPotential,8,true);
+  sPars.SetParameter(0,SourceSize);
+  for(unsigned uPot=0; uPot<NumPots; uPot++){
+    Kitty[uPot].SetMomBins(NumMomBins,kMin,kMax);
+    Kitty[uPot].SetAnaSource(GaussSource, sPars);
+    Kitty[uPot].SetUseAnalyticSource(true);
+    Kitty[uPot].SetAutoNormSource(false);
+    Kitty[uPot].SetQ1Q2(0);
+    Kitty[uPot].SetQuantumStatistics(false);
+    Kitty[uPot].SetRedMass( (Mass_p*Mass_n)/(Mass_p+Mass_n) );
+    Kitty[uPot].SetNumChannels(1);
+    Kitty[uPot].SetNumPW(0,1);
+    Kitty[uPot].SetSpin(0,1);
+    Kitty[uPot].SetChannelWeight(0, 1.);
+    //Kitty[uPot].SetEpsilonConv(1e-8);
+    //Kitty[uPot].SetEpsilonProp(1e-8);
+    //Kitty[uPot].SetMaxRad(96);
+    //Kitty[uPot].SetMaxRho(32);
+    switch (uPot) {
+      case 0:
+        PotName[uPot] = "AV18";
+        pPars.SetParameter(0,NN_AV18);
+        pPars.SetParameter(1,v18_Coupled3P2);
+        pPars.SetParameter(2,0);
+        pPars.SetParameter(3,1);
+        pPars.SetParameter(4,-1);
+        pPars.SetParameter(5,1);
+        pPars.SetParameter(6,0);
+        pPars.SetParameter(7,1);
+        Kitty[uPot].SetShortRangePotential(0,0,fDlmPot,pPars);
+        break;
+      case 1:
+        PotName[uPot] = "Hulthen";
+        pPars.SetParameter(0,32.5);
+        pPars.SetParameter(1,226);
+        Kitty[uPot].SetShortRangePotential(0,0,Hulthen,pPars);
+        break;
+      case 2:
+        PotName[uPot] = "Hulthen alla Dimi";
+        pPars.SetParameter(0,32.5);
+        pPars.SetParameter(1,226);
+        pPars.SetParameter(2,0.001);
+        Kitty[uPot].SetShortRangePotential(0,0,HulthenSmooth,pPars);
+        break;
+      default:
+        PotName[uPot] = "Unknown";
+        break;
+    }
+    if(PotName[uPot]=="Unknown"){
+      printf("WARNING: Unknown potential ID. Skipping it!\n");
+      continue;
+    }
+    gPot[uPot].SetName(TString::Format("gPot_%s",PotName[uPot].Data()));
+    gPot[uPot].SetLineColor(uPot+2);
+    gPot[uPot].SetLineWidth(6-double(uPot)*0.75);
+    gCk[uPot].SetName(TString::Format("gCk_%s",PotName[uPot].Data()));
+    gCk[uPot].SetLineColor(uPot+2);
+    gCk[uPot].SetLineWidth(6-double(uPot)*0.75);
+    Kitty[uPot].KillTheCat();
+
+    unsigned Counter=0;
+    for(double Rad=0.025; Rad<32; Rad+=0.05){
+      double PotVal = Kitty[uPot].EvaluateThePotential(0,0,1,Rad);
+      gPot[uPot].SetPoint(Counter,Rad,PotVal);
+      Counter++;
+    }
+    for(double uMom=0; uMom<NumMomBins; uMom++){
+      gCk[uPot].SetPoint(uMom,Kitty[uPot].GetMomentum(uMom),Kitty[uPot].GetCorrFun(uMom));
+    }
+  }
+  TFile fOutput(TString::Format("%s/OtherTasks/pn_Ck_r%.2f.root",GetFemtoOutputFolder(),SourceSize), "RECREATE");
+  for(unsigned uPot=0; uPot<NumPots; uPot++){
+    gPot[uPot].Write();
+    gCk[uPot].Write();
+  }
+  delete [] Kitty;
+  delete [] PotName;
+  delete [] gPot;
+  delete [] gCk;
+}
+
 //
 int OTHERTASKS(int argc, char *argv[]){
 
@@ -15160,7 +15257,14 @@ nsig 6 bins = 3.75
     //EmmaDaniel_KD(1.04);
     //EmmaDaniel_KD(1.04);
     //pp_QS_Tests();
-    pn_potential();
+    //pn_potential();
+    pn_Ck(0.8);
+    pn_Ck(1.0);
+    pn_Ck(1.2);
+    pn_Ck(1.5);
+    pn_Ck(2.0);
+
+
 
     //PlugInWaveFunction();
     //ppSource_bugHunting(true);
