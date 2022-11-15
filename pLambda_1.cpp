@@ -5902,7 +5902,19 @@ double dimi_pL_May2020_FitterFemto(double* x, double* par){
         return pLambda_1_Dec->EvalCk(MOM);
     }
 }
+
+struct RejRange{
+  double Min;
+  double Max;
+};
+std::vector<RejRange> RejPts_May2020_Fitter;
 double dimi_pL_May2020_Fitter(double* x, double* par){
+    for(int iRej=0; iRej<RejPts_May2020_Fitter.size(); iRej++){
+      if(*x>=RejPts_May2020_Fitter.at(iRej).Min&&*x<RejPts_May2020_Fitter.at(iRej).Max){
+        TF1::RejectPoint();
+        break;
+      }
+    }
     return dimi_pL_May2020_FitterFemto(x,par)*dimi_pL_May2020_FitterBl(x,&par[5]);
 }
 
@@ -7049,14 +7061,21 @@ void pL_SystematicsMay2020(unsigned SEED, unsigned BASELINE_VAR, int POT_VAR, in
 //0 no, 1 wrong, 2 correct
 const int IMPROVED_FEED=2;
 
-    //if we go beyond the 1 hour 50 minutes mark, we stop
-    //safety for the batch farm
-    const double TIME_LIMIT = 110;
+RejPts_May2020_Fitter.clear();
+//Reject the points within this range(s)
+RejRange RejBetween;
+RejBetween.Min = 140; RejBetween.Max = 200;
+RejPts_May2020_Fitter.push_back(RejBetween);
+
     //do extra variations
     //0 - standarad
     //1 - extend cusp radius whatever it was back in the day
     //2 - extend the variations such, only to cover more radii
-    const int ExtendedSyst = 0;
+const int ExtendedSyst = 0;
+
+    //if we go beyond the 1 hour 50 minutes mark, we stop
+    //safety for the batch farm
+    const double TIME_LIMIT = 110;
     DLM_Timer TIMER_SYST;
 
     //pol(0/1/2/3)s: pol(0/1/2/3) with a small fit range
@@ -9411,6 +9430,72 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
                       PotDescr = "f0=2.2_f1=1.6fm";
                       PotFlag = 21311601;
                       break;//
+//NEW
+        case 20211601:PotName1 = "f0=2.2;f1=1.3fm";
+                      PotName2 = "Based on NLO19";
+                      PotDescr = "f0=2.2_f1=1.3fm";
+                      PotFlag = 20211601;
+                      break;//
+        case 20311601:PotName1 = "f0=2.2;f1=1.25fm";
+                      PotName2 = "Based on NLO19";
+                      PotDescr = "f0=2.2_f1=1.25fm";
+                      PotFlag = 20311601;
+                      break;//
+        case 20411601:PotName1 = "f0=2.2;f1=1.2fm";
+                      PotName2 = "Based on NLO19";
+                      PotDescr = "f0=2.2_f1=1.2fm";
+                      PotFlag = 20411601;
+                      break;//
+        case 20511601:PotName1 = "f0=2.2;f1=1.15fm";
+                      PotName2 = "Based on NLO19";
+                      PotDescr = "f0=2.2_f1=1.15fm";
+                      PotFlag = 20511601;
+                      break;//
+        case 20611601:PotName1 = "f0=2.2;f1=1.1fm";
+                      PotName2 = "Based on NLO19";
+                      PotDescr = "f0=2.2_f1=1.1fm";
+                      PotFlag = 20611601;
+                      break;//
+        case 30011601:PotName1 = "f0=2.55fm";
+                      PotName2 = "Based on NLO19";
+                      PotDescr = "f0=2.55fm";
+                      PotFlag = 30011601;
+                      break;//
+        case 30211601:PotName1 = "f0=2.55;f1=1.3fm";
+                      PotName2 = "Based on NLO19";
+                      PotDescr = "f0=2.55_f1=1.3fm";
+                      PotFlag = 30211601;
+                      break;//
+        case 30311601:PotName1 = "f0=2.55;f1=1.25fm";
+                      PotName2 = "Based on NLO19";
+                      PotDescr = "f0=2.55_f1=1.25fm";
+                      PotFlag = 30311601;
+                      break;//
+        case 30411601:PotName1 = "f0=2.55;f1=1.2fm";
+                      PotName2 = "Based on NLO19";
+                      PotDescr = "f0=2.55_f1=1.2fm";
+                      PotFlag = 30411601;
+                      break;//
+        case 30511601:PotName1 = "f0=2.55;f1=1.15fm";
+                      PotName2 = "Based on NLO19";
+                      PotDescr = "f0=2.55_f1=1.15fm";
+                      PotFlag = 30511601;
+                      break;//
+        case 30611601:PotName1 = "f0=2.55;f1=1.1fm";
+                      PotName2 = "Based on NLO19";
+                      PotDescr = "f0=2.55_f1=1.1fm";
+                      PotFlag = 30611601;
+                      break;//
+        case 511601:PotName1 = "f1=1.15fm";
+                      PotName2 = "Based on NLO19";
+                      PotDescr = "f1=1.15fm";
+                      PotFlag = 511601;
+                      break;//
+        case 611601:PotName1 = "f1=1.1fm";
+                      PotName2 = "Based on NLO19";
+                      PotDescr = "f1=1.1fm";
+                      PotFlag = 611601;
+                      break;//
         case 100:   PotName1 = "Usmani";
                     PotName2 = "original";
                     PotDescr = "Usmani";
@@ -11615,6 +11700,7 @@ void Quick_pLambda_plotter_NLO13_vs_LO13(){
 //Compact = no ESC16
 //Type == 0: LO,NLO13/19
 //Type == 1: + the CSB and fine tunes
+//Type == 2: the many new Johann pots from 2022
 void MakeLATEXtable(TString InputFolder, bool Compact=false, int Type=0){
     TString OutputFileName;
     TString OutputFileNameNsig;
@@ -11633,7 +11719,7 @@ void MakeLATEXtable(TString InputFolder, bool Compact=false, int Type=0){
     unsigned NumLamVars = Type==0?9:13;
     if(Type==0){NumLamVars=9;}
     else if(Type==1){NumLamVars=13;}
-    else if(Type==2){NumLamVars=8;}
+    else if(Type==2){NumLamVars=8+13;}
 
     TString* PotName_pL = new TString [NumLamVars];
     if(Type==0||Type==1){
@@ -11655,14 +11741,30 @@ void MakeLATEXtable(TString InputFolder, bool Compact=false, int Type=0){
     }
 
     if(Type==2){
-      PotName_pL[0] = "NLO19-600";
-      PotName_pL[1] = "f0=2.20fm";
-      PotName_pL[2] = "S0+CSB";
-      PotName_pL[3] = "f0=1.30fm";
-      PotName_pL[4] = "f1=1.25fm";
-      PotName_pL[5] = "f1=1.20fm";
-      PotName_pL[6] = "f1=1.60fm";
-      PotName_pL[7] = "f0=2.2;f1=1.6fm";
+      PotName_pL[0] = "f_{S}=2.91;f_{t}=1.41fm";
+      PotName_pL[1] = "f_{S}=2.91;f_{t}=1.30fm";
+      PotName_pL[2] = "f_{S}=2.91;f_{t}=1.25fm";
+      PotName_pL[3] = "f_{S}=2.91;f_{t}=1.20fm";
+      PotName_pL[4] = "f_{S}=2.91;f_{t}=1.15fm";
+      PotName_pL[5] = "f_{S}=2.91;f_{t}=1.10fm";
+
+      PotName_pL[6] = "f_{S}=2.55;f_{t}=1.41fm";
+      PotName_pL[7] = "f_{S}=2.55;f_{t}=1.30fm";
+      PotName_pL[8] = "f_{S}=2.55;f_{t}=1.25fm";
+      PotName_pL[9] = "f_{S}=2.55;f_{t}=1.20fm";
+      PotName_pL[10] = "f_{S}=2.55;f_{t}=1.15fm";
+      PotName_pL[11] = "f_{S}=2.55;f_{t}=1.10fm";
+
+      PotName_pL[12] = "f_{S}=2.20;f_{t}=1.41fm";
+      PotName_pL[13] = "f_{S}=2.20;f_{t}=1.30fm";
+      PotName_pL[14] = "f_{S}=2.20;f_{t}=1.25fm";
+      PotName_pL[15] = "f_{S}=2.20;f_{t}=1.20fm";
+      PotName_pL[16] = "f_{S}=2.20;f_{t}=1.15fm";
+      PotName_pL[17] = "f_{S}=2.20;f_{t}=1.10fm";
+
+      PotName_pL[18] = "Singlet with CSB";
+      PotName_pL[19] = "f_{S}=2.91;f_{t}=1.60fm";
+      PotName_pL[20] = "f_{S}=2.20;f_{t}=1.60fm";
     }
 
     double BestChi2_const = 1e6;
@@ -11689,13 +11791,33 @@ void MakeLATEXtable(TString InputFolder, bool Compact=false, int Type=0){
 
     if(Type==2){
       PotFlag_pL[0] = 11601;
-      PotFlag_pL[1] = 20011601;
-      PotFlag_pL[2] = 10011601;
-      PotFlag_pL[3] = 211601;
-      PotFlag_pL[4] = 311601;
-      PotFlag_pL[5] = 411601;
-      PotFlag_pL[6] = 1311601;
-      PotFlag_pL[7] = 21311601;
+      PotFlag_pL[1] = 211601;
+      PotFlag_pL[2] = 311601;
+      PotFlag_pL[3] = 411601;
+      PotFlag_pL[4] = 511601;
+      PotFlag_pL[5] = 611601;
+
+      PotFlag_pL[6] = 30011601;
+      PotFlag_pL[7] = 30211601;
+      PotFlag_pL[8] = 30311601;
+      PotFlag_pL[9] = 30411601;
+      PotFlag_pL[10] = 30511601;
+      PotFlag_pL[11] = 30611601;
+
+      PotFlag_pL[12] = 20011601;
+      PotFlag_pL[13] = 20211601;
+      PotFlag_pL[14] = 20311601;
+      PotFlag_pL[15] = 20411601;
+      PotFlag_pL[16] = 20511601;
+      PotFlag_pL[17] = 20611601;
+
+      PotFlag_pL[18] = 10011601;
+      PotFlag_pL[19] = 1311601;
+      PotFlag_pL[20] = 21311601;
+
+
+
+
     }
 
 
@@ -11908,7 +12030,26 @@ void MakeLATEXtable(TString InputFolder, bool Compact=false, int Type=0){
 
         pval = TMath::Prob(val_flat_const*NDF-BestChi2_const,TMath::Nint(NDF)); if(pval<1e-24)pval=1e-24; if(pval>1)pval=1;
         nsig_flat_const = sqrt(2)*TMath::ErfcInverse(pval);
+/*
+//assume 4 pars, i.e. f0 and d0 for each channel
+pval = TMath::Prob(val_chiral_cubic*NDF-BestChi2_cubic,TMath::Nint(4)); if(pval<1e-24)pval=1e-24; if(pval>1)pval=1;
+nsig_chiral_cubic = sqrt(2)*TMath::ErfcInverse(pval);
 
+pval = TMath::Prob(val_chiral_const*NDF-BestChi2_const,TMath::Nint(4)); if(pval<1e-24)pval=1e-24; if(pval>1)pval=1;
+nsig_chiral_const = sqrt(2)*TMath::ErfcInverse(pval);
+
+pval = TMath::Prob(val_esc16_cubic*NDF-BestChi2_cubic,TMath::Nint(4)); if(pval<1e-24)pval=1e-24; if(pval>1)pval=1;
+nsig_esc16_cubic = sqrt(2)*TMath::ErfcInverse(pval);
+
+pval = TMath::Prob(val_esc16_const*NDF-BestChi2_const,TMath::Nint(4)); if(pval<1e-24)pval=1e-24; if(pval>1)pval=1;
+nsig_esc16_const = sqrt(2)*TMath::ErfcInverse(pval);
+
+pval = TMath::Prob(val_flat_cubic*NDF-BestChi2_cubic,TMath::Nint(4)); if(pval<1e-24)pval=1e-24; if(pval>1)pval=1;
+nsig_flat_cubic = sqrt(2)*TMath::ErfcInverse(pval);
+
+pval = TMath::Prob(val_flat_const*NDF-BestChi2_const,TMath::Nint(4)); if(pval<1e-24)pval=1e-24; if(pval>1)pval=1;
+nsig_flat_const = sqrt(2)*TMath::ErfcInverse(pval);
+*/
         printf("chiral_cubic:\n");
         printf("  delta = %.2f\n",val_chiral_cubic*NDF-BestChi2_cubic);
         printf("  p_val = %.2e\n",TMath::Prob(val_chiral_cubic*NDF-BestChi2_cubic,TMath::Nint(NDF)));
@@ -16506,10 +16647,159 @@ void Match_Usmani_NLO(const int& RndSeed, const unsigned& NumRndSteps=1){
 }
 
 
+//goal: read the 2D SE and ME vs either mT or Mult, and plot the simple total ME (sum of all differential bins)
+//and compared it to a case where each ME is scaled by the total number of pairs in the SE (the corresponding differential bin).
+//plot the ratio of the total ME vs the weighted cases.
+void Effect_on_ME_of_mT_mult_binning(){
+
+  TString OutputDir = TString::Format("%s/pLambda/Effect_on_ME_of_mT_mult_binning/",GetFemtoOutputFolder());
+  TString NameInputFolder = TString::Format("%s/CatsFiles/ExpData/ALICE_pp_13TeV_HM/Sample10HM/",GetCernBoxDimi());
+  TString NameInputFile = "AnalysisResults.root";
+
+  TString NameList = "HMResults";
+  TString NamePP = "Particle0_Particle2";
+  TString NameAPAP = "Particle1_Particle3";
+  TFile* InputFile = new TFile(NameInputFolder+NameInputFile,"read");
+  TDirectoryFile* dInput = (TDirectoryFile*)(InputFile->FindObjectAny(NameList));
+  TList* lInput1 = NULL;
+//InputFile->ls();
+//printf("1b %p -- %s\n",dInput,NameList.Data());
+  dInput->GetObject(NameList,lInput1);
+//printf("1c\n");
+  TList* lInputPP = (TList*)lInput1->FindObject(NamePP);
+  TList* lInputAPAP = (TList*)lInput1->FindObject(NameAPAP);
+
+//printf("lInputPP %p -- %s\n",lInputPP,NamePP.Data());
+//printf("lInputAPAP %p -- %s\n",lInputAPAP,NameAPAP.Data());
+//lInputPP->ls();
+//lInputAPAP->ls();
+
+  //[0/1/2] - total vs PP vs APAP
+  TH1F** hSe = new TH1F* [3];
+  TH1F** hMe = new TH1F* [3];
+
+  TH2F** hMtSe = new TH2F* [3];
+  TH2F** hMtMe = new TH2F* [3];
+
+  TH2F** hMultSe = new TH2F* [3];
+  TH2F** hMultMe = new TH2F* [3];
+
+  TH1F** hSe_MtRew = new TH1F* [3];
+  TH1F** hMe_MtRew = new TH1F* [3];
+  TH1F** hSe_MultRew = new TH1F* [3];
+  TH1F** hMe_MultRew = new TH1F* [3];
+
+  hSe[1] = (TH1F*)lInputPP->FindObject(TString::Format("SEDist_%s",NamePP.Data()));
+  hSe[1]->SetName("hSe_pp");
+  hMe[1] = (TH1F*)lInputPP->FindObject(TString::Format("MEDist_%s",NamePP.Data()));
+  hMe[1]->SetName("hMe_pp");
+
+  hSe[2] = (TH1F*)lInputAPAP->FindObject(TString::Format("SEDist_%s",NameAPAP.Data()));
+  hSe[2]->SetName("hSe_apap");
+  hMe[2] = (TH1F*)lInputAPAP->FindObject(TString::Format("MEDist_%s",NameAPAP.Data()));
+  hMe[2]->SetName("hMe_apap");
+
+  hSe[0] = (TH1F*)hSe[1]->Clone("hSe");
+  hSe[0]->Add(hSe[2]);
+  hMe[0] = (TH1F*)hMe[1]->Clone("hMe");
+  hMe[0]->Add(hMe[2]);
+
+  hMtSe[1] = (TH2F*)lInputPP->FindObject(TString::Format("SEmTDist_%s",NamePP.Data()));
+  hMtSe[1]->SetName("hMtSe_pp");
+  hMtMe[1] = (TH2F*)lInputPP->FindObject(TString::Format("MEmTDist_%s",NamePP.Data()));
+  hMtMe[1]->SetName("hMtMe_pp");
+
+  hMtSe[2] = (TH2F*)lInputAPAP->FindObject(TString::Format("SEmTDist_%s",NameAPAP.Data()));
+  hMtSe[2]->SetName("hMtSe_apap");
+  hMtMe[2] = (TH2F*)lInputAPAP->FindObject(TString::Format("MEmTDist_%s",NameAPAP.Data()));
+  hMtMe[2]->SetName("hMtMe_apap");
+
+  hMtSe[0] = (TH2F*)hMtSe[1]->Clone("hMtSe");
+  hMtSe[0]->Add(hMtSe[2]);
+  hMtMe[0] = (TH2F*)hMtMe[1]->Clone("hMtMe");
+  hMtMe[0]->Add(hMtMe[2]);
+
+  hMultSe[1] = (TH2F*)lInputPP->FindObject(TString::Format("SEMultDist_%s",NamePP.Data()));
+  hMultSe[1]->SetName("hMultSe_pp");
+  hMultMe[1] = (TH2F*)lInputPP->FindObject(TString::Format("MEMultDist_%s",NamePP.Data()));
+  hMultMe[1]->SetName("hMultMe_pp");
+
+  hMultSe[2] = (TH2F*)lInputAPAP->FindObject(TString::Format("SEMultDist_%s",NameAPAP.Data()));
+  hMultSe[2]->SetName("hMultSe_apap");
+  hMultMe[2] = (TH2F*)lInputAPAP->FindObject(TString::Format("MEMultDist_%s",NameAPAP.Data()));
+  hMultMe[2]->SetName("hMultMe_apap");
+
+  hMultSe[0] = (TH2F*)hMultSe[1]->Clone("hMultSe");
+  hMultSe[0]->Add(hMultSe[2]);
+  hMultMe[0] = (TH2F*)hMultMe[1]->Clone("hMultMe");
+  hMultMe[0]->Add(hMultMe[2]);
+
+
+  for(unsigned uType=0; uType<3; uType++){
+
+    //hSe_MtRew[uType]->Clone();
+  }
+
+
+
+  //make sure all is normalized for the final plots
+  for(unsigned uType=0; uType<3; uType++){
+    hSe[uType]->Scale(1./hSe[uType]->Integral(),"width");
+    hMe[uType]->Scale(1./hMe[uType]->Integral(),"width");
+  }
+
+  TFile fOutput(OutputDir+"fOutput.root","recreate");
+
+  for(unsigned uType=0; uType<3; uType++){
+    hSe[uType]->Write();
+  }
+  for(unsigned uType=0; uType<3; uType++){
+    hMe[uType]->Write();
+  }
+  for(unsigned uType=0; uType<3; uType++){
+    hMultSe[uType]->Write();
+  }
+  for(unsigned uType=0; uType<3; uType++){
+    hMultMe[uType]->Write();
+  }
+
+  fOutput.Close();
+
+
+  delete hSe[0];
+  delete hMe[0];
+  delete hMtSe[0];
+  delete hMtMe[0];
+  delete hMultSe[0];
+  delete hMultMe[0];
+  for(unsigned uType=0; uType<3; uType++){
+    delete hSe_MtRew[uType];
+    delete hMe_MtRew[uType];
+    delete hSe_MultRew[uType];
+    delete hMe_MultRew[uType];
+  }
+
+  delete [] hSe;
+  delete [] hMe;
+
+  delete [] hMtSe;
+  delete [] hMtMe;
+
+  delete [] hMultSe;
+  delete [] hMultMe;
+
+  delete [] hSe_MtRew;
+  delete [] hMe_MtRew;
+  delete [] hSe_MultRew;
+  delete [] hMe_MultRew;
+
+//return;
+}
+
 
 int PLAMBDA_1_MAIN(int argc, char *argv[]){
 printf("PLAMBDA_1_MAIN\n");
-
+//Effect_on_ME_of_mT_mult_binning();
 //Match_Usmani_NLO(atoi(argv[1]),atoi(argv[2]));//32768
 //return 0;
 
@@ -16588,7 +16878,7 @@ UpdateUnfoldFile(TString::Format("%s/CatsFiles/",GetCernBoxDimi()),
 Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(atoi(argv[4]))/10.,
                             ///home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/100720_Unfolded/
                             //TString::Format("%s/pLambda/100720_Unfolded/",GetCernBoxDimi()),
-                            TString::Format("%s/pLambda/041122/NoBoot/",GetCernBoxDimi()),
+                            TString::Format("%s/pLambda/081122/NoBoot/",GetCernBoxDimi()),
                             //TString::Format("%s/pLambda/170721_NewUnfold/NoBoot/",GetCernBoxDimi()),
                             //TString::Format("%s/pLambda/170721_NewUnfold/Full/",GetCernBoxDimi()),
                             //TString::Format("%s/pLambda/PLB/NoBoot/",GetCernBoxDimi()),
@@ -16607,7 +16897,7 @@ Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(at
                             //TString::Format("%s/pLambda/PLB/NoBoot/Plots_v4/",GetCernBoxDimi()),
                             //TString::Format("%s/pLambda/020522/Full/Plots/",GetCernBoxDimi()),
                             //TString::Format("%s/pLambda/020522/FullData/Plots/",GetCernBoxDimi()),
-                            TString::Format("%s/pLambda/041122/NoBoot/Plots108/",GetCernBoxDimi()),
+                            TString::Format("%s/pLambda/081122/NoBoot/Plots108/",GetCernBoxDimi()),
                             //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/"
                             atoi(argv[5])///REMOVE FOR THE OLD PLOTS
                           );
@@ -16617,7 +16907,7 @@ return 0;
 //MakeLATEXtable(TString::Format("%s/pLambda/PLB/NoBoot/Plots_v4/",GetCernBoxDimi()),false);
 //MakeLATEXtable(TString::Format("%s/pLambda/020522/NoBoot/Plots/",GetCernBoxDimi()),true,1);
 //MakeLATEXtable(TString::Format("%s/pLambda/020522/NoBoot/Plots108/",GetCernBoxDimi()),true,1);
-//MakeLATEXtable(TString::Format("%s/pLambda/041122/NoBoot/Plots108/",GetCernBoxDimi()),true,2);
+MakeLATEXtable(TString::Format("%s/pLambda/081122/NoBoot/Plots108/",GetCernBoxDimi()),true,2);
 //return 0;
 
 //Plot_pL_SystematicsMay2020_2(2,10,1500,2.0,
