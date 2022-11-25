@@ -24,6 +24,7 @@
 #include "TObjString.h"
 
 #include "CATS.h"
+#include "CATSconstants.h"
 #include "DLM_CkDecomposition.h"
 #include "DLM_CkModels.h"
 #include "DLM_Ck.h"
@@ -41,12 +42,14 @@
 #include "DLM_DecayMatrix.h"
 #include "DLM_Potentials.h"
 #include "DLM_Source.h"
+#include "DLM_Random.h"
 
 #include <unistd.h>
 #include <fcntl.h>
 #include <cerrno>
 #include <iostream>
 #include <fstream>
+#include "omp.h"
 
 using namespace std;
 
@@ -5903,11 +5906,12 @@ double dimi_pL_May2020_FitterFemto(double* x, double* par){
     }
 }
 
-struct RejRange{
+struct SpecialRange{
   double Min;
   double Max;
+  double par1;
 };
-std::vector<RejRange> RejPts_May2020_Fitter;
+std::vector<SpecialRange> RejPts_May2020_Fitter;
 double dimi_pL_May2020_Fitter(double* x, double* par){
     for(int iRej=0; iRej<RejPts_May2020_Fitter.size(); iRej++){
       if(*x>=RejPts_May2020_Fitter.at(iRej).Min&&*x<RejPts_May2020_Fitter.at(iRej).Max){
@@ -7063,9 +7067,18 @@ const int IMPROVED_FEED=2;
 
 RejPts_May2020_Fitter.clear();
 //Reject the points within this range(s)
-RejRange RejBetween;
-RejBetween.Min = 140; RejBetween.Max = 200;
-RejPts_May2020_Fitter.push_back(RejBetween);
+//SpecialRange RejBetween;
+//RejBetween.Min = 140; RejBetween.Max = 200;
+//RejPts_May2020_Fitter.push_back(RejBetween);
+
+//changes the error within specified ranges
+//the idea: reduce the overall weight of this range in the chi2 fit
+//e.g. concentrate only in good fit below 108 MeV
+std::vector<SpecialRange> ReweightError;
+SpecialRange RE_1;
+RE_1.Min = 108; RE_1.Max = 480;
+RE_1.par1 = 2;
+ReweightError.push_back(RE_1);
 
     //do extra variations
     //0 - standarad
@@ -7627,6 +7640,20 @@ if(IMPROVED_FEED){
             }
         }
 
+        TH1F* hDataFIT = (TH1F*)hData->Clone("hDataFIT");
+        for(unsigned uRange=0; uRange<ReweightError.size(); uRange++){
+          double MOM;
+          double ERR;
+          for(unsigned uBin=0; uBin<hDataFIT->GetNbinsX(); uBin++){
+            MOM = hDataFIT->GetBinCenter(uBin+1);
+            if(MOM>=ReweightError.at(uRange).Min && MOM<ReweightError.at(uRange).Max){
+              ERR = hDataFIT->GetBinError(uBin+1);
+              hDataFIT->SetBinError(uBin+1,ERR*ReweightError.at(uRange).par1);
+            }
+          }
+        }
+
+
         pLambda_1_Dec = CkDec_pL;
         pLambda_1_Cat = &AB_pL;
         pLambda_1_CatFine = &ABF_pL;
@@ -7748,7 +7775,7 @@ if(IMPROVED_FEED){
             }
         }
 
-        hData->Fit(fData,"Q, S, N, R, M");
+        hDataFIT->Fit(fData,"Q, S, N, R, M");
         fData->SetNpx(1024);
 
 //usleep(2000e3);
@@ -7817,6 +7844,7 @@ if(IMPROVED_FEED){
         plambdaTree->Fill();
 
         delete hData;
+        delete hDataFIT;
         delete fData;
         delete fBaseline;
         delete fFemto;
@@ -9142,8 +9170,8 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
 //return;
 
     //300 or 108
-    const double Chi2RANGE = 108;
-    //const double Chi2RANGE = 300;
+    //const double Chi2RANGE = 108;
+    const double Chi2RANGE = 300;
 //printf("debug\n");
     //if 0, we have much more info on the plots
     //if 1: as intended for the paper (cleaner)
@@ -11867,7 +11895,7 @@ void MakeLATEXtable(TString InputFolder, bool Compact=false, int Type=0){
 
     FILE *fptr;
     fptr=fopen(OutputFileName.Data(),"w");
-    if(Compact){
+    if(Compact || Type==2){
         fprintf(fptr,"\\begin{table} \n");
         fprintf(fptr,"\\begin{center} \n");
         fprintf(fptr,"\\begin{tabular}{r|c|c|} \n");
@@ -11915,10 +11943,39 @@ void MakeLATEXtable(TString InputFolder, bool Compact=false, int Type=0){
             }
         }
 
-        if(PotFlag_pL[upL]==11600) fprintf(fptr,"\\pmb{");
-        fprintf(fptr,"%s",PotName_pL[upL].Data());
-        if(PotFlag_pL[upL]==11600) fprintf(fptr,"}");
-        if(Compact){
+        if(Type==2){
+          if(PotFlag_pL[upL]==11600||PotFlag_pL[upL]==11601) fprintf(fptr,"\\pmb{");
+          switch(PotFlag_pL[upL]){
+            case    11601: fprintf(fptr,"$f_\\text{s}$=2.91;$f_\\text{t}$=1.41fm"); break;
+            case   211601: fprintf(fptr,"$f_\\text{s}$=2.91;\\color{red}{$f_\\text{t}$=1.30fm}"); break;
+            case   311601: fprintf(fptr,"$f_\\text{s}$=2.91;\\color{red}{$f_\\text{t}$=1.25fm}"); break;
+            case   411601: fprintf(fptr,"$f_\\text{s}$=2.91;\\color{red}{$f_\\text{t}$=1.20fm}"); break;
+            case   511601: fprintf(fptr,"$f_\\text{s}$=2.91;\\color{red}{$f_\\text{t}$=1.15fm}"); break;
+            case   611601: fprintf(fptr,"$f_\\text{s}$=2.91;\\color{red}{$f_\\text{t}$=1.10fm}"); break;
+            case 30011601: fprintf(fptr,"\\color{red}{$f_\\text{s}$=2.55};\\color{black}{$f_\\text{t}$=1.41fm}"); break;
+            case 30211601: fprintf(fptr,"\\color{red}{$f_\\text{s}$=2.55};\\color{red}{$f_\\text{t}$=1.30fm}"); break;
+            case 30311601: fprintf(fptr,"\\color{red}{$f_\\text{s}$=2.55};\\color{red}{$f_\\text{t}$=1.25fm}"); break;
+            case 30411601: fprintf(fptr,"\\color{red}{$f_\\text{s}$=2.55};\\color{red}{$f_\\text{t}$=1.20fm}"); break;
+            case 30511601: fprintf(fptr,"\\color{red}{$f_\\text{s}$=2.55};\\color{red}{$f_\\text{t}$=1.15fm}"); break;
+            case 30611601: fprintf(fptr,"\\color{red}{$f_\\text{s}$=2.55};\\color{red}{$f_\\text{t}$=1.10fm}"); break;
+            default: fprintf(fptr,"??? %s",PotName_pL[upL].Data()); break;
+          }
+          if(PotFlag_pL[upL]==11600||PotFlag_pL[upL]==11601) fprintf(fptr,"}");
+        }
+        else{
+          if(PotFlag_pL[upL]==11600) fprintf(fptr,"\\pmb{");
+          fprintf(fptr,"%s",PotName_pL[upL].Data());
+          if(PotFlag_pL[upL]==11600) fprintf(fptr,"}");
+        }
+
+
+
+        if(Type==2){
+          fprintf(fptr," & %.1f & %.1f",
+                  val_chiral_cubic,
+                  val_flat_cubic);
+        }
+        else if(Compact){
             fprintf(fptr," & %.1f (%.1f) & %.1f (%.1f)",
                     val_chiral_cubic,val_chiral_const,
                     val_flat_cubic,val_flat_const);
@@ -12067,10 +12124,37 @@ nsig_flat_const = sqrt(2)*TMath::ErfcInverse(pval);
         printf("  p_val = %.2e\n",TMath::Prob(val_flat_const*NDF-BestChi2_const,TMath::Nint(NDF)));
         printf("  nsig = %.3f\n",nsig_flat_const);
 
-        if(PotFlag_pL[upL]==11600) fprintf(fptr,"\\pmb{");
-        fprintf(fptr,"%s",PotName_pL[upL].Data());
-        if(PotFlag_pL[upL]==11600) fprintf(fptr,"}");
-        if(Compact){
+        if(Type==2){
+          if(PotFlag_pL[upL]==11600||PotFlag_pL[upL]==11601) fprintf(fptr,"\\pmb{");
+          switch(PotFlag_pL[upL]){
+            case    11601: fprintf(fptr,"$f_\\text{s}$=2.91;$f_\\text{t}$=1.41fm"); break;
+            case   211601: fprintf(fptr,"$f_\\text{s}$=2.91;\\color{red}{$f_\\text{t}$=1.30fm}"); break;
+            case   311601: fprintf(fptr,"$f_\\text{s}$=2.91;\\color{red}{$f_\\text{t}$=1.25fm}"); break;
+            case   411601: fprintf(fptr,"$f_\\text{s}$=2.91;\\color{red}{$f_\\text{t}$=1.20fm}"); break;
+            case   511601: fprintf(fptr,"$f_\\text{s}$=2.91;\\color{red}{$f_\\text{t}$=1.15fm}"); break;
+            case   611601: fprintf(fptr,"$f_\\text{s}$=2.91;\\color{red}{$f_\\text{t}$=1.10fm}"); break;
+            case 30011601: fprintf(fptr,"\\color{red}{$f_\\text{s}$=2.55};\\color{black}{$f_\\text{t}$=1.41fm}"); break;
+            case 30211601: fprintf(fptr,"\\color{red}{$f_\\text{s}$=2.55};\\color{red}{$f_\\text{t}$=1.30fm}"); break;
+            case 30311601: fprintf(fptr,"\\color{red}{$f_\\text{s}$=2.55};\\color{red}{$f_\\text{t}$=1.25fm}"); break;
+            case 30411601: fprintf(fptr,"\\color{red}{$f_\\text{s}$=2.55};\\color{red}{$f_\\text{t}$=1.20fm}"); break;
+            case 30511601: fprintf(fptr,"\\color{red}{$f_\\text{s}$=2.55};\\color{red}{$f_\\text{t}$=1.15fm}"); break;
+            case 30611601: fprintf(fptr,"\\color{red}{$f_\\text{s}$=2.55};\\color{red}{$f_\\text{t}$=1.10fm}"); break;
+            default: fprintf(fptr,"??? %s",PotName_pL[upL].Data()); break;
+          }
+          if(PotFlag_pL[upL]==11600||PotFlag_pL[upL]==11601) fprintf(fptr,"}");
+        }
+        else{
+          if(PotFlag_pL[upL]==11600) fprintf(fptr,"\\pmb{");
+          fprintf(fptr,"%s",PotName_pL[upL].Data());
+          if(PotFlag_pL[upL]==11600) fprintf(fptr,"}");
+        }
+
+        if(Type==2){
+          fprintf(fptr," & %.1f & %.1f",
+                  nsig_chiral_cubic,
+                  nsig_flat_cubic);
+        }
+        else if(Compact){
             fprintf(fptr," & %.1f (%.1f) & %.1f (%.1f)",
                     nsig_chiral_cubic,nsig_chiral_const,
                     nsig_flat_cubic,nsig_flat_const);
@@ -12188,11 +12272,37 @@ nsig_flat_const = sqrt(2)*TMath::ErfcInverse(pval);
 
         printf("flat_const:\n");
 
+        if(Type==2){
+          if(PotFlag_pL[upL]==11600||PotFlag_pL[upL]==11601) fprintf(fptr,"\\pmb{");
+          switch(PotFlag_pL[upL]){
+            case    11601: fprintf(fptr,"$f_\\text{s}$=2.91;$f_\\text{t}$=1.41fm"); break;
+            case   211601: fprintf(fptr,"$f_\\text{s}$=2.91;\\color{red}{$f_\\text{t}$=1.30fm}"); break;
+            case   311601: fprintf(fptr,"$f_\\text{s}$=2.91;\\color{red}{$f_\\text{t}$=1.25fm}"); break;
+            case   411601: fprintf(fptr,"$f_\\text{s}$=2.91;\\color{red}{$f_\\text{t}$=1.20fm}"); break;
+            case   511601: fprintf(fptr,"$f_\\text{s}$=2.91;\\color{red}{$f_\\text{t}$=1.15fm}"); break;
+            case   611601: fprintf(fptr,"$f_\\text{s}$=2.91;\\color{red}{$f_\\text{t}$=1.10fm}"); break;
+            case 30011601: fprintf(fptr,"\\color{red}{$f_\\text{s}$=2.55};\\color{black}{$f_\\text{t}$=1.41fm}"); break;
+            case 30211601: fprintf(fptr,"\\color{red}{$f_\\text{s}$=2.55};\\color{red}{$f_\\text{t}$=1.30fm}"); break;
+            case 30311601: fprintf(fptr,"\\color{red}{$f_\\text{s}$=2.55};\\color{red}{$f_\\text{t}$=1.25fm}"); break;
+            case 30411601: fprintf(fptr,"\\color{red}{$f_\\text{s}$=2.55};\\color{red}{$f_\\text{t}$=1.20fm}"); break;
+            case 30511601: fprintf(fptr,"\\color{red}{$f_\\text{s}$=2.55};\\color{red}{$f_\\text{t}$=1.15fm}"); break;
+            case 30611601: fprintf(fptr,"\\color{red}{$f_\\text{s}$=2.55};\\color{red}{$f_\\text{t}$=1.10fm}"); break;
+            default: fprintf(fptr,"??? %s",PotName_pL[upL].Data()); break;
+          }
+          if(PotFlag_pL[upL]==11600||PotFlag_pL[upL]==11601) fprintf(fptr,"}");
+        }
+        else{
+          if(PotFlag_pL[upL]==11600) fprintf(fptr,"\\pmb{");
+          fprintf(fptr,"%s",PotName_pL[upL].Data());
+          if(PotFlag_pL[upL]==11600) fprintf(fptr,"}");
+        }
 
-        if(PotFlag_pL[upL]==11600) fprintf(fptr,"\\pmb{");
-        fprintf(fptr,"%s",PotName_pL[upL].Data());
-        if(PotFlag_pL[upL]==11600) fprintf(fptr,"}");
-        if(Compact){
+        if(Type==2){
+          fprintf(fptr," & %.1f & %.1f",
+                  dsig_chiral_cubic,
+                  dsig_flat_cubic);
+        }
+        else if(Compact){
             fprintf(fptr," & %.1f (%.1f) & %.1f (%.1f)",
                     dsig_chiral_cubic,dsig_chiral_const,
                     dsig_flat_cubic,dsig_flat_const);
@@ -16681,6 +16791,8 @@ void Effect_on_ME_of_mT_mult_binning(){
   TH2F** hMtSe = new TH2F* [3];
   TH2F** hMtMe = new TH2F* [3];
 
+  TH2F** hMtMeRew = new TH2F* [3];
+
   TH2F** hMultSe = new TH2F* [3];
   TH2F** hMultMe = new TH2F* [3];
 
@@ -16688,6 +16800,9 @@ void Effect_on_ME_of_mT_mult_binning(){
   TH1F** hMe_MtRew = new TH1F* [3];
   TH1F** hSe_MultRew = new TH1F* [3];
   TH1F** hMe_MultRew = new TH1F* [3];
+
+  TH1F** hMe_RewFct = new TH1F* [3];
+  TH1F** hMe_RewMod = new TH1F* [3];
 
   hSe[1] = (TH1F*)lInputPP->FindObject(TString::Format("SEDist_%s",NamePP.Data()));
   hSe[1]->SetName("hSe_pp");
@@ -16736,17 +16851,80 @@ void Effect_on_ME_of_mT_mult_binning(){
 
 
   for(unsigned uType=0; uType<3; uType++){
-
-    //hSe_MtRew[uType]->Clone();
+    hSe[uType]->Rebin(3);
+    hMe[uType]->Rebin(3);
+    hMtSe[uType]->Rebin2D(3,1);
+    hMtMe[uType]->Rebin2D(3,1);
+    hMultSe[uType]->Rebin2D(3,1);
+    hMultMe[uType]->Rebin2D(3,1);
   }
 
 
+
+  for(unsigned uType=0; uType<3; uType++){
+    hMtMeRew[uType] = (TH2F*)hMtMe[uType]->Clone(TString::Format("hMtMeRew%s",uType==0?"":uType==1?"_pp":"_apap"));
+    //hMtSe[uType]->Sumw2();
+    //hMtMe[uType]->Sumw2();
+    double SeInt;
+    double MeInt;
+    TH1F* hSeProj;
+    TH1F* hMeProj;
+
+    hMe_MtRew[uType] = (TH1F*)hMe[uType]->Clone(TString::Format("hMe_MtRew%s",uType==0?"":uType==1?"_pp":"_apap"));
+    for(unsigned uMom=0; uMom<=hMe_MtRew[uType]->GetNbinsX(); uMom++){
+      hMe_MtRew[uType]->SetBinContent(uMom,0);
+      hMe_MtRew[uType]->SetBinError(uMom,0);
+    }
+
+    for(unsigned uMt=0; uMt<=hMtMe[uType]->GetYaxis()->GetNbins(); uMt++){
+      hSeProj = (TH1F*)hMtSe[uType]->ProjectionX(TString::Format("hSeProj"),uMt+0,uMt+0);
+      hMeProj = (TH1F*)hMtMe[uType]->ProjectionX(TString::Format("hMeProj"),uMt+0,uMt+0);
+      SeInt = hSeProj->Integral();
+      MeInt = hMeProj->Integral();
+
+      if(MeInt){
+        hMeProj->Sumw2();
+        hMeProj->Scale(SeInt/MeInt);
+      }
+
+      for(unsigned uMom=0; uMom<=hMtMe[uType]->GetXaxis()->GetNbins(); uMom++){
+        hMtMeRew[uType]->SetBinContent(uMom,uMt,hMeProj->GetBinContent(uMom));
+        hMtMeRew[uType]->SetBinError(uMom,uMt,hMeProj->GetBinError(uMom));
+      }
+      hMe_MtRew[uType]->Add(hMeProj);
+
+      delete hSeProj;
+      delete hMeProj;
+    }//uMt
+
+    // =
+    // = hMtMe[uType]->Integral();
+    //double MeScl = SeInt/MeInt;
+    //hMtMe[uType]->Scale();
+    //hMe_MtRew[uType]->Sumw2();
+  }
 
   //make sure all is normalized for the final plots
   for(unsigned uType=0; uType<3; uType++){
     hSe[uType]->Scale(1./hSe[uType]->Integral(),"width");
     hMe[uType]->Scale(1./hMe[uType]->Integral(),"width");
+    hMe_MtRew[uType]->Scale(1./hMe_MtRew[uType]->Integral(),"width");
+
+    hMe_RewFct[uType] = (TH1F*)hMe[uType]->Clone(TString::Format("hMe_RewFct%s",uType==0?"":uType==1?"_pp":"_apap"));
+    hMe_RewMod[uType] = (TH1F*)hMe[uType]->Clone(TString::Format("hMe_RewMod%s",uType==0?"":uType==1?"_pp":"_apap"));
+
+    for(unsigned uMom=0; uMom<hMe[uType]->GetNbinsX(); uMom++){
+      hMe_RewFct[uType]->SetBinContent(uMom+1,hMe_MtRew[uType]->GetBinContent(uMom+1)/hMe[uType]->GetBinContent(uMom+1));
+      hMe_RewMod[uType]->SetBinContent(uMom+1,hMe[uType]->GetBinContent(uMom+1)/hMe_MtRew[uType]->GetBinContent(uMom+1));
+
+      //set error of SE to compare to correction to our final error on Ck
+      hMe_RewFct[uType]->SetBinError(uMom+1,hSe[uType]->GetBinError(uMom+1)/hSe[uType]->GetBinContent(uMom+1));
+      hMe_RewMod[uType]->SetBinError(uMom+1,hSe[uType]->GetBinError(uMom+1)/hSe[uType]->GetBinContent(uMom+1));
+    }
+
   }
+
+
 
   TFile fOutput(OutputDir+"fOutput.root","recreate");
 
@@ -16762,7 +16940,24 @@ void Effect_on_ME_of_mT_mult_binning(){
   for(unsigned uType=0; uType<3; uType++){
     hMultMe[uType]->Write();
   }
-
+  for(unsigned uType=0; uType<3; uType++){
+    hMtSe[uType]->Write();
+  }
+  for(unsigned uType=0; uType<3; uType++){
+    hMtMe[uType]->Write();
+  }
+  for(unsigned uType=0; uType<3; uType++){
+    hMtMeRew[uType]->Write();
+  }
+  for(unsigned uType=0; uType<3; uType++){
+    hMe_MtRew[uType]->Write();
+  }
+  for(unsigned uType=0; uType<3; uType++){
+    hMe_RewFct[uType]->Write();
+  }
+  for(unsigned uType=0; uType<3; uType++){
+    hMe_RewMod[uType]->Write();
+  }
   fOutput.Close();
 
 
@@ -16772,11 +16967,15 @@ void Effect_on_ME_of_mT_mult_binning(){
   delete hMtMe[0];
   delete hMultSe[0];
   delete hMultMe[0];
+
   for(unsigned uType=0; uType<3; uType++){
-    delete hSe_MtRew[uType];
+    //delete hSe_MtRew[uType];
     delete hMe_MtRew[uType];
-    delete hSe_MultRew[uType];
-    delete hMe_MultRew[uType];
+    //delete hSe_MultRew[uType];
+    //delete hMe_MultRew[uType];
+    delete hMtMeRew[uType];
+    delete hMe_RewFct[uType];
+    delete hMe_RewMod[uType];
   }
 
   delete [] hSe;
@@ -16792,16 +16991,128 @@ void Effect_on_ME_of_mT_mult_binning(){
   delete [] hMe_MtRew;
   delete [] hSe_MultRew;
   delete [] hMe_MultRew;
+  delete [] hMtMeRew;
+  delete [] hMe_RewFct;
+  delete [] hMe_RewMod;
 
 //return;
 }
 
+void SigmaFeed_kinematics(){
+
+  const double kWidth = 800;
+  const double kFluct = 100;
+
+  const unsigned NumIter = 1000*1000;
+
+
+  unsigned ThN = omp_get_num_threads();
+  DLM_Random* RanGen = new DLM_Random[ThN];
+  for(unsigned uTh=0; uTh<ThN; uTh++){
+    RanGen[uTh].SetSeed(uTh+1);
+  }
+
+
+  //cm
+  TH1F* hDcaDaughterProton = new TH1F("hDcaDaughterProton","hDcaDaughterProton",1024,0,16);
+  TH1F* hDcaDiffDaughterProton = new TH1F("hDcaDiffDaughterProton","hDcaDiffDaughterProton",1024,-64,64);
+
+  TH1F* hMomPrimProton = new TH1F("hMomPrimProton","hMomPrimProton",1024,0,8192);
+  TH1F* hMomPrimSig0 = new TH1F("hMomPrimSig0","hMomPrimSig0",1024,0,8192);
+
+  TH2F* hKstar_vs_Dca = new TH2F("hKstar_vs_Dca","hKstar_vs_Dca",256,0,1024,256,0,4);
+
+  //#pragma omp parallel for
+  for(unsigned uIter=0; uIter<NumIter; uIter++){
+    unsigned ThId = omp_get_thread_num();
+    double px,py,pz;
+    double sx,sy,sz;
+    CatsParticle PrimProton;
+    CatsParticle PrimSig0;
+    PrimSig0.SetDecayRanGen(RanGen[ThId]);
+
+    px = RanGen[ThId].Gauss(0,kWidth);
+    py = RanGen[ThId].Gauss(0,kWidth);
+    pz = RanGen[ThId].Gauss(0,kWidth);
+    PrimProton.SetMXYZ(Mass_p,px,py,pz);
+
+    px = RanGen[ThId].Gauss(px,kFluct);
+    py = RanGen[ThId].Gauss(py,kFluct);
+    pz = RanGen[ThId].Gauss(pz,kFluct);
+    PrimSig0.SetMXYZ(Mass_S0,px,py,pz);
+    PrimSig0.SetWidth(hbarc/2.22e4);
+    //PrimSig0.SetMXYZ(Mass_L*1.00001,px,py,pz);
+    //PrimSig0.SetWidth(hbarc/2.22e-4);
+
+
+    CatsParticle* DaughtersS0 = PrimSig0.Decay(Mass_L,0,true);
+
+    DaughtersS0[0].SetWidth(hbarc/7.89e13);
+    DaughtersS0[0].SetDecayRanGen(RanGen[ThId]);
+    CatsParticle* DaughtersL = DaughtersS0[0].Decay(Mass_p,Mass_pi0,true);
+
+    //the proton
+    px = DaughtersL[0].GetPx()/hbarc;
+    py = DaughtersL[0].GetPy()/hbarc;
+    pz = DaughtersL[0].GetPz()/hbarc;
+    sx = DaughtersL[0].GetX();
+    sy = DaughtersL[0].GetY();
+    sz = DaughtersL[0].GetZ();
+    double s_dot_p = px*sx+py*sy+pz*sz;
+    double p2 = (px*px+py*py+pz*pz);
+    double s2 = (sx*sx+sy*sy+sz*sz);
+    double alpha = -s_dot_p/p2;
+    double dca = sqrt(s2+alpha*alpha*p2+2.*alpha*s_dot_p);
+
+    CatsLorentzVector BoostVector = PrimProton+DaughtersS0[0];
+    CatsLorentzVector pLam_pair = PrimProton-DaughtersS0[0];
+    CatsLorentzVector pLam_Sum = PrimProton+DaughtersS0[0];
+    pLam_pair.Boost(BoostVector);
+    pLam_Sum.Boost(BoostVector);
+    double kstar = 0.5*pLam_pair.GetP();
+    //printf("TotMom = %e\n",pLam_Sum.GetP());
+    //printf(" kstar = %e\n",pLam_pair.GetP());
+    //usleep(100e3);
+
+
+
+    //#pragma omp critical
+    {
+      hMomPrimProton->Fill(PrimProton.GetP());
+      hMomPrimSig0->Fill(PrimSig0.GetP());
+      hDcaDaughterProton->Fill(dca*1e-13);
+      hDcaDiffDaughterProton->Fill((sqrt(s2)-dca)*1e-13);
+      hKstar_vs_Dca->Fill(kstar,dca*1e-13);
+      //printf("%e\n",sqrt(s2)*1e-13-dca);
+    }
+
+    delete [] DaughtersS0;
+    delete [] DaughtersL;
+  }
+  TString OutputDir = TString::Format("%s/pLambda/",GetFemtoOutputFolder());
+  TFile fOutput(OutputDir+"SigmaFeed_kinematics.root","recreate");
+  hDcaDaughterProton->Write();
+  hDcaDiffDaughterProton->Write();
+  hMomPrimProton->Write();
+  hMomPrimSig0->Write();
+  hKstar_vs_Dca->Write();
+
+  delete hKstar_vs_Dca;
+  delete hMomPrimProton;
+  delete hMomPrimSig0;
+  delete hDcaDaughterProton;
+  delete hDcaDiffDaughterProton;
+  delete [] RanGen;
+}
+
 
 int PLAMBDA_1_MAIN(int argc, char *argv[]){
-printf("PLAMBDA_1_MAIN\n");
-//Effect_on_ME_of_mT_mult_binning();
-//Match_Usmani_NLO(atoi(argv[1]),atoi(argv[2]));//32768
+//printf("PLAMBDA_1_MAIN\n");
+//SigmaFeed_kinematics();
 //return 0;
+Effect_on_ME_of_mT_mult_binning();
+//Match_Usmani_NLO(atoi(argv[1]),atoi(argv[2]));//32768
+return 0;
 
   //pL_EffectiveRadius(1.02);
   //Unfold_pL_ME(TString::Format("%s/CatsFiles/ExpData/ALICE_pp_13TeV_HM/DimiJun20/Norm240_340/DataSignal/",GetCernBoxDimi()),"TEST.root");
@@ -16878,7 +17189,7 @@ UpdateUnfoldFile(TString::Format("%s/CatsFiles/",GetCernBoxDimi()),
 Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(atoi(argv[4]))/10.,
                             ///home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/100720_Unfolded/
                             //TString::Format("%s/pLambda/100720_Unfolded/",GetCernBoxDimi()),
-                            TString::Format("%s/pLambda/081122/NoBoot/",GetCernBoxDimi()),
+                            TString::Format("%s/pLambda/151122/NoBoot/",GetCernBoxDimi()),
                             //TString::Format("%s/pLambda/170721_NewUnfold/NoBoot/",GetCernBoxDimi()),
                             //TString::Format("%s/pLambda/170721_NewUnfold/Full/",GetCernBoxDimi()),
                             //TString::Format("%s/pLambda/PLB/NoBoot/",GetCernBoxDimi()),
@@ -16897,7 +17208,7 @@ Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(at
                             //TString::Format("%s/pLambda/PLB/NoBoot/Plots_v4/",GetCernBoxDimi()),
                             //TString::Format("%s/pLambda/020522/Full/Plots/",GetCernBoxDimi()),
                             //TString::Format("%s/pLambda/020522/FullData/Plots/",GetCernBoxDimi()),
-                            TString::Format("%s/pLambda/081122/NoBoot/Plots108/",GetCernBoxDimi()),
+                            TString::Format("%s/pLambda/151122/NoBoot/Plots/",GetCernBoxDimi()),
                             //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/"
                             atoi(argv[5])///REMOVE FOR THE OLD PLOTS
                           );
@@ -16907,7 +17218,7 @@ return 0;
 //MakeLATEXtable(TString::Format("%s/pLambda/PLB/NoBoot/Plots_v4/",GetCernBoxDimi()),false);
 //MakeLATEXtable(TString::Format("%s/pLambda/020522/NoBoot/Plots/",GetCernBoxDimi()),true,1);
 //MakeLATEXtable(TString::Format("%s/pLambda/020522/NoBoot/Plots108/",GetCernBoxDimi()),true,1);
-MakeLATEXtable(TString::Format("%s/pLambda/081122/NoBoot/Plots108/",GetCernBoxDimi()),true,2);
+MakeLATEXtable(TString::Format("%s/pLambda/151122/NoBoot/Plots/",GetCernBoxDimi()),true,2);
 //return 0;
 
 //Plot_pL_SystematicsMay2020_2(2,10,1500,2.0,

@@ -1977,7 +1977,7 @@ void Ceca_pd_1(const double& d_delay, const int& EffFix, const TString type="pd"
   const double EtaCut = 0.8;
   const bool PROTON_RESO = true;
   const bool EQUALIZE_TAU = true;
-  const double TIMEOUT = 40;
+  const double TIMEOUT = 120;
   //we run to either reproduce the core of 0.97,
   //or the upper limit of reff = 1.06+0.04
   //this leads to a 10% difference in the SP core source
@@ -2093,6 +2093,13 @@ void Ceca_pd_1(const double& d_delay, const int& EffFix, const TString type="pd"
       rSP_dispZ = 0.00;
       rSP_hadr = 0.00;
       rSP_tau = 6.00;
+    }
+    else if(EffFix==-1300){
+      rSP_core = 0.00;
+      rSP_dispZ = 0.00;
+      rSP_hadr = 0.00;
+      rSP_tau = 4.00;
+      rSP_FragBeta = 1.0;
     }
   }
   if(type=="Kd") {rSP_core = EffFix?0.950*1.075:0.950;rSP_dispZ = rSP_core;}
@@ -8960,9 +8967,9 @@ void Sources_In_SourcePaper(const TString WhichSystem, const int mode){
 
 
 int FUN_WITH_CECA(int argc, char *argv[]){
-  Sources_In_SourcePaper("pp",1);
+  //Sources_In_SourcePaper("pp",1);
   //Sources_In_SourcePaper("pL",1);
-  return 0;
+  //return 0;
 //DLM_Random rangen(1);
 //for(int i=0; i<20; i++) printf("%i\n", rangen.Int(1));
 
@@ -9009,7 +9016,8 @@ int FUN_WITH_CECA(int argc, char *argv[]){
   //Ceca_pd_1(0.0,-1020,"pp");
   //Ceca_pd_1(0.0,-1100,"pp");
   //Ceca_pd_1(0.0,-1200,"pp");
-//return 0;
+  Ceca_pd_1(0.0,-1300,"pp");
+return 0;
 
 /*
   Ceca_AB(211,211,1);
