@@ -18,6 +18,7 @@
 #include "DLM_Fitters.h"
 #include "DLM_RootFit.h"
 #include "DLM_Unfold.h"
+#include "DLM_Sort.h"
 
 #include "TGraph.h"
 #include "TGraphErrors.h"
@@ -15106,9 +15107,121 @@ void pn_Ck(const double SourceSize=1.3){
   delete [] gCk;
 }
 
+void PlotAv18(){
+
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
+
+  CATS AB_pp;
+  AB_pp.SetMomBins(50,0,200);
+  AnalysisObject.SetUpCats_pp(AB_pp,"AV18","Gauss",0,0);//McLevyNolan_Reso
+  AB_pp.SetAnaSource(0,1.2);
+  AB_pp.KillTheCat();
+
+  TGraph gAV18_1S0;
+  gAV18_1S0.SetName("gAV18_1S0");
+  const unsigned NumRad = 1024;
+  const double rMin = 0;
+  const double rMax = 4;
+  const double kStep = (rMax-rMin)/double(NumRad);
+
+  for(unsigned uRad=0; uRad<NumRad; uRad++){
+    double rad = kStep*0.5 + double(uRad)*kStep;
+    double pot = AB_pp.EvaluateThePotential(0,0,10,rad);
+    gAV18_1S0.SetPoint(uRad,rad,pot);
+  }
+  TFile fOutput(TString::Format("%s/OtherTasks/PlotAv18.root",GetFemtoOutputFolder()), "RECREATE");
+  gAV18_1S0.Write();
+
+}
+
+void pp_at_different_radii(TString SourceDescription){
+  std::vector<double> radii;
+  radii.push_back(0.2);
+  radii.push_back(0.4);
+  radii.push_back(0.6);
+  radii.push_back(0.8);
+  radii.push_back(1.0);
+  radii.push_back(1.2);
+  radii.push_back(1.4);
+  radii.push_back(1.6);
+
+  unsigned NumMomBins = 75;
+  double kMin = 0;
+  double kMax = 300;
+
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
+
+  std::vector<TGraph*> gCk;
+
+  for(unsigned uRad=0; uRad<radii.size(); uRad++){
+    printf("uRad = %u/%u\n",uRad+1,unsigned(radii.size()));
+    double SourceSize = radii.at(uRad);
+    //TString SourceDescription = "Gauss";
+    //TString SourceDescription = "McGauss_ResoTM";
+    //TString SourceDescription = "McLevy_ResoTM";
+
+    CATS AB_pp;
+    //DLM_Ck* Ck_pp;
+    AB_pp.SetMomBins(NumMomBins,kMin,kMax);
+    AB_pp.SetNotifications(CATS::nWarning);
+    AnalysisObject.SetUpCats_pp(AB_pp,"AV18",SourceDescription,0,0);//McLevyNolan_Reso
+    AB_pp.SetAnaSource(0,SourceSize);
+    if(SourceDescription.Contains("Mc")){
+        AB_pp.SetAnaSource(0,SourceSize);
+        AB_pp.SetAnaSource(1,2.0);
+    }
+    AB_pp.SetEpsilonConv(2e-8);
+    AB_pp.SetEpsilonProp(2e-8);
+    AB_pp.KillTheCat();
+
+    gCk.push_back(new TGraph());
+    gCk.back()->SetName(TString::Format("gCk_%.2f",SourceSize));
+
+    for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+      gCk.back()->SetPoint(uMom,AB_pp.GetMomentum(uMom),AB_pp.GetCorrFun(uMom));
+    }
+  }
+
+  TFile fOutput(TString::Format("%s/OtherTasks/pp_at_different_radii_%s.root",GetFemtoOutputFolder(),SourceDescription.Data()), "RECREATE");
+  for(unsigned uRad=0; uRad<radii.size(); uRad++){
+    gCk.at(uRad)->Write();
+  }
+}
+
+void TestMergeSort(){
+  unsigned NumElements = 1*1000*1000;
+  float* Element = new float[NumElements];
+  TRandom3 rangen(11);
+  for(unsigned uEl=0; uEl<NumElements; uEl++){
+    Element[uEl] = rangen.Uniform(0,1000);
+  }
+
+  DLM_Sort < float, unsigned > SortTool;
+  SortTool.SetData(Element,NumElements);
+  SortTool.MergeSort();
+    
+  unsigned* Key1 = new unsigned[NumElements];
+  SortTool.CopyKey(Key1);
+  float* SortedElement = new float[NumElements];
+  SortTool.GetSortedData(Element,SortedElement);
+
+  for(unsigned uEl=0; uEl<NumElements; uEl++){
+    //printf("%u @ %u: %.3f (%f)\n",uEl,Key1[uEl],Element[Key1[uEl]],SortedElement[uEl]);
+    //usleep(100e3);
+  }
+
+  delete [] Element;
+  delete [] Key1;
+  delete [] SortedElement;
+}
+
 //
 int OTHERTASKS(int argc, char *argv[]){
-
+  TestMergeSort();return 0;
+  //pp_at_different_radii("Gauss");return 0;
+//PlotAv18();return 0;
 
   //ShowEffectOfCum(); return 0;
   //Jaime_test1();

@@ -4248,11 +4248,118 @@ void ResoInfo(const int& ResoPid, int& ParentPid, double& Width, const TString& 
       default: printf("\033[1;33mWARNING:\033[0m Unexpected p_Kaon resonances!\n"); Width=0; ParentPid=1; break;
     }
   }
+  else if(System=="pReso_piReso"){
+    /*
+    switch (abs(ResoPid)) {
+      case 1120: Width=0; ParentPid=0; break;
+      case 1111: Width=1; ParentPid=2212; break;
+      case 1121: Width=1; ParentPid=2212; break;
+      case 1221: Width=1; ParentPid=2212; break;
+      case 1122: Width=1; ParentPid=2212; break;
+      case 1222: Width=1; ParentPid=2212; break;
+      case 1123: Width=1; ParentPid=2212; break;
+      case 1223: Width=1; ParentPid=2212; break;
+      case 1112: Width=1; ParentPid=2212; break;
+      case 1124: Width=1; ParentPid=2212; break;
+      case 1224: Width=1; ParentPid=2212; break;
+      case 1125: Width=1; ParentPid=2212; break;
+      case 1225: Width=1; ParentPid=2212; break;
+      case 1113: Width=1; ParentPid=2212; break;
+      case 1126: Width=1; ParentPid=2212; break;
+      case 1226: Width=1; ParentPid=2212; break;
+      case 1127: Width=1; ParentPid=2212; break;
+      case 1227: Width=1; ParentPid=2212; break;
+      case 1114: Width=1; ParentPid=2212; break;
+      case 1128: Width=1; ParentPid=2212; break;
+      case 1228: Width=1; ParentPid=2212; break;
+
+      case 2212: Width=0; ParentPid=0; break;
+      case 2224: Width=1; ParentPid=2212; break;
+      case 2214: Width=1; ParentPid=2212; break;
+      case 2114: Width=1; ParentPid=2212; break;
+      case 12112: Width=1; ParentPid=2212; break;
+      case 1214: Width=1; ParentPid=2212; break;
+      case 12116: Width=1; ParentPid=2212; break;
+      case 22212: Width=1; ParentPid=2212; break;
+      case 12212: Width=1; ParentPid=2212; break;
+      case 2124: Width=1; ParentPid=2212; break;
+      case 2226: Width=1; ParentPid=2212; break;
+      case 12224: Width=1; ParentPid=2212; break;
+      case 2116: Width=1; ParentPid=2212; break;
+      case 31214: Width=1; ParentPid=2212; break;
+      case 12216: Width=1; ParentPid=2212; break;
+      case 12214: Width=1; ParentPid=2212; break;
+      case 22112: Width=1; ParentPid=2212; break;
+      case 2126: Width=1; ParentPid=2212; break;
+      case 32224: Width=1; ParentPid=2212; break;
+      case 32112: Width=1; ParentPid=2212; break;
+      case 2216: Width=1; ParentPid=2212; break;
+      case 2222: Width=1; ParentPid=2212; break;
+      case 32124: Width=1; ParentPid=2212; break;
+      case 32214: Width=1; ParentPid=2212; break;
+      case 32212: Width=1; ParentPid=2212; break;
+      case 12114: Width=1; ParentPid=2212; break;
+      case 2122: Width=1; ParentPid=2212; break;
+      case 1216: Width=1; ParentPid=2212; break;
+      case 22222: Width=1; ParentPid=2212; break;
+      case 32114: Width=1; ParentPid=2212; break;
+      case 42212: Width=1; ParentPid=2212; break;
+      case 22122: Width=1; ParentPid=2212; break;
+      case 1212: Width=1; ParentPid=2212; break;
+      case 42112: Width=1; ParentPid=2212; break;
+      case 21214: Width=1; ParentPid=2212; break;
+      case 21212: Width=1; ParentPid=2212; break;
+      case 22124: Width=1; ParentPid=2212; break;
+
+      case 120: Width=0; ParentPid=0; break;
+      case 111: Width=1; ParentPid=211; break;
+      case 121: Width=1; ParentPid=211; break;
+      case 131: Width=1; ParentPid=211; break;
+      case 231: Width=1; ParentPid=211; break;
+      case 10111: Width=1; ParentPid=211; break;
+      //case 1111: Width=1; ParentPid=211; break;
+      case 2221: Width=1; ParentPid=211; break;
+      case 1221: Width=1; ParentPid=211; break;
+      case 1121: Width=1; ParentPid=211; break;
+      case 1122: Width=1; ParentPid=211; break;
+      case 1125: Width=1; ParentPid=211; break;
+      case 1126: Width=1; ParentPid=211; break;
+      case 1113: Width=1; ParentPid=211; break;
+      case 1127: Width=1; ParentPid=211; break;
+      case 1128: Width=1; ParentPid=211; break;
+      case 1114: Width=1; ParentPid=211; break;
+
+      case 211: Width=0; ParentPid=0; break;
+      case 113: Width=1; ParentPid=211; break;
+      case 213: Width=1; ParentPid=211; break;
+      case 323: Width=1; ParentPid=211; break;
+      case 313: Width=1; ParentPid=211; break;
+      case 20113: Width=1; ParentPid=211; break;
+      //case 2224: Width=1; ParentPid=211; break;
+      //case 1114: Width=1; ParentPid=211; break;//duplicates EPOS vs PDG, but in both cases it is a pion reso, so okay
+      //case 2114: Width=1; ParentPid=211; break;
+      case 2214: Width=1; ParentPid=211; break;
+      //case 12112: Width=1; ParentPid=211; break;
+      //case 22212: Width=1; ParentPid=211; break;
+      //case 2122: Width=1; ParentPid=211; break;
+      //case 2222: Width=1; ParentPid=211; break;
+      //case 32212: Width=1; ParentPid=211; break;
+      //case 12214: Width=1; ParentPid=211; break;
+      //case 12224: Width=1; ParentPid=211; break;
+
+
+
+      default: printf("\033[1;33mWARNING:\033[0m Unexpected p_pi resonances!\n"); Width=0; ParentPid=1; break;
+
+    }
+  */
+  }
+  /*
   else if(System=="p_piReso"||System=="pReso_piReso"||System=="pReso_pi"||
           System=="Ap_piReso"||System=="ApReso_piReso"||System=="ApReso_pi"||
           System=="p_ApiReso"||System=="pReso_ApiReso"||System=="pReso_Api"||
           System=="Ap_ApiReso"||System=="ApReso_ApiReso"||System=="ApReso_Api"){
-  /*
+
     switch (abs(ResoPid)) {
       case 1120: Width=0; ParentPid=0; break;
       case 1111: Width=1; ParentPid=2212; break;
@@ -4356,8 +4463,9 @@ void ResoInfo(const int& ResoPid, int& ParentPid, double& Width, const TString& 
 
       default: printf("\033[1;33mWARNING:\033[0m Unexpected p_pi resonances!\n"); Width=0; ParentPid=1; break;
     }
-    */
+
   }
+  */
   else{
     switch(ResoPid){
         //PDG
@@ -4543,7 +4651,13 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
       InputFileName = "/home/dimihayl/Mount/nx3/scratch6/mkor/OutputEPOS/13TeV/EPOS_20200121/pp_AKaonReso_ADmeson_fixed_ALICE_Acceptance_FullWeights_AddedIntSurrogate_IncludesAllHeavy_width60_omegaNo_fullscale.0";
     }
     else if(DataSetDescr=="p_piReso"||DataSetDescr=="pReso_pi"||DataSetDescr=="pReso_piReso"){
-      InputFileName = TString::Format("%s/CatsFiles/Source/EposRawOutput/p_pi/pi_p.f19",GetCernBoxDimi());
+      //InputFileName = TString::Format("%s/CatsFiles/Source/EposRawOutput/p_pi/pi_p.f19",GetCernBoxDimi());
+      if(DataSetDescr=="pReso_piReso"){
+        InputFileName = TString::Format("%s/CatsFiles/Source/EposRawOutput/p_pi/Jan2023/piReso_pReso",GetCernBoxDimi());
+        InputFileName = TString::Format("%s/CatsFiles/Source/EposRawOutput/p_pi/Jan2023/ApiReso_pReso",GetCernBoxDimi());
+        InputFileName = TString::Format("%s/CatsFiles/Source/EposRawOutput/p_pi/Jan2023/piReso_ApReso",GetCernBoxDimi());
+        InputFileName = TString::Format("%s/CatsFiles/Source/EposRawOutput/p_pi/Jan2023/ApiReso_ApReso",GetCernBoxDimi());
+      }
     }
     else//
         InputFileName = TString::Format("%s/scratch6/dmihaylov/OutputEPOS/13TeV/EPOS_LBF_pp200/pp200_pResoLamReso_Oct2019_4PI_ReducedWeights.f19",GetNx2Folder());

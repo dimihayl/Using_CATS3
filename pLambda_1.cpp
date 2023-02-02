@@ -3,6 +3,7 @@
 #include "FemtoBoyzScripts.h"
 #include "OtherTasks.h"
 
+#include "TROOT.h"
 #include "TString.h"
 #include "TCanvas.h"
 #include "TH1F.h"
@@ -43,6 +44,7 @@
 #include "DLM_Potentials.h"
 #include "DLM_Source.h"
 #include "DLM_Random.h"
+#include "DLM_DrawingTools.h"
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -9170,8 +9172,8 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
 //return;
 
     //300 or 108
-    //const double Chi2RANGE = 108;
-    const double Chi2RANGE = 300;
+    const double Chi2RANGE = 108;
+    //const double Chi2RANGE = 300;
 //printf("debug\n");
     //if 0, we have much more info on the plots
     //if 1: as intended for the paper (cleaner)
@@ -9180,7 +9182,7 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
     const int PlotsType = 3;
     const bool WriteToInfoFile=true;
     int Panel_X = 0;
-
+printf("0\n");
     if(PlotsType==1){
       if((WhichPotential==11600||WhichPotential>100000) && SIGMA_FEED==1)Panel_X=0;
       if((WhichPotential==11600||WhichPotential>100000) && SIGMA_FEED==0)Panel_X=1;
@@ -9280,7 +9282,7 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
         }
         GoodCutVar[WhichDataSet] = MinGoodCut;
     }
-
+printf("1\n");
 
     switch(WhichBaseline){
         case pol0s :    BlName1 = "Constant baseline";
@@ -9340,7 +9342,7 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
                         BlDescr = "Unknown";
                         break;
     }
-
+printf("2\n");
     TString PotName1;
     TString PotName2;
     TString PotName3;
@@ -9352,192 +9354,295 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
     TString XiName1 = "Residual p#Xi^{#minus} #oplus p#Xi^{0}: HAL QCD";
     if(PlotsType==1||PlotsType==3) XiName1 = "Residual p#kern[0.0]{#Xi^{#minus}} #oplus p#kern[0.0]{#Xi^{0}}";
     int PotFlag;
-    switch(WhichPotential){
-        case 1500 : PotName1 = "NLO13 (500)";
-                    PotName2 = "s,d waves";
-                    PotDescr = "NLO13-500";
-                    PotFlag = 1500;
-                    break;
-        case 1550 : PotName1 = "NLO13 (550)";
-                    PotName2 = "s,d waves";
-                    PotDescr = "NLO13-550";
-                    PotFlag = 1550;
-                    break;
-        case 1600 : PotName1 = "NLO13 (600)";
-                    PotName2 = "s,d waves";
-                    PotDescr = "NLO13-600";
-                    PotFlag = 1600;
-                    break;
-        case 1650 : PotName1 = "NLO13 (650)";
-                    PotName2 = "s,d waves";
-                    PotDescr = "NLO13-650";
-                    PotFlag = 1650;
-                    break;
-        case 11500 :PotName1 = "NLO19 (500)";
-                    PotName2 = "s,d waves";
-                    PotDescr = "NLO19-500";
-                    PotFlag = 11500;
-                    break;
-        case 11550 :PotName1 = "NLO19 (550)";
-                    PotName2 = "s,d waves";
-                    PotDescr = "NLO19-550";
-                    PotFlag = 11550;
-                    break;
-        case 11600 :PotName1 = "NLO19 (600)";
-                    PotName2 = "s,d waves";
-                    PotDescr = "NLO19-600";
-                    PotFlag = 11600;
-                    break;
-        case 11650 :PotName1 = "NLO19 (650)";
-                    PotName2 = "s,d waves";
-                    PotDescr = "NLO19-650";
-                    PotFlag = 11650;
-                    break;//
-        case -11600:PotName1 = "LO (600)";
-                    PotName2 = "s,d waves";
-                    PotDescr = "LO13-600";
-                    PotFlag = -11600;
-                    break;//
-        case 131600:  PotName1 = "Def,f1.3";
+    if(WhichPotential%100000==11602){
+      int Flag3S1 = (WhichPotential/100000)%100;
+      int Flag1S0 = (WhichPotential/10000000)%100;
+      PotName1 = "";
+      PotDescr = "";
+      float f1S0=-1e6;
+      float f3S1=-1e6;
+      switch (Flag1S0) {
+        case 99 : f1S0=2.80; break;
+        case 98 : f1S0=2.65; break;
+        case 97 : f1S0=2.55; break;
+        case 96 : f1S0=2.45; break;
+        case 95 : f1S0=2.30; break;
+        case 94 : f1S0=2.20; break;
+        case 0  : f1S0=2.91; break;
+        default: break;
+      }
+      switch (Flag3S1) {
+        case 99 : f3S1=1.35; break;
+        case 98 : f3S1=1.30; break;
+        case 97 : f3S1=1.25; break;
+        case 96 : f3S1=1.20; break;
+        case 95 : f3S1=1.15; break;
+        case 94 : f3S1=1.10; break;
+        case 93 : f3S1=1.05; break;
+        case 92 : f3S1=1.00; break;
+        case 0  : f3S1=1.41; break;
+        default: break;
+      }
+
+      if(f1S0==-1e-6){
+        PotName1 += TString::Format("f_{0}=????");
+        PotDescr += "f0=????";
+      }
+      else{
+        PotName1 += TString::Format("f_{0}=%.2f",f1S0);
+        PotDescr += TString::Format("f0=%.2f",f1S0);
+      }
+      PotName1 += ";";
+      PotDescr += "_";
+
+      if(f3S1==-1e-6){
+        PotName1 += TString::Format("f_{1}=????");
+        PotDescr += "f1=????";
+      }
+      else{
+        PotName1 += TString::Format("f_{1}=%.2f",f3S1);
+        PotDescr += TString::Format("f1=%.2f",f3S1);
+      }
+
+      PotName1 += "fm";
+      PotName2 = "Based on NLO19";
+    }
+    if(WhichPotential%100000==11603){
+      int Flag3S1 = (WhichPotential/100000)%100;
+      int Flag1S0 = (WhichPotential/10000000)%100;
+      PotName1 = "";
+      PotDescr = "";
+      TString VarInfo = "";
+      float f1S0=-1e6;
+      float f3S1=-1e6;
+      switch (Flag1S0) {
+        case 0  : f1S0=2.91; VarInfo+="O"; break;
+        default: break;
+      }
+      switch (Flag3S1) {
+        case 3 : f3S1=1.10; VarInfo+="C"; break;
+        case 2 : f3S1=1.10; VarInfo+="B"; break;
+        case 1 : f3S1=1.10; VarInfo+="A"; break;
+        case 0  : f3S1=1.10; VarInfo+="O"; break;
+        default: break;
+      }
+
+      if(f1S0==-1e-6){
+        PotName1 += TString::Format("f_{0}=????");
+        PotDescr += "f0=????";
+      }
+      else{
+        PotName1 += TString::Format("f_{0}=%.2f",f1S0);
+        PotDescr += TString::Format("f0=%.2f",f1S0);
+      }
+      PotName1 += ";";
+      PotDescr += "_";
+
+      if(f3S1==-1e-6){
+        PotName1 += TString::Format("f_{1}=????");
+        PotDescr += "f1=????";
+      }
+      else{
+        PotName1 += TString::Format("f_{1}=%.2f",f3S1);
+        PotDescr += TString::Format("f1=%.2f",f3S1);
+      }
+
+      PotName1 += "fm";
+
+      PotName1 += TString::Format("(%s)",VarInfo.Data());
+      PotDescr += TString::Format("_%s",VarInfo.Data());
+
+      PotName2 = "Based on NLO19";
+    }
+    else{
+      switch(WhichPotential){
+          case 1500 : PotName1 = "NLO13 (500)";
                       PotName2 = "s,d waves";
-                      PotDescr = "Def,f1.3";
-                      PotFlag = 131600;
-                      break;//
-        case 221600:  PotName1 = "CSB,CSB";
+                      PotDescr = "NLO13-500";
+                      PotFlag = 1500;
+                      break;
+          case 1550 : PotName1 = "NLO13 (550)";
                       PotName2 = "s,d waves";
-                      PotDescr = "CSB,CSB";
-                      PotFlag = 221600;
-                      break;//
-        case 231600:  PotName1 = "CSB,f1.3";
+                      PotDescr = "NLO13-550";
+                      PotFlag = 1550;
+                      break;
+          case 1600 : PotName1 = "NLO13 (600)";
                       PotName2 = "s,d waves";
-                      PotDescr = "CSB,f1.3";
-                      PotFlag = 231600;
-                      break;//
-        case 211600:  PotName1 = "def,CSB";
+                      PotDescr = "NLO13-600";
+                      PotFlag = 1600;
+                      break;
+          case 1650 : PotName1 = "NLO13 (650)";
                       PotName2 = "s,d waves";
-                      PotDescr = "def,CSB";
-                      PotFlag = 211600;
-                      break;//
-        case 11601:   PotName1 = "NLO19 (600)";
+                      PotDescr = "NLO13-650";
+                      PotFlag = 1650;
+                      break;
+          case 11500 :PotName1 = "NLO19 (500)";
+                      PotName2 = "s,d waves";
+                      PotDescr = "NLO19-500";
+                      PotFlag = 11500;
+                      break;
+          case 11550 :PotName1 = "NLO19 (550)";
+                      PotName2 = "s,d waves";
+                      PotDescr = "NLO19-550";
+                      PotFlag = 11550;
+                      break;
+          case 11600 :PotName1 = "NLO19 (600)";
                       PotName2 = "s,d waves";
                       PotDescr = "NLO19-600";
-                      PotFlag = 11601;
+                      PotFlag = 11600;
+                      break;
+          case 11650 :PotName1 = "NLO19 (650)";
+                      PotName2 = "s,d waves";
+                      PotDescr = "NLO19-650";
+                      PotFlag = 11650;
                       break;//
-        case 20011601:PotName1 = "f0=2.20fm";
-                      PotName2 = "Based on NLO19";
-                      PotDescr = "f0=2.20fm";
-                      PotFlag = 20011601;
+          case -11600:PotName1 = "LO (600)";
+                      PotName2 = "s,d waves";
+                      PotDescr = "LO13-600";
+                      PotFlag = -11600;
                       break;//
-        case 10011601:PotName1 = "S0+CSB";
-                      PotName2 = "Based on NLO19";
-                      PotDescr = "S0+CSB";
-                      PotFlag = 10011601;
+          case 131600:  PotName1 = "Def,f1.3";
+                        PotName2 = "s,d waves";
+                        PotDescr = "Def,f1.3";
+                        PotFlag = 131600;
+                        break;//
+          case 221600:  PotName1 = "CSB,CSB";
+                        PotName2 = "s,d waves";
+                        PotDescr = "CSB,CSB";
+                        PotFlag = 221600;
+                        break;//
+          case 231600:  PotName1 = "CSB,f1.3";
+                        PotName2 = "s,d waves";
+                        PotDescr = "CSB,f1.3";
+                        PotFlag = 231600;
+                        break;//
+          case 211600:  PotName1 = "def,CSB";
+                        PotName2 = "s,d waves";
+                        PotDescr = "def,CSB";
+                        PotFlag = 211600;
+                        break;//
+          case 11601:   PotName1 = "NLO19 (600)";
+                        PotName2 = "s,d waves";
+                        PotDescr = "NLO19-600";
+                        PotFlag = 11601;
+                        break;//
+          case 20011601:PotName1 = "f0=2.20fm";
+                        PotName2 = "Based on NLO19";
+                        PotDescr = "f0=2.20fm";
+                        PotFlag = 20011601;
+                        break;//
+          case 10011601:PotName1 = "S0+CSB";
+                        PotName2 = "Based on NLO19";
+                        PotDescr = "S0+CSB";
+                        PotFlag = 10011601;
+                        break;//
+          case 211601:  PotName1 = "f1=1.30fm";
+                        PotName2 = "Based on NLO19";
+                        PotDescr = "f0=1.30fm";
+                        PotFlag = 211601;
+                        break;//
+          case 311601:  PotName1 = "f1=1.25fm";
+                        PotName2 = "Based on NLO19";
+                        PotDescr = "f1=1.25fm";
+                        PotFlag = 311601;
+                        break;//
+          case 411601:  PotName1 = "f1=1.20fm";
+                        PotName2 = "Based on NLO19";
+                        PotDescr = "f1=1.20fm";
+                        PotFlag = 411601;
+                        break;//
+          case 1311601: PotName1 = "f1=1.60fm";
+                        PotName2 = "Based on NLO19";
+                        PotDescr = "f1=1.60fm";
+                        PotFlag = 1311601;
+                        break;//
+          case 21311601:PotName1 = "f0=2.2;f1=1.6fm";
+                        PotName2 = "Based on NLO19";
+                        PotDescr = "f0=2.2_f1=1.6fm";
+                        PotFlag = 21311601;
+                        break;//
+  //NEW
+          case 20211601:PotName1 = "f0=2.2;f1=1.3fm";
+                        PotName2 = "Based on NLO19";
+                        PotDescr = "f0=2.2_f1=1.3fm";
+                        PotFlag = 20211601;
+                        break;//
+          case 20311601:PotName1 = "f0=2.2;f1=1.25fm";
+                        PotName2 = "Based on NLO19";
+                        PotDescr = "f0=2.2_f1=1.25fm";
+                        PotFlag = 20311601;
+                        break;//
+          case 20411601:PotName1 = "f0=2.2;f1=1.2fm";
+                        PotName2 = "Based on NLO19";
+                        PotDescr = "f0=2.2_f1=1.2fm";
+                        PotFlag = 20411601;
+                        break;//
+          case 20511601:PotName1 = "f0=2.2;f1=1.15fm";
+                        PotName2 = "Based on NLO19";
+                        PotDescr = "f0=2.2_f1=1.15fm";
+                        PotFlag = 20511601;
+                        break;//
+          case 20611601:PotName1 = "f0=2.2;f1=1.1fm";
+                        PotName2 = "Based on NLO19";
+                        PotDescr = "f0=2.2_f1=1.1fm";
+                        PotFlag = 20611601;
+                        break;//
+          case 30011601:PotName1 = "f0=2.55fm";
+                        PotName2 = "Based on NLO19";
+                        PotDescr = "f0=2.55fm";
+                        PotFlag = 30011601;
+                        break;//
+          case 30211601:PotName1 = "f0=2.55;f1=1.3fm";
+                        PotName2 = "Based on NLO19";
+                        PotDescr = "f0=2.55_f1=1.3fm";
+                        PotFlag = 30211601;
+                        break;//
+          case 30311601:PotName1 = "f0=2.55;f1=1.25fm";
+                        PotName2 = "Based on NLO19";
+                        PotDescr = "f0=2.55_f1=1.25fm";
+                        PotFlag = 30311601;
+                        break;//
+          case 30411601:PotName1 = "f0=2.55;f1=1.2fm";
+                        PotName2 = "Based on NLO19";
+                        PotDescr = "f0=2.55_f1=1.2fm";
+                        PotFlag = 30411601;
+                        break;//
+          case 30511601:PotName1 = "f0=2.55;f1=1.15fm";
+                        PotName2 = "Based on NLO19";
+                        PotDescr = "f0=2.55_f1=1.15fm";
+                        PotFlag = 30511601;
+                        break;//
+          case 30611601:PotName1 = "f0=2.55;f1=1.1fm";
+                        PotName2 = "Based on NLO19";
+                        PotDescr = "f0=2.55_f1=1.1fm";
+                        PotFlag = 30611601;
+                        break;//
+          case 511601:PotName1 = "f1=1.15fm";
+                        PotName2 = "Based on NLO19";
+                        PotDescr = "f1=1.15fm";
+                        PotFlag = 511601;
+                        break;//
+          case 611601:PotName1 = "f1=1.1fm";
+                        PotName2 = "Based on NLO19";
+                        PotDescr = "f1=1.1fm";
+                        PotFlag = 611601;
+                        break;//
+          case 100:   PotName1 = "Usmani";
+                      PotName2 = "original";
+                      PotDescr = "Usmani";
+                      PotFlag = -11600;
                       break;//
-        case 211601:  PotName1 = "f1=1.30fm";
-                      PotName2 = "Based on NLO19";
-                      PotDescr = "f0=1.30fm";
-                      PotFlag = 211601;
+          case 101:   PotName1 = "Usmani";
+                      PotName2 = "w_{c} = ";
+                      PotDescr = "UsmaniFit";
+                      PotFlag = -11600;
                       break;//
-        case 311601:  PotName1 = "f1=1.25fm";
-                      PotName2 = "Based on NLO19";
-                      PotDescr = "f1=1.25fm";
-                      PotFlag = 311601;
-                      break;//
-        case 411601:  PotName1 = "f1=1.20fm";
-                      PotName2 = "Based on NLO19";
-                      PotDescr = "f1=1.20fm";
-                      PotFlag = 411601;
-                      break;//
-        case 1311601: PotName1 = "f1=1.60fm";
-                      PotName2 = "Based on NLO19";
-                      PotDescr = "f1=1.60fm";
-                      PotFlag = 1311601;
-                      break;//
-        case 21311601:PotName1 = "f0=2.2;f1=1.6fm";
-                      PotName2 = "Based on NLO19";
-                      PotDescr = "f0=2.2_f1=1.6fm";
-                      PotFlag = 21311601;
-                      break;//
-//NEW
-        case 20211601:PotName1 = "f0=2.2;f1=1.3fm";
-                      PotName2 = "Based on NLO19";
-                      PotDescr = "f0=2.2_f1=1.3fm";
-                      PotFlag = 20211601;
-                      break;//
-        case 20311601:PotName1 = "f0=2.2;f1=1.25fm";
-                      PotName2 = "Based on NLO19";
-                      PotDescr = "f0=2.2_f1=1.25fm";
-                      PotFlag = 20311601;
-                      break;//
-        case 20411601:PotName1 = "f0=2.2;f1=1.2fm";
-                      PotName2 = "Based on NLO19";
-                      PotDescr = "f0=2.2_f1=1.2fm";
-                      PotFlag = 20411601;
-                      break;//
-        case 20511601:PotName1 = "f0=2.2;f1=1.15fm";
-                      PotName2 = "Based on NLO19";
-                      PotDescr = "f0=2.2_f1=1.15fm";
-                      PotFlag = 20511601;
-                      break;//
-        case 20611601:PotName1 = "f0=2.2;f1=1.1fm";
-                      PotName2 = "Based on NLO19";
-                      PotDescr = "f0=2.2_f1=1.1fm";
-                      PotFlag = 20611601;
-                      break;//
-        case 30011601:PotName1 = "f0=2.55fm";
-                      PotName2 = "Based on NLO19";
-                      PotDescr = "f0=2.55fm";
-                      PotFlag = 30011601;
-                      break;//
-        case 30211601:PotName1 = "f0=2.55;f1=1.3fm";
-                      PotName2 = "Based on NLO19";
-                      PotDescr = "f0=2.55_f1=1.3fm";
-                      PotFlag = 30211601;
-                      break;//
-        case 30311601:PotName1 = "f0=2.55;f1=1.25fm";
-                      PotName2 = "Based on NLO19";
-                      PotDescr = "f0=2.55_f1=1.25fm";
-                      PotFlag = 30311601;
-                      break;//
-        case 30411601:PotName1 = "f0=2.55;f1=1.2fm";
-                      PotName2 = "Based on NLO19";
-                      PotDescr = "f0=2.55_f1=1.2fm";
-                      PotFlag = 30411601;
-                      break;//
-        case 30511601:PotName1 = "f0=2.55;f1=1.15fm";
-                      PotName2 = "Based on NLO19";
-                      PotDescr = "f0=2.55_f1=1.15fm";
-                      PotFlag = 30511601;
-                      break;//
-        case 30611601:PotName1 = "f0=2.55;f1=1.1fm";
-                      PotName2 = "Based on NLO19";
-                      PotDescr = "f0=2.55_f1=1.1fm";
-                      PotFlag = 30611601;
-                      break;//
-        case 511601:PotName1 = "f1=1.15fm";
-                      PotName2 = "Based on NLO19";
-                      PotDescr = "f1=1.15fm";
-                      PotFlag = 511601;
-                      break;//
-        case 611601:PotName1 = "f1=1.1fm";
-                      PotName2 = "Based on NLO19";
-                      PotDescr = "f1=1.1fm";
-                      PotFlag = 611601;
-                      break;//
-        case 100:   PotName1 = "Usmani";
-                    PotName2 = "original";
-                    PotDescr = "Usmani";
-                    PotFlag = -11600;
-                    break;//
-        case 101:   PotName1 = "Usmani";
-                    PotName2 = "w_{c} = ";
-                    PotDescr = "UsmaniFit";
-                    PotFlag = -11600;
-                    break;//
-        default :   PotName1 = "Unknown potential";
-                    PotName2 = "";
-                    PotDescr = "Unknown";
-                    break;
+          default :   PotName1 = "Unknown potential";
+                      PotName2 = "";
+                      PotDescr = "Unknown";
+                      break;
+      }
+
     }
     switch(SIGMA_FEED){
         case 0 :    PotName3 = "Residual p#kern[0.0]{#Sigma^{0}}: Flat";
@@ -11729,6 +11834,8 @@ void Quick_pLambda_plotter_NLO13_vs_LO13(){
 //Type == 0: LO,NLO13/19
 //Type == 1: + the CSB and fine tunes
 //Type == 2: the many new Johann pots from 2022
+//Type == 3: the many many new Johann pots from 2022 (9x7 = 63)
+//Type == 4: the test of similar scatt length for different LECs
 void MakeLATEXtable(TString InputFolder, bool Compact=false, int Type=0){
     TString OutputFileName;
     TString OutputFileNameNsig;
@@ -11748,6 +11855,8 @@ void MakeLATEXtable(TString InputFolder, bool Compact=false, int Type=0){
     if(Type==0){NumLamVars=9;}
     else if(Type==1){NumLamVars=13;}
     else if(Type==2){NumLamVars=8+13;}
+    else if(Type==3){NumLamVars=63;}
+    else if(Type==4){NumLamVars=4;}
 
     TString* PotName_pL = new TString [NumLamVars];
     if(Type==0||Type==1){
@@ -11842,13 +11951,117 @@ void MakeLATEXtable(TString InputFolder, bool Compact=false, int Type=0){
       PotFlag_pL[18] = 10011601;
       PotFlag_pL[19] = 1311601;
       PotFlag_pL[20] = 21311601;
-
-
-
-
     }
 
 
+
+
+    int NumS0 = 0;
+    int NumS1 = 0;
+    if(Type==3){
+      NumS0=7;
+      NumS1=9;
+    }
+    if(Type==4){
+      NumS0=1;
+      NumS1=4;
+    }
+    float* fs0_t3 = new float[NumS0];
+    float* fs1_t3 = new float[NumS1];
+    int* fls0_t3 = new int[NumS0];
+    int* fls1_t3 = new int[NumS1];
+
+    if(Type==3){
+      fs0_t3[6] = 2.91;
+      fls0_t3[6] = 0;
+      fs0_t3[5] = 2.80;
+      fls0_t3[5] = 99;
+      fs0_t3[4] = 2.65;
+      fls0_t3[4] = 98;
+      fs0_t3[3] = 2.55;
+      fls0_t3[3] = 97;
+      fs0_t3[2] = 2.45;
+      fls0_t3[2] = 96;
+      fs0_t3[1] = 2.30;
+      fls0_t3[1] = 95;
+      fs0_t3[0] = 2.20;
+      fls0_t3[0] = 94;
+
+      fs1_t3[8] = 1.41;
+      fls1_t3[8] = 0;
+      fs1_t3[7] = 1.35;
+      fls1_t3[7] = 99;
+      fs1_t3[6] = 1.30;
+      fls1_t3[6] = 98;
+      fs1_t3[5] = 1.25;
+      fls1_t3[5] = 97;
+      fs1_t3[4] = 1.20;
+      fls1_t3[4] = 96;
+      fs1_t3[3] = 1.15;
+      fls1_t3[3] = 95;
+      fs1_t3[2] = 1.10;
+      fls1_t3[2] = 94;
+      fs1_t3[1] = 1.05;
+      fls1_t3[1] = 95;
+      fs1_t3[0] = 1.00;
+      fls1_t3[0] = 94;
+//case 30011601: fprintf(fptr,"\\color{red}{$f_\\text{s}$=2.55};\\color{black}{$f_\\text{t}$=1.41fm}"); break;
+      TString ColorS0,ColorS1;
+      for(int s0=0; s0<NumS0; s0++){
+        if(fs0_t3[s0]==2.91){ColorS0="black";}
+        else if(fs0_t3[s0]<2.91){ColorS0="red";}
+        else {ColorS0="blue";}
+        for(int s1=0; s1<NumS1; s1++){
+          if(fs1_t3[s1]==1.41){ColorS1="black";}
+          else if(fs1_t3[s0]<1.41){ColorS1="red";}
+          else {ColorS1="blue";}
+          PotFlag_pL[s0*NumS1+s1] = 11602 + fls1_t3[s1]*100000 + fls0_t3[s0]*10000000;
+          //"f_{S}=2.91;f_{t}=1.60fm"
+          //PotName_pL[s0*9+s1] = TString::Format("f_{s}=%.2f;f_{t}=%.2ffm",fs0_t3,fs1_t3);
+          PotName_pL[s0*NumS1+s1] = TString::Format("\\color{%s}{$f_{s}=%.2f$};\\color{%s}{$f_{t}=%.2f$}\\color{black}{fm}",
+          ColorS0.Data(),fs0_t3[s0],ColorS1.Data(),fs1_t3[s1]);
+        }
+      }
+    }
+
+    if(Type==4){
+      fs0_t3[0] = 2.91;
+      fls0_t3[0] = 0;
+
+      //all are 1.1, dummy values
+      fs1_t3[0] = 1.100;
+      fls1_t3[0] = 0;
+
+      fs1_t3[1] = 1.101;
+      fls1_t3[1] = 1;
+
+      fs1_t3[2] = 1.102;
+      fls1_t3[2] = 2;
+
+      fs1_t3[3] = 1.103;
+      fls1_t3[3] = 3;
+
+//case 30011601: fprintf(fptr,"\\color{red}{$f_\\text{s}$=2.55};\\color{black}{$f_\\text{t}$=1.41fm}"); break;
+      TString ColorS0,ColorS1;
+      for(int s0=0; s0<NumS0; s0++){
+        {ColorS0="black";}
+        for(int s1=0; s1<NumS1; s1++){
+          {ColorS1="black";}
+          PotFlag_pL[s0*NumS1+s1] = 11603 + fls1_t3[s1]*100000 + fls0_t3[s0]*10000000;
+          //"f_{S}=2.91;f_{t}=1.60fm"
+          //PotName_pL[s0*9+s1] = TString::Format("f_{s}=%.2f;f_{t}=%.2ffm",fs0_t3,fs1_t3);
+          TString pot_var;
+          if(s1==0) pot_var=="O";
+          if(s1==1) pot_var=="A";
+          if(s1==2) pot_var=="B";
+          if(s1==3) pot_var=="C";
+          PotName_pL[s0*NumS1+s1] = TString::Format("\\color{%s}{$f_{s}=%.2f$};\\color{%s}{$f_{t%s}=%.2f$}\\color{black}{fm}",
+          ColorS0.Data(),fs0_t3[s0],ColorS1.Data(),pot_var.Data(),fs1_t3[s1]);
+        }
+      }
+    }
+
+printf("2\n");
     //const unsigned NumSigVars = 3;
     //TString* PotName_pS0 = new TString [NumSigVars];
     //PotName_pS0[0] = "\\pmb{\\chiEFT}";
@@ -11874,6 +12087,63 @@ void MakeLATEXtable(TString InputFolder, bool Compact=false, int Type=0){
     float Best_XiSigLamFrac;
     float Best_CuspWeight;
     float Best_CkConv;
+
+    gROOT->cd();
+
+    TH2F* hChi2_1 = NULL;
+    TH2F* hDeltaChi2_1 = NULL;
+    TH2F* hNsig_1 = NULL;
+
+    TH2F* hChi2_Chiral1 = NULL;
+    TH2F* hDeltaChi2_Chiral1 = NULL;
+    TH2F* hNsig_Chiral1 = NULL;
+
+    TH2F* hChi2_Flat1 = NULL;
+    TH2F* hDeltaChi2_Flat1 = NULL;
+    TH2F* hNsig_Flat1 = NULL;
+    if(NumS0>=1&&NumS1>=1){
+      double* BinRangeS0 = new double [NumS0+1];
+      double* BinRangeS1 = new double [NumS1+1];
+
+      if(NumS0>1){
+        BinRangeS0[0] = fs0_t3[0]-(fs0_t3[1]-fs0_t3[0])*0.5;
+        for(unsigned uS0=1; uS0<NumS0; uS0++){
+          BinRangeS0[uS0] = (fs0_t3[uS0]+fs0_t3[uS0-1])*0.5;
+        }
+        BinRangeS0[NumS0] = BinRangeS0[NumS0-1]+(fs0_t3[NumS0-1]-fs0_t3[NumS0-2]);
+      }
+      else{
+        BinRangeS0[0] = fs0_t3[0]-0.05;
+        BinRangeS0[1] = fs0_t3[0]+0.05;
+      }
+
+      if(NumS1>1){
+        BinRangeS1[0] = fs1_t3[0]-(fs1_t3[1]-fs1_t3[0])*0.5;
+        for(unsigned uS1=1; uS1<NumS1; uS1++){
+          BinRangeS1[uS1] = (fs1_t3[uS1]+fs1_t3[uS1-1])*0.5;
+        }
+        BinRangeS1[NumS1] = BinRangeS1[NumS1-1]+(fs1_t3[NumS1-1]-fs1_t3[NumS1-2]);
+      }
+      else{
+        BinRangeS1[0] = fs1_t3[0]-0.05;
+        BinRangeS1[1] = fs1_t3[0]+0.05;
+      }
+
+      hChi2_1 = new TH2F("hChi2_1","hChi2_1",NumS0,BinRangeS0,NumS1,BinRangeS1);
+      hDeltaChi2_1 = new TH2F("hDeltaChi2_1","hDeltaChi2_1",NumS0,BinRangeS0,NumS1,BinRangeS1);
+      hNsig_1 = new TH2F("hNsig_1","hNsig_1",NumS0,BinRangeS0,NumS1,BinRangeS1);
+
+      hChi2_Chiral1 = new TH2F("hChi2_Chiral1","hChChi2_Chiral1hi2_1",NumS0,BinRangeS0,NumS1,BinRangeS1);
+      hDeltaChi2_Chiral1 = new TH2F("hDeltaChi2_Chiral1","hDeltaChi2_Chiral1",NumS0,BinRangeS0,NumS1,BinRangeS1);
+      hNsig_Chiral1 = new TH2F("hNsig_Chiral1","hNsig_Chiral1",NumS0,BinRangeS0,NumS1,BinRangeS1);
+
+      hChi2_Flat1 = new TH2F("hChi2_Flat1","hChi2_Flat1",NumS0,BinRangeS0,NumS1,BinRangeS1);
+      hDeltaChi2_Flat1 = new TH2F("hDeltaChi2_Flat1","hDeltaChi2_Flat1",NumS0,BinRangeS0,NumS1,BinRangeS1);
+      hNsig_Flat1 = new TH2F("hNsig_Flat1","hNsig_Flat1",NumS0,BinRangeS0,NumS1,BinRangeS1);
+
+      delete [] BinRangeS0;
+      delete [] BinRangeS1;
+    }
 
     TFile* InfoFile = new TFile(InfoFileName,"read");
     TTree* InfoTree = (TTree*)InfoFile->Get("InfoTree");
@@ -11988,6 +12258,16 @@ void MakeLATEXtable(TString InputFolder, bool Compact=false, int Type=0){
         }
 
         fprintf(fptr," \\\\ \n");
+
+        unsigned uS0 = upL/NumS1;
+        unsigned uS1 = upL%NumS1;
+        double chi2_chi = (val_chiral_cubic*NDF);
+        double chi2_flt = (val_flat_cubic*NDF);
+        double chi2_tot = chi2_chi<chi2_flt?chi2_chi:chi2_flt;
+        hChi2_Chiral1->SetBinContent(uS0+1,uS1+1,chi2_chi);
+        hChi2_Flat1->SetBinContent(uS0+1,uS1+1,chi2_flt);
+        hChi2_1->SetBinContent(uS0+1,uS1+1,chi2_tot);
+//printf("hi\n");
 
         if(BestChi2_const>val_chiral_const*NDF) BestChi2_const=val_chiral_const*NDF;
         if(BestChi2_const>val_flat_const*NDF) BestChi2_const=val_flat_const*NDF;
@@ -12327,8 +12607,69 @@ nsig_flat_const = sqrt(2)*TMath::ErfcInverse(pval);
     fprintf(fptr,"\\end{center} \n");
     fprintf(fptr,"\\end{table} \n");
 
+    TFile fOutput(InputFolder+"Exclusion.root","recreate");
+
+    double MinChi2_1 = hChi2_1->GetBinContent(hChi2_1->GetMinimumBin());
+    double MinChi2_Chiral1 = hChi2_Chiral1->GetBinContent(hChi2_Chiral1->GetMinimumBin());
+    double MinChi2_Flat1 = hChi2_Flat1->GetBinContent(hChi2_Flat1->GetMinimumBin());
+
+    //hChi2_1->GetZaxis()->SetRangeUser(13,20);
 
 
+    printf("MinChi2_1 = %.2f\n",MinChi2_1);
+    printf("MinChi2_Chiral1 = %.2f\n",MinChi2_Chiral1);
+    printf("MinChi2_Flat1 = %.2f\n",MinChi2_Flat1);
+    for(unsigned uS0=0; uS0<NumS0; uS0++){
+      for(unsigned uS1=0; uS1<NumS1; uS1++){
+        hDeltaChi2_Chiral1->SetBinContent(uS0+1,uS1+1,hChi2_Chiral1->GetBinContent(uS0+1,uS1+1)-MinChi2_Chiral1+1e-6);
+        hDeltaChi2_Flat1->SetBinContent(uS0+1,uS1+1,hChi2_Flat1->GetBinContent(uS0+1,uS1+1)-MinChi2_Flat1+1e-6);
+        hDeltaChi2_1->SetBinContent(uS0+1,uS1+1,hChi2_1->GetBinContent(uS0+1,uS1+1)-MinChi2_1+1e-6);
+      }
+    }
+
+    //gStyle->SetPalette(2);
+
+    hChi2_Chiral1->GetZaxis()->SetRangeUser(NDF,3*NDF);
+    hChi2_Flat1->GetZaxis()->SetRangeUser(NDF,3*NDF);
+    hChi2_1->GetZaxis()->SetRangeUser(NDF,3*NDF);
+    //hChi2_1->SetMinimum(NDF);
+    //hChi2_1->SetMaximum(3*NDF);
+
+    hDeltaChi2_Chiral1->GetZaxis()->SetRangeUser(0,6.2);
+    hDeltaChi2_Flat1->GetZaxis()->SetRangeUser(0,6.2);
+    hDeltaChi2_1->GetZaxis()->SetRangeUser(0,6.2);
+
+    hChi2_Chiral1->SetStats(false);
+    hChi2_Flat1->SetStats(false);
+    hChi2_1->SetStats(false);
+    hDeltaChi2_Chiral1->SetStats(false);
+    hDeltaChi2_Flat1->SetStats(false);
+    hDeltaChi2_1->SetStats(false);
+
+    hChi2_Chiral1->Write();
+    hChi2_Flat1->Write();
+    hChi2_1->Write();
+
+    hDeltaChi2_Chiral1->Write();
+    hDeltaChi2_Flat1->Write();
+    hDeltaChi2_1->Write();
+
+    delete [] fs0_t3;
+    delete [] fs1_t3;
+    delete [] fls0_t3;
+    delete [] fls1_t3;
+
+    if(hChi2_1) {delete hChi2_1; hChi2_1=NULL;}
+    if(hDeltaChi2_1) {delete hDeltaChi2_1; hDeltaChi2_1=NULL;}
+    if(hNsig_1) {delete hNsig_1; hNsig_1=NULL;}
+
+    if(hChi2_Chiral1) {delete hChi2_Chiral1; hChi2_Chiral1=NULL;}
+    if(hDeltaChi2_Chiral1) {delete hDeltaChi2_Chiral1; hDeltaChi2_Chiral1=NULL;}
+    if(hNsig_Chiral1) {delete hNsig_Chiral1; hNsig_Chiral1=NULL;}
+
+    if(hChi2_Flat1) {delete hChi2_Flat1; hChi2_Flat1=NULL;}
+    if(hDeltaChi2_Flat1) {delete hDeltaChi2_Flat1; hDeltaChi2_Flat1=NULL;}
+    if(hNsig_Flat1) {delete hNsig_Flat1; hNsig_Flat1=NULL;}
 
     delete [] PotName_pL;
     //delete [] PotName_pS0;
@@ -17105,14 +17446,117 @@ void SigmaFeed_kinematics(){
   delete [] RanGen;
 }
 
+void pLambda_Compare_Tunes(){
+
+  std::vector<int> Potentials;
+
+  Potentials.push_back(9411602);
+  Potentials.push_back(11603);
+  Potentials.push_back(111603);
+  Potentials.push_back(211603);
+  Potentials.push_back(311603);
+
+  const unsigned NumMomBins = 25;
+  const double kMin = 0;
+  const double kMax = 300;
+  const double CUSP_WEIGHT = 0.4;
+  const double SourceSize = 1.25;
+
+  TGraphErrors* gCk;
+  gCk = new TGraphErrors[Potentials.size()];
+
+  TGraphErrors* gCkRat;
+  gCkRat = new TGraphErrors[Potentials.size()];
+
+  DLM_DtColor DtCol(Potentials.size());
+
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
+
+  TCanvas* can = new TCanvas("can", "can", 1);
+  can->cd(0); can->SetCanvasSize(1920/2, 1080/2); can->SetMargin(0.15,0.05,0.2,0.05);//lrbt
+
+  TH1F* hAxis = new TH1F("hAxis","hAxis",NumMomBins,kMin,kMax);
+  hAxis->SetStats(false);
+  hAxis->GetYaxis()->SetRangeUser(0.9,3.0);
+
+  hAxis->Draw("axis");
+
+  for(int iPot=0; iPot<Potentials.size(); iPot++){
+    CATS AB_pL;
+    AB_pL.SetMomBins(NumMomBins,kMin,kMax);
+    AnalysisObject.SetUpCats_pL(AB_pL,"Chiral_Coupled_SPD","Gauss",Potentials.at(iPot),0);//NLO_Coupled_S
+    AB_pL.SetChannelWeight(7,1./4.*CUSP_WEIGHT);//1S0 SN(s) -> LN(s)
+    AB_pL.SetChannelWeight(8,3./4.*CUSP_WEIGHT);//3S1 SN(s) -> LN(s)
+    AB_pL.SetChannelWeight(10,3./4.*CUSP_WEIGHT);//3S1 SN(d) -> LN(s)
+    AB_pL.SetChannelWeight(13,3./20.*CUSP_WEIGHT);//3D1 SN(d) -> LN(d)
+    AB_pL.SetChannelWeight(15,3./20.*CUSP_WEIGHT);//3D1 SN(s) -> LN(d)
+    AB_pL.SetAnaSource(0,SourceSize);
+    //AB_pL.SetNotifications(CATS::nError);
+    AB_pL.KillTheCat();
+
+    double Momentum;
+    double CkVal;
+    double CkBase;
+    for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+
+      Momentum = AB_pL.GetMomentum(uMom);
+      CkVal = AB_pL.GetCorrFun(uMom);
+      gCk[iPot].SetPoint(uMom,Momentum,CkVal);
+
+      if(iPot){
+        gCk[0].GetPoint(uMom,Momentum,CkBase);
+      }
+      else{
+        CkBase = CkVal;
+      }
+
+      gCkRat[iPot].SetPoint(uMom,Momentum,CkBase/CkVal);
+
+    }
+
+    gCk[iPot].SetLineColor(DtCol.GetRainbow(iPot));
+    gCk[iPot].SetLineWidth(4);
+    gCk[iPot].SetName(TString::Format("gCk%i",iPot));
+
+    gCkRat[iPot].SetLineColor(DtCol.GetRainbow(iPot));
+    gCkRat[iPot].SetLineWidth(4);
+    gCkRat[iPot].SetName(TString::Format("gCkRat%i",iPot));
+
+    can->cd(0);
+    //if(!iPot){
+    //  gCk[iPot].Draw("L,axis");
+    //}
+    //else{
+      gCk[iPot].Draw("L,same");
+      //gCkRat[iPot].Draw("L,same");
+    //}
+  }
+
+  TFile fOutput(TString::Format("%s/pLambda/Compare_Tunes/fOutput.root",GetFemtoOutputFolder()),"recreate");
+  for(int iPot=0; iPot<Potentials.size(); iPot++){
+    gCk[iPot].Write();
+  }
+  for(int iPot=0; iPot<Potentials.size(); iPot++){
+    gCkRat[iPot].Write();
+  }
+
+  can->Write();
+  can->SaveAs(TString::Format("%s/pLambda/Compare_Tunes/gCk.png",GetFemtoOutputFolder()));
+
+
+  delete [] gCk;
+  delete hAxis;
+}
 
 int PLAMBDA_1_MAIN(int argc, char *argv[]){
+  pLambda_Compare_Tunes(); return 0;
 //printf("PLAMBDA_1_MAIN\n");
 //SigmaFeed_kinematics();
 //return 0;
-Effect_on_ME_of_mT_mult_binning();
+//Effect_on_ME_of_mT_mult_binning();
 //Match_Usmani_NLO(atoi(argv[1]),atoi(argv[2]));//32768
-return 0;
+//return 0;
 
   //pL_EffectiveRadius(1.02);
   //Unfold_pL_ME(TString::Format("%s/CatsFiles/ExpData/ALICE_pp_13TeV_HM/DimiJun20/Norm240_340/DataSignal/",GetCernBoxDimi()),"TEST.root");
@@ -17189,7 +17633,7 @@ UpdateUnfoldFile(TString::Format("%s/CatsFiles/",GetCernBoxDimi()),
 Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(atoi(argv[4]))/10.,
                             ///home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/100720_Unfolded/
                             //TString::Format("%s/pLambda/100720_Unfolded/",GetCernBoxDimi()),
-                            TString::Format("%s/pLambda/151122/NoBoot/",GetCernBoxDimi()),
+                            TString::Format("%s/pLambda/021222/NoBoot/",GetCernBoxDimi()),
                             //TString::Format("%s/pLambda/170721_NewUnfold/NoBoot/",GetCernBoxDimi()),
                             //TString::Format("%s/pLambda/170721_NewUnfold/Full/",GetCernBoxDimi()),
                             //TString::Format("%s/pLambda/PLB/NoBoot/",GetCernBoxDimi()),
@@ -17208,18 +17652,23 @@ Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(at
                             //TString::Format("%s/pLambda/PLB/NoBoot/Plots_v4/",GetCernBoxDimi()),
                             //TString::Format("%s/pLambda/020522/Full/Plots/",GetCernBoxDimi()),
                             //TString::Format("%s/pLambda/020522/FullData/Plots/",GetCernBoxDimi()),
-                            TString::Format("%s/pLambda/151122/NoBoot/Plots/",GetCernBoxDimi()),
+                            TString::Format("%s/pLambda/021222/NoBoot/Plots108/",GetCernBoxDimi()),
                             //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/"
                             atoi(argv[5])///REMOVE FOR THE OLD PLOTS
                           );
 
 return 0;
 */
+
 //MakeLATEXtable(TString::Format("%s/pLambda/PLB/NoBoot/Plots_v4/",GetCernBoxDimi()),false);
 //MakeLATEXtable(TString::Format("%s/pLambda/020522/NoBoot/Plots/",GetCernBoxDimi()),true,1);
 //MakeLATEXtable(TString::Format("%s/pLambda/020522/NoBoot/Plots108/",GetCernBoxDimi()),true,1);
-MakeLATEXtable(TString::Format("%s/pLambda/151122/NoBoot/Plots/",GetCernBoxDimi()),true,2);
-//return 0;
+
+//MakeLATEXtable(TString::Format("%s/pLambda/281122/NoBoot/Plots108/",GetCernBoxDimi()),true,3);//all normal
+//MakeLATEXtable(TString::Format("%s/pLambda/151122/NoBoot/Plots108/",GetCernBoxDimi()),true,3);//w/o 140-200 MeV in fit
+//MakeLATEXtable(TString::Format("%s/pLambda/251122/NoBoot/Plots108/",GetCernBoxDimi()),true,3);//2x error above 108 MeV in fit
+MakeLATEXtable(TString::Format("%s/pLambda/021222/NoBoot/Plots108/",GetCernBoxDimi()),true,4);//
+return 0;
 
 //Plot_pL_SystematicsMay2020_2(2,10,1500,2.0,
 //        "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/040620_Gauss/",
@@ -17259,8 +17708,10 @@ MakeLATEXtable(TString::Format("%s/pLambda/151122/NoBoot/Plots/",GetCernBoxDimi(
                           // const char* CatsFileFolder, const char* OutputFolder
 //!!!!!!!!!!!!!!!!!!!!!!!!
 //pL_SystematicsMay2020(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]), atoi(argv[6]), atoi(argv[7]), atoi(argv[8]), atoi(argv[9]),
+//pL_SystematicsMay2020(1,10,11602,1,311,1,1,0,4,
 //TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data(),
 //TString::Format("%s/pLambda/Dump/",GetCernBoxDimi()).Data());
+//return 0;
 
 //printf("HELLO THERE\n");
 //pL_SystematicsMay2020(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]), atoi(argv[6]), atoi(argv[7]),
