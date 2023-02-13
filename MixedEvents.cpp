@@ -4248,7 +4248,31 @@ void ResoInfo(const int& ResoPid, int& ParentPid, double& Width, const TString& 
       default: printf("\033[1;33mWARNING:\033[0m Unexpected p_Kaon resonances!\n"); Width=0; ParentPid=1; break;
     }
   }
-  else if(System=="pReso_piReso"){
+  else if(System=="pReso_piReso"||System=="pReso_pi"||System=="p_piReso"){
+    bool Problem = false;
+    if(abs(ResoPid)==1120||abs(ResoPid)==2212||abs(ResoPid)==120||abs(ResoPid)==211){
+      ParentPid=0;
+    }
+    else if(System=="pReso_piReso"){
+      if(abs(ResoPid)==2){ParentPid=211;}//shifted from max
+      else if(abs(ResoPid)==1){ParentPid=2212;}
+      else Problem = true;
+    }
+    else{
+      if(abs(ResoPid)!=1&&abs(ResoPid)!=2){
+        Problem = true;
+      }
+      else if(System=="pReso_pi"){
+        ParentPid=2212;
+      }
+      else{//System=="p_piReso"
+        ParentPid=211;
+      }
+    }
+    if(Problem){
+      printf("\033[1;33mWARNING:\033[0m Unexpected p_pi resonances!\n");
+    }
+    Width=bool(ParentPid);
     /*
     switch (abs(ResoPid)) {
       case 1120: Width=0; ParentPid=0; break;
@@ -4653,10 +4677,13 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
     else if(DataSetDescr=="p_piReso"||DataSetDescr=="pReso_pi"||DataSetDescr=="pReso_piReso"){
       //InputFileName = TString::Format("%s/CatsFiles/Source/EposRawOutput/p_pi/pi_p.f19",GetCernBoxDimi());
       if(DataSetDescr=="pReso_piReso"){
-        InputFileName = TString::Format("%s/CatsFiles/Source/EposRawOutput/p_pi/Jan2023/piReso_pReso",GetCernBoxDimi());
-        InputFileName = TString::Format("%s/CatsFiles/Source/EposRawOutput/p_pi/Jan2023/ApiReso_pReso",GetCernBoxDimi());
-        InputFileName = TString::Format("%s/CatsFiles/Source/EposRawOutput/p_pi/Jan2023/piReso_ApReso",GetCernBoxDimi());
-        InputFileName = TString::Format("%s/CatsFiles/Source/EposRawOutput/p_pi/Jan2023/ApiReso_ApReso",GetCernBoxDimi());
+        InputFileName = TString::Format("%s/CatsFiles/Source/EposRawOutput/p_pi/Feb2023/piReso_pReso.f19",GetCernBoxDimi());
+      }
+      else if(DataSetDescr=="pReso_pi"){
+        InputFileName = TString::Format("%s/CatsFiles/Source/EposRawOutput/p_pi/Feb2023/pi_pReso.f19",GetCernBoxDimi());
+      }
+      else {
+        InputFileName = TString::Format("%s/CatsFiles/Source/EposRawOutput/p_pi/Feb2023/piReso_p.f19",GetCernBoxDimi());
       }
     }
     else//
@@ -5565,7 +5592,7 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
         DaughterMassP2[3] = Mass_pic*0.001;
 
         ResoMass[0] = -1;
-        ResoMass[1] = 1.180;
+        ResoMass[1] = 1.124;//should be 1.180 ?
 
         FractionsNbody[0] = 1;
         FractionsNbody[1] = 0;
@@ -5619,7 +5646,7 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
         DaughterMassP2[3] = Mass_pic*0.001;
 
         ResoMass[0] = 1.36;
-        ResoMass[1] = 1.180;
+        ResoMass[1] = 1.124;//should be 1.180 ?
 
         FractionsNbody[0] = 1;
         FractionsNbody[1] = 0;
@@ -5713,7 +5740,9 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
     TH2F* h_AngleRCP1_P1P2_D = new TH2F("h_AngleRCP1_P1P2_D","h_AngleRCP1_P1P2_D",64,0,Pi,64,0,Pi);
     TH2F* h_AngleRCP2_P1P2_D   = new TH2F("h_AngleRCP2_P1P2_D","h_AngleRCP2_P1P2_D",64,0,Pi,64,0,Pi);
 
-    TH1F* hResoMass = new TH1F("hResoMass","hResoMass",4096,0,4096);
+    TH1F* hResoMassP1 = new TH1F("hResoMassP1","hResoMassP1",4096,0,4096);
+    TH1F* hResoMassP2 = new TH1F("hResoMassP2","hResoMassP2",4096,0,4096);
+
     TH1I* hNbody = new TH1I("hNbody","hNbody",8,-0.5,7.5);
 
     //angles between the radial spacial component and the momentum. Studied to see if it is
@@ -5918,6 +5947,19 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
                 continue; //don't save this particle if it is of the wrong type
 
 
+
+            //GhettoStyle: get rid of the omegas for pions that max wrongly included in the evaluation of the source
+            bool GhettoCleanPion = false;
+            if(DataSetDescr=="pReso_piReso"||DataSetDescr=="p_piReso"){
+              //if(abs(ResoPid)==1120||abs(ResoPid)==2212||abs(ResoPid)==120||abs(ResoPid)==211){
+              if(ResoWidth && ParentPID==211 && KittyParticle.GetMass()<1.0){
+                //get rid of 30% of the light resonances
+                //GhettoCleanPion = (rangen.Uniform(0,1)<0.3);
+                //printf("%f\n", KittyParticle.GetMass());
+                //usleep(100e3);
+              }
+            }
+
 /*
             //cut out entries at very large rapidity
             if(fabs(KittyParticle.GetPseudoRap())>6){
@@ -5931,8 +5973,10 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
             KittyEvent->AddParticle(KittyParticle);
 
 
-if(KittyParticle.GetPid()==0)
-hResoMass->Fill(KittyParticle.GetMass()*1000.);
+if(KittyParticle.GetPid()==0)hResoMassP1->Fill(KittyParticle.GetMass()*1000.);
+
+if(KittyParticle.GetPid()==1)hResoMassP2->Fill(KittyParticle.GetMass()*1000.);
+
         }//for(int iPart=0; iPart<NumPartInEvent; iPart++)
 
 
@@ -5970,7 +6014,9 @@ hResoMass->Fill(KittyParticle.GetMass()*1000.);
 //}
             ///correct the mass
             if(pid1<10&&ParticleOriginal1.GetMass()<DaughterMassP1[0]+DaughterMassP1[1]){
-//printf("ParticleOriginal1.GetMass() = %f\n",ParticleOriginal1.GetMass());
+printf("ParticleOriginal1.GetMass() = %f\n",ParticleOriginal1.GetMass());
+printf("   ---> [%f] [%f]\n",DaughterMassP1[0],DaughterMassP1[1]);
+usleep(100e3);
                 ParticleOriginal1.SetMass(ResoMass[0]);
                 ParticleOriginal1.Set(ParticleOriginal1.GetT(),ParticleOriginal1.GetX(),ParticleOriginal1.GetY(),ParticleOriginal1.GetZ(),
                                       sqrt(ResoMass[0]*ResoMass[0]+ParticleOriginal1.GetP2()),
@@ -6853,7 +6899,8 @@ printf("d2 = %f(%.3f,%.3f) r %f(%.3f,%.3f)\n",DaughterOriginal2.GetP(),DaughterO
     h_AngleRCP1_RCP2_D->Write();
     h_AngleRCP1_P1P2_D->Write();
     h_AngleRCP2_P1P2_D->Write();
-    hResoMass->Write();
+    hResoMassP1->Write();
+    hResoMassP2->Write();
     h_P1_KR_LAB->Write();
     h_P2_KR_LAB->Write();
     hNbody->Write();
@@ -6904,7 +6951,8 @@ printf("d2 = %f(%.3f,%.3f) r %f(%.3f,%.3f)\n",DaughterOriginal2.GetP(),DaughterO
     delete h_AngleRCP1_RCP2_D;
     delete h_AngleRCP1_P1P2_D;
     delete h_AngleRCP2_P1P2_D;
-    delete hResoMass;
+    delete hResoMassP1;
+    delete hResoMassP2;
     delete h_P1_KR_LAB;
     delete h_P2_KR_LAB;
     delete hNbody;
@@ -7420,7 +7468,7 @@ int MIXEDEVENTS(int argc, char *argv[]){
     //ReferenceSampleStudy_2("EposDisto","Lam_Lam");
     //ReferenceSampleStudy_2("EposDisto","Lam_LamReso");
     //ReferenceSampleStudy_2("EposDisto","LamReso_LamReso");
-    ReferenceSampleStudy_2("Philipp","p_piReso");
+    //ReferenceSampleStudy_2("Philipp","p_piReso");
     //ReferenceSampleStudy_2("Philipp","pReso_pi");
     //ReferenceSampleStudy_2("Philipp","pReso_piReso");
 
@@ -7443,6 +7491,10 @@ int MIXEDEVENTS(int argc, char *argv[]){
     //ReferenceSampleStudy_2("Only3body","pReso_pReso_3body");
     //ReferenceSampleStudy_2("Epos","pReso_Phi");
     //ReferenceSampleStudy_2("Epos","LamReso_Xim");
+
+    ReferenceSampleStudy_2("Marcelo","p_piReso");
+    //ReferenceSampleStudy_2("Marcelo","pReso_pi");
+    //ReferenceSampleStudy_2("Marcelo","pReso_piReso");
 
     //dEta_dPhi_Ck_QS("QS", "pp", true);
     //CompareReferenceSamples("pp");

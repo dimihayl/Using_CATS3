@@ -1978,13 +1978,19 @@ void Ceca_pd_1(const double& d_delay, const int& EffFix, const TString type="pd"
   const double EtaCut = 0.8;
   const bool PROTON_RESO = true;
   const bool EQUALIZE_TAU = true;
-  const double TIMEOUT = 30*3;
+  const double TIMEOUT = 30;
+  const double GLOB_TIMEOUT = 60*15;
+  const unsigned Multiplicity=2;
+  const double femto_region = 100;
+  const unsigned target_yield = 50000;
+
   //we run to either reproduce the core of 0.97,
   //or the upper limit of reff = 1.06+0.04
   //this leads to a 10% difference in the SP core source
   double rSP_core=0;
   double rSP_dispZ=0;
   double rSP_hadr=0;
+  double rSP_hadrZ=0;
   double rSP_hflc=0;
   double rSP_tau=0;
   bool tau_prp = true;
@@ -2005,6 +2011,7 @@ void Ceca_pd_1(const double& d_delay, const int& EffFix, const TString type="pd"
       //rSP_hadr = 3.55;
       //rSP_tau = 2.3;
       rSP_hadr = 2.3;
+      rSP_hadrZ = 0;
       rSP_tau = 3.55;
       rSP_hflc = 0.00;
     }
@@ -2072,6 +2079,15 @@ void Ceca_pd_1(const double& d_delay, const int& EffFix, const TString type="pd"
       //rSP_core = 0.25;
       //rSP_hadr = 3.55;
       //rSP_tau = 1.0;
+    }
+    //some random tests
+    else if(-900){
+      rSP_core = 0.32;
+      rSP_dispZ = 0.32;
+      rSP_hadr = 2.3/2.;
+      rSP_hadrZ = 2.3*4.;
+      rSP_tau = 3.55*0;
+      rSP_hflc = 0.00;
     }
     //for FEMTUM
     else if(EffFix==-1001){
@@ -2171,8 +2187,9 @@ void Ceca_pd_1(const double& d_delay, const int& EffFix, const TString type="pd"
   if(EffFix) OutputFolderName = "FunWithCeca/Ceca_"+type+"_EffFix";
   else OutputFolderName = "FunWithCeca/Ceca_"+type+"_CoreFix";
   //OutputFolderName = "FunWithCeca";
-  TFile fOutput(TString::Format("%s/%s/KstarDist_%s_ET%i_PR%i_DD%.1f_EF%i.root",
-  GetFemtoOutputFolder(),OutputFolderName.Data(),type.Data(),EQUALIZE_TAU,PROTON_RESO,d_delay,EffFix),"recreate");
+  TString BaseFileName = TString::Format("%s/%s/KstarDist_%s_ET%i_PR%i_DD%.1f_EF%i",
+  GetFemtoOutputFolder(),OutputFolderName.Data(),type.Data(),EQUALIZE_TAU,PROTON_RESO,d_delay,EffFix);
+  TFile fOutput(BaseFileName+".root","recreate");
 
   DLM_Histo<float>* dlm_pT_p = NULL;
   DLM_Histo<float>* dlm_pT_d = NULL;
@@ -2572,7 +2589,7 @@ if(prt->GetName()=="PionFSI"){
 
   Ivana.SetDisplacementZ(rSP_dispZ);
   Ivana.SetDisplacementT(rSP_core);
-  Ivana.SetHadronizationZ(0);
+  Ivana.SetHadronizationZ(rSP_hadrZ);//0
   Ivana.SetHadronizationT(rSP_hadr);
   Ivana.SetHadrFluctuation(rSP_hflc);
   Ivana.SetTau(rSP_tau,tau_prp);
@@ -2590,16 +2607,45 @@ if(prt->GetName()=="PionFSI"){
   //Ivana.SetHadronizationT(0);
   //Ivana.SetTau(0);
 
-  Ivana.SetTargetStatistics(10);
-  Ivana.SetEventMult(2);
+  Ivana.SetTargetStatistics(target_yield);
+  Ivana.SetEventMult(Multiplicity);
   Ivana.SetSourceDim(2);
   Ivana.SetDebugMode(true);
   Ivana.SetThreadTimeout(TIMEOUT);
+  Ivana.SetGlobalTimeout(GLOB_TIMEOUT);
   Ivana.EqualizeFsiTime(EQUALIZE_TAU);
-  Ivana.SetFemtoRegion(100);
+  Ivana.SetFemtoRegion(femto_region);
   Ivana.GHETTO_EVENT = true;
+  if(type=="pp"){
+    //BinCenter_pp[0] = 1.1077;
+    //BinCenter_pp[1] = 1.1683;
+    //BinCenter_pp[2] = 1.2284;
+    //BinCenter_pp[3] = 1.3156;
+    //BinCenter_pp[4] = 1.4628;
+    //BinCenter_pp[5] = 1.6872;
+    //BinCenter_pp[6] = 2.2116;
+
+    Ivana.Ghetto_NumMtBins = 9;
+    Ivana.Ghetto_MtBins = new double [Ivana.Ghetto_NumMtBins+1];
+    Ivana.Ghetto_MtBins[0] = 938;
+    Ivana.Ghetto_MtBins[1] = 1055;
+    Ivana.Ghetto_MtBins[2] = 1135;
+    Ivana.Ghetto_MtBins[3] = 1190;
+    Ivana.Ghetto_MtBins[4] = 1270;
+    Ivana.Ghetto_MtBins[5] = 1390;
+    Ivana.Ghetto_MtBins[6] = 1570;
+    Ivana.Ghetto_MtBins[7] = 1940;
+    Ivana.Ghetto_MtBins[8] = 2500;
+    Ivana.Ghetto_MtBins[9] = 4000;
+
+    Ivana.Ghetto_NumMomBins = 150;
+    Ivana.Ghetto_MomMin = 0;
+    Ivana.Ghetto_MomMax = 600;
+  }
 
   Ivana.GoBabyGo();
+
+  Ivana.Ghetto_kstar_rstar_mT->QuickWrite(BaseFileName+".Ghetto_kstar_rstar_mT",true);
 
 //return;
   double TotPairs = Ivana.GhettoPrimReso[0]+Ivana.GhettoPrimReso[1]+Ivana.GhettoPrimReso[2]+Ivana.GhettoPrimReso[3];
@@ -9258,6 +9304,7 @@ int FUN_WITH_CECA(int argc, char *argv[]){
   //Ceca_pd_1(0.0,-1020,"pp");
   //Ceca_pd_1(0.0,-1100,"pp");
   //Ceca_pd_1(0.0,-1200,"pp");
+  Ceca_pd_1(0.0,-900,"pp");
 
   //Ceca_pd_1(0.0,-1300,"pp");
   //Ceca_pd_1(0.0,-1,"pipi_core");
@@ -9265,7 +9312,7 @@ int FUN_WITH_CECA(int argc, char *argv[]){
 
   //Ceca_pd_1(0.0,-1,"pd");
   //Ceca_pd_1(0.0,-1,"pP");
-  Ceca_pd_1(0.0,-1,"pipi");
+  //Ceca_pd_1(0.0,-1,"pipi");
 
   //Ceca_pd_1(0.0,-1,"pK");
   //Ceca_pd_1(0.0,1,"pK");

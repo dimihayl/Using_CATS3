@@ -9182,7 +9182,7 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
     const int PlotsType = 3;
     const bool WriteToInfoFile=true;
     int Panel_X = 0;
-printf("0\n");
+//printf("0\n");
     if(PlotsType==1){
       if((WhichPotential==11600||WhichPotential>100000) && SIGMA_FEED==1)Panel_X=0;
       if((WhichPotential==11600||WhichPotential>100000) && SIGMA_FEED==0)Panel_X=1;
@@ -9282,7 +9282,7 @@ printf("0\n");
         }
         GoodCutVar[WhichDataSet] = MinGoodCut;
     }
-printf("1\n");
+//printf("1\n");
 
     switch(WhichBaseline){
         case pol0s :    BlName1 = "Constant baseline";
@@ -9342,7 +9342,7 @@ printf("1\n");
                         BlDescr = "Unknown";
                         break;
     }
-printf("2\n");
+//printf("2\n");
     TString PotName1;
     TString PotName2;
     TString PotName3;
@@ -9362,16 +9362,21 @@ printf("2\n");
       float f1S0=-1e6;
       float f3S1=-1e6;
       switch (Flag1S0) {
+        case 13 : f1S0=3.30; break;
+        case 12 : f1S0=3.20; break;
+        case 11 : f1S0=3.10; break;
+        case 10 : f1S0=3.00; break;
+        case 0  : f1S0=2.91; break;
         case 99 : f1S0=2.80; break;
         case 98 : f1S0=2.65; break;
         case 97 : f1S0=2.55; break;
         case 96 : f1S0=2.45; break;
         case 95 : f1S0=2.30; break;
         case 94 : f1S0=2.20; break;
-        case 0  : f1S0=2.91; break;
         default: break;
       }
       switch (Flag3S1) {
+        case 0  : f3S1=1.41; break;
         case 99 : f3S1=1.35; break;
         case 98 : f3S1=1.30; break;
         case 97 : f3S1=1.25; break;
@@ -9380,7 +9385,8 @@ printf("2\n");
         case 94 : f3S1=1.10; break;
         case 93 : f3S1=1.05; break;
         case 92 : f3S1=1.00; break;
-        case 0  : f3S1=1.41; break;
+        case 91 : f3S1=0.95; break;
+        case 90 : f3S1=0.90; break;
         default: break;
       }
 
@@ -9407,7 +9413,7 @@ printf("2\n");
       PotName1 += "fm";
       PotName2 = "Based on NLO19";
     }
-    if(WhichPotential%100000==11603){
+    else if(WhichPotential%100000==11603){
       int Flag3S1 = (WhichPotential/100000)%100;
       int Flag1S0 = (WhichPotential/10000000)%100;
       PotName1 = "";
@@ -11834,7 +11840,7 @@ void Quick_pLambda_plotter_NLO13_vs_LO13(){
 //Type == 0: LO,NLO13/19
 //Type == 1: + the CSB and fine tunes
 //Type == 2: the many new Johann pots from 2022
-//Type == 3: the many many new Johann pots from 2022 (9x7 = 63)
+//Type == 3: the many many new Johann pots from 2022 (11x11 = 121)
 //Type == 4: the test of similar scatt length for different LECs
 void MakeLATEXtable(TString InputFolder, bool Compact=false, int Type=0){
     TString OutputFileName;
@@ -11855,7 +11861,7 @@ void MakeLATEXtable(TString InputFolder, bool Compact=false, int Type=0){
     if(Type==0){NumLamVars=9;}
     else if(Type==1){NumLamVars=13;}
     else if(Type==2){NumLamVars=8+13;}
-    else if(Type==3){NumLamVars=63;}
+    else if(Type==3){NumLamVars=121;}
     else if(Type==4){NumLamVars=4;}
 
     TString* PotName_pL = new TString [NumLamVars];
@@ -11959,8 +11965,8 @@ void MakeLATEXtable(TString InputFolder, bool Compact=false, int Type=0){
     int NumS0 = 0;
     int NumS1 = 0;
     if(Type==3){
-      NumS0=7;
-      NumS1=9;
+      NumS0=11;
+      NumS1=11;
     }
     if(Type==4){
       NumS0=1;
@@ -11972,6 +11978,14 @@ void MakeLATEXtable(TString InputFolder, bool Compact=false, int Type=0){
     int* fls1_t3 = new int[NumS1];
 
     if(Type==3){
+      fs0_t3[10] = 3.30;
+      fls0_t3[10] = 13;
+      fs0_t3[9] = 3.20;
+      fls0_t3[9] = 12;
+      fs0_t3[8] = 3.10;
+      fls0_t3[8] = 11;
+      fs0_t3[7] = 3.00;
+      fls0_t3[7] = 10;
       fs0_t3[6] = 2.91;
       fls0_t3[6] = 0;
       fs0_t3[5] = 2.80;
@@ -11987,24 +12001,29 @@ void MakeLATEXtable(TString InputFolder, bool Compact=false, int Type=0){
       fs0_t3[0] = 2.20;
       fls0_t3[0] = 94;
 
-      fs1_t3[8] = 1.41;
-      fls1_t3[8] = 0;
-      fs1_t3[7] = 1.35;
-      fls1_t3[7] = 99;
-      fs1_t3[6] = 1.30;
-      fls1_t3[6] = 98;
-      fs1_t3[5] = 1.25;
-      fls1_t3[5] = 97;
-      fs1_t3[4] = 1.20;
-      fls1_t3[4] = 96;
-      fs1_t3[3] = 1.15;
-      fls1_t3[3] = 95;
-      fs1_t3[2] = 1.10;
-      fls1_t3[2] = 94;
-      fs1_t3[1] = 1.05;
-      fls1_t3[1] = 95;
-      fs1_t3[0] = 1.00;
-      fls1_t3[0] = 94;
+      fs1_t3[10] = 1.41;
+      fls1_t3[10] = 0;
+      fs1_t3[9] = 1.35;
+      fls1_t3[9] = 99;
+      fs1_t3[8] = 1.30;
+      fls1_t3[8] = 98;
+      fs1_t3[7] = 1.25;
+      fls1_t3[7] = 97;
+      fs1_t3[6] = 1.20;
+      fls1_t3[6] = 96;
+      fs1_t3[5] = 1.15;
+      fls1_t3[5] = 95;
+      fs1_t3[4] = 1.10;
+      fls1_t3[4] = 94;
+      fs1_t3[3] = 1.05;
+      fls1_t3[3] = 93;
+      fs1_t3[2] = 1.00;
+      fls1_t3[2] = 92;
+      fs1_t3[1] = 0.95;
+      fls1_t3[1] = 91;
+      fs1_t3[0] = 0.90;
+      fls1_t3[0] = 90;
+
 //case 30011601: fprintf(fptr,"\\color{red}{$f_\\text{s}$=2.55};\\color{black}{$f_\\text{t}$=1.41fm}"); break;
       TString ColorS0,ColorS1;
       for(int s0=0; s0<NumS0; s0++){
@@ -17550,7 +17569,7 @@ void pLambda_Compare_Tunes(){
 }
 
 int PLAMBDA_1_MAIN(int argc, char *argv[]){
-  pLambda_Compare_Tunes(); return 0;
+  //pLambda_Compare_Tunes(); return 0;
 //printf("PLAMBDA_1_MAIN\n");
 //SigmaFeed_kinematics();
 //return 0;
@@ -17633,7 +17652,7 @@ UpdateUnfoldFile(TString::Format("%s/CatsFiles/",GetCernBoxDimi()),
 Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(atoi(argv[4]))/10.,
                             ///home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/100720_Unfolded/
                             //TString::Format("%s/pLambda/100720_Unfolded/",GetCernBoxDimi()),
-                            TString::Format("%s/pLambda/021222/NoBoot/",GetCernBoxDimi()),
+                            TString::Format("%s/pLambda/010223/NoBoot/",GetCernBoxDimi()),
                             //TString::Format("%s/pLambda/170721_NewUnfold/NoBoot/",GetCernBoxDimi()),
                             //TString::Format("%s/pLambda/170721_NewUnfold/Full/",GetCernBoxDimi()),
                             //TString::Format("%s/pLambda/PLB/NoBoot/",GetCernBoxDimi()),
@@ -17652,7 +17671,7 @@ Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(at
                             //TString::Format("%s/pLambda/PLB/NoBoot/Plots_v4/",GetCernBoxDimi()),
                             //TString::Format("%s/pLambda/020522/Full/Plots/",GetCernBoxDimi()),
                             //TString::Format("%s/pLambda/020522/FullData/Plots/",GetCernBoxDimi()),
-                            TString::Format("%s/pLambda/021222/NoBoot/Plots108/",GetCernBoxDimi()),
+                            TString::Format("%s/pLambda/010223/NoBoot/Plots108/",GetCernBoxDimi()),
                             //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/"
                             atoi(argv[5])///REMOVE FOR THE OLD PLOTS
                           );
@@ -17667,7 +17686,8 @@ return 0;
 //MakeLATEXtable(TString::Format("%s/pLambda/281122/NoBoot/Plots108/",GetCernBoxDimi()),true,3);//all normal
 //MakeLATEXtable(TString::Format("%s/pLambda/151122/NoBoot/Plots108/",GetCernBoxDimi()),true,3);//w/o 140-200 MeV in fit
 //MakeLATEXtable(TString::Format("%s/pLambda/251122/NoBoot/Plots108/",GetCernBoxDimi()),true,3);//2x error above 108 MeV in fit
-MakeLATEXtable(TString::Format("%s/pLambda/021222/NoBoot/Plots108/",GetCernBoxDimi()),true,4);//
+//MakeLATEXtable(TString::Format("%s/pLambda/021222/NoBoot/Plots108/",GetCernBoxDimi()),true,4);//
+MakeLATEXtable(TString::Format("%s/pLambda/010223/NoBoot/Plots108/",GetCernBoxDimi()),true,3);//2x error above 108 MeV in fit
 return 0;
 
 //Plot_pL_SystematicsMay2020_2(2,10,1500,2.0,
