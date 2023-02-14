@@ -468,7 +468,7 @@ DLM_Histo<float>* GetPtEta(TString FileNameP, TString FileNameAP,
 //the names should be given without extension. They should also have the FULL path!!
 //the assumed extension is *.txt for the Input and .dlm.hst for the Output
 //WILD_CARD: if -1: the mT binning is super fine, done for testing (figure out what binning to use)
-void Ceca_pp_or_pL(const TString InputFileBase, TString OutputFileBase, const int SEED){
+void Ceca_pp_or_pL(const TString InputFileBase, const TString OutputFileBase, const int SEED){
 
   const double TIMEOUT = 30;
   const double EtaCut = 0.8;
