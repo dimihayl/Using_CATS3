@@ -16,6 +16,8 @@
 #include <iostream>
 #include <unistd.h>
 #include <omp.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #include "TREPNI.h"
 #include "CATS.h"
@@ -746,18 +748,23 @@ void Ceca_pp_or_pL(const TString InputFileBase, const TString OutputFileBase, co
 
   if(type=="pp"){
     if(wildcard_flag==-1){
-      Ivana.Ghetto_NumMtBins = 206;
+      //Ivana.Ghetto_NumMtBins = 206;
+      //Ivana.Ghetto_MtBins = new double [Ivana.Ghetto_NumMtBins+1];
+      //for(unsigned uMt=0; uMt<=156; uMt++){
+      //  Ivana.Ghetto_MtBins[uMt] = 940. + double(uMt)*10;
+      //}
+      //for(unsigned uMt=157; uMt<=Ivana.Ghetto_NumMtBins; uMt++){
+      //  Ivana.Ghetto_MtBins[uMt] = 2500. + double(uMt-156)*50;
+      //}
+      Ivana.Ghetto_NumMtBins = 360;
       Ivana.Ghetto_MtBins = new double [Ivana.Ghetto_NumMtBins+1];
-      for(unsigned uMt=0; uMt<=156; uMt++){
+      for(unsigned uMt=0; uMt<=360; uMt++){
         Ivana.Ghetto_MtBins[uMt] = 940. + double(uMt)*10;
       }
-      for(unsigned uMt=157; uMt<=Ivana.Ghetto_NumMtBins; uMt++){
-        Ivana.Ghetto_MtBins[uMt] = 2500. + double(uMt-156)*50;
-      }
 
-      Ivana.Ghetto_NumMomBins = 50;//twice the bin width comapred to default
+      Ivana.Ghetto_NumMomBins = 25;
       Ivana.Ghetto_MomMin = 0;
-      Ivana.Ghetto_MomMax = 400;
+      Ivana.Ghetto_MomMax = 100;
 
       Ivana.Ghetto_NumRadBins = 192;//twice the bin width compared to default
       Ivana.Ghetto_RadMin = 0;
@@ -834,9 +841,11 @@ printf("pL binning is shit!!!\n");
 }
 
 
-
+//project the output into 2D histos of kstar_vs_rstar for each mT bin
 void ReadDlmHst(){
-  TString HistoFileName = TString::Format("%s/CECA_Paper/Ceca_pp_or_pL/TEST_1_full.dlm.hst",GetFemtoOutputFolder());
+  //system("echo -n '1. Current Directory is '; pwd");
+  TString HistoFileName = TString::Format("%s/CECA_Paper/dadd_f/testout1.dlm.hst",GetFemtoOutputFolder());
+  //TString HistoFileName = "./Output/CECA_Paper/dadd_f/Output/TEST1_3_full.dlm.hst";
 
   DLM_Histo<float> dlmHisto;
   dlmHisto.QuickLoad(HistoFileName.Data());
@@ -845,36 +854,79 @@ void ReadDlmHst(){
   const unsigned NumRad = dlmHisto.GetNbins(1);
   const unsigned NumMom = dlmHisto.GetNbins(0);
 
+  double* BinRangeMt = dlmHisto.GetBinRange(2);
   double* BinRangeRad = dlmHisto.GetBinRange(1);
   double* BinRangeMom = dlmHisto.GetBinRange(0);
 
+
+  //get how many entries we have per mT_kstar bin to build our source
+  TH2F* hYield = new TH2F("hYield","hYield",NumMom,BinRangeMom,NumMt,BinRangeMt);
   TH2F** h_kstar_rstar = new TH2F* [NumMt];
   for(unsigned uMt=0; uMt<NumMt; uMt++){
     TString hName = TString::Format("h_kstar_rstar_mT%u",uMt);
     h_kstar_rstar[uMt] = new TH2F(hName,hName,NumMom,BinRangeMom,NumRad,BinRangeRad);
     for(unsigned uMom=0; uMom<NumMom; uMom++){
+      hYield->SetBinContent(uMom+1,uMt+1,0);
       for(unsigned uRad=0; uRad<NumRad; uRad++){
         h_kstar_rstar[uMt]->SetBinContent(uMom+1,uRad+1,dlmHisto.GetBinContent(uMom,uRad,uMt));
+        hYield->SetBinContent(uMom+1,uMt+1,hYield->GetBinContent(uMom+1,uMt+1)+dlmHisto.GetBinContent(uMom,uRad,uMt));
       }
     }
     h_kstar_rstar[uMt]->Sumw2();
+    //printf("Integral %u: %u\n",uMt,unsigned(h_kstar_rstar[uMt]->Integral()));
   }
+  hYield->Sumw2();
 
-  TFile fOutput(TString::Format("%s/CECA_Paper/Ceca_pp_or_pL/TEST_1_full.root",GetFemtoOutputFolder()),"recreate");
+  TFile fOutput(TString::Format("%s/CECA_Paper/dadd_f/testout1.root",GetFemtoOutputFolder()),"recreate");
+  //TFile fOutput(TString::Format("%s/CECA_Paper/dadd_f/Output/TEST1_3_full.root",GetFemtoOutputFolder()),"recreate");
   for(unsigned uMt=0; uMt<NumMt; uMt++){
     h_kstar_rstar[uMt]->Write();
   }
+  hYield->Write();
 
   for(unsigned uMt=0; uMt<NumMt; uMt++){
     delete h_kstar_rstar[uMt];
   }
   delete [] h_kstar_rstar;
+  delete hYield;
   delete [] BinRangeRad;
   delete [] BinRangeMom;
+  delete [] BinRangeMt;
 
 }
 
 
+
+//hadd but for my histos
+bool dadd_f(int argc, char *argv[]){
+  //printf("Hello\n");
+  system("echo -n '1. Current Directory is '; pwd");
+  if(argc<3) {printf("\033[1;31mERROR:\033[0m Not enough arguments [dadd Output Input]\n"); return false;}
+  //1 default, 1 for the output
+  const int NumInputFiles = argc-2;
+  printf("Attempting to merge %i number of files\n",NumInputFiles);
+  DLM_Histo<float> MergedHisto;
+  //DLM_Histo<float>* HISTO;
+  //DLM_Histo<float>& uHisto = HISTO[0];
+  printf("Final file: %s\n",argv[1]);
+  bool Status = true;
+  for(unsigned uIn=0; uIn<NumInputFiles; uIn++){
+    DLM_Histo<float> uHisto;
+    printf(" -> %s\n",argv[2+uIn]);
+    uHisto.QuickLoad(argv[2+uIn]);
+    printf("   done\n");
+    if(uIn==0){
+      Status = (MergedHisto = uHisto);
+    }
+    else{
+      Status = (MergedHisto += uHisto);
+    }
+
+    //delete HISTO;
+    if(!Status) return Status;
+  }
+  MergedHisto.QuickWrite(argv[1],true);
+}
 
 int CECA_PAPER(int argc, char *argv[]){
 
@@ -890,6 +942,8 @@ int CECA_PAPER(int argc, char *argv[]){
   //TString::Format("%s/CECA_Paper/Ceca_pp_or_pL/TEST_1",GetFemtoOutputFolder()),
   //11);
   ReadDlmHst();
+
+  //dadd_f(argc,argv);
 
   return 0;
 }
