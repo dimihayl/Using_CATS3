@@ -77,6 +77,5 @@ private:
 
 };
 
-void Ceca_pp_or_pL(const TString InputFileBase, TString OutputFileBase, const int SEED);
 
 #endif // CATSTOOLS_H
