@@ -7076,11 +7076,11 @@ RejPts_May2020_Fitter.clear();
 //changes the error within specified ranges
 //the idea: reduce the overall weight of this range in the chi2 fit
 //e.g. concentrate only in good fit below 108 MeV
-std::vector<SpecialRange> ReweightError;
-SpecialRange RE_1;
-RE_1.Min = 108; RE_1.Max = 480;
-RE_1.par1 = 2;
-ReweightError.push_back(RE_1);
+//std::vector<SpecialRange> ReweightError;
+//SpecialRange RE_1;
+//RE_1.Min = 108; RE_1.Max = 480;
+//RE_1.par1 = 2;
+//ReweightError.push_back(RE_1);
 
     //do extra variations
     //0 - standarad
