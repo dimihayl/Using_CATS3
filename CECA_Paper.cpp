@@ -470,7 +470,7 @@ DLM_Histo<float>* GetPtEta(TString FileNameP, TString FileNameAP,
 //the names should be given without extension. They should also have the FULL path!!
 //the assumed extension is *.txt for the Input and .dlm.hst for the Output
 //WILD_CARD: if -1: the mT binning is super fine, done for testing (figure out what binning to use)
-void Ceca_pp_or_pL(const TString InputFileBase, const TString OutputFileBase, const int SEED){
+void Ceca_pp_or_pL(const TString InputFileBase, const TString OutputFileBase, const int SEED, const int NumCPU){
 
   const double TIMEOUT = 30;
   const double EtaCut = 0.8;
@@ -782,7 +782,7 @@ void Ceca_pp_or_pL(const TString InputFileBase, const TString OutputFileBase, co
       Ivana.Ghetto_MtBins[6] = 1570;
       Ivana.Ghetto_MtBins[7] = 1940;
       Ivana.Ghetto_MtBins[8] = 2500;
-      Ivana.Ghetto_MtBins[9] = 4000;
+      Ivana.Ghetto_MtBins[9] = 4500;
 
       Ivana.Ghetto_NumMomBins = 150;
       Ivana.Ghetto_MomMin = 0;
@@ -792,26 +792,44 @@ void Ceca_pp_or_pL(const TString InputFileBase, const TString OutputFileBase, co
   }
   else if(type=="pL"){
 //NOT_DONE_YET
-printf("pL binning is shit!!!\n");
-    Ivana.Ghetto_NumMtBins = 8;
-    Ivana.Ghetto_MtBins = new double [Ivana.Ghetto_NumMtBins+1];
-    Ivana.Ghetto_MtBins[0] = 938;
-    Ivana.Ghetto_MtBins[1] = 1055;
-    Ivana.Ghetto_MtBins[2] = 1135;
-    Ivana.Ghetto_MtBins[3] = 1190;
-    Ivana.Ghetto_MtBins[4] = 1270;
-    Ivana.Ghetto_MtBins[5] = 1390;
-    Ivana.Ghetto_MtBins[6] = 1570;
-    Ivana.Ghetto_MtBins[7] = 1940;
-    Ivana.Ghetto_MtBins[8] = 2500;
+    if(wildcard_flag==-1){
+      Ivana.Ghetto_NumMtBins = 360;
+      Ivana.Ghetto_MtBins = new double [Ivana.Ghetto_NumMtBins+1];
+      for(unsigned uMt=0; uMt<=360; uMt++){
+        Ivana.Ghetto_MtBins[uMt] = 1000. + double(uMt)*10;
+      }
 
-    Ivana.Ghetto_NumMomBins = 150;
-    Ivana.Ghetto_MomMin = 0;
-    Ivana.Ghetto_MomMax = 600;
+      Ivana.Ghetto_NumMomBins = 25;
+      Ivana.Ghetto_MomMin = 0;
+      Ivana.Ghetto_MomMax = 100;
+
+      Ivana.Ghetto_NumRadBins = 192;//twice the bin width compared to default
+      Ivana.Ghetto_RadMin = 0;
+      Ivana.Ghetto_RadMax = 48;
+    }
+    else{
+      Ivana.Ghetto_NumMtBins = 8;
+      Ivana.Ghetto_MtBins = new double [Ivana.Ghetto_NumMtBins+1];
+      Ivana.Ghetto_MtBins[0] = 1000;
+      Ivana.Ghetto_MtBins[1] = 1170;
+      Ivana.Ghetto_MtBins[2] = 1250;
+      Ivana.Ghetto_MtBins[3] = 1330;
+      Ivana.Ghetto_MtBins[4] = 1430;
+      Ivana.Ghetto_MtBins[5] = 1680;
+      Ivana.Ghetto_MtBins[6] = 1840;
+      Ivana.Ghetto_MtBins[7] = 2060;
+      Ivana.Ghetto_MtBins[8] = 4800;
+
+      Ivana.Ghetto_NumMomBins = 150;
+      Ivana.Ghetto_MomMin = 0;
+      Ivana.Ghetto_MomMax = 600;
+    }
   }
 
-  Ivana.SetSeed(0,SEED);
-  Ivana.GoBabyGo(1);
+  for(unsigned uTh=0; uTh<NumCPU; uTh++){
+    Ivana.SetSeed(uTh,SEED*(NumCPU)+uTh);
+  }
+  Ivana.GoBabyGo(NumCPU);
 
   Ivana.Ghetto_kstar_rstar_mT->QuickWrite(OutputFileNameFull,true);
   Ivana.Ghetto_kstar_rcore_mT->QuickWrite(OutputFileNameCore,true);
@@ -844,8 +862,9 @@ printf("pL binning is shit!!!\n");
 //project the output into 2D histos of kstar_vs_rstar for each mT bin
 void ReadDlmHst(){
   //system("echo -n '1. Current Directory is '; pwd");
-  TString HistoFileName = TString::Format("%s/CECA_Paper/dadd_f/testout1.dlm.hst",GetFemtoOutputFolder());
+  //TString HistoFileName = TString::Format("%s/CECA_Paper/dadd_f/testout1.dlm.hst",GetFemtoOutputFolder());
   //TString HistoFileName = "./Output/CECA_Paper/dadd_f/Output/TEST1_3_full.dlm.hst";
+  TString HistoFileName = "./Output/CECA_Paper/Ceca_pp_or_pL/TEST2_pL_full.dlm.hst";
 
   DLM_Histo<float> dlmHisto;
   dlmHisto.QuickLoad(HistoFileName.Data());
@@ -877,8 +896,9 @@ void ReadDlmHst(){
   }
   hYield->Sumw2();
 
-  TFile fOutput(TString::Format("%s/CECA_Paper/dadd_f/testout1.root",GetFemtoOutputFolder()),"recreate");
+  //TFile fOutput(TString::Format("%s/CECA_Paper/dadd_f/testout1.root",GetFemtoOutputFolder()),"recreate");
   //TFile fOutput(TString::Format("%s/CECA_Paper/dadd_f/Output/TEST1_3_full.root",GetFemtoOutputFolder()),"recreate");
+  TFile fOutput(TString::Format("%s/CECA_Paper/Ceca_pp_or_pL/TEST2_pL_full.root",GetFemtoOutputFolder()),"recreate");
   for(unsigned uMt=0; uMt<NumMt; uMt++){
     h_kstar_rstar[uMt]->Write();
   }
@@ -892,6 +912,42 @@ void ReadDlmHst(){
   delete [] BinRangeRad;
   delete [] BinRangeMom;
   delete [] BinRangeMt;
+}
+
+//what is the optimal binning in Ceca
+void OptimalBinning(TString syst, TString InputFile){
+
+  double* BinCenter;
+  //the lower acceptable limit
+  double* BinLowLimit;
+  //the upper acceptabe limit
+  double* BinUpLimit;
+  //the current averaged bin center based on these limits
+  double* BinAvg;
+  //
+
+  //BinCenter_pp[0] = 1.1077;
+  //BinCenter_pp[1] = 1.1683;
+  //BinCenter_pp[2] = 1.2284;
+  //BinCenter_pp[3] = 1.3156;
+  //BinCenter_pp[4] = 1.4628;
+  //BinCenter_pp[5] = 1.6872;
+  //BinCenter_pp[6] = 2.2116;
+
+  //BinCenter_pL[0] = 1.2124;
+  //BinCenter_pL[1] = 1.2896;
+  //BinCenter_pL[2] = 1.376;
+  //BinCenter_pL[3] = 1.5407;
+  //BinCenter_pL[4] = 1.756;
+  //BinCenter_pL[5] = 2.2594;
+
+
+  //read the histo, integral to get total yield
+  //get optimal yield and start expanding the bin range to accomodate it
+  //if you cannot achieve it, getting up to the bin center of next bin (say within some pre-defined limit), reduce the optimal yield 2x try again
+  //
+
+  //unsigned TotalYield = ;
 
 }
 
@@ -938,9 +994,9 @@ int CECA_PAPER(int argc, char *argv[]){
 
   //Test_pp_Statistics_1();
 
-  //Ceca_pp_or_pL(TString::Format("%s/CECA_Paper/Ceca_pp_or_pL/TEST_1",GetFemtoOutputFolder()),
-  //TString::Format("%s/CECA_Paper/Ceca_pp_or_pL/TEST_1",GetFemtoOutputFolder()),
-  //11);
+  //Ceca_pp_or_pL(TString::Format("%s/CECA_Paper/Ceca_pp_or_pL/TEST2_pL",GetFemtoOutputFolder()),
+  //TString::Format("%s/CECA_Paper/Ceca_pp_or_pL/TEST2_pL",GetFemtoOutputFolder()),
+  //1,6);
   ReadDlmHst();
 
   //dadd_f(argc,argv);
