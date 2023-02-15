@@ -771,18 +771,19 @@ void Ceca_pp_or_pL(const TString InputFileBase, const TString OutputFileBase, co
       Ivana.Ghetto_RadMax = 48;
     }
     else{
-      Ivana.Ghetto_NumMtBins = 9;
+      Ivana.Ghetto_NumMtBins = 10;
       Ivana.Ghetto_MtBins = new double [Ivana.Ghetto_NumMtBins+1];
-      Ivana.Ghetto_MtBins[0] = 938;
-      Ivana.Ghetto_MtBins[1] = 1055;
-      Ivana.Ghetto_MtBins[2] = 1135;
-      Ivana.Ghetto_MtBins[3] = 1190;
-      Ivana.Ghetto_MtBins[4] = 1270;
-      Ivana.Ghetto_MtBins[5] = 1390;
-      Ivana.Ghetto_MtBins[6] = 1570;
-      Ivana.Ghetto_MtBins[7] = 1940;
-      Ivana.Ghetto_MtBins[8] = 2500;
-      Ivana.Ghetto_MtBins[9] = 4500;
+      Ivana.Ghetto_MtBins[0] = 930;
+      Ivana.Ghetto_MtBins[1] = 1020;
+      Ivana.Ghetto_MtBins[2] = 1080;
+      Ivana.Ghetto_MtBins[3] = 1140;
+      Ivana.Ghetto_MtBins[4] = 1200;
+      Ivana.Ghetto_MtBins[5] = 1260;
+      Ivana.Ghetto_MtBins[6] = 1380;
+      Ivana.Ghetto_MtBins[7] = 1570;
+      Ivana.Ghetto_MtBins[8] = 1840;
+      Ivana.Ghetto_MtBins[9] = 2030;
+      Ivana.Ghetto_MtBins[10] = 4500;
 
       Ivana.Ghetto_NumMomBins = 150;
       Ivana.Ghetto_MomMin = 0;
@@ -864,7 +865,7 @@ void ReadDlmHst(){
   //system("echo -n '1. Current Directory is '; pwd");
   //TString HistoFileName = TString::Format("%s/CECA_Paper/dadd_f/testout1.dlm.hst",GetFemtoOutputFolder());
   //TString HistoFileName = "./Output/CECA_Paper/dadd_f/Output/TEST1_3_full.dlm.hst";
-  TString HistoFileName = "./Output/CECA_Paper/Ceca_pp_or_pL/TEST2_pL_full.dlm.hst";
+  TString HistoFileName = "./Output/CECA_Paper/Ceca_pp_or_pL/TEST1_FULL_MERGED.dlm.hst";
 
   DLM_Histo<float> dlmHisto;
   dlmHisto.QuickLoad(HistoFileName.Data());
@@ -898,7 +899,7 @@ void ReadDlmHst(){
 
   //TFile fOutput(TString::Format("%s/CECA_Paper/dadd_f/testout1.root",GetFemtoOutputFolder()),"recreate");
   //TFile fOutput(TString::Format("%s/CECA_Paper/dadd_f/Output/TEST1_3_full.root",GetFemtoOutputFolder()),"recreate");
-  TFile fOutput(TString::Format("%s/CECA_Paper/Ceca_pp_or_pL/TEST2_pL_full.root",GetFemtoOutputFolder()),"recreate");
+  TFile fOutput(TString::Format("%s/CECA_Paper/Ceca_pp_or_pL/TEST1_FULL_MERGED.root",GetFemtoOutputFolder()),"recreate");
   for(unsigned uMt=0; uMt<NumMt; uMt++){
     h_kstar_rstar[uMt]->Write();
   }
@@ -982,6 +983,7 @@ bool dadd_f(int argc, char *argv[]){
     if(!Status) return Status;
   }
   MergedHisto.QuickWrite(argv[1],true);
+  return true;
 }
 
 int CECA_PAPER(int argc, char *argv[]){
