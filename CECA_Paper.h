@@ -5,7 +5,8 @@
 
 int CECA_PAPER(int narg, char** ARGS);
 
-void Ceca_pp_or_pL(const TString InputFileBase, const TString OutputFileBase, const int SEED, const int NumCPU=1);
+int Ceca_pp_or_pL(const TString FileBase, const TString InputFolder, const TString OutputFolder, const TString LogFolder,
+                  const int ParID, const int JobID, const int NumCPU=1);
 bool dadd_f(int argc, char *argv[]);
 
 #endif

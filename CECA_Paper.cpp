@@ -467,19 +467,28 @@ DLM_Histo<float>* GetPtEta(TString FileNameP, TString FileNameAP,
 //      actually, if a take the hz = 2x hT, than we have +4.3% on the radius, but the scaling remains the same
 //      i.e. we can comment that the choice of hz can simply scale the thing up and down by a small amount
 
+
+
 //the names should be given without extension. They should also have the FULL path!!
 //the assumed extension is *.txt for the Input and .dlm.hst for the Output
 //WILD_CARD: if -1: the mT binning is super fine, done for testing (figure out what binning to use)
-void Ceca_pp_or_pL(const TString InputFileBase, const TString OutputFileBase, const int SEED, const int NumCPU){
+int Ceca_pp_or_pL(const TString FileBase, const TString InputFolder, const TString OutputFolder, const TString LogFolder,
+                  const int ParID, const int JobID, const int NumCPU){
 
   const double TIMEOUT = 30;
   const double EtaCut = 0.8;
   const bool PROTON_RESO = true;
   const bool EQUALIZE_TAU = true;
 
-  TString InputFileName = InputFileBase+".txt";
-  TString OutputFileNameFull = OutputFileBase+"_full.dlm.hst";
-  TString OutputFileNameCore = OutputFileBase+"_core.dlm.hst";
+  int SEED = (ParID+1)*10. + JobID;
+
+  TString InputFileName = InputFolder+FileBase+TString::Format(".%i.%i.dlm.job",ParID,JobID);
+  TString OutputFileNameFull = OutputFolder+FileBase+TString::Format(".%i.%i.full.dlm.hst",ParID,JobID);
+  TString OutputFileNameCore = OutputFolder+FileBase+TString::Format(".%i.%i.core.dlm.hst",ParID,JobID);
+  //a binary file that contains information on the statistics we have collected so far
+  //this program will search for that file, and if it exists it will read it and add the current yield
+  //to the total yield
+  TString LogFileName = LogFolder+FileBase+TString::Format(".%i.%i.dlm.log",ParID,JobID);
 
   TREPNI Database(0);
   Database.SetSeed(11);
@@ -535,7 +544,7 @@ void Ceca_pp_or_pL(const TString InputFileBase, const TString OutputFileBase, co
   InFile = fopen(InputFileName.Data(), "r");
   if(!InFile){
       printf("\033[1;31mERROR:\033[0m The file\033[0m %s cannot be opened!\n", InputFileName.Data());
-      return;
+      return 0;
   }
   fseek ( InFile , 0 , SEEK_END );
   long EndPos;
@@ -589,6 +598,7 @@ void Ceca_pp_or_pL(const TString InputFileBase, const TString OutputFileBase, co
   printf("GLOB_TIMEOUT = %f\n",GLOB_TIMEOUT);
   printf("multiplicity = %u\n",multiplicity);
   printf("target_yield = %u\n",target_yield);
+  //printf("current_yield = %u\n",current_yield);
   printf("femto_region = %f\n",femto_region);
   printf("d_x = %f\n",d_x);
   printf("d_y = %f\n",d_y);
@@ -616,6 +626,11 @@ void Ceca_pp_or_pL(const TString InputFileBase, const TString OutputFileBase, co
   printf("tau_lambda_reso = %f\n",tau_lambda_reso);
   printf("type = %s\n",type.Data());
 
+  //if(current_yield>=target_yield){
+  //  printf("\033[1;31mERROR:\033[0m current_yield>=target_yield, this should NOT happen!\n");
+  //  return 0;
+  //}
+
 //return;
 
   //here use the flags if needed
@@ -630,7 +645,7 @@ void Ceca_pp_or_pL(const TString InputFileBase, const TString OutputFileBase, co
   //basic QA: too lazy to doo it
   if(multiplicity<1){
     printf("Bad multiplicity!\n");
-    return;
+    return 0;
   }
   if(multiplicity==1){
     printf("Potenitally bad multiplicity (1)!\n");
@@ -638,7 +653,7 @@ void Ceca_pp_or_pL(const TString InputFileBase, const TString OutputFileBase, co
 
   if(type!="pp"&&type!="pL"){
     printf("WHAT IS THIS: type = %s\n", type.Data());
-    return;
+    return 0;
   }
 
   DLM_Histo<float>* dlm_pT_eta_p = GetPtEta(
@@ -712,7 +727,7 @@ void Ceca_pp_or_pL(const TString InputFileBase, const TString OutputFileBase, co
   }
   else{
     printf("Issue with the type!\n");
-    return;
+    return 0;
   }
 
   CECA Ivana(Database,ListOfParticles);
@@ -732,7 +747,6 @@ void Ceca_pp_or_pL(const TString InputFileBase, const TString OutputFileBase, co
   Ivana.SetThermalKick(th_kick);
   Ivana.SetFixedHadr(fixed_hdr);
   Ivana.SetFragmentBeta(frag_beta);
-
 
   Ivana.SetTargetStatistics(target_yield);
   Ivana.SetEventMult(multiplicity);
@@ -827,9 +841,17 @@ void Ceca_pp_or_pL(const TString InputFileBase, const TString OutputFileBase, co
     }
   }
 
-  for(unsigned uTh=0; uTh<NumCPU; uTh++){
-    Ivana.SetSeed(uTh,SEED*(NumCPU)+uTh);
+  if(NumCPU>1){
+    Ivana.SetDebugMode(true);
+    for(unsigned uTh=0; uTh<NumCPU; uTh++){
+      Ivana.SetSeed(uTh,SEED*(NumCPU)+uTh);
+    }
   }
+  else{
+    Ivana.SetDebugMode(false);
+    Ivana.SetSeed(0,SEED);
+  }
+
   Ivana.GoBabyGo(NumCPU);
 
   Ivana.Ghetto_kstar_rstar_mT->QuickWrite(OutputFileNameFull,true);
@@ -853,10 +875,20 @@ void Ceca_pp_or_pL(const TString InputFileBase, const TString OutputFileBase, co
   printf("RP%6.2f%% %6.2f\n",TotRP*100.,FemtoRP*100.);
   printf("RR%6.2f%% %6.2f\n",TotRR*100.,FemtoRR*100.);
 
+  ofstream log_file (LogFileName.Data(), ios::out);
+  if(log_file.fail()){
+    printf("\033[1;31mERROR:\033[0m The file\033[0m The LOG file %s cannot be created!\n", LogFileName.Data());
+  }
+  else{
+    log_file << Ivana.GetStatistics();
+    log_file.close();
+  }
+
 
   delete dlm_pT_eta_p;
   delete dlm_pT_eta_L;
-
+  //printf("Returning %i\n",int(Ivana.GetStatistics()));
+  return Ivana.GetStatistics();
 }
 
 
@@ -865,7 +897,7 @@ void ReadDlmHst(){
   //system("echo -n '1. Current Directory is '; pwd");
   //TString HistoFileName = TString::Format("%s/CECA_Paper/dadd_f/testout1.dlm.hst",GetFemtoOutputFolder());
   //TString HistoFileName = "./Output/CECA_Paper/dadd_f/Output/TEST1_3_full.dlm.hst";
-  TString HistoFileName = "./Output/CECA_Paper/Ceca_pp_or_pL/TEST1_FULL_MERGED.dlm.hst";
+  TString HistoFileName = "./Output/CECA_Paper/Ceca_pp_or_pL/TEST3_pp_full.dlm.hst";
 
   DLM_Histo<float> dlmHisto;
   dlmHisto.QuickLoad(HistoFileName.Data());
@@ -899,7 +931,7 @@ void ReadDlmHst(){
 
   //TFile fOutput(TString::Format("%s/CECA_Paper/dadd_f/testout1.root",GetFemtoOutputFolder()),"recreate");
   //TFile fOutput(TString::Format("%s/CECA_Paper/dadd_f/Output/TEST1_3_full.root",GetFemtoOutputFolder()),"recreate");
-  TFile fOutput(TString::Format("%s/CECA_Paper/Ceca_pp_or_pL/TEST1_FULL_MERGED.root",GetFemtoOutputFolder()),"recreate");
+  TFile fOutput(TString::Format("%s/CECA_Paper/Ceca_pp_or_pL/TEST3_pp_full.root",GetFemtoOutputFolder()),"recreate");
   for(unsigned uMt=0; uMt<NumMt; uMt++){
     h_kstar_rstar[uMt]->Write();
   }
@@ -913,6 +945,7 @@ void ReadDlmHst(){
   delete [] BinRangeRad;
   delete [] BinRangeMom;
   delete [] BinRangeMt;
+
 }
 
 //what is the optimal binning in Ceca
@@ -986,6 +1019,51 @@ bool dadd_f(int argc, char *argv[]){
   return true;
 }
 
+
+void TestReadWriteBinary(){
+  TString FileName = GetFemtoOutputFolder();
+  FileName += "/BinTest.bin";
+
+  unsigned ThatMany = 7;
+  unsigned* Element = new unsigned[ThatMany];
+
+  ofstream obfile (FileName, ios::app | ios::binary);
+  for(unsigned uEl=0; uEl<ThatMany; uEl++){
+    Element[uEl] = uEl*3+1;
+    obfile.write((char *) &Element[uEl], sizeof(unsigned));
+  }
+  obfile.close();
+
+  unsigned HowMany = 0;
+  FileName += "rubbish";
+  ifstream ibfile (FileName, ios::in | ios::binary);
+  if(ibfile.fail()){
+    printf("RUBBISH\n");
+    return;
+  }
+  unsigned element;
+
+  ibfile.seekg (0, ibfile.end);
+  int length = ibfile.tellg();
+  ibfile.seekg (0, ibfile.beg);
+  if(length%sizeof(unsigned)){
+    printf("wtf\n");
+  }
+  HowMany = length/sizeof(unsigned);
+
+  printf("length = %i\n",length);
+  printf("HowMany = %u\n",HowMany);
+  //while(!ibfile.eof()){
+  //while(ibfile){
+  for(unsigned uEl=0; uEl<HowMany; uEl++){
+    //HowMany++;
+    ibfile.read((char *) &element, sizeof(unsigned));
+    printf("%u: %u (%i)\n",uEl,element,ibfile.eof());
+  }
+
+  delete [] Element;
+}
+
 int CECA_PAPER(int argc, char *argv[]){
 
   //how to read/write the Levy pars into a file
@@ -996,12 +1074,15 @@ int CECA_PAPER(int argc, char *argv[]){
 
   //Test_pp_Statistics_1();
 
-  //Ceca_pp_or_pL(TString::Format("%s/CECA_Paper/Ceca_pp_or_pL/TEST2_pL",GetFemtoOutputFolder()),
-  //TString::Format("%s/CECA_Paper/Ceca_pp_or_pL/TEST2_pL",GetFemtoOutputFolder()),
-  //1,6);
-  ReadDlmHst();
+  return Ceca_pp_or_pL("TEST4_pp",TString::Format("%s/CECA_Paper/Ceca_pp_or_pL/TEST4/Job/",GetFemtoOutputFolder()),
+  TString::Format("%s/CECA_Paper/Ceca_pp_or_pL/TEST4/Out/",GetFemtoOutputFolder()),
+  TString::Format("%s/CECA_Paper/Ceca_pp_or_pL/TEST4/Log/",GetFemtoOutputFolder()),
+  0,0,1);
+  //ReadDlmHst();
 
   //dadd_f(argc,argv);
+
+  //TestReadWriteBinary();
 
   return 0;
 }
