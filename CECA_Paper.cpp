@@ -1001,11 +1001,11 @@ void OptimalBinning(TString syst, TString InputFile){
 
 
 
-//hadd but for my histos
-bool dadd_f(int argc, char *argv[]){
+//hadd but for my histos (n.b. following bash 0 is okay, 1 is error)
+int dadd_f(int argc, char *argv[]){
   //printf("Hello\n");
-  system("echo -n '1. Current Directory is '; pwd");
-  if(argc<3) {printf("\033[1;31mERROR:\033[0m Not enough arguments [dadd Output Input]\n"); return false;}
+  //system("echo -n '1. Current Directory is '; pwd");
+  if(argc<3) {printf("\033[1;31mERROR:\033[0m Not enough arguments [dadd Output Input]\n"); return 1;}
   //1 default, 1 for the output
   const int NumInputFiles = argc-2;
   printf("Attempting to merge %i number of files\n",NumInputFiles);
@@ -1013,25 +1013,82 @@ bool dadd_f(int argc, char *argv[]){
   //DLM_Histo<float>* HISTO;
   //DLM_Histo<float>& uHisto = HISTO[0];
   printf("Final file: %s\n",argv[1]);
-  bool Status = true;
+  int Status = 0;
   for(unsigned uIn=0; uIn<NumInputFiles; uIn++){
     DLM_Histo<float> uHisto;
     printf(" -> %s\n",argv[2+uIn]);
-    uHisto.QuickLoad(argv[2+uIn]);
+    if(!uHisto.QuickLoad(argv[2+uIn])) return 1;
     printf("   done\n");
     if(uIn==0){
-      Status = (MergedHisto = uHisto);
+      Status = !(MergedHisto = uHisto);
     }
     else{
-      Status = (MergedHisto += uHisto);
+      Status = !(MergedHisto += uHisto);
     }
 
     //delete HISTO;
     if(!Status) return Status;
   }
   MergedHisto.QuickWrite(argv[1],true);
-  return true;
+  return 0;
 }
+
+//project the output into 2D histos of kstar_vs_rstar for each mT bin
+//the input args should be the dlm.hst input file and the .root output file
+int dlmhst_root(int argc, char *argv[]){
+  if(argc!=3) {printf("\033[1;31mERROR:\033[0m Wrong args [DlmHst_Root Input Output]\n"); return 1;}
+
+  TString HistoFileName = TString(argv[1]);
+
+  DLM_Histo<float> dlmHisto;
+  if(!dlmHisto.QuickLoad(HistoFileName.Data())) return 1;
+
+  const unsigned NumMt = dlmHisto.GetNbins(2);
+  const unsigned NumRad = dlmHisto.GetNbins(1);
+  const unsigned NumMom = dlmHisto.GetNbins(0);
+
+  double* BinRangeMt = dlmHisto.GetBinRange(2);
+  double* BinRangeRad = dlmHisto.GetBinRange(1);
+  double* BinRangeMom = dlmHisto.GetBinRange(0);
+
+
+  //get how many entries we have per mT_kstar bin to build our source
+  TH2F* hYield = new TH2F("hYield","hYield",NumMom,BinRangeMom,NumMt,BinRangeMt);
+  TH2F** h_kstar_rstar = new TH2F* [NumMt];
+  for(unsigned uMt=0; uMt<NumMt; uMt++){
+    TString hName = TString::Format("h_kstar_rstar_mT%u",uMt);
+    h_kstar_rstar[uMt] = new TH2F(hName,hName,NumMom,BinRangeMom,NumRad,BinRangeRad);
+    for(unsigned uMom=0; uMom<NumMom; uMom++){
+      hYield->SetBinContent(uMom+1,uMt+1,0);
+      for(unsigned uRad=0; uRad<NumRad; uRad++){
+        h_kstar_rstar[uMt]->SetBinContent(uMom+1,uRad+1,dlmHisto.GetBinContent(uMom,uRad,uMt));
+        hYield->SetBinContent(uMom+1,uMt+1,hYield->GetBinContent(uMom+1,uMt+1)+dlmHisto.GetBinContent(uMom,uRad,uMt));
+      }
+    }
+    h_kstar_rstar[uMt]->Sumw2();
+  }
+  hYield->Sumw2();
+
+  TString RootFileName = TString(argv[2]);
+  TFile fOutput(RootFileName,"recreate");
+  if(!fOutput.IsOpen()) return 1;
+  for(unsigned uMt=0; uMt<NumMt; uMt++){
+    h_kstar_rstar[uMt]->Write();
+  }
+  hYield->Write();
+
+  for(unsigned uMt=0; uMt<NumMt; uMt++){
+    delete h_kstar_rstar[uMt];
+  }
+  delete [] h_kstar_rstar;
+  delete hYield;
+  delete [] BinRangeRad;
+  delete [] BinRangeMom;
+  delete [] BinRangeMt;
+  //printf("true\n");
+  return 0;
+}
+
 
 
 void TestReadWriteBinary(){
