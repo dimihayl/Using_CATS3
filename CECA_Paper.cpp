@@ -475,6 +475,14 @@ DLM_Histo<float>* GetPtEta(TString FileNameP, TString FileNameAP,
 int Ceca_pp_or_pL(const TString FileBase, const TString InputFolder, const TString OutputFolder, const TString LogFolder,
                   const int ParID, const int JobID, const int NumCPU){
 
+  printf("FileBase = %s\n",FileBase.Data());
+  printf("InputFolder = %s\n",InputFolder.Data());
+  printf("OutputFolder = %s\n",OutputFolder.Data());
+  printf("LogFolder = %s\n",LogFolder.Data());
+  printf("ParID = %i\n",ParID);
+  printf("JobID = %i\n",JobID);
+  printf("NumCPU = %i\n",NumCPU);
+
   const double TIMEOUT = 30;
   const double EtaCut = 0.8;
   const bool PROTON_RESO = true;
@@ -489,6 +497,12 @@ int Ceca_pp_or_pL(const TString FileBase, const TString InputFolder, const TStri
   //this program will search for that file, and if it exists it will read it and add the current yield
   //to the total yield
   TString LogFileName = LogFolder+FileBase+TString::Format(".%i.%i.dlm.log",ParID,JobID);
+
+  printf("\n");
+  printf("InputFileName = %s\n",InputFileName.Data());
+  printf("OutputFileNameFull = %s\n",OutputFileNameFull.Data());
+  printf("OutputFileNameCore = %s\n",OutputFileNameCore.Data());
+  printf("LogFileName = %s\n",LogFileName.Data());
 
   TREPNI Database(0);
   Database.SetSeed(11);
