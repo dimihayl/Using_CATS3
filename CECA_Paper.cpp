@@ -1027,7 +1027,7 @@ int dadd_f(int argc, char *argv[]){
     }
 
     //delete HISTO;
-    if(!Status) return Status;
+    if(Status) return Status;
   }
   MergedHisto.QuickWrite(argv[1],true);
   return 0;
