@@ -19,6 +19,7 @@
 #include "DLM_RootFit.h"
 #include "DLM_Unfold.h"
 #include "DLM_Sort.h"
+#include "DLM_DrawingTools.h"
 
 #include "TGraph.h"
 #include "TGraphErrors.h"
@@ -15201,7 +15202,7 @@ void TestMergeSort(){
   DLM_Sort < float, unsigned > SortTool;
   SortTool.SetData(Element,NumElements);
   SortTool.MergeSort();
-    
+
   unsigned* Key1 = new unsigned[NumElements];
   SortTool.CopyKey(Key1);
   float* SortedElement = new float[NumElements];
@@ -15217,9 +15218,280 @@ void TestMergeSort(){
   delete [] SortedElement;
 }
 
+
+
+
+
+void LamLamStudy1(){
+
+    //std::vector<float> SrcSize = {0.8,1.0,1.2,1.4,1.6,1.8,2.0};
+    std::vector<float> SrcSize = {1.0,1.2,1.3,1.4,1.6};
+    const double lambda_par = 0.34;
+    const unsigned NumRad = SrcSize.size();
+
+    const unsigned NumScenarios = 6;
+    TString ScenarioName[NumScenarios];
+    ScenarioName[0] = "ND46";
+    ScenarioName[1] = "NF44";
+    ScenarioName[2] = "Ehime";
+    ScenarioName[3] = "ESC08";
+    ScenarioName[4] = "HKMYY";
+    ScenarioName[5] = "Without strong interaction";
+
+    TString ScenarioShortName[NumScenarios];
+    ScenarioShortName[0] = "ND46";
+    ScenarioShortName[1] = "NF44";
+    ScenarioShortName[2] = "Ehime";
+    ScenarioShortName[3] = "ESC08";
+    ScenarioShortName[4] = "HKMYY";
+    ScenarioShortName[5] = "NoFSI";
+
+    double** PotPars = new double* [NumScenarios];
+    double** ScatPars = new double* [NumScenarios];
+    double** ScatParErr = new double* [NumScenarios];
+    double** ScatParsMorita = new double* [NumScenarios];
+
+    for(unsigned uSce=0; uSce<NumScenarios; uSce++){
+        PotPars[uSce] = new double [8];
+        ScatPars[uSce] = new double [2];
+        ScatParErr[uSce] = new double [2];
+        ScatParsMorita[uSce] = new double [2];
+        for(unsigned uEl=0; uEl<8; uEl++) PotPars[uSce][uEl]=0;
+
+        if(ScenarioName[uSce]=="Toy1")
+        {//PotPars[uSce][2]=-140.0; PotPars[uSce][3]=2.0; PotPars[uSce][4]=340.0; PotPars[uSce][5]=0.45;
+         PotPars[uSce][2]=-144.5; PotPars[uSce][3]=2.11; PotPars[uSce][4]=520.0; PotPars[uSce][5]=0.54;//the ones to use
+         ScatParsMorita[uSce][0]=0.73; ScatParsMorita[uSce][1]=7.72;}
+
+        if(ScenarioName[uSce]=="Toy2")
+        {//PotPars[uSce][2]=-140.0; PotPars[uSce][3]=2.0; PotPars[uSce][4]=340.0; PotPars[uSce][5]=0.45;
+         //PotPars[uSce][2]=-105; PotPars[uSce][3]=1.0; PotPars[uSce][4]=2550; PotPars[uSce][5]=0.46;
+         //PotPars[uSce][2]=100; PotPars[uSce][3]=1.3; PotPars[uSce][4]=500; PotPars[uSce][5]=0.45;//THE ONES TO USE
+         PotPars[uSce][2]=-30.0; PotPars[uSce][3]=2.0; PotPars[uSce][4]=1080.0; PotPars[uSce][5]=0.55;
+         ScatParsMorita[uSce][0]=1.09; ScatParsMorita[uSce][1]=0.42;}
+
+        if(ScenarioName[uSce]=="HKMYY")
+        {PotPars[uSce][2]=-10.96; PotPars[uSce][3]=1.342; PotPars[uSce][4]=-141.75; PotPars[uSce][5]=0.777; PotPars[uSce][6]=2136.6; PotPars[uSce][7]=0.35;}
+
+        if(ScenarioName[uSce]=="NF42")
+        {PotPars[uSce][2]=-878.97; PotPars[uSce][3]=0.6; PotPars[uSce][4]=1048.58; PotPars[uSce][5]=0.45;}
+
+        if(ScenarioName[uSce]=="NF44")
+        {PotPars[uSce][2]=-1066.98; PotPars[uSce][3]=0.6; PotPars[uSce][4]=1646.65; PotPars[uSce][5]=0.45;
+         ScatParsMorita[uSce][0]=23.956; ScatParsMorita[uSce][1]=1.258;}
+
+        if(ScenarioName[uSce]=="NF50")
+        {PotPars[uSce][2]=-2007.35; PotPars[uSce][3]=0.6; PotPars[uSce][4]=5678.97; PotPars[uSce][5]=0.45;
+         ScatParsMorita[uSce][0]=-0.772; ScatParsMorita[uSce][1]=4.271;}
+
+        if(ScenarioName[uSce]=="NF52")
+        {PotPars[uSce][2]=-2276.73; PotPars[uSce][3]=0.6; PotPars[uSce][4]=7415.56; PotPars[uSce][5]=0.45;
+         ScatParsMorita[uSce][0]=-0.406; ScatParsMorita[uSce][1]=8.868;}
+
+        if(ScenarioName[uSce]=="ND46")
+        {PotPars[uSce][2]=-144.89; PotPars[uSce][3]=1.0; PotPars[uSce][4]=127.87; PotPars[uSce][5]=0.45;
+         ScatParsMorita[uSce][0]=4.621; ScatParsMorita[uSce][1]=1.3;}
+
+        if(ScenarioName[uSce]=="ND48")
+        {PotPars[uSce][2]=-150.83; PotPars[uSce][3]=1.0; PotPars[uSce][4]=355.09; PotPars[uSce][5]=0.45;
+         ScatParsMorita[uSce][0]=14.394; ScatParsMorita[uSce][1]=1.633;}
+
+        if(ScenarioName[uSce]=="ND50")
+        {PotPars[uSce][2]=-151.54; PotPars[uSce][3]=1.0; PotPars[uSce][4]=587.21; PotPars[uSce][5]=0.45;
+         ScatParsMorita[uSce][0]=-10.629; ScatParsMorita[uSce][1]=2.042;}
+
+        if(ScenarioName[uSce]=="ND52")
+        {PotPars[uSce][2]=-150.29; PotPars[uSce][3]=1.0; PotPars[uSce][4]=840.55; PotPars[uSce][5]=0.45;
+         ScatParsMorita[uSce][0]=-3.483; ScatParsMorita[uSce][1]=2.592;}
+
+        if(ScenarioName[uSce]=="ND54")
+        {PotPars[uSce][2]=-147.65; PotPars[uSce][3]=1.0; PotPars[uSce][4]=1114.72; PotPars[uSce][5]=0.45;
+         ScatParsMorita[uSce][0]=-1.893; ScatParsMorita[uSce][1]=3.389;}
+
+        if(ScenarioName[uSce]=="ND56")
+        {PotPars[uSce][2]=-144.26; PotPars[uSce][3]=1.0; PotPars[uSce][4]=1413.75; PotPars[uSce][5]=0.45;
+         ScatParsMorita[uSce][0]=-1.179; ScatParsMorita[uSce][1]=4.656;}
+
+        if(ScenarioName[uSce]=="ND58")
+        {PotPars[uSce][2]=-137.74; PotPars[uSce][3]=1.0; PotPars[uSce][4]=1666.78; PotPars[uSce][5]=0.45;
+         ScatParsMorita[uSce][0]=-0.764; ScatParsMorita[uSce][1]=6.863;}
+         //ScatParsMorita[uSce][0]=1.1; ScatParsMorita[uSce][1]=8.52;}
+
+        if(ScenarioName[uSce]=="NSC89-1020")
+        {PotPars[uSce][2]=-22.89; PotPars[uSce][3]=1.0; PotPars[uSce][4]=67.45; PotPars[uSce][5]=0.45;
+         ScatParsMorita[uSce][0]=-0.250; ScatParsMorita[uSce][1]=7.200;}
+
+        if(ScenarioName[uSce]=="NSC89-920")
+        {PotPars[uSce][2]=-1080.35; PotPars[uSce][3]=0.6; PotPars[uSce][4]=2039.54; PotPars[uSce][5]=0.45;
+         ScatParsMorita[uSce][0]=-2.100; ScatParsMorita[uSce][1]=1.900;}
+
+        if(ScenarioName[uSce]=="NSC89-820")
+        {PotPars[uSce][2]=-1904.41; PotPars[uSce][3]=0.6; PotPars[uSce][4]=4996.93; PotPars[uSce][5]=0.45;
+         ScatParsMorita[uSce][0]=-1.110; ScatParsMorita[uSce][1]=3.200;}
+
+        if(ScenarioName[uSce]=="NSC97a")
+        {PotPars[uSce][2]=-69.45; PotPars[uSce][3]=1.0; PotPars[uSce][4]=653.86; PotPars[uSce][5]=0.45;
+         ScatParsMorita[uSce][0]=-0.329; ScatParsMorita[uSce][1]=12.370;}
+
+        if(ScenarioName[uSce]=="NSC97b")
+        {PotPars[uSce][2]=-78.42; PotPars[uSce][3]=1.0; PotPars[uSce][4]=741.76; PotPars[uSce][5]=0.45;
+         ScatParsMorita[uSce][0]=-0.397; ScatParsMorita[uSce][1]=10.360;}
+
+        if(ScenarioName[uSce]=="NSC97c")
+        {PotPars[uSce][2]=-91.80; PotPars[uSce][3]=1.0; PotPars[uSce][4]=914.67; PotPars[uSce][5]=0.45;
+         ScatParsMorita[uSce][0]=-0.476; ScatParsMorita[uSce][1]=9.130;}
+
+        if(ScenarioName[uSce]=="NSC97d")
+        {PotPars[uSce][2]=-445.77; PotPars[uSce][3]=0.4; PotPars[uSce][4]=373.64; PotPars[uSce][5]=0.30;
+         ScatParsMorita[uSce][0]=-0.401; ScatParsMorita[uSce][1]=1.150;}
+
+        if(ScenarioName[uSce]=="NSC97e")
+        {PotPars[uSce][2]=-110.45; PotPars[uSce][3]=1.0; PotPars[uSce][4]=1309.55; PotPars[uSce][5]=0.45;
+         ScatParsMorita[uSce][0]=-0.501; ScatParsMorita[uSce][1]=9.840;}
+
+        if(ScenarioName[uSce]=="NSC97f")
+        {PotPars[uSce][2]=-106.53; PotPars[uSce][3]=1.0; PotPars[uSce][4]=1469.33; PotPars[uSce][5]=0.45;
+         ScatParsMorita[uSce][0]=-0.350; ScatParsMorita[uSce][1]=16.330;}
+
+        if(ScenarioName[uSce]=="fss2")
+        {PotPars[uSce][2]=-103.9; PotPars[uSce][3]=0.92; PotPars[uSce][4]=658.2; PotPars[uSce][5]=0.41;
+         ScatParsMorita[uSce][0]=-0.810; ScatParsMorita[uSce][1]=3.99;}
+
+        if(ScenarioName[uSce]=="Ehime")
+        {PotPars[uSce][2]=-146.6; PotPars[uSce][3]=1.0; PotPars[uSce][4]=720.9; PotPars[uSce][5]=0.45;
+         ScatParsMorita[uSce][0]=-4.21; ScatParsMorita[uSce][1]=2.41;}
+
+        if(ScenarioName[uSce]=="ESC08")
+        {PotPars[uSce][2]=-293.66; PotPars[uSce][3]=0.8; PotPars[uSce][4]=1429.27; PotPars[uSce][5]=0.45;
+         ScatParsMorita[uSce][0]=-0.97; ScatParsMorita[uSce][1]=3.86;}
+
+        if(ScenarioName[uSce]=="HKMYY")
+        {PotPars[uSce][2]=-10.96; PotPars[uSce][3]=1.342; PotPars[uSce][4]=-141.75; PotPars[uSce][5]=0.777; PotPars[uSce][6]=2136.6; PotPars[uSce][7]=0.35;
+         ScatParsMorita[uSce][0]=-0.575; ScatParsMorita[uSce][1]=6.45;}
+
+        if(ScenarioName[uSce]=="Without strong interaction")
+        {PotPars[uSce][2]=0; PotPars[uSce][3]=0; PotPars[uSce][4]=0; PotPars[uSce][5]=0; PotPars[uSce][6]=0; PotPars[uSce][7]=0;}
+    }
+
+
+
+
+    TString OutFolder = TString::Format("%s/OtherTasks/LamLamStudy1/",GetFemtoOutputFolder());
+    printf("OutFolder = %s\n",OutFolder.Data());
+    TString OutFile = OutFolder+"femto_LL.root";
+    const double kMin = 0;
+    const double kMax = 400;
+    const unsigned NumMomBins = 100;
+    CATS Kitty;
+    Kitty.SetMomBins(NumMomBins,kMin,kMax);
+
+    CATSparameters cPars (CATSparameters::tSource,1,true);
+    cPars.SetParameter(0,1.2);
+
+    Kitty.SetAnaSource(GaussSource, cPars);
+    Kitty.SetUseAnalyticSource(true);
+    Kitty.SetMomentumDependentSource(false);
+    Kitty.SetExcludeFailedBins(false);
+    Kitty.SetQ1Q2(0);
+    Kitty.SetQuantumStatistics(true);
+    Kitty.SetRedMass( Mass_L*0.5 );
+
+    Kitty.SetNumChannels(2);
+    Kitty.SetNumPW(0,1);
+    Kitty.SetNumPW(1,0);
+
+    Kitty.SetSpin(0,0);
+    Kitty.SetSpin(1,1);
+
+    Kitty.SetChannelWeight(0, 1./4.);
+    Kitty.SetChannelWeight(1, 3./4.);
+
+
+    CATSparameters pPars(CATSparameters::tPotential,6,true);
+    //pPars.SetParameter(0,PotPars[uSce][2]);
+    //pPars.SetParameter(1,PotPars[uSce][3]);
+    //pPars.SetParameter(2,PotPars[uSce][4]);
+    //pPars.SetParameter(3,PotPars[uSce][5]);
+    //pPars.SetParameter(4,PotPars[uSce][6]);
+    //pPars.SetParameter(5,PotPars[uSce][7]);
+    Kitty.SetShortRangePotential(0,0,TripleGaussSum,pPars);
+    Kitty.SetNotifications(CATS::nWarning);
+    Kitty.SetEpsilonConv(1e-8);
+    Kitty.SetEpsilonProp(1e-8);
+
+    TGraph** Ck_LL = new TGraph* [NumScenarios];
+    TGraph** Ck_LL_exp = new TGraph* [NumScenarios];
+    for(unsigned uSce=0; uSce<NumScenarios; uSce++){
+      Ck_LL[uSce] = new TGraph [NumRad];
+      Ck_LL_exp[uSce] = new TGraph [NumRad];
+      for(unsigned uRad=0; uRad<NumRad; uRad++){
+        Ck_LL[uSce][uRad].SetName(TString::Format("Ck_LL_%s_r%.2f",ScenarioShortName[uSce].Data(),SrcSize.at(uRad)));
+        Ck_LL_exp[uSce][uRad].SetName(TString::Format("CkExp_LL_%s_r%.2f",ScenarioShortName[uSce].Data(),SrcSize.at(uRad)));
+      }
+    }
+
+    for(unsigned uSce=0; uSce<NumScenarios; uSce++){
+      Kitty.SetShortRangePotential(0,0,0,PotPars[uSce][2]);
+      Kitty.SetShortRangePotential(0,0,1,PotPars[uSce][3]);
+      Kitty.SetShortRangePotential(0,0,2,PotPars[uSce][4]);
+      Kitty.SetShortRangePotential(0,0,3,PotPars[uSce][5]);
+      Kitty.SetShortRangePotential(0,0,4,PotPars[uSce][6]);
+      Kitty.SetShortRangePotential(0,0,5,PotPars[uSce][7]);
+
+      for(unsigned uRad=0; uRad<NumRad; uRad++){
+        printf("%s at %.2f fm\n",ScenarioShortName[uSce].Data(),SrcSize.at(uRad));
+        Kitty.SetAnaSource(0, SrcSize.at(uRad));
+        Kitty.KillTheCat();
+
+        for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+          Ck_LL[uSce][uRad].SetPoint(uMom,Kitty.GetMomentum(uMom),Kitty.GetCorrFun(uMom));
+          Ck_LL_exp[uSce][uRad].SetPoint(uMom,Kitty.GetMomentum(uMom),Kitty.GetCorrFun(uMom)*lambda_par + 1.-lambda_par);
+        }
+      }
+    }
+
+    TFile fOutput(OutFile,"recreate");
+    for(unsigned uRad=0; uRad<NumRad; uRad++){
+      for(unsigned uSce=0; uSce<NumScenarios; uSce++){
+        Ck_LL[uSce][uRad].Write();
+      }
+    }
+
+    for(unsigned uRad=0; uRad<NumRad; uRad++){
+      for(unsigned uSce=0; uSce<NumScenarios; uSce++){
+        Ck_LL_exp[uSce][uRad].Write();
+      }
+    }
+
+    for(unsigned uSce=0; uSce<NumScenarios; uSce++){
+        delete [] PotPars[uSce];
+        delete [] ScatPars[uSce];
+        delete [] ScatParErr[uSce];
+        delete [] ScatParsMorita[uSce];
+
+        delete [] Ck_LL[uSce];
+        delete [] Ck_LL_exp[uSce];
+    }
+    delete [] PotPars;
+    delete [] ScatPars;
+    delete [] ScatParErr;
+    delete [] ScatParsMorita;
+
+    delete [] Ck_LL;
+    delete [] Ck_LL_exp;
+}
+
+
+
+
+
+
+
+
+
 //
 int OTHERTASKS(int argc, char *argv[]){
-  TestMergeSort();return 0;
+  //TestMergeSort();return 0;
   //pp_at_different_radii("Gauss");return 0;
 //PlotAv18();return 0;
 
@@ -15371,13 +15643,13 @@ nsig 6 bins = 3.75
     //EmmaDaniel_KD(1.04);
     //pp_QS_Tests();
     //pn_potential();
-    pn_Ck(0.8);
-    pn_Ck(1.0);
-    pn_Ck(1.2);
-    pn_Ck(1.5);
-    pn_Ck(2.0);
+    //pn_Ck(0.8);
+    //pn_Ck(1.0);
+    //pn_Ck(1.2);
+    //pn_Ck(1.5);
+    //pn_Ck(2.0);
 
-
+    LamLamStudy1();
 
     //PlugInWaveFunction();
     //ppSource_bugHunting(true);

@@ -801,16 +801,16 @@ int Ceca_pp_or_pL(const TString FileBase, const TString InputFolder, const TStri
     else{
       Ivana.Ghetto_NumMtBins = 10;
       Ivana.Ghetto_MtBins = new double [Ivana.Ghetto_NumMtBins+1];
-      Ivana.Ghetto_MtBins[0] = 930;
-      Ivana.Ghetto_MtBins[1] = 1020;
-      Ivana.Ghetto_MtBins[2] = 1080;
-      Ivana.Ghetto_MtBins[3] = 1140;
-      Ivana.Ghetto_MtBins[4] = 1200;
-      Ivana.Ghetto_MtBins[5] = 1260;
-      Ivana.Ghetto_MtBins[6] = 1380;
-      Ivana.Ghetto_MtBins[7] = 1570;
-      Ivana.Ghetto_MtBins[8] = 1840;
-      Ivana.Ghetto_MtBins[9] = 2030;
+      Ivana.Ghetto_MtBins[0] = 930; //avg  983 ( 985)
+      Ivana.Ghetto_MtBins[1] = 1020;//avg 1054 (1055)
+      Ivana.Ghetto_MtBins[2] = 1080;//avg 1110 (1110)
+      Ivana.Ghetto_MtBins[3] = 1140;//avg 1168 (1170)
+      Ivana.Ghetto_MtBins[4] = 1200;//avg 1228 (1230)
+      Ivana.Ghetto_MtBins[5] = 1260;//avg 1315 (1315)
+      Ivana.Ghetto_MtBins[6] = 1380;//avg 1463 (1460)
+      Ivana.Ghetto_MtBins[7] = 1570;//avg 1681 (1680)
+      Ivana.Ghetto_MtBins[8] = 1840;//avg 1923 (1920)
+      Ivana.Ghetto_MtBins[9] = 2030;//avg 2303 (2300)
       Ivana.Ghetto_MtBins[10] = 4500;
 
       Ivana.Ghetto_NumMomBins = 150;
@@ -839,14 +839,14 @@ int Ceca_pp_or_pL(const TString FileBase, const TString InputFolder, const TStri
     else{
       Ivana.Ghetto_NumMtBins = 8;
       Ivana.Ghetto_MtBins = new double [Ivana.Ghetto_NumMtBins+1];
-      Ivana.Ghetto_MtBins[0] = 1000;
-      Ivana.Ghetto_MtBins[1] = 1170;
-      Ivana.Ghetto_MtBins[2] = 1250;
-      Ivana.Ghetto_MtBins[3] = 1330;
-      Ivana.Ghetto_MtBins[4] = 1430;
-      Ivana.Ghetto_MtBins[5] = 1680;
-      Ivana.Ghetto_MtBins[6] = 1840;
-      Ivana.Ghetto_MtBins[7] = 2060;
+      Ivana.Ghetto_MtBins[0] = 1000;//avg 1121 (1120)
+      Ivana.Ghetto_MtBins[1] = 1170;//avg 1210 (1210)
+      Ivana.Ghetto_MtBins[2] = 1250;//avg 1288 (1290)
+      Ivana.Ghetto_MtBins[3] = 1330;//avg 1377 (1380)
+      Ivana.Ghetto_MtBins[4] = 1430;//avg 1536 (1540)
+      Ivana.Ghetto_MtBins[5] = 1680;//avg 1753 (1750)
+      Ivana.Ghetto_MtBins[6] = 1840;//avg 1935 (1935)
+      Ivana.Ghetto_MtBins[7] = 2060;//avg 2334 (2330)
       Ivana.Ghetto_MtBins[8] = 4800;
 
       Ivana.Ghetto_NumMomBins = 150;
@@ -1089,6 +1089,379 @@ int dlmhst_root(int argc, char *argv[]){
   return 0;
 }
 
+//reads my batch output and fits it, saving the output + info of all pars from the master file
+//works only for wildcard_flag==0
+int dlmhst_ceca_fit_wc0(int argc, char *argv[]){
+printf("hi...\n");
+  if(argc!=5){
+    printf("\033[1;31mERROR:\033[0m dlmhst_ceca_fit_wc0 needs 5 args!\n");
+    return 1;
+  }
+
+  //TString DADD_IN=TString(argv[1]);
+  TString DADD_OUT=TString(argv[1]);
+  TString ROOT_OUT=TString(argv[2]);
+  TString MASTER_FILE=TString(argv[3]);
+  TString FINAL_OUT=TString(argv[4]);
+
+printf("dlmhst_root...\n");
+  if(dlmhst_root(3, argv)){
+    return 1;
+  }
+printf(" --> done\n");
+
+  char* cline = new char [512];
+  char* cdscr = new char [128];
+  char* cval = new char [128];
+  double read_value;
+  double mom_bin_width = -1;
+  int wildcard_flag;
+  TString type = "";
+
+  const unsigned MaxNumLines = 256;
+  unsigned NumLines = 0;
+  //we save all the info from the master file, that we want to save in our final output
+  //this is everything apart from the JOB_YIELD stuff (batch output)
+  char** LinesToSave = new char* [MaxNumLines];
+  for(unsigned uLine=0; uLine<MaxNumLines; uLine++){
+    LinesToSave[uLine] = new char [256];
+  }
+printf("InFile...\n");
+  FILE *InFile;
+  InFile = fopen(MASTER_FILE.Data(), "r");
+  if(!InFile){
+      printf("\033[1;31mERROR:\033[0m The file\033[0m %s cannot be opened!\n", MASTER_FILE.Data());
+      return 1;
+  }
+  fseek ( InFile , 0 , SEEK_END );
+  long EndPos;
+  EndPos = ftell (InFile);
+  fseek ( InFile , 0 , SEEK_SET );
+  long CurPos;
+  while(!feof(InFile)){
+    if(!fgets(cline, 511, InFile)){
+      //printf("\033[1;31mERROR:\033[0m The file\033[0m %s cannot be properly read (%s)!\n", InputFileName.Data(),cline);
+    }
+    sscanf(cline, "%s %s",cdscr,cval);
+    if(strcmp(cdscr,"mom_bin_width")==0){
+      mom_bin_width = atof(cval);
+    }
+    if(strcmp(cdscr,"wildcard_flag")==0){
+      wildcard_flag = atoi(cval);
+      if(wildcard_flag){
+        printf("\033[1;31mERROR:\033[0m dlmhst_ceca_fit_wc0 works only for wildcard_flag==0!\n");
+        return 1;
+      }
+    }
+    if(strcmp(cdscr,"type")==0){
+      if(strcmp(cval,"pp")&&strcmp(cval,"pL")){
+        printf("\033[1;31mERROR:\033[0m dlmhst_ceca_fit_wc0 works only for pp and pL!\n");
+        return 1;
+      }
+      type = TString(cval);
+    }
+
+    if(strcmp(cdscr,"JOB_ACTIVE")&&strcmp(cdscr,"JOB_YIELD")){
+      strcpy(LinesToSave[NumLines],cline);
+      NumLines++;
+    }
+  }//InFile
+  fclose(InFile);
+
+  printf(" --> done\n");
+
+  unsigned UpKstarBin;
+
+  TFile root_file(ROOT_OUT,"update");
+  if(!root_file.IsOpen()){
+    printf("\033[1;31mERROR:\033[0m Cannot open %s\n",ROOT_OUT.Data());
+    return 1;
+  }
+  TH2F* hYield = (TH2F*)root_file.Get("hYield");
+  if(!hYield){
+    printf("\033[1;31mERROR:\033[0m Cannot open hYield in %s\n",ROOT_OUT.Data());
+    root_file.Close();
+    return 1;
+  }
+  const unsigned NumMtBins = hYield->GetYaxis()->GetNbins();
+  if(type=="pp"&&NumMtBins!=10){
+    printf("\033[1;31mERROR:\033[0m We have to have 10 mT bins in pp\n");
+    root_file.Close();
+    return 1;
+  }
+  if(type=="pL"&&NumMtBins!=8){
+    printf("\033[1;31mERROR:\033[0m We have to have 8 mT bins in pL\n");
+    root_file.Close();
+    return 1;
+  }
+
+  float* MtBinCenter = new float [NumMtBins];
+  TriGauss* SrcPar = new TriGauss[NumMtBins];
+  //the loopwhole ghetto: we dont check what is the mean mT
+  //here we take the values based on jaime pars ran with high statistics
+  //hardcoded for wildcard_flag==0
+  if(type=="pp"){
+    MtBinCenter[0] = 983;
+    MtBinCenter[1] = 1054;
+    MtBinCenter[2] = 1110;
+    MtBinCenter[3] = 1168;
+    MtBinCenter[4] = 1228;
+    MtBinCenter[5] = 1315;
+    MtBinCenter[6] = 1463;
+    MtBinCenter[7] = 1681;
+    MtBinCenter[8] = 1923;
+    MtBinCenter[9] = 2303;
+  }
+  //pL
+  else{
+    MtBinCenter[0] = 1121;
+    MtBinCenter[1] = 1210;
+    MtBinCenter[2] = 1288;
+    MtBinCenter[3] = 1377;
+    MtBinCenter[4] = 1536;
+    MtBinCenter[5] = 1753;
+    MtBinCenter[6] = 1935;
+    MtBinCenter[7] = 2334;
+  }
+
+  for(unsigned uMt=0; uMt<NumMtBins; uMt++){
+    root_file.cd();
+    TH2F* h_kstar_rstar = (TH2F*)root_file.Get(TString::Format("h_kstar_rstar_mT%u",uMt));
+    if(!h_kstar_rstar){
+      printf("\033[1;31mERROR:\033[0m Cannot open h_kstar_rstar_mT%u in %s\n",uMt,ROOT_OUT.Data());
+      root_file.Close();
+      delete [] MtBinCenter;
+      return 1;
+    }
+
+    gROOT->cd();
+
+    if(mom_bin_width==-1)
+      mom_bin_width=100;
+    UpKstarBin = h_kstar_rstar->GetXaxis()->FindBin(mom_bin_width);
+    TH1F* hSrc = (TH1F*)h_kstar_rstar->ProjectionY(TString::Format("hSrc_%u",uMt),1,UpKstarBin);
+    hSrc->Scale(1./hSrc->Integral(),"width");
+
+    double lowerlimit, upperlimit;
+    GetCentralInterval(*hSrc, 0.98, lowerlimit, upperlimit, true);
+    if(lowerlimit>5) lowerlimit = 5;
+    if(upperlimit>20) upperlimit = 20;
+
+    root_file.cd();
+    TF1* fSrc = new TF1(TString::Format("fSrc_%u",uMt),NormTripleShiftedGaussTF1,0.,20.,9);
+
+    //like chi2, but not normalized to error
+    double Dist2 = 0;
+    double NDPts = 0;
+    double Chi2 = 0;
+    double NDPts_chi2 = 0;
+    double Dist_Max = 0;
+    double Nsig_AtDistMax = 0;
+    double Rad_AtDistMax = 0;
+
+    const double Dist_Limit = 0.015;
+    const double Nsig_Limit = 3.0;
+    const unsigned Patience = 32;//increase limit after X fits
+    const double BadFitWarning = 0.06;
+    double Dist_CurLim = Dist_Limit;
+    unsigned StuckCount = 0;
+    unsigned ResetCount = 0;
+
+    TRandom3 rangen(11);
+
+    do{
+      Dist2 = 0;
+      NDPts = 0;
+      Chi2 = 0;
+      NDPts_chi2 = 0;
+      Dist_Max = 0;
+      Nsig_AtDistMax = 0;
+
+
+
+//CHECK THE LOGIC
+      //NORM
+      fSrc->SetParameter(0,rangen.Uniform(0.9,1.0));
+      fSrc->SetParLimits(0,0.,1.);
+
+      fSrc->FixParameter(1,1);
+      fSrc->FixParameter(2,0);
+      fSrc->FixParameter(3,0);
+
+      //sigma
+      fSrc->SetParameter(4,rangen.Uniform(2.0,4.0));
+      fSrc->SetParLimits(4,0,20.);
+      //shift
+      fSrc->SetParameter(5,rangen.Uniform(0,0.5));
+      fSrc->SetParLimits(5,0.,10.);
+      //weight
+      fSrc->SetParameter(6,rangen.Uniform(0.4,0.6));
+      fSrc->SetParLimits(6,0.,1.0);
+
+      //sigma
+      fSrc->SetParameter(7,rangen.Uniform(0.4,0.7));
+      fSrc->SetParLimits(7,0,20.);
+      //shift
+      fSrc->SetParameter(8,rangen.Uniform(0,0.5));
+      fSrc->SetParLimits(8,0.,10.);
+
+/*
+      //G1
+      fSrc->SetParameter(1,rangen.Uniform(0.2,0.4));//sigma
+      fSrc->SetParLimits(1,0.,0.8);
+      fSrc->SetParameter(2,rangen.Uniform(0.0,0.5));//shift
+      fSrc->SetParLimits(2,0.,2.0);
+      fSrc->SetParameter(3,rangen.Uniform(0.2,0.4));//weight
+      fSrc->SetParLimits(3,0.,0.95);
+
+      //200 original
+      if(hSrc->GetEntries()>1000 || ResetCount>=1){
+        //G2
+        //sigma
+        fSrc->SetParameter(4,rangen.Uniform(2.0,4.0));
+        fSrc->SetParLimits(4,0,20.);
+        //shift
+        fSrc->SetParameter(5,rangen.Uniform(0,0.5));
+        fSrc->SetParLimits(5,0.,10.);
+        //weight
+        fSrc->SetParameter(6,rangen.Uniform(0.4,0.6));
+        fSrc->SetParLimits(6,0.,1.0);
+      }
+      else{
+        //G2
+        //sigma
+        fSrc->FixParameter(4,1);
+        //shift
+        fSrc->FixParameter(5,0);
+        //weight
+        fSrc->FixParameter(6,0);
+      }
+
+
+      //if we have enough data
+      if(hSrc->GetEntries()>1000 || ResetCount>=2){
+        //G3
+        //sigma
+        fSrc->SetParameter(7,rangen.Uniform(0.4,0.7));
+        fSrc->SetParLimits(7,0,20.);
+        //shift
+        fSrc->SetParameter(8,rangen.Uniform(0,0.5));
+        fSrc->SetParLimits(8,0.,10.);
+      }
+      else{
+        //G3
+        //sigma
+        fSrc->FixParameter(7,1);
+        //shift
+        fSrc->FixParameter(8,0);
+      }
+*/
+      hSrc->Fit(fSrc,"Q, S, N, R, M","",lowerlimit,upperlimit);
+
+      //up to 10 fm
+      const double RadDistMax = 8;
+      for(unsigned uRad=0; uRad<hSrc->GetNbinsX(); uRad++){
+        double Rad = hSrc->GetBinCenter(uRad+1);
+        if(Rad>RadDistMax) break;
+        double dst = hSrc->GetBinContent(uRad+1)-fSrc->Eval(Rad);
+        double err;
+        if(hSrc->GetBinContent(uRad+1)){
+          err = hSrc->GetBinError(uRad+1);
+        }
+        else{
+          err = fabs(dst)*1000;
+        }
+
+        Dist2 += dst*dst;
+        NDPts++;
+        if(hSrc->GetBinError(uRad+1)){
+          Chi2 += (dst*dst)/(err*err);
+          NDPts_chi2++;
+        }
+
+        if(Dist_Max<fabs(dst)){
+          Dist_Max = fabs(dst);
+          Nsig_AtDistMax = Dist_Max/err;
+          Rad_AtDistMax = Rad;
+        }
+      }
+      Dist2 /= NDPts;
+      Chi2 /= NDPts_chi2;
+      //printf("uMt_%u uMom_%u Dist2=%e (%e); Dist_Max = %f (%.2f)\n",uMt,uMom,Dist2,Chi2,Dist_Max,Nsig_AtDistMax);
+      //usleep(100e3);
+      StuckCount++;
+      if(StuckCount>Patience){
+        Dist_CurLim += Dist_Limit;
+        StuckCount = 0;
+        ResetCount++;
+      }
+    }
+    while(Dist_Max>Dist_CurLim && Nsig_AtDistMax>Nsig_Limit);
+    if(Dist_Max>BadFitWarning && Nsig_AtDistMax>Nsig_Limit){
+      printf("WARNING: uMt_%u (r = %.3f)\n",uMt,Rad_AtDistMax);
+    }
+
+    root_file.cd();
+    fSrc->Write();
+    hSrc->Write();
+
+    SrcPar[uMt].norm = fSrc->GetParameter(0);
+    SrcPar[uMt].sigma1 = fSrc->GetParameter(1);
+    SrcPar[uMt].shift1 = fSrc->GetParameter(2);
+    SrcPar[uMt].wght1 = fSrc->GetParameter(3);
+    SrcPar[uMt].sigma2 = fSrc->GetParameter(4);
+    SrcPar[uMt].shift2 = fSrc->GetParameter(5);
+    SrcPar[uMt].wght2 = fSrc->GetParameter(6);
+    SrcPar[uMt].sigma3 = fSrc->GetParameter(7);
+    SrcPar[uMt].shift3 = fSrc->GetParameter(8);
+
+    delete fSrc;
+    gROOT->cd();
+    delete hSrc;
+  }//uMt
+
+
+
+  FILE *fptr;
+  fptr=fopen(FINAL_OUT.Data(),"w");
+  //NEW LINE NEEDED???
+  for(unsigned uLine=0; uLine<NumLines; uLine++){
+    //printf("%s\n",LinesToSave[uLine]);
+    fprintf(fptr,"%s",LinesToSave[uLine]);
+  }
+  fprintf(fptr,"SOURCE:\n");
+  for(unsigned uMt=0; uMt<NumMtBins; uMt++){
+    //norm,sig1,shift1,w1,sig2,shift2,w2,sig3,shift3
+    fprintf(fptr,"%.0f %.4f %.3f %.3f %.4f %.3f %.3f %.4f %.3f %.3f\n",
+        MtBinCenter[uMt],
+        SrcPar[uMt].norm,
+        SrcPar[uMt].sigma1,
+        SrcPar[uMt].shift1,
+        SrcPar[uMt].wght1,
+        SrcPar[uMt].sigma2,
+        SrcPar[uMt].shift2,
+        SrcPar[uMt].wght2,
+        SrcPar[uMt].sigma3,
+        SrcPar[uMt].shift3
+      );
+  }
+
+
+  for(unsigned uLine=0; uLine<MaxNumLines; uLine++){
+    delete [] LinesToSave[uLine];
+  }
+  delete [] LinesToSave;
+
+  delete [] cline;
+  delete [] cdscr;
+  delete [] cval;
+
+  root_file.Close();
+  delete [] MtBinCenter;
+  delete [] SrcPar;
+  return 0;
+}
+
 
 
 void TestReadWriteBinary(){
@@ -1136,7 +1509,7 @@ void TestReadWriteBinary(){
 }
 
 int CECA_PAPER(int argc, char *argv[]){
-
+  printf("CECA_PAPER\n");
   //how to read/write the Levy pars into a file
   //TestSaveStuctToFile();
 
@@ -1145,15 +1518,32 @@ int CECA_PAPER(int argc, char *argv[]){
 
   //Test_pp_Statistics_1();
 
-  return Ceca_pp_or_pL("TEST4_pp",TString::Format("%s/CECA_Paper/Ceca_pp_or_pL/TEST4/Job/",GetFemtoOutputFolder()),
-  TString::Format("%s/CECA_Paper/Ceca_pp_or_pL/TEST4/Out/",GetFemtoOutputFolder()),
-  TString::Format("%s/CECA_Paper/Ceca_pp_or_pL/TEST4/Log/",GetFemtoOutputFolder()),
-  0,0,1);
+  //return Ceca_pp_or_pL("TEST4_pp",TString::Format("%s/CECA_Paper/Ceca_pp_or_pL/TEST4/Job/",GetFemtoOutputFolder()),
+  //TString::Format("%s/CECA_Paper/Ceca_pp_or_pL/TEST4/Out/",GetFemtoOutputFolder()),
+  //TString::Format("%s/CECA_Paper/Ceca_pp_or_pL/TEST4/Log/",GetFemtoOutputFolder()),
+  //0,0,1);
   //ReadDlmHst();
 
   //dadd_f(argc,argv);
 
   //TestReadWriteBinary();
+
+  //TString DADD_IN=TString(argv[1]);
+  //TString DADD_OUT=TString(argv[2]);
+  //TString ROOT_OUT=TString(argv[3]);
+  //TString MASTER_FILE=TString(argv[4]);
+  //TString FINAL_OUT=TString(argv[5]);
+  char** myinput = new char* [6];
+  for(unsigned uch=0; uch<6; uch++){
+    myinput[uch] = new char [511];
+  }
+  //strcpy(myinput[1],"/home/dimihayl/Software/LocalFemto/Output/CECA_Paper/TestBatchOutput/test1/IN/Cigar1.26888.*.full.dlm.hst");
+  strcpy(myinput[1],"/home/dimihayl/Software/LocalFemto/Output/CECA_Paper/TestBatchOutput/test1/IN/Cigar1.26888.full.dlm.hst");
+  strcpy(myinput[2],"/home/dimihayl/Software/LocalFemto/Output/CECA_Paper/TestBatchOutput/test1/Cigar1.26888.full.root");
+  strcpy(myinput[3],"/home/dimihayl/Software/LocalFemto/Output/CECA_Paper/TestBatchOutput/test1/IN/Cigar1.26888.dlm.master");
+  strcpy(myinput[4],"/home/dimihayl/Software/LocalFemto/Output/CECA_Paper/TestBatchOutput/test1/Cigar1.26888.ceca.source");
+  printf("Lets go\n");
+  return dlmhst_ceca_fit_wc0(5,myinput);
 
   return 0;
 }

@@ -9,5 +9,6 @@ int Ceca_pp_or_pL(const TString FileBase, const TString InputFolder, const TStri
                   const int ParID, const int JobID, const int NumCPU=1);
 int dadd_f(int argc, char *argv[]);
 int dlmhst_root(int argc, char *argv[]);
+int dlmhst_ceca_fit_wc0(int argc, char *argv[]);
 
 #endif
