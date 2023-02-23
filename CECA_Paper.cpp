@@ -1035,13 +1035,10 @@ int dadd_f(int argc, char *argv[]){
 
 //project the output into 2D histos of kstar_vs_rstar for each mT bin
 //the input args should be the dlm.hst input file and the .root output file
-int dlmhst_root(int argc, char *argv[]){
-  if(argc!=3) {printf("\033[1;31mERROR:\033[0m Wrong args [DlmHst_Root Input Output]\n"); return 1;}
-
-  TString HistoFileName = TString(argv[1]);
+int dlmhst_root(TString DADD_OUT, TString ROOT_OUT){
 
   DLM_Histo<float> dlmHisto;
-  if(!dlmHisto.QuickLoad(HistoFileName.Data())) return 1;
+  if(!dlmHisto.QuickLoad(DADD_OUT.Data())) return 1;
 
   const unsigned NumMt = dlmHisto.GetNbins(2);
   const unsigned NumRad = dlmHisto.GetNbins(1);
@@ -1069,8 +1066,7 @@ int dlmhst_root(int argc, char *argv[]){
   }
   hYield->Sumw2();
 
-  TString RootFileName = TString(argv[2]);
-  TFile fOutput(RootFileName,"recreate");
+  TFile fOutput(ROOT_OUT,"recreate");
   if(!fOutput.IsOpen()) return 1;
   for(unsigned uMt=0; uMt<NumMt; uMt++){
     h_kstar_rstar[uMt]->Write();
@@ -1089,26 +1085,292 @@ int dlmhst_root(int argc, char *argv[]){
   return 0;
 }
 
+int dlmhst_root(int argc, char *argv[]){
+  if(argc!=3) {printf("\033[1;31mERROR:\033[0m Wrong args [DlmHst_Root Input Output]\n"); return 1;}
+  TString DADD_OUT = TString(argv[1]);
+  TString ROOT_OUT = TString(argv[2]);
+  return dlmhst_root(DADD_OUT,ROOT_OUT);
+}
+
+
+
+
+
+
+//FitMode:
+// 1 - core (single non-shifted, fully normalized, Gauss). Saves the pars within the 1st Gauss in SrcPar
+// 2 - full: takes the pars of the first Gauss in SrcPar to fix the first Gaussian,
+//            and fits by adding a second Gaussian that can be shifted
+//            G3 is OFF!! if we are stuck, we change a bit the core gauss
+TF1* Fit_wc0(int FitMode, TH1F* hSrc, TriGauss& SrcPar, double& Dist_Max, double& Chi2){
+  double lowerlimit, upperlimit;
+  GetCentralInterval(*hSrc, 0.98, lowerlimit, upperlimit, true);
+
+  if(lowerlimit>5) lowerlimit = 5;
+  if(upperlimit>20) upperlimit = 20;
+
+  TF1* fSrc = new TF1(TString::Format("fSrc"),NormTripleShiftedGaussTF1,0.,20.,9);
+
+  //like chi2, but not normalized to error
+  double Dist2 = 0;
+  double NDPts = 0;
+  Chi2 = 0;
+  //nsig = 0;
+  double NDPts_chi2 = 0;
+  //double Dist_Max = 0;
+  Dist_Max = 0;
+  double Nsig_AtDistMax = 0;
+  double Rad_AtDistMax = 0;
+
+  const double Dist_Limit = 0.015;
+  const double NsigMax_Limit = 3.0;
+  const double Chi2_Limit = 2.0;
+  const unsigned Patience = 32;//increase limit after X fits
+  const double BadFitWarning = 0.06;
+  double Dist_CurLim = Dist_Limit;
+  unsigned StuckCount = 0;
+  unsigned ResetCount = 0;
+
+  TRandom3 rangen(11);
+
+  do{
+    Dist2 = 0;
+    NDPts = 0;
+    Chi2 = 0;
+    NDPts_chi2 = 0;
+    Dist_Max = 0;
+    Nsig_AtDistMax = 0;
+
+
+    //if we are very stuck, we allow to change the norm
+    if(ResetCount<4) fSrc->FixParameter(0,1);
+    else{
+      fSrc->SetParameter(0,rangen.Uniform(0.9,1.0));
+      fSrc->SetParLimits(0,0.9,1.0);
+    }
+
+    if(FitMode==1){
+      //G1
+      fSrc->SetParameter(1,rangen.Uniform(0.0,1.0));
+      fSrc->SetParLimits(1,0,3.);
+
+      fSrc->FixParameter(2,0);
+
+      fSrc->FixParameter(3,1);
+
+      fSrc->FixParameter(4,1);
+      fSrc->FixParameter(5,0);
+      fSrc->FixParameter(6,1);
+
+      fSrc->FixParameter(7,1);
+      fSrc->FixParameter(8,0);
+    }
+    else if(FitMode==2){
+      //if we are stuck, slight variation of the G1 are allowed
+      //in steps: first weight, than sigma, finally shift
+      //of all fails: also norm (above)
+      //as final resort: reduce the acceptance limit (see below)
+      if(ResetCount<1){
+        fSrc->FixParameter(1,SrcPar.sigma1);
+        fSrc->FixParameter(2,SrcPar.shift1);
+        fSrc->FixParameter(3,SrcPar.wght1);
+      }
+
+      //if we have some presets for the core
+      if(SrcPar.wght1){
+        if(ResetCount>=1){
+          fSrc->SetParameter(3,SrcPar.wght1);
+          double low_lim = SrcPar.wght1*0.9;
+          double up_lim = SrcPar.wght1*1.1;
+          if(up_lim>1) up_lim = 1;
+          if(up_lim<0) up_lim = 0;
+          if(low_lim>1) low_lim = 1;
+          if(low_lim<0) low_lim = 0;
+          fSrc->SetParLimits(3,0,up_lim);
+        }
+
+        if(ResetCount>=2){
+          fSrc->SetParameter(1,SrcPar.sigma1);
+          fSrc->SetParLimits(1,SrcPar.sigma1*0.9,SrcPar.sigma1*1.1);
+        }
+
+        if(ResetCount>=3){
+          fSrc->SetParameter(2,SrcPar.shift1);
+          fSrc->SetParLimits(2,SrcPar.shift1*0.9,SrcPar.shift1*1.1);
+        }
+      }
+      //of no presets but we are stuck: open up this gaussian a tiny bit
+      else{
+        if(ResetCount>=1){
+          fSrc->SetParameter(1,0.5);
+          fSrc->SetParLimits(1,0,1.5);
+
+          fSrc->SetParameter(3,0);
+          fSrc->SetParLimits(3,0,0.15);
+        }
+        if(ResetCount>=2){
+          fSrc->SetParameter(2,0.0);
+          fSrc->SetParLimits(2,0,1.0);
+        }
+      }
+
+
+
+
+      if(SrcPar.wght1){
+        fSrc->SetParameter(4,rangen.Uniform(SrcPar.sigma1+1,SrcPar.sigma1+2));
+        fSrc->SetParLimits(4,SrcPar.sigma1,SrcPar.sigma1+5);
+
+        fSrc->SetParameter(5,rangen.Uniform(0.0,0.5));//shift
+        fSrc->SetParLimits(5,0.,2.0);
+      }
+      else{
+        fSrc->SetParameter(4,rangen.Uniform(0,2));
+        fSrc->SetParLimits(4,0,4);
+
+        fSrc->SetParameter(5,rangen.Uniform(0.0,0.5));//shift
+        fSrc->SetParLimits(5,0.,2.0);
+      }
+
+
+      //if(ResetCount<2){
+        fSrc->FixParameter(6,1.0);
+        fSrc->FixParameter(7,SrcPar.sigma1+6);
+        fSrc->FixParameter(8,SrcPar.sigma1);
+      //}
+      //else{
+      //  fSrc->SetParameter(6,rangen.Uniform(0.8,1.0));
+      //  fSrc->SetParLimits(6,0.,1.0);
+
+      //  fSrc->SetParameter(7,SrcPar.sigma1+6);
+      //  fSrc->SetParLimits(7,SrcPar.sigma1+4,SrcPar.sigma1+8);
+
+      //  fSrc->SetParameter(8,SrcPar.sigma1);
+      //  fSrc->SetParLimits(8,0.,SrcPar.sigma1+5);
+      //}
+
+    }
+    else{
+      printf("FitMode ERROR\n");
+      return NULL;
+    }
+
+    hSrc->Fit(fSrc,"Q, S, N, R, M","",lowerlimit,upperlimit);
+
+    //up to 10 fm
+    const double RadDistMax = 8;
+    for(unsigned uRad=0; uRad<hSrc->GetNbinsX(); uRad++){
+      double Rad = hSrc->GetBinCenter(uRad+1);
+      if(Rad>RadDistMax) break;
+      double dst = hSrc->GetBinContent(uRad+1)-fSrc->Eval(Rad);
+      double err;
+      if(hSrc->GetBinContent(uRad+1)){
+        err = hSrc->GetBinError(uRad+1);
+      }
+      else{
+        err = fabs(dst)*1000;
+      }
+
+      Dist2 += dst*dst;
+      NDPts++;
+      if(hSrc->GetBinContent(uRad+1)){
+        Chi2 += (dst*dst)/(err*err);
+        NDPts_chi2++;
+      }
+
+      if(Dist_Max<fabs(dst)){
+        Dist_Max = fabs(dst);
+        Nsig_AtDistMax = Dist_Max/err;
+        Rad_AtDistMax = Rad;
+      }
+    }
+    Dist2 /= NDPts;
+    //if(Chi2/NDPts_chi2 < 4) nsig = sqrt(2)*TMath::ErfcInverse(TMath::Prob(Chi2,NDPts_chi2));
+    //else nsig = 10;
+    //printf("nsig = %f\n",nsig);
+    Chi2 /= NDPts_chi2;
+    //printf("Chi2 = %f\n",Chi2);
+    StuckCount++;
+    if(StuckCount>Patience){
+      //if(ResetCount%2) Dist_CurLim += Dist_Limit;
+      if(ResetCount>5) Dist_CurLim += Dist_Limit;
+      StuckCount = 0;
+      ResetCount++;
+    }
+  }
+  while(Dist_Max>Dist_CurLim && Nsig_AtDistMax>NsigMax_Limit && Chi2>Chi2_Limit);
+  if(Dist_Max>BadFitWarning && Nsig_AtDistMax>NsigMax_Limit && Chi2>Chi2_Limit){
+    printf("WARNING: BadFitWarning (Chi2/ndf = %.2f)\n",Chi2);
+  }
+
+  if(FitMode==1){
+    SrcPar.norm = fSrc->GetParameter(0);
+    SrcPar.sigma1 = fSrc->GetParameter(1);
+    SrcPar.shift1 = fSrc->GetParameter(2);
+    SrcPar.wght1 = fSrc->GetParameter(3);
+  }
+  else if(FitMode==2){
+    SrcPar.norm = fSrc->GetParameter(0);
+    SrcPar.sigma1 = fSrc->GetParameter(1);
+    SrcPar.shift1 = fSrc->GetParameter(2);
+    SrcPar.wght1 = fSrc->GetParameter(3);
+    SrcPar.sigma2 = fSrc->GetParameter(4);
+    SrcPar.shift2 = fSrc->GetParameter(5);
+    SrcPar.wght2 = fSrc->GetParameter(6);
+    SrcPar.sigma3 = fSrc->GetParameter(7);
+    SrcPar.shift3 = fSrc->GetParameter(8);
+  }
+
+  return fSrc;
+}
+
+
+
+
+
+
+
+
+
+
 //reads my batch output and fits it, saving the output + info of all pars from the master file
 //works only for wildcard_flag==0
 int dlmhst_ceca_fit_wc0(int argc, char *argv[]){
-printf("hi...\n");
+//printf("hi...\n");
   if(argc!=5){
     printf("\033[1;31mERROR:\033[0m dlmhst_ceca_fit_wc0 needs 5 args!\n");
     return 1;
   }
 
   //TString DADD_IN=TString(argv[1]);
-  TString DADD_OUT=TString(argv[1]);
-  TString ROOT_OUT=TString(argv[2]);
-  TString MASTER_FILE=TString(argv[3]);
-  TString FINAL_OUT=TString(argv[4]);
 
-printf("dlmhst_root...\n");
-  if(dlmhst_root(3, argv)){
+  //TString DADD_OUT=TString(argv[1]);
+  //TString ROOT_OUT=TString(argv[2]);
+  //TString MASTER_FILE=TString(argv[3]);
+  //TString FINAL_OUT=TString(argv[4]);
+
+  TString BASE_NAME_PAR = TString(argv[1]);
+  TString OUT_FOLDER = TString(argv[2]);//the dlm.hst files
+  TString MASTER_FOLDER = TString(argv[3]);
+  TString OUTPUT_FOLDER = TString(argv[4]);
+
+  TString DADD_CORE_OUT = OUT_FOLDER+BASE_NAME_PAR+TString(".core.dlm.hst");
+  TString DADD_FULL_OUT = OUT_FOLDER+BASE_NAME_PAR+TString(".full.dlm.hst");
+
+  TString ROOT_CORE_OUT = OUT_FOLDER+BASE_NAME_PAR+TString(".core.root");
+  TString ROOT_FULL_OUT = OUT_FOLDER+BASE_NAME_PAR+TString(".full.root");
+
+  TString MASTER_FILE = MASTER_FOLDER+BASE_NAME_PAR+TString(".dlm.master");
+  TString FINAL_OUT = OUTPUT_FOLDER+BASE_NAME_PAR+TString(".ceca.source");
+
+//printf("dlmhst_root...\n");
+  if(dlmhst_root(DADD_CORE_OUT,ROOT_CORE_OUT)){
     return 1;
   }
-printf(" --> done\n");
+  if(dlmhst_root(DADD_FULL_OUT,ROOT_FULL_OUT)){
+    return 1;
+  }
+//printf(" --> done\n");
 
   char* cline = new char [512];
   char* cdscr = new char [128];
@@ -1126,7 +1388,7 @@ printf(" --> done\n");
   for(unsigned uLine=0; uLine<MaxNumLines; uLine++){
     LinesToSave[uLine] = new char [256];
   }
-printf("InFile...\n");
+//printf("InFile...\n");
   FILE *InFile;
   InFile = fopen(MASTER_FILE.Data(), "r");
   if(!InFile){
@@ -1168,30 +1430,49 @@ printf("InFile...\n");
   }//InFile
   fclose(InFile);
 
-  printf(" --> done\n");
+  //printf(" --> done\n");
 
   unsigned UpKstarBin;
 
-  TFile root_file(ROOT_OUT,"update");
-  if(!root_file.IsOpen()){
-    printf("\033[1;31mERROR:\033[0m Cannot open %s\n",ROOT_OUT.Data());
+  TFile root_file_core(ROOT_CORE_OUT,"update");
+  TFile root_file_full(ROOT_FULL_OUT,"update");
+
+  if(!root_file_core.IsOpen()){
+    printf("\033[1;31mERROR:\033[0m Cannot open %s\n",ROOT_CORE_OUT.Data());
     return 1;
   }
-  TH2F* hYield = (TH2F*)root_file.Get("hYield");
-  if(!hYield){
-    printf("\033[1;31mERROR:\033[0m Cannot open hYield in %s\n",ROOT_OUT.Data());
-    root_file.Close();
+  if(!root_file_full.IsOpen()){
+    printf("\033[1;31mERROR:\033[0m Cannot open %s\n",ROOT_FULL_OUT.Data());
     return 1;
   }
-  const unsigned NumMtBins = hYield->GetYaxis()->GetNbins();
+
+  root_file_core.cd();
+  TH2F* hYield_core = (TH2F*)root_file_core.Get("hYield");
+  if(!hYield_core){
+    printf("\033[1;31mERROR:\033[0m Cannot open hYield in %s\n",ROOT_CORE_OUT.Data());
+    root_file_core.Close();
+    return 1;
+  }
+  root_file_full.cd();
+  TH2F* hYield_full = (TH2F*)root_file_full.Get("hYield");
+  if(!hYield_full){
+    printf("\033[1;31mERROR:\033[0m Cannot open hYield in %s\n",ROOT_FULL_OUT.Data());
+    root_file_full.Close();
+    return 1;
+  }
+
+
+  const unsigned NumMtBins = hYield_full->GetYaxis()->GetNbins();
   if(type=="pp"&&NumMtBins!=10){
     printf("\033[1;31mERROR:\033[0m We have to have 10 mT bins in pp\n");
-    root_file.Close();
+    root_file_core.Close();
+    root_file_full.Close();
     return 1;
   }
   if(type=="pL"&&NumMtBins!=8){
     printf("\033[1;31mERROR:\033[0m We have to have 8 mT bins in pL\n");
-    root_file.Close();
+    root_file_core.Close();
+    root_file_full.Close();
     return 1;
   }
 
@@ -1224,12 +1505,18 @@ printf("InFile...\n");
     MtBinCenter[7] = 2334;
   }
 
+  double* Dist_Max = new double [NumMtBins];
+  double* Chi2Ndf = new double [NumMtBins];
+
   for(unsigned uMt=0; uMt<NumMtBins; uMt++){
-    root_file.cd();
-    TH2F* h_kstar_rstar = (TH2F*)root_file.Get(TString::Format("h_kstar_rstar_mT%u",uMt));
-    if(!h_kstar_rstar){
-      printf("\033[1;31mERROR:\033[0m Cannot open h_kstar_rstar_mT%u in %s\n",uMt,ROOT_OUT.Data());
-      root_file.Close();
+    root_file_core.cd();
+    TH2F* h_kstar_rstar_core = (TH2F*)root_file_core.Get(TString::Format("h_kstar_rstar_mT%u",uMt));
+    root_file_full.cd();
+    TH2F* h_kstar_rstar_full = (TH2F*)root_file_full.Get(TString::Format("h_kstar_rstar_mT%u",uMt));
+    if(!h_kstar_rstar_core || !h_kstar_rstar_full){
+      printf("\033[1;31mERROR:\033[0m Cannot open h_kstar_rstar_mT%u in %s or %s\n",uMt,ROOT_CORE_OUT.Data(),ROOT_FULL_OUT.Data());
+      root_file_core.Close();
+      root_file_full.Close();
       delete [] MtBinCenter;
       return 1;
     }
@@ -1238,189 +1525,70 @@ printf("InFile...\n");
 
     if(mom_bin_width==-1)
       mom_bin_width=100;
-    UpKstarBin = h_kstar_rstar->GetXaxis()->FindBin(mom_bin_width);
-    TH1F* hSrc = (TH1F*)h_kstar_rstar->ProjectionY(TString::Format("hSrc_%u",uMt),1,UpKstarBin);
-    hSrc->Scale(1./hSrc->Integral(),"width");
 
-    double lowerlimit, upperlimit;
-    GetCentralInterval(*hSrc, 0.98, lowerlimit, upperlimit, true);
-    if(lowerlimit>5) lowerlimit = 5;
-    if(upperlimit>20) upperlimit = 20;
+    UpKstarBin = h_kstar_rstar_full->GetXaxis()->FindBin(mom_bin_width);
 
-    root_file.cd();
-    TF1* fSrc = new TF1(TString::Format("fSrc_%u",uMt),NormTripleShiftedGaussTF1,0.,20.,9);
+    TH1F* hSrc_core = (TH1F*)h_kstar_rstar_core->ProjectionY(TString::Format("hSrc_core_%u",uMt),1,UpKstarBin);
+    double Int_Src_core = hSrc_core->Integral();
+    if(Int_Src_core) hSrc_core->Scale(1./Int_Src_core,"width");
 
-    //like chi2, but not normalized to error
-    double Dist2 = 0;
-    double NDPts = 0;
-    double Chi2 = 0;
-    double NDPts_chi2 = 0;
-    double Dist_Max = 0;
-    double Nsig_AtDistMax = 0;
-    double Rad_AtDistMax = 0;
+    TH1F* hSrc_full = (TH1F*)h_kstar_rstar_full->ProjectionY(TString::Format("hSrc_full_%u",uMt),1,UpKstarBin);
+    double Int_Src_full = hSrc_full->Integral();
+    if(Int_Src_full) hSrc_full->Scale(1./Int_Src_full,"width");
 
-    const double Dist_Limit = 0.015;
-    const double Nsig_Limit = 3.0;
-    const unsigned Patience = 32;//increase limit after X fits
-    const double BadFitWarning = 0.06;
-    double Dist_CurLim = Dist_Limit;
-    unsigned StuckCount = 0;
-    unsigned ResetCount = 0;
-
-    TRandom3 rangen(11);
-
-    do{
-      Dist2 = 0;
-      NDPts = 0;
-      Chi2 = 0;
-      NDPts_chi2 = 0;
-      Dist_Max = 0;
-      Nsig_AtDistMax = 0;
+    double WeightCore = 0;
+    if(Int_Src_core+Int_Src_full) WeightCore = Int_Src_core/(Int_Src_core+Int_Src_full);
 
 
+    //printf("so far so core %u\n",uMt);
+    //CORE FIT
 
-//CHECK THE LOGIC
-      //NORM
-      fSrc->SetParameter(0,rangen.Uniform(0.9,1.0));
-      fSrc->SetParLimits(0,0.,1.);
-
-      fSrc->FixParameter(1,1);
-      fSrc->FixParameter(2,0);
-      fSrc->FixParameter(3,0);
-
-      //sigma
-      fSrc->SetParameter(4,rangen.Uniform(2.0,4.0));
-      fSrc->SetParLimits(4,0,20.);
-      //shift
-      fSrc->SetParameter(5,rangen.Uniform(0,0.5));
-      fSrc->SetParLimits(5,0.,10.);
-      //weight
-      fSrc->SetParameter(6,rangen.Uniform(0.4,0.6));
-      fSrc->SetParLimits(6,0.,1.0);
-
-      //sigma
-      fSrc->SetParameter(7,rangen.Uniform(0.4,0.7));
-      fSrc->SetParLimits(7,0,20.);
-      //shift
-      fSrc->SetParameter(8,rangen.Uniform(0,0.5));
-      fSrc->SetParLimits(8,0.,10.);
-
-/*
-      //G1
-      fSrc->SetParameter(1,rangen.Uniform(0.2,0.4));//sigma
-      fSrc->SetParLimits(1,0.,0.8);
-      fSrc->SetParameter(2,rangen.Uniform(0.0,0.5));//shift
-      fSrc->SetParLimits(2,0.,2.0);
-      fSrc->SetParameter(3,rangen.Uniform(0.2,0.4));//weight
-      fSrc->SetParLimits(3,0.,0.95);
-
-      //200 original
-      if(hSrc->GetEntries()>1000 || ResetCount>=1){
-        //G2
-        //sigma
-        fSrc->SetParameter(4,rangen.Uniform(2.0,4.0));
-        fSrc->SetParLimits(4,0,20.);
-        //shift
-        fSrc->SetParameter(5,rangen.Uniform(0,0.5));
-        fSrc->SetParLimits(5,0.,10.);
-        //weight
-        fSrc->SetParameter(6,rangen.Uniform(0.4,0.6));
-        fSrc->SetParLimits(6,0.,1.0);
-      }
-      else{
-        //G2
-        //sigma
-        fSrc->FixParameter(4,1);
-        //shift
-        fSrc->FixParameter(5,0);
-        //weight
-        fSrc->FixParameter(6,0);
-      }
-
-
-      //if we have enough data
-      if(hSrc->GetEntries()>1000 || ResetCount>=2){
-        //G3
-        //sigma
-        fSrc->SetParameter(7,rangen.Uniform(0.4,0.7));
-        fSrc->SetParLimits(7,0,20.);
-        //shift
-        fSrc->SetParameter(8,rangen.Uniform(0,0.5));
-        fSrc->SetParLimits(8,0.,10.);
-      }
-      else{
-        //G3
-        //sigma
-        fSrc->FixParameter(7,1);
-        //shift
-        fSrc->FixParameter(8,0);
-      }
-*/
-      hSrc->Fit(fSrc,"Q, S, N, R, M","",lowerlimit,upperlimit);
-
-      //up to 10 fm
-      const double RadDistMax = 8;
-      for(unsigned uRad=0; uRad<hSrc->GetNbinsX(); uRad++){
-        double Rad = hSrc->GetBinCenter(uRad+1);
-        if(Rad>RadDistMax) break;
-        double dst = hSrc->GetBinContent(uRad+1)-fSrc->Eval(Rad);
-        double err;
-        if(hSrc->GetBinContent(uRad+1)){
-          err = hSrc->GetBinError(uRad+1);
-        }
-        else{
-          err = fabs(dst)*1000;
-        }
-
-        Dist2 += dst*dst;
-        NDPts++;
-        if(hSrc->GetBinError(uRad+1)){
-          Chi2 += (dst*dst)/(err*err);
-          NDPts_chi2++;
-        }
-
-        if(Dist_Max<fabs(dst)){
-          Dist_Max = fabs(dst);
-          Nsig_AtDistMax = Dist_Max/err;
-          Rad_AtDistMax = Rad;
-        }
-      }
-      Dist2 /= NDPts;
-      Chi2 /= NDPts_chi2;
-      //printf("uMt_%u uMom_%u Dist2=%e (%e); Dist_Max = %f (%.2f)\n",uMt,uMom,Dist2,Chi2,Dist_Max,Nsig_AtDistMax);
-      //usleep(100e3);
-      StuckCount++;
-      if(StuckCount>Patience){
-        Dist_CurLim += Dist_Limit;
-        StuckCount = 0;
-        ResetCount++;
-      }
+    TF1* fSrc_core = NULL;
+    //, Dist_Max[uMt], Nsig[uMt] will be overwritten later, but its fine, we only want to QA final result
+    if(Int_Src_core) fSrc_core = Fit_wc0(1, hSrc_core,SrcPar[uMt], Dist_Max[uMt], Chi2Ndf[uMt]);
+    else{
+      SrcPar[uMt].sigma1 = 0.5;
+      SrcPar[uMt].shift1 = 0;
+      SrcPar[uMt].wght1 = 0;
     }
-    while(Dist_Max>Dist_CurLim && Nsig_AtDistMax>Nsig_Limit);
-    if(Dist_Max>BadFitWarning && Nsig_AtDistMax>Nsig_Limit){
-      printf("WARNING: uMt_%u (r = %.3f)\n",uMt,Rad_AtDistMax);
-    }
+    if(fSrc_core) fSrc_core->SetName(TString::Format("fSrc_core_%u",uMt));
 
-    root_file.cd();
-    fSrc->Write();
-    hSrc->Write();
+    //printf("so far so full %u\n",uMt);
+    //FULL FIT
+    TF1* fSrc_full = NULL;
+    SrcPar[uMt].wght1 = WeightCore;
+    if(Int_Src_core+Int_Src_full) fSrc_full = Fit_wc0(2,hSrc_full,SrcPar[uMt], Dist_Max[uMt], Chi2Ndf[uMt]);
+    if(fSrc_full) fSrc_full->SetName(TString::Format("fSrc_full_%u",uMt));
 
-    SrcPar[uMt].norm = fSrc->GetParameter(0);
-    SrcPar[uMt].sigma1 = fSrc->GetParameter(1);
-    SrcPar[uMt].shift1 = fSrc->GetParameter(2);
-    SrcPar[uMt].wght1 = fSrc->GetParameter(3);
-    SrcPar[uMt].sigma2 = fSrc->GetParameter(4);
-    SrcPar[uMt].shift2 = fSrc->GetParameter(5);
-    SrcPar[uMt].wght2 = fSrc->GetParameter(6);
-    SrcPar[uMt].sigma3 = fSrc->GetParameter(7);
-    SrcPar[uMt].shift3 = fSrc->GetParameter(8);
+    //printf("..write c\n");
+    root_file_core.cd();
+    if(hSrc_core) hSrc_core->Write();
+    if(fSrc_core) fSrc_core->Write();
+    //printf("..del c\n");
+    if(fSrc_core) delete fSrc_core;
+    if(hSrc_core) delete hSrc_core;
 
-    delete fSrc;
-    gROOT->cd();
-    delete hSrc;
+    //printf("..write f\n");
+    root_file_full.cd();
+    if(hSrc_full) hSrc_full->Write();
+    if(fSrc_full) fSrc_full->Write();
+    //printf("..del f\n");
+    if(hSrc_full) delete hSrc_full;
+    if(fSrc_full) delete fSrc_full;
   }//uMt
 
-
+//TF1* fSrc2 = new TF1(TString::Format("fSrc2"),NormTripleShiftedGaussTF1,0.,20.,9);
+//fSrc2->FixParameter(0,(1.0000+0.9838)*0.5);
+//fSrc2->FixParameter(1,(0.897+0.688)*0.5);
+//fSrc2->FixParameter(2,(0.0000+0.029)*0.5);
+//fSrc2->FixParameter(3,(0.1500+0.0538)*0.5);
+//fSrc2->FixParameter(4,(1.841+1.396)*0.5);
+//fSrc2->FixParameter(5,(0.0000+0.0)*0.5);
+//fSrc2->FixParameter(6,(1.0000+1.0)*0.5);
+//fSrc2->FixParameter(7,(6.500+6.765)*0.5);
+//fSrc2->FixParameter(8,(0.500+0.765)*0.5);
+//root_file_full.cd();
+//fSrc2->Write();
 
   FILE *fptr;
   fptr=fopen(FINAL_OUT.Data(),"w");
@@ -1432,7 +1600,7 @@ printf("InFile...\n");
   fprintf(fptr,"SOURCE:\n");
   for(unsigned uMt=0; uMt<NumMtBins; uMt++){
     //norm,sig1,shift1,w1,sig2,shift2,w2,sig3,shift3
-    fprintf(fptr,"%.0f %.4f %.3f %.3f %.4f %.3f %.3f %.4f %.3f %.3f\n",
+    fprintf(fptr,"%.0f %.4f %.3f %.3f %.4f %.3f %.3f %.4f %.3f %.3f %.3f %.1f\n",
         MtBinCenter[uMt],
         SrcPar[uMt].norm,
         SrcPar[uMt].sigma1,
@@ -1442,7 +1610,9 @@ printf("InFile...\n");
         SrcPar[uMt].shift2,
         SrcPar[uMt].wght2,
         SrcPar[uMt].sigma3,
-        SrcPar[uMt].shift3
+        SrcPar[uMt].shift3,
+        Dist_Max[uMt],
+        Chi2Ndf[uMt]
       );
   }
 
@@ -1456,9 +1626,12 @@ printf("InFile...\n");
   delete [] cdscr;
   delete [] cval;
 
-  root_file.Close();
+  root_file_core.Close();
+  root_file_full.Close();
   delete [] MtBinCenter;
   delete [] SrcPar;
+  delete [] Dist_Max;
+  delete [] Chi2Ndf;
   return 0;
 }
 
@@ -1538,10 +1711,10 @@ int CECA_PAPER(int argc, char *argv[]){
     myinput[uch] = new char [511];
   }
   //strcpy(myinput[1],"/home/dimihayl/Software/LocalFemto/Output/CECA_Paper/TestBatchOutput/test1/IN/Cigar1.26888.*.full.dlm.hst");
-  strcpy(myinput[1],"/home/dimihayl/Software/LocalFemto/Output/CECA_Paper/TestBatchOutput/test1/IN/Cigar1.26888.full.dlm.hst");
-  strcpy(myinput[2],"/home/dimihayl/Software/LocalFemto/Output/CECA_Paper/TestBatchOutput/test1/Cigar1.26888.full.root");
-  strcpy(myinput[3],"/home/dimihayl/Software/LocalFemto/Output/CECA_Paper/TestBatchOutput/test1/IN/Cigar1.26888.dlm.master");
-  strcpy(myinput[4],"/home/dimihayl/Software/LocalFemto/Output/CECA_Paper/TestBatchOutput/test1/Cigar1.26888.ceca.source");
+  strcpy(myinput[1],"Cigar1.26888");
+  strcpy(myinput[2],"/home/dimihayl/Software/LocalFemto/Output/CECA_Paper/TestBatchOutput/test1/IN/");
+  strcpy(myinput[3],"/home/dimihayl/Software/LocalFemto/Output/CECA_Paper/TestBatchOutput/test1/IN/");
+  strcpy(myinput[4],"/home/dimihayl/Software/LocalFemto/Output/CECA_Paper/TestBatchOutput/test1/");
   printf("Lets go\n");
   return dlmhst_ceca_fit_wc0(5,myinput);
 
