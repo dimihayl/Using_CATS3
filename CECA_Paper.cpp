@@ -1105,7 +1105,8 @@ int dlmhst_root(int argc, char *argv[]){
 TF1* Fit_wc0(int FitMode, TH1F* hSrc, TriGauss& SrcPar, double& Dist_Max, double& Chi2){
   double lowerlimit, upperlimit;
   GetCentralInterval(*hSrc, 0.98, lowerlimit, upperlimit, true);
-
+//printf("SrcPar.shift1 = %f\n",SrcPar.shift1);
+//usleep(100e3);
   if(lowerlimit>5) lowerlimit = 5;
   if(upperlimit>20) upperlimit = 20;
 
@@ -1170,24 +1171,37 @@ TF1* Fit_wc0(int FitMode, TH1F* hSrc, TriGauss& SrcPar, double& Dist_Max, double
       //in steps: first weight, than sigma, finally shift
       //of all fails: also norm (above)
       //as final resort: reduce the acceptance limit (see below)
-      if(ResetCount<1){
-        fSrc->FixParameter(1,SrcPar.sigma1);
-        fSrc->FixParameter(2,SrcPar.shift1);
-        fSrc->FixParameter(3,SrcPar.wght1);
-      }
 
-      //if we have some presets for the core
+      //default
+      fSrc->FixParameter(1,SrcPar.sigma1);
+      fSrc->FixParameter(2,SrcPar.shift1);
+      fSrc->FixParameter(3,SrcPar.wght1);
+
+      //sigma g2
+      fSrc->SetParameter(4,rangen.Uniform(SrcPar.sigma1,SrcPar.sigma1*2));
+      fSrc->SetParLimits(4,0,10.);
+      //shift g2
+      fSrc->SetParameter(5,0);
+      fSrc->SetParLimits(5,0,3.);
+      //weight g2
+      fSrc->FixParameter(6,1);
+
+      fSrc->FixParameter(7,1);
+      fSrc->FixParameter(8,1);
+
       if(SrcPar.wght1){
         if(ResetCount>=1){
-          fSrc->SetParameter(3,SrcPar.wght1);
           double low_lim = SrcPar.wght1*0.9;
           double up_lim = SrcPar.wght1*1.1;
           if(up_lim>1) up_lim = 1;
           if(up_lim<0) up_lim = 0;
           if(low_lim>1) low_lim = 1;
           if(low_lim<0) low_lim = 0;
-          fSrc->SetParLimits(3,0,up_lim);
+          fSrc->SetParameter(3,SrcPar.wght1);
+          //printf("%f %f\n",low_lim,up_lim);
+          fSrc->SetParLimits(3,low_lim,up_lim);
         }
+
 
         if(ResetCount>=2){
           fSrc->SetParameter(1,SrcPar.sigma1);
@@ -1195,65 +1209,55 @@ TF1* Fit_wc0(int FitMode, TH1F* hSrc, TriGauss& SrcPar, double& Dist_Max, double
         }
 
         if(ResetCount>=3){
-          fSrc->SetParameter(2,SrcPar.shift1);
-          fSrc->SetParLimits(2,SrcPar.shift1*0.9,SrcPar.shift1*1.1);
+          fSrc->SetParameter(2,0);
+          fSrc->SetParLimits(2,0,0.5);
         }
+
+        if(ResetCount>=4){
+          fSrc->SetParameter(6,0.9);
+          fSrc->SetParLimits(6,0.8,1.0);
+
+          fSrc->SetParameter(7,5);
+          fSrc->SetParLimits(7,0,20.);
+          //shift g2
+          fSrc->SetParameter(8,0);
+          fSrc->SetParLimits(8,0,10.);
+        }
+
       }
-      //of no presets but we are stuck: open up this gaussian a tiny bit
       else{
         if(ResetCount>=1){
           fSrc->SetParameter(1,0.5);
-          fSrc->SetParLimits(1,0,1.5);
-
-          fSrc->SetParameter(3,0);
-          fSrc->SetParLimits(3,0,0.15);
+          fSrc->SetParLimits(1,0,1.0);
+          fSrc->SetParameter(3,0.1);
+          fSrc->SetParLimits(3,0,0.2);
         }
-        if(ResetCount>=2){
-          fSrc->SetParameter(2,0.0);
-          fSrc->SetParLimits(2,0,1.0);
+
+        if(ResetCount>=3){
+          fSrc->SetParameter(2,0);
+          fSrc->SetParLimits(2,0,0.5);
         }
+
+        if(ResetCount>=4){
+          fSrc->SetParameter(6,0.9);
+          fSrc->SetParLimits(6,0.8,1.0);
+
+          fSrc->SetParameter(7,5);
+          fSrc->SetParLimits(7,0,20.);
+          //shift g2
+          fSrc->SetParameter(8,0);
+          fSrc->SetParLimits(8,0,10.);
+        }
+
       }
 
-
-
-
-      if(SrcPar.wght1){
-        fSrc->SetParameter(4,rangen.Uniform(SrcPar.sigma1+1,SrcPar.sigma1+2));
-        fSrc->SetParLimits(4,SrcPar.sigma1,SrcPar.sigma1+5);
-
-        fSrc->SetParameter(5,rangen.Uniform(0.0,0.5));//shift
-        fSrc->SetParLimits(5,0.,2.0);
-      }
-      else{
-        fSrc->SetParameter(4,rangen.Uniform(0,2));
-        fSrc->SetParLimits(4,0,4);
-
-        fSrc->SetParameter(5,rangen.Uniform(0.0,0.5));//shift
-        fSrc->SetParLimits(5,0.,2.0);
-      }
-
-
-      //if(ResetCount<2){
-        fSrc->FixParameter(6,1.0);
-        fSrc->FixParameter(7,SrcPar.sigma1+6);
-        fSrc->FixParameter(8,SrcPar.sigma1);
-      //}
-      //else{
-      //  fSrc->SetParameter(6,rangen.Uniform(0.8,1.0));
-      //  fSrc->SetParLimits(6,0.,1.0);
-
-      //  fSrc->SetParameter(7,SrcPar.sigma1+6);
-      //  fSrc->SetParLimits(7,SrcPar.sigma1+4,SrcPar.sigma1+8);
-
-      //  fSrc->SetParameter(8,SrcPar.sigma1);
-      //  fSrc->SetParLimits(8,0.,SrcPar.sigma1+5);
-      //}
 
     }
     else{
       printf("FitMode ERROR\n");
       return NULL;
     }
+
 
     hSrc->Fit(fSrc,"Q, S, N, R, M","",lowerlimit,upperlimit);
 
@@ -1307,12 +1311,18 @@ TF1* Fit_wc0(int FitMode, TH1F* hSrc, TriGauss& SrcPar, double& Dist_Max, double
     SrcPar.norm = fSrc->GetParameter(0);
     SrcPar.sigma1 = fSrc->GetParameter(1);
     SrcPar.shift1 = fSrc->GetParameter(2);
+    if(SrcPar.shift1<0){
+      printf("wtf1\n");
+    }
     SrcPar.wght1 = fSrc->GetParameter(3);
   }
   else if(FitMode==2){
     SrcPar.norm = fSrc->GetParameter(0);
     SrcPar.sigma1 = fSrc->GetParameter(1);
     SrcPar.shift1 = fSrc->GetParameter(2);
+    if(SrcPar.shift1<0){
+      printf("wtf2\n");
+    }
     SrcPar.wght1 = fSrc->GetParameter(3);
     SrcPar.sigma2 = fSrc->GetParameter(4);
     SrcPar.shift2 = fSrc->GetParameter(5);
@@ -1552,6 +1562,7 @@ int dlmhst_ceca_fit_wc0(int argc, char *argv[]){
       SrcPar[uMt].wght1 = 0;
     }
     if(fSrc_core) fSrc_core->SetName(TString::Format("fSrc_core_%u",uMt));
+    //printf("SrcPar[uMt].shift1 = %f\n",SrcPar[uMt].shift1);
 
     //printf("so far so full %u\n",uMt);
     //FULL FIT
@@ -1711,7 +1722,8 @@ int CECA_PAPER(int argc, char *argv[]){
     myinput[uch] = new char [511];
   }
   //strcpy(myinput[1],"/home/dimihayl/Software/LocalFemto/Output/CECA_Paper/TestBatchOutput/test1/IN/Cigar1.26888.*.full.dlm.hst");
-  strcpy(myinput[1],"Cigar1.26888");
+  //strcpy(myinput[1],"Cigar1.26888");
+  strcpy(myinput[1],"Cigar1xs.18");
   strcpy(myinput[2],"/home/dimihayl/Software/LocalFemto/Output/CECA_Paper/TestBatchOutput/test1/IN/");
   strcpy(myinput[3],"/home/dimihayl/Software/LocalFemto/Output/CECA_Paper/TestBatchOutput/test1/IN/");
   strcpy(myinput[4],"/home/dimihayl/Software/LocalFemto/Output/CECA_Paper/TestBatchOutput/test1/");
