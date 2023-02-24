@@ -541,6 +541,7 @@ int Ceca_pp_or_pL(const TString FileBase, const TString InputFolder, const TStri
   //int type_flag = 0;
   int wildcard_flag = 0;
   TString type = "";
+  TString AnaVersion = "";
 
   double m_proton_reso;
   double frac_proton_reso;
@@ -572,6 +573,9 @@ int Ceca_pp_or_pL(const TString FileBase, const TString InputFolder, const TStri
     sscanf(cline, "%s %s",cdscr,cval);
     if(strcmp(cdscr,"type")==0){
       type = TString(cval);
+    }
+    else if(strcmp(cdscr,"AnaVersion")==0){
+      AnaVersion = TString(cval);
     }
     else{
       read_value = stod(cval);
@@ -609,6 +613,7 @@ int Ceca_pp_or_pL(const TString FileBase, const TString InputFolder, const TStri
   delete [] cline;
   delete [] cdscr;
 
+  printf("AnaVersion = %s\n",AnaVersion.Data());
   printf("GLOB_TIMEOUT = %f\n",GLOB_TIMEOUT);
   printf("multiplicity = %u\n",multiplicity);
   printf("target_yield = %u\n",target_yield);
