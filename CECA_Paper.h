@@ -10,5 +10,6 @@ int Ceca_pp_or_pL(const TString FileBase, const TString InputFolder, const TStri
 int dadd_f(int argc, char *argv[]);
 int dlmhst_root(int argc, char *argv[]);
 int dlmhst_ceca_fit_wc0(int argc, char *argv[]);
+int dlmhst_ceca_kdpfit_wc0(int argc, char *argv[]);
 
 #endif
