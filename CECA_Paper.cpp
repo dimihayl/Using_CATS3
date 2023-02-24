@@ -1648,6 +1648,783 @@ int dlmhst_ceca_fit_wc0(int argc, char *argv[]){
 
 
 
+
+
+
+
+
+//FitMode:
+// 1 - core (single non-shifted, fully normalized, Gauss). Saves the pars within the 1st Gauss in SrcPar
+// 2 - full: takes the pars of the first Gauss in SrcPar to fix the first Gaussian,
+//            and fits by adding a second Gaussian that can be shifted
+//            G3 is OFF!! if we are stuck, we change a bit the core gauss
+TF1* Fit_spl_wc0(int FitMode, TH1F* hSrc, SplPars& SrcPar, double& Chi2, double& Correction){
+  double lowerlimit, upperlimit;
+  GetCentralInterval(*hSrc, 0.98, lowerlimit, upperlimit, true);
+//printf("SrcPar.shift1 = %f\n",SrcPar.shift1);
+//usleep(100e3);
+  if(lowerlimit>5) lowerlimit = 5;
+  if(upperlimit>20) upperlimit = 20;
+
+
+  //double DlmTSplineFit(double* xVal, double* pars){
+      //[0] = NumKnots
+      //[1] = der at 0
+      //[2] = der at last
+      //[3]... posX
+      //[...]... poxY
+  const unsigned NumKnots = 10;
+  const unsigned NumFitPars = 3+NumKnots*2;
+  const double SplFitMin = 0;
+  const double SplFitMax = 8;//HARDCODED FOR THIS CLASS !!!
+  const double Chi2_Limit = 2;
+
+  TF1* fSrc;
+  SetUpSplPars(fSrc);
+  for(unsigned uKnot=0; uKnot<NumKnots; uKnot++){
+    double x_val = fSrc->GetParameter(3+uKnot);
+    double y_val = hSrc->GetBinContent(hSrc->FindBin(x_val));
+    double y_err = hSrc->GetBinError(hSrc->FindBin(x_val));
+    if(y_val==0 || x_val==0){
+      fSrc->FixParameter(3+NumKnots+uKnot,0);
+    }
+    //get as close to zero as possible
+    else if(x_val==SplFitMax){
+      fSrc->SetParameter(3+NumKnots+uKnot,y_val*0.25);
+      fSrc->SetParLimits(3+NumKnots+uKnot,0,y_val*0.5);
+      if(y_val==0){
+        fSrc->SetParLimits(3+NumKnots+uKnot,0,0.01);
+      }
+    }
+    else{
+      fSrc->SetParameter(3+NumKnots+uKnot,y_val);
+      //to reduce prob of getting large integral (0.0*y_err)
+      fSrc->SetParLimits(3+NumKnots+uKnot,0,y_val+0.0*y_err);
+    }
+  }
+
+
+  double Integral = fSrc->Integral(SplFitMin,SplFitMax);
+  Correction = 1./Integral;
+  //we only worry if the integral is > 1, otherwise the "missing" yield will be obsorbed by cats
+  if(Correction>1) Correction=1;
+
+/*
+  unsigned Counter=0;
+  double SmallBias;
+  while(fabs(Correction-1)>0.01){
+    SmallBias = 0.1*Correction*double(Counter)+0.9;
+    for(unsigned uKnot=0; uKnot<NumKnots; uKnot++){
+      fSrc->SetParameter(3+NumKnots+uKnot,fSrc->GetParameter(3+NumKnots+uKnot)*Correction);
+      fSrc->SetParLimits(3+NumKnots+uKnot,0,fSrc->GetParameter(3+NumKnots+uKnot)*SmallBias);
+    }
+    hSrc->Fit(fSrc,"Q, S, N, R, M","",lowerlimit,upperlimit);
+    Integral = fSrc->Integral(SplFitMin,SplFitMax);
+    Correction = 1./Integral;
+    Counter++;
+  }
+*/
+
+  for(unsigned uKnot=0; uKnot<NumKnots; uKnot++){
+    fSrc->FixParameter(3+NumKnots+uKnot,fSrc->GetParameter(3+NumKnots+uKnot)*Correction);
+    SrcPar.KnotY[uKnot] = fSrc->GetParameter(3+NumKnots+uKnot);
+  }
+  double IntegralCorr = fSrc->Integral(SplFitMin,SplFitMax);
+  if(IntegralCorr>1+1e-6){
+    printf("SUPER BIG BUG WITH THE SPLINES!!!\n");
+  }
+
+  Chi2 = 0;
+  double NDPts_chi2 = 0;
+
+  //up to 8 fm
+  const double RadDistMax = SplFitMax;
+  for(unsigned uRad=0; uRad<hSrc->GetNbinsX(); uRad++){
+    double Rad = hSrc->GetBinCenter(uRad+1);
+    if(Rad>RadDistMax) break;
+    double dst = hSrc->GetBinContent(uRad+1)-fSrc->Eval(Rad);
+    double err;
+    if(hSrc->GetBinContent(uRad+1)){
+      err = hSrc->GetBinError(uRad+1);
+    }
+    else{
+      err = fabs(dst)*1000;
+    }
+
+    if(hSrc->GetBinContent(uRad+1)){
+      Chi2 += (dst*dst)/(err*err);
+      NDPts_chi2++;
+    }
+
+  }
+  Chi2 /= NDPts_chi2;
+
+  if(Chi2>Chi2_Limit){
+    printf("WARNING: BadFitWarning (Chi2/ndf = %.2f)\n",Chi2);
+  }
+
+  return fSrc;
+}
+
+
+
+
+
+
+
+
+
+//reads my batch output and fits it, saving the output + info of all pars from the master file
+//works only for wildcard_flag==0
+int dlmhst_ceca_splfit_wc0(int argc, char *argv[]){
+//printf("hi...\n");
+  if(argc!=5){
+    printf("\033[1;31mERROR:\033[0m dlmhst_ceca_fit_wc0 needs 5 args!\n");
+    return 1;
+  }
+
+  TString BASE_NAME_PAR = TString(argv[1]);
+  TString OUT_FOLDER = TString(argv[2]);//the dlm.hst files
+  TString MASTER_FOLDER = TString(argv[3]);
+  TString OUTPUT_FOLDER = TString(argv[4]);
+
+  TString DADD_CORE_OUT = OUT_FOLDER+BASE_NAME_PAR+TString(".core.dlm.hst");
+  TString DADD_FULL_OUT = OUT_FOLDER+BASE_NAME_PAR+TString(".full.dlm.hst");
+
+  TString ROOT_CORE_OUT = OUT_FOLDER+BASE_NAME_PAR+TString(".core.root");
+  TString ROOT_FULL_OUT = OUT_FOLDER+BASE_NAME_PAR+TString(".full.root");
+
+  TString MASTER_FILE = MASTER_FOLDER+BASE_NAME_PAR+TString(".dlm.master");
+  TString FINAL_OUT = OUTPUT_FOLDER+BASE_NAME_PAR+TString(".ceca.source");
+
+  if(dlmhst_root(DADD_CORE_OUT,ROOT_CORE_OUT)){
+    return 1;
+  }
+  if(dlmhst_root(DADD_FULL_OUT,ROOT_FULL_OUT)){
+    return 1;
+  }
+
+  char* cline = new char [512];
+  char* cdscr = new char [128];
+  char* cval = new char [128];
+  double read_value;
+  double mom_bin_width = -1;
+  int wildcard_flag;
+  TString type = "";
+
+  const unsigned MaxNumLines = 256;
+  unsigned NumLines = 0;
+  //we save all the info from the master file, that we want to save in our final output
+  //this is everything apart from the JOB_YIELD stuff (batch output)
+  char** LinesToSave = new char* [MaxNumLines];
+  for(unsigned uLine=0; uLine<MaxNumLines; uLine++){
+    LinesToSave[uLine] = new char [256];
+  }
+  FILE *InFile;
+  InFile = fopen(MASTER_FILE.Data(), "r");
+  if(!InFile){
+      printf("\033[1;31mERROR:\033[0m The file\033[0m %s cannot be opened!\n", MASTER_FILE.Data());
+      return 1;
+  }
+  fseek ( InFile , 0 , SEEK_END );
+  long EndPos;
+  EndPos = ftell (InFile);
+  fseek ( InFile , 0 , SEEK_SET );
+  long CurPos;
+  while(!feof(InFile)){
+    if(!fgets(cline, 511, InFile)){
+      //printf("\033[1;31mERROR:\033[0m The file\033[0m %s cannot be properly read (%s)!\n", InputFileName.Data(),cline);
+    }
+    sscanf(cline, "%s %s",cdscr,cval);
+    if(strcmp(cdscr,"mom_bin_width")==0){
+      mom_bin_width = atof(cval);
+    }
+    if(strcmp(cdscr,"wildcard_flag")==0){
+      wildcard_flag = atoi(cval);
+      if(wildcard_flag){
+        printf("\033[1;31mERROR:\033[0m dlmhst_ceca_fit_wc0 works only for wildcard_flag==0!\n");
+        return 1;
+      }
+    }
+    if(strcmp(cdscr,"type")==0){
+      if(strcmp(cval,"pp")&&strcmp(cval,"pL")){
+        printf("\033[1;31mERROR:\033[0m dlmhst_ceca_fit_wc0 works only for pp and pL!\n");
+        return 1;
+      }
+      type = TString(cval);
+    }
+
+    if(strcmp(cdscr,"JOB_ACTIVE")&&strcmp(cdscr,"JOB_YIELD")){
+      strcpy(LinesToSave[NumLines],cline);
+      NumLines++;
+    }
+  }//InFile
+  fclose(InFile);
+
+  unsigned UpKstarBin;
+
+  TFile root_file_core(ROOT_CORE_OUT,"update");
+  TFile root_file_full(ROOT_FULL_OUT,"update");
+
+  if(!root_file_core.IsOpen()){
+    printf("\033[1;31mERROR:\033[0m Cannot open %s\n",ROOT_CORE_OUT.Data());
+    return 1;
+  }
+  if(!root_file_full.IsOpen()){
+    printf("\033[1;31mERROR:\033[0m Cannot open %s\n",ROOT_FULL_OUT.Data());
+    return 1;
+  }
+
+  root_file_core.cd();
+  TH2F* hYield_core = (TH2F*)root_file_core.Get("hYield");
+  if(!hYield_core){
+    printf("\033[1;31mERROR:\033[0m Cannot open hYield in %s\n",ROOT_CORE_OUT.Data());
+    root_file_core.Close();
+    return 1;
+  }
+  root_file_full.cd();
+  TH2F* hYield_full = (TH2F*)root_file_full.Get("hYield");
+  if(!hYield_full){
+    printf("\033[1;31mERROR:\033[0m Cannot open hYield in %s\n",ROOT_FULL_OUT.Data());
+    root_file_full.Close();
+    return 1;
+  }
+
+
+  const unsigned NumMtBins = hYield_full->GetYaxis()->GetNbins();
+  if(type=="pp"&&NumMtBins!=10){
+    printf("\033[1;31mERROR:\033[0m We have to have 10 mT bins in pp\n");
+    root_file_core.Close();
+    root_file_full.Close();
+    return 1;
+  }
+  if(type=="pL"&&NumMtBins!=8){
+    printf("\033[1;31mERROR:\033[0m We have to have 8 mT bins in pL\n");
+    root_file_core.Close();
+    root_file_full.Close();
+    return 1;
+  }
+
+  float* MtBinCenter = new float [NumMtBins];
+
+
+
+  SplPars* SrcPar = new SplPars[NumMtBins];
+
+
+  //the loopwhole ghetto: we dont check what is the mean mT
+  //here we take the values based on jaime pars ran with high statistics
+  //hardcoded for wildcard_flag==0
+  if(type=="pp"){
+    MtBinCenter[0] = 983;
+    MtBinCenter[1] = 1054;
+    MtBinCenter[2] = 1110;
+    MtBinCenter[3] = 1168;
+    MtBinCenter[4] = 1228;
+    MtBinCenter[5] = 1315;
+    MtBinCenter[6] = 1463;
+    MtBinCenter[7] = 1681;
+    MtBinCenter[8] = 1923;
+    MtBinCenter[9] = 2303;
+  }
+  //pL
+  else{
+    MtBinCenter[0] = 1121;
+    MtBinCenter[1] = 1210;
+    MtBinCenter[2] = 1288;
+    MtBinCenter[3] = 1377;
+    MtBinCenter[4] = 1536;
+    MtBinCenter[5] = 1753;
+    MtBinCenter[6] = 1935;
+    MtBinCenter[7] = 2334;
+  }
+
+  double* Chi2Ndf = new double [NumMtBins];
+  double* Correction = new double [NumMtBins];
+
+  for(unsigned uMt=0; uMt<NumMtBins; uMt++){
+    root_file_core.cd();
+    TH2F* h_kstar_rstar_core = (TH2F*)root_file_core.Get(TString::Format("h_kstar_rstar_mT%u",uMt));
+    root_file_full.cd();
+    TH2F* h_kstar_rstar_full = (TH2F*)root_file_full.Get(TString::Format("h_kstar_rstar_mT%u",uMt));
+    if(!h_kstar_rstar_core || !h_kstar_rstar_full){
+      printf("\033[1;31mERROR:\033[0m Cannot open h_kstar_rstar_mT%u in %s or %s\n",uMt,ROOT_CORE_OUT.Data(),ROOT_FULL_OUT.Data());
+      root_file_core.Close();
+      root_file_full.Close();
+      delete [] MtBinCenter;
+      return 1;
+    }
+
+    gROOT->cd();
+
+    if(mom_bin_width==-1)
+      mom_bin_width=100;
+
+    UpKstarBin = h_kstar_rstar_full->GetXaxis()->FindBin(mom_bin_width);
+
+    TH1F* hSrc_core = (TH1F*)h_kstar_rstar_core->ProjectionY(TString::Format("hSrc_core_%u",uMt),1,UpKstarBin);
+    double Int_Src_core = hSrc_core->Integral();
+    if(Int_Src_core) hSrc_core->Scale(1./Int_Src_core,"width");
+
+    TH1F* hSrc_full = (TH1F*)h_kstar_rstar_full->ProjectionY(TString::Format("hSrc_full_%u",uMt),1,UpKstarBin);
+    double Int_Src_full = hSrc_full->Integral();
+    if(Int_Src_full) hSrc_full->Scale(1./Int_Src_full,"width");
+
+    double WeightCore = 0;
+    if(Int_Src_core+Int_Src_full) WeightCore = Int_Src_core/(Int_Src_core+Int_Src_full);
+
+    //CORE FIT
+    TF1* fSrc_core = NULL;
+
+    if(Int_Src_core) fSrc_core = Fit_spl_wc0(1, hSrc_core,SrcPar[uMt],Chi2Ndf[uMt],Correction[uMt]);
+    else{
+      SrcPar[uMt] = 0;
+    }
+    if(fSrc_core) fSrc_core->SetName(TString::Format("fSrc_core_%u",uMt));
+
+    //FULL FIT
+    TF1* fSrc_full = NULL;
+    if(Int_Src_core+Int_Src_full) fSrc_full = Fit_spl_wc0(2,hSrc_full,SrcPar[uMt], Chi2Ndf[uMt],Correction[uMt]);
+    if(fSrc_full) fSrc_full->SetName(TString::Format("fSrc_full_%u",uMt));
+
+    root_file_core.cd();
+    if(hSrc_core) hSrc_core->Write();
+    if(fSrc_core) fSrc_core->Write();
+    if(fSrc_core) delete fSrc_core;
+    if(hSrc_core) delete hSrc_core;
+
+    root_file_full.cd();
+    if(hSrc_full) hSrc_full->Write();
+    if(fSrc_full) fSrc_full->Write();
+    if(hSrc_full) delete hSrc_full;
+    if(fSrc_full) delete fSrc_full;
+  }//uMt
+
+
+
+  FILE *fptr;
+  fptr=fopen(FINAL_OUT.Data(),"w");
+  //NEW LINE NEEDED???
+  for(unsigned uLine=0; uLine<NumLines; uLine++){
+    //printf("%s\n",LinesToSave[uLine]);
+    fprintf(fptr,"%s",LinesToSave[uLine]);
+  }
+  fprintf(fptr,"SOURCE:\n");
+  for(unsigned uMt=0; uMt<NumMtBins; uMt++){
+    //norm,sig1,shift1,w1,sig2,shift2,w2,sig3,shift3
+    fprintf(fptr,"%.0f %.3f %.3f %.3f %.3f %.3f %.3f %.3f %.3f %.3f %.3f %.2f %.4f\n",
+        MtBinCenter[uMt],
+        SrcPar[uMt].KnotY[0],
+        SrcPar[uMt].KnotY[1],
+        SrcPar[uMt].KnotY[2],
+        SrcPar[uMt].KnotY[3],
+        SrcPar[uMt].KnotY[4],
+        SrcPar[uMt].KnotY[5],
+        SrcPar[uMt].KnotY[6],
+        SrcPar[uMt].KnotY[7],
+        SrcPar[uMt].KnotY[8],
+        SrcPar[uMt].KnotY[9],
+        Chi2Ndf[uMt],
+        Correction[uMt]
+      );
+  }
+
+
+  for(unsigned uLine=0; uLine<MaxNumLines; uLine++){
+    delete [] LinesToSave[uLine];
+  }
+  delete [] LinesToSave;
+
+  delete [] cline;
+  delete [] cdscr;
+  delete [] cval;
+
+  root_file_core.Close();
+  root_file_full.Close();
+  delete [] MtBinCenter;
+  delete [] SrcPar;
+  delete [] Chi2Ndf;
+  delete [] Correction;
+  return 0;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+//FitMode:
+// 1 - core
+// 2 - full
+TF1* Fit_kdp_wc0(int FitMode, TH1F* hSrc, KdpPars& SrcPar, double& Chi2){
+  double lowerlimit, upperlimit;
+  GetCentralInterval(*hSrc, 0.98, lowerlimit, upperlimit, true);
+  //if(lowerlimit>5) lowerlimit = 5;
+  lowerlimit = 0;
+  if(upperlimit>10) upperlimit = 10;
+
+
+  const double Chi2_Limit = 3;
+  const double KdpFitMax = 8;
+
+  TF1* fSrc;
+  SetUpKdpPars(fSrc,2);
+
+  //for(unsigned uP=0; uP<KdpPars::NumDistos; uP++){
+  //  fSrc->SetParLimits(1+uP*3,0.1,fSrc->GetParameter(0+uP*3));
+  //}
+  //fSrc->FixParameter(0,1);
+  //fSrc->FixParameter(1,0.5);
+  //fSrc->FixParameter(2,0.5);
+
+  //fSrc->FixParameter(3,6);
+  //fSrc->FixParameter(4,2);
+  //fSrc->FixParameter(5,1);
+
+  hSrc->Fit(fSrc,"Q, S, N, R, M","",lowerlimit,upperlimit);
+
+  double Integral = fSrc->Integral(0,KdpFitMax*4);
+  if(fabs(Integral-1)>1e-2){
+    printf("SUPER BIG BUG WITH THE KDP (%f)!!!\n",Integral);
+  }
+
+  Chi2 = 0;
+  double NDPts_chi2 = 0;
+
+  //up to 8 fm
+  for(unsigned uRad=0; uRad<hSrc->GetNbinsX(); uRad++){
+    double Rad = hSrc->GetBinCenter(uRad+1);
+    if(Rad>KdpFitMax) break;
+    double dst = hSrc->GetBinContent(uRad+1)-fSrc->Eval(Rad);
+    double err = hSrc->GetBinError(uRad+1);
+    if(hSrc->GetBinContent(uRad+1)){
+      Chi2 += (dst*dst)/(err*err);
+      NDPts_chi2++;
+    }
+  }
+  Chi2 /= NDPts_chi2;
+
+  if(Chi2>Chi2_Limit){
+    printf("WARNING: BadFitWarning (Chi2/ndf = %.2f)\n",Chi2);
+  }
+
+  for(unsigned uP=0; uP<KdpPars::NumDistos; uP++){
+    SrcPar.mean[uP] = fSrc->GetParameter(0+uP*3);
+    SrcPar.stdv[uP] = fSrc->GetParameter(1+uP*3);
+    if(uP!=KdpPars::NumDistos-1)
+      SrcPar.wght[uP] = fSrc->GetParameter(2+uP*3);
+  }
+
+  return fSrc;
+}
+
+
+
+
+
+//reads my batch output and fits it, saving the output + info of all pars from the master file
+//works only for wildcard_flag==0
+//kdp = Kernel Density Poisson
+int dlmhst_ceca_kdpfit_wc0(int argc, char *argv[]){
+//printf("hi...\n");
+  if(argc!=5){
+    printf("\033[1;31mERROR:\033[0m dlmhst_ceca_fit_wc0 needs 5 args!\n");
+    return 1;
+  }
+
+  TString BASE_NAME_PAR = TString(argv[1]);
+  TString OUT_FOLDER = TString(argv[2]);//the dlm.hst files
+  TString MASTER_FOLDER = TString(argv[3]);
+  TString OUTPUT_FOLDER = TString(argv[4]);
+
+  TString DADD_CORE_OUT = OUT_FOLDER+BASE_NAME_PAR+TString(".core.dlm.hst");
+  TString DADD_FULL_OUT = OUT_FOLDER+BASE_NAME_PAR+TString(".full.dlm.hst");
+
+  TString ROOT_CORE_OUT = OUT_FOLDER+BASE_NAME_PAR+TString(".core.root");
+  TString ROOT_FULL_OUT = OUT_FOLDER+BASE_NAME_PAR+TString(".full.root");
+
+  TString MASTER_FILE = MASTER_FOLDER+BASE_NAME_PAR+TString(".dlm.master");
+  TString FINAL_OUT = OUTPUT_FOLDER+BASE_NAME_PAR+TString(".ceca.source");
+
+  if(dlmhst_root(DADD_CORE_OUT,ROOT_CORE_OUT)){
+    return 1;
+  }
+  if(dlmhst_root(DADD_FULL_OUT,ROOT_FULL_OUT)){
+    return 1;
+  }
+
+  char* cline = new char [512];
+  char* cdscr = new char [128];
+  char* cval = new char [128];
+  double read_value;
+  double mom_bin_width = -1;
+  int wildcard_flag;
+  TString type = "";
+
+  const unsigned MaxNumLines = 256;
+  unsigned NumLines = 0;
+  //we save all the info from the master file, that we want to save in our final output
+  //this is everything apart from the JOB_YIELD stuff (batch output)
+  char** LinesToSave = new char* [MaxNumLines];
+  for(unsigned uLine=0; uLine<MaxNumLines; uLine++){
+    LinesToSave[uLine] = new char [256];
+  }
+  FILE *InFile;
+  InFile = fopen(MASTER_FILE.Data(), "r");
+  if(!InFile){
+      printf("\033[1;31mERROR:\033[0m The file\033[0m %s cannot be opened!\n", MASTER_FILE.Data());
+      return 1;
+  }
+  fseek ( InFile , 0 , SEEK_END );
+  long EndPos;
+  EndPos = ftell (InFile);
+  fseek ( InFile , 0 , SEEK_SET );
+  long CurPos;
+  while(!feof(InFile)){
+    if(!fgets(cline, 511, InFile)){
+      //printf("\033[1;31mERROR:\033[0m The file\033[0m %s cannot be properly read (%s)!\n", InputFileName.Data(),cline);
+    }
+    sscanf(cline, "%s %s",cdscr,cval);
+    if(strcmp(cdscr,"mom_bin_width")==0){
+      mom_bin_width = atof(cval);
+    }
+    if(strcmp(cdscr,"wildcard_flag")==0){
+      wildcard_flag = atoi(cval);
+      if(wildcard_flag){
+        printf("\033[1;31mERROR:\033[0m dlmhst_ceca_fit_wc0 works only for wildcard_flag==0!\n");
+        return 1;
+      }
+    }
+    if(strcmp(cdscr,"type")==0){
+      if(strcmp(cval,"pp")&&strcmp(cval,"pL")){
+        printf("\033[1;31mERROR:\033[0m dlmhst_ceca_fit_wc0 works only for pp and pL!\n");
+        return 1;
+      }
+      type = TString(cval);
+    }
+
+    if(strcmp(cdscr,"JOB_ACTIVE")&&strcmp(cdscr,"JOB_YIELD")){
+      strcpy(LinesToSave[NumLines],cline);
+      NumLines++;
+    }
+  }//InFile
+  fclose(InFile);
+
+  unsigned UpKstarBin;
+
+  TFile root_file_core(ROOT_CORE_OUT,"update");
+  TFile root_file_full(ROOT_FULL_OUT,"update");
+
+  if(!root_file_core.IsOpen()){
+    printf("\033[1;31mERROR:\033[0m Cannot open %s\n",ROOT_CORE_OUT.Data());
+    return 1;
+  }
+  if(!root_file_full.IsOpen()){
+    printf("\033[1;31mERROR:\033[0m Cannot open %s\n",ROOT_FULL_OUT.Data());
+    return 1;
+  }
+
+  root_file_core.cd();
+  TH2F* hYield_core = (TH2F*)root_file_core.Get("hYield");
+  if(!hYield_core){
+    printf("\033[1;31mERROR:\033[0m Cannot open hYield in %s\n",ROOT_CORE_OUT.Data());
+    root_file_core.Close();
+    return 1;
+  }
+  root_file_full.cd();
+  TH2F* hYield_full = (TH2F*)root_file_full.Get("hYield");
+  if(!hYield_full){
+    printf("\033[1;31mERROR:\033[0m Cannot open hYield in %s\n",ROOT_FULL_OUT.Data());
+    root_file_full.Close();
+    return 1;
+  }
+
+
+  const unsigned NumMtBins = hYield_full->GetYaxis()->GetNbins();
+  if(type=="pp"&&NumMtBins!=10){
+    printf("\033[1;31mERROR:\033[0m We have to have 10 mT bins in pp\n");
+    root_file_core.Close();
+    root_file_full.Close();
+    return 1;
+  }
+  if(type=="pL"&&NumMtBins!=8){
+    printf("\033[1;31mERROR:\033[0m We have to have 8 mT bins in pL\n");
+    root_file_core.Close();
+    root_file_full.Close();
+    return 1;
+  }
+
+  float* MtBinCenter = new float [NumMtBins];
+
+  KdpPars* SrcPar = new KdpPars[NumMtBins];
+
+  //the loopwhole ghetto: we dont check what is the mean mT
+  //here we take the values based on jaime pars ran with high statistics
+  //hardcoded for wildcard_flag==0
+  if(type=="pp"){
+    MtBinCenter[0] = 983;
+    MtBinCenter[1] = 1054;
+    MtBinCenter[2] = 1110;
+    MtBinCenter[3] = 1168;
+    MtBinCenter[4] = 1228;
+    MtBinCenter[5] = 1315;
+    MtBinCenter[6] = 1463;
+    MtBinCenter[7] = 1681;
+    MtBinCenter[8] = 1923;
+    MtBinCenter[9] = 2303;
+  }
+  //pL
+  else{
+    MtBinCenter[0] = 1121;
+    MtBinCenter[1] = 1210;
+    MtBinCenter[2] = 1288;
+    MtBinCenter[3] = 1377;
+    MtBinCenter[4] = 1536;
+    MtBinCenter[5] = 1753;
+    MtBinCenter[6] = 1935;
+    MtBinCenter[7] = 2334;
+  }
+
+  double* Chi2Ndf = new double [NumMtBins];
+
+  for(unsigned uMt=0; uMt<NumMtBins; uMt++){
+    root_file_core.cd();
+    TH2F* h_kstar_rstar_core = (TH2F*)root_file_core.Get(TString::Format("h_kstar_rstar_mT%u",uMt));
+    root_file_full.cd();
+    TH2F* h_kstar_rstar_full = (TH2F*)root_file_full.Get(TString::Format("h_kstar_rstar_mT%u",uMt));
+    if(!h_kstar_rstar_core || !h_kstar_rstar_full){
+      printf("\033[1;31mERROR:\033[0m Cannot open h_kstar_rstar_mT%u in %s or %s\n",uMt,ROOT_CORE_OUT.Data(),ROOT_FULL_OUT.Data());
+      root_file_core.Close();
+      root_file_full.Close();
+      delete [] MtBinCenter;
+      return 1;
+    }
+
+    gROOT->cd();
+
+    if(mom_bin_width==-1)
+      mom_bin_width=100;
+
+    UpKstarBin = h_kstar_rstar_full->GetXaxis()->FindBin(mom_bin_width);
+
+    double ErrAtZero;
+
+    TH1F* hSrc_core = (TH1F*)h_kstar_rstar_core->ProjectionY(TString::Format("hSrc_core_%u",uMt),1,UpKstarBin);
+    double Int_Src_core = hSrc_core->Integral();
+    ErrAtZero = 1;
+    ErrAtZero /= Int_Src_core;
+    ErrAtZero /= hSrc_core->GetBinWidth(1);
+    if(Int_Src_core) hSrc_core->Scale(1./Int_Src_core,"width");
+    for(unsigned uBin=0; uBin<hSrc_core->GetNbinsX(); uBin++){
+      if(hSrc_core->GetBinContent(uBin+1)==0){
+        hSrc_core->SetBinError(uBin+1,ErrAtZero);
+      }
+    }
+
+
+    TH1F* hSrc_full = (TH1F*)h_kstar_rstar_full->ProjectionY(TString::Format("hSrc_full_%u",uMt),1,UpKstarBin);
+    double Int_Src_full = hSrc_full->Integral();
+    ErrAtZero = 1;
+    ErrAtZero /= Int_Src_full;
+    ErrAtZero /= hSrc_full->GetBinWidth(1);
+    if(Int_Src_full) hSrc_full->Scale(1./Int_Src_full,"width");
+    for(unsigned uBin=0; uBin<hSrc_full->GetNbinsX(); uBin++){
+      if(hSrc_full->GetBinContent(uBin+1)==0){
+        hSrc_full->SetBinError(uBin+1,ErrAtZero);
+      }
+    }
+
+
+    //double WeightCore = 0;
+    //if(Int_Src_core+Int_Src_full) WeightCore = Int_Src_core/(Int_Src_core+Int_Src_full);
+
+    //CORE FIT
+    TF1* fSrc_core = NULL;
+
+    if(Int_Src_core) fSrc_core = Fit_kdp_wc0(1, hSrc_core,SrcPar[uMt],Chi2Ndf[uMt]);
+    else{
+      SrcPar[uMt] = 0;
+    }
+    if(fSrc_core) fSrc_core->SetName(TString::Format("fSrc_core_%u",uMt));
+
+    //FULL FIT
+    TF1* fSrc_full = NULL;
+    if(Int_Src_core+Int_Src_full) fSrc_full = Fit_kdp_wc0(2,hSrc_full,SrcPar[uMt], Chi2Ndf[uMt]);
+    if(fSrc_full) fSrc_full->SetName(TString::Format("fSrc_full_%u",uMt));
+
+    root_file_core.cd();
+    if(hSrc_core) hSrc_core->Write();
+    if(fSrc_core) fSrc_core->Write();
+    if(fSrc_core) delete fSrc_core;
+    if(hSrc_core) delete hSrc_core;
+
+    root_file_full.cd();
+    if(hSrc_full) hSrc_full->Write();
+    if(fSrc_full) fSrc_full->Write();
+    if(hSrc_full) delete hSrc_full;
+    if(fSrc_full) delete fSrc_full;
+  }//uMt
+
+
+
+  FILE *fptr;
+  fptr=fopen(FINAL_OUT.Data(),"w");
+  //NEW LINE NEEDED???
+  for(unsigned uLine=0; uLine<NumLines; uLine++){
+    //printf("%s\n",LinesToSave[uLine]);
+    fprintf(fptr,"%s",LinesToSave[uLine]);
+  }
+  fprintf(fptr,"SOURCE:\n");
+  for(unsigned uMt=0; uMt<NumMtBins; uMt++){
+    //the first number is the FitMode of the KDP, just that we do not forget!
+    fprintf(fptr,"%i %.0f %.3e %.3e %.3e %.3e %.3e %.3e %.3e %.3e %.3e %.3e %.3e "
+                      "%.3e %.3e %.3e %.3e %.3e %.3e %.3e %.3e %.3e %.3e %.3e "
+                      "%.3e %.3e %.3e %.3e %.3e %.3e %.3e %.2f\n",
+        2, MtBinCenter[uMt],
+        SrcPar[uMt].mean[0],SrcPar[uMt].stdv[0],SrcPar[uMt].wght[0],
+        SrcPar[uMt].mean[1],SrcPar[uMt].stdv[1],SrcPar[uMt].wght[1],
+        SrcPar[uMt].mean[2],SrcPar[uMt].stdv[2],SrcPar[uMt].wght[2],
+        SrcPar[uMt].mean[3],SrcPar[uMt].stdv[3],SrcPar[uMt].wght[3],
+        SrcPar[uMt].mean[4],SrcPar[uMt].stdv[4],SrcPar[uMt].wght[4],
+        SrcPar[uMt].mean[5],SrcPar[uMt].stdv[5],SrcPar[uMt].wght[5],
+        SrcPar[uMt].mean[6],SrcPar[uMt].stdv[6],SrcPar[uMt].wght[6],
+        SrcPar[uMt].mean[7],SrcPar[uMt].stdv[7],SrcPar[uMt].wght[7],
+        SrcPar[uMt].mean[8],SrcPar[uMt].stdv[8],SrcPar[uMt].wght[8],
+        SrcPar[uMt].mean[9],SrcPar[uMt].stdv[9],
+        Chi2Ndf[uMt]
+      );
+  }
+
+
+  for(unsigned uLine=0; uLine<MaxNumLines; uLine++){
+    delete [] LinesToSave[uLine];
+  }
+  delete [] LinesToSave;
+
+  delete [] cline;
+  delete [] cdscr;
+  delete [] cval;
+
+  root_file_core.Close();
+  root_file_full.Close();
+  delete [] MtBinCenter;
+  delete [] SrcPar;
+  delete [] Chi2Ndf;
+  return 0;
+}
+
+
+
+
+
+
+
 void TestReadWriteBinary(){
   TString FileName = GetFemtoOutputFolder();
   FileName += "/BinTest.bin";
@@ -1728,7 +2505,7 @@ int CECA_PAPER(int argc, char *argv[]){
   strcpy(myinput[3],"/home/dimihayl/Software/LocalFemto/Output/CECA_Paper/TestBatchOutput/test1/IN/");
   strcpy(myinput[4],"/home/dimihayl/Software/LocalFemto/Output/CECA_Paper/TestBatchOutput/test1/");
   printf("Lets go\n");
-  return dlmhst_ceca_fit_wc0(5,myinput);
+  return dlmhst_ceca_kdpfit_wc0(5,myinput);
 
   return 0;
 }
