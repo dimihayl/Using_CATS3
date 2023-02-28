@@ -38,6 +38,7 @@
 #include "TNtuple.h"
 #include "TSystem.h"
 #include "TROOT.h"
+#include "TLegend.h"
 
 #include <boost/algorithm/string.hpp>
 
@@ -2474,6 +2475,793 @@ void TestReadWriteBinary(){
   delete [] Element;
 }
 
+void Test_src_read(){
+  //'Cigar2_ds'+str(d_num)+'_hts'+str(ht_num)+'_hzs'+str(hz_num)
+  DLM_CecaSource_v0 dlmsrc1("pp","Cigar2_ds24_hts36_hzs36","fld");
+
+}
+
+void LnGammaTest(){
+  double InputVal = 3.18;
+  double root_val = TMath::LnGamma(InputVal);
+  double dlm_val = gammln(InputVal);
+  printf("root vs dlm = %.6e vs %.6e\n", root_val, dlm_val);
+
+  double root_poiss = TMath::Poisson(3.1,3.8);
+  double dlm_poiss = DLM_Poisson(3.1,3.8);
+  printf("root_poiss vs dlm_poiss = %.6e vs %.6e\n", root_poiss, dlm_poiss);
+}
+
+void TestReadCigar2(){
+  DLM_CecaSource_v0 pp_src("pp","Cigar2_ds24_hts36_hzs36","/home/dimihayl/Software/LocalFemto/Output/CECA_Paper/Output_260223/CecaSource/");
+
+  //double rad = 1.0;
+  double pars[4];
+  //pars[0] = (1110.+1168.)*0.5;
+  pars[0] = 1110;
+  pars[1] = 0.1867*2.0;
+  pars[2] = 4.067*1.05;
+  pars[3] = 10.167*1.05;
+  //KdpPars SrcPars = pp_src.RootEval(&rad,pars);
+  //SrcPars.Print();
+//return;
+  TF1* mySource = new TF1("pp_src",&pp_src,&DLM_CecaSource_v0::RootEval,0,16,4,"DLM_CecaSource_v0","RootEval");
+
+  mySource->SetParameter(0,pars[0]);
+  mySource->SetParameter(1,pars[1]);
+  mySource->SetParameter(2,pars[2]);
+  mySource->SetParameter(3,pars[3]);
+
+  TFile fOutput(TString::Format("%s/CECA_Paper/TestReadCigar2/fOutput.root",GetFemtoOutputFolder()),"recreate");
+  mySource->SetNpx(4096);
+  mySource->Write();
+
+  delete mySource;
+}
+
+
+void TestCigar2_Ck(){
+  DLM_CecaSource_v0 pp_src("pp","Cigar2_ds24_hts36_hzs36","/home/dimihayl/Software/LocalFemto/Output/CECA_Paper/Output_260223/CecaSource/");
+  DLM_CecaSource_v0 pL_src("pL","Cigar2_ds24_hts36_hzs36","/home/dimihayl/Software/LocalFemto/Output/CECA_Paper/Output_260223/CecaSource/");
+
+
+  const double mT_val = 1350;
+  const double Dist = 0.5;
+  const double HadrT = 2.0;
+  const double HadrZ = 10.0;
+
+  const double rG_pp = 1.2;
+  const double rG_pL = 1.4;
+
+  const unsigned NumMomBins = 80;
+  const double kMin = 0;
+  const double kMax = 320;
+
+  CATS KittyG_pp;
+  CATS KittyG_pL;
+  CATS KittyC_pp;
+  CATS KittyC_pL;
+
+  KittyG_pp.SetMomBins(NumMomBins,kMin,kMax);
+  KittyG_pL.SetMomBins(NumMomBins,kMin,kMax);
+  KittyC_pp.SetMomBins(NumMomBins,kMin,kMax);
+  KittyC_pL.SetMomBins(NumMomBins,kMin,kMax);
+
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
+
+
+  AnalysisObject.SetUpCats_pp(KittyG_pp,"AV18","Gauss",0,202);
+  AnalysisObject.SetUpCats_pL(KittyG_pL,"Chiral_Coupled_SPD","Gauss",11600,202);
+
+  AnalysisObject.SetUpCats_pp(KittyC_pp,"AV18","",0,202);
+  AnalysisObject.SetUpCats_pL(KittyC_pL,"Chiral_Coupled_SPD","",11600,202);
+
+
+  KittyG_pp.SetAnaSource(0, rG_pp);
+  KittyG_pL.SetAnaSource(0, rG_pL);
+
+  KittyC_pp.SetUseAnalyticSource(true);
+  KittyC_pp.SetAnaSource(CatsSourceForwarder, &pp_src, 4);
+  KittyC_pp.SetAnaSource(0, mT_val);
+  KittyC_pp.SetAnaSource(1, Dist);
+  KittyC_pp.SetAnaSource(2, HadrT);
+  KittyC_pp.SetAnaSource(3, HadrZ);
+
+  KittyC_pL.SetUseAnalyticSource(true);
+  KittyC_pL.SetAnaSource(CatsSourceForwarder, &pL_src, 4);
+  KittyC_pL.SetAnaSource(0, mT_val);
+  KittyC_pL.SetAnaSource(1, Dist);
+  KittyC_pL.SetAnaSource(2, HadrT);
+  KittyC_pL.SetAnaSource(3, HadrZ);
+
+  KittyG_pp.KillTheCat();
+  KittyG_pL.KillTheCat();
+  KittyC_pp.KillTheCat();
+  KittyC_pL.KillTheCat();
+
+  TFile fOutput(TString::Format("%s/CECA_Paper/TestCigar2_Ck/fOutput.root",GetFemtoOutputFolder()),"recreate");
+
+  TGraph gCk_pp_Gauss;
+  TGraph gCk_pL_Gauss;
+  TGraph gCk_pp_Ceca;
+  TGraph gCk_pL_Ceca;
+
+
+  gCk_pp_Gauss.SetName("Ck_pp_Gauss");
+  gCk_pL_Gauss.SetName("Ck_pL_Gauss");
+  gCk_pp_Ceca.SetName("Ck_pp_Ceca");
+  gCk_pL_Ceca.SetName("Ck_pL_Ceca");
+
+  for(unsigned uBin=0; uBin<NumMomBins; uBin++){
+    double Momentum = KittyG_pp.GetMomentum(uBin);
+    gCk_pp_Gauss.SetPoint(uBin,Momentum,KittyG_pp.GetCorrFun(uBin));
+    gCk_pL_Gauss.SetPoint(uBin,Momentum,KittyG_pL.GetCorrFun(uBin));
+    gCk_pp_Ceca.SetPoint(uBin,Momentum,KittyC_pp.GetCorrFun(uBin));
+    gCk_pL_Ceca.SetPoint(uBin,Momentum,KittyC_pL.GetCorrFun(uBin));
+  }
+
+  TF1* fSrcC_pp = new TF1("fSrcC_pp",&pp_src,&DLM_CecaSource_v0::RootEval,0,16,4,"DLM_CecaSource_v0","RootEval");
+  fSrcC_pp->SetParameter(0,mT_val);
+  fSrcC_pp->SetParameter(1,Dist);
+  fSrcC_pp->SetParameter(2,HadrT);
+  fSrcC_pp->SetParameter(3,HadrZ);
+
+  TF1* fSrcC_pL = new TF1("fSrcC_pL",&pL_src,&DLM_CecaSource_v0::RootEval,0,16,4,"DLM_CecaSource_v0","RootEval");
+  fSrcC_pL->SetParameter(0,mT_val);
+  fSrcC_pL->SetParameter(1,Dist);
+  fSrcC_pL->SetParameter(2,HadrT);
+  fSrcC_pL->SetParameter(3,HadrZ);
+
+  TF1* fSrcG_pp = new TF1("fSrcG_pp",GaussSourceTF1,0,16,1);
+  fSrcG_pp->SetParameter(0,rG_pp);
+  TF1* fSrcG_pL = new TF1("fSrcG_pL",GaussSourceTF1,0,16,1);
+  fSrcG_pL->SetParameter(0,rG_pL);
+
+  fSrcC_pp->SetNpx(4096);
+  fSrcC_pL->SetNpx(4096);
+  fSrcG_pp->SetNpx(4096);
+  fSrcG_pL->SetNpx(4096);
+
+
+  gCk_pp_Gauss.Write();
+  fSrcG_pp->Write();
+  gCk_pp_Ceca.Write();
+  fSrcC_pp->Write();
+  gCk_pL_Gauss.Write();
+  fSrcG_pL->Write();
+  gCk_pL_Ceca.Write();
+  fSrcC_pL->Write();
+
+}
+
+
+void PNG_ANIM_SOURCE(){
+  DLM_CecaSource_v0 pp_src("pp","Cigar2_ds24_hts36_hzs36","/home/dimihayl/Software/LocalFemto/Output/CECA_Paper/Output_260223/CecaSource/");
+  const double min_mt = 1000;
+  const double max_mt = 2300;
+  const double step_mt = (max_mt-min_mt)/52.;
+  double mt_val = min_mt;
+
+  const double Dist = 0.5;
+  const double HadrT = 2.0;
+  const double HadrZ = 10.0;
+
+  while(mt_val<=max_mt+0.1*step_mt){
+
+    TF1* fSrcC_pp = new TF1("fSrcC_pp",&pp_src,&DLM_CecaSource_v0::RootEval,0,8,4,"DLM_CecaSource_v0","RootEval");
+    fSrcC_pp->SetParameter(0,mt_val);
+    fSrcC_pp->SetParameter(1,Dist);
+    fSrcC_pp->SetParameter(2,HadrT);
+    fSrcC_pp->SetParameter(3,HadrZ);
+    fSrcC_pp->SetLineColor(kBlue);
+    fSrcC_pp->SetNpx(2048);
+
+    TCanvas* can1 = new TCanvas("can1", "can1", 1);
+    can1->cd(0); can1->SetCanvasSize(1280, 720); can1->SetMargin(0.15,0.05,0.2,0.05);//lrbt
+
+    TH1F* hAxis = new TH1F("hAxis", "hAxis", 128, 0, 8);
+    hAxis->SetStats(false);
+    hAxis->SetTitle("");
+    hAxis->GetXaxis()->SetTitle("r* (fm)");
+    hAxis->GetXaxis()->SetTitleSize(0.06);
+    hAxis->GetXaxis()->SetLabelSize(0.06);
+    hAxis->GetXaxis()->CenterTitle();
+    hAxis->GetXaxis()->SetTitleOffset(1.3);
+    hAxis->GetXaxis()->SetLabelOffset(0.02);
+
+    hAxis->GetYaxis()->SetTitle("4#pir^{2}S(r*)");
+    hAxis->GetYaxis()->SetTitleSize(0.06);
+    hAxis->GetYaxis()->SetLabelSize(0.06);
+    hAxis->GetYaxis()->CenterTitle();
+    hAxis->GetYaxis()->SetTitleOffset(1.10);
+
+    //hAxisPot->GetXaxis()->SetNdivisions(506);
+    hAxis->GetYaxis()->SetRangeUser(0, 0.4);
+
+    TLegend* leg1 = new TLegend(0.65,0.75,0.95,0.95);//lbrt
+    leg1->SetName("leg1");
+    leg1->SetTextSize(0.055);
+    leg1->AddEntry(fSrcC_pp, TString::Format("m_{T} = %.2f GeV",mt_val*0.001));
+    leg1->Draw("same");
+
+    hAxis->Draw("axis");
+    fSrcC_pp->Draw("same");
+    leg1->Draw("same");
+
+    if(mt_val==min_mt){
+      can1->SaveAs(TString::Format("%s/CECA_Paper/TestCigar2_Ck/anim.gif",GetFemtoOutputFolder()));
+    }
+    else{
+      can1->SaveAs(TString::Format("%s/CECA_Paper/TestCigar2_Ck/anim.gif+8",GetFemtoOutputFolder()));
+    }
+
+    mt_val += step_mt;
+
+    delete hAxis;
+    delete fSrcC_pp;
+    delete leg1;
+    delete can1;
+
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+//SmearStrategy == 1 is the new one
+void CecaPaper_pp(const TString SourceVar, const int& SmearStrategy, const unsigned DataVar, const TString OutputFolder){
+
+  gROOT->ProcessLine("gErrorIgnoreLevel = 2001;");
+  const bool Silent = true;
+  //for the pp source, the error on the sign
+  const bool CorrectSign = true;
+  const unsigned NumMtBins = 7;
+
+  std::vector<int> pp_lam_var = {0,1,2};//done
+  std::vector<int> pL_lam_var = {0};
+
+  //0 is the old one, 1 is the new one with the folded ME
+  //std::vector<int> SmearStrategy = {0,1};//done
+  std::vector<float> FemtoRegion = {376,352,400};//done
+  const unsigned NumMomBins_pp = TMath::Nint(FemtoRegion.back()/4.);
+  const unsigned NumMomBins_feed = TMath::Nint(FemtoRegion.back()/10.);
+  std::vector<float> BaselineRegion = {500};
+  std::vector<float> CkCutOff = {700};//done
+  std::vector<int> pL_pot_var = {11600,-11600};//done
+
+  //pp13TeV_HM_DimiJun20 -> the ME reso matrix
+  //pp13TeV_HM_BernieSource -> Bernie's old smearing matrix
+  //pp13TeV_HM_BernieSource -> contains the data
+  std::vector<TString> MomSmearVar = {"pp13TeV_HM_DimiJun20"};//done
+
+  //and an additional variation will be done on if pS0 is included as a feed or not
+  enum BLTYPE { pol0s,pol1s,pol2s,pol3s,dpol2s,dpol3s,dpol4s,pol2e,pol3e,dpol2e,dpol3e,dpol4e,spl1 };
+  //std::vector<int> BaselineVar = {pol0s,pol1s,dpol3e};
+  std::vector<int> BaselineVar = {dpol3e};
+  //perhaps change to the new one
+  const bool pS0_Var = true;
+
+  //all histos to fit
+  TH1F** hCk = new TH1F* [NumMtBins];
+  //all fit functions
+  TF1** fCk = new TF1* [NumMtBins];
+
+  for(unsigned uMt=0; uMt<NumMtBins; uMt++){
+
+  }
+
+
+/*
+  //the region for which the DLM_Ck objects will be defined
+  //we put some extra to get away from the edge effects of the smearing
+  const double kMin = 0;
+  const double kMax = 600;
+  const unsigned TotMomBins = TMath::Nint(kMax);
+  const unsigned NumMtBins = 7;
+  if(imTbin>=NumMtBins){
+    printf("\033[1;31mERROR:\033[0m Only %u mT bins are available!\n",NumMtBins);
+    return;
+  }
+  //approximate, based on the output we kind of know we will get
+  //std::vector<float> ExpectedRadii = {1.35,1.3,1.25,1.2,1.1,1.05,0.95};
+  //const double Scale_pL = 1.1;
+  //const double Scale_pS0 = 1.15;
+  //const double Scale_pXi = 0.97;
+  //const double Scale_core = 0.94;
+  std::vector<float> ExpectedRadii = { 1.55, 1.473, 1.421, 1.368, 1.295, 1.220,1.124 };
+  //std::vector<float> ExpectedRadii = {1.35,1.3,1.25,1.2,1.1,1.05,0.95};
+  const double Scale_pL = 1.0;
+  const double Scale_pS0 = 1.0;
+  const double Scale_pXi = 1.0;
+  const double Scale_core = 1.0;
+  //the difference in the effectiv Gaussian compered to pp
+//printf("1\n");
+  const unsigned NumSourcePars = 1;
+  //std::vector<float> pSigma0Radii = {1.55,1.473,1.421,1.368,1.295,1.220,1.124};
+
+  DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
+
+  //gROOT->cd();
+  TFile* fOutputFile = new TFile(OutputFolder+TString::Format("/fOut_%s_SS%i_D%u_mT%i_ppSign%i.root",SourceVar.Data(),SmearStrategy,DataVar,imTbin,CorrectSign),"recreate");
+
+  TH1F* HDATA = NULL;
+  //GDATA->Set(TotMomBins);
+  TGraph* GFIT = new TGraph();
+  //GFIT->Set(TotMomBins);
+  TGraph* GBL = new TGraph();
+  //GBL->Set(TotMomBins);
+  TGraph* GFEMTO = new TGraph();
+  //GFEMTO->Set(TotMomBins);
+  Int_t BASELINEVAR;
+  Float_t FEMTOREGION;
+  Int_t PS0;
+  Int_t SMEARSTRATEGY;
+  Int_t PP_LAM_VAR;
+  TString MOMSMEARVAR;
+  Float_t CKCUTOFF;
+  Int_t PL_POT_VAR;
+  TString SOURCEVAR;
+  Float_t LAM_PP;
+  Float_t LAM_PPL;
+  Float_t NSIG;
+  Float_t RADIUS;
+  Float_t RADERR;
+
+  TTree* ppTree = new TTree("ppTree","ppTree");
+  ppTree->Branch("hData","TH1F",&HDATA,32000,0);//
+  ppTree->Branch("gFit","TGraph",&GFIT,32000,0);//
+  ppTree->Branch("gBl","TGraph",&GBL,32000,0);//
+  ppTree->Branch("gFemto","TGraph",&GFEMTO,32000,0);//
+  ppTree->Branch("BaselineVar",&BASELINEVAR,"BaselineVar/I");//
+  ppTree->Branch("FemtoRegion",&FEMTOREGION,"FemtoRegion/F");//
+  ppTree->Branch("pS0",&PS0,"pS0/I");//
+  ppTree->Branch("SmearStrategy",&SMEARSTRATEGY,"SmearStrategy/I");//
+  ppTree->Branch("pp_lam_var",&PP_LAM_VAR,"pp_lam_var/I");//
+  ppTree->Branch("MomSmearVar","TString",&MOMSMEARVAR,8000,0);//
+  ppTree->Branch("CkCutOff",&CKCUTOFF,"CkCutOff/F");//
+  ppTree->Branch("pL_pot_var",&PL_POT_VAR,"pL_pot_var/I");//
+  ppTree->Branch("SourceVar","TString",&SOURCEVAR,8000,0);//
+  ppTree->Branch("lam_pp",&LAM_PP,"lam_pp/F");//
+  ppTree->Branch("lam_ppL",&LAM_PPL,"lam_ppL/F");//
+  ppTree->Branch("nsig",&NSIG,"nsig/F");//
+  ppTree->Branch("rad",&RADIUS,"rad/F");//
+  ppTree->Branch("raderr",&RADERR,"raderr/F");//
+
+//printf("2\n");
+  //for(TString varSource : SourceVar){
+    CATS AB_pp;
+    AB_pp.SetMomBins(NumMomBins_pp,0,FemtoRegion.back());
+    AnalysisObject.SetUpCats_pp(AB_pp,"AV18",SourceVar,0,CorrectSign?-202:202);
+    AB_pp.SetAnaSource(0,ExpectedRadii.at(imTbin));
+    if(SourceVar.Contains("Levy")) AB_pp.SetAnaSource(1,1.7);
+    else AB_pp.SetAnaSource(1,2.0);
+    AB_pp.SetNotifications(CATS::nWarning);
+    AB_pp.KillTheCat();
+//printf("3\n");
+    CATS AB_pXim;
+    //same binning as pL, as we only use pXim as feed-down
+    AB_pXim.SetMomBins(NumMomBins_feed,0,FemtoRegion.back());
+    AnalysisObject.SetUpCats_pXim(AB_pXim,"pXim_HALQCDPaper2020","Gauss");
+    AB_pXim.SetAnaSource(0,ExpectedRadii.at(imTbin)*Scale_pXi);
+    AB_pXim.SetNotifications(CATS::nWarning);
+    AB_pXim.KillTheCat();
+//printf("4\n");
+    CATS AB_pXi1530;
+    AB_pXi1530.SetMomBins(NumMomBins_feed,0,FemtoRegion.back());
+    AB_pXi1530.SetNotifications(CATS::nWarning);
+    AnalysisObject.SetUpCats_pXim(AB_pXi1530,"pXim1530","Gauss");//McLevyNolan_Reso
+    AB_pXi1530.SetAnaSource(0,ExpectedRadii.at(imTbin)*Scale_pXi);
+    AB_pXi1530.KillTheCat();
+//printf("5\n");
+    CATS AB_pS0_Chiral;
+    //the minus one is to to avoid going above 350 MeV, since we do not have the WF there
+    AB_pS0_Chiral.SetMomBins(NumMomBins_feed,0,FemtoRegion.back());
+    AnalysisObject.SetUpCats_pS0(AB_pS0_Chiral,"Chiral","Gauss");
+    AB_pS0_Chiral.SetAnaSource(0,ExpectedRadii.at(imTbin)*Scale_pS0);
+    AB_pS0_Chiral.SetNotifications(CATS::nWarning);
+    AB_pS0_Chiral.KillTheCat();
+//printf("6\n");
+    for(int varPL : pL_pot_var){
+      CATS AB_pL;
+      AB_pL.SetMomBins(NumMomBins_feed,0,FemtoRegion.back());
+      AnalysisObject.SetUpCats_pL(AB_pL,"Chiral_Coupled_SPD","Gauss",varPL,202);//NLO_Coupled_S
+      const double CuspWeight = 0.33;//0.54
+      if(abs(varPL)>1000){
+          AB_pL.SetChannelWeight(7,1./4.*CuspWeight);//1S0 SN(s) -> LN(s)
+          AB_pL.SetChannelWeight(8,3./4.*CuspWeight);//3S1 SN(s) -> LN(s)
+          AB_pL.SetChannelWeight(10,3./4.*CuspWeight);//3S1 SN(d) -> LN(s)
+          AB_pL.SetChannelWeight(13,3./20.*CuspWeight);//3D1 SN(d) -> LN(d)
+          AB_pL.SetChannelWeight(15,3./20.*CuspWeight);//3D1 SN(s) -> LN(d)
+      }
+      AB_pL.SetAnaSource(0,ExpectedRadii.at(imTbin)*Scale_pL);
+      AB_pL.SetNotifications(CATS::nError);
+      AB_pL.KillTheCat();
+
+      for(float varCutOff : CkCutOff){
+        DLM_Ck* Ck_pp = new DLM_Ck(NumSourcePars, 0, AB_pp, TotMomBins, kMin, kMax);
+        Ck_pp->SetCutOff(FemtoRegion.back(),varCutOff);
+        DLM_Ck* Ck_pL = new DLM_Ck(NumSourcePars, 0, AB_pL, TotMomBins, kMin, kMax);
+        Ck_pL->SetCutOff(FemtoRegion.at(0),varCutOff);
+        DLM_Ck* Ck_pS0 = new DLM_Ck(NumSourcePars, 0, AB_pS0_Chiral, TotMomBins, kMin, kMax);
+        Ck_pS0->SetCutOff(FemtoRegion.at(0),varCutOff);
+        DLM_Ck* Ck_pXim = new DLM_Ck(NumSourcePars, 0, AB_pXim, TotMomBins, kMin, kMax);
+        Ck_pXim->SetCutOff(FemtoRegion.at(0),varCutOff);
+        DLM_Ck* Ck_pXim1530 = new DLM_Ck(NumSourcePars, 0, AB_pXi1530, TotMomBins, kMin, kMax);
+        Ck_pXim1530->SetCutOff(FemtoRegion.at(0),varCutOff);
+
+        for(TString varSmear : MomSmearVar){
+          TH2F* hResolution_pp = AnalysisObject.GetResolutionMatrix(varSmear,"pp");
+          TH2F* hResidual_pp_pL = AnalysisObject.GetResidualMatrix("pp","pLambda");
+          TH2F* hResidual_pL_pSigma0 = AnalysisObject.GetResidualMatrix("pLambda","pSigma0");
+          TH2F* hResidual_pL_pXim = AnalysisObject.GetResidualMatrix("pLambda","pXim");
+          TH2F* hResidual_pXi_pXi1530 = AnalysisObject.GetResidualMatrix("pXim","pXim1530");
+
+          for(int varLam : pp_lam_var){
+            double lambda_pp[4];
+            AnalysisObject.SetUpLambdaPars_pp("pp13TeV_HM_BernieSource",varLam+imTbin*10,lambda_pp);
+            double lambda_pL[5];
+            AnalysisObject.SetUpLambdaPars_pL("pp13TeV_HM_Dec19",varLam+imTbin*10,0,lambda_pL);
+            double lambda_pXim[5];
+            AnalysisObject.SetUpLambdaPars_pXim("pp13TeV_HM_Dec19",varLam+imTbin*10,0,lambda_pXim);
+//printf("SetUp\n");
+            //for(int varSS : SmearStrategy){
+              TH1F* hPhaseSpace_pp=NULL;
+              if(SmearStrategy==1){
+                TList* list1_tmp;
+                TList* list2_tmp;
+                TString FileName = TString::Format("%s/CatsFiles/ExpData/Bernie_Source/ppData/mTBin_%i/CFOutput_mT_ppVar%u_HM_%i.root",
+                                                    GetCernBoxDimi(),imTbin+1,DataVar,imTbin);
+                TFile* inFile = new TFile(FileName,"read");
+                //PARTICLES
+                list1_tmp = (TList*)inFile->Get("PairDist");
+                list2_tmp = (TList*)list1_tmp->FindObject("PairFixShifted");//there is also PairShifted ?? which one ??
+                TH1F* hME_PP = (TH1F*)list2_tmp->FindObject(TString::Format("MEPart_mT_%i_FixShifted",imTbin));
+                list1_tmp = (TList*)inFile->Get("AntiPairDist");
+                list2_tmp = (TList*)list1_tmp->FindObject("PairFixShifted");
+                TH1F* hME_APAP = (TH1F*)list2_tmp->FindObject(TString::Format("MEAntiPart_mT_%i_FixShifted",imTbin));
+                gROOT->cd();
+                hPhaseSpace_pp = (TH1F*)hME_PP->Clone("hPhaseSpace_pp");
+                hPhaseSpace_pp->Add(hME_APAP);
+                delete inFile;
+              }
+//printf("GotData\n");
+              for(unsigned ipS0=!(pS0_Var); ipS0<2; ipS0++){
+              //for(unsigned ipS0=0; ipS0<2; ipS0++){
+                DLM_CkDecomposition CkDec_pp("pp",3,*Ck_pp,hResolution_pp);
+                DLM_CkDecomposition CkDec_pL("pLambda", 4,*Ck_pL,NULL);
+                DLM_CkDecomposition CkDec_pSigma0("pSigma0",0,*Ck_pS0,NULL);
+                DLM_CkDecomposition CkDec_pXim("pXim",3,*Ck_pXim,NULL);
+                DLM_CkDecomposition CkDec_pXim1530("pXim1530",0,*Ck_pXim1530,NULL);
+
+                CkDec_pp.AddContribution(0,lambda_pp[1],DLM_CkDecomposition::cFeedDown,&CkDec_pL,hResidual_pp_pL);
+                CkDec_pp.AddContribution(1,lambda_pp[2],DLM_CkDecomposition::cFeedDown);
+                CkDec_pp.AddContribution(2,lambda_pp[3],DLM_CkDecomposition::cFake);
+                if(hPhaseSpace_pp){
+                  CkDec_pp.AddPhaseSpace(hPhaseSpace_pp);
+                  CkDec_pp.AddPhaseSpace(0, hPhaseSpace_pp);
+                }
+
+                if(ipS0==0) CkDec_pL.AddContribution(0,lambda_pL[1],DLM_CkDecomposition::cFeedDown);
+                else CkDec_pL.AddContribution(0,lambda_pL[1],DLM_CkDecomposition::cFeedDown,&CkDec_pSigma0,hResidual_pL_pSigma0);
+                CkDec_pL.AddContribution(1, lambda_pL[2],DLM_CkDecomposition::cFeedDown,&CkDec_pXim,hResidual_pL_pXim);
+                CkDec_pL.AddContribution(2, lambda_pL[3],DLM_CkDecomposition::cFeedDown);
+                CkDec_pL.AddContribution(3, lambda_pL[4],DLM_CkDecomposition::cFake);
+                if(hPhaseSpace_pp){
+                  if(ipS0==1) CkDec_pL.AddPhaseSpace(0,hPhaseSpace_pp);
+                  CkDec_pL.AddPhaseSpace(1,hPhaseSpace_pp);
+                }
+
+                CkDec_pXim.AddContribution(0, lambda_pXim[1],DLM_CkDecomposition::cFeedDown,&CkDec_pXim1530,hResidual_pXi_pXi1530);  //from Xi-(1530)
+                CkDec_pXim.AddContribution(1, lambda_pXim[2]+lambda_pXim[3],DLM_CkDecomposition::cFeedDown);  //other feed-down (flat)
+                CkDec_pXim.AddContribution(2, lambda_pXim[4], DLM_CkDecomposition::cFake);
+                if(hPhaseSpace_pp){
+                  CkDec_pXim.AddPhaseSpace(0,hPhaseSpace_pp);
+                }
+
+                CkDec_pp.Update();
+                CkDec_pL.Update();
+                CkDec_pSigma0.Update();
+                CkDec_pXim.Update();
+                CkDec_pXim1530.Update();
+//printf("Updated\n");
+                gROOT->cd();
+                TH1F* hData = AnalysisObject.GetAliceExpCorrFun("pp13TeV_HM_BernieSource","pp",TString::Format("%u",DataVar),0,0,imTbin);
+//printf("GetAliceExpCorrFun %p\n",hData);
+                for(float varFit : FemtoRegion){
+                  for(int varBL : BaselineVar){
+                    double FitRange = varFit;
+                    if(varBL==dpol3e) FitRange=BaselineRegion.at(0);
+                    //gROOT->cd();
+                    fOutputFile->cd();
+                    //2 femto and 5 BL fit pars (the BL are norm, pol1,2,3,4)
+                    TF1* fData = new TF1("fData",Fit_BernieSource,0,FitRange,7);
+                    TF1* fBl = new TF1("fBl",Baseline_BernieSource,0,FitRange,5);
+                    fData->SetParameter(0,SourceVar=="Gauss"?ExpectedRadii.at(imTbin):ExpectedRadii.at(imTbin)*Scale_core);
+                    fData->SetParLimits(0,fData->GetParameter(0)*0.5,fData->GetParameter(0)*2.0);
+                    //fData->SetParLimits(0,fData->GetParameter(0)*0.75,fData->GetParameter(0)*1.25);
+//fData->FixParameter(0,1.3);
+//fData->SetParameter(0,1.366);
+//fData->SetParLimits(0,1.1,1.5);
+                    fData->FixParameter(1,0);
+
+                    //BL
+                    fData->SetParameter(2,1);
+
+                    //pol0s,pol1s,dpol3e
+                    if(varBL==pol1s){
+                      fData->SetParameter(3,0);
+                      fData->SetParLimits(3,-1e-2,1e-2);
+                      fData->FixParameter(4,0);
+                      fData->FixParameter(5,0);
+                      fData->FixParameter(6,0);
+                    }
+                    else if(varBL==dpol3e){
+                      fData->SetParameter(3,0);
+                      fData->SetParLimits(3,-100000,100);
+                      fData->SetParameter(4,100);
+                      fData->SetParLimits(4,0,400);
+                      fData->SetParameter(5,0);
+                      fData->SetParLimits(5,-1e-6,1e-6);
+                      fData->FixParameter(6,0);
+                    }
+                    else{
+                      fData->FixParameter(3,0);
+                      fData->FixParameter(4,0);
+                      fData->FixParameter(5,0);
+                      fData->FixParameter(6,0);
+                    }
+                    SOURCE_FIT = &CkDec_pp;
+                    printf("BL=%i FIT=%.0f PS0=%i SS=%i LAM=%i SMR=%s PL=%i SRC=%s lam_pp=%.1f lam_ppl=%.1f\n",
+                            varBL,varFit,ipS0,SmearStrategy,varLam,varSmear.Data(),varPL,SourceVar.Data(),lambda_pp[0]*100.,lambda_pp[1]*100.);
+                    hData->Fit(fData,"Q, S, N, R, M");
+//fData->FixParameter(0,1.4);
+//fData->FixParameter(2,1);
+//TFile TempF(OutputFolder+"/TempF.root","recreate");
+//hData->Write();
+//fData->Write();
+//CkDec_pp.Update(true,true);
+//printf("C(20) = %f; cats %f; Ck_pp %f; CkDec_pp %f\n",fData->Eval(20),AB_pp.EvalCorrFun(20),Ck_pp->Eval(20),CkDec_pp.EvalCk(20));
+//return;
+//printf("fitted\n");
+                    fData->SetNpx(TotMomBins);
+
+                    fBl->FixParameter(0,fData->GetParameter(2));
+                    fBl->FixParameter(1,fData->GetParameter(3));
+                    fBl->FixParameter(2,fData->GetParameter(4));
+                    fBl->FixParameter(3,fData->GetParameter(5));
+                    fBl->FixParameter(4,fData->GetParameter(6));
+
+printf(" r = %.3f +/- %.3f\n",fData->GetParameter(0),fData->GetParError(0));
+                    double Chi2 = fData->GetChisquare();
+                    double NDF = fData->GetNDF();
+                    double pval = TMath::Prob(Chi2,NDF);
+                    double nsig = sqrt(2)*TMath::ErfcInverse(pval);
+                    printf(" chi2/ndf = %.2f\n",Chi2/NDF);
+                    printf(" nsig = %.2f\n",nsig);
+
+                    //gROOT->cd();
+                    fOutputFile->cd();
+
+                    BASELINEVAR = varBL;
+                    FEMTOREGION = varFit;
+                    PS0 = ipS0;
+                    SMEARSTRATEGY = SmearStrategy;
+                    PP_LAM_VAR = varLam;
+                    MOMSMEARVAR = varSmear;
+                    CKCUTOFF = varCutOff;
+                    PL_POT_VAR = varPL;
+                    SOURCEVAR = SourceVar;
+                    LAM_PP = lambda_pp[0];
+                    LAM_PPL = lambda_pp[1];
+                    NSIG = nsig;
+                    RADIUS = fData->GetParameter(0);
+                    RADERR = fData->GetParError(0);
+
+                    if(HDATA)delete HDATA;
+                    HDATA = (TH1F*)hData->Clone("HDATA");
+                    delete GFIT;
+                    GFIT = new TGraph();
+                    GFIT->SetName("GFIT");
+                    delete GBL;
+                    GBL = new TGraph();
+                    GBL->SetName("GBL");
+                    delete GFEMTO;
+                    GFEMTO = new TGraph();
+                    GFEMTO->SetName("GFEMTO");
+                    for(unsigned uBin=0; uBin<NumMomBins_pp; uBin++){
+                      double MOM = AB_pp.GetMomentum(uBin);
+                      if(MOM>FitRange) break;
+                      //GDATA->SetPoint(uBin,MOM,hData->GetBinContent(hData->FindBin(MOM)));
+                      GFIT->SetPoint(uBin,MOM,fData->Eval(MOM));
+                      GBL->SetPoint(uBin,MOM,fBl->Eval(MOM));
+                      GFEMTO->SetPoint(uBin,MOM,fData->Eval(MOM)/fBl->Eval(MOM));
+                    }
+
+                    ppTree->Fill();
+                    //ppTree->Branch("gData","TH1F",&GDATA,32000,0);//
+                    //ppTree->Branch("gFit","TGraph",&GFIT,32000,0);//
+                    //ppTree->Branch("gBl","TGraph",&GBL,32000,0);//
+                    //ppTree->Branch("gFemto","TGraph",&GFEMTO,32000,0);//
+
+//save output here: OutputFolder
+
+                    TFile outTest(OutputFolder+"/outTest_OLD.root","recreate");
+
+                    TGraph* GFEMTO_TH = new TGraph();
+                    TGraph* GFEMTO_SF = new TGraph();
+                    GFEMTO_TH->SetName("GFEMTO_TH");
+                    GFEMTO_SF->SetName("GFEMTO_SF");
+                    CkDec_pp.GetCk()->SetSourcePar(0,RADIUS);
+                    CkDec_pp.Update(true,true);
+                    for(unsigned uBin=0; uBin<NumMomBins_pp; uBin++){
+                      double MOM = AB_pp.GetMomentum(uBin);
+                      if(MOM>FitRange) break;
+                      GFEMTO_TH->SetPoint(uBin,MOM,CkDec_pp.EvalSignal(MOM)+1);
+                      GFEMTO_SF->SetPoint(uBin,MOM,SOURCE_FIT->EvalCk(MOM)+1);
+                    }
+
+                    //printf("File opened\n");
+                    hData->Write();
+                    //printf("Histo written\n");
+                    GFIT->Write();
+                    GBL->Write();
+                    GFEMTO->Write();
+                    GFEMTO_TH->Write();
+                    GFEMTO_SF->Write();
+                    delete GFEMTO_TH;
+
+
+                    //return;
+                    delete fData;
+                    delete fBl;
+//break;
+                  }//varBL (3x)
+                }//varFit (3x)
+                delete hData;
+//break;
+              }//ipS0 (2x)
+            //}//varSS (2x)
+//break;
+          }//varLam (3x)
+//break;
+        }//varSmear (2x)
+        delete Ck_pp;
+        delete Ck_pL;
+        delete Ck_pS0;
+        delete Ck_pXim;
+        delete Ck_pXim1530;
+//break;
+      }//varCutOff (1x)
+//break;
+    }//varPL (2x)
+  //}//varSource (2x)
+
+//const unsigned DataVar, const int imTbin
+  fOutputFile->cd();
+  ppTree->Write();
+
+
+
+
+  for(unsigned uMt=0; uMt<NumMtBins; uMt++){
+    if(hCk[uMt]){delete hCk[uMt]; hCk[uMt]=NULL;}
+    if(fCk[uMt]){delete fCk[uMt]; fCk[uMt]=NULL;}
+  }
+  delete [] hCk;
+  delete [] fCk;
+
+
+
+
+  delete ppTree;
+  delete fOutputFile;
+
+*/
+
+}
+
+
+
+
+
+
+CecaAnalysis1::CecaAnalysis1(TString SourceVersion, TString SourceFolder){
+  hCkExp_pp = NULL;
+
+  lam_pp_gen = NULL;
+  lam_pp_flt = NULL;
+  lam_pp_pL = NULL;
+  lam_pp_fake = NULL;
+
+  lam_pL_gen = NULL;
+  lam_pL_flt = NULL;
+  lam_pL_pS0 = NULL;
+  lam_pL_pXi0 = NULL;
+  lam_pL_pXim = NULL;
+  lam_pL_fake = NULL;
+
+  lam_Xi_gen = NULL;
+  lam_Xi_Xi1530 = NULL;
+  lam_Xi_flt = NULL;
+
+  lam_pS0_gen = NULL;
+  lam_pS0_flt = NULL;
+
+  Model_pS0 = 0;
+  Model_pL = 11600;
+
+  FemtoRegMax_pp = 376;
+  FitMax_pp = 376;
+  FitCutOff_pp = 700;
+
+  FemtoRegMax_pL = 336;
+  FitMax_pL = 456;
+  FitCutOff_pL = 700;
+
+  Kitty_pp = NULL;
+  Kitty_pL = NULL;
+  Kitty_pS0 = NULL;
+  Kitty_pXi0 = NULL;
+  Kitty_pXim = NULL;
+
+  Ck_pp = NULL;
+  Ck_pL = NULL;
+  Ck_pS0 = NULL;
+  Ck_pXi0 = NULL;
+  Ck_pXim = NULL;
+
+  CkDec_pp = NULL;
+  CkDec_pL = NULL;
+  CkDec_pS0 = NULL;
+  CkDec_pXi0 = NULL;
+  CkDec_pXim = NULL;
+
+  hReso_pp = NULL;
+  hPs_pp = NULL;
+  hReso_pL = NULL;
+  hPs_pL = NULL;
+
+  Src_pp = NULL;
+  Src_pL = NULL;
+
+  GrandeFitter = NULL;
+
+  Src_pp = new DLM_CecaSource_v0("pp",SourceVersion.Data(),SourceFolder.Data());
+  Src_pL = new DLM_CecaSource_v0("pp",SourceVersion.Data(),SourceFolder.Data());
+
+  if(Src_pp->InErrorState()){
+    printf("\033[1;31mERROR:\033[0m CecaAnalysis1 failed to load the pp source %s from %s.\n",SourceVersion.Data(),SourceFolder.Data());
+    delete Src_pp;
+    Src_pp = NULL;
+  }
+  if(Src_pL->InErrorState()){
+    printf("\033[1;31mERROR:\033[0m CecaAnalysis1 failed to load the pL source %s from %s.\n",SourceVersion.Data(),SourceFolder.Data());
+    delete Src_pL;
+    Src_pL = NULL;
+  }
+
+}
+
+
+CecaAnalysis1::~CecaAnalysis1(){
+
+}
+
+
+
+
+
+
 int CECA_PAPER(int argc, char *argv[]){
   printf("CECA_PAPER\n");
   //how to read/write the Levy pars into a file
@@ -2510,7 +3298,14 @@ int CECA_PAPER(int argc, char *argv[]){
   strcpy(myinput[3],"/home/dimihayl/Software/LocalFemto/Output/CECA_Paper/TestBatchOutput/test1/IN/");
   strcpy(myinput[4],"/home/dimihayl/Software/LocalFemto/Output/CECA_Paper/TestBatchOutput/test1/");
   printf("Lets go\n");
-  return dlmhst_ceca_kdpfit_wc0(5,myinput);
+  //return dlmhst_ceca_kdpfit_wc0(5,myinput);
+  //Test_src_read();
+  //LnGammaTest();
+  //CreateDlmHistoCigar2("pp",TString::Format("%s/CECA_Paper/Output_260223/",GetFemtoOutputFolder()),"Cigar2");
+  //CreateDlmHistoCigar2("pL",TString::Format("%s/CECA_Paper/Output_260223/",GetFemtoOutputFolder()),"Cigar2");
+  //TestReadCigar2();
+  //TestCigar2_Ck();
+  PNG_ANIM_SOURCE();
 
   return 0;
 }
