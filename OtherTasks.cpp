@@ -15483,7 +15483,45 @@ void LamLamStudy1(){
 
 
 
+void pXi_BUG_TEST(){
+  CATS Cat_pXim_correct;
+  CATS Cat_pXim_BUG;
 
+  const unsigned NumMomBins = 60;
+  const double kMax = 240;
+
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
+
+  Cat_pXim_correct.SetMomBins(NumMomBins,0,kMax);
+  Cat_pXim_BUG.SetMomBins(NumMomBins,0,kMax);
+
+  AnalysisObject.SetUpCats_pXim(Cat_pXim_correct,"pXim_HALQCDPaper2020","Gauss");
+  AnalysisObject.SetUpCats_pXim(Cat_pXim_BUG,"pXim_HALQCDPaper2020","Gauss");
+
+  Cat_pXim_correct.SetRedMass((Mass_p * Mass_Xim) / (Mass_p + Mass_Xim));
+  Cat_pXim_BUG.SetRedMass((Mass_p * Mass_Xim1530) / (Mass_p + Mass_Xim1530));
+
+  Cat_pXim_correct.KillTheCat();
+  Cat_pXim_BUG.KillTheCat();
+
+  TGraph g_pXim_correct;
+  g_pXim_correct.SetName("g_pXim_correct");
+
+  TGraph g_pXim_BUG;
+  g_pXim_BUG.SetName("g_pXim_BUG");
+
+  for(unsigned uBin=0; uBin<NumMomBins; uBin++){
+    double MOM = Cat_pXim_correct.GetMomentum(uBin);
+    g_pXim_correct.SetPoint(uBin,MOM,Cat_pXim_correct.GetCorrFun(uBin));
+    g_pXim_BUG.SetPoint(uBin,MOM,Cat_pXim_BUG.GetCorrFun(uBin));
+  }
+
+  TFile fOutput(TString::Format("%s/OtherTasks/pXi_BUG_TEST.root",GetFemtoOutputFolder()),"recreate");
+  g_pXim_correct.Write();
+  g_pXim_BUG.Write();
+
+}
 
 
 
@@ -15649,7 +15687,8 @@ nsig 6 bins = 3.75
     //pn_Ck(1.5);
     //pn_Ck(2.0);
 
-    LamLamStudy1();
+    //LamLamStudy1();
+    pXi_BUG_TEST();
 
     //PlugInWaveFunction();
     //ppSource_bugHunting(true);
