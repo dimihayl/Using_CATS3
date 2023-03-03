@@ -43,6 +43,8 @@
 #include "TSystem.h"
 #include "TROOT.h"
 #include "TLegend.h"
+#include "TFitResultPtr.h"
+#include "TFitResult.h"
 
 #include <boost/algorithm/string.hpp>
 
@@ -3185,17 +3187,51 @@ printf(" r = %.3f +/- %.3f\n",fData->GetParameter(0),fData->GetParError(0));
 
 
 
-CecaAnalysis1::CecaAnalysis1(TString SourceVersion, TString DLM_AnalysisFolder):NumMtBins_pp(7),NumMtBins_pL(6),cernbox_fld(DLM_AnalysisFolder),
-                            pp_cats_max(400),pp_ck_max(600),pL_cats_max(360),pL_ck_max(600){
+CecaAnalysis1::CecaAnalysis1(TString AnalysisVersion, TString SourceVersion, TString DLM_AnalysisFolder):
+                            NumMtBins_pp(7),NumMtBins_pL(6),catsfiles_fld(DLM_AnalysisFolder),ana_ver(AnalysisVersion),
+                            pp_cats_max(400),pp_ck_max(600),pL_cats_max(360),pL_ck_max(600),
+                            BaseFitPars(10),
+                            ExtraFitPars(AnalysisVersion=="Simple"?0:0),
+                            TotFitPars(BaseFitPars+ExtraFitPars)
+                            {
 
                               printf("\033[41mDON'T FORGET TO CHECK IF THE DIFFERENT BINNING FUCKS UP THE FEED-DOWNS!!!!!!!\033[0m\n");
   printf("Activating CecaAnalysis1:\n");
-  printf("  DLM_AnalysisFolder = %s\n",cernbox_fld.Data());
+  printf("  DLM_AnalysisFolder = %s\n",catsfiles_fld.Data());
   printf("  SourceVersion = %s\n",SourceVersion.Data());
-  TString SourceFolder_pp = cernbox_fld+"/CatsFiles/Source/CECA/LookUpSource/"+SourceVersion+"/pp/";
+  printf("  AnalysisVersion = %s\n",AnalysisVersion.Data());
+  if(AnalysisVersion!="Simple"){
+    printf("\033[1;31mERROR:\033[0m Unkown analysis version %s.\n",AnalysisVersion.Data());
+    return;
+  }
+
+  TString SourceFolder_pp = catsfiles_fld+"/Source/CECA/LookUpSource/"+SourceVersion+"/pp/";
   //printf("  SourceFolder (pp)  = %s\n",SourceFolder_pp.Data());
-  TString SourceFolder_pL = cernbox_fld+"/CatsFiles/Source/CECA/LookUpSource/"+SourceVersion+"/pL/";
+  TString SourceFolder_pL = catsfiles_fld+"/Source/CECA/LookUpSource/"+SourceVersion+"/pL/";
   //printf("  SourceFolder (pL)  = %s\n",SourceFolder_pL.Data());
+
+  lam = new double [15];
+  settings = new double [8];
+
+  FunctionCallCounter = 0;
+  FittingScenario = 0;
+
+  mT_BinCenter_pp = new double [7];
+  mT_BinCenter_pp[0] = 1107.7;
+  mT_BinCenter_pp[1] = 1168.3;
+  mT_BinCenter_pp[2] = 1228.4;
+  mT_BinCenter_pp[3] = 1315.6;
+  mT_BinCenter_pp[4] = 1462.8;
+  mT_BinCenter_pp[5] = 1687.2;
+  mT_BinCenter_pp[6] = 2211.6;
+
+  mT_BinCenter_pL = new double [6];
+  mT_BinCenter_pL[0] = 1212.4;
+  mT_BinCenter_pL[1] = 1289.6;
+  mT_BinCenter_pL[2] = 1376.0;
+  mT_BinCenter_pL[3] = 1540.7;
+  mT_BinCenter_pL[4] = 1756.0;
+  mT_BinCenter_pL[5] = 2259.4;
 
   hCkExp_pp = NULL;
   hCkExp_pL = NULL;
@@ -3203,18 +3239,18 @@ CecaAnalysis1::CecaAnalysis1(TString SourceVersion, TString DLM_AnalysisFolder):
   fCk_pp = NULL;
   fCk_pL = NULL;
 
-  Model_pS0 = 0;
-  Model_pL = 11600;
+  settings[Model_pS0] = 0;
+  settings[Model_pL] = 11600;
 
-  FemtoRegMax_pp = 376;
-  FitMax_pp = 376;
+  settings[FemtoRegMax_pp] = 376;
+  settings[FitMax_pp] = 376;
   //CutOff_pp = pp_cats_max;
-  CkConv_pp = 700;
+  settings[CkConv_pp] = 700;
 
-  FemtoRegMax_pL = 336;
-  FitMax_pL = 456;
+  settings[FemtoRegMax_pL] = 336;
+  settings[FitMax_pL] = 456;
   //CutOff_pL = pL_cats_max;
-  CkConv_pL = 700;
+  settings[CkConv_pL] = 700;
 
   Kitty_pp = NULL;
   Kitty_pL = NULL;
@@ -3229,6 +3265,13 @@ CecaAnalysis1::CecaAnalysis1(TString SourceVersion, TString DLM_AnalysisFolder):
   Ck_pXi0 = NULL;
   Ck_pXim = NULL;
   Ck_pXim1530 = NULL;
+
+  CkMt_pp = NULL;
+  CkMt_pL = NULL;
+  CkMt_pS0 = NULL;
+  CkMt_pXi0 = NULL;
+  CkMt_pXim = NULL;
+  //CkMt_pXim1530 = NULL;
 
   CkDec_pp = NULL;
   CkDec_pL = NULL;
@@ -3259,7 +3302,7 @@ CecaAnalysis1::CecaAnalysis1(TString SourceVersion, TString DLM_AnalysisFolder):
   Src_pp = new DLM_CecaSource_v0("pp",SourceVersion.Data(),SourceFolder_pp.Data());
   printf("--> Completed\n");
   printf("...Loading pL source...\n");
-  Src_pL = new DLM_CecaSource_v0("pp",SourceVersion.Data(),SourceFolder_pL.Data());
+  Src_pL = new DLM_CecaSource_v0("pL",SourceVersion.Data(),SourceFolder_pL.Data());
   printf("--> Completed\n");
 
   if(Src_pp->InErrorState()){
@@ -3274,7 +3317,7 @@ CecaAnalysis1::CecaAnalysis1(TString SourceVersion, TString DLM_AnalysisFolder):
   }
 
   AnalysisObject = new DLM_CommonAnaFunctions();
-  AnalysisObject->SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
+  AnalysisObject->SetCatsFilesFolder(catsfiles_fld.Data());
 
   Kitty_pp = new CATS();
   Kitty_pL = new CATS();
@@ -3283,10 +3326,26 @@ CecaAnalysis1::CecaAnalysis1(TString SourceVersion, TString DLM_AnalysisFolder):
   Kitty_pXim = new CATS();
   Kitty_pXim1530 = new CATS();
 
+  OldPar = new double[TotFitPars];
+  NewPar = new double[TotFitPars];
+
+  for(unsigned uPar=0; uPar<TotFitPars; uPar++){
+    OldPar[uPar] = 0;
+    NewPar[uPar] = 0;
+  }
+
+  LoadData();
+
 }
 
 
 CecaAnalysis1::~CecaAnalysis1(){
+  if(mT_BinCenter_pp) {delete [] mT_BinCenter_pp; mT_BinCenter_pp = NULL;}
+  if(mT_BinCenter_pL) {delete [] mT_BinCenter_pL; mT_BinCenter_pL = NULL;}
+  if(lam) {delete [] lam; lam = NULL;}
+  if(settings) {delete [] settings; settings = NULL;}
+  if(OldPar) {delete [] OldPar; OldPar = NULL;}
+  if(NewPar) {delete [] NewPar; NewPar = NULL;}
   if(hCkExp_pp){
     for(unsigned uMt=0; uMt<NumMtBins_pp; uMt++){
       if(hCkExp_pp[uMt]){
@@ -3377,6 +3436,48 @@ CecaAnalysis1::~CecaAnalysis1(){
     delete Ck_pXim1530;
     Ck_pXim1530 = NULL;
   }
+  if(CkMt_pp){
+    for(unsigned uMt=0; uMt<NumMtBins_pp; uMt++){
+      if(CkMt_pp[uMt]){delete CkMt_pp[uMt];CkMt_pp[uMt]=NULL;}
+    }
+    delete [] CkMt_pp;
+    CkMt_pp = NULL;
+  }
+  if(CkMt_pL){
+    for(unsigned uMt=0; uMt<NumMtBins_pL; uMt++){
+      if(CkMt_pL[uMt]){delete CkMt_pL[uMt];CkMt_pL[uMt]=NULL;}
+    }
+    delete [] CkMt_pL;
+    CkMt_pL = NULL;
+  }
+  if(CkMt_pS0){
+    for(unsigned uMt=0; uMt<NumMtBins_pL; uMt++){
+      if(CkMt_pS0[uMt]){delete CkMt_pS0[uMt];CkMt_pS0[uMt]=NULL;}
+    }
+    delete [] CkMt_pS0;
+    CkMt_pS0 = NULL;
+  }
+  if(CkMt_pXi0){
+    for(unsigned uMt=0; uMt<NumMtBins_pL; uMt++){
+      if(CkMt_pXi0[uMt]){delete CkMt_pXi0[uMt];CkMt_pXi0[uMt]=NULL;}
+    }
+    delete [] CkMt_pXi0;
+    CkMt_pXi0 = NULL;
+  }
+  if(CkMt_pXim){
+    for(unsigned uMt=0; uMt<NumMtBins_pL; uMt++){
+      if(CkMt_pXim[uMt]){delete CkMt_pXim[uMt];CkMt_pXim[uMt]=NULL;}
+    }
+    delete [] CkMt_pXim;
+    CkMt_pXim = NULL;
+  }
+  //if(CkMt_pXim1530){
+  //  for(unsigned uMt=0; uMt<NumMtBins_pL; uMt++){
+  //    if(CkMt_pXim1530[uMt]){delete CkMt_pXim1530[uMt];CkMt_pXim1530[uMt]=NULL;}
+  //  }
+  //  delete [] CkMt_pXim1530;
+  //  CkMt_pXim1530 = NULL;
+  //}
   if(CkDec_pp){
     delete CkDec_pp;
     CkDec_pp = NULL;
@@ -3456,6 +3557,248 @@ CecaAnalysis1::~CecaAnalysis1(){
 }
 
 
+void CecaAnalysis1::LoadData(){
+  printf("... Loading the data...\n");
+  if(hCkExp_pp || hCkExp_pL){
+    printf("\033[1;31mERROR:\033[0m CecaAnalysis1::LoadDatas can load the data only one time!\n");
+    return;
+  }
+
+  hCkExp_pp = new TH1F* [NumMtBins_pp];
+  hCkExp_pL = new TH1F* [NumMtBins_pL];
+
+  for(unsigned uMt=0; uMt<NumMtBins_pp; uMt++){
+    hCkExp_pp[uMt] = AnalysisObject->GetAliceExpCorrFun("pp13TeV_HM_BernieSource","pp","0",0,0,uMt);
+    hCkExp_pp[uMt]->SetName(TString::Format("hCkExp_pp[%u]",uMt));
+  }
+  for(unsigned uMt=0; uMt<NumMtBins_pL; uMt++){
+    hCkExp_pL[uMt] = AnalysisObject->GetAliceExpCorrFun("pp13TeV_HM_BernieSource","pLambda","0",0,0,uMt);
+    hCkExp_pL[uMt]->SetName(TString::Format("hCkExp_pL[%u]",uMt));
+  }
+  printf("---> Completed\n");
+}
+
+
+void CecaAnalysis1::UpdateDecomp(){
+  if(!CkDec_pp || !CkDec_pL || !CkDec_pS0 || !CkDec_pXim || !CkDec_pXi0 || !CkDec_pXim1530){
+    return;
+  }
+
+  FunctionCallCounter++;
+  if(FunctionCallCounter%100==0){
+    //printf("\r\033[K UpdateDecomp has been called %u times",FunctionCallCounter);
+    //cout << flush;
+    printf("UpdateDecomp has been called %u times\n",FunctionCallCounter);
+  }
+//printf("UpdateDecomp has been called %u times\n",FunctionCallCounter);
+//printf("  present pars:\n");
+//printf("  mT = %.0f\n",NewPar[0]);
+//printf("   d = %.3f\n",NewPar[1]);
+//printf("  ht = %.2f\n",NewPar[2]);
+//printf("  hz = %.2f\n",NewPar[3]);
+
+  if(CkDec_pp->GetCk()->GetNumSourcePar()>5){
+    printf("\033[1;31mERROR:\033[0m CecaAnalysis1::UpdateDecomp got %u parameters !?!?\n",CkDec_pp->GetCk()->GetNumSourcePar());
+    return;
+  }
+  if(CkDec_pL->GetCk()->GetNumSourcePar()!=CkDec_pp->GetCk()->GetNumSourcePar()){
+    printf("\033[1;31mERROR:\033[0m CecaAnalysis1::UpdateDecomp got non-identical sources for pp and pL\n");
+    return;
+  }
+//printf(" SetSourcePar\n");
+  for(unsigned uPar=0; uPar<CkDec_pp->GetCk()->GetNumSourcePar(); uPar++){
+    //this is the scaling parameter, this as assumed to be fixed for each contribution and is
+    //NOT a common parameter, hence we do not set it here (neither have an option to fit it!)
+    if(uPar==4) continue;
+    CkDec_pp->GetCk()->SetSourcePar(uPar,NewPar[uPar]);
+    CkDec_pL->GetCk()->SetSourcePar(uPar,NewPar[uPar]);
+    CkDec_pS0->GetCk()->SetSourcePar(uPar,NewPar[uPar]);
+    CkDec_pXim->GetCk()->SetSourcePar(uPar,NewPar[uPar]);
+    CkDec_pXi0->GetCk()->SetSourcePar(uPar,NewPar[uPar]);
+    //the 1530 has a fixed source, basta
+    //CkDec_pXi1530->GetCk()->SetSourcePar(uPar,par[uPar]);
+  }
+//printf(" Update\n");
+  //extra parameters will be added here
+  //printf("   -> CkDec_pXim\n");
+  CkDec_pXim->Update();
+  //printf("   -> CkDec_pXi0\n");
+  CkDec_pXi0->Update();
+  //printf("   -> CkDec_pS0\n");
+  CkDec_pS0->Update();
+  //printf("   -> CkDec_pL\n");
+  CkDec_pL->Update();
+  //printf("   -> CkDec_pp\n");
+  CkDec_pp->Update();
+//printf(" Create stuff\n");
+  if(!CkMt_pp){
+    CkMt_pp = new DLM_Ck* [NumMtBins_pp];
+    for(unsigned uMt=0; uMt<NumMtBins_pp; uMt++){
+      CkMt_pp[uMt] = new DLM_Ck(Ck_pp[0],false);
+    }
+  }
+  if(!CkMt_pL){
+    CkMt_pL = new DLM_Ck* [NumMtBins_pL];
+    for(unsigned uMt=0; uMt<NumMtBins_pL; uMt++){
+      CkMt_pL[uMt] = new DLM_Ck(*Ck_pL,false);
+    }
+  }
+  if(!CkMt_pS0){
+    CkMt_pS0 = new DLM_Ck* [NumMtBins_pL];
+    for(unsigned uMt=0; uMt<NumMtBins_pL; uMt++){
+      CkMt_pS0[uMt] = new DLM_Ck(*Ck_pS0,false);
+    }
+  }
+  if(!CkMt_pXim){
+    CkMt_pXim = new DLM_Ck* [NumMtBins_pL];
+    for(unsigned uMt=0; uMt<NumMtBins_pL; uMt++){
+      CkMt_pXim[uMt] = new DLM_Ck(*Ck_pXim,false);
+    }
+  }
+
+  if(!CkMt_pXi0){
+    CkMt_pXi0 = new DLM_Ck* [NumMtBins_pL];
+    for(unsigned uMt=0; uMt<NumMtBins_pL; uMt++){
+      CkMt_pXi0[uMt] = new DLM_Ck(*Ck_pXi0,false);
+    }
+  }
+//printf(" Fill stuff\n");
+  for(unsigned uMt=0; uMt<NumMtBins_pp; uMt++){
+    for(unsigned uMom=0; uMom<CkMt_pp[uMt]->GetNbins(); uMom++){
+      double MOM = CkMt_pp[uMt]->GetBinCenter(0,uMom);
+      CkMt_pp[uMt]->SetBinContent(uMom,CkDec_pp->EvalCk(MOM));
+      //printf("CkMt_pp[%u](%.0f) = %.3e (%.3e %.3e)\n",uMt,MOM,CkDec_pp->EvalCk(MOM),Ck_pp->Eval(MOM),Kitty_pp->EvalCorrFun(MOM));
+      //usleep(10e3);
+    }
+  }
+  for(unsigned uMt=0; uMt<NumMtBins_pL; uMt++){
+    for(unsigned uMom=0; uMom<CkMt_pL[uMt]->GetNbins(); uMom++){
+      double MOM = CkMt_pL[uMt]->GetBinCenter(0,uMom);
+      CkMt_pL[uMt]->SetBinContent(uMom,CkDec_pL->EvalCk(MOM));
+    }
+  }
+  for(unsigned uMt=0; uMt<NumMtBins_pL; uMt++){
+    for(unsigned uMom=0; uMom<CkMt_pS0[uMt]->GetNbins(); uMom++){
+      double MOM = CkMt_pS0[uMt]->GetBinCenter(0,uMom);
+      CkMt_pS0[uMt]->SetBinContent(uMom,CkDec_pS0->EvalCk(MOM));
+    }
+  }
+  for(unsigned uMt=0; uMt<NumMtBins_pL; uMt++){
+    for(unsigned uMom=0; uMom<CkMt_pXim[uMt]->GetNbins(); uMom++){
+      double MOM = CkMt_pXim[uMt]->GetBinCenter(0,uMom);
+      CkMt_pXim[uMt]->SetBinContent(uMom,CkDec_pXim->EvalCk(MOM));
+    }
+  }
+  for(unsigned uMt=0; uMt<NumMtBins_pL; uMt++){
+    for(unsigned uMom=0; uMom<CkMt_pXi0[uMt]->GetNbins(); uMom++){
+      double MOM = CkMt_pXi0[uMt]->GetBinCenter(0,uMom);
+      CkMt_pXi0[uMt]->SetBinContent(uMom,CkDec_pXi0->EvalCk(MOM));
+    }
+  }
+//printf(" EXIT\n");
+}
+
+double CecaAnalysis1::FitFun_pp(double* xval, double* par){
+  double Baseline = DLM_Baseline(xval,&par[5]);
+  double Femto=1;
+  double kstar = *xval;
+
+  for(unsigned uPar=0; uPar<TotFitPars; uPar++){
+    OldPar[uPar] = NewPar[uPar];
+    NewPar[uPar] = par[uPar];
+    //printf("par[%u] = %e\n",uPar,par[uPar]);
+  }
+  //at this stage we have updated source and interaction, but we do NOT
+  //want to reeval everything for each mT bin (lots of time in the fitter),
+  //so what we do instead is to save ALL correlation functions in histograms
+  for(unsigned uPar=0; uPar<TotFitPars; uPar++){
+    if(uPar==0||uPar==4||(uPar>=5&&uPar<=9)) continue;
+    if(OldPar[uPar]!=NewPar[uPar]){
+      UpdateDecomp();
+      break;
+    }
+  }
+
+  unsigned WhichMt;
+       if(par[0]<1150){WhichMt = 0;}
+  else if(par[0]<1200){WhichMt = 1;}
+  else if(par[0]<1300){WhichMt = 2;}
+  else if(par[0]<1400){WhichMt = 3;}
+  else if(par[0]<1500){WhichMt = 4;}
+  else if(par[0]<1800){WhichMt = 5;}
+  else {WhichMt = 6;}
+
+  //printf("mT = %f --> %u\n",par[0],WhichMt);
+//  static double old_kstar = 0;
+
+  Femto = CkMt_pp[WhichMt]->Eval(kstar);
+//Femto = CkDec_pp->EvalCk(kstar);
+//  if(old_kstar!=kstar){
+//    printf(" mT = %.3e (%u)\n",par[0],WhichMt);
+//    printf("src = %.3e %.3e %.3e %.3e\n",par[1],par[2],par[3],par[4]);
+//    printf("bsl = %.3e %.3e %.3e %.3e %.3e\n",par[5],par[6],par[7],par[8],par[9]);
+//    printf("Femto = %e\n",Femto);
+//    printf("Baseline = %e\n",Baseline);
+//    printf("  pp = %.3e\n", CkDec_pp->EvalCk(kstar));
+//    double rad = 1;
+//    printf("  Spp(1fm) = %.3e\n",Src_pp->RootEval(&rad,par));
+//    printf("  pL = %.3e (%.3e)\n", CkDec_pL->EvalCk(kstar), Kitty_pL->EvalCorrFun(kstar));
+//    printf("  SpL(1fm) = %.3e\n",Src_pL->RootEval(&rad,par));
+//    printf(" pS0 = %.3e\n", CkDec_pS0->EvalCk(kstar));
+//    printf(" pXim = %.3e\n", CkDec_pXim->EvalCk(kstar));
+//    printf(" pXi0 = %.3e\n", CkDec_pXi0->EvalCk(kstar));
+//    printf(" pXiR = %.3e\n", CkDec_pXim1530->EvalCk(kstar));
+//    printf("---------------------\n");
+//    usleep(250e3);
+//  }
+//  old_kstar = kstar;
+
+//DEB
+//return Baseline;
+  return Baseline*Femto;
+}
+
+//N.B. we will reject the data points around the cusp, not to overcomplicate things
+double CecaAnalysis1::FitFun_pL(double* xval, double* par){
+  double Baseline = DLM_Baseline(xval,&par[5]);
+  double Femto=1;
+  double kstar = *xval;
+
+  if(kstar>260&&kstar<300){
+    TF1::RejectPoint();
+  }
+
+  //N.B. not an issue that I use the same arrays as above for pp,
+  //as we need to update everything anytime it changes, regardless if in pp or pL
+  //we ignore mT value and BL pars, so we are safe
+  for(unsigned uPar=0; uPar<TotFitPars; uPar++){
+    OldPar[uPar] = NewPar[uPar];
+    NewPar[uPar] = par[uPar];
+  }
+  //at this stage we have updated source and interaction, but we do NOT
+  //want to reeval everything for each mT bin (lots of time in the fitter),
+  //so what we do instead is to save ALL correlation functions in histograms
+  for(unsigned uPar=0; uPar<TotFitPars; uPar++){
+    if(uPar==0||uPar==4||(uPar>=5&&uPar<=9)) continue;
+    if(OldPar[uPar]!=NewPar[uPar]){
+      UpdateDecomp();
+      break;
+    }
+  }
+
+
+  unsigned WhichMt;
+       if(par[0]<1250){WhichMt = 0;}
+  else if(par[0]<1300){WhichMt = 1;}
+  else if(par[0]<1400){WhichMt = 2;}
+  else if(par[0]<1600){WhichMt = 3;}
+  else if(par[0]<1800){WhichMt = 4;}
+  else {WhichMt = 5;}
+  Femto = CkMt_pL[WhichMt]->Eval(kstar);
+
+  return Baseline*Femto;
+}
+
 void CecaAnalysis1::SetUp_pp(const TString &POT, const int &PotVar){
   printf("...Setting up pp...\n");
   printf("  POT = %s (%i)\n",POT.Data(),PotVar);
@@ -3511,6 +3854,16 @@ void CecaAnalysis1::SetUp_pL(const TString &POT, const int &PotVar){
   Kitty_pL->SetAnaSource(2, 0);
   Kitty_pL->SetAnaSource(3, 0);
   Kitty_pL->SetAnaSource(4, 1);
+
+  if(Kitty_pL->GetNumChannels()>7){
+    const double CUSP_WEIGHT = 0.33;
+    Kitty_pL->SetChannelWeight(7,1./4.*CUSP_WEIGHT);//1S0 SN(s) -> LN(s)
+    Kitty_pL->SetChannelWeight(8,3./4.*CUSP_WEIGHT);//3S1 SN(s) -> LN(s)
+    Kitty_pL->SetChannelWeight(10,3./4.*CUSP_WEIGHT);//3S1 SN(d) -> LN(s)
+    Kitty_pL->SetChannelWeight(13,3./20.*CUSP_WEIGHT);//3D1 SN(d) -> LN(d)
+    Kitty_pL->SetChannelWeight(15,3./20.*CUSP_WEIGHT);//3D1 SN(s) -> LN(d)
+  }
+
 
   Ck_pL = new DLM_Ck(Kitty_pL->GetNumSourcePars(),0,*Kitty_pL,pL_ck_max/12,0,pL_ck_max);
   for(unsigned uSP=0; uSP<Kitty_pL->GetNumSourcePars(); uSP++){
@@ -3672,8 +4025,8 @@ void CecaAnalysis1::SetUp_Decomposition(const int &Variation_p, const int &Varia
     //pp
     printf("   Get the pp phase space...\n");
     for(unsigned uMt=0; uMt<NumMtBins_pp; uMt++){
-      FileName = TString::Format("%s/CatsFiles/ExpData/Bernie_Source/ppData/mTBin_%i/CFOutput_mT_ppVar0_HM_%i.root",
-                                          cernbox_fld.Data(),uMt+1,uMt);
+      FileName = TString::Format("%s/ExpData/Bernie_Source/ppData/mTBin_%i/CFOutput_mT_ppVar0_HM_%i.root",
+                                          catsfiles_fld.Data(),uMt+1,uMt);
       inFile = new TFile(FileName,"read");
       //PARTICLES
       list1_tmp = (TList*)inFile->Get("PairDist");
@@ -3685,14 +4038,15 @@ void CecaAnalysis1::SetUp_Decomposition(const int &Variation_p, const int &Varia
       gROOT->cd();
       hPs_pp = (TH1F*)hME_PP->Clone("hPs_pp");
       hPs_pp->Add(hME_APAP);
+      hPs_pp->GetXaxis()->SetLimits(hPs_pp->GetXaxis()->GetXmin()*1000.,hPs_pp->GetXaxis()->GetXmax()*1000.);
       delete inFile;
     }
 
     //pLambda
     printf("   Get the pL phase space...\n");
     for(unsigned uMt=0; uMt<NumMtBins_pL; uMt++){
-      FileName = TString::Format("%s/CatsFiles/ExpData/Bernie_Source/pLData/mTBin_%i/CFOutput_mT_pLVar0_HM_%i.root",
-                                          cernbox_fld.Data(),uMt+1,uMt);
+      FileName = TString::Format("%s/ExpData/Bernie_Source/pLData/mTBin_%i/CFOutput_mT_pLVar0_HM_%i.root",
+                                          catsfiles_fld.Data(),uMt+1,uMt);
       inFile = new TFile(FileName,"read");
       //PARTICLES
       list1_tmp = (TList*)inFile->Get("PairDist");
@@ -3704,6 +4058,7 @@ void CecaAnalysis1::SetUp_Decomposition(const int &Variation_p, const int &Varia
       gROOT->cd();
       hPs_pL = (TH1F*)hME_PP->Clone("hPs_pL");
       hPs_pL->Add(hME_APAP);
+      hPs_pL->GetXaxis()->SetLimits(hPs_pL->GetXaxis()->GetXmin()*1000.,hPs_pL->GetXaxis()->GetXmax()*1000.);
       delete inFile;
     }
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -3714,31 +4069,31 @@ void CecaAnalysis1::SetUp_Decomposition(const int &Variation_p, const int &Varia
     double lambda_sum;
 
     AnalysisObject->SetUpLambdaPars_pp("pp13TeV_HM_Dec19",Variation_p,lambda_pars);
-    lam_pp_gen = lambda_pars[0];
-    lam_pp_pL = lambda_pars[1];
-    lam_pp_flt = lambda_pars[2];
-    lam_pp_fake = lambda_pars[3];
-    lambda_sum = lam_pp_gen+lam_pp_pL+lam_pp_flt+lam_pp_fake;
+    lam[pp_gen] = lambda_pars[0];
+    lam[pp_pL] = lambda_pars[1];
+    lam[pp_flt] = lambda_pars[2];
+    lam[pp_fake] = lambda_pars[3];
+    lambda_sum = lam[pp_gen]+lam[pp_pL]+lam[pp_flt]+lam[pp_fake];
     if(fabs(1.-lambda_sum)>1e-6){
       printf("\033[1;33mWARNING!\033[0m sum(lambda_pp) = %f\n",lambda_sum);
     }
 
     printf("   Set up the pL lambda parameters...\n");
     AnalysisObject->SetUpLambdaPars_pL("pp13TeV_HM_Dec19",Variation_p,Variation_L,lambda_pars);
-    lam_pL_gen = lambda_pars[0];
-    lam_pL_pS0 = lambda_pars[1];
-    lam_pL_pXim = lambda_pars[2];
-    lam_pL_pXi0 = lambda_pars[2];
-    lam_pL_flt = lambda_pars[3]-lambda_pars[2];
-    lam_pL_fake = lambda_pars[4];
-    printf("lam_pL_gen = %.2f\n",lam_pL_gen*100.);
-    printf("lam_pL_pS0 = %.2f\n",lam_pL_pS0*100.);
-    printf("lam_pL_pXim = %.2f\n",lam_pL_pXim*100.);
-    printf("lam_pL_pXi0 = %.2f\n",lam_pL_pXi0*100.);
-    printf("lam_pL_flt = %.2f\n",lam_pL_flt*100.);
-    printf("lam_pL_fake = %.2f\n",lam_pL_fake*100.);
+    lam[pL_gen] = lambda_pars[0];
+    lam[pL_pS0] = lambda_pars[1];
+    lam[pL_pXim] = lambda_pars[2];
+    lam[pL_pXi0] = lambda_pars[2];
+    lam[pL_flt] = lambda_pars[3]-lambda_pars[2];
+    lam[pL_fake] = lambda_pars[4];
+    //printf("lam_pL_gen = %.2f\n",lam_pL_gen*100.);
+    //printf("lam_pL_pS0 = %.2f\n",lam_pL_pS0*100.);
+    //printf("lam_pL_pXim = %.2f\n",lam_pL_pXim*100.);
+    //printf("lam_pL_pXi0 = %.2f\n",lam_pL_pXi0*100.);
+    //printf("lam_pL_flt = %.2f\n",lam_pL_flt*100.);
+    //printf("lam_pL_fake = %.2f\n",lam_pL_fake*100.);
 
-    lambda_sum = lam_pL_gen+lam_pL_pS0+lam_pL_pXim+lam_pL_pXi0+lam_pL_flt+lam_pL_fake;
+    lambda_sum = lam[pL_gen]+lam[pL_pS0]+lam[pL_pXim]+lam[pL_pXi0]+lam[pL_flt]+lam[pL_fake];
     if(fabs(1.-lambda_sum)>1e-6){
       printf("\033[1;33mWARNING!\033[0m sum(lambda_pL) = %f\n",lambda_sum);
     }
@@ -3747,12 +4102,12 @@ void CecaAnalysis1::SetUp_Decomposition(const int &Variation_p, const int &Varia
     AnalysisObject->SetUpLambdaPars_pXim("pp13TeV_HM_Dec19",Variation_p,0,lambda_pars);
     //here we normalize to the purity, as we do not analyse experimental data and we could not care less
     //the lambda pars for Xim and Xi0 are identical
-    lam_pXi_gen = lambda_pars[0]/(1.-lambda_pars[4]);
+    lam[pXi_gen] = lambda_pars[0]/(1.-lambda_pars[4]);
     //the charged case
-    lam_pXi_pXi1530 = lambda_pars[1]/(1.-lambda_pars[4]);
+    lam[pXi_pXi1530] = lambda_pars[1]/(1.-lambda_pars[4]);
     //flat plus neutral 1530
-    lam_pXi_flt = (lambda_pars[2]+lambda_pars[3])/(1.-lambda_pars[4]);
-    lambda_sum = lam_pXi_gen+lam_pXi_pXi1530+lam_pXi_flt;
+    lam[pXi_flt] = (lambda_pars[2]+lambda_pars[3])/(1.-lambda_pars[4]);
+    lambda_sum = lam[pXi_gen]+lam[pXi_pXi1530]+lam[pXi_flt];
     if(fabs(1.-lambda_sum)>1e-6){
       printf("\033[1;33mWARNING!\033[0m sum(lambda_pXi) = %f\n",lambda_sum);
     }
@@ -3763,45 +4118,31 @@ void CecaAnalysis1::SetUp_Decomposition(const int &Variation_p, const int &Varia
 
     printf("   Link the pp contributions...\n");
 
-//DLM_Ck c1(Kitty_pp->GetNumSourcePars(),0,*Kitty_pp,pp_ck_max/4,0,pp_ck_max);
-//DLM_Ck c2(Kitty_pp->GetNumSourcePars(),0,*Kitty_pp,pp_ck_max/4,0,pp_ck_max);
-//DLM_Ck c3(Kitty_pp->GetNumSourcePars(),0,*Kitty_pp,pp_ck_max/4,0,pp_ck_max);
-//DLM_Ck c4(Kitty_pp->GetNumSourcePars(),0,*Kitty_pp,pp_ck_max/4,0,pp_ck_max);
-
-    CkDec_pp->AddContribution(0,lam_pp_pL,DLM_CkDecomposition::cFeedDown,CkDec_pL,hFeed_pp_pL);
-    CkDec_pp->AddContribution(1,lam_pp_flt,DLM_CkDecomposition::cFeedDown);
-    CkDec_pp->AddContribution(2,lam_pp_fake,DLM_CkDecomposition::cFake);
+    CkDec_pp->AddContribution(0,lam[pp_pL],DLM_CkDecomposition::cFeedDown,CkDec_pL,hFeed_pp_pL);
+//CkDec_pp->AddContribution(0,lam[pp_flt],DLM_CkDecomposition::cFeedDown);
+    CkDec_pp->AddContribution(1,lam[pp_flt],DLM_CkDecomposition::cFeedDown);
+    CkDec_pp->AddContribution(2,lam[pp_fake],DLM_CkDecomposition::cFake);
     CkDec_pp->AddPhaseSpace(hPs_pp);
     CkDec_pp->AddPhaseSpace(0,hPs_pp);
 
-
-
-//REMOVE THE LAMBDA PARS FROM THE STACK, APPARANTLY TOO MUCH !!!!!
     printf("   Link the pL contributions...\n");
-    CkDec_pL->AddContribution(0,0.1508,DLM_CkDecomposition::cFeedDown,CkDec_pS0,hFeed_pL_pS0);
-    printf("0 done\n");
-    CkDec_pL->AddContribution(1,0.0910,DLM_CkDecomposition::cFeedDown,CkDec_pXim,hFeed_pL_pXim);
-    printf("1 done\n");
-    CkDec_pL->AddContribution(2,0.0910,DLM_CkDecomposition::cFeedDown,CkDec_pXi0,hFeed_pL_pXi0);
-    //CkDec_pL->AddContribution(2,lam_pL_pXi0,DLM_CkDecomposition::cFeedDown);
-    printf("2 done\n");
-    CkDec_pL->AddContribution(3,0.1689,DLM_CkDecomposition::cFeedDown);
-    printf("3 done\n");
-    CkDec_pL->AddContribution(4,0.0460,DLM_CkDecomposition::cFake);
-    printf("Add PS\n");
+    CkDec_pL->AddContribution(0,lam[pL_pS0],DLM_CkDecomposition::cFeedDown,CkDec_pS0,hFeed_pL_pS0);
+    CkDec_pL->AddContribution(1,lam[pL_pXim],DLM_CkDecomposition::cFeedDown,CkDec_pXim,hFeed_pL_pXim);
+    CkDec_pL->AddContribution(2,lam[pL_pXi0],DLM_CkDecomposition::cFeedDown,CkDec_pXi0,hFeed_pL_pXi0);
+    CkDec_pL->AddContribution(3,lam[pL_flt],DLM_CkDecomposition::cFeedDown);
+    CkDec_pL->AddContribution(4,lam[pL_fake],DLM_CkDecomposition::cFake);
     CkDec_pL->AddPhaseSpace(hPs_pL);
     CkDec_pL->AddPhaseSpace(0,hPs_pL);
     CkDec_pL->AddPhaseSpace(1,hPs_pL);
     CkDec_pL->AddPhaseSpace(2,hPs_pL);
 
-
     printf("   Link the pXi contributions...\n");
-    CkDec_pXim->AddContribution(0,lam_pXi_pXi1530,DLM_CkDecomposition::cFeedDown,CkDec_pXim1530,hFeed_pXi_pXim1530);
-    CkDec_pXim->AddContribution(1,lam_pXi_flt,DLM_CkDecomposition::cFeedDown);
+    CkDec_pXim->AddContribution(0,lam[pXi_pXi1530],DLM_CkDecomposition::cFeedDown,CkDec_pXim1530,hFeed_pXi_pXim1530);
+    CkDec_pXim->AddContribution(1,lam[pXi_flt],DLM_CkDecomposition::cFeedDown);
     CkDec_pXim->AddPhaseSpace(0,hPs_pL);
 
-    CkDec_pXi0->AddContribution(0,lam_pXi_pXi1530,DLM_CkDecomposition::cFeedDown,CkDec_pXim1530,hFeed_pXi_pXim1530);
-    CkDec_pXi0->AddContribution(1,lam_pXi_flt,DLM_CkDecomposition::cFeedDown);
+    CkDec_pXi0->AddContribution(0,lam[pXi_pXi1530],DLM_CkDecomposition::cFeedDown,CkDec_pXim1530,hFeed_pXi_pXim1530);
+    CkDec_pXi0->AddContribution(1,lam[pXi_flt],DLM_CkDecomposition::cFeedDown);
     CkDec_pXi0->AddPhaseSpace(0,hPs_pL);
 
   }
@@ -3812,17 +4153,614 @@ void CecaAnalysis1::SetUp_Decomposition(const int &Variation_p, const int &Varia
   printf("---> Completed\n");
 }
 
+TF1* CecaAnalysis1::GetFit(TString system, unsigned uMt){
+  if(system=="pp"){
+    if(uMt>=7) return NULL;
+    return fCk_pp[uMt];
+  }
+  else if(system=="pL"||system=="pLambda"){
+    if(uMt>=6) return NULL;
+    return fCk_pL[uMt];
+  }
+  else{
+    printf("\033[1;31mERROR:\033[0m CecaAnalysis1::GetFit got an unkown system (%s)\n",system.Data());
+    return NULL;
+  }
+}
+
+
+void CecaAnalysis1::DumpCurrentCk(TString OutFileName){
+  TFile fOutput(OutFileName,"recreate");
+
+  TGraphErrors mT_Scaling_pp;
+  mT_Scaling_pp.SetName("mT_Scaling_pp");
+
+  TGraphErrors mT_Scaling_pL;
+  mT_Scaling_pL.SetName("mT_Scaling_pL");
+
+  for(unsigned uMt=0; uMt<NumMtBins_pp; uMt++){
+    if(hCkExp_pp){
+      if(hCkExp_pp[uMt]){
+        hCkExp_pp[uMt]->Write();
+      }
+    }
+    if(fCk_pp){
+      if(fCk_pp[uMt]){
+    //printf("write\n");
+        fCk_pp[uMt]->Write();
+        //to get the error, we should best bootstrap as we have multiple pars
+    //printf("TF1\n");
+        TF1* fSrcC_pp = new TF1("fSrcC_pp",Src_pp,&DLM_CecaSource_v0::RootEval,0,16,5,"DLM_CecaSource_v0","RootEval");
+    //printf("Fix\n");
+        for(unsigned uP=0; uP<5; uP++){
+          fSrcC_pp->FixParameter(uP,fCk_pp[uMt]->GetParameter(uP));
+    //printf(" p%u = %.3e\n",uP,fCk_pp[uMt]->GetParameter(uP));
+        }
+    //printf("Mean\n");
+        double Mean = fSrcC_pp->Mean(0, 16);
+    //printf("SetPoint\n");
+        mT_Scaling_pp.SetPoint(uMt,mT_BinCenter_pp[uMt]*0.001,Mean);
+    //printf("delete\n");
+        delete fSrcC_pp;
+      }
+    }
+  }
+  for(unsigned uMt=0; uMt<NumMtBins_pL; uMt++){
+    if(hCkExp_pL){
+      if(hCkExp_pL[uMt]){
+        hCkExp_pL[uMt]->Write();
+      }
+    }
+    if(fCk_pL){
+      if(fCk_pL[uMt]){
+        fCk_pL[uMt]->Write();
+        TF1* fSrcC_pL = new TF1("fSrcC_pL",Src_pL,&DLM_CecaSource_v0::RootEval,0,16,5,"DLM_CecaSource_v0","RootEval");
+        for(unsigned uP=0; uP<5; uP++){
+          fSrcC_pL->FixParameter(uP,fCk_pL[uMt]->GetParameter(uP));
+        }
+        double Mean = fSrcC_pL->Mean(0, 16);
+        mT_Scaling_pL.SetPoint(uMt,mT_BinCenter_pL[uMt]*0.001,Mean);
+        delete fSrcC_pL;
+      }
+    }
+  }
+
+
+  TGraphErrors mT_Published_pp;
+  mT_Published_pp.SetName("mT_Published_pp");
+  TGraphErrors mT_Published_pL;
+  mT_Published_pL.SetName("mT_Published_pL");
+
+  TFile fInput(catsfiles_fld+"/Source/SourcePaper_Published.root","read");
+  TGraphErrors* g_pp = (TGraphErrors*)fInput.Get("g_reff_pp");
+  TGraphErrors* g_pL = (TGraphErrors*)fInput.Get("g_reff_pL");
+
+  for(unsigned uMt=0; uMt<g_pp->GetN(); uMt++){
+    double MtVal,Reff;
+    g_pp->GetPoint(uMt,MtVal,Reff);
+    double dReff = g_pp->GetErrorY(uMt);
+
+    double UpReff = Reff+dReff;
+    double LowReff = Reff-dReff;
+
+    double UpMean = ConvertGaussMean(UpReff);
+    double LowMean = ConvertGaussMean(LowReff);
+    double MeanMean = (UpMean+LowMean)*0.5;
+
+    mT_Published_pp.SetPoint(uMt,MtVal,MeanMean);
+    mT_Published_pp.SetPointError(uMt,0,(UpMean-LowMean)*0.5);
+  }
+
+  for(unsigned uMt=0; uMt<g_pL->GetN(); uMt++){
+    double MtVal,Reff;
+    g_pL->GetPoint(uMt,MtVal,Reff);
+    double dReff = g_pL->GetErrorY(uMt);
+
+    double UpReff = Reff+dReff;
+    double LowReff = Reff-dReff;
+
+    double UpMean = ConvertGaussMean(UpReff);
+    double LowMean = ConvertGaussMean(LowReff);
+    double MeanMean = (UpMean+LowMean)*0.5;
+
+    mT_Published_pL.SetPoint(uMt,MtVal,MeanMean);
+    mT_Published_pL.SetPointError(uMt,0,(UpMean-LowMean)*0.5);
+  }
+
+
+  fOutput.cd();
+  mT_Scaling_pp.Write();
+  mT_Published_pp.Write();
+
+  mT_Scaling_pL.Write();
+  mT_Published_pL.Write();
+}
+
+
+void CecaAnalysis1::SetUp_Fits(TString fittype, bool AutoSrcPars, bool AutoBlPars){
+
+  if(fittype=="Ceca"||fittype=="CECA"||fittype=="ceca"){
+    FittingScenario = 0;
+  }
+  else if(fittype=="SingleCeca"||fittype=="SINGLECECA"||fittype=="singlececa"){
+    FittingScenario = 1;
+  }
+  else if(fittype=="Gauss"||fittype=="GAUSS"||fittype=="gauss"||fittype=="Gaus"||fittype=="GAUS"||fittype=="gaus"){
+    FittingScenario = 11;
+  }
+  else{
+    printf("\033[1;31mERROR:\033[0m SetUp_Fits got an unkown fit type (%s)\n",fittype.Data());
+    return;
+  }
+
+  printf("   Setting up the pp fits...\n");
+  if(fCk_pp){
+    for(unsigned uMt=0; uMt<NumMtBins_pp; uMt++){
+      if(fCk_pp[uMt]){
+        delete fCk_pp[uMt];
+        fCk_pp[uMt] = NULL;
+      }
+    }
+    delete [] fCk_pp;
+    fCk_pp = NULL;
+  }
+  fCk_pp = new TF1* [NumMtBins_pp];
+  for(unsigned uMt=0; uMt<NumMtBins_pp; uMt++){
+
+    fCk_pp[uMt] = new TF1(TString::Format("fCk_pp[%u]",uMt),this,&CecaAnalysis1::FitFun_pp,hCkExp_pp[uMt]->GetBinLowEdge(1),settings[FitMax_pp],TotFitPars,"CecaAnalysis1","FitFun_pp");
+
+    //the mT is fixed
+    if(FittingScenario==11){
+      fCk_pp[uMt]->FixParameter(0,-1);
+    }
+    else{
+      fCk_pp[uMt]->FixParameter(0,mT_BinCenter_pp[uMt]);
+    }
+
+    //the source parameters
+    if(AutoSrcPars){
+      if(FittingScenario==11){
+        fCk_pp[uMt]->SetParameter(1,1.0);
+        fCk_pp[uMt]->SetParLimits(1,0.5,2.0);
+      }
+      else{
+        for(unsigned uP=1; uP<4; uP++){
+          double Low = Src_pp->Low_par(uP,true);
+          double Up = Src_pp->Up_par(uP,true);
+          fCk_pp[uMt]->SetParameter(uP,(Low+Up)*0.5);
+          fCk_pp[uMt]->SetParLimits(uP,Low,Up);
+        }
+      }
+    }
+    //the scale parameter is fixed for the fit
+    fCk_pp[uMt]->FixParameter(4,1);
+
+    //the baseline
+    if(AutoBlPars){
+      //norm
+      fCk_pp[uMt]->SetParameter(5,1);
+      fCk_pp[uMt]->SetParLimits(5,0.9,1.1);
+
+      //flat at zero
+      fCk_pp[uMt]->FixParameter(6,0);
+
+      //the position of the extremum
+      fCk_pp[uMt]->SetParameter(7,100);
+      fCk_pp[uMt]->SetParLimits(7,20,800);
+
+      //the pol3
+      fCk_pp[uMt]->SetParameter(8,0);
+      fCk_pp[uMt]->SetParLimits(8,-1e-10,1e-10);
+
+      //remove the 4th order
+      fCk_pp[uMt]->FixParameter(9,0);
+    }
+
+  }//uMt_pp
+
+  printf("   Setting up the pL fits...\n");
+  if(fCk_pL){
+    for(unsigned uMt=0; uMt<NumMtBins_pL; uMt++){
+      if(fCk_pL[uMt]){
+        delete fCk_pL[uMt];
+        fCk_pL[uMt] = NULL;
+      }
+    }
+    delete [] fCk_pL;
+    fCk_pL = NULL;
+  }
+  fCk_pL = new TF1* [NumMtBins_pL];
+  for(unsigned uMt=0; uMt<NumMtBins_pL; uMt++){
+    if(fCk_pL[uMt]){
+      delete fCk_pL[uMt];
+      fCk_pL[uMt] = NULL;
+    }
+
+    fCk_pL[uMt] = new TF1(TString::Format("fCk_pL[%u]",uMt),this,&CecaAnalysis1::FitFun_pL,hCkExp_pL[uMt]->GetBinLowEdge(1),settings[FitMax_pL],TotFitPars,"CecaAnalysis1","FitFun_pL");
+
+    //the mT is fixed
+    if(FittingScenario==11){
+      fCk_pL[uMt]->FixParameter(0,-1);
+    }
+    else{
+      fCk_pL[uMt]->FixParameter(0,mT_BinCenter_pL[uMt]);
+    }
+
+    //the source parameters
+    if(AutoSrcPars){
+      if(FittingScenario==11){
+        fCk_pL[uMt]->SetParameter(1,1.0);
+        fCk_pL[uMt]->SetParLimits(1,0.5,2.0);
+      }
+      else{
+        for(unsigned uP=1; uP<4; uP++){
+          double Low = Src_pL->Low_par(uP,true);
+          double Up = Src_pL->Up_par(uP,true);
+          fCk_pL[uMt]->SetParameter(uP,(Low+Up)*0.5);
+          fCk_pL[uMt]->SetParLimits(uP,Low,Up);
+        }
+      }
+    }
+    //the scale parameter is fixed for the fit
+    fCk_pL[uMt]->FixParameter(4,1);
+
+    //the baseline
+    if(AutoBlPars){
+      //norm
+      fCk_pL[uMt]->SetParameter(5,1);
+      fCk_pL[uMt]->SetParLimits(5,0.9,1.1);
+
+      //flat at zero
+      fCk_pL[uMt]->FixParameter(6,0);
+
+      //the position of the extremum
+      fCk_pL[uMt]->SetParameter(7,100);
+      fCk_pL[uMt]->SetParLimits(7,20,800);
+
+      //the pol3
+      fCk_pL[uMt]->SetParameter(8,0);
+      fCk_pL[uMt]->SetParLimits(8,-1e-10,1e-10);
+
+      //remove the 4th order
+      fCk_pL[uMt]->FixParameter(9,0);
+    }
+
+  }//uMt_pL
+
+}
+
+void CecaAnalysis1::GoBabyGo(bool print_info){
+  if(print_info) printf("<<< Go baby go >>>\n");
+  //GLOBAL FIT
+  if(FittingScenario==0){
+    if(GrandeFitter){
+      delete GrandeFitter;
+      GrandeFitter = NULL;
+    }
+
+    if(print_info) printf("   Setting up the global fit...\n");
+    GrandeFitter = new DLM_MultiFit();
+    for(unsigned uMt=0; uMt<NumMtBins_pp; uMt++){
+      GrandeFitter->AddSpectrum(hCkExp_pp[uMt],fCk_pp[uMt]);
+    }
+    for(unsigned uMt=0; uMt<NumMtBins_pL; uMt++){
+      GrandeFitter->AddSpectrum(hCkExp_pL[uMt],fCk_pL[uMt]);
+    }
+  //DEB
+    for(unsigned uMt=1; uMt<NumMtBins_pp+NumMtBins_pL; uMt++){
+      GrandeFitter->SetEqualPar(uMt,1,0,1);//d
+      GrandeFitter->SetEqualPar(uMt,2,0,2);//ht
+      GrandeFitter->SetEqualPar(uMt,3,0,3);//hz or tau
+    }
+
+    if(print_info) printf("Well... let us fit!!!\n");
+    if(print_info) printf(" <a long long wait ahead>\n");
+    FunctionCallCounter = 0;
+    ROOT::Fit::FitResult fitresptr = GrandeFitter->PerformGlobalFit(print_info);
+  }
+  else{
+    for(unsigned uMt=0; uMt<NumMtBins_pp; uMt++){
+      if(print_info) printf(" fitting pp[%u]\n",uMt);
+      if(print_info) hCkExp_pp[uMt]->Fit(fCk_pp[uMt],"S, N, R, M");
+      else hCkExp_pp[uMt]->Fit(fCk_pp[uMt],"Q, S, N, R, M");
+    }
+    for(unsigned uMt=0; uMt<NumMtBins_pL; uMt++){
+      if(print_info) printf(" fitting pL[%u]\n",uMt);
+      if(print_info) hCkExp_pL[uMt]->Fit(fCk_pL[uMt],"S, N, R, M");
+      else hCkExp_pL[uMt]->Fit(fCk_pL[uMt],"Q, S, N, R, M");
+    }
+  }
+}
+
 
 void TestSetUpAna(){
-  CecaAnalysis1 CECA_ANA("Cigar2_ds24_hts36_hzs36",GetCernBoxDimi());
+  CecaAnalysis1 CECA_ANA("Simple","Cigar2_ds24_hts36_hzs36",GetCernBoxDimi()+TString("/CatsFiles/"));
+
   CECA_ANA.SetUp_pp("AV18",0);
   CECA_ANA.SetUp_pL("Chiral_Coupled_SPD",11600);
   CECA_ANA.SetUp_pS0("Chiral",0);
   CECA_ANA.SetUp_pXim("pXim_HALQCDPaper2020",0);
   CECA_ANA.SetUp_pXi0("pXim_HALQCDPaper2020",0);
   CECA_ANA.SetUp_Decomposition(0,0);
+  CECA_ANA.SetUp_Fits("Gauss",false);
+
+  if(false){
+    for(unsigned uMt=0; uMt<7; uMt++){
+      CECA_ANA.GetFit("pp",uMt)->FixParameter(1,0.3);
+      CECA_ANA.GetFit("pp",uMt)->FixParameter(2,2.0);
+      CECA_ANA.GetFit("pp",uMt)->SetParameter(3,8.0);
+      CECA_ANA.GetFit("pp",uMt)->SetParLimits(3,2.0,11.9);
+    }
+    for(unsigned uMt=0; uMt<6; uMt++){
+      CECA_ANA.GetFit("pL",uMt)->FixParameter(1,0.315);
+      CECA_ANA.GetFit("pL",uMt)->FixParameter(2,2.1);
+      CECA_ANA.GetFit("pL",uMt)->SetParameter(3,8.0);
+      CECA_ANA.GetFit("pL",uMt)->SetParLimits(3,2.0,11.9);
+    }
+  }
+  else if(true){
+    for(unsigned uMt=0; uMt<7; uMt++){
+      CECA_ANA.GetFit("pp",uMt)->FixParameter(1,8.800e-01);
+      CECA_ANA.GetFit("pp",uMt)->FixParameter(2,6.667e-02);
+      CECA_ANA.GetFit("pp",uMt)->FixParameter(3,4.167e+00);
+    }
+    for(unsigned uMt=0; uMt<6; uMt++){
+      CECA_ANA.GetFit("pL",uMt)->FixParameter(1,8.800e-01);
+      CECA_ANA.GetFit("pL",uMt)->FixParameter(2,6.667e-02);
+      CECA_ANA.GetFit("pL",uMt)->FixParameter(3,4.167e+00);
+    }
+  }
+  else if(false){
+    CECA_ANA.GetFit("pp",0)->FixParameter(0,1.10770e+03);
+    CECA_ANA.GetFit("pp",0)->FixParameter(1,6.16591e-01);
+    CECA_ANA.GetFit("pp",0)->FixParameter(2,2.86667e+00);
+    CECA_ANA.GetFit("pp",0)->FixParameter(3,8.16667e+00);
+    CECA_ANA.GetFit("pp",0)->FixParameter(4,1.0);
+
+    CECA_ANA.GetFit("pp",1)->FixParameter(0,1.16830e+03);
+    CECA_ANA.GetFit("pp",1)->FixParameter(1,7.73333e-01);
+    CECA_ANA.GetFit("pp",1)->FixParameter(2,2.86764e+00);
+    CECA_ANA.GetFit("pp",1)->FixParameter(3,6.50000e+00);
+    CECA_ANA.GetFit("pp",1)->FixParameter(4,1.0);
+
+    CECA_ANA.GetFit("pp",2)->FixParameter(0,1.22840e+03);
+    CECA_ANA.GetFit("pp",2)->FixParameter(1,6.56113e-01);
+    CECA_ANA.GetFit("pp",2)->FixParameter(2,2.46668e+00);
+    CECA_ANA.GetFit("pp",2)->FixParameter(3,8.24924e+00);
+    CECA_ANA.GetFit("pp",2)->FixParameter(4,1.0);
+
+    CECA_ANA.GetFit("pp",3)->FixParameter(0,1.31560e+03);
+    CECA_ANA.GetFit("pp",3)->FixParameter(1,6.39995e-01);
+    CECA_ANA.GetFit("pp",3)->FixParameter(2,4.12169e+00);
+    CECA_ANA.GetFit("pp",3)->FixParameter(3,6.00061e+00);
+    CECA_ANA.GetFit("pp",3)->FixParameter(4,1.0);
+
+    CECA_ANA.GetFit("pp",4)->FixParameter(0,1.46280e+03);
+    CECA_ANA.GetFit("pp",4)->FixParameter(1,7.46824e-01);
+    CECA_ANA.GetFit("pp",4)->FixParameter(2,2.46667e+00);
+    CECA_ANA.GetFit("pp",4)->FixParameter(3,5.49974e+00);
+    CECA_ANA.GetFit("pp",4)->FixParameter(4,1.0);
+
+    CECA_ANA.GetFit("pp",5)->FixParameter(0,1.68720e+03);
+    CECA_ANA.GetFit("pp",5)->FixParameter(1,7.06734e-01);
+    CECA_ANA.GetFit("pp",5)->FixParameter(2,2.40001e+00);
+    CECA_ANA.GetFit("pp",5)->FixParameter(3,5.57319e+00);
+    CECA_ANA.GetFit("pp",5)->FixParameter(4,1.0);
+
+    CECA_ANA.GetFit("pp",6)->FixParameter(0,2.21160e+03);
+    CECA_ANA.GetFit("pp",6)->FixParameter(1,5.06662e-01);
+    CECA_ANA.GetFit("pp",6)->FixParameter(2,2.33333e+00);
+    CECA_ANA.GetFit("pp",6)->FixParameter(3,6.29996e+00);
+    CECA_ANA.GetFit("pp",6)->FixParameter(4,1.0);
+
+
+
+
+    CECA_ANA.GetFit("pL",0)->FixParameter(0,1.21240e+03);
+    CECA_ANA.GetFit("pL",0)->FixParameter(1,8.20771e-01);
+    CECA_ANA.GetFit("pL",0)->FixParameter(2,2.73333e+00);
+    CECA_ANA.GetFit("pL",0)->FixParameter(3,7.97590e+00);
+    CECA_ANA.GetFit("pL",0)->FixParameter(4,1.0);
+
+    CECA_ANA.GetFit("pL",1)->FixParameter(0,1.28960e+03);
+    CECA_ANA.GetFit("pL",1)->FixParameter(1,8.61206e-01);
+    CECA_ANA.GetFit("pL",1)->FixParameter(2,6.66673e-02);
+    CECA_ANA.GetFit("pL",1)->FixParameter(3,6.83333e+00);
+    CECA_ANA.GetFit("pL",1)->FixParameter(4,1.0);
+
+    CECA_ANA.GetFit("pL",2)->FixParameter(0,1.37600e+03);
+    CECA_ANA.GetFit("pL",2)->FixParameter(1,8.89911e-01);
+    CECA_ANA.GetFit("pL",2)->FixParameter(2,2.39784e+00);
+    CECA_ANA.GetFit("pL",2)->FixParameter(3,6.83406e+00);
+    CECA_ANA.GetFit("pL",2)->FixParameter(4,1.0);
+
+    CECA_ANA.GetFit("pL",3)->FixParameter(0,1.54070e+03);
+    CECA_ANA.GetFit("pL",3)->FixParameter(1,6.85418e-01);
+    CECA_ANA.GetFit("pL",3)->FixParameter(2,3.40000e+00);
+    CECA_ANA.GetFit("pL",3)->FixParameter(3,9.26255e+00);
+    CECA_ANA.GetFit("pL",3)->FixParameter(4,1.0);
+
+    CECA_ANA.GetFit("pL",4)->FixParameter(0,1.75600e+03);
+    CECA_ANA.GetFit("pL",4)->FixParameter(1,6.95112e-01);
+    CECA_ANA.GetFit("pL",4)->FixParameter(2,2.36499e+00);
+    CECA_ANA.GetFit("pL",4)->FixParameter(3,6.16666e+00);
+    CECA_ANA.GetFit("pL",4)->FixParameter(4,1.0);
+
+    CECA_ANA.GetFit("pL",5)->FixParameter(0,2.25940e+03);
+    CECA_ANA.GetFit("pL",5)->FixParameter(1,4.91680e-01);
+    CECA_ANA.GetFit("pL",5)->FixParameter(2,2.20000e+00);
+    CECA_ANA.GetFit("pL",5)->FixParameter(3,6.50003e+00);
+    CECA_ANA.GetFit("pL",5)->FixParameter(4,1.0);
+  }
+
+  CECA_ANA.GoBabyGo(true);
+
+  double TotChi2 = 0;
+  for(unsigned uMt=0; uMt<7; uMt++){
+    double Chi2 = CECA_ANA.GetFit("pp",uMt)->GetChisquare();
+    TotChi2 += Chi2;
+  }
+
+  for(unsigned uMt=0; uMt<6; uMt++){
+    double Chi2 = CECA_ANA.GetFit("pL",uMt)->GetChisquare();
+    TotChi2 += Chi2;
+  }
+
+  printf("TotChi2 = %.0f\n",TotChi2);
+
+  CECA_ANA.DumpCurrentCk(TString::Format("%s/CECA_Paper/TestSetUpAna/fOutput1.root",GetFemtoOutputFolder()));
 
 }
+
+
+void ScanPs(){
+  CecaAnalysis1 CECA_ANA("Simple","Cigar2_ds24_hts36_hzs36",GetCernBoxDimi()+TString("/CatsFiles/"));
+
+  CECA_ANA.SetUp_pp("AV18",0);
+  CECA_ANA.SetUp_pL("Chiral_Coupled_SPD",11600);
+  CECA_ANA.SetUp_pS0("Chiral",0);
+  CECA_ANA.SetUp_pXim("pXim_HALQCDPaper2020",0);
+  CECA_ANA.SetUp_pXi0("pXim_HALQCDPaper2020",0);
+  CECA_ANA.SetUp_Decomposition(0,0);
+  CECA_ANA.SetUp_Fits("SingleCeca",false);
+
+  unsigned Nbins_Dsp = CECA_ANA.GetSrc_pp()->GetNbins(1);
+  double* BinCenter_Dsp = CECA_ANA.GetSrc_pp()->GetBinCenters(1);
+  unsigned Nbins_Ht = CECA_ANA.GetSrc_pp()->GetNbins(2);
+  double* BinCenter_Ht = CECA_ANA.GetSrc_pp()->GetBinCenters(2);
+  unsigned Nbins_Hz = CECA_ANA.GetSrc_pp()->GetNbins(3);
+  double* BinCenter_Hz = CECA_ANA.GetSrc_pp()->GetBinCenters(3);
+
+  //double* Chi2_pp = new double [7];
+  double* Best_Chi2_pp = new double [7];
+  double* Best_Dsp_pp = new double [7];
+  double* Best_Ht_pp = new double [7];
+  double* Best_Hz_pp = new double [7];
+  for(unsigned uMt=0; uMt<7; uMt++){
+    Best_Chi2_pp[uMt] = 1e16;
+    Best_Dsp_pp[uMt] = 0;
+    Best_Ht_pp[uMt] = 0;
+    Best_Hz_pp[uMt] = 0;
+  }
+
+  double* Best_Chi2_pL = new double [6];
+  double* Best_Dsp_pL = new double [6];
+  double* Best_Ht_pL = new double [6];
+  double* Best_Hz_pL = new double [6];
+  for(unsigned uMt=0; uMt<6; uMt++){
+    Best_Chi2_pL[uMt] = 1e16;
+    Best_Dsp_pL[uMt] = 0;
+    Best_Ht_pL[uMt] = 0;
+    Best_Hz_pL[uMt] = 0;
+  }
+
+  double Best_Chi2_tot = 1e16;
+  double Best_Dsp_tot = 0;
+  double Best_Ht_tot = 0;
+  double Best_Hz_tot = 0;
+
+  //double* NDP_pp = new double [7];
+  //double* Chi2_pL = new double [6];
+  //double* NDP_pL = new double [6];
+
+  for(unsigned uDsp=0; uDsp<Nbins_Dsp; uDsp++){
+    if(uDsp%4) continue;
+    //if(uDsp>=4) break;
+    printf("uDsp = %u\n", uDsp);
+    for(unsigned uHt=0; uHt<Nbins_Ht; uHt++){
+      if(uHt%4) continue;
+      printf(" uHt = %u\n", uHt);
+      for(unsigned uHz=0; uHz<Nbins_Hz; uHz++){
+        if(uHz%4) continue;
+        CECA_ANA.GetFit("pp",0)->FixParameter(0,1.10770e+03);
+        CECA_ANA.GetFit("pp",1)->FixParameter(0,1.16830e+03);
+        CECA_ANA.GetFit("pp",2)->FixParameter(0,1.22840e+03);
+        CECA_ANA.GetFit("pp",3)->FixParameter(0,1.31560e+03);
+        CECA_ANA.GetFit("pp",4)->FixParameter(0,1.46280e+03);
+        CECA_ANA.GetFit("pp",5)->FixParameter(0,1.68720e+03);
+        CECA_ANA.GetFit("pp",6)->FixParameter(0,2.21160e+03);
+        for(unsigned uMt=0; uMt<7; uMt++){
+          CECA_ANA.GetFit("pp",uMt)->FixParameter(1,BinCenter_Dsp[uDsp]);
+          CECA_ANA.GetFit("pp",uMt)->FixParameter(2,BinCenter_Ht[uHt]);
+          CECA_ANA.GetFit("pp",uMt)->FixParameter(3,BinCenter_Hz[uHz]);
+          CECA_ANA.GetFit("pp",uMt)->FixParameter(4,1.0);
+        }
+
+        CECA_ANA.GetFit("pL",0)->FixParameter(0,1.21240e+03);
+        CECA_ANA.GetFit("pL",1)->FixParameter(0,1.28960e+03);
+        CECA_ANA.GetFit("pL",2)->FixParameter(0,1.37600e+03);
+        CECA_ANA.GetFit("pL",3)->FixParameter(0,1.54070e+03);
+        CECA_ANA.GetFit("pL",4)->FixParameter(0,1.75600e+03);
+        CECA_ANA.GetFit("pL",5)->FixParameter(0,2.25940e+03);
+        for(unsigned uMt=0; uMt<6; uMt++){
+          CECA_ANA.GetFit("pL",uMt)->FixParameter(1,BinCenter_Dsp[uDsp]);
+          CECA_ANA.GetFit("pL",uMt)->FixParameter(2,BinCenter_Ht[uHt]);
+          CECA_ANA.GetFit("pL",uMt)->FixParameter(3,BinCenter_Hz[uHz]);
+          CECA_ANA.GetFit("pL",uMt)->FixParameter(4,1.0);
+        }
+        CECA_ANA.GoBabyGo(false);
+
+        double TotChi2 = 0;
+        printf("d=%.2f ht=%.1f hz=%.1f\n",BinCenter_Dsp[uDsp],BinCenter_Ht[uHt],BinCenter_Hz[uHz]);
+        printf(" pp");
+        for(unsigned uMt=0; uMt<7; uMt++){
+          double Chi2 = CECA_ANA.GetFit("pp",uMt)->GetChisquare();
+          printf(" %.0f",Chi2);
+          TotChi2 += Chi2;
+          if(Chi2<Best_Chi2_pp[uMt]){
+            Best_Chi2_pp[uMt] = Chi2;
+            Best_Dsp_pp[uMt] = CECA_ANA.GetFit("pp",uMt)->GetParameter(1);
+            Best_Ht_pp[uMt] = CECA_ANA.GetFit("pp",uMt)->GetParameter(2);
+            Best_Hz_pp[uMt] = CECA_ANA.GetFit("pp",uMt)->GetParameter(3);
+          }
+        }
+        printf("\n");
+
+        printf(" pL");
+        for(unsigned uMt=0; uMt<6; uMt++){
+          double Chi2 = CECA_ANA.GetFit("pL",uMt)->GetChisquare();
+          printf(" %.0f",Chi2);
+          TotChi2 += Chi2;
+          if(Chi2<Best_Chi2_pL[uMt]){
+            Best_Chi2_pL[uMt] = Chi2;
+            Best_Dsp_pL[uMt] = CECA_ANA.GetFit("pL",uMt)->GetParameter(1);
+            Best_Ht_pL[uMt] = CECA_ANA.GetFit("pL",uMt)->GetParameter(2);
+            Best_Hz_pL[uMt] = CECA_ANA.GetFit("pL",uMt)->GetParameter(3);
+          }
+        }
+
+
+        if(TotChi2<Best_Chi2_tot){
+          Best_Chi2_tot = TotChi2;
+          //all fits are the same, so it does not matter which mT bin or pp/pL we take
+          Best_Dsp_tot =  CECA_ANA.GetFit("pp",0)->GetParameter(1);
+          Best_Ht_tot =  CECA_ANA.GetFit("pp",0)->GetParameter(2);
+          Best_Hz_tot =  CECA_ANA.GetFit("pp",0)->GetParameter(3);
+          //printf("  --> %0.2f\n",Best_Chi2_tot);
+        }
+
+        printf("\n");
+        printf(" Tot %.0f (%.2f)\n",TotChi2,Best_Chi2_tot);
+        usleep(250e3);
+
+      }//Hz
+    }//Ht
+  }//Dsp
+
+  printf("Best_Chi2_tot = %.0f\n",Best_Chi2_tot);
+  printf(" Best_Dsp_tot = %.3e\n",Best_Dsp_tot);
+  printf("  Best_Ht_tot = %.3e\n",Best_Ht_tot);
+  printf("  Best_Hz_tot = %.3e\n",Best_Hz_tot);
+
+  delete [] BinCenter_Dsp;
+  delete [] BinCenter_Ht;
+  delete [] BinCenter_Hz;
+  //delete [] Chi2_pp;
+  //delete [] Chi2_pL;
+}
+
+
+
 
 
 int CECA_PAPER(int argc, char *argv[]){
@@ -3870,6 +4808,7 @@ int CECA_PAPER(int argc, char *argv[]){
   //TestCigar2_Ck();
   //PNG_ANIM_SOURCE();
   TestSetUpAna();
+  //ScanPs();
 
   return 0;
 }
