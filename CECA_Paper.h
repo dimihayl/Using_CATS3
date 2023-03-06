@@ -111,13 +111,20 @@ public:
   DLM_Ck* Ck_pXim;
   DLM_Ck* Ck_pXim1530;
 
-  DLM_Ck** CkMt_pp;
-  DLM_Ck** CkMt_pL;
-  DLM_Ck** CkMt_pS0;
-  DLM_Ck** CkMt_pXi0;
-  DLM_Ck** CkMt_pXim;
-  //DLM_Ck** CkMt_pXim1530;
 
+  //the history for evaluated correlations
+  //DLM_Ck** CkMt_pp;
+  //DLM_Ck** CkMt_pL;
+  //DLM_Ck** CkMt_pS0;
+  //DLM_Ck** CkMt_pXi0;
+  //DLM_Ck** CkMt_pXim;
+  ////DLM_Ck** CkMt_pXim1530;
+
+  //[mT][History]
+  DLM_Ck*** HistoryCk_pp;
+  DLM_Ck*** HistoryCk_pL;
+  //[mT][History][WhichPar]
+  float*** HistoryPars;
 
 
   DLM_CkDecomposition* CkDec_pp;
