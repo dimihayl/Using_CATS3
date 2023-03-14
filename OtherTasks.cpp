@@ -10097,8 +10097,13 @@ void MakePotentials(int flag){
   else if(flag/10>=90&&flag/10<=99){
     NumR = 1;
     Radii[0] = 1.2;
-    OutputFolder += "Rafa/";
     int VAR_FLAG = (flag/10)%10;
+    if(VAR_FLAG>=7){
+      OutputFolder += "Marcelo/";
+    }
+    else{
+      OutputFolder += "Rafa/";
+    }
 
     double StartPars[5];
     //OkayishStartingPars(Potential,f0,d0,StartPars[0],StartPars[1],StartPars[2],StartPars[3],StartPars[4]);
@@ -10120,6 +10125,8 @@ void MakePotentials(int flag){
         case 4: f0=0.11819; ef0=f0*0.0025; d0=1.90136; ed0=d0*0.0025; break;
         case 5: f0=0.11819; ef0=f0*0.0025; d0=0; ed0=0.025; break;
         case 6: f0=0.11819; ef0=f0*0.0035; d0=21.5; ed0=d0*0.0035; break;
+        //Marcelo
+        case 7: f0=-0.1246; ef0=f0*0.001; d0=0.1; ed0=0.4; break;
         default: printf("Weird flags for producing the potentials for Rafa\n"); return;
       }
     }
@@ -10163,6 +10170,18 @@ void MakePotentials(int flag){
       StartPars[3] = 0.45;
       FineTune = 1./256.;
     }
+    //V1=7.6505e+02  mu1=3.6658e-01  V2=6.8593e+02  mu2=3.3039e-01
+    else if(VAR_FLAG==7){
+      //StartPars[0] = 750;
+      //StartPars[1] = 0.4;
+      //StartPars[2] = 650;
+      //StartPars[3] = 0.45;
+      StartPars[0] = 7.6505e+02;
+      StartPars[1] = 3.6658e-01;
+      StartPars[2] = 6.8593e+02;
+      StartPars[3] = 3.3039e-01;
+      FineTune = 1./256.;
+    }
     else if(VAR_FLAG==6){
       StartPars[0] = -1.306545e+01;
       StartPars[1] = 1.455581e+00;
@@ -10172,7 +10191,7 @@ void MakePotentials(int flag){
     }
     StartPars[4] = 0;
 
-    ManufacturePotential(f0,ef0,d0,ed0,Radii,NumR,V1,mu1,V2,mu2,Potential,OutputFolder,16,StartPars,
+    ManufacturePotential(f0,ef0,d0,ed0,Radii,NumR,V1,mu1,V2,mu2,Potential,OutputFolder,11,StartPars,
       (Mass_p*Mass_pic)/(Mass_p+Mass_pic),FineTune);
   }
 
@@ -15649,7 +15668,7 @@ nsig 6 bins = 3.75
     //pp_for_rock(1.2+0.12);
 
     //Ledni_SmallRad_Random(atoi(argv[1]),atoi(argv[2]));
-    //MakePotentials(atoi(argv[1]));return 0;
+    MakePotentials(atoi(argv[1]));return 0;
   //RoughPiPiPotScan(atoi(argv[1]),atoi(argv[2]));
   //pi_proton();
     //SelectEmmaPotential();
@@ -15688,7 +15707,7 @@ nsig 6 bins = 3.75
     //pn_Ck(2.0);
 
     //LamLamStudy1();
-    pXi_BUG_TEST();
+    //pXi_BUG_TEST();
 
     //PlugInWaveFunction();
     //ppSource_bugHunting(true);

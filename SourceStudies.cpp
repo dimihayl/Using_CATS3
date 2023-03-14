@@ -35,6 +35,8 @@
 #include "TROOT.h"
 #include "TLorentzVector.h"
 #include "TVector3.h"
+#include "TStyle.h"
+#include "TLatex.h"
 
 //for the source paper, we compare C(k) and S(r) of pp and pL based on
 //Gaussian and Gaussian+Reso sources
@@ -4334,6 +4336,572 @@ void SourceDensity(){
 }
 
 
+void source_pp_syst(){
+
+  std::vector<float> bin_range = {1.02,1.14, 1.20, 1.26, 1.38, 1.56, 1.86, 4.50};
+  std::vector<float> bin_center = {1.11,1.17, 1.23, 1.32, 1.46, 1.69, 2.21};
+
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
+
+  const unsigned NumDataVar = 27;
+  const unsigned RebinFactor = 5;
+
+  TFile fOutput(TString::Format("%s/SourceStudies/source_pp_syst/fOutput.root",GetFemtoOutputFolder()),"recreate");
+
+  for(unsigned uMt=0; uMt<bin_center.size(); uMt++){
+
+    TH2F* hSystOnly = NULL;
+
+    double* CkMin = NULL;
+    double* CkMax = NULL;
+
+    for(unsigned uDV=0; uDV<NumDataVar; uDV++){
+      TH1F* hData = AnalysisObject.GetAliceExpCorrFun("pp13TeV_HM_BernieSource","pp",TString::Format("%u",uDV),0,0,uMt);
+      hData->Rebin(RebinFactor);
+      if(!hSystOnly){
+        unsigned NumBins = hData->GetNbinsX();
+        double LowEdge = hData->GetXaxis()->GetBinLowEdge(1);
+        double UpEdge = hData->GetXaxis()->GetBinUpEdge(NumBins);
+        hSystOnly = new TH2F(TString::Format("hSystOnly_%u",uMt),TString::Format("hSystOnly_%u",uMt),NumBins,LowEdge,UpEdge,65536,0,6);
+        CkMin = new double[NumBins];
+        CkMax = new double[NumBins];
+        for(unsigned uMom=0; uMom<hData->GetNbinsX(); uMom++){
+          CkMin[uMom] = 1000;
+          CkMax[uMom] = 0;
+        }
+      }
+
+      for(unsigned uMom=0; uMom<hData->GetNbinsX(); uMom++){
+        double MOM = hData->GetBinCenter(uMom+1);
+        double CkVal = hData->GetBinContent(uMom+1);
+        if(CkVal<CkMin[uMom]){CkMin[uMom] = CkVal;}
+        if(CkVal>CkMax[uMom]){CkMax[uMom] = CkVal;}
+        hSystOnly->Fill(MOM,CkVal);
+      }
+      delete hData;
+    }//uDV
+
+    TH1F* hDataReb = AnalysisObject.GetAliceExpCorrFun("pp13TeV_HM_BernieSource","pp",TString::Format("%u",0),0,0,uMt);
+    hDataReb->SetName(TString::Format("hReb_mT%u",uMt+1));
+    hDataReb->Rebin(RebinFactor);
+    //TH1F* hSyst = (TH1F*)hDataReb->Clone(TString::Format("hSyst_mT%u",uMt+1));
+    TH1F* hRelSystErr = (TH1F*)hDataReb->Clone(TString::Format("hRelSystErr_mT%u",uMt+1));
+
+    TH1F* hDataStat = AnalysisObject.GetAliceExpCorrFun("pp13TeV_HM_BernieSource","pp",TString::Format("%u",0),0,0,uMt);
+    hDataStat->SetName(TString::Format("hStat_mT%u",uMt+1));
+
+    TH1F* hDataSyst = AnalysisObject.GetAliceExpCorrFun("pp13TeV_HM_BernieSource","pp",TString::Format("%u",0),0,0,uMt);
+    hDataSyst->SetName(TString::Format("hSyst_mT%u",uMt+1));
+
+
+    TList* list1_tmp;
+    TList* list2_tmp;
+
+    TString SystFileName = TString::Format("%s/CatsFiles/ExpData/Bernie_Source/ppData/mTBin_%i/CFOutput_mT_ppVar0_HM_%i.root",GetCernBoxDimi(), uMt+1, uMt);
+    TFile* FileROOT = new TFile(SystFileName, "read");
+    //FileROOT->ls();
+
+    list1_tmp = (TList*)FileROOT->Get("PairDist");
+    list2_tmp = (TList*)list1_tmp->FindObject("PairRebinned");
+    TH1F* hMixedEvent_PP = (TH1F*)list2_tmp->FindObject(TString::Format("MEPart_mT_%u_FixShifted_Rebinned_2",uMt));
+
+    list1_tmp = (TList*)FileROOT->Get("AntiPairDist");
+    list2_tmp = (TList*)list1_tmp->FindObject("PairRebinned");
+
+    TH1F* hMixedEvent_APAP = (TH1F*)list2_tmp->FindObject(TString::Format("MEAntiPart_mT_%u_FixShifted_Rebinned_2",uMt));
+    gROOT->cd();
+    TH1F* hMixedEvent = (TH1F*)hMixedEvent_PP->Clone(TString::Format("hMixedEvent_mT%u",uMt+1));
+    hMixedEvent->Add(hMixedEvent_APAP);
+    //printf("HI\n");
+    delete FileROOT;
+
+    TGraphErrors gDataSyst;
+    TGraphErrors gDataStat;
+
+    for(unsigned uMom=0; uMom<hDataReb->GetNbinsX(); uMom++){
+      double ERROR = ( (CkMax[uMom]-CkMin[uMom])/sqrt(12.) );
+      double CKVAL = hDataReb->GetBinContent(uMom+1);
+
+      hRelSystErr->SetBinContent(uMom+1,ERROR/CKVAL);
+      hRelSystErr->SetBinError(uMom+1,ERROR/CKVAL*0.1);
+    }//uMom
+
+    TF1* fRelSystErr = new TF1(TString::Format("fRelSystErr_mT%u",uMt+1),"[0]*exp(-[1]*x)+[2]",0,240);
+    fRelSystErr->SetParameter(0,0.035);
+    fRelSystErr->SetParLimits(0,0.02,0.6);
+
+    fRelSystErr->SetParameter(1,0.05);
+    fRelSystErr->SetParLimits(1,0,0.2);
+
+    fRelSystErr->SetParameter(2,hRelSystErr->GetBinContent(hRelSystErr->FindBin(200)));
+    fRelSystErr->SetParLimits(2,fRelSystErr->GetParameter(2)*0.5,fRelSystErr->GetParameter(2)*2);
+
+
+    for(unsigned uMom=0; uMom<hDataStat->GetNbinsX(); uMom++){
+      double MOM = hDataStat->GetBinCenter(uMom+1);
+      double EVAL_MOM = MOM>240?240:MOM;
+      double CKVAL = hDataStat->GetBinContent(uMom+1);
+      //hDataStat->SetErrorX(uMom+1);
+      double REL_ERR = fRelSystErr->Eval(EVAL_MOM);
+      double ERROR = CKVAL*REL_ERR;
+      hDataSyst->SetBinError(uMom+1,ERROR);
+
+      gDataStat.SetPoint(uMom,MOM,CKVAL);
+      gDataStat.SetPointError(uMom,0,hDataStat->GetBinError(uMom+1));
+
+      gDataSyst.SetPoint(uMom,MOM,CKVAL);
+      gDataSyst.SetPointError(uMom,2,ERROR);
+      if(uMt==3 && MOM<10){
+        //printf("%f +/- %f\n",CKVAL,ERROR);
+        //usleep(1500e3);
+      }
+    }
+
+    SetStyle();
+
+
+    hDataStat->SetTitle("; #it{k*} (MeV/#it{c}); #it{C}(#it{k*})");
+    hDataStat->GetXaxis()->SetRangeUser(0, 400);
+    hDataStat->GetXaxis()->SetNdivisions(505);
+    if(uMt<=3) hDataStat->GetYaxis()->SetRangeUser(0.85, 3.25);
+    else hDataStat->GetYaxis()->SetRangeUser(0.85, 4.85);
+    hDataStat->SetFillColor(kGray+1);
+    hDataStat->SetMarkerSize(1.5);
+    hDataStat->SetLineWidth(2);
+    hDataStat->SetMarkerStyle(kOpenCircle);
+    hDataStat->SetMarkerColor(kBlack);
+    hDataStat->SetLineColor(kBlack);
+
+    TH1F* hAxis = new TH1F("hAxis", "hAxis", 405, 0, 405);
+    hAxis->SetTitle("; #it{k*} (MeV/#it{c}); #it{C}(#it{k*})");
+    hAxis->GetXaxis()->SetRangeUser(0, 405);
+    hAxis->GetXaxis()->SetNdivisions(505);
+    if(uMt<=3) hAxis->GetYaxis()->SetRangeUser(0.85, 3.25);
+    else hAxis->GetYaxis()->SetRangeUser(0.85, 4.85);
+    hAxis->SetFillColor(kGray+1);
+    hAxis->SetMarkerSize(1.6);
+    hAxis->SetLineWidth(2);
+    hAxis->SetMarkerStyle(kOpenCircle);
+    hAxis->SetMarkerColor(kBlack);
+    hAxis->SetLineColor(kGray+1);
+    hAxis->SetLineWidth(0);
+
+
+
+    gDataSyst.SetName("gSystError");
+    gDataSyst.SetLineColor(kWhite);
+    gDataSyst.SetFillColorAlpha(kBlack, 0.4);
+
+    TLegend *legend = new TLegend(0.47,0.785-0.055-0.060*1,0.94,0.785-0.055);//lbrt
+    legend->SetBorderSize(0);
+    legend->SetTextFont(42);
+    legend->SetTextSize(gStyle->GetTextSize()*0.8);
+    legend->AddEntry(hAxis,TString::Format("p#minusp #oplus #bar{p}#minus#bar{p}"),"fpe");
+
+    TCanvas* c_PP = new TCanvas("CFpp", "CFpp", 0, 0, 650, 650);
+    c_PP->SetMargin(0.13,0.025,0.12,0.025);//lrbt
+
+    hAxis->Draw("axis");
+    hDataStat->Draw("E0 X0 same");
+    gDataSyst.Draw("2 same");
+    legend->Draw("same");
+
+    TLatex BeamText;
+    TLatex text;
+    BeamText.SetTextSize(gStyle->GetTextSize() * 0.75);
+    BeamText.SetNDC(kTRUE);
+    //BeamText.DrawLatex(0.32, 0.91, Form("#bf{ALICE}"));
+    BeamText.DrawLatex(0.49, 0.9,
+                       Form("ALICE %s #sqrt{#it{s}} = %i TeV", "pp", (int) 13));
+    BeamText.DrawLatex(0.49, 0.85, "High-mult. (0#minus0.17% INEL > 0)");
+    text.SetNDC();
+    text.SetTextColor(1);
+    text.SetTextSize(gStyle->GetTextSize() * 0.75);
+    text.DrawLatex(0.49, 0.80, TString::Format("#it{m}_{T}#in [%.2f, %.2f) GeV",bin_range.at(uMt),bin_range.at(uMt+1)));
+    text.DrawLatex(0.49, 0.75, TString::Format("<#it{m}_{T}> = %.2f GeV",bin_center.at(uMt)));
+
+    //text.DrawLatex(0.32, 0.73, "Gaussian source");
+
+    c_PP->SaveAs(TString::Format("%s/SourceStudies/source_pp_syst/c_PP_%u.pdf",GetFemtoOutputFolder(),uMt));
+
+
+    TString HepFileName = TString::Format("%s/SourceStudies/source_pp_syst/HEP_PP_%u.yaml",GetFemtoOutputFolder(),uMt);
+    ofstream hepfile (HepFileName.Data(),ios::out);
+    hepfile << "dependent_variables:" << endl;
+    hepfile << "- header: {name: C(k*)}" << endl;
+    hepfile << "  qualifiers:" << endl;
+    hepfile << "  - {name: SQRT(S), units: GeV, value: '13000.0'}" << endl;
+    hepfile << "  values:" << endl;
+    double hep_syst;
+    double hep_stat;
+    double hep_x;
+    double hep_y;
+    for(unsigned uBin=1; uBin<hDataStat->GetNbinsX(); uBin++){
+      hep_x = hDataStat->GetBinCenter(uBin);
+      hep_y = hDataStat->GetBinContent(uBin);
+      if(hep_x>400) break;
+      hep_syst = gDataSyst.GetErrorY(uBin-1);
+      hep_stat = hDataStat->GetBinError(uBin);
+      hepfile << "  - errors:" << endl;
+      hepfile << "    - {label: stat, symerror: "<<hep_stat<<"}" << endl;
+      hepfile << "    - {label: sys, symerror: "<<hep_syst<<"}" << endl;
+      hepfile << "    value: "<<hep_y << endl;
+    }
+    hepfile << "independent_variables:" << endl;
+    hepfile << "- header: {name: k* (MeV/c)}" << endl;
+    hepfile << "  values:" << endl;
+    for(unsigned uBin=1; uBin<hDataStat->GetNbinsX(); uBin++){
+        hep_x = hDataStat->GetBinCenter(uBin);
+        if(hep_x>400) break;
+        hepfile << "  - {value: "<<hep_x<<"}" << endl;
+    }
+    hepfile.close();
+
+
+    fOutput.cd();
+    hSystOnly->Write();
+    hDataReb->Write();
+    //hSyst->Write();
+    hRelSystErr->Write();
+    fRelSystErr->Write();
+    hDataStat->Write();
+    hDataSyst->Write();
+    hMixedEvent->Write();
+    delete [] CkMin;
+    delete [] CkMax;
+    delete hSystOnly;
+    delete hDataReb;
+    delete hDataStat;
+    delete hDataSyst;
+    //delete hSyst;
+    delete hRelSystErr;
+    delete fRelSystErr;
+
+    delete hAxis;
+    delete legend;
+    delete c_PP;
+
+    delete hMixedEvent;
+  }//uMt
+}
+
+
+
+
+void source_pL_syst(){
+
+  std::vector<float> bin_range = {1.08, 1.26, 1.32, 1.44, 1.65, 1.9, 4.5 };
+  std::vector<float> bin_center = {1.21, 1.29, 1.38, 1.54, 1.76, 2.26};
+
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
+
+  const unsigned NumDataVar = 43;
+  const unsigned RebinFactor = 1;
+
+  TFile fOutput(TString::Format("%s/SourceStudies/source_pL_syst/fOutput.root",GetFemtoOutputFolder()),"recreate");
+
+  for(unsigned uMt=0; uMt<bin_center.size(); uMt++){
+
+    TH2F* hSystOnly = NULL;
+
+    double* CkMin = NULL;
+    double* CkMax = NULL;
+
+    for(unsigned uDV=0; uDV<NumDataVar; uDV++){
+      TH1F* hData = AnalysisObject.GetAliceExpCorrFun("pp13TeV_HM_BernieSource","pLambda",TString::Format("%u",uDV),0,0,uMt);
+      hData->Rebin(RebinFactor);
+      if(!hSystOnly){
+        unsigned NumBins = hData->GetNbinsX();
+        double LowEdge = hData->GetXaxis()->GetBinLowEdge(1);
+        double UpEdge = hData->GetXaxis()->GetBinUpEdge(NumBins);
+        hSystOnly = new TH2F(TString::Format("hSystOnly_%u",uMt),TString::Format("hSystOnly_%u",uMt),NumBins,LowEdge,UpEdge,65536,0,6);
+        CkMin = new double[NumBins];
+        CkMax = new double[NumBins];
+        for(unsigned uMom=0; uMom<hData->GetNbinsX(); uMom++){
+          CkMin[uMom] = 1000;
+          CkMax[uMom] = 0;
+        }
+      }
+
+      for(unsigned uMom=0; uMom<hData->GetNbinsX(); uMom++){
+        double MOM = hData->GetBinCenter(uMom+1);
+        double CkVal = hData->GetBinContent(uMom+1);
+        if(CkVal<CkMin[uMom]){CkMin[uMom] = CkVal;}
+        if(CkVal>CkMax[uMom]){CkMax[uMom] = CkVal;}
+        hSystOnly->Fill(MOM,CkVal);
+      }
+      delete hData;
+    }//uDV
+
+    TH1F* hDataReb = AnalysisObject.GetAliceExpCorrFun("pp13TeV_HM_BernieSource","pLambda",TString::Format("%u",0),0,0,uMt);
+    hDataReb->SetName(TString::Format("hReb_mT%u",uMt+1));
+    hDataReb->Rebin(RebinFactor);
+    //TH1F* hSyst = (TH1F*)hDataReb->Clone(TString::Format("hSyst_mT%u",uMt+1));
+    TH1F* hRelSystErr = (TH1F*)hDataReb->Clone(TString::Format("hRelSystErr_mT%u",uMt+1));
+
+    TH1F* hDataStat = AnalysisObject.GetAliceExpCorrFun("pp13TeV_HM_BernieSource","pLambda",TString::Format("%u",0),0,0,uMt);
+    hDataStat->SetName(TString::Format("hStat_mT%u",uMt+1));
+
+    TH1F* hDataSyst = AnalysisObject.GetAliceExpCorrFun("pp13TeV_HM_BernieSource","pLambda",TString::Format("%u",0),0,0,uMt);
+    hDataSyst->SetName(TString::Format("hSyst_mT%u",uMt+1));
+
+    TList* list1_tmp;
+    TList* list2_tmp;
+
+    TString SystFileName = TString::Format("%s/CatsFiles/ExpData/Bernie_Source/pLData/mTBin_%i/CFOutput_mT_pLVar0_HM_%i.root",GetCernBoxDimi(), uMt+1, uMt);
+    TFile* FileROOT = new TFile(SystFileName, "read");
+    //FileROOT->ls();
+
+    list1_tmp = (TList*)FileROOT->Get("PairDist");
+    list2_tmp = (TList*)list1_tmp->FindObject("PairRebinned");
+    //printf("%p\n",list2_tmp);
+    TH1F* hMixedEvent_PP = (TH1F*)list2_tmp->FindObject(TString::Format("MEPart_mT_%u_FixShifted_Rebinned_3",uMt));
+
+    list1_tmp = (TList*)FileROOT->Get("AntiPairDist");
+    list2_tmp = (TList*)list1_tmp->FindObject("PairRebinned");
+
+    TH1F* hMixedEvent_APAP = (TH1F*)list2_tmp->FindObject(TString::Format("MEAntiPart_mT_%u_FixShifted_Rebinned_3",uMt));
+    gROOT->cd();
+    TH1F* hMixedEvent = (TH1F*)hMixedEvent_PP->Clone(TString::Format("hMixedEvent_mT%u",uMt+1));
+    hMixedEvent->Add(hMixedEvent_APAP);
+    //printf("HI\n");
+    delete FileROOT;
+
+
+    TGraphErrors gDataSyst;
+    TGraphErrors gDataStat;
+
+    for(unsigned uMom=0; uMom<hDataReb->GetNbinsX(); uMom++){
+      double ERROR = ( (CkMax[uMom]-CkMin[uMom])/sqrt(12.) );
+      double CKVAL = hDataReb->GetBinContent(uMom+1);
+
+      hRelSystErr->SetBinContent(uMom+1,ERROR/CKVAL);
+      hRelSystErr->SetBinError(uMom+1,ERROR/CKVAL*0.1);
+    }//uMom
+
+    TF1* fRelSystErr = new TF1(TString::Format("fRelSystErr_mT%u",uMt+1),"[0]*exp(-[1]*x)+[2]",0,240);
+
+    //1  p0           1.14917e-01   1.88225e-03   1.96102e-05   2.68707e-02
+    //2  p1           1.21703e-01   1.14106e-03   9.31921e-06  -1.30492e-01
+    //3  p2           2.90231e-03   2.98724e-05   4.47792e-08   2.32283e+01
+
+    //1  p0           1.25545e-01   2.15431e-03   1.59325e-05   9.43029e-04
+    //2  p1           1.35059e-01   1.32829e-03   8.23132e-06  -2.81160e-03
+    //3  p2           4.07229e-03   3.44227e-05   3.76190e-08   7.74786e-01
+
+    //1  p0           1.38030e-01   2.39855e-03   1.99977e-05   1.60832e-02
+    //2  p1           1.40216e-01   1.35267e-03   9.44591e-06  -4.48411e-02
+    //3  p2           4.11466e-03   3.36705e-05   4.13243e-08   3.17725e+01
+
+    //1  p0           1.52250e-01   2.70805e-03   6.58671e-05  -1.16010e-03
+    //2  p1           1.55261e-01   1.54008e-03   3.25274e-05   1.54477e-03
+    //3  p2           5.17949e-03   3.81745e-05   1.25282e-07  -2.19199e-01
+
+    fRelSystErr->SetParameter(0,1.52250e-01);
+    fRelSystErr->SetParLimits(0,0.02,0.2);
+
+    fRelSystErr->SetParameter(1,1.55261e-01);
+    fRelSystErr->SetParLimits(1,0,0.2);
+
+    fRelSystErr->SetParameter(2,hRelSystErr->GetBinContent(hRelSystErr->FindBin(200)));
+    fRelSystErr->SetParLimits(2,fRelSystErr->GetParameter(2)*0.5,fRelSystErr->GetParameter(2)*2);
+
+
+    for(unsigned uMom=0; uMom<hDataStat->GetNbinsX(); uMom++){
+      double MOM = hDataStat->GetBinCenter(uMom+1);
+      double CKVAL = hDataStat->GetBinContent(uMom+1);
+      //hDataStat->SetErrorX(uMom+1);
+      double EVAL_MOM = MOM>240?240:MOM;
+      double REL_ERR = fRelSystErr->Eval(EVAL_MOM);
+      double ERROR = CKVAL*REL_ERR;
+      //if(uMt==1 && uMom>=1){
+      if(uMom>=1){
+        ERROR *= 1.2;
+      }
+      hDataSyst->SetBinError(uMom+1,ERROR);
+
+
+      gDataStat.SetPoint(uMom,MOM,CKVAL);
+      gDataStat.SetPointError(uMom,0,hDataStat->GetBinError(uMom+1));
+      gDataSyst.SetPoint(uMom,MOM,CKVAL);
+      gDataSyst.SetPointError(uMom,2,ERROR);
+
+
+      if(uMt==3 && MOM<10){
+        //printf("%f +/- %f\n",CKVAL,ERROR);
+        //usleep(1500e3);
+      }
+    }
+
+    SetStyle();
+
+    hDataStat->SetTitle("; #it{k*} (MeV/#it{c}); #it{C}(#it{k*})");
+    hDataStat->GetXaxis()->SetRangeUser(0, 400);
+    hDataStat->GetXaxis()->SetNdivisions(505);
+    hDataStat->GetYaxis()->SetRangeUser(0.9, 2.2);
+    //else hDataStat->GetYaxis()->SetRangeUser(0.9, 2.2);
+    hDataStat->SetFillColor(kGray+1);
+    hDataStat->SetMarkerSize(1.5);
+    hDataStat->SetLineWidth(2);
+    hDataStat->SetMarkerStyle(kOpenCircle);
+    hDataStat->SetMarkerColor(kBlack);
+    hDataStat->SetLineColor(kBlack);
+
+    TH1F* hAxis = new TH1F("hAxis", "hAxis", 405, 0, 405);
+    hAxis->SetTitle("; #it{k*} (MeV/#it{c}); #it{C}(#it{k*})");
+    hAxis->GetXaxis()->SetRangeUser(0, 405);
+    hAxis->GetXaxis()->SetNdivisions(505);
+    hAxis->GetYaxis()->SetRangeUser(0.9, 2.2);
+    hAxis->SetFillColor(kGray+1);
+    hAxis->SetMarkerSize(1.6);
+    hAxis->SetLineWidth(2);
+    hAxis->SetMarkerStyle(kOpenCircle);
+    hAxis->SetMarkerColor(kBlack);
+    hAxis->SetLineColor(kGray+1);
+    hAxis->SetLineWidth(0);
+
+
+
+
+    gDataSyst.SetName("gSystError");
+    gDataSyst.SetLineColor(kWhite);
+    gDataSyst.SetFillColorAlpha(kBlack, 0.4);
+
+    TLegend *legend = new TLegend(0.47,0.785-0.055-0.060*1,0.94,0.785-0.055);//lbrt
+    legend->SetBorderSize(0);
+    legend->SetTextFont(42);
+    legend->SetTextSize(gStyle->GetTextSize()*0.8);
+    legend->AddEntry(hAxis,TString::Format("p#minus#Lambda #oplus #bar{p}#minus#bar{#Lambda}"),"fpe");
+
+    TCanvas* c_PL = new TCanvas("CFpL", "CFpL", 0, 0, 650, 650);
+    c_PL->SetMargin(0.13,0.025,0.12,0.025);//lrbt
+
+    hAxis->Draw("axis");
+    hDataStat->Draw("E0 X0 same");
+    gDataSyst.Draw("2 same");
+    legend->Draw("same");
+
+    TLatex BeamText;
+    TLatex text;
+    BeamText.SetTextSize(gStyle->GetTextSize() * 0.75);
+    BeamText.SetNDC(kTRUE);
+    //BeamText.DrawLatex(0.32, 0.91, Form("#bf{ALICE}"));
+    BeamText.DrawLatex(0.49, 0.9,
+                       Form("ALICE %s #sqrt{#it{s}} = %i TeV", "pp", (int) 13));
+    BeamText.DrawLatex(0.49, 0.85, "High-mult. (0#minus0.17% INEL > 0)");
+    text.SetNDC();
+    text.SetTextColor(1);
+    text.SetTextSize(gStyle->GetTextSize() * 0.75);
+    text.DrawLatex(0.49, 0.80, TString::Format("#it{m}_{T}#in [%.2f, %.2f) GeV",bin_range.at(uMt),bin_range.at(uMt+1)));
+    text.DrawLatex(0.49, 0.75, TString::Format("<#it{m}_{T}> = %.2f GeV",bin_center.at(uMt)));
+
+    c_PL->SaveAs(TString::Format("%s/SourceStudies/source_pL_syst/c_PL_%u.pdf",GetFemtoOutputFolder(),uMt));
+
+
+
+
+
+
+//pL_fig1.yaml
+
+    TString HepFileName = TString::Format("%s/SourceStudies/source_pL_syst/HEP_PL_%u.yaml",GetFemtoOutputFolder(),uMt);
+    ofstream hepfile (HepFileName.Data(),ios::out);
+    hepfile << "dependent_variables:" << endl;
+    hepfile << "- header: {name: C(k*)}" << endl;
+    hepfile << "  qualifiers:" << endl;
+    hepfile << "  - {name: SQRT(S), units: GeV, value: '13000.0'}" << endl;
+    hepfile << "  values:" << endl;
+    double hep_syst;
+    double hep_stat;
+    double hep_x;
+    double hep_y;
+    for(unsigned uBin=1; uBin<hDataStat->GetNbinsX(); uBin++){
+      hep_x = hDataStat->GetBinCenter(uBin);
+      hep_y = hDataStat->GetBinContent(uBin);
+      if(hep_x>400) break;
+      hep_syst = gDataSyst.GetErrorY(uBin-1);
+      hep_stat = hDataStat->GetBinError(uBin);
+      hepfile << "  - errors:" << endl;
+      hepfile << "    - {label: stat, symerror: "<<hep_stat<<"}" << endl;
+      hepfile << "    - {label: sys, symerror: "<<hep_syst<<"}" << endl;
+      hepfile << "    value: "<<hep_y << endl;
+    }
+    hepfile << "independent_variables:" << endl;
+    hepfile << "- header: {name: k* (MeV/c)}" << endl;
+    hepfile << "  values:" << endl;
+    for(unsigned uBin=1; uBin<hDataStat->GetNbinsX(); uBin++){
+        hep_x = hDataStat->GetBinCenter(uBin);
+        if(hep_x>400) break;
+        hepfile << "  - {value: "<<hep_x<<"}" << endl;
+    }
+    hepfile.close();
+
+
+
+
+
+
+    fOutput.cd();
+    hSystOnly->Write();
+    hDataReb->Write();
+    //hSyst->Write();
+    hRelSystErr->Write();
+    fRelSystErr->Write();
+    hDataStat->Write();
+    hDataSyst->Write();
+    hMixedEvent->Write();
+    delete [] CkMin;
+    delete [] CkMax;
+    delete hSystOnly;
+    delete hDataReb;
+    delete hDataStat;
+    delete hDataSyst;
+    //delete hSyst;
+    delete hRelSystErr;
+    delete fRelSystErr;
+
+    delete hAxis;
+    delete legend;
+    delete c_PL;
+
+    delete hMixedEvent;
+  }//uMt
+}
+
+
+void estimate_syst_fit(){
+
+//mom0: 1.94 +/- 0.12 --> RE 0.062
+//mom1: 1.61 +/- 0.022 --> RE 0.014
+//mom2:                 --> RE 0.007
+//    3                         0.0045
+//    4                         0.0040
+
+  std::vector<float> rel_error_pL = {0.066,0.014,0.007,0.0055,0.0050};
+  TH1F* hRE = new TH1F("hRE","hRE",rel_error_pL.size(),0,12.*rel_error_pL.size());
+  for(unsigned uBin=0; uBin<rel_error_pL.size(); uBin++){
+    hRE->SetBinContent(uBin+1,rel_error_pL.at(uBin));
+    hRE->SetBinError(uBin+1,rel_error_pL.at(uBin)*0.01);
+  }
+  TF1* fRE = new TF1("fRE", "[0]*exp(-[1]*x)+[2]", 0,12.*rel_error_pL.size());
+
+  fRE->SetParameter(0,0.08);
+  fRE->SetParLimits(0,0.02,0.2);
+
+  fRE->SetParameter(1,0.1);
+  fRE->SetParLimits(1,0,0.2);
+
+
+  hRE->Fit(fRE,"S, N, R, M");
+
+  TFile fOutput(TString::Format("%s/SourceStudies/source_pL_syst/estimate_syst_fit.root",GetFemtoOutputFolder()),"recreate");
+  hRE->Write();
+  fRE->Write();
+}
+
+
 int SOURCESTUDIES(int argc, char *argv[]){
     //CompareCkAndSr();
     //Compare_2_vs_3_body();
@@ -4375,7 +4943,11 @@ int SOURCESTUDIES(int argc, char *argv[]){
     //Estimate_Reff("pd","oton","RSM_PLB",3.0);
     //Estimate_Reff("pd_max","oton","RSM_PLB",3.0);
 
-    SourceDensity();
+    source_pp_syst();
+    //source_pL_syst();
+    //estimate_syst_fit();
+
+    //SourceDensity();
 
     //printf("------------------\n");
 

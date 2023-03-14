@@ -18,6 +18,8 @@ int CECA_PAPER(int narg, char** ARGS);
 
 class CecaAnalysis1{
 public:
+    //Simple = default
+    //Reduced = Simple + reduced fit ranges (down to 180 MeV) and only norm
     CecaAnalysis1(TString AnalysisVersion, TString SourceVersion, TString DLM_AnalysisFolder);
     ~CecaAnalysis1();
 
@@ -35,15 +37,24 @@ public:
     //void SetUp_pXim1530(const TString &POT, const int &PotVar);
     void SetUp_Decomposition(const int &Variation_p, const int &Variation_L);
 
+    void SetNumHistEntries(unsigned numetries);
+
     //void GaussSource();
     //void CecaSource(bool Global=true);
 
     TF1* GetFit(TString system, unsigned uMt);
+    TH1F* GetData(TString system, unsigned uMt);
     //double GetChi2();
     //unsigned GetNDF();
     //unsigned GetNDP();
 
-    void DumpCurrentCk(TString OutFileName);
+
+    unsigned GetAnalysisMtBin_pp(double Mt);
+    double GetAnalysisMt_pp(unsigned WhichMt);
+    unsigned GetAnalysisMtBin_pL(double Mt);
+    double GetAnalysisMt_pL(unsigned WhichMt);
+
+    void DumpCurrentCk(TString OutFileName, int plots=0);
     //Ceca or Gauss (Global vs non-global)
     void SetUp_Fits(TString fittype = "Ceca", bool AutoSrcPars=true, bool AutoBlPars=true);
     void GoBabyGo(bool print_info=false);
@@ -120,11 +131,17 @@ public:
   //DLM_Ck** CkMt_pXim;
   ////DLM_Ck** CkMt_pXim1530;
 
-  //[mT][History]
+  //[History][mT]
   DLM_Ck*** HistoryCk_pp;
   DLM_Ck*** HistoryCk_pL;
-  //[mT][History][WhichPar]
-  float*** HistoryPars;
+  //[History][WhichPar]
+  float** HistoryPars;
+  //[WhichPar]
+  float* HistoryPrecision;
+  unsigned MaxHistoryEntries;
+  unsigned HistoryEntries;
+  //the position of the last set of pars saved in our history
+  unsigned PresentDay;
 
 
   DLM_CkDecomposition* CkDec_pp;
@@ -152,7 +169,10 @@ public:
   DLM_CommonAnaFunctions* AnalysisObject;
 
   void LoadData();
-  void UpdateDecomp();
+  DLM_Ck* GetCkHistory(TString system, unsigned WhichMt);
+
+  void DelHistory();
+  void InitHistory();
 
   //the parameters will be:
   //[0] = mT (will be fixed)
@@ -168,17 +188,21 @@ public:
   //              [9] is fixed to zero (to ensure pol3)
   //after that we allow to have some extra pars, in case we need
   //to include something else, e.g. interaction etc.
-  const unsigned BaseFitPars;
+  const unsigned SourceFitPars;
+  const unsigned BaselineFitPars;
   const unsigned ExtraFitPars;
   const unsigned TotFitPars;
+
+
   double FitFun_pp(double* xval, double* par);
   double FitFun_pL(double* xval, double* par);
   //in these arrays we keep track of the last parameters that the fitter wanted,
   //and compare them to the new ones. we only update our theory curves in case
   //d, ht, hz, tau or ExtraPars for the interraction changed.
   //i.e. we do not update for mT or BL changes
-  double* OldPar;
-  double* NewPar;
+  //double* OldPar;
+  //double* NewPar;
+  double* PresentPars;
 
   double* mT_BinCenter_pp;
   double* mT_BinCenter_pL;

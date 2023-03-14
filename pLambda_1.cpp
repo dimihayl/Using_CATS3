@@ -16951,14 +16951,39 @@ double FitUsmani(double* x, double* par){
   return Cat_FitUsmani->EvalCorrFun(kstar)*Baseline;
 }
 
-
+//change only the triplet
+double FitUsmani3S1(double* x, double* par){
+  double& kstar = *x;
+  //for(int is=0; is<2; is++){
+    for(int ip=0; ip<7; ip++){
+      Cat_FitUsmani->SetShortRangePotential(1,0,ip+1,par[ip+3]);
+    }
+  //}
+  Cat_FitUsmani->SetNotifications(CATS::nWarning);
+  Cat_FitUsmani->KillTheCat();
+  if(Cat_FitUsmani->GetMomBin(kstar)==0){
+    Count_FitUsmani++;
+    if(Count_FitUsmani%10==0){
+      printf("\r\033[K Count_FitUsmani=%i",Count_FitUsmani);
+      cout << flush;
+    }
+  }
+  //printf("\r\033[K");
+  //printf("\n");
+  double Baseline = par[0]+par[1]*kstar+par[2]*kstar*kstar;
+  return Cat_FitUsmani->EvalCorrFun(kstar)*Baseline;
+}
 
 
 void Match_Usmani_NLO(const int& RndSeed, const unsigned& NumRndSteps=1){
 
-  const unsigned NumMomBins = 33/3;
+  //const unsigned NumMomBins = 33/3;
+  //const double kMin = 0;
+  //const double kMax = 396/3;
+
+  const unsigned NumMomBins = 20;
   const double kMin = 0;
-  const double kMax = 396/3;
+  const double kMax = 240;
 
   const double rcore = 1.02;
   const double f0_1S0 = 2.91;
@@ -16980,12 +17005,12 @@ void Match_Usmani_NLO(const int& RndSeed, const unsigned& NumRndSteps=1){
   Kitty_pL_Usmani.SetAnaSource(0,rcore);
 
 
-  Kitty_pL_Usmani.SetShortRangePotential(0,0,1,1228);
-  Kitty_pL_Usmani.SetShortRangePotential(1,0,1,1228);
-  Kitty_pL_Usmani.SetShortRangePotential(0,0,4,4.02);
-  Kitty_pL_Usmani.SetShortRangePotential(1,0,4,4.02);
-  Kitty_pL_Usmani.SetShortRangePotential(0,0,5,0.1);
-  Kitty_pL_Usmani.SetShortRangePotential(1,0,5,0.1);
+  //Kitty_pL_Usmani.SetShortRangePotential(0,0,1,1228);
+  //Kitty_pL_Usmani.SetShortRangePotential(1,0,1,1228);
+  //Kitty_pL_Usmani.SetShortRangePotential(0,0,4,4.02);
+  //Kitty_pL_Usmani.SetShortRangePotential(1,0,4,4.02);
+  //Kitty_pL_Usmani.SetShortRangePotential(0,0,5,0.1);
+  //Kitty_pL_Usmani.SetShortRangePotential(1,0,5,0.1);
 
   Kitty_pL_NLO.KillTheCat();
   Kitty_pL_Usmani.KillTheCat();
@@ -17010,22 +17035,29 @@ void Match_Usmani_NLO(const int& RndSeed, const unsigned& NumRndSteps=1){
   }
 
   Cat_FitUsmani = &Kitty_pL_Usmani;
-  TF1* fit_Usmani = new TF1("fit_Usmani",FitUsmani,kMin,kMax,10);
+  TF1* fit_Usmani = new TF1("fit_Usmani",FitUsmani3S1,kMin,kMax,10);
   fit_Usmani->FixParameter(0,1);
+  fit_Usmani->SetParLimits(0,0.9,1.1);
   fit_Usmani->FixParameter(1,0);
   //fit_Usmani->SetParLimits(1,-2e-3,2e-3);
   fit_Usmani->FixParameter(2,0);
   //fit_Usmani->SetParLimits(2,-2e-5,2e-5);
 
-  fit_Usmani->FixParameter(3,1228);
-  //fit_Usmani->SetParLimits(3,2000,2300);
-  fit_Usmani->FixParameter(4,0.5);
-  //fit_Usmani->SetParLimits(4,0.45,0.55);
-  fit_Usmani->FixParameter(5,0.2);
-  //fit_Usmani->SetParLimits(5,0.18,0.22);
-  fit_Usmani->FixParameter(6,4.02);
+//Wc=2279.0; Rc=0.3394; Sc=0.2614; f1=1.41; d1=2.53; tDev=0.003
+//Wc=1940.7; Rc=0.4005; Sc=0.2565; f1=1.44; d1=2.54; tDev=0.036
+  //fit_Usmani->FixParameter(3,1228);
+  fit_Usmani->FixParameter(3,1940.7);
+  //fit_Usmani->FixParameter(3,2137);
+  //fit_Usmani->SetParLimits(3,2200,2320);
+  //fit_Usmani->FixParameter(4,0.5);
+  fit_Usmani->FixParameter(4,0.4005);
+  //fit_Usmani->SetParLimits(4,0.32,0.35);
+  //fit_Usmani->FixParameter(5,0.2);
+  fit_Usmani->FixParameter(5,0.2565);
+  //fit_Usmani->SetParLimits(5,0.25,0.28);
+  fit_Usmani->FixParameter(6,6.2);
   //fit_Usmani->SetParLimits(6,6.0,6.4);
-  fit_Usmani->FixParameter(7,0.1);
+  fit_Usmani->FixParameter(7,0.25);
   //fit_Usmani->SetParLimits(7,0.0,0.5);
   fit_Usmani->FixParameter(8,0.7);
   fit_Usmani->FixParameter(9,2.0);
@@ -17045,7 +17077,7 @@ void Match_Usmani_NLO(const int& RndSeed, const unsigned& NumRndSteps=1){
   //chi2_low only the first 4 bins, i.e. below 50 MeV
   TNtuple* ntRND = new TNtuple("ntRND", "ntRND","wc:v4:vst:f0s:d0s:f0t:d0t:chi2:chi2_low");
   Float_t ntBUFFER[9];
-  Kitty_pL_Usmani.SetNotifications(CATS::nWarning);
+  //Kitty_pL_Usmani.SetNotifications(CATS::nWarning);
   for(unsigned uStep=0; uStep<NumRndSteps; uStep++){
     double wc_val = rangen.Uniform(wc_min,wc_max);
     double v4_val = rangen.Uniform(v4_min,v4_max);
@@ -17060,7 +17092,8 @@ void Match_Usmani_NLO(const int& RndSeed, const unsigned& NumRndSteps=1){
     Kitty_pL_Usmani.SetShortRangePotential(0,0,5,vst_val);
     Kitty_pL_Usmani.SetShortRangePotential(1,0,5,vst_val);
 
-    Kitty_pL_Usmani.KillTheCat();
+    //Kitty_pL_Usmani.SetNotifications(CATS::nAll);
+    Kitty_pL_Usmani.KillTheCat(CATS::kSourceChanged);
 
     ntBUFFER[0] = wc_val;
     ntBUFFER[1] = v4_val;
@@ -17574,8 +17607,8 @@ int PLAMBDA_1_MAIN(int argc, char *argv[]){
 //SigmaFeed_kinematics();
 //return 0;
 //Effect_on_ME_of_mT_mult_binning();
-//Match_Usmani_NLO(atoi(argv[1]),atoi(argv[2]));//32768
-//return 0;
+Match_Usmani_NLO(atoi(argv[1]),atoi(argv[2]));//32768
+return 0;
 
   //pL_EffectiveRadius(1.02);
   //Unfold_pL_ME(TString::Format("%s/CatsFiles/ExpData/ALICE_pp_13TeV_HM/DimiJun20/Norm240_340/DataSignal/",GetCernBoxDimi()),"TEST.root");
