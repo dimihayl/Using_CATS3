@@ -6455,6 +6455,21 @@ ScanPsUsmani(
 */
 
 //USE THIS ONE FOR THE PAPER
+
+ScanPsUsmani(
+                  "Reduced","Jaime1_ds24_hts36_hzs36",
+                  TString(GetCernBoxDimi()), TString::Format("%s/CecaPaper/ScanPsUsmani/CecaPaper_J1_UsmFit_2/",GetCernBoxDimi()),
+                  0.12, 0.42,//d
+                  2.1, 4.4,//ht
+                  1.6, 5.0,//hz
+                  2311-50, 2311+50,
+                  0.3453-0.008, 0.3453+0.008,
+                  0.2595-0.002, 0.2595+0.002,
+                  atoi(argv[1]),//lambda vars (400,401,402,500,501,502)
+                  atof(argv[2]), atoi(argv[3]));//mins and seed
+
+//FIRST TRY
+/*
 ScanPsUsmani(
                   "Reduced","Jaime1_ds24_hts36_hzs36",
                   TString(GetCernBoxDimi()), TString::Format("%s/CECA_Paper/ScanPsUsmani/",GetFemtoOutputFolder()),
@@ -6466,9 +6481,22 @@ ScanPsUsmani(
                   0.2595-0.002, 0.2595+0.002,
                   atoi(argv[1]),//lambda vars (400,401,402,500,501,502)
                   atof(argv[2]), atoi(argv[3]));//mins and seed
-
+*/
 //thse parameters are what makes usmani fixed to NLO19
 //Wc=2279.0; Rc=0.3394; Sc=0.2614; f1=1.41; d1=2.53; tDev=0.003
+/*
+ScanPsUsmani(
+                  "Reduced","Jaime1_ds24_hts36_hzs36",
+                  TString(GetCernBoxDimi()), TString::Format("%s/CecaPaper/ScanPsUsmani/CecaPaper_J1_UsmNLO19/",GetCernBoxDimi()),
+                  0.05,0.75,//d
+                  1,4.8,//ht
+                  1,6.0,//hz
+                  2279, 2279,
+                  0.3394, 0.3394,
+                  0.2614, 0.2614,
+                  atoi(argv[1]),//lambda vars (400,401,402,500,501,502)
+                  atof(argv[2]), atoi(argv[3]));//mins and seed
+*/
 /*
 ScanPsUsmani(
                   "Reduced","Cigar2_ds24_hts36_hzs36",
