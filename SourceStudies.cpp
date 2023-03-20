@@ -4445,6 +4445,10 @@ void source_pp_syst(){
       //hDataStat->SetErrorX(uMom+1);
       double REL_ERR = fRelSystErr->Eval(EVAL_MOM);
       double ERROR = CKVAL*REL_ERR;
+
+
+
+
       hDataSyst->SetBinError(uMom+1,ERROR);
 
       gDataStat.SetPoint(uMom,MOM,CKVAL);
@@ -4499,6 +4503,9 @@ void source_pp_syst(){
     legend->SetTextSize(gStyle->GetTextSize()*0.8);
     legend->AddEntry(hAxis,TString::Format("p#minusp #oplus #bar{p}#minus#bar{p}"),"fpe");
 
+
+
+//CORR FUN
     TCanvas* c_PP = new TCanvas("CFpp", "CFpp", 0, 0, 650, 650);
     c_PP->SetMargin(0.13,0.025,0.12,0.025);//lrbt
 
@@ -4559,6 +4566,81 @@ void source_pp_syst(){
     hepfile.close();
 
 
+//MIXED EVENTS
+
+hMixedEvent->SetTitle("; #it{k*} (MeV/#it{c}); #it{M}(#it{k*})");
+hMixedEvent->GetXaxis()->SetRangeUser(0, 400);
+hMixedEvent->GetXaxis()->SetNdivisions(505);
+hMixedEvent->GetYaxis()->SetRangeUser(0.9*1000, 20000*1000);
+//hMixedEvent->SetFillColor(kGray+1);
+hMixedEvent->SetMarkerSize(1.5);
+hMixedEvent->SetLineWidth(2);
+hMixedEvent->SetMarkerStyle(kOpenCircle);
+hMixedEvent->SetMarkerColor(kBlack);
+hMixedEvent->SetLineColor(kBlack);
+hMixedEvent->GetXaxis()->SetLimits(hMixedEvent->GetXaxis()->GetXmin()*1000.,hMixedEvent->GetXaxis()->GetXmax()*1000.);
+
+//hMixedEvent->Scale(1e-3);
+
+TLegend *legendME = new TLegend(0.47,0.385-0.055-0.060*1,0.94,0.385-0.055);//lbrt
+legendME->SetBorderSize(0);
+legendME->SetTextFont(42);
+legendME->SetTextSize(gStyle->GetTextSize()*0.8);
+legendME->AddEntry(hMixedEvent,TString::Format("p#minusp #oplus #bar{p}#minus#bar{p}"),"p");
+
+TCanvas* cME_PP = new TCanvas("cME_PP", "cME_PP", 0, 0, 650, 650);
+cME_PP->SetMargin(0.13,0.025,0.12,0.025);//lrbt
+cME_PP->SetLogy();
+
+hAxis->SetTitle("; #it{k*} (MeV/#it{c}); #it{M}(#it{k*})");
+hAxis->GetXaxis()->SetRangeUser(0, 405);
+hAxis->GetXaxis()->SetNdivisions(505);
+hAxis->GetYaxis()->SetRangeUser(0.9*1000, 20000*1000);
+
+hAxis->Draw("axis");
+hMixedEvent->Draw("E0 X0 same");
+//gDataSyst.Draw("2 same");
+legendME->Draw("same");
+
+BeamText.DrawLatex(0.49, 0.5,
+                   Form("ALICE %s #sqrt{#it{s}} = %i TeV", "pp", (int) 13));
+BeamText.DrawLatex(0.49, 0.45, "High-mult. (0#minus0.17% INEL > 0)");
+text.DrawLatex(0.49, 0.40, TString::Format("#it{m}_{T}#in [%.2f, %.2f) GeV",bin_range.at(uMt),bin_range.at(uMt+1)));
+text.DrawLatex(0.49, 0.35, TString::Format("<#it{m}_{T}> = %.2f GeV",bin_center.at(uMt)));
+
+cME_PP->SaveAs(TString::Format("%s/SourceStudies/source_pp_syst/cME_PP_%u.pdf",GetFemtoOutputFolder(),uMt));
+
+
+TString HepFileName_ME = TString::Format("%s/SourceStudies/source_pp_syst/HEP_ME_PP_%u.yaml",GetFemtoOutputFolder(),uMt);
+ofstream hepfile_ME (HepFileName_ME.Data(),ios::out);
+hepfile_ME << "dependent_variables:" << endl;
+hepfile_ME << "- header: {name: M(k*)}" << endl;
+hepfile_ME << "  qualifiers:" << endl;
+hepfile_ME << "  - {name: SQRT(S), units: GeV, value: '13000.0'}" << endl;
+hepfile_ME << "  values:" << endl;
+for(unsigned uBin=1; uBin<hMixedEvent->GetNbinsX(); uBin++){
+  hep_x = hMixedEvent->GetBinCenter(uBin);
+  hep_y = hMixedEvent->GetBinContent(uBin);
+  if(hep_x>400) break;
+  hep_syst = 0;
+  hep_stat = sqrt(hep_y);
+  hepfile_ME << "  - errors:" << endl;
+  hepfile_ME << "    - {label: stat, symerror: "<<hep_stat<<"}" << endl;
+  hepfile_ME << "    value: "<<hep_y << endl;
+}
+hepfile_ME << "independent_variables:" << endl;
+hepfile_ME << "- header: {name: k* (MeV/c)}" << endl;
+hepfile_ME << "  values:" << endl;
+for(unsigned uBin=1; uBin<hMixedEvent->GetNbinsX(); uBin++){
+    hep_x = hMixedEvent->GetBinCenter(uBin);
+    if(hep_x>400) break;
+    hepfile_ME << "  - {value: "<<hep_x<<"}" << endl;
+}
+hepfile_ME.close();
+
+
+
+
     fOutput.cd();
     hSystOnly->Write();
     hDataReb->Write();
@@ -4568,6 +4650,8 @@ void source_pp_syst(){
     hDataStat->Write();
     hDataSyst->Write();
     hMixedEvent->Write();
+
+
     delete [] CkMin;
     delete [] CkMax;
     delete hSystOnly;
@@ -4580,10 +4664,157 @@ void source_pp_syst(){
 
     delete hAxis;
     delete legend;
+    delete legendME;
     delete c_PP;
+    delete cME_PP;
 
     delete hMixedEvent;
+
   }//uMt
+
+
+
+
+  //MOMENTUM SMEAR
+  TH2F* hReso = AnalysisObject.GetResolutionMatrix("pp13TeV_HM_DimiJun20","pp");
+  std::vector<float> kstar_proj = {10, 20, 50, 100, 200, 400};
+  TH1F** hSmear = new TH1F* [kstar_proj.size()];
+
+  fOutput.cd();
+  for(unsigned uProj=0; uProj<kstar_proj.size(); uProj++){
+    double kstar = kstar_proj.at(uProj);
+    unsigned WhichBin = hReso->GetYaxis()->FindBin(kstar);
+    hSmear[uProj] = (TH1F*)hReso->ProjectionX(TString::Format("hTransform_k%.0f",kstar),WhichBin,WhichBin);
+    hSmear[uProj]->Rebin(4);
+    double kstar_min = 0;
+    double kstar_max = 0;
+    double val_min = 1e6;
+    double val_max = 0;
+    for(unsigned uMom=0; uMom<hSmear[uProj]->GetNbinsX(); uMom++){
+      if(hSmear[uProj]->GetBinContent(uMom+1)<10){
+        hSmear[uProj]->SetBinContent(uMom+1,0);
+        hSmear[uProj]->SetBinError(uMom+1,0);
+        continue;
+      }
+      hSmear[uProj]->SetBinError(uMom+1,sqrt(hSmear[uProj]->GetBinContent(uMom+1)));
+      if(kstar_min==0) kstar_min = hSmear[uProj]->GetXaxis()->GetBinLowEdge(uMom+1);
+      kstar_max = hSmear[uProj]->GetXaxis()->GetBinUpEdge(uMom+1);
+    }
+
+    hSmear[uProj]->Scale(1./hSmear[uProj]->Integral(),"width");
+
+    for(unsigned uMom=0; uMom<hSmear[uProj]->GetNbinsX(); uMom++){
+      if(hSmear[uProj]->GetBinContent(uMom+1)==0){
+        continue;
+      }
+      if(hSmear[uProj]->GetBinContent(uMom+1)<val_min){
+        val_min = hSmear[uProj]->GetBinContent(uMom+1);
+      }
+      if(hSmear[uProj]->GetBinContent(uMom+1)>val_max){
+        val_max = hSmear[uProj]->GetBinContent(uMom+1);
+      }
+    }
+
+
+
+    TH1F* hAxis = new TH1F("hAxis", "hAxis", TMath::Nint((kstar_max-kstar_min)/4.), kstar_min, kstar_max*1.3);
+    hAxis->SetTitle("; #it{k*}_{true} (MeV/#it{c}); #it{dN/dk*}_{true} (#it{c}/MeV)");
+    hAxis->GetXaxis()->SetRangeUser(kstar_min, kstar_max*1.3);
+    hAxis->GetXaxis()->SetNdivisions(505);
+    hAxis->GetYaxis()->SetRangeUser(val_min*0.5, val_max*2.0);
+    hAxis->GetYaxis()->SetTitleOffset(1.4);
+    hAxis->SetMarkerSize(1.6);
+    hAxis->SetLineWidth(2);
+    hAxis->SetMarkerStyle(kOpenCircle);
+    hAxis->SetMarkerColor(kBlack);
+    hAxis->SetLineColor(kGray+1);
+    hAxis->SetLineWidth(0);
+
+    hSmear[uProj]->GetXaxis()->SetRangeUser(kstar_min, kstar_max*1.3);
+    hSmear[uProj]->GetXaxis()->SetNdivisions(505);
+    hSmear[uProj]->GetYaxis()->SetRangeUser(val_min*0.8, val_max*1.2);
+    hSmear[uProj]->SetMarkerSize(1.6);
+    hSmear[uProj]->SetLineWidth(2);
+    hSmear[uProj]->SetMarkerStyle(kOpenCircle);
+    hSmear[uProj]->SetMarkerColor(kBlack);
+    hSmear[uProj]->SetLineColor(kBlack);
+    hSmear[uProj]->SetLineWidth(2);
+
+
+
+
+    TCanvas* cT_PP = new TCanvas("cT_PP", "cT_PP", 0, 0, 650, 650);
+    cT_PP->SetMargin(0.16,0.025,0.13,0.025);//lrbt
+    cT_PP->SetLogy();
+
+    hAxis->Draw("axis");
+    hSmear[uProj]->Draw("E0 X0 same");
+
+    TLatex BeamText;
+    BeamText.SetTextSize(gStyle->GetTextSize() * 0.65);
+    BeamText.SetNDC(kTRUE);
+    BeamText.DrawLatex(0.55, 0.9, Form("ALICE %s #sqrt{#it{s}} = %i TeV", "pp", (int) 13));
+    BeamText.DrawLatex(0.55, 0.86, "High-mult. (0#minus0.17% INEL > 0)");
+    BeamText.DrawLatex(0.55, 0.82, "Momentum resolution");
+    BeamText.DrawLatex(0.55, 0.78, "Simulation for pp pairs");
+    TLegend *legendRESO = new TLegend(0.54,0.825-0.055-0.060*1,0.94,0.825-0.055);//lbrt
+    legendRESO->SetBorderSize(0);
+    legendRESO->SetTextFont(42);
+    legendRESO->SetTextSize(gStyle->GetTextSize()*0.65);
+    legendRESO->AddEntry(hSmear[uProj],TString::Format("#it{P}(#it{k*}=%.0f MeV/#it{c})",kstar),"fpe");
+    legendRESO->Draw("same");
+
+    cT_PP->SaveAs(TString::Format("%s/SourceStudies/source_pp_syst/cT_PP_%.0f.pdf",GetFemtoOutputFolder(),kstar));
+    delete hAxis;
+    delete legendRESO;
+    delete cT_PP;
+
+
+
+    TString HepFileName_RESO = TString::Format("%s/SourceStudies/source_pp_syst/HEP_RESO_%.0f_PP.yaml",GetFemtoOutputFolder(),kstar_proj.at(uProj));
+    ofstream hepfile_RESO (HepFileName_RESO.Data(),ios::out);
+    hepfile_RESO << "dependent_variables:" << endl;
+    hepfile_RESO << "- header: {name: Momentum resolution}" << endl;
+    hepfile_RESO << "  qualifiers:" << endl;
+    hepfile_RESO << "  - {name: SQRT(S), units: GeV, value: '13000.0'}" << endl;
+    hepfile_RESO << "  values:" << endl;
+    double hep_x,hep_y,hep_stat;
+    for(unsigned uBin=1; uBin<hSmear[0]->GetNbinsX(); uBin++){
+      hep_x = hSmear[uProj]->GetBinCenter(uBin);
+      hep_y = hSmear[uProj]->GetBinContent(uBin);
+      if(hep_y<10) continue;
+      hep_stat = sqrt(hep_y);
+      hepfile_RESO << "  - errors:" << endl;
+      hepfile_RESO << "    - {label: stat, symerror: "<<hep_stat<<"}" << endl;
+      hepfile_RESO << "    value: "<<hep_y << endl;
+    }
+    hepfile_RESO << "independent_variables:" << endl;
+    hepfile_RESO << "- header: {name: k*_true (MeV/c)}" << endl;
+    hepfile_RESO << "  values:" << endl;
+    for(unsigned uBin=1; uBin<hSmear[uProj]->GetNbinsX(); uBin++){
+        hep_x = hSmear[uProj]->GetBinCenter(uBin);
+        hep_y = hSmear[uProj]->GetBinContent(uBin);
+        if(hep_y<10) continue;
+        hepfile_RESO << "  - {value: "<<hep_x<<"}" << endl;
+    }
+    hepfile_RESO.close();
+  }
+
+
+
+  fOutput.cd();
+  hReso->Write();
+
+  for(unsigned uProj=0; uProj<kstar_proj.size(); uProj++){
+    hSmear[uProj]->Write();
+  }
+
+  for(unsigned uProj=0; uProj<kstar_proj.size(); uProj++){
+    delete hSmear[uProj];
+  }
+  delete [] hSmear;
+
+  delete hReso;
 }
 
 
@@ -4839,6 +5070,77 @@ void source_pL_syst(){
     hepfile.close();
 
 
+//MIXED EVENTS
+
+    hMixedEvent->SetTitle("; #it{k*} (MeV/#it{c}); #it{M}(#it{k*})");
+    hMixedEvent->GetXaxis()->SetRangeUser(0, 400);
+    hMixedEvent->GetXaxis()->SetNdivisions(505);
+    hMixedEvent->GetYaxis()->SetRangeUser(0.9*1000, 20000*1000);
+    //hMixedEvent->SetFillColor(kGray+1);
+    hMixedEvent->SetMarkerSize(1.5);
+    hMixedEvent->SetLineWidth(2);
+    hMixedEvent->SetMarkerStyle(kOpenCircle);
+    hMixedEvent->SetMarkerColor(kBlack);
+    hMixedEvent->SetLineColor(kBlack);
+    hMixedEvent->GetXaxis()->SetLimits(hMixedEvent->GetXaxis()->GetXmin()*1000.,hMixedEvent->GetXaxis()->GetXmax()*1000.);
+
+    //hMixedEvent->Scale(1e-3);
+
+    TLegend *legendME = new TLegend(0.47,0.385-0.055-0.060*1,0.94,0.385-0.055);//lbrt
+    legendME->SetBorderSize(0);
+    legendME->SetTextFont(42);
+    legendME->SetTextSize(gStyle->GetTextSize()*0.8);
+    legendME->AddEntry(hMixedEvent,TString::Format("p#minus#Lambda #oplus #bar{p}#minus#bar{#Lambda}"),"p");
+
+    TCanvas* cME_PP = new TCanvas("cME_PP", "cME_PP", 0, 0, 650, 650);
+    cME_PP->SetMargin(0.13,0.025,0.12,0.025);//lrbt
+    cME_PP->SetLogy();
+
+    hAxis->SetTitle("; #it{k*} (MeV/#it{c}); #it{M}(#it{k*})");
+    hAxis->GetXaxis()->SetRangeUser(0, 405);
+    hAxis->GetXaxis()->SetNdivisions(505);
+    hAxis->GetYaxis()->SetRangeUser(0.9*1000, 20000*1000);
+
+    hAxis->Draw("axis");
+    hMixedEvent->Draw("E0 X0 same");
+    //gDataSyst.Draw("2 same");
+    legendME->Draw("same");
+
+    BeamText.DrawLatex(0.49, 0.5,
+                       Form("ALICE %s #sqrt{#it{s}} = %i TeV", "pp", (int) 13));
+    BeamText.DrawLatex(0.49, 0.45, "High-mult. (0#minus0.17% INEL > 0)");
+    text.DrawLatex(0.49, 0.40, TString::Format("#it{m}_{T}#in [%.2f, %.2f) GeV",bin_range.at(uMt),bin_range.at(uMt+1)));
+    text.DrawLatex(0.49, 0.35, TString::Format("<#it{m}_{T}> = %.2f GeV",bin_center.at(uMt)));
+
+    cME_PP->SaveAs(TString::Format("%s/SourceStudies/source_pL_syst/cME_PL_%u.pdf",GetFemtoOutputFolder(),uMt));
+
+
+    TString HepFileName_ME = TString::Format("%s/SourceStudies/source_pL_syst/HEP_ME_PL_%u.yaml",GetFemtoOutputFolder(),uMt);
+    ofstream hepfile_ME (HepFileName_ME.Data(),ios::out);
+    hepfile_ME << "dependent_variables:" << endl;
+    hepfile_ME << "- header: {name: M(k*)}" << endl;
+    hepfile_ME << "  qualifiers:" << endl;
+    hepfile_ME << "  - {name: SQRT(S), units: GeV, value: '13000.0'}" << endl;
+    hepfile_ME << "  values:" << endl;
+    for(unsigned uBin=1; uBin<hMixedEvent->GetNbinsX(); uBin++){
+      hep_x = hMixedEvent->GetBinCenter(uBin);
+      hep_y = hMixedEvent->GetBinContent(uBin);
+      if(hep_x>400) break;
+      hep_syst = 0;
+      hep_stat = sqrt(hep_y);
+      hepfile_ME << "  - errors:" << endl;
+      hepfile_ME << "    - {label: stat, symerror: "<<hep_stat<<"}" << endl;
+      hepfile_ME << "    value: "<<hep_y << endl;
+    }
+    hepfile_ME << "independent_variables:" << endl;
+    hepfile_ME << "- header: {name: k* (MeV/c)}" << endl;
+    hepfile_ME << "  values:" << endl;
+    for(unsigned uBin=1; uBin<hMixedEvent->GetNbinsX(); uBin++){
+        hep_x = hMixedEvent->GetBinCenter(uBin);
+        if(hep_x>400) break;
+        hepfile_ME << "  - {value: "<<hep_x<<"}" << endl;
+    }
+    hepfile_ME.close();
 
 
 
@@ -4864,10 +5166,153 @@ void source_pL_syst(){
 
     delete hAxis;
     delete legend;
+    delete legendME;
     delete c_PL;
 
     delete hMixedEvent;
   }//uMt
+
+  //MOMENTUM SMEAR
+  TH2F* hReso = AnalysisObject.GetResolutionMatrix("pp13TeV_HM_DimiJun20","pLambda");
+  std::vector<float> kstar_proj = {10, 20, 50, 100, 200, 400};
+  TH1F** hSmear = new TH1F* [kstar_proj.size()];
+
+  fOutput.cd();
+  for(unsigned uProj=0; uProj<kstar_proj.size(); uProj++){
+    double kstar = kstar_proj.at(uProj);
+    unsigned WhichBin = hReso->GetYaxis()->FindBin(kstar);
+    hSmear[uProj] = (TH1F*)hReso->ProjectionX(TString::Format("hTransform_k%.0f",kstar),WhichBin,WhichBin);
+    hSmear[uProj]->Rebin(4);
+    double kstar_min = 0;
+    double kstar_max = 0;
+    double val_min = 1e6;
+    double val_max = 0;
+    for(unsigned uMom=0; uMom<hSmear[uProj]->GetNbinsX(); uMom++){
+      if(hSmear[uProj]->GetBinContent(uMom+1)<10){
+        hSmear[uProj]->SetBinContent(uMom+1,0);
+        hSmear[uProj]->SetBinError(uMom+1,0);
+        continue;
+      }
+      hSmear[uProj]->SetBinError(uMom+1,sqrt(hSmear[uProj]->GetBinContent(uMom+1)));
+      if(kstar_min==0) kstar_min = hSmear[uProj]->GetXaxis()->GetBinLowEdge(uMom+1);
+      kstar_max = hSmear[uProj]->GetXaxis()->GetBinUpEdge(uMom+1);
+    }
+
+    hSmear[uProj]->Scale(1./hSmear[uProj]->Integral(),"width");
+
+    for(unsigned uMom=0; uMom<hSmear[uProj]->GetNbinsX(); uMom++){
+      if(hSmear[uProj]->GetBinContent(uMom+1)==0){
+        continue;
+      }
+      if(hSmear[uProj]->GetBinContent(uMom+1)<val_min){
+        val_min = hSmear[uProj]->GetBinContent(uMom+1);
+      }
+      if(hSmear[uProj]->GetBinContent(uMom+1)>val_max){
+        val_max = hSmear[uProj]->GetBinContent(uMom+1);
+      }
+    }
+
+
+
+    TH1F* hAxis = new TH1F("hAxis", "hAxis", TMath::Nint((kstar_max-kstar_min)/4.), kstar_min, kstar_max*1.3);
+    hAxis->SetTitle("; #it{k*}_{true} (MeV/#it{c}); #it{dN/dk*}_{true} (#it{c}/MeV)");
+    hAxis->GetXaxis()->SetRangeUser(kstar_min, kstar_max*1.3);
+    hAxis->GetXaxis()->SetNdivisions(505);
+    hAxis->GetYaxis()->SetRangeUser(val_min*0.5, val_max*2.0);
+    hAxis->GetYaxis()->SetTitleOffset(1.4);
+    hAxis->SetMarkerSize(1.6);
+    hAxis->SetLineWidth(2);
+    hAxis->SetMarkerStyle(kOpenCircle);
+    hAxis->SetMarkerColor(kBlack);
+    hAxis->SetLineColor(kGray+1);
+    hAxis->SetLineWidth(0);
+
+    hSmear[uProj]->GetXaxis()->SetRangeUser(kstar_min, kstar_max*1.3);
+    hSmear[uProj]->GetXaxis()->SetNdivisions(505);
+    hSmear[uProj]->GetYaxis()->SetRangeUser(val_min*0.8, val_max*1.2);
+    hSmear[uProj]->SetMarkerSize(1.6);
+    hSmear[uProj]->SetLineWidth(2);
+    hSmear[uProj]->SetMarkerStyle(kOpenCircle);
+    hSmear[uProj]->SetMarkerColor(kBlack);
+    hSmear[uProj]->SetLineColor(kBlack);
+    hSmear[uProj]->SetLineWidth(2);
+
+
+
+
+    TCanvas* cT_PL = new TCanvas("cT_PL", "cT_PL", 0, 0, 650, 650);
+    cT_PL->SetMargin(0.16,0.025,0.13,0.025);//lrbt
+    cT_PL->SetLogy();
+
+    hAxis->Draw("axis");
+    hSmear[uProj]->Draw("E0 X0 same");
+
+    TLatex BeamText;
+    BeamText.SetTextSize(gStyle->GetTextSize() * 0.65);
+    BeamText.SetNDC(kTRUE);
+    BeamText.DrawLatex(0.55, 0.9, Form("ALICE %s #sqrt{#it{s}} = %i TeV", "pp", (int) 13));
+    BeamText.DrawLatex(0.55, 0.86, "High-mult. (0#minus0.17% INEL > 0)");
+    BeamText.DrawLatex(0.55, 0.82, "Momentum resolution");
+    BeamText.DrawLatex(0.55, 0.78, "Simulation for p#Lambda pairs");
+    TLegend *legendRESO = new TLegend(0.54,0.825-0.055-0.060*1,0.94,0.825-0.055);//lbrt
+    legendRESO->SetBorderSize(0);
+    legendRESO->SetTextFont(42);
+    legendRESO->SetTextSize(gStyle->GetTextSize()*0.65);
+    legendRESO->AddEntry(hSmear[uProj],TString::Format("#it{P}(#it{k*}=%.0f MeV/#it{c})",kstar),"fpe");
+    legendRESO->Draw("same");
+
+    cT_PL->SaveAs(TString::Format("%s/SourceStudies/source_pL_syst/cT_PL_%.0f.pdf",GetFemtoOutputFolder(),kstar));
+    delete hAxis;
+    delete legendRESO;
+    delete cT_PL;
+
+
+
+    TString HepFileName_RESO = TString::Format("%s/SourceStudies/source_pL_syst/HEP_RESO_%.0f_PL.yaml",GetFemtoOutputFolder(),kstar_proj.at(uProj));
+    ofstream hepfile_RESO (HepFileName_RESO.Data(),ios::out);
+    hepfile_RESO << "dependent_variables:" << endl;
+    hepfile_RESO << "- header: {name: Momentum resolution}" << endl;
+    hepfile_RESO << "  qualifiers:" << endl;
+    hepfile_RESO << "  - {name: SQRT(S), units: GeV, value: '13000.0'}" << endl;
+    hepfile_RESO << "  values:" << endl;
+    double hep_x,hep_y,hep_stat;
+    for(unsigned uBin=1; uBin<hSmear[0]->GetNbinsX(); uBin++){
+      hep_x = hSmear[uProj]->GetBinCenter(uBin);
+      hep_y = hSmear[uProj]->GetBinContent(uBin);
+      if(hep_y<10) continue;
+      hep_stat = sqrt(hep_y);
+      hepfile_RESO << "  - errors:" << endl;
+      hepfile_RESO << "    - {label: stat, symerror: "<<hep_stat<<"}" << endl;
+      hepfile_RESO << "    value: "<<hep_y << endl;
+    }
+    hepfile_RESO << "independent_variables:" << endl;
+    hepfile_RESO << "- header: {name: k*_true (MeV/c)}" << endl;
+    hepfile_RESO << "  values:" << endl;
+    for(unsigned uBin=1; uBin<hSmear[uProj]->GetNbinsX(); uBin++){
+        hep_x = hSmear[uProj]->GetBinCenter(uBin);
+        hep_y = hSmear[uProj]->GetBinContent(uBin);
+        if(hep_y<10) continue;
+        hepfile_RESO << "  - {value: "<<hep_x<<"}" << endl;
+    }
+    hepfile_RESO.close();
+  }
+
+
+  fOutput.cd();
+  hReso->Write();
+
+  for(unsigned uProj=0; uProj<kstar_proj.size(); uProj++){
+    hSmear[uProj]->Write();
+  }
+
+  for(unsigned uProj=0; uProj<kstar_proj.size(); uProj++){
+    delete hSmear[uProj];
+  }
+  delete [] hSmear;
+
+  delete hReso;
+
+
 }
 
 
@@ -4944,7 +5389,7 @@ int SOURCESTUDIES(int argc, char *argv[]){
     //Estimate_Reff("pd_max","oton","RSM_PLB",3.0);
 
     source_pp_syst();
-    //source_pL_syst();
+    source_pL_syst();
     //estimate_syst_fit();
 
     //SourceDensity();

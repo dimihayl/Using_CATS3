@@ -93,6 +93,10 @@ public:
   TF1** fCk_pp;
   TF1** fCk_pL;
 
+  //the source functions
+  TF1** fSrc_pp;
+  TF1** fSrc_pL;
+
   const double pp_cats_max;
   const double pp_ck_max;
 

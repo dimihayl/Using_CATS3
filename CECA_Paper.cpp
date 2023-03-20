@@ -3394,6 +3394,10 @@ CecaAnalysis1::CecaAnalysis1(TString AnalysisVersion, TString SourceVersion, TSt
   fCk_pp = NULL;
   fCk_pL = NULL;
 
+  fSrc_pp = NULL;
+  fSrc_pL = NULL;
+
+
   if(ana_ver=="Simple"){
     settings[Model_pS0] = 0;
     settings[Model_pL] = 11600;
@@ -3568,6 +3572,27 @@ CecaAnalysis1::~CecaAnalysis1(){
     }
     delete [] fCk_pL;
     fCk_pL = NULL;
+  }
+
+  if(fSrc_pp){
+    for(unsigned uMt=0; uMt<NumMtBins_pp; uMt++){
+      if(fSrc_pp[uMt]){
+        delete fSrc_pp[uMt];
+        fSrc_pp[uMt] = NULL;
+      }
+    }
+    delete [] fSrc_pp;
+    fSrc_pp = NULL;
+  }
+  if(fSrc_pL){
+    for(unsigned uMt=0; uMt<NumMtBins_pL; uMt++){
+      if(fSrc_pL[uMt]){
+        delete fSrc_pL[uMt];
+        fSrc_pL[uMt] = NULL;
+      }
+    }
+    delete [] fSrc_pL;
+    fSrc_pL = NULL;
   }
 
   if(Kitty_pp){
@@ -3840,11 +3865,11 @@ void CecaAnalysis1::LoadData(){
   hCkExp_pL = new TH1F* [NumMtBins_pL];
 
   for(unsigned uMt=0; uMt<NumMtBins_pp; uMt++){
-    hCkExp_pp[uMt] = AnalysisObject->GetAliceExpCorrFun("pp13TeV_HM_BernieSource","pp","0",0,0,uMt);
+    hCkExp_pp[uMt] = AnalysisObject->GetAliceExpCorrFun("pp13TeV_HM_BernieSource","pp","0",0,1,uMt);
     hCkExp_pp[uMt]->SetName(TString::Format("hCkExp_pp[%u]",uMt));
   }
   for(unsigned uMt=0; uMt<NumMtBins_pL; uMt++){
-    hCkExp_pL[uMt] = AnalysisObject->GetAliceExpCorrFun("pp13TeV_HM_BernieSource","pLambda","0",0,0,uMt);
+    hCkExp_pL[uMt] = AnalysisObject->GetAliceExpCorrFun("pp13TeV_HM_BernieSource","pLambda","0",0,1,uMt);
     hCkExp_pL[uMt]->SetName(TString::Format("hCkExp_pL[%u]",uMt));
   }
   printf("---> Completed\n");
@@ -4599,17 +4624,32 @@ void CecaAnalysis1::DumpCurrentCk(TString OutFileBase, int plots){
         fCk_pp[uMt]->SetLineWidth(3);
         fCk_pp[uMt]->SetLineColor(kBlue+1);
 
+        fSrc_pp[uMt]->SetLineWidth(3);
+        fSrc_pp[uMt]->SetLineColor(kBlue+1);
+
         fCk_pp[uMt]->Write();
         cCk_pp[uMt]->cd();
         fCk_pp[uMt]->Draw("same");
-        TF1* fSrcC_pp = new TF1("fSrcC_pp",Src_pp,&DLM_CecaSource_v0::RootEval,0,16,5,"DLM_CecaSource_v0","RootEval");
+        //TF1* fSrcC_pp = new TF1("fSrcC_pp",Src_pp,&DLM_CecaSource_v0::RootEval,0,16,5,"DLM_CecaSource_v0","RootEval");
+
         for(unsigned uP=0; uP<5; uP++){
-          fSrcC_pp->FixParameter(uP,fCk_pp[uMt]->GetParameter(uP));
+          fSrc_pp[uMt]->FixParameter(uP,fCk_pp[uMt]->GetParameter(uP));
         }
-        double Mean = fSrcC_pp->Mean(0, 16);
+        fSrc_pp[uMt]->Write();
+        double Mean = fSrc_pp[uMt]->Mean(0, 16);
         mT_Scaling_pp.SetPoint(uMt,mT_BinCenter_pp[uMt]*0.001,Mean);
-        delete fSrcC_pp;
+        //delete fSrcC_pp;
       }
+
+      //SOURCE
+      //fSrc_pp[uMt]->SetParameter(0,MtVal);
+      //fSrc_pp[uMt]->SetParameter(1,fCk_pp[uMt]->GetParameter(1));
+      //fSrc_pp[uMt]->SetParameter(2,fCk_pp[uMt]->GetParameter(2));
+      //fSrc_pp[uMt]->SetParameter(3,fCk_pp[uMt]->GetParameter(3));
+      //fSrc_pp[uMt]->FixParameter(4,fCk_pp[uMt]->GetParameter(4));
+      //fSrc_pp[uMt]->SetLineColor(kBlue);
+      //fSrc_pp[uMt]->SetNpx(2048);
+
     }
     if(plots) cCk_pp[uMt]->SaveAs(TString::Format(OutFileBase+"_Ck_pp_Mt%u_p%i.pdf",uMt,plots));
   }//NumMtBins_pp
@@ -4634,13 +4674,16 @@ void CecaAnalysis1::DumpCurrentCk(TString OutFileBase, int plots){
         fCk_pL[uMt]->Write();
         cCk_pL[uMt]->cd();
         fCk_pL[uMt]->Draw("same");
-        TF1* fSrcC_pL = new TF1("fSrcC_pL",Src_pL,&DLM_CecaSource_v0::RootEval,0,16,5,"DLM_CecaSource_v0","RootEval");
+        //TF1* fSrcC_pL = new TF1("fSrcC_pL",Src_pL,&DLM_CecaSource_v0::RootEval,0,16,5,"DLM_CecaSource_v0","RootEval");
+        fSrc_pL[uMt]->SetLineWidth(3);
+        fSrc_pL[uMt]->SetLineColor(kRed+2);
         for(unsigned uP=0; uP<5; uP++){
-          fSrcC_pL->FixParameter(uP,fCk_pL[uMt]->GetParameter(uP));
+          fSrc_pL[uMt]->FixParameter(uP,fCk_pL[uMt]->GetParameter(uP));
         }
-        double Mean = fSrcC_pL->Mean(0, 16);
+        fSrc_pL[uMt]->Write();
+        double Mean = fSrc_pL[uMt]->Mean(0, 16);
         mT_Scaling_pL.SetPoint(uMt,mT_BinCenter_pL[uMt]*0.001,Mean);
-        delete fSrcC_pL;
+        //delete fSrcC_pL;
       }
     }
     if(plots) cCk_pL[uMt]->SaveAs(TString::Format(OutFileBase+"_Ck_pL_Mt%u_p%i.pdf",uMt,plots));
@@ -4720,6 +4763,18 @@ void CecaAnalysis1::DumpCurrentCk(TString OutFileBase, int plots){
   else if(OutFileBase.Contains("Gauss")) lMt.AddEntry(&mT_Scaling_pL, "Gauss p#Lambda");
 
 
+
+
+
+
+
+
+
+
+
+
+
+
   TCanvas cMt("cMt","cMt");
   cMt.cd(0);
   cMt.SetCanvasSize(1280, 720);
@@ -4774,10 +4829,22 @@ void CecaAnalysis1::SetUp_Fits(TString fittype, bool AutoSrcPars, bool AutoBlPar
     delete [] fCk_pp;
     fCk_pp = NULL;
   }
+  if(fSrc_pp){
+    for(unsigned uMt=0; uMt<NumMtBins_pp; uMt++){
+      if(fSrc_pp[uMt]){
+        delete fSrc_pp[uMt];
+        fSrc_pp[uMt] = NULL;
+      }
+    }
+    delete [] fSrc_pp;
+    fSrc_pp = NULL;
+  }
   fCk_pp = new TF1* [NumMtBins_pp];
+  fSrc_pp = new TF1* [NumMtBins_pp];
   for(unsigned uMt=0; uMt<NumMtBins_pp; uMt++){
-
     fCk_pp[uMt] = new TF1(TString::Format("fCk_pp[%u]",uMt),this,&CecaAnalysis1::FitFun_pp,hCkExp_pp[uMt]->GetBinLowEdge(1),settings[FitMax_pp],TotFitPars,"CecaAnalysis1","FitFun_pp");
+    fSrc_pp[uMt] = new TF1(TString::Format("fSrc_pp[%u]",uMt),Src_pp,&DLM_CecaSource_v0::RootEval,0,16,5,"DLM_CecaSource_v0","RootEval");
+
 //printf("FIT%u %f %f\n",uMt,hCkExp_pp[uMt]->GetBinLowEdge(1),settings[FitMax_pp]);
     //the mT is fixed
     if(FittingScenario==11){
@@ -4841,7 +4908,18 @@ void CecaAnalysis1::SetUp_Fits(TString fittype, bool AutoSrcPars, bool AutoBlPar
     delete [] fCk_pL;
     fCk_pL = NULL;
   }
+  if(fSrc_pL){
+    for(unsigned uMt=0; uMt<NumMtBins_pL; uMt++){
+      if(fSrc_pL[uMt]){
+        delete fSrc_pL[uMt];
+        fSrc_pL[uMt] = NULL;
+      }
+    }
+    delete [] fSrc_pL;
+    fSrc_pL = NULL;
+  }
   fCk_pL = new TF1* [NumMtBins_pL];
+  fSrc_pL = new TF1* [NumMtBins_pL];
   for(unsigned uMt=0; uMt<NumMtBins_pL; uMt++){
     if(fCk_pL[uMt]){
       delete fCk_pL[uMt];
@@ -4849,6 +4927,7 @@ void CecaAnalysis1::SetUp_Fits(TString fittype, bool AutoSrcPars, bool AutoBlPar
     }
 
     fCk_pL[uMt] = new TF1(TString::Format("fCk_pL[%u]",uMt),this,&CecaAnalysis1::FitFun_pL,hCkExp_pL[uMt]->GetBinLowEdge(1),settings[FitMax_pL],TotFitPars,"CecaAnalysis1","FitFun_pL");
+    fSrc_pL[uMt] = new TF1(TString::Format("fSrc_pL[%u]",uMt),Src_pL,&DLM_CecaSource_v0::RootEval,0,16,5,"DLM_CecaSource_v0","RootEval");
 
     //the mT is fixed
     if(FittingScenario==11){
@@ -4989,11 +5068,11 @@ void CecaAnalysis1::GoBabyGo(bool print_info){
 void TestSetUpAna(){
 
 
-  //TString Description = "J1_Reduced_USM_Ceca";
+  TString Description = "J1_Reduced_USM_Ceca";
   //TString Description = "J1_Reduced_USM_Gauss";
   //TString Description = "NLO_Gauss";//NLO19-600
   //TString Description = "Usmani_Gauss";//usmani 1:1 as NLO19-600
-  TString Description = "C2_Reduced_USM_Ceca";
+  //TString Description = "C2_Reduced_USM_Ceca";
 
   TString CecaAnaSettings;
   TString FileBase;
@@ -5768,6 +5847,7 @@ void ScanPsUsmani(TString AnaType, TString SourceDescription, TString cern_box, 
                   double min_wc, double max_wc,
                   double min_rc, double max_rc,
                   double min_sc, double max_sc,
+                  int VAR_L,
                   double Minutes, int SEED
 ){
 
@@ -5790,8 +5870,8 @@ void ScanPsUsmani(TString AnaType, TString SourceDescription, TString cern_box, 
 
   TNtuple* ntResult;
   //16
-  ntResult = new TNtuple("ntResult", "ntResult","d:ht:hz:wc:rc:sc:f1:d1:chi2_pp:ndp_pp:chi2_pL:ndp_pL:chi2_pp_fmt:ndp_pp_fmt:chi2_pL_fmt:ndp_pL_fmt");
-  Float_t* Entries = new Float_t [16];
+  ntResult = new TNtuple("ntResult", "ntResult","VAR_L:d:ht:hz:wc:rc:sc:f1:d1:chi2_pp:ndp_pp:chi2_pL:ndp_pL:chi2_pp_fmt:ndp_pp_fmt:chi2_pL_fmt:ndp_pL_fmt");
+  Float_t* Entries = new Float_t [17];
 
   double f0,d0;
   double f1,d1;
@@ -5801,7 +5881,7 @@ void ScanPsUsmani(TString AnaType, TString SourceDescription, TString cern_box, 
   CECA_ANA.SetUp_pS0("Chiral",0);
   CECA_ANA.SetUp_pXim("pXim_HALQCDPaper2020",0);
   CECA_ANA.SetUp_pXi0("pXim_HALQCDPaper2020",0);
-  CECA_ANA.SetUp_Decomposition(0,0);
+  CECA_ANA.SetUp_Decomposition(0,VAR_L);
   CECA_ANA.SetUp_Fits("SingleCeca",false);
 
   double* Best_Chi2_pp = new double [7];
@@ -5976,22 +6056,23 @@ void ScanPsUsmani(TString AnaType, TString SourceDescription, TString cern_box, 
     }}
 
     //d:ht:hz:wc:rc:sc:f1:d1:chi2_pp:ndp_pp:chi2_pL:ndp_pL:chi2_pp_fmt:ndp_pp_fmt:chi2_pL_fmt:ndp_pL_fmt
-    Entries[0] = ran_d;
-    Entries[1] = ran_ht;
-    Entries[2] = ran_hz;
-    Entries[3] = ran_wc;
-    Entries[4] = ran_rc;
-    Entries[5] = ran_sc;
-    Entries[6] = f1;
-    Entries[7] = d1;
-    Entries[8] = Chi2[1][0];
-    Entries[9] = Ndp[1][0];
-    Entries[10] = Chi2[2][0];
-    Entries[11] = Ndp[2][0];
-    Entries[12] = Chi2[1][1];
-    Entries[13] = Ndp[1][1];
-    Entries[14] = Chi2[2][1];
-    Entries[15] = Ndp[2][1];
+    Entries[0] = VAR_L;
+    Entries[1] = ran_d;
+    Entries[2] = ran_ht;
+    Entries[3] = ran_hz;
+    Entries[4] = ran_wc;
+    Entries[5] = ran_rc;
+    Entries[6] = ran_sc;
+    Entries[7] = f1;
+    Entries[8] = d1;
+    Entries[9] = Chi2[1][0];
+    Entries[10] = Ndp[1][0];
+    Entries[11] = Chi2[2][0];
+    Entries[12] = Ndp[2][0];
+    Entries[13] = Chi2[1][1];
+    Entries[14] = Ndp[1][1];
+    Entries[15] = Chi2[2][1];
+    Entries[16] = Ndp[2][1];
 
     ntResult->Fill(Entries);
 
@@ -6265,6 +6346,10 @@ void UsmaniFineCheck(){
 }
 
 
+void Usmani_vs_NLO19(){
+
+}
+
 int CECA_PAPER(int argc, char *argv[]){
   printf("CECA_PAPER\n\n");
   //how to read/write the Levy pars into a file
@@ -6315,6 +6400,7 @@ int CECA_PAPER(int argc, char *argv[]){
   //ScanPs();
   //UsmaniSecondLook(atoi(argv[1]),atoi(argv[2]));
   //UsmaniFineCheck();
+  //Usmani_vs_NLO19();
 
 ////Wc=2279.0; Rc=0.3394; Sc=0.2614; f1=1.41; d1=2.53; tDev=0.003
 
@@ -6368,7 +6454,22 @@ ScanPsUsmani(
                   atof(argv[1]), atoi(argv[2]));
 */
 
+//USE THIS ONE FOR THE PAPER
+ScanPsUsmani(
+                  "Reduced","Jaime1_ds24_hts36_hzs36",
+                  TString(GetCernBoxDimi()), TString::Format("%s/CECA_Paper/ScanPsUsmani/",GetFemtoOutputFolder()),
+                  0.274-0.070*2, 0.274+0.070*2,//d
+                  3.63-0.3*2, 3.63+0.3*2,//ht
+                  2.68-0.3*2, 2.68+0.3*2,//hz
+                  2311-50, 2311+50,
+                  0.3453-0.008, 0.3453+0.008,
+                  0.2595-0.002, 0.2595+0.002,
+                  atoi(argv[1]),//lambda vars (400,401,402,500,501,502)
+                  atof(argv[2]), atoi(argv[3]));//mins and seed
+
+//thse parameters are what makes usmani fixed to NLO19
 //Wc=2279.0; Rc=0.3394; Sc=0.2614; f1=1.41; d1=2.53; tDev=0.003
+/*
 ScanPsUsmani(
                   "Reduced","Cigar2_ds24_hts36_hzs36",
                   TString(GetCernBoxDimi()), TString::Format("%s/CECA_Paper/ScanPsUsmani/",GetFemtoOutputFolder()),
@@ -6379,5 +6480,6 @@ ScanPsUsmani(
                   0.3394-0.001, 0.3394+0.001,
                   0.2614-0.0005, 0.2614+0.0005,
                   atof(argv[1]), atoi(argv[2]));
+  */
   return 0;
 }
