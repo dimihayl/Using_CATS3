@@ -35,7 +35,7 @@ public:
     //the Xim1530 is automatically set up, where the source is Gaussian and set to the value of pXim source
     //evaluated at an mT of 1.8
     //void SetUp_pXim1530(const TString &POT, const int &PotVar);
-    void SetUp_Decomposition(const int &Variation_p, const int &Variation_L);
+    void SetUp_Decomposition(const int &Variation_p, const int &Variation_L, const bool SILENT=false);
 
     void SetNumHistEntries(unsigned numetries);
 
@@ -61,6 +61,9 @@ public:
 
     DLM_CecaSource_v0* GetSrc_pp(){return Src_pp?Src_pp:NULL;}
     DLM_CecaSource_v0* GetSrc_pL(){return Src_pL?Src_pL:NULL;}
+
+    //resets ALL settings, apart from the source
+    void Reset();
 
 //private:
 
