@@ -6455,13 +6455,27 @@ ScanPsUsmani(
 */
 
 //USE THIS ONE FOR THE PAPER
-
+/*
 ScanPsUsmani(
                   "Reduced","Jaime1_ds24_hts36_hzs36",
                   TString(GetCernBoxDimi()), TString::Format("%s/CecaPaper/ScanPsUsmani/CecaPaper_J1_UsmFit_2/",GetCernBoxDimi()),
-                  0.12, 0.42,//d
+                  //0.12, 0.42,//d
+                  0.02, 0.42,
                   2.1, 4.4,//ht
                   1.6, 5.0,//hz
+                  2311-50, 2311+50,
+                  0.3453-0.008, 0.3453+0.008,
+                  0.2595-0.002, 0.2595+0.002,
+                  atoi(argv[1]),//lambda vars (400,401,402,500,501,502)
+                  atof(argv[2]), atoi(argv[3]));//mins and seed
+*/
+//refine based on 5 sigma interval
+ScanPsUsmani(
+                  "Reduced","Jaime1_ds24_hts36_hzs36",
+                  TString(GetCernBoxDimi()), TString::Format("%s/CecaPaper/ScanPsUsmani/CecaPaper_J1_UsmFit_2/",GetCernBoxDimi()),
+                  0.09, 0.40,//d
+                  2.7, 4.4,//ht
+                  1.8, 3.6,//hz
                   2311-50, 2311+50,
                   0.3453-0.008, 0.3453+0.008,
                   0.2595-0.002, 0.2595+0.002,
@@ -6488,7 +6502,7 @@ ScanPsUsmani(
 ScanPsUsmani(
                   "Reduced","Jaime1_ds24_hts36_hzs36",
                   TString(GetCernBoxDimi()), TString::Format("%s/CecaPaper/ScanPsUsmani/CecaPaper_J1_UsmNLO19/",GetCernBoxDimi()),
-                  0.05,0.75,//d
+                  0.05,0.55,//d
                   1,4.8,//ht
                   1,6.0,//hz
                   2279, 2279,
@@ -6497,6 +6511,21 @@ ScanPsUsmani(
                   atoi(argv[1]),//lambda vars (400,401,402,500,501,502)
                   atof(argv[2]), atoi(argv[3]));//mins and seed
 */
+/*
+//refine usmani nlo19, based on c.a. the 3 sigma interval
+ScanPsUsmani(
+                  "Reduced","Jaime1_ds24_hts36_hzs36",
+                  TString(GetCernBoxDimi()), TString::Format("%s/CecaPaper/ScanPsUsmani/CecaPaper_J1_UsmNLO19/",GetCernBoxDimi()),
+                  0.18,0.38,//d
+                  2.8,4.2,//ht
+                  2.2,3.4,//hz
+                  2279, 2279,
+                  0.3394, 0.3394,
+                  0.2614, 0.2614,
+                  atoi(argv[1]),//lambda vars (400,401,402,500,501,502)
+                  atof(argv[2]), atoi(argv[3]));//mins and seed
+*/
+
 /*
 ScanPsUsmani(
                   "Reduced","Cigar2_ds24_hts36_hzs36",
