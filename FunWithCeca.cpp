@@ -1979,10 +1979,11 @@ void Ceca_pd_1(const double& d_delay, const int& EffFix, const TString type="pd"
   const bool PROTON_RESO = true;
   const bool EQUALIZE_TAU = true;
   const double TIMEOUT = 30;
-  const double GLOB_TIMEOUT = 60*15;
+  const double GLOB_TIMEOUT = 180*60;
   const unsigned Multiplicity=2;
   const double femto_region = 100;
-  const unsigned target_yield = 50000;
+  const unsigned target_yield = 1331*1000;
+  const unsigned NUM_CPU = 2;
 
   //we run to either reproduce the core of 0.97,
   //or the upper limit of reff = 1.06+0.04
@@ -2081,7 +2082,7 @@ void Ceca_pd_1(const double& d_delay, const int& EffFix, const TString type="pd"
       //rSP_tau = 1.0;
     }
     //some random tests
-    else if(-900){
+    else if(EffFix==-900){
       rSP_core = 0.32;
       rSP_dispZ = 0.32;
       rSP_hadr = 2.3/2.;
@@ -2091,8 +2092,11 @@ void Ceca_pd_1(const double& d_delay, const int& EffFix, const TString type="pd"
     }
     //for FEMTUM
     else if(EffFix==-1001){
-      rSP_core = 0.80;
-      rSP_dispZ = 0.80;
+      //rSP_core = 0.80;
+      //rSP_dispZ = 0.80;
+      //these values are for the ceca paper, work well with 1 fm effective
+      rSP_core = 0.85;
+      rSP_dispZ = 0.85;
       rSP_hadr = 0.00;
       rSP_tau = 0.00;
     }
@@ -2105,7 +2109,9 @@ void Ceca_pd_1(const double& d_delay, const int& EffFix, const TString type="pd"
     else if(EffFix==-1010){
       rSP_core = 0.00;
       rSP_dispZ = 0.00;
-      rSP_hadr = 4.00;
+      //rSP_hadr = 4.00;
+      //these values are for the ceca paper, work well with 1 fm effective
+      rSP_hadr = 4.2;
       rSP_tau = 0.00;
     }
     else if(EffFix==-1020){
@@ -2118,7 +2124,9 @@ void Ceca_pd_1(const double& d_delay, const int& EffFix, const TString type="pd"
       rSP_core = 0.00;
       rSP_dispZ = 0.00;
       rSP_hadr = 0.00;
-      rSP_tau = 4.00;
+      //rSP_tau = 4.00;
+      //these values are for the ceca paper, work well with 1 fm effective
+      rSP_tau = 4.2;
     }
     else if(EffFix==-1200){
       rSP_core = 0.00;
@@ -2587,6 +2595,14 @@ if(prt->GetName()=="PionFSI"){
   //Ivana.SetHadronization(0.0);
   //Ivana.SetHadrFluctuation(0.0);
 
+printf("d %.3f %.3f\n",rSP_core,rSP_dispZ);
+printf("h %.3f %.3f\n",rSP_hadr,rSP_hadrZ);
+printf("t %.3f %.3f\n",rSP_tau,float(tau_prp));
+printf("tf %.3f\n",rSP_tflc);
+printf("tk %.3f\n",rSP_ThK);
+printf("fh %.3f\n",float(rSP_FixedHadr));
+printf("fb %.3f\n",rSP_FragBeta);
+
   Ivana.SetDisplacementZ(rSP_dispZ);
   Ivana.SetDisplacementT(rSP_core);
   Ivana.SetHadronizationZ(rSP_hadrZ);//0
@@ -2624,7 +2640,7 @@ if(prt->GetName()=="PionFSI"){
     //BinCenter_pp[4] = 1.4628;
     //BinCenter_pp[5] = 1.6872;
     //BinCenter_pp[6] = 2.2116;
-
+/*
     Ivana.Ghetto_NumMtBins = 9;
     Ivana.Ghetto_MtBins = new double [Ivana.Ghetto_NumMtBins+1];
     Ivana.Ghetto_MtBins[0] = 938;
@@ -2637,13 +2653,35 @@ if(prt->GetName()=="PionFSI"){
     Ivana.Ghetto_MtBins[7] = 1940;
     Ivana.Ghetto_MtBins[8] = 2500;
     Ivana.Ghetto_MtBins[9] = 4000;
+*/
+
+
+    //ceca paper
+    Ivana.Ghetto_NumMtBins = 10;
+    Ivana.Ghetto_MtBins = new double [Ivana.Ghetto_NumMtBins+1];
+    Ivana.Ghetto_MtBins[0] = 930; //avg  983 ( 985)
+    Ivana.Ghetto_MtBins[1] = 1020;//avg 1054 (1055)
+    Ivana.Ghetto_MtBins[2] = 1080;//avg 1110 (1110)
+    Ivana.Ghetto_MtBins[3] = 1140;//avg 1168 (1170)
+    Ivana.Ghetto_MtBins[4] = 1200;//avg 1228 (1230)
+    Ivana.Ghetto_MtBins[5] = 1260;//avg 1315 (1315)
+    Ivana.Ghetto_MtBins[6] = 1380;//avg 1463 (1460)
+    Ivana.Ghetto_MtBins[7] = 1570;//avg 1681 (1680)
+    Ivana.Ghetto_MtBins[8] = 1840;//avg 1923 (1920)
+    Ivana.Ghetto_MtBins[9] = 2030;//avg 2303 (2300)
+    Ivana.Ghetto_MtBins[10] = 4500;
 
     Ivana.Ghetto_NumMomBins = 150;
     Ivana.Ghetto_MomMin = 0;
     Ivana.Ghetto_MomMax = 600;
+
+    Ivana.Ghetto_NumRadBins = 2048;
+    Ivana.Ghetto_RadMin = 0;
+    Ivana.Ghetto_RadMax = 64;
+
   }
 
-  Ivana.GoBabyGo();
+  Ivana.GoBabyGo(NUM_CPU);
 
   Ivana.Ghetto_kstar_rstar_mT->QuickWrite(BaseFileName+".Ghetto_kstar_rstar_mT",true);
 
@@ -9304,7 +9342,9 @@ int FUN_WITH_CECA(int argc, char *argv[]){
   //Ceca_pd_1(0.0,-1020,"pp");
   //Ceca_pd_1(0.0,-1100,"pp");
   //Ceca_pd_1(0.0,-1200,"pp");
-  Ceca_pd_1(0.0,-900,"pp");
+  //Ceca_pd_1(0.0,-900,"pp");
+  Ceca_pd_1(0.0,atoi(argv[1]),"pp");
+
 
   //Ceca_pd_1(0.0,-1300,"pp");
   //Ceca_pd_1(0.0,-1,"pipi_core");

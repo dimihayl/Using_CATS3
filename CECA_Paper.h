@@ -129,7 +129,6 @@ public:
   DLM_Ck* Ck_pXim;
   DLM_Ck* Ck_pXim1530;
 
-
   //the history for evaluated correlations
   //DLM_Ck** CkMt_pp;
   //DLM_Ck** CkMt_pL;
@@ -199,7 +198,6 @@ public:
   const unsigned BaselineFitPars;
   const unsigned ExtraFitPars;
   const unsigned TotFitPars;
-
 
   double FitFun_pp(double* xval, double* par);
   double FitFun_pL(double* xval, double* par);

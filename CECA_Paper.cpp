@@ -16,6 +16,10 @@
 #include "DLM_Ck.h"
 #include "CATS.h"
 #include "DLM_MultiFit.h"
+#include "DLM_SubPads.h"
+#include "FemtoBoyzScripts.h"
+
+
 
 #include <iostream>
 #include <unistd.h>
@@ -5199,10 +5203,10 @@ void CecaAnalysis1::GoBabyGo(bool print_info){
 void TestSetUpAna(){
 
 
-  TString Description = "J1_Reduced_USM_Ceca";
+  //TString Description = "J1_Reduced_USM_Ceca";
   //TString Description = "J1_Reduced_USM_Gauss";
   //TString Description = "NLO_Gauss";//NLO19-600
-  //TString Description = "Usmani_Gauss";//usmani 1:1 as NLO19-600
+  TString Description = "Usmani_Gauss";//usmani 1:1 as NLO19-600
   //TString Description = "C2_Reduced_USM_Ceca";
 
   TString CecaAnaSettings;
@@ -5550,8 +5554,8 @@ void TestSetUpAna(){
   printf("Chi2_pp = %.0f\n",Chi2_pp);
   printf("Chi2_pL = %.0f\n",Chi2_pL);
 
-  CECA_ANA.DumpCurrentCk(TString::Format("%s/CECA_Paper/TestSetUpAna/",GetFemtoOutputFolder())+FileBase,2);
-  CECA_ANA.DumpCurrentCk(TString::Format("%s/CECA_Paper/TestSetUpAna/",GetFemtoOutputFolder())+FileBase,1);
+  CECA_ANA.DumpCurrentCk(TString::Format("%s/CecaPaper/TestSetUpAna/",GetCernBoxDimi())+FileBase,2);
+  CECA_ANA.DumpCurrentCk(TString::Format("%s/CecaPaper/TestSetUpAna/",GetCernBoxDimi())+FileBase,1);
 
 
 }
@@ -6481,7 +6485,7 @@ void UsmaniFineCheck(){
 //desired nsgima are considered. Npars is important for the eval of the corresponding Delta Chi2
 void Plot_Ck(
   TString AnaType, TString SourceDescription, TString cern_box, TString out_folder,
-  TString InputFileName, double nsigma, int Npars){
+  TString InputFileName, double nsigma, int Npars, int MaxEntries){
 
   double dChi2 = GetDeltaChi2(nsigma, Npars);
 
@@ -6505,6 +6509,24 @@ void Plot_Ck(
     hExp_pp[uMt] = (TH1F*)CECA_ANA.GetData("pp",uMt)->Clone(TString::Format("hExp_pp_%u",uMt));
   }
   //printf("0 %p \n",hExp_pp);
+//DEB
+  TGraphErrors gMt_tot_pp; gMt_tot_pp.SetName("gMt_tot_pp");
+  TGraphErrors gMt_core_pp; gMt_core_pp.SetName("gMt_core_pp");
+  TGraphErrors gMt_tot_pL; gMt_tot_pL.SetName("gMt_tot_pL");
+  TGraphErrors gMt_core_pL; gMt_core_pL.SetName("gMt_core_pL");
+
+  float* min_val_src_pp = new float[Num_mT_bins_pp];
+  float* max_val_src_pp = new float[Num_mT_bins_pp];
+  float* min_val_csr_pp = new float[Num_mT_bins_pp];
+  float* max_val_csr_pp = new float[Num_mT_bins_pp];
+  float* bincenter_mt_pp = new float[Num_mT_bins_pp];
+
+  float* min_val_src_pL = new float[Num_mT_bins_pL];
+  float* max_val_src_pL = new float[Num_mT_bins_pL];
+  float* min_val_csr_pL = new float[Num_mT_bins_pL];
+  float* max_val_csr_pL = new float[Num_mT_bins_pL];
+  float* bincenter_mt_pL = new float[Num_mT_bins_pL];
+
   TGraphErrors* gFit_pp = new TGraphErrors[Num_mT_bins_pp];
   TGraphErrors* gBL_pp = new TGraphErrors[Num_mT_bins_pp];
   TGraphErrors* gRat_pp = new TGraphErrors[Num_mT_bins_pp];
@@ -6531,6 +6553,11 @@ void Plot_Ck(
       min_rat_pp[uMt][uMom] = 1000;
       max_rat_pp[uMt][uMom] = -1000;
     }
+  //DEB
+    min_val_src_pp[uMt] = 1000;
+    max_val_src_pp[uMt] = -1000;
+    min_val_csr_pp[uMt] = 1000;
+    max_val_csr_pp[uMt] = -1000;
   }
   //printf("1\n");
   for(unsigned uMt=0; uMt<Num_mT_bins_pp; uMt++){
@@ -6567,6 +6594,10 @@ void Plot_Ck(
       min_rat_pL[uMt][uMom] = 1000;
       max_rat_pL[uMt][uMom] = -1000;
     }
+    min_val_src_pL[uMt] = 1000;
+    max_val_src_pL[uMt] = -1000;
+    min_val_csr_pL[uMt] = 1000;
+    max_val_csr_pL[uMt] = -1000;
   }
   for(unsigned uMt=0; uMt<Num_mT_bins_pL; uMt++){
     gFit_pL[uMt].SetName(TString::Format("gFit_pL_%u",uMt));
@@ -6618,14 +6649,17 @@ void Plot_Ck(
   }
 
   printf(" best chi2 = %.2f\n",BestChi2);
+  unsigned GoodEntries = 0;
 
   for(unsigned uEntry=0; uEntry<NumNtEntries; uEntry++){
     ntInput->GetEntry(uEntry);
     if(chi2_pp_fmt+chi2_pL_fmt>BestChi2+dChi2){
       continue;
     }
+    GoodEntries++;
+    if(GoodEntries>=MaxEntries) break;
 
-    printf(" current chi2 = %.2f (%.0f %% done)\n",chi2_pp_fmt+chi2_pL_fmt,double(uEntry)/double(NumNtEntries)*100.);
+    printf(" current chi2 = %.2f (%.0f %% done, %u entires)\n",chi2_pp_fmt+chi2_pL_fmt,double(uEntry)/double(NumNtEntries)*100.,GoodEntries);
 
     CECA_ANA.Kitty_pL->SetShortRangePotential(1,0,1,wc_val);
     CECA_ANA.Kitty_pL->SetShortRangePotential(1,0,2,rc_val);
@@ -6668,7 +6702,45 @@ void Plot_Ck(
 
     //printf("GO!\n");
     CECA_ANA.GoBabyGo(false);
+
+//DEB
+
+    CECA_ANA.DumpCurrentCk(out_folder+TString::Format("/tmp1331"));
+    TFile fDump(out_folder+TString::Format("/tmp1331.root"));
+
+    TGraphErrors* mT_Scaling_pp = (TGraphErrors*)fDump.Get("mT_Scaling_pp");
+    for(unsigned uMt=0; uMt<Num_mT_bins_pp; uMt++){
+      double mt,rmean;
+      mT_Scaling_pp->GetPoint(uMt,mt,rmean);
+      if(rmean<min_val_src_pp[uMt]){
+        min_val_src_pp[uMt] = rmean;
+      }
+      if(rmean>max_val_src_pp[uMt]){
+        max_val_src_pp[uMt] = rmean;
+      }
+      if(GoodEntries==1){
+        bincenter_mt_pp[uMt] = mt;
+      }
+    }
+
+    TGraphErrors* mT_Scaling_pL = (TGraphErrors*)fDump.Get("mT_Scaling_pL");
+    for(unsigned uMt=0; uMt<Num_mT_bins_pL; uMt++){
+      double mt,rmean;
+      mT_Scaling_pL->GetPoint(uMt,mt,rmean);
+      if(rmean<min_val_src_pL[uMt]){
+        min_val_src_pL[uMt] = rmean;
+      }
+      if(rmean>max_val_src_pL[uMt]){
+        max_val_src_pL[uMt] = rmean;
+      }
+      if(GoodEntries==1){
+        bincenter_mt_pL[uMt] = mt;
+      }
+    }
+
     //printf("DONE!\n");
+
+    fDump.Close();
 
     //printf("QA: Expected: %.2f %.2f\n",chi2_pp_fmt,chi2_pL_fmt);
     //printf("      Result: %.2f %.2f\n",chi2_pp_fmt,chi2_pL_fmt);
@@ -6707,7 +6779,7 @@ void Plot_Ck(
           max_bl_pp[uMt][uMom] = BlVal;
         }
       }
-    }
+    }//pp mt
 
     for(unsigned uMt=0; uMt<Num_mT_bins_pL; uMt++){
       //printf("umtpL %u\n",uMt);
@@ -6773,6 +6845,9 @@ void Plot_Ck(
       gRat_pp[uMt].SetPoint(uMom,MOM,AvgVal);
       gRat_pp[uMt].SetPointError(uMom,0,ErrVal);
     }
+//DEB
+    gMt_tot_pp.SetPoint(uMt,bincenter_mt_pp[uMt],(max_val_src_pp[uMt]+min_val_src_pp[uMt])*0.5);
+    gMt_tot_pp.SetPointError(uMt,0,(max_val_src_pp[uMt]-min_val_src_pp[uMt])*0.5);
   }
   //printf("pL\n");
   for(unsigned uMt=0; uMt<Num_mT_bins_pL; uMt++){
@@ -6797,8 +6872,103 @@ void Plot_Ck(
       gRat_pL[uMt].SetPoint(uMom,MOM,AvgVal);
       gRat_pL[uMt].SetPointError(uMom,0,ErrVal);
     }
+//DEB
+    gMt_tot_pL.SetPoint(uMt,bincenter_mt_pL[uMt],(max_val_src_pL[uMt]+min_val_src_pL[uMt])*0.5);
+    gMt_tot_pL.SetPointError(uMt,0,(max_val_src_pL[uMt]-min_val_src_pL[uMt])*0.5);
   }
   //printf("fOutput...\n");
+
+  SetStyle();
+
+  TH1F* hAxisCk_pp = new TH1F("hAxisCk_pp", "hAxisCk_pp", 180, 0, 180);
+  hAxisCk_pp->SetStats(false);
+  hAxisCk_pp->SetTitle("; #it{k*} (MeV/#it{c}); #it{C}(#it{k*})");
+  hAxisCk_pp->GetXaxis()->SetRangeUser(0, 180);
+  hAxisCk_pp->GetYaxis()->SetRangeUser(0.80,4.0);
+  hAxisCk_pp->GetXaxis()->SetNdivisions(505);
+  //SetStyleHisto2(hAxis,2,0,2);
+  hAxisCk_pp->SetLineWidth(2);
+  hAxisCk_pp->SetLineColor(kBlack);
+  hAxisCk_pp->GetYaxis()->SetTitleOffset(0.9);
+  hAxisCk_pp->GetYaxis()->SetNdivisions(504);
+
+
+  //Double_t yticks[3] = {-1, 0, 1};
+  TH1F* hAxisNsig = new TH1F("hAxisNsig", "hAxisNsig", 180, 0, 180);
+  hAxisNsig->SetStats(false);
+  hAxisNsig->SetTitle("; #it{k*} (MeV/#it{c}); #it{n_{#sigma}}");
+  hAxisNsig->GetXaxis()->SetRangeUser(0, 180);
+  hAxisNsig->GetXaxis()->SetNdivisions(505);
+  //SetStyleHisto2(hAxis,2,0,2);
+  hAxisNsig->SetLineWidth(2);
+  hAxisNsig->SetLineColor(kBlack);
+  hAxisNsig->GetXaxis()->SetTitleOffset(1.0);
+  hAxisNsig->GetYaxis()->SetTitleOffset(0.45);
+  hAxisNsig->GetYaxis()->SetRangeUser(-2,2);
+  hAxisNsig->GetYaxis()->SetNdivisions(-502);
+  //hAxisNsig->GetYaxis()->SetTicks(sizeof(yticks)/sizeof(Double_t), yticks);
+
+  TH1F* hAxisNsigDummy = new TH1F("hAxisNsigDummy", "hAxisNsigDummy", 180, 0, 180);
+  hAxisNsigDummy->SetStats(false);
+  hAxisNsigDummy->SetTitle("; ; ");
+  hAxisNsigDummy->GetXaxis()->SetRangeUser(0, 180);
+  hAxisNsigDummy->GetXaxis()->SetNdivisions(0);
+  //SetStyleHisto2(hAxis,2,0,2);
+  hAxisNsigDummy->SetLineWidth(2);
+  hAxisNsigDummy->SetLineColor(kBlack);
+  hAxisNsigDummy->GetXaxis()->SetTitleOffset(1.0);
+  hAxisNsigDummy->GetYaxis()->SetTitleOffset(0.45);
+  hAxisNsigDummy->GetYaxis()->SetRangeUser(-4.5,4.5);
+  hAxisNsigDummy->GetYaxis()->SetNdivisions(0);
+
+//hExp_pp_5
+//PLOTS PP
+  for(unsigned uMt=0; uMt<Num_mT_bins_pp; uMt++){
+    DLM_SubPads* DlmPad_pp = new DLM_SubPads(720,720);
+    DlmPad_pp->AddSubPad(0,1,0.33,1);
+    DlmPad_pp->AddSubPad(0,1,0,0.33);
+    DlmPad_pp->SetMargin(0,0.12,0.02,0.0,0.02);
+    DlmPad_pp->SetMargin(1,0.12,0.02,0.09,0.0);
+    DlmPad_pp->cd(0);
+    DlmPad_pp->SetLabelSize(0,hAxisCk_pp->GetYaxis(),18);
+    DlmPad_pp->SetLabelSize(0,hAxisCk_pp->GetXaxis(),18);
+    DlmPad_pp->SetTitleSize(0,hAxisCk_pp->GetYaxis(),21);
+    DlmPad_pp->SetTitleSize(0,hAxisCk_pp->GetXaxis(),21);
+
+    hExp_pp[uMt]->SetTitle("; #it{k*} (MeV/#it{c}); #it{C}(#it{k*})");
+    hExp_pp[uMt]->GetXaxis()->SetRangeUser(0, 180);
+    hExp_pp[uMt]->GetXaxis()->SetNdivisions(505);
+    hExp_pp[uMt]->GetYaxis()->SetRangeUser(0.8, 4.0);
+    if(uMt==Num_mT_bins_pp-1) hExp_pp[uMt]->GetYaxis()->SetRangeUser(0.8, 4.85);
+    hExp_pp[uMt]->SetFillColor(kGray+1);
+    hExp_pp[uMt]->SetMarkerSize(1.5);
+    hExp_pp[uMt]->SetLineWidth(3);
+    hExp_pp[uMt]->SetMarkerStyle(kOpenCircle);
+    hExp_pp[uMt]->SetMarkerColor(kBlack);
+    hExp_pp[uMt]->SetLineColor(kBlack);
+
+
+    gFit_pp[uMt].SetFillColorAlpha(kBlue+2,0.90);//kCyan-8
+    gFit_pp[uMt].SetLineColor(kBlue+2);//kCyan-8
+    gFit_pp[uMt].SetLineWidth(1.5);
+
+
+
+    //SetStyleHisto2a(hExp_pp[uMt],2,0);
+    hAxisCk_pp->Draw("axis");
+    hExp_pp[uMt]->Draw("same");
+    gFit_pp[uMt].Draw("3L same");
+
+    DlmPad_pp->cd(1);
+    DlmPad_pp->SetLabelSize(1,hAxisNsig->GetYaxis(),18);
+    DlmPad_pp->SetLabelSize(1,hAxisNsig->GetXaxis(),18);
+    DlmPad_pp->SetTitleSize(1,hAxisNsig->GetYaxis(),21);
+    DlmPad_pp->SetTitleSize(1,hAxisNsig->GetXaxis(),21);
+    //hAxisNsigDummy->Draw("axis");
+    hAxisNsig->Draw("axis");
+
+    DlmPad_pp->GetCanvas()->SaveAs(out_folder+TString::Format("/CkPP%u_%s_%s.pdf",uMt,AnaType.Data(),SourceDescription.Data()));
+  }
 
   TFile fOutput(out_folder+TString::Format("/Plots_%s_%s.root",AnaType.Data(),SourceDescription.Data()),"recreate");
   for(unsigned uMt=0; uMt<Num_mT_bins_pp; uMt++){
@@ -6813,11 +6983,80 @@ void Plot_Ck(
     gBL_pL[uMt].Write();
     gRat_pL[uMt].Write();
   }
-
+//DEB
+  gMt_tot_pp.Write();
+  gMt_tot_pL.Write();
 }
 
-
 void Usmani_vs_NLO19(){
+  const double SourceSize = 1.2;
+  const double kMin=0;
+  const double kMax=200;
+  const unsigned NumMomBins = 100;
+  //Wc=2279.0; Rc=0.3394; Sc=0.2614; f1=1.41; d1=2.53;
+  CATS CatNLO19;
+  CatNLO19.SetMomBins(NumMomBins,kMin,kMax);
+  CATS CatUsmDef;
+  CatUsmDef.SetMomBins(NumMomBins,kMin,kMax);
+  CATS CatUsmNLO;
+  CatUsmNLO.SetMomBins(NumMomBins,kMin,kMax);
+
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
+  AnalysisObject.SetUpCats_pL(CatNLO19,"Chiral_Coupled_SPD","Gauss",11600,0);
+  AnalysisObject.SetUpCats_pL(CatUsmDef,"Usmani","Gauss",0,0);
+  AnalysisObject.SetUpCats_pL(CatUsmNLO,"UsmaniFit","Gauss",0,0);
+
+  CatNLO19.SetAnaSource(0,SourceSize);
+  CatUsmDef.SetAnaSource(0,SourceSize);
+  CatUsmNLO.SetAnaSource(0,SourceSize);
+
+  CatUsmNLO.SetShortRangePotential(1,0,1,2279);
+  CatUsmNLO.SetShortRangePotential(1,0,2,0.3394);
+  CatUsmNLO.SetShortRangePotential(1,0,3,0.2614);
+
+  CatNLO19.SetEpsilonConv(1e-10);
+  CatNLO19.SetEpsilonProp(1e-10);
+
+  CatUsmDef.SetEpsilonConv(1e-10);
+  CatUsmDef.SetEpsilonProp(1e-10);
+
+  CatUsmNLO.SetEpsilonConv(1e-10);
+  CatUsmNLO.SetEpsilonProp(1e-10);
+
+  CatNLO19.KillTheCat();
+  CatUsmDef.KillTheCat();
+  CatUsmNLO.KillTheCat();
+
+  TGraph gNLO19;
+  TGraph gUsmDef;
+  TGraph gUsmNLO;
+
+  TGraph gRatUsmDef;
+  TGraph gRatUsmNLO;
+
+  gNLO19.SetName("gNLO19");
+  gUsmDef.SetName("gUsmDef");
+  gUsmNLO.SetName("gUsmNLO");
+  gRatUsmDef.SetName("gRatUsmDef");
+  gRatUsmNLO.SetName("gRatUsmNLO");
+
+  for(unsigned uBin=0; uBin<NumMomBins; uBin++){
+    double MOM = CatNLO19.GetMomentum(uBin);
+    gNLO19.SetPoint(uBin,MOM,CatNLO19.GetCorrFun(uBin));
+    gUsmDef.SetPoint(uBin,MOM,CatUsmDef.GetCorrFun(uBin));
+    gUsmNLO.SetPoint(uBin,MOM,CatUsmNLO.GetCorrFun(uBin)/1.01);
+    gRatUsmDef.SetPoint(uBin,MOM,CatUsmDef.GetCorrFun(uBin)/CatNLO19.GetCorrFun(uBin));
+    gRatUsmNLO.SetPoint(uBin,MOM,CatUsmNLO.GetCorrFun(uBin)/CatNLO19.GetCorrFun(uBin)/1.01);
+  }
+
+  TFile fOutput(TString::Format("%s/CECA_Paper/Usmani_vs_NLO19/fOutput.root",GetFemtoOutputFolder()),"recreate");
+  gNLO19.Write();
+  gUsmDef.Write();
+  gUsmNLO.Write();
+  gRatUsmDef.Write();
+  gRatUsmNLO.Write();
+
 
 }
 
@@ -6930,13 +7169,20 @@ ScanPsUsmani(
 
 //Plot_Ck(
 //  TString AnaType, TString SourceDescription, TString cern_box, TString out_folder,
-//  TString InputFileName, double nsigma, int Npars
-/*
+//  TString InputFileName, double nsigma, int Npars, int MaxEntries
+
+//NB change to 1 sig
+//Plot_Ck("Reduced","Jaime1_ds24_hts36_hzs36",TString(GetCernBoxDimi()),
+//          TString::Format("%s/CecaPaper/ScanPsUsmani/CecaPaper_J1_UsmFit_2/Plot_Ck/",GetCernBoxDimi()),
+//          TString::Format("%s/CecaPaper/ScanPsUsmani/CecaPaper_J1_UsmFit_2/CecaPaper_J1_UsmFit_2.root",GetCernBoxDimi()),
+//          1,6,1000);
 Plot_Ck("Reduced","Jaime1_ds24_hts36_hzs36",TString(GetCernBoxDimi()),
-          TString::Format("%s/CecaPaper/Plot_Ck/",GetCernBoxDimi()),
-          TString::Format("%s/CecaPaper/ScanPsUsmani/CecaPaper_J1_UsmFit_2/CecaPaper_J1_UsmFit_2.root",GetCernBoxDimi()),
-          2,6);
-*/
+          TString::Format("%s/CecaPaper/ScanPsUsmani/CecaPaper_J1_UsmNLO19/Plot_Ck/",GetCernBoxDimi()),
+          TString::Format("%s/CecaPaper/ScanPsUsmani/CecaPaper_J1_UsmNLO19/CecaPaper_J1_UsmNLO19.root",GetCernBoxDimi()),
+          1,6,1000);
+
+
+
 //USE THIS ONE FOR THE PAPER
 /*
 ScanPsUsmani(
@@ -7040,6 +7286,7 @@ ScanPsUsmani(
                   atof(argv[2]), atoi(argv[3]));//mins and seed
 */
 //refine usmani nlo19, based on c.a. the 2 sigma interval (maybe even less)
+/*
 ScanPsUsmani(
                   "Reduced","Jaime1_ds24_hts36_hzs36",
                   TString(GetCernBoxDimi()), TString::Format("%s/CecaPaper/ScanPsUsmani/CecaPaper_J1_UsmNLO19/",GetCernBoxDimi()),
@@ -7051,6 +7298,7 @@ ScanPsUsmani(
                   0.2614, 0.2614,
                   atoi(argv[1]),//lambda vars (400,401,402,500,501,502)
                   atof(argv[2]), atoi(argv[3]));//mins and seed
+*/
 /*
 ScanPsUsmani(
                   "Reduced","Cigar2_ds24_hts36_hzs36",
