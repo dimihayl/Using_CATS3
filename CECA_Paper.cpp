@@ -562,6 +562,11 @@ int Ceca_pp_or_pL(const TString FileBase, const TString InputFolder, const TStri
   double frac_lambda_reso;
   double tau_lambda_reso;
 
+  double del_proton;
+  double del_proton_reso;
+  double del_lambda;
+  double del_lambda_reso;
+
   char* cline = new char [512];
   char* cdscr = new char [128];
   char* cval = new char [128];
@@ -618,6 +623,10 @@ int Ceca_pp_or_pL(const TString FileBase, const TString InputFolder, const TStri
       else if(strcmp(cdscr,"m_lambda_reso")==0) {m_lambda_reso = read_value;}
       else if(strcmp(cdscr,"tau_lambda_reso")==0) {tau_lambda_reso = read_value;}
       else if(strcmp(cdscr,"frac_lambda_reso")==0) {frac_lambda_reso = read_value;}
+      else if(strcmp(cdscr,"del_proton")==0) {del_proton = read_value;}
+      else if(strcmp(cdscr,"del_proton_reso")==0) {del_proton_reso = read_value;}
+      else if(strcmp(cdscr,"del_lambda")==0) {del_lambda = read_value;}
+      else if(strcmp(cdscr,"del_lambda_reso")==0) {del_lambda_reso = read_value;}
     }
   }
   delete [] cval;
@@ -654,6 +663,10 @@ int Ceca_pp_or_pL(const TString FileBase, const TString InputFolder, const TStri
   printf("frac_lambda_reso = %f\n",frac_lambda_reso);
   printf("m_lambda_reso = %f\n",m_lambda_reso);
   printf("tau_lambda_reso = %f\n",tau_lambda_reso);
+  printf("del_proton = %f\n",del_proton);
+  printf("del_proton_reso = %f\n",del_proton_reso);
+  printf("del_lambda = %f\n",del_lambda);
+  printf("del_lambda_reso = %f\n",del_lambda_reso);
   printf("type = %s\n",type.Data());
 
   //if(current_yield>=target_yield){
@@ -701,6 +714,7 @@ int Ceca_pp_or_pL(const TString FileBase, const TString InputFolder, const TStri
       prt->SetAbundance(100.-frac_proton_reso);
       prt->SetRadius(hdr_size);
       prt->SetRadiusSlope(hdr_slope);
+      prt->SetDelayTau(del_proton);
       if(dlm_pT_eta_p) prt->SetPtEtaPhi(*dlm_pT_eta_p);
       else prt->SetPtPz(0.85*prt->GetMass(),0.85*prt->GetMass());
     }
@@ -708,6 +722,7 @@ int Ceca_pp_or_pL(const TString FileBase, const TString InputFolder, const TStri
       prt->SetMass(m_proton_reso);
       prt->SetAbundance(frac_proton_reso);
       prt->SetWidth(hbarc/tau_proton_reso);
+      prt->SetDelayTau(del_proton_reso);
 
       prt->NewDecay();
       prt->GetDecay(0)->AddDaughter(*Database.GetParticle("Proton"));
@@ -722,6 +737,7 @@ int Ceca_pp_or_pL(const TString FileBase, const TString InputFolder, const TStri
       prt->SetAbundance(100.-frac_lambda_reso);
       prt->SetRadius(hdr_size);
       prt->SetRadiusSlope(hdr_slope);
+      prt->SetDelayTau(del_lambda);
       if(dlm_pT_eta_L) prt->SetPtEtaPhi(*dlm_pT_eta_L);
       else prt->SetPtPz(0.85*prt->GetMass(),0.85*prt->GetMass());
     }
@@ -729,6 +745,7 @@ int Ceca_pp_or_pL(const TString FileBase, const TString InputFolder, const TStri
       prt->SetMass(m_lambda_reso);
       prt->SetAbundance(frac_lambda_reso);
       prt->SetWidth(hbarc/tau_lambda_reso);
+      prt->SetDelayTau(del_lambda_reso);
 
       prt->NewDecay();
       prt->GetDecay(0)->AddDaughter(*Database.GetParticle("Lambda"));
@@ -5208,6 +5225,7 @@ void TestSetUpAna(){
   //TString Description = "NLO_Gauss";//NLO19-600
   TString Description = "Usmani_Gauss";//usmani 1:1 as NLO19-600
   //TString Description = "C2_Reduced_USM_Ceca";
+  //
 
   TString CecaAnaSettings;
   TString FileBase;
@@ -6489,6 +6507,23 @@ void Plot_Ck(
 
   double dChi2 = GetDeltaChi2(nsigma, Npars);
 
+  double dChi2_1sig = GetDeltaChi2(1, Npars);
+  double dChi2_2sig = GetDeltaChi2(2, Npars);
+  double dChi2_3sig = GetDeltaChi2(3, Npars);
+  double dChi2_5sig = GetDeltaChi2(5, Npars);
+  double Check_f1 = 1.41;
+  double Eps_f1 = 0.005;
+
+  TH1F* nsig_f1 = new TH1F("nsig_f1","nsig_f1",1000,0,20);
+  TH1F* f1_1sig = new TH1F("f1_1sig","f1_1sig",1000,0,2);
+  TH1F* f1_2sig = new TH1F("f1_2sig","f1_2sig",1000,0,2);
+  TH1F* f1_3sig = new TH1F("f1_3sig","f1_3sig",1000,0,2);
+  TH1F* f1_5sig = new TH1F("f1_5sig","f1_5sig",1000,0,2);
+
+  TH1F* d_1sig = new TH1F("d_1sig","d_1sig",1000,0,1);
+  TH1F* ht_1sig = new TH1F("ht_1sig","ht_1sig",1000,0,10);
+  TH1F* hz_1sig = new TH1F("hz_1sig","hz_1sig",1200,0,12);
+
   CecaAnalysis1 CECA_ANA(AnaType,SourceDescription,cern_box+TString("/CatsFiles/"));
   CECA_ANA.SetUp_pp("AV18",0);
   CECA_ANA.SetUp_pL("UsmaniFit",0);
@@ -6510,6 +6545,10 @@ void Plot_Ck(
   }
   //printf("0 %p \n",hExp_pp);
 //DEB
+  const double RadMin = 0;
+  const double RadMax = 16;
+  const unsigned NumRadBins = 1024;
+  const double RadStep = (RadMax-RadMin)/double(NumRadBins);
   TGraphErrors gMt_tot_pp; gMt_tot_pp.SetName("gMt_tot_pp");
   TGraphErrors gMt_core_pp; gMt_core_pp.SetName("gMt_core_pp");
   TGraphErrors gMt_tot_pL; gMt_tot_pL.SetName("gMt_tot_pL");
@@ -6536,6 +6575,9 @@ void Plot_Ck(
   float** max_bl_pp = new float*[Num_mT_bins_pp];
   float** min_rat_pp = new float*[Num_mT_bins_pp];
   float** max_rat_pp = new float*[Num_mT_bins_pp];
+  float** min_reff_pp = new float*[Num_mT_bins_pp];
+  float** max_reff_pp = new float*[Num_mT_bins_pp];
+  TGraphErrors* gSource_pp = new TGraphErrors[Num_mT_bins_pp];
   for(unsigned uMt=0; uMt<Num_mT_bins_pp; uMt++){
     //printf("umt %u\n",uMt);
     //printf(" hExp_pp[uMt]->GetNbinsX() %u\n",hExp_pp[uMt]->GetNbinsX());
@@ -6545,6 +6587,8 @@ void Plot_Ck(
     max_bl_pp[uMt] = new float [hExp_pp[uMt]->GetNbinsX()];
     min_rat_pp[uMt] = new float [hExp_pp[uMt]->GetNbinsX()];
     max_rat_pp[uMt] = new float [hExp_pp[uMt]->GetNbinsX()];
+    min_reff_pp[uMt] = new float [NumRadBins];
+    max_reff_pp[uMt] = new float [NumRadBins];
     for(unsigned uMom=0; uMom<hExp_pp[uMt]->GetNbinsX(); uMom++){
       min_val_pp[uMt][uMom] = 1000;
       max_val_pp[uMt][uMom] = -1000;
@@ -6553,6 +6597,13 @@ void Plot_Ck(
       min_rat_pp[uMt][uMom] = 1000;
       max_rat_pp[uMt][uMom] = -1000;
     }
+
+    gSource_pp[uMt].SetName(TString::Format("gSource_pp_%u",uMt));
+    for(unsigned uRad=0; uRad<NumRadBins; uRad++){
+      min_reff_pp[uMt][uRad] = 1000;
+      max_reff_pp[uMt][uRad] = -1000;
+    }
+
   //DEB
     min_val_src_pp[uMt] = 1000;
     max_val_src_pp[uMt] = -1000;
@@ -6566,6 +6617,9 @@ void Plot_Ck(
     gRat_pp[uMt].SetName(TString::Format("gRat_pp_%u",uMt));
   }
 
+
+
+
   TH1F** hExp_pL = new TH1F* [Num_mT_bins_pL];
   for(unsigned uMt=0; uMt<Num_mT_bins_pL; uMt++){
     hExp_pL[uMt] = (TH1F*)CECA_ANA.GetData("pL",uMt)->Clone(TString::Format("hExp_pL_%u",uMt));
@@ -6577,8 +6631,11 @@ void Plot_Ck(
   float** max_val_pL = new float*[Num_mT_bins_pL];
   float** min_bl_pL = new float*[Num_mT_bins_pL];
   float** max_bl_pL = new float*[Num_mT_bins_pL];
-  float** min_rat_pL = new float*[Num_mT_bins_pp];
-  float** max_rat_pL = new float*[Num_mT_bins_pp];
+  float** min_rat_pL = new float*[Num_mT_bins_pL];
+  float** max_rat_pL = new float*[Num_mT_bins_pL];
+  float** min_reff_pL = new float*[Num_mT_bins_pL];
+  float** max_reff_pL = new float*[Num_mT_bins_pL];
+  TGraphErrors* gSource_pL = new TGraphErrors[Num_mT_bins_pL];
   for(unsigned uMt=0; uMt<Num_mT_bins_pL; uMt++){
     min_val_pL[uMt] = new float [hExp_pL[uMt]->GetNbinsX()];
     max_val_pL[uMt] = new float [hExp_pL[uMt]->GetNbinsX()];
@@ -6586,6 +6643,8 @@ void Plot_Ck(
     max_bl_pL[uMt] = new float [hExp_pp[uMt]->GetNbinsX()];
     min_rat_pL[uMt] = new float [hExp_pp[uMt]->GetNbinsX()];
     max_rat_pL[uMt] = new float [hExp_pp[uMt]->GetNbinsX()];
+    min_reff_pL[uMt] = new float [NumRadBins];
+    max_reff_pL[uMt] = new float [NumRadBins];
     for(unsigned uMom=0; uMom<hExp_pL[uMt]->GetNbinsX(); uMom++){
       min_val_pL[uMt][uMom] = 1000;
       max_val_pL[uMt][uMom] = -1000;
@@ -6593,6 +6652,11 @@ void Plot_Ck(
       max_bl_pL[uMt][uMom] = -1000;
       min_rat_pL[uMt][uMom] = 1000;
       max_rat_pL[uMt][uMom] = -1000;
+    }
+    gSource_pL[uMt].SetName(TString::Format("gSource_pL_%u",uMt));
+    for(unsigned uRad=0; uRad<NumRadBins; uRad++){
+      min_reff_pL[uMt][uRad] = 1000;
+      max_reff_pL[uMt][uRad] = -1000;
     }
     min_val_src_pL[uMt] = 1000;
     max_val_src_pL[uMt] = -1000;
@@ -6653,6 +6717,42 @@ void Plot_Ck(
 
   for(unsigned uEntry=0; uEntry<NumNtEntries; uEntry++){
     ntInput->GetEntry(uEntry);
+/*
+    double dChi2_1sig = GetDeltaChi2(1, Npars);
+    double dChi2_2sig = GetDeltaChi2(2, Npars);
+    double dChi2_3sig = GetDeltaChi2(3, Npars);
+    double dChi2_5sig = GetDeltaChi2(5, Npars);
+    double Check_f1 = 1.41;
+    double Eps_f1 = 0.005;
+
+    TH1F* nsig_f1 = new TH1F("nsig_f1","nsig_f1",1000,0,10);
+    TH1F* f1_1sig = new TH1F("f1_1sig","f1_1sig",1000,0,10);
+    TH1F* f1_2sig = new TH1F("f1_2sig","f1_2sig",1000,0,10);
+    TH1F* f1_3sig = new TH1F("f1_3sig","f1_3sig",1000,0,10);
+    TH1F* f1_5sig = new TH1F("f1_5sig","f1_5sig",1000,0,10);
+*/
+    if(chi2_pp_fmt+chi2_pL_fmt<=BestChi2+dChi2_1sig){
+      f1_1sig->Fill(f1_val);
+      d_1sig->Fill(d_val);
+      ht_1sig->Fill(ht_val);
+      hz_1sig->Fill(hz_val);
+    }
+    if(chi2_pp_fmt+chi2_pL_fmt<=BestChi2+dChi2_2sig){
+      f1_2sig->Fill(f1_val);
+    }
+    if(chi2_pp_fmt+chi2_pL_fmt<=BestChi2+dChi2_3sig){
+      f1_3sig->Fill(f1_val);
+    }
+    if(chi2_pp_fmt+chi2_pL_fmt<=BestChi2+dChi2_5sig){
+      f1_5sig->Fill(f1_val);
+    }
+    if(fabs(f1_val-Check_f1)<=Eps_f1){
+      double NSIG = GetNsigma(chi2_pp_fmt+chi2_pL_fmt-BestChi2,Npars);
+      //printf("f1=%f; dchi2=%f; nsig=%f\n",f1_val,chi2_pp_fmt+chi2_pL_fmt-BestChi2,NSIG);
+      if(NSIG==0) NSIG = 20;
+      nsig_f1->Fill(NSIG);
+    }
+
     if(chi2_pp_fmt+chi2_pL_fmt>BestChi2+dChi2){
       continue;
     }
@@ -6709,7 +6809,9 @@ void Plot_Ck(
     TFile fDump(out_folder+TString::Format("/tmp1331.root"));
 
     TGraphErrors* mT_Scaling_pp = (TGraphErrors*)fDump.Get("mT_Scaling_pp");
+
     for(unsigned uMt=0; uMt<Num_mT_bins_pp; uMt++){
+      TF1* fit_pp = (TF1*)fDump.Get(TString::Format("fSrc_pp[%u]",uMt));
       double mt,rmean;
       mT_Scaling_pp->GetPoint(uMt,mt,rmean);
       if(rmean<min_val_src_pp[uMt]){
@@ -6721,10 +6823,24 @@ void Plot_Ck(
       if(GoodEntries==1){
         bincenter_mt_pp[uMt] = mt;
       }
+
+      double rad,Srad;
+      //double rad_step = (RadMax-RadMin)/double(NumRadBins);
+      for(unsigned uRad=0; uRad<NumRadBins; uRad++){
+        rad = RadMin + RadStep*0.5 + RadStep*double(uRad);
+        Srad = fit_pp->Eval(rad);
+        if(Srad<min_reff_pp[uMt][uRad]){
+          min_reff_pp[uMt][uRad] = Srad;
+        }
+        if(Srad>max_reff_pp[uMt][uRad]){
+          max_reff_pp[uMt][uRad] = Srad;
+        }
+      }
     }
 
     TGraphErrors* mT_Scaling_pL = (TGraphErrors*)fDump.Get("mT_Scaling_pL");
     for(unsigned uMt=0; uMt<Num_mT_bins_pL; uMt++){
+      TF1* fit_pL = (TF1*)fDump.Get(TString::Format("fSrc_pL[%u]",uMt));
       double mt,rmean;
       mT_Scaling_pL->GetPoint(uMt,mt,rmean);
       if(rmean<min_val_src_pL[uMt]){
@@ -6735,6 +6851,19 @@ void Plot_Ck(
       }
       if(GoodEntries==1){
         bincenter_mt_pL[uMt] = mt;
+      }
+
+      double rad,Srad;
+
+      for(unsigned uRad=0; uRad<NumRadBins; uRad++){
+        rad = RadMin + RadStep*double(uRad);
+        Srad = fit_pL->Eval(rad);
+        if(Srad<min_reff_pL[uMt][uRad]){
+          min_reff_pL[uMt][uRad] = Srad;
+        }
+        if(Srad>max_reff_pL[uMt][uRad]){
+          max_reff_pL[uMt][uRad] = Srad;
+        }
       }
     }
 
@@ -6848,6 +6977,11 @@ void Plot_Ck(
 //DEB
     gMt_tot_pp.SetPoint(uMt,bincenter_mt_pp[uMt],(max_val_src_pp[uMt]+min_val_src_pp[uMt])*0.5);
     gMt_tot_pp.SetPointError(uMt,0,(max_val_src_pp[uMt]-min_val_src_pp[uMt])*0.5);
+    for(unsigned uRad=0; uRad<NumRadBins; uRad++){
+      double rad = RadMin + RadStep*0.5 + RadStep*double(uRad);
+      gSource_pp[uMt].SetPoint(uRad,rad,(max_reff_pp[uMt][uRad]+min_reff_pp[uMt][uRad])*0.5);
+      gSource_pp[uMt].SetPointError(uRad,0,(max_reff_pp[uMt][uRad]-min_reff_pp[uMt][uRad])*0.5);
+    }
   }
   //printf("pL\n");
   for(unsigned uMt=0; uMt<Num_mT_bins_pL; uMt++){
@@ -6875,6 +7009,11 @@ void Plot_Ck(
 //DEB
     gMt_tot_pL.SetPoint(uMt,bincenter_mt_pL[uMt],(max_val_src_pL[uMt]+min_val_src_pL[uMt])*0.5);
     gMt_tot_pL.SetPointError(uMt,0,(max_val_src_pL[uMt]-min_val_src_pL[uMt])*0.5);
+    for(unsigned uRad=0; uRad<NumRadBins; uRad++){
+      double rad = RadMin + RadStep*0.5 + RadStep*double(uRad);
+      gSource_pL[uMt].SetPoint(uRad,rad,(max_reff_pL[uMt][uRad]+min_reff_pL[uMt][uRad])*0.5);
+      gSource_pL[uMt].SetPointError(uRad,0,(max_reff_pL[uMt][uRad]-min_reff_pL[uMt][uRad])*0.5);
+    }
   }
   //printf("fOutput...\n");
 
@@ -6976,16 +7115,181 @@ void Plot_Ck(
     gFit_pp[uMt].Write();
     gBL_pp[uMt].Write();
     gRat_pp[uMt].Write();
+    gSource_pp[uMt].Write();
   }
   for(unsigned uMt=0; uMt<Num_mT_bins_pL; uMt++){
     hExp_pL[uMt]->Write();
     gFit_pL[uMt].Write();
     gBL_pL[uMt].Write();
     gRat_pL[uMt].Write();
+    gSource_pL[uMt].Write();
   }
 //DEB
   gMt_tot_pp.Write();
   gMt_tot_pL.Write();
+
+  f1_1sig->Write();
+  f1_2sig->Write();
+  f1_3sig->Write();
+  f1_5sig->Write();
+  nsig_f1->Write();
+
+  d_1sig->Write();
+  ht_1sig->Write();
+  hz_1sig->Write();
+
+  for(unsigned uBin=1; uBin<=nsig_f1->GetNbinsX(); uBin++){
+    if(nsig_f1->GetBinContent(uBin)){
+      printf("f1 = %.3f is excluded by %.2f nσ\n",Check_f1,nsig_f1->GetBinCenter(uBin));
+      break;
+    }
+  }
+
+  double f1_mean;
+
+  double f1_up1;
+  double f1_low1;
+
+  double f1_up2;
+  double f1_low2;
+
+  double f1_up3;
+  double f1_low3;
+
+  double f1_up5;
+  double f1_low5;
+
+  f1_mean = f1_1sig->GetMean();
+  printf("<f1> = %.3f\n",f1_1sig->GetMean());
+  for(int iBin=f1_1sig->GetNbinsX(); iBin>=1; iBin--){
+    if(f1_1sig->GetBinContent(iBin)){
+      f1_up1 = f1_1sig->GetBinCenter(iBin);
+      printf("upper 1σ limit: %.3f\n",f1_up1);
+      break;
+    }
+  }
+  for(int iBin=0; iBin<=f1_1sig->GetNbinsX(); iBin++){
+    if(f1_1sig->GetBinContent(iBin)){
+      f1_low1 = f1_1sig->GetBinCenter(iBin);
+      printf("lower 1σ limit: %.3f\n",f1_low1);
+      break;
+    }
+  }
+
+  for(int iBin=f1_2sig->GetNbinsX(); iBin>=1; iBin--){
+    if(f1_2sig->GetBinContent(iBin)){
+      f1_up2 = f1_2sig->GetBinCenter(iBin);
+      printf("upper 2σ limit: %.3f\n",f1_up2);
+      break;
+    }
+  }
+  for(int iBin=0; iBin<=f1_2sig->GetNbinsX(); iBin++){
+    if(f1_2sig->GetBinContent(iBin)){
+      f1_low2 = f1_2sig->GetBinCenter(iBin);
+      printf("lower 2σ limit: %.3f\n",f1_low2);
+      break;
+    }
+  }
+
+
+  for(int iBin=f1_3sig->GetNbinsX(); iBin>=1; iBin--){
+    if(f1_3sig->GetBinContent(iBin)){
+      f1_up3 = f1_3sig->GetBinCenter(iBin);
+      printf("upper 3σ limit: %.3f\n",f1_up3);
+      break;
+    }
+  }
+  for(int iBin=0; iBin<=f1_3sig->GetNbinsX(); iBin++){
+    if(f1_3sig->GetBinContent(iBin)){
+      f1_low3 = f1_3sig->GetBinCenter(iBin);
+      printf("lower 3σ limit: %.3f\n",f1_low3);
+      break;
+    }
+  }
+
+  for(int iBin=f1_5sig->GetNbinsX(); iBin>=1; iBin--){
+    if(f1_5sig->GetBinContent(iBin)){
+      f1_up5 = f1_5sig->GetBinCenter(iBin);
+      printf("upper 5σ limit: %.3f\n",f1_up5);
+      break;
+    }
+  }
+  for(int iBin=0; iBin<=f1_5sig->GetNbinsX(); iBin++){
+    if(f1_5sig->GetBinContent(iBin)){
+      f1_low5 = f1_5sig->GetBinCenter(iBin);
+      printf("lower 5σ limit: %.3f\n",f1_low5);
+      break;
+    }
+  }
+
+
+  printf("1σ: %.3f +(%.3f) -(%.3f)\n", f1_mean, f1_up1-f1_mean, -f1_low1+f1_mean);
+  printf("2σ: %.3f +(%.3f) -(%.3f)\n", f1_mean, f1_up2-f1_mean, -f1_low2+f1_mean);
+  printf("3σ: %.3f +(%.3f) -(%.3f)\n", f1_mean, f1_up3-f1_mean, -f1_low3+f1_mean);
+  printf("5σ: %.3f +(%.3f) -(%.3f)\n", f1_mean, f1_up5-f1_mean, -f1_low5+f1_mean);
+
+
+
+  double d_mean = d_1sig->GetMean();
+  double d_up;
+  double d_low;
+  printf("<d> = %.3f\n",d_1sig->GetMean());
+  for(int iBin=d_1sig->GetNbinsX(); iBin>=1; iBin--){
+    if(d_1sig->GetBinContent(iBin)){
+      d_up = d_1sig->GetBinCenter(iBin);
+      printf("upper 1σ limit: %.3f\n",d_up);
+      break;
+    }
+  }
+  for(int iBin=0; iBin<=d_1sig->GetNbinsX(); iBin++){
+    if(d_1sig->GetBinContent(iBin)){
+      d_low = d_1sig->GetBinCenter(iBin);
+      printf("lower 1σ limit: %.3f\n",d_low);
+      break;
+    }
+  }
+  printf("d: %.3f +(%.3f) -(%.3f)\n", d_mean, d_up-d_mean, -d_low+d_mean);
+
+  double ht_mean = ht_1sig->GetMean();
+  double ht_up;
+  double ht_low;
+  printf("<d> = %.3f\n",ht_1sig->GetMean());
+  for(int iBin=ht_1sig->GetNbinsX(); iBin>=1; iBin--){
+    if(ht_1sig->GetBinContent(iBin)){
+      ht_up = ht_1sig->GetBinCenter(iBin);
+      printf("upper 1σ limit: %.3f\n",ht_up);
+      break;
+    }
+  }
+  for(int iBin=0; iBin<=ht_1sig->GetNbinsX(); iBin++){
+    if(ht_1sig->GetBinContent(iBin)){
+      ht_low = ht_1sig->GetBinCenter(iBin);
+      printf("lower 1σ limit: %.3f\n",ht_low);
+      break;
+    }
+  }
+  printf("ht: %.3f +(%.3f) -(%.3f)\n", ht_mean, ht_up-ht_mean, -ht_low+ht_mean);
+
+  double hz_mean = hz_1sig->GetMean();
+  double hz_up;
+  double hz_low;
+  printf("<d> = %.3f\n",hz_1sig->GetMean());
+  for(int iBin=hz_1sig->GetNbinsX(); iBin>=1; iBin--){
+    if(hz_1sig->GetBinContent(iBin)){
+      hz_up = hz_1sig->GetBinCenter(iBin);
+      printf("upper 1σ limit: %.3f\n",hz_up);
+      break;
+    }
+  }
+  for(int iBin=0; iBin<=hz_1sig->GetNbinsX(); iBin++){
+    if(hz_1sig->GetBinContent(iBin)){
+      hz_low = hz_1sig->GetBinCenter(iBin);
+      printf("lower 1σ limit: %.3f\n",hz_low);
+      break;
+    }
+  }
+  printf("hz: %.3f +(%.3f) -(%.3f)\n", hz_mean, hz_up-hz_mean, -hz_low+hz_mean);
+
 }
 
 void Usmani_vs_NLO19(){
@@ -7311,5 +7615,6 @@ ScanPsUsmani(
                   0.2614-0.0005, 0.2614+0.0005,
                   atof(argv[1]), atoi(argv[2]));
   */
+
   return 0;
 }

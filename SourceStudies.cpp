@@ -4344,8 +4344,9 @@ void source_pp_syst(){
   DLM_CommonAnaFunctions AnalysisObject;
   AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
 
+  bool InfoFor_ppForce = false;
   const unsigned NumDataVar = 27;
-  const unsigned RebinFactor = 5;
+  const unsigned RebinFactor = InfoFor_ppForce==true?1:5;
 
   TFile fOutput(TString::Format("%s/SourceStudies/source_pp_syst/fOutput.root",GetFemtoOutputFolder()),"recreate");
 
@@ -4413,8 +4414,22 @@ void source_pp_syst(){
     gROOT->cd();
     TH1F* hMixedEvent = (TH1F*)hMixedEvent_PP->Clone(TString::Format("hMixedEvent_mT%u",uMt+1));
     hMixedEvent->Add(hMixedEvent_APAP);
+
+    list1_tmp = (TList*)FileROOT->Get("PairDist");
+    list2_tmp = (TList*)list1_tmp->FindObject("PairRebinned");
+    TH1F* hSameEvent_PP = (TH1F*)list2_tmp->FindObject(TString::Format("SEPart_mT_%u_FixShifted_Rebinned_2",uMt));
+    list1_tmp = (TList*)FileROOT->Get("AntiPairDist");
+    list2_tmp = (TList*)list1_tmp->FindObject("PairRebinned");
+    TH1F* hSameEvent_APAP = (TH1F*)list2_tmp->FindObject(TString::Format("SEAntiPart_mT_%u_FixShifted_Rebinned_2",uMt));
+    gROOT->cd();
+    TH1F* hSameEvent = (TH1F*)hSameEvent_PP->Clone(TString::Format("hSameEvent_mT%u",uMt+1));
+    hSameEvent->Add(hSameEvent_APAP);
     //printf("HI\n");
     delete FileROOT;
+
+    printf("mT bin in [%.2f, %.2f)\n",bin_range.at(uMt),bin_range.at(uMt+1));
+    printf(" # SE pairs < 100 MeV: %.0fk\n", hSameEvent->Integral(1,hSameEvent->FindBin(0.1))*0.001);
+    printf(" # SE pairs < 200 MeV: %.0fk\n", hSameEvent->Integral(1,hSameEvent->FindBin(0.2))*0.001);
 
     TGraphErrors gDataSyst;
     TGraphErrors gDataStat;
@@ -4530,7 +4545,8 @@ void source_pp_syst(){
 
     //text.DrawLatex(0.32, 0.73, "Gaussian source");
 
-    c_PP->SaveAs(TString::Format("%s/SourceStudies/source_pp_syst/c_PP_%u.pdf",GetFemtoOutputFolder(),uMt));
+    if(!InfoFor_ppForce)
+      c_PP->SaveAs(TString::Format("%s/SourceStudies/source_pp_syst/c_PP_%u.pdf",GetFemtoOutputFolder(),uMt));
 
 
     TString HepFileName = TString::Format("%s/SourceStudies/source_pp_syst/HEP_PP_%u.yaml",GetFemtoOutputFolder(),uMt);
@@ -4608,7 +4624,8 @@ BeamText.DrawLatex(0.49, 0.45, "High-mult. (0#minus0.17% INEL > 0)");
 text.DrawLatex(0.49, 0.40, TString::Format("#it{m}_{T}#in [%.2f, %.2f) GeV",bin_range.at(uMt),bin_range.at(uMt+1)));
 text.DrawLatex(0.49, 0.35, TString::Format("<#it{m}_{T}> = %.2f GeV",bin_center.at(uMt)));
 
-cME_PP->SaveAs(TString::Format("%s/SourceStudies/source_pp_syst/cME_PP_%u.pdf",GetFemtoOutputFolder(),uMt));
+if(!InfoFor_ppForce)
+  cME_PP->SaveAs(TString::Format("%s/SourceStudies/source_pp_syst/cME_PP_%u.pdf",GetFemtoOutputFolder(),uMt));
 
 
 TString HepFileName_ME = TString::Format("%s/SourceStudies/source_pp_syst/HEP_ME_PP_%u.yaml",GetFemtoOutputFolder(),uMt);
@@ -4650,6 +4667,7 @@ hepfile_ME.close();
     hDataStat->Write();
     hDataSyst->Write();
     hMixedEvent->Write();
+    hSameEvent->Write();
 
 
     delete [] CkMin;
@@ -4669,6 +4687,7 @@ hepfile_ME.close();
     delete cME_PP;
 
     delete hMixedEvent;
+    delete hSameEvent;
 
   }//uMt
 
@@ -5389,7 +5408,7 @@ int SOURCESTUDIES(int argc, char *argv[]){
     //Estimate_Reff("pd_max","oton","RSM_PLB",3.0);
 
     source_pp_syst();
-    source_pL_syst();
+    //source_pL_syst();
     //estimate_syst_fit();
 
     //SourceDensity();
