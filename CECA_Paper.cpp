@@ -49,6 +49,7 @@
 #include "TLegend.h"
 #include "TFitResultPtr.h"
 #include "TFitResult.h"
+#include "TGraphAsymmErrors.h"
 
 #include <boost/algorithm/string.hpp>
 
@@ -452,7 +453,54 @@ DLM_Histo<float>* GetPtEta(TString FileNameP, TString FileNameAP,
 
 
 
+//for Lambda, more like pT in 0.4 --> inf
+DLM_Histo<float>* GetPtEta_13TeV(TString FileNameIn,
+  TString GraphNameIn="Graph1D_y1", const double pT_min = 500, const double pT_max = 4050, const double EtaCut = 0.8){
 
+  TGraphAsymmErrors* gSpectrum;
+  TFile file_in(FileNameIn,"read");
+  gSpectrum = (TGraphAsymmErrors*)file_in.Get(GraphNameIn);
+  if(!gSpectrum) printf("ISSUE with gSpectrum\n");
+  //gROOT->cd();
+  double* BinRange = new double[gSpectrum->GetN()+1];
+  double* BinCenter = new double[gSpectrum->GetN()];
+  double* BinContent = new double[gSpectrum->GetN()];
+  for(unsigned uBin=0; uBin<gSpectrum->GetN(); uBin++){
+    double pT,Yield;
+    gSpectrum->GetPoint(uBin,pT,Yield);
+    pT *= 1000;
+
+    double pT_low = pT - gSpectrum->GetErrorXlow(uBin)*1000.;
+    double pT_high = pT + gSpectrum->GetErrorXhigh(uBin)*1000.;
+
+    BinCenter[uBin] = 0.5*(pT_high+pT_low);
+    if(BinCenter[uBin]<pT_min || BinCenter[uBin]>pT_max)
+      BinContent[uBin] = 0;
+    else
+      BinContent[uBin] = Yield;
+
+    if(uBin) BinRange[uBin] = BinRange[uBin-1];
+    else BinRange[uBin] = pT_low;
+
+    if(uBin==gSpectrum->GetN()-1){
+      BinRange[uBin+1] = pT_high;
+    }
+  }
+
+  DLM_Histo<float>* dlm_pT_eta = new DLM_Histo<float>();
+  dlm_pT_eta->SetUp(2);
+  dlm_pT_eta->SetUp(0,gSpectrum->GetN(),BinRange);
+  dlm_pT_eta->SetUp(1,1,-EtaCut,EtaCut);
+  for(unsigned uBin=0; uBin<gSpectrum->GetN(); uBin++){
+    dlm_pT_eta->SetBinContent(uBin,BinContent[uBin]);
+  }
+
+  file_in.Close();
+  delete [] BinRange;
+  delete [] BinCenter;
+  delete [] BinContent;
+  return dlm_pT_eta;
+}
 
 
 
@@ -482,9 +530,11 @@ DLM_Histo<float>* GetPtEta(TString FileNameP, TString FileNameAP,
 
 //the names should be given without extension. They should also have the FULL path!!
 //the assumed extension is *.txt for the Input and .dlm.hst for the Output
-//WILD_CARD: if -1: the mT binning is super fine, done for testing (figure out what binning to use)
+//WILD_CARD: counting backwards the digits:
+//  first digit: 0 -> momenta spectra from FemtoDream, 1 -> momenta spectra as measured by ALICE
+//               2(3) same as 0(1) but we also save the histograms (pT,eta spectra) in a file
 int Ceca_pp_or_pL(const TString FileBase, const TString InputFolder, const TString OutputFolder, const TString LogFolder,
-                  const int ParID, const int JobID, const int NumCPU){
+                  const int ParID, const int JobID, const int NumCPU, const int WILD_CARD){
 
   printf("FileBase = %s\n",FileBase.Data());
   printf("InputFolder = %s\n",InputFolder.Data());
@@ -504,6 +554,8 @@ int Ceca_pp_or_pL(const TString FileBase, const TString InputFolder, const TStri
   TString InputFileName = InputFolder+FileBase+TString::Format(".%i.%i.dlm.job",ParID,JobID);
   TString OutputFileNameFull = OutputFolder+FileBase+TString::Format(".%i.%i.full.dlm.hst",ParID,JobID);
   TString OutputFileNameCore = OutputFolder+FileBase+TString::Format(".%i.%i.core.dlm.hst",ParID,JobID);
+  TString OutputFileName_p_dist = OutputFolder+FileBase+TString::Format(".%i.%i.p_dist.dlm.hst",ParID,JobID);
+  TString OutputFileName_L_dist = OutputFolder+FileBase+TString::Format(".%i.%i.L_dist.dlm.hst",ParID,JobID);
   //a binary file that contains information on the statistics we have collected so far
   //this program will search for that file, and if it exists it will read it and add the current yield
   //to the total yield
@@ -699,14 +751,32 @@ int Ceca_pp_or_pL(const TString FileBase, const TString InputFolder, const TStri
     return 0;
   }
 
-  DLM_Histo<float>* dlm_pT_eta_p = GetPtEta(
-    TString::Format("%s/Jaime/p_pT.root",GetCernBoxDimi()),
-    TString::Format("%s/Jaime/ap_pT.root",GetCernBoxDimi()),
-    "pTDist_after", "pTDist_after", EtaCut);
-  DLM_Histo<float>* dlm_pT_eta_L = GetPtEta(
-    TString::Format("%s/Jaime/L_pT.root",GetCernBoxDimi()),
-    TString::Format("%s/Jaime/aL_pT.root",GetCernBoxDimi()),
-    "pTDist_after", "pTDist_after", EtaCut);
+  DLM_Histo<float>* dlm_pT_eta_p;
+  DLM_Histo<float>* dlm_pT_eta_L;
+
+  if(WILD_CARD%10==0||WILD_CARD%10==2){
+    dlm_pT_eta_p = GetPtEta(
+     TString::Format("%s/Jaime/p_pT.root",GetCernBoxDimi()),
+     TString::Format("%s/Jaime/ap_pT.root",GetCernBoxDimi()),
+     "pTDist_after", "pTDist_after", EtaCut);
+    dlm_pT_eta_L = GetPtEta(
+       TString::Format("%s/Jaime/L_pT.root",GetCernBoxDimi()),
+       TString::Format("%s/Jaime/aL_pT.root",GetCernBoxDimi()),
+       "pTDist_after", "pTDist_after", EtaCut);
+  }
+  else{
+    dlm_pT_eta_p = GetPtEta_13TeV(
+      TString::Format("%s/CatsFiles/Source/CECA/proton_pT/p_dist_13TeV_ClassI.root",GetCernBoxDimi()),
+      "Graph1D_y1", 0.5, 4.05, EtaCut);
+    dlm_pT_eta_L = GetPtEta_13TeV(
+      TString::Format("%s/CatsFiles/Source/CECA/Lambda_pT/L_dist_13TeV_ClassI.root",GetCernBoxDimi()),
+      "Graph1D_y1", 0.4, 8, EtaCut);
+  }
+
+  if(WILD_CARD%10==2||WILD_CARD%10==3){
+    dlm_pT_eta_p->QuickWrite(OutputFileName_p_dist,true);
+    dlm_pT_eta_L->QuickWrite(OutputFileName_L_dist,true);
+  }
 
   for(TreParticle* prt : ParticleList){
     if(prt->GetName()=="Proton"){
@@ -3502,7 +3572,9 @@ CecaAnalysis1::CecaAnalysis1(TString AnalysisVersion, TString SourceVersion, TSt
 
   printf("\n");
   printf("...Loading pp source...\n");
-  Src_pp = new DLM_CecaSource_v0("pp",SourceVersion.Data(),SourceFolder_pp.Data());
+  if(SourceVersion=="JaimeDelay1_dLs25_hts10_taus12")
+    Src_pp = new DLM_CecaSource_v0("pp","JaimeDelay1_dLs1_hts10_taus12",SourceFolder_pp.Data());
+  else Src_pp = new DLM_CecaSource_v0("pp",SourceVersion.Data(),SourceFolder_pp.Data());
   printf("--> Completed\n");
   printf("...Loading pL source...\n");
   Src_pL = new DLM_CecaSource_v0("pL",SourceVersion.Data(),SourceFolder_pL.Data());
@@ -5223,8 +5295,9 @@ void TestSetUpAna(){
   //TString Description = "J1_Reduced_USM_Ceca";
   //TString Description = "J1_Reduced_USM_Gauss";
   //TString Description = "NLO_Gauss";//NLO19-600
-  TString Description = "Usmani_Gauss";//usmani 1:1 as NLO19-600
+  //TString Description = "Usmani_Gauss";//usmani 1:1 as NLO19-600
   //TString Description = "C2_Reduced_USM_Ceca";
+  TString Description = "CecaPaper_J1D_NLO19";
   //
 
   TString CecaAnaSettings;
@@ -5248,6 +5321,10 @@ void TestSetUpAna(){
   else if(Description=="Usmani_Gauss"){
     FileBase = Description+"/Usmani_Gauss";
     CecaAnaSettings = "Jaime1_ds24_hts36_hzs36";//should not matter which
+  }
+  else if(Description=="CecaPaper_J1D_NLO19"){
+    FileBase = Description+"/CecaPaper_J1D_NLO19";
+    CecaAnaSettings = "JaimeDelay1_dLs25_hts10_taus12";//should not matter which
   }
   else{
     return;
@@ -5282,6 +5359,14 @@ void TestSetUpAna(){
       CECA_ANA.Kitty_pL->SetShortRangePotential(1,0,2,0.34770);
       CECA_ANA.Kitty_pL->SetShortRangePotential(1,0,3,0.26002);
     }
+    //1:1 as NLO600
+    else if(Description=="CecaPaper_J1D_NLO19"){
+      //at the moment the same as best jaime pars
+      CECA_ANA.Kitty_pL->SetShortRangePotential(1,0,1,2279.0);
+      CECA_ANA.Kitty_pL->SetShortRangePotential(1,0,2,0.3394);
+      CECA_ANA.Kitty_pL->SetShortRangePotential(1,0,3,0.2614);
+    }
+
     //best jaime pars
     else{
       CECA_ANA.Kitty_pL->SetShortRangePotential(1,0,1,2279.1);
@@ -5297,7 +5382,7 @@ void TestSetUpAna(){
   CECA_ANA.SetUp_pXim("pXim_HALQCDPaper2020",0);
   CECA_ANA.SetUp_pXi0("pXim_HALQCDPaper2020",0);
   CECA_ANA.SetUp_Decomposition(0,0);
-  if(Description=="J1_Reduced_USM_Ceca"||Description=="C2_Reduced_USM_Ceca")
+  if(Description=="J1_Reduced_USM_Ceca"||Description=="C2_Reduced_USM_Ceca"||Description=="CecaPaper_J1D_NLO19")
     CECA_ANA.SetUp_Fits("SingleCeca");//each mT bin by itself
   else if(Description=="J1_Reduced_USM_Gauss")
     CECA_ANA.SetUp_Fits("Gauss");
@@ -5373,6 +5458,25 @@ void TestSetUpAna(){
 
       CECA_ANA.GetFit("pL",uMt)->FixParameter(9,0);
     }
+  }
+  else if(Description=="CecaPaper_J1D_NLO19"){//the first best sol I found (Jaime1)
+    for(unsigned uMt=0; uMt<7; uMt++){
+      CECA_ANA.GetFit("pp",uMt)->FixParameter(1,-0.35);
+      CECA_ANA.GetFit("pp",uMt)->FixParameter(2,3.53);
+      CECA_ANA.GetFit("pp",uMt)->FixParameter(3,2.59);
+      CECA_ANA.GetFit("pp",uMt)->FixParameter(4,1);
+
+      CECA_ANA.GetFit("pp",uMt)->FixParameter(9,0);
+    }
+    for(unsigned uMt=0; uMt<6; uMt++){
+      CECA_ANA.GetFit("pL",uMt)->FixParameter(1,-0.35);
+      CECA_ANA.GetFit("pL",uMt)->FixParameter(2,3.53);
+      CECA_ANA.GetFit("pL",uMt)->FixParameter(3,2.59);
+      CECA_ANA.GetFit("pL",uMt)->FixParameter(4,1);
+
+      CECA_ANA.GetFit("pL",uMt)->FixParameter(9,0);
+    }
+
   }
   else if(false){//the first best sol I found (Jaime1), but for pp alone
     for(unsigned uMt=0; uMt<7; uMt++){
@@ -7376,10 +7480,10 @@ int CECA_PAPER(int argc, char *argv[]){
 
   //Test_pp_Statistics_1();
 
-  //return Ceca_pp_or_pL("TEST4_pp",TString::Format("%s/CECA_Paper/Ceca_pp_or_pL/TEST4/Job/",GetFemtoOutputFolder()),
-  //TString::Format("%s/CECA_Paper/Ceca_pp_or_pL/TEST4/Out/",GetFemtoOutputFolder()),
-  //TString::Format("%s/CECA_Paper/Ceca_pp_or_pL/TEST4/Log/",GetFemtoOutputFolder()),
-  //0,0,1);
+  //return Ceca_pp_or_pL("TEST4_pp",TString::Format("%s/CECA_Paper/Ceca_pp_or_pL/TEST1_0/Job/",GetFemtoOutputFolder()),
+  //TString::Format("%s/CECA_Paper/Ceca_pp_or_pL/TESTA0/Out/",GetFemtoOutputFolder()),
+  //TString::Format("%s/CECA_Paper/Ceca_pp_or_pL/TESTA0/Log/",GetFemtoOutputFolder()),
+  //0,0,1,1);
   //ReadDlmHst();
 
   //dadd_f(argc,argv);
@@ -7419,7 +7523,6 @@ int CECA_PAPER(int argc, char *argv[]){
   //Usmani_vs_NLO19();
 
 ////Wc=2279.0; Rc=0.3394; Sc=0.2614; f1=1.41; d1=2.53; tDev=0.003
-
 
 /*
 ScanPsUsmani(
@@ -7480,10 +7583,10 @@ ScanPsUsmani(
 //          TString::Format("%s/CecaPaper/ScanPsUsmani/CecaPaper_J1_UsmFit_2/Plot_Ck/",GetCernBoxDimi()),
 //          TString::Format("%s/CecaPaper/ScanPsUsmani/CecaPaper_J1_UsmFit_2/CecaPaper_J1_UsmFit_2.root",GetCernBoxDimi()),
 //          1,6,1000);
-Plot_Ck("Reduced","Jaime1_ds24_hts36_hzs36",TString(GetCernBoxDimi()),
-          TString::Format("%s/CecaPaper/ScanPsUsmani/CecaPaper_J1_UsmNLO19/Plot_Ck/",GetCernBoxDimi()),
-          TString::Format("%s/CecaPaper/ScanPsUsmani/CecaPaper_J1_UsmNLO19/CecaPaper_J1_UsmNLO19.root",GetCernBoxDimi()),
-          1,6,1000);
+//Plot_Ck("Reduced","Jaime1_ds24_hts36_hzs36",TString(GetCernBoxDimi()),
+//          TString::Format("%s/CecaPaper/ScanPsUsmani/CecaPaper_J1_UsmNLO19/Plot_Ck/",GetCernBoxDimi()),
+//          TString::Format("%s/CecaPaper/ScanPsUsmani/CecaPaper_J1_UsmNLO19/CecaPaper_J1_UsmNLO19.root",GetCernBoxDimi()),
+//          1,6,1000);
 
 
 
@@ -7616,5 +7719,20 @@ ScanPsUsmani(
                   atof(argv[1]), atoi(argv[2]));
   */
 
+//the early Lambda with NL19
+/*
+  ScanPsUsmani(
+    "Reduced","JaimeDelay1_dLs25_hts10_taus12",
+    TString(GetCernBoxDimi()), TString::Format("%s/CecaPaper/ScanPsUsmani/CecaPaper_J1D_NLO19/",GetCernBoxDimi()),
+    //0.12, 0.42,//d
+    -0.4, 0.1,//delay
+    3.45, 3.65,//ht
+    2.55, 2.79,//hz
+    2279, 2279,
+    0.3394, 0.3394,
+    0.2614, 0.2614,
+    atoi(argv[1]),//lambda vars (400,401,402,500,501,502)
+    atof(argv[2]), atoi(argv[3]));//mins and seed
+*/
   return 0;
 }
