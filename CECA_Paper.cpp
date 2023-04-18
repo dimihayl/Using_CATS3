@@ -512,7 +512,6 @@ DLM_Histo<float>* GetPtEta_13TeV(TString FileNameIn,
 //  a flag for the momentum distribution;
 //  a flag for resonance variations;
 //  a flag for the type (1 is pp, 2 is pL)
-//  WILD_CARD flag for the future
 //  24 numbers in total -> input from file
 //
 // OUTPUT:
@@ -530,11 +529,8 @@ DLM_Histo<float>* GetPtEta_13TeV(TString FileNameIn,
 
 //the names should be given without extension. They should also have the FULL path!!
 //the assumed extension is *.txt for the Input and .dlm.hst for the Output
-//WILD_CARD: counting backwards the digits:
-//  first digit: 0 -> momenta spectra from FemtoDream, 1 -> momenta spectra as measured by ALICE
-//               2(3) same as 0(1) but we also save the histograms (pT,eta spectra) in a file
 int Ceca_pp_or_pL(const TString FileBase, const TString InputFolder, const TString OutputFolder, const TString LogFolder,
-                  const int ParID, const int JobID, const int NumCPU, const int WILD_CARD){
+                  const int ParID, const int JobID, const int NumCPU){
 
   printf("FileBase = %s\n",FileBase.Data());
   printf("InputFolder = %s\n",InputFolder.Data());
@@ -754,7 +750,9 @@ int Ceca_pp_or_pL(const TString FileBase, const TString InputFolder, const TStri
   DLM_Histo<float>* dlm_pT_eta_p;
   DLM_Histo<float>* dlm_pT_eta_L;
 
-  if(WILD_CARD%10==0||WILD_CARD%10==2){
+  //momdst_flag -> 10 (11) from FemtoDream (save histo)
+  //momdst_flag -> 20 (21) from FemtoDream (save histo)
+  if(momdst_flag==10||momdst_flag==11){
     dlm_pT_eta_p = GetPtEta(
      TString::Format("%s/Jaime/p_pT.root",GetCernBoxDimi()),
      TString::Format("%s/Jaime/ap_pT.root",GetCernBoxDimi()),
@@ -773,7 +771,7 @@ int Ceca_pp_or_pL(const TString FileBase, const TString InputFolder, const TStri
       "Graph1D_y1", 0.4, 8, EtaCut);
   }
 
-  if(WILD_CARD%10==2||WILD_CARD%10==3){
+  if(momdst_flag==20||momdst_flag==21){
     dlm_pT_eta_p->QuickWrite(OutputFileName_p_dist,true);
     dlm_pT_eta_L->QuickWrite(OutputFileName_L_dist,true);
   }
