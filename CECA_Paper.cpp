@@ -465,7 +465,9 @@ DLM_Histo<float>* GetPtEta_13TeV(TString FileNameIn,
   double* BinRange = new double[gSpectrum->GetN()+1];
   double* BinCenter = new double[gSpectrum->GetN()];
   double* BinContent = new double[gSpectrum->GetN()];
+//printf("Iter over %u\n",gSpectrum->GetN());
   for(unsigned uBin=0; uBin<gSpectrum->GetN(); uBin++){
+//printf(" -- %u\n",uBin);
     double pT,Yield;
     gSpectrum->GetPoint(uBin,pT,Yield);
     pT *= 1000;
@@ -479,18 +481,24 @@ DLM_Histo<float>* GetPtEta_13TeV(TString FileNameIn,
     else
       BinContent[uBin] = Yield;
 
-    if(uBin) BinRange[uBin] = BinRange[uBin-1];
-    else BinRange[uBin] = pT_low;
+    //if(uBin) BinRange[uBin] = BinRange[uBin-1];
+    //else BinRange[uBin] = pT_low;
+    BinRange[uBin] = pT_low;
 
     if(uBin==gSpectrum->GetN()-1){
       BinRange[uBin+1] = pT_high;
     }
   }
 
+//for(unsigned uBin=0; uBin<=gSpectrum->GetN(); uBin++){
+//printf(" BinRange[%u] = %.f\n",uBin,BinRange[uBin]);
+//}
+
   DLM_Histo<float>* dlm_pT_eta = new DLM_Histo<float>();
   dlm_pT_eta->SetUp(2);
   dlm_pT_eta->SetUp(0,gSpectrum->GetN(),BinRange);
   dlm_pT_eta->SetUp(1,1,-EtaCut,EtaCut);
+  dlm_pT_eta->Initialize();
   for(unsigned uBin=0; uBin<gSpectrum->GetN(); uBin++){
     dlm_pT_eta->SetBinContent(uBin,BinContent[uBin]);
   }
@@ -750,6 +758,7 @@ int Ceca_pp_or_pL(const TString FileBase, const TString InputFolder, const TStri
   DLM_Histo<float>* dlm_pT_eta_p;
   DLM_Histo<float>* dlm_pT_eta_L;
 
+//printf("momdst_flag=%u\n",momdst_flag);
   //momdst_flag -> 1 from FemtoDream (101 -> save histo)
   //momdst_flag -> 2 from FemtoDream (102 -> save histo)
   if(momdst_flag%100==1){
@@ -765,16 +774,16 @@ int Ceca_pp_or_pL(const TString FileBase, const TString InputFolder, const TStri
   else if(momdst_flag%100==2){
     dlm_pT_eta_p = GetPtEta_13TeV(
       TString::Format("%s/CatsFiles/Source/CECA/proton_pT/p_dist_13TeV_ClassI.root",GetCernBoxDimi()),
-      "Graph1D_y1", 0.5, 4.05, EtaCut);
+      "Graph1D_y1", 500, 4050, EtaCut);
     dlm_pT_eta_L = GetPtEta_13TeV(
       TString::Format("%s/CatsFiles/Source/CECA/Lambda_pT/L_dist_13TeV_ClassI.root",GetCernBoxDimi()),
-      "Graph1D_y1", 0.4, 8, EtaCut);
+      "Graph1D_y1", 400, 8000, EtaCut);
   }
   else{
     printf("ERROR momdst_flag\n");
     return 0;
   }
-
+//printf("inited\n");
   if(momdst_flag/100==1){
     dlm_pT_eta_p->QuickWrite(OutputFileName_p_dist,true);
     dlm_pT_eta_L->QuickWrite(OutputFileName_L_dist,true);
