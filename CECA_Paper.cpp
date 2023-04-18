@@ -750,9 +750,9 @@ int Ceca_pp_or_pL(const TString FileBase, const TString InputFolder, const TStri
   DLM_Histo<float>* dlm_pT_eta_p;
   DLM_Histo<float>* dlm_pT_eta_L;
 
-  //momdst_flag -> 10 (11) from FemtoDream (save histo)
-  //momdst_flag -> 20 (21) from FemtoDream (save histo)
-  if(momdst_flag==10||momdst_flag==11){
+  //momdst_flag -> 1 from FemtoDream (101 -> save histo)
+  //momdst_flag -> 2 from FemtoDream (102 -> save histo)
+  if(momdst_flag%100==1){
     dlm_pT_eta_p = GetPtEta(
      TString::Format("%s/Jaime/p_pT.root",GetCernBoxDimi()),
      TString::Format("%s/Jaime/ap_pT.root",GetCernBoxDimi()),
@@ -762,7 +762,7 @@ int Ceca_pp_or_pL(const TString FileBase, const TString InputFolder, const TStri
        TString::Format("%s/Jaime/aL_pT.root",GetCernBoxDimi()),
        "pTDist_after", "pTDist_after", EtaCut);
   }
-  else{
+  else if(momdst_flag%100==2){
     dlm_pT_eta_p = GetPtEta_13TeV(
       TString::Format("%s/CatsFiles/Source/CECA/proton_pT/p_dist_13TeV_ClassI.root",GetCernBoxDimi()),
       "Graph1D_y1", 0.5, 4.05, EtaCut);
@@ -770,8 +770,12 @@ int Ceca_pp_or_pL(const TString FileBase, const TString InputFolder, const TStri
       TString::Format("%s/CatsFiles/Source/CECA/Lambda_pT/L_dist_13TeV_ClassI.root",GetCernBoxDimi()),
       "Graph1D_y1", 0.4, 8, EtaCut);
   }
+  else{
+    printf("ERROR momdst_flag\n");
+    return 0;
+  }
 
-  if(momdst_flag==20||momdst_flag==21){
+  if(momdst_flag/100==1){
     dlm_pT_eta_p->QuickWrite(OutputFileName_p_dist,true);
     dlm_pT_eta_L->QuickWrite(OutputFileName_L_dist,true);
   }
