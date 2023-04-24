@@ -4737,7 +4737,7 @@ hepfile_ME.close();
 
 
     TH1F* hAxis = new TH1F("hAxis", "hAxis", TMath::Nint((kstar_max-kstar_min)/4.), kstar_min, kstar_max*1.3);
-    hAxis->SetTitle("; #it{k*}_{true} (MeV/#it{c}); #it{dN/dk*}_{true} (#it{c}/MeV)");
+    hAxis->SetTitle("; #it{k*}_{true} (MeV/#it{c}); d#it{N}/d#it{k*}_{true} (#it{c}/MeV)");
     hAxis->GetXaxis()->SetRangeUser(kstar_min, kstar_max*1.3);
     hAxis->GetXaxis()->SetNdivisions(505);
     hAxis->GetYaxis()->SetRangeUser(val_min*0.5, val_max*2.0);
@@ -5234,7 +5234,7 @@ void source_pL_syst(){
 
 
     TH1F* hAxis = new TH1F("hAxis", "hAxis", TMath::Nint((kstar_max-kstar_min)/4.), kstar_min, kstar_max*1.3);
-    hAxis->SetTitle("; #it{k*}_{true} (MeV/#it{c}); #it{dN/dk*}_{true} (#it{c}/MeV)");
+    hAxis->SetTitle("; #it{k*}_{true} (MeV/#it{c}); d#it{N}/d#it{k*}_{true} (#it{c}/MeV)");
     hAxis->GetXaxis()->SetRangeUser(kstar_min, kstar_max*1.3);
     hAxis->GetXaxis()->SetNdivisions(505);
     hAxis->GetYaxis()->SetRangeUser(val_min*0.5, val_max*2.0);

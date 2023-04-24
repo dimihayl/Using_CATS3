@@ -2781,16 +2781,54 @@ void TestCigar2_Ck(){
 
 
 
+//flag_source: YYXX:
+//XX =  00 Jaime1 default momdist
+//      01 Jaime1 corrected momdist
+//YY = 00 best fit result from XX==00
+//flag_mt = 10-25: 1.0, 1.1 .... 2.5 GeV
+//          30-45: same but 1.05 1.15... 2.55 GeV
+void TestJaime1_Ck(int flag_source, int flag_mt){
+  TString SourceDiscr_pp;
+  TString SourceFld_pp;
+  TString SourceDiscr_pL;
+  TString SourceFld_pL;
+  if(flag_source%100==0){
+    SourceDiscr_pp = "Jaime1_ds24_hts36_hzs36";
+    SourceFld_pp = TString::Format("%s/CatsFiles/Source/CECA/LookUpSource/Jaime1_ds24_hts36_hzs36/pp/",GetCernBoxDimi());
+    SourceDiscr_pL = "Jaime1_ds24_hts36_hzs36";
+    SourceFld_pL = TString::Format("%s/CatsFiles/Source/CECA/LookUpSource/Jaime1_ds24_hts36_hzs36/pL/",GetCernBoxDimi());
+  }
+  else{
+    SourceDiscr_pp = "Jaime1_ds24_hts36_hzs36";
+    SourceFld_pp = TString::Format("%s/CatsFiles/Source/CECA/LookUpSource/Jaime1_MD2/pp/",GetCernBoxDimi());
+    SourceDiscr_pL = "Jaime1_ds24_hts36_hzs36";
+    SourceFld_pL = TString::Format("%s/CatsFiles/Source/CECA/LookUpSource/Jaime1_MD2/pL/",GetCernBoxDimi());
+  }
 
-void TestJaime1_Ck(){
-  DLM_CecaSource_v0 pp_src("pp","Jaime1_ds24_hts36_hzs36",TString::Format("%s/CatsFiles/Source/CECA/LookUpSource/Jaime1_ds24_hts36_hzs36/pp/",GetCernBoxDimi()).Data());
-  DLM_CecaSource_v0 pL_src("pL","Jaime1_ds24_hts36_hzs36",TString::Format("%s/CatsFiles/Source/CECA/LookUpSource/Jaime1_ds24_hts36_hzs36/pL/",GetCernBoxDimi()).Data());
+  //DLM_CecaSource_v0 pp_src("pp","Jaime1_ds24_hts36_hzs36",TString::Format("%s/CatsFiles/Source/CECA/LookUpSource/Jaime1_ds24_hts36_hzs36/pp/",GetCernBoxDimi()).Data());
+  //DLM_CecaSource_v0 pL_src("pL","Jaime1_ds24_hts36_hzs36",TString::Format("%s/CatsFiles/Source/CECA/LookUpSource/Jaime1_ds24_hts36_hzs36/pL/",GetCernBoxDimi()).Data());
 
+  DLM_CecaSource_v0 pp_src("pp",SourceDiscr_pp.Data(),SourceFld_pp.Data());
+  DLM_CecaSource_v0 pL_src("pL",SourceDiscr_pL.Data(),SourceFld_pL.Data());
 
-  const double mT_val = 1350;
-  const double Dist = 0.2;
-  const double HadrT = 2.3;
-  const double Tau = 3.55;
+  //const double mT_val = 1350;
+  //const double Dist = 0.2;
+  //const double HadrT = 2.3;
+  //const double Tau = 3.55;
+
+  double mT_val=0;
+  if(flag_mt>=10&&flag_mt<=25){
+    mT_val = flag_mt*100;
+  }
+  else if(flag_mt>=30&&flag_mt<=45){
+    mT_val = (flag_mt-20)*100+50;
+  }
+  //const double mT_val = 1600;
+  //const double mT_val = 2000;
+  double Dist = 0.3;
+  double HadrT = 3.4;
+  double Tau = 2.9;
+  //put here the if(flag_source/100==??)
 
   const double rG_pp = 1.2;
   const double rG_pL = 1.4;
@@ -2844,7 +2882,7 @@ void TestJaime1_Ck(){
   KittyC_pp.KillTheCat();
   KittyC_pL.KillTheCat();
 
-  TFile fOutput(TString::Format("%s/CECA_Paper/TestJaime1_Ck/fOutput.root",GetFemtoOutputFolder()),"recreate");
+  TFile fOutput(TString::Format("%s/CECA_Paper/TestJaime1_Ck/fOutput_fs%i_fmt%i.root",GetFemtoOutputFolder(),flag_source,flag_mt),"recreate");
 
   TGraph gCk_pp_Gauss;
   TGraph gCk_pL_Gauss;
@@ -2899,6 +2937,10 @@ void TestJaime1_Ck(){
   gCk_pL_Ceca.Write();
   fSrcC_pL->Write();
 
+  delete fSrcC_pp;
+  delete fSrcC_pL;
+  delete fSrcG_pp;
+  delete fSrcG_pL;
 }
 
 
@@ -3463,9 +3505,13 @@ CecaAnalysis1::CecaAnalysis1(TString AnalysisVersion, TString SourceVersion, TSt
   }
 
   TString SourceFolder_pp = catsfiles_fld+"/Source/CECA/LookUpSource/"+SourceVersion+"/pp/";
-  //printf("  SourceFolder (pp)  = %s\n",SourceFolder_pp.Data());
   TString SourceFolder_pL = catsfiles_fld+"/Source/CECA/LookUpSource/"+SourceVersion+"/pL/";
-  //printf("  SourceFolder (pL)  = %s\n",SourceFolder_pL.Data());
+
+  //TString SourceFolder_pp = catsfiles_fld+"/Source/CECA/LookUpSource/"+"Jaime1_MD2"+"/pp/";
+  //TString SourceFolder_pL = catsfiles_fld+"/Source/CECA/LookUpSource/"+"Jaime1_MD2"+"/pL/";
+
+  printf("  SourceFolder (pp)  = %s\n",SourceFolder_pp.Data());
+  printf("  SourceFolder (pL)  = %s\n",SourceFolder_pL.Data());
 
   lam = new double [15];
   settings = new double [8];
@@ -3583,14 +3629,30 @@ CecaAnalysis1::CecaAnalysis1(TString AnalysisVersion, TString SourceVersion, TSt
 
   printf("\n");
   printf("...Loading pp source...\n");
-  if(SourceVersion=="JaimeDelay1_dLs25_hts10_taus12")
+
+  if(SourceVersion=="JaimeDelay1_dLs25_hts10_taus12"){
     Src_pp = new DLM_CecaSource_v0("pp","JaimeDelay1_dLs1_hts10_taus12",SourceFolder_pp.Data());
-  else Src_pp = new DLM_CecaSource_v0("pp",SourceVersion.Data(),SourceFolder_pp.Data());
+  }
+  else if(SourceVersion=="Jaime1_MD2"){
+    Src_pp = new DLM_CecaSource_v0("pp","Jaime1_ds24_hts36_hzs36",SourceFolder_pp.Data());
+  }
+  else{
+    Src_pp = new DLM_CecaSource_v0("pp",SourceVersion.Data(),SourceFolder_pp.Data());
+  }
+
+//Src_pp = new DLM_CecaSource_v0("pL","Jaime1_ds24_hts36_hzs36",SourceFolder_pL.Data());
   printf("--> Completed\n");
   printf("...Loading pL source...\n");
-  Src_pL = new DLM_CecaSource_v0("pL",SourceVersion.Data(),SourceFolder_pL.Data());
-  printf("--> Completed\n");
 
+  if(SourceVersion=="Jaime1_MD2"){
+    Src_pL = new DLM_CecaSource_v0("pL","Jaime1_ds24_hts36_hzs36",SourceFolder_pL.Data());
+  }
+  else{
+    Src_pL = new DLM_CecaSource_v0("pL",SourceVersion.Data(),SourceFolder_pL.Data());
+  }
+//Src_pL = new DLM_CecaSource_v0("pL","Jaime1_ds24_hts36_hzs36",SourceFolder_pL.Data());
+  printf("--> Completed\n");
+//printf("--> REALLY!!! %p %p\n",);
   if(Src_pp->InErrorState()){
     printf("\033[1;31mERROR:\033[0m CecaAnalysis1 failed to load the pp source %s from %s.\n",SourceVersion.Data(),SourceFolder_pp.Data());
     delete Src_pp;
@@ -3601,7 +3663,7 @@ CecaAnalysis1::CecaAnalysis1(TString AnalysisVersion, TString SourceVersion, TSt
     delete Src_pL;
     Src_pL = NULL;
   }
-
+//printf("--> COME ON!!!\n");
   AnalysisObject = new DLM_CommonAnaFunctions();
   AnalysisObject->SetCatsFilesFolder(catsfiles_fld.Data());
 
@@ -7479,12 +7541,122 @@ void Usmani_vs_NLO19(){
 
 }
 
+void CompareMomDist(){
+  TString File_p_Raw = TString::Format("%s/Jaime/p_pT.root",GetCernBoxDimi());
+  TString File_L_Raw = TString::Format("%s/Jaime/L_pT.root",GetCernBoxDimi());
+  TString Hist_p_Raw = "pTDist_after";
+  TString Hist_L_Raw = "pTDist_after";
 
+  TString File_p_True = TString::Format("%s/CatsFiles/Source/CECA/proton_pT/p_dist_13TeV_ClassI.root",GetCernBoxDimi());
+  TString File_L_True = TString::Format("%s/CatsFiles/Source/CECA/Lambda_pT/L_dist_13TeV_ClassI.root",GetCernBoxDimi());
+  TString Graph_p_True = "Graph1D_y1";
+  TString Graph_L_True = "Graph1D_y1";
+
+  TH1F* h_p_Raw;
+  TH1F* h_L_Raw;
+  TGraphAsymmErrors* g_p_Raw = new TGraphAsymmErrors();
+  g_p_Raw->SetName("g_p_Raw");
+  TGraphAsymmErrors* g_L_Raw = new TGraphAsymmErrors();
+  g_L_Raw->SetName("g_L_Raw");
+  TGraphAsymmErrors* g_p_True;
+  TGraphAsymmErrors* g_L_True;
+
+  TFile* input_file;
+
+  input_file = new TFile(File_p_Raw,"read");
+  h_p_Raw = (TH1F*)input_file->Get(Hist_p_Raw);
+  h_p_Raw->SetDirectory(0);
+  delete input_file;
+
+  input_file = new TFile(File_L_Raw,"read");
+  h_L_Raw = (TH1F*)input_file->Get(Hist_L_Raw);
+  h_L_Raw->SetDirectory(0);
+  delete input_file;
+
+  input_file = new TFile(File_p_True,"read");
+  g_p_True = (TGraphAsymmErrors*)input_file->Get(Graph_p_True);
+  g_p_True->SetName("g_p_True");
+  delete input_file;
+
+  input_file = new TFile(File_L_True,"read");
+  g_L_True = (TGraphAsymmErrors*)input_file->Get(Graph_L_True);
+  g_L_True->SetName("g_L_True");
+  delete input_file;
+
+  double xval,yval,yerr,binW,totInt;
+  //convert the th1f to graph for the raw, normalize already here as it is easier
+  h_p_Raw->Scale(1./h_p_Raw->Integral(),"width");
+  for(unsigned uBin=0; uBin<h_p_Raw->GetNbinsX(); uBin++){
+    xval = h_p_Raw->GetBinCenter(uBin+1);
+    yval = h_p_Raw->GetBinContent(uBin+1);
+    yerr = h_p_Raw->GetBinError(uBin+1);
+    binW = h_p_Raw->GetBinWidth(uBin+1);
+    //printf("%u: %e %e %e %e\n",uBin,xval,yval,yerr,binW);
+    g_p_Raw->SetPoint(uBin,xval,yval);
+    g_p_Raw->SetPointError(uBin,binW*0.5,binW*0.5,yerr,yerr);
+  }
+
+  h_L_Raw->Scale(1./h_L_Raw->Integral(),"width");
+  for(unsigned uBin=0; uBin<h_L_Raw->GetNbinsX(); uBin++){
+    xval = h_L_Raw->GetBinCenter(uBin+1);
+    yval = h_L_Raw->GetBinContent(uBin+1);
+    yerr = h_L_Raw->GetBinError(uBin+1);
+    binW = h_L_Raw->GetBinWidth(uBin+1);
+    g_L_Raw->SetPoint(uBin,xval,yval);
+    g_L_Raw->SetPointError(uBin,binW*0.5,binW*0.5,yerr,yerr);
+  }
+
+  //renormalize the true dist
+  //this is already normalized to the bin width, so all it is left is the integral
+  totInt=0;
+  for(unsigned uBin=0; uBin<g_p_True->GetN(); uBin++){
+    g_p_True->GetPoint(uBin,xval,yval);
+    binW = g_p_True->GetErrorXhigh(uBin)+g_p_True->GetErrorXlow(uBin);
+    totInt += yval*binW;//this is done since yval is already normalized ot the bin width, and the integral has to be the total yield
+    //binW = g_p_True->GetErrorXhigh()+g_p_True->GetErrorXlow();
+    //g_p_True->SetPoint(uBin,xval,yval/binW);//norm to the bin width
+    //g_p_True->SetPointEYhigh(uBin,g_p_True->GetErrorYhigh()/binW);//end the error
+    //g_p_True->SetPointEYlow(uBin,g_p_True->GetErrorYlow()/binW);//end the error
+  }
+  for(unsigned uBin=0; uBin<g_p_True->GetN(); uBin++){
+    g_p_True->GetPoint(uBin,xval,yval);
+    g_p_True->SetPoint(uBin,xval,yval/totInt);
+    g_p_True->SetPointEYhigh(uBin,g_p_True->GetErrorYhigh(uBin)/totInt);//end the error
+    g_p_True->SetPointEYlow(uBin,g_p_True->GetErrorYlow(uBin)/totInt);//end the error
+  }
+
+
+  totInt=0;
+  for(unsigned uBin=0; uBin<g_L_True->GetN(); uBin++){
+    g_L_True->GetPoint(uBin,xval,yval);
+    binW = g_L_True->GetErrorXhigh(uBin)+g_L_True->GetErrorXlow(uBin);
+    totInt += yval*binW;//this is done since yval is already normalized ot the bin width, and the integral has to be the total yield
+    //binW = g_L_True->GetErrorXhigh()+g_L_True->GetErrorXlow();
+    //g_L_True->SetPoint(uBin,xval,yval/binW);//norm to the bin width
+    //g_L_True->SetPointEYhigh(uBin,g_L_True->GetErrorYhigh()/binW);//end the error
+    //g_L_True->SetPointEYlow(uBin,g_L_True->GetErrorYlow()/binW);//end the error
+  }
+  for(unsigned uBin=0; uBin<g_L_True->GetN(); uBin++){
+    g_L_True->GetPoint(uBin,xval,yval);
+    g_L_True->SetPoint(uBin,xval,yval/totInt);
+    g_L_True->SetPointEYhigh(uBin,g_L_True->GetErrorYhigh(uBin)/totInt);//end the error
+    g_L_True->SetPointEYlow(uBin,g_L_True->GetErrorYlow(uBin)/totInt);//end the error
+  }
+
+  TFile fOutput(TString::Format("%s/CECA_Paper/CompareMomDist/fOutput.root",GetFemtoOutputFolder()),"recreate");
+  g_p_Raw->Write();
+  g_L_Raw->Write();
+  g_p_True->Write();
+  g_L_True->Write();
+}
 
 int CECA_PAPER(int argc, char *argv[]){
   printf("CECA_PAPER\n\n");
   //how to read/write the Levy pars into a file
   //TestSaveStuctToFile();
+
+  //CompareMomDist();
+  //return 0;
 
   //a test that extrapolation of Levy pars works
   //TestDoubleSourceOperation();
@@ -7525,7 +7697,15 @@ int CECA_PAPER(int argc, char *argv[]){
   //TestReadCigar2();
   //TestReadJaime1();
   //TestCigar2_Ck();
-  //TestJaime1_Ck();
+
+  //TestJaime1_Ck(0,12);
+  //TestJaime1_Ck(0,16);
+  //TestJaime1_Ck(0,20);
+  //TestJaime1_Ck(1,12);
+  //TestJaime1_Ck(1,16);
+  //TestJaime1_Ck(1,20);
+  //return 0;
+
   //PNG_ANIM_SOURCE();
   //TestSetUpAna();
   //ScanPs();
@@ -7533,8 +7713,9 @@ int CECA_PAPER(int argc, char *argv[]){
   //UsmaniFineCheck();
   //Usmani_vs_NLO19();
 
-////Wc=2279.0; Rc=0.3394; Sc=0.2614; f1=1.41; d1=2.53; tDev=0.003
 
+
+////Wc=2279.0; Rc=0.3394; Sc=0.2614; f1=1.41; d1=2.53; tDev=0.003
 /*
 ScanPsUsmani(
                   "Reduced","Cigar2_ds24_hts36_hzs36",
@@ -7644,7 +7825,6 @@ ScanPsUsmani(
                   atoi(argv[1]),//lambda vars (400,401,402,500,501,502)
                   atof(argv[2]), atoi(argv[3]));//mins and seed
 */
-
 //refine based on delta chi2 13 (c.a. 2 sigma)
 /*
 ScanPsUsmani(
@@ -7659,6 +7839,9 @@ ScanPsUsmani(
                   atoi(argv[1]),//lambda vars (400,401,402,500,501,502)
                   atof(argv[2]), atoi(argv[3]));//mins and seed
 */
+
+
+
 
 //FIRST TRY
 /*
@@ -7689,6 +7872,7 @@ ScanPsUsmani(
                   atoi(argv[1]),//lambda vars (400,401,402,500,501,502)
                   atof(argv[2]), atoi(argv[3]));//mins and seed
 */
+
 /*
 //refine usmani nlo19, based on c.a. the 3 sigma interval
 ScanPsUsmani(
@@ -7717,6 +7901,22 @@ ScanPsUsmani(
                   atoi(argv[1]),//lambda vars (400,401,402,500,501,502)
                   atof(argv[2]), atoi(argv[3]));//mins and seed
 */
+
+//the rerun using the new momentum distos. here we use slightly extended limits compared to the above 2 sigma (fixed usmani),
+//to see if we converge to a different place
+ScanPsUsmani(
+                  "Reduced","Jaime1_MD2",
+                  TString(GetCernBoxDimi()), TString::Format("%s/CecaPaper/ScanPsUsmani/CecaPaper_J1M2_UsmNLO19/",GetCernBoxDimi()),
+                  0.22,0.38,//d
+                  3.15,3.8,//ht
+                  2.45,3.25,//hz
+                  2279, 2279,
+                  0.3394, 0.3394,
+                  0.2614, 0.2614,
+                  atoi(argv[1]),//lambda vars (400,401,402,500,501,502)
+                  atof(argv[2]), atoi(argv[3]));//mins and seed
+
+
 /*
 ScanPsUsmani(
                   "Reduced","Cigar2_ds24_hts36_hzs36",

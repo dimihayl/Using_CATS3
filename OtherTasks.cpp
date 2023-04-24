@@ -13848,7 +13848,7 @@ void TestDLM_Sample(){
   TH1F* hSample = new TH1F("hSample","hSample",NumBins*10,0,10);
   double axis_val[3];
   for(unsigned uSample=0; uSample<NumEntries; uSample++){
-    dlmHist.Sample(axis_val);
+    dlmHist.SampleYield(axis_val);
     hSample->Fill(axis_val[0]);
   }
   TFile fOutput(TString::Format("%s/OtherTasks/TestDLM_Sample.root",GetFemtoOutputFolder()),"recreate");

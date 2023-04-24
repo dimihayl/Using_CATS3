@@ -2362,7 +2362,7 @@ void Ceca_pd_1(const double& d_delay, const int& EffFix, const TString type="pd"
   if(dlm_pT_p){
     for(unsigned uIter=0; uIter<100*1000; uIter++){
       double axisValues[2];
-      dlm_pT_eta_p.Sample(axisValues);
+      dlm_pT_eta_p.SampleYield(axisValues);
       hSampleQA_p->Fill(axisValues[0],axisValues[1]);
     }
   }
