@@ -7908,8 +7908,8 @@ ScanPsUsmani(
                   "Reduced","Jaime1_MD2",
                   TString(GetCernBoxDimi()), TString::Format("%s/CecaPaper/ScanPsUsmani/CecaPaper_J1M2_UsmNLO19/",GetCernBoxDimi()),
                   0.22,0.38,//d
-                  3.15,3.8,//ht
-                  2.45,3.25,//hz
+                  3.05,3.7,//ht
+                  2.65,3.45,//hz
                   2279, 2279,
                   0.3394, 0.3394,
                   0.2614, 0.2614,
