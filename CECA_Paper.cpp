@@ -7904,6 +7904,7 @@ ScanPsUsmani(
 
 //the rerun using the new momentum distos. here we use slightly extended limits compared to the above 2 sigma (fixed usmani),
 //to see if we converge to a different place
+/*
 ScanPsUsmani(
                   "Reduced","Jaime1_MD2",
                   TString(GetCernBoxDimi()), TString::Format("%s/CecaPaper/ScanPsUsmani/CecaPaper_J1M2_UsmNLO19/",GetCernBoxDimi()),
@@ -7915,6 +7916,62 @@ ScanPsUsmani(
                   0.2614, 0.2614,
                   atoi(argv[1]),//lambda vars (400,401,402,500,501,502)
                   atof(argv[2]), atoi(argv[3]));//mins and seed
+*/
+//optimized for the best fit, only 402 and 502 contribute
+ScanPsUsmani(
+                  "Reduced","Jaime1_MD2",
+                  TString(GetCernBoxDimi()), TString::Format("%s/CecaPaper/ScanPsUsmani/CecaPaper_J1M2_UsmNLO19/",GetCernBoxDimi()),
+                  0.24,0.32,//d
+                  3.0,3.4,//ht
+                  3.1,3.45,//hz
+                  2279, 2279,
+                  0.3394, 0.3394,
+                  0.2614, 0.2614,
+                  atoi(argv[1]),//lambda vars (400,401,402,500,501,502)
+                  atof(argv[2]), atoi(argv[3]));//mins and seed
+
+//this is the new mom distro, with Usmani fit
+/*
+ScanPsUsmani(
+                "Reduced","Jaime1_MD2",
+                TString(GetCernBoxDimi()), TString::Format("%s/CecaPaper/ScanPsUsmani/CecaPaper_J1M2_UsmFit/",GetCernBoxDimi()),
+                0.14, 0.34,//d
+                2.4, 3.4,//ht
+                3.1, 4.0,//hz
+                2311-50, 2311+50,
+                0.3453-0.008, 0.3453+0.008,
+                0.2595-0.002, 0.2595+0.002,
+                atoi(argv[1]),//lambda vars (400,401,402,500,501,502)
+                atof(argv[2]), atoi(argv[3]));//mins and seed
+*/
+//refined
+/*
+ScanPsUsmani(
+                "Reduced","Jaime1_MD2",
+                TString(GetCernBoxDimi()), TString::Format("%s/CecaPaper/ScanPsUsmani/CecaPaper_J1M2_UsmFit/",GetCernBoxDimi()),
+                0.12, 0.32,//d
+                2.5, 3.1,//ht
+                3.35, 3.9,//hz
+                2311-50, 2311+0,
+                0.346,0.354,
+                0.259-0.0005, 0.259+0.0005,
+                atoi(argv[1]),//lambda vars (400,401,402,500,501,502)
+                atof(argv[2]), atoi(argv[3]));//mins and seed
+*/
+/*
+//super-duper refined (works with 502)
+ScanPsUsmani(
+                "Reduced","Jaime1_MD2",
+                TString(GetCernBoxDimi()), TString::Format("%s/CecaPaper/ScanPsUsmani/CecaPaper_J1M2_UsmFit/",GetCernBoxDimi()),
+                0.1755-0.005, 0.1755+0.005,//d
+                2.687-0.05, 2.687+0.05,//ht
+                3.774-0.05, 3.774+0.05,//hz
+                2332-2, 2332+2,
+                0.3455-0.001,0.3455+0.001,
+                0.2576-0.0005, 0.2576+0.0005,
+                atoi(argv[1]),//lambda vars (400,401,402,500,501,502)
+                atof(argv[2]), atoi(argv[3]));//mins and seed
+*/
 
 
 /*
