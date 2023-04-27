@@ -7918,12 +7918,40 @@ ScanPsUsmani(
                   atof(argv[2]), atoi(argv[3]));//mins and seed
 */
 //optimized for the best fit, only 402 and 502 contribute
+/*
 ScanPsUsmani(
                   "Reduced","Jaime1_MD2",
                   TString(GetCernBoxDimi()), TString::Format("%s/CecaPaper/ScanPsUsmani/CecaPaper_J1M2_UsmNLO19/",GetCernBoxDimi()),
                   0.24,0.32,//d
                   3.0,3.4,//ht
                   3.1,3.45,//hz
+                  2279, 2279,
+                  0.3394, 0.3394,
+                  0.2614, 0.2614,
+                  atoi(argv[1]),//lambda vars (400,401,402,500,501,502)
+                  atof(argv[2]), atoi(argv[3]));//mins and seed
+*/
+/*
+//optimized v2 for the best fit, only 402 and 502 contribute
+ScanPsUsmani(
+                  "Reduced","Jaime1_MD2",
+                  TString(GetCernBoxDimi()), TString::Format("%s/CecaPaper/ScanPsUsmani/CecaPaper_J1M2_UsmNLO19/",GetCernBoxDimi()),
+                  0.26,0.31,//d
+                  3.16,3.32,//ht
+                  3.2,3.3,//hz
+                  2279, 2279,
+                  0.3394, 0.3394,
+                  0.2614, 0.2614,
+                  atoi(argv[1]),//lambda vars (400,401,402,500,501,502)
+                  atof(argv[2]), atoi(argv[3]));//mins and seed
+*/
+//optimized v2a for the best fit, only 402 and 502 contribute, here we go to the second peak in ht that is visible
+ScanPsUsmani(
+                  "Reduced","Jaime1_MD2",
+                  TString(GetCernBoxDimi()), TString::Format("%s/CecaPaper/ScanPsUsmani/CecaPaper_J1M2_UsmNLO19/",GetCernBoxDimi()),
+                  0.26,0.31,//d
+                  2.92,3.05,//ht
+                  3.3,3.48,//hz
                   2279, 2279,
                   0.3394, 0.3394,
                   0.2614, 0.2614,
