@@ -1975,15 +1975,17 @@ void Ceca_pd_1(const double& d_delay, const int& EffFix, const TString type="pd"
   }
   double HadronSize = 0;//0.75
   double HadronSlope = 0;//0.2
-  const double EtaCut = 0.8;
+  const double EtaCut = 0.8*2.;
   const bool PROTON_RESO = true;
   const bool EQUALIZE_TAU = true;
   const double TIMEOUT = 30;
-  const double GLOB_TIMEOUT = 180*60;
+  const double GLOB_TIMEOUT = 180*60/30;
   const unsigned Multiplicity=2;
   const double femto_region = 100;
   const unsigned target_yield = 1331*1000;
-  const unsigned NUM_CPU = 2;
+  const unsigned NUM_CPU = 2*4;
+  //TString BaseName = "KstarDist";
+  TString BaseName = TString::Format("Eta%.1f",EtaCut);
 
   //we run to either reproduce the core of 0.97,
   //or the upper limit of reff = 1.06+0.04
@@ -2143,7 +2145,25 @@ void Ceca_pd_1(const double& d_delay, const int& EffFix, const TString type="pd"
       //tau_prp = false;
       rSP_ThK = 100;
     }
-
+    //examples for the animation for hadron 2023
+    else if(EffFix==-1400){
+      rSP_core = 0.176;
+      rSP_dispZ = 0.176;
+      rSP_hadr = 0.00;
+      rSP_tau = 0.00;
+    }
+    else if(EffFix==-1401){
+      rSP_core = 0.176;
+      rSP_dispZ = 0.176;
+      rSP_hadr = 2.68;
+      rSP_tau = 0.00;
+    }
+    else if(EffFix==-1402){
+      rSP_core = 0.176;
+      rSP_dispZ = 0.176;
+      rSP_hadr = 2.68;
+      rSP_tau = 3.76;
+    }
   }
   if(type=="Kd") {rSP_core = EffFix?0.950*1.075:0.950;rSP_dispZ = rSP_core;}
   if(type=="Dpi"){
@@ -2195,8 +2215,8 @@ void Ceca_pd_1(const double& d_delay, const int& EffFix, const TString type="pd"
   if(EffFix) OutputFolderName = "FunWithCeca/Ceca_"+type+"_EffFix";
   else OutputFolderName = "FunWithCeca/Ceca_"+type+"_CoreFix";
   //OutputFolderName = "FunWithCeca";
-  TString BaseFileName = TString::Format("%s/%s/KstarDist_%s_ET%i_PR%i_DD%.1f_EF%i",
-  GetFemtoOutputFolder(),OutputFolderName.Data(),type.Data(),EQUALIZE_TAU,PROTON_RESO,d_delay,EffFix);
+  TString BaseFileName = TString::Format("%s/%s/%s_%s_ET%i_PR%i_DD%.1f_EF%i",
+  GetFemtoOutputFolder(),OutputFolderName.Data(),BaseName.Data(),type.Data(),EQUALIZE_TAU,PROTON_RESO,d_delay,EffFix);
   TFile fOutput(BaseFileName+".root","recreate");
 
   DLM_Histo<float>* dlm_pT_p = NULL;
@@ -9286,9 +9306,196 @@ void Sources_In_SourcePaper(const TString WhichSystem, const int mode){
 }
 
 
-void PionPion_1(){
+void kstar_source_simple_1(const int& flag, const TString type="pp"){
+/*
+  double hdr_size = 0;//0.75
+  double hdr_slope = 0;//0.2
 
+  double frac_proton_reso = 64.22;
+  double m_proton_reso = 1362;
+  double tau_proton_reso = 1.65;
+  double frac_lambda_reso = 64.38;
+  double m_lambda_reso = 1463;
+  double tau_lambda_reso = 4.69;
 
+  const double EtaCut = 0.8;
+  const double TIMEOUT = 30;
+  const double GLOB_TIMEOUT = 180*60/30;
+  const unsigned Multiplicity=2;
+  const double femto_region = 100;
+  const unsigned target_yield = 1331*1000;
+  const unsigned NUM_CPU = 2*4;
+
+  float d_x = 0;
+  float d_y = 0;
+  float d_z = 0;
+  float h_x = 0;
+  float h_y = 0;
+  float h_z = 0;
+  float h_fct = 0;
+  float tau = 0;
+  float tau_fct = 0;
+  bool tau_prp = true;
+  float th_kick = 0;
+  float fixed_hdr = 1;
+  float frag_beta = 0;
+
+  TString BaseName = TString::Format("kstarSrc");
+
+  if(type!="pp"&&type!="pL"){
+    printf("WHAT IS THIS: %s\n", type.Data());
+    return;
+  }
+
+  if(type=="pp"||type=="pL"){
+    //for FEMTUM
+    if(flag==1){
+      //these values are for the ceca paper -> with usmani fit
+      d_x = 0.176;
+      d_x = d_y; d_x = d_z;
+      h_x = 2.68;
+      h_y = h_x;
+      tau = 3.76;
+    }
+    else if(flag==2){
+      //these values are for the ceca paper -> with usmani fit
+      d_x = 0.288;
+      d_x = d_y; d_x = d_z;
+      h_x = 3.23;
+      h_y = h_x;
+      tau = 3.26;
+    }
+  }
+
+  TREPNI Database(0);
+  Database.SetSeed(11);
+  std::vector<TreParticle*> ParticleList;
+  ParticleList.push_back(Database.NewParticle("Proton"));
+  ParticleList.push_back(Database.NewParticle("ProtonReso"));
+  ParticleList.push_back(Database.NewParticle("Lambda"));
+  ParticleList.push_back(Database.NewParticle("LambdaReso"));
+  ParticleList.push_back(Database.NewParticle("Pion"));
+
+  TString OutputFolderName;
+  OutputFolderName = "FunWithCeca/kstar_source_simple_1";
+  TString BaseFileName = TString::Format("%s/%s/%s_%s_flag%i",
+  GetFemtoOutputFolder(),OutputFolderName.Data(),BaseName.Data(),type.Data(),flag);
+  TFile fOutput(BaseFileName+".root","recreate");
+
+  DLM_Histo<float>* dlm_pT_eta_p = NULL;
+  DLM_Histo<float>* dlm_pT_eta_L = NULL;
+  //1 = Jaime (measured)
+  //2 = full ALICE
+  const double momdst_flag = 2;
+  if(momdst_flag%100==1){
+    dlm_pT_eta_p = GetPtEta(
+     TString::Format("%s/Jaime/p_pT.root",GetCernBoxDimi()),
+     TString::Format("%s/Jaime/ap_pT.root",GetCernBoxDimi()),
+     "pTDist_after", "pTDist_after", EtaCut);
+    dlm_pT_eta_L = GetPtEta(
+       TString::Format("%s/Jaime/L_pT.root",GetCernBoxDimi()),
+       TString::Format("%s/Jaime/aL_pT.root",GetCernBoxDimi()),
+       "pTDist_after", "pTDist_after", EtaCut);
+  }
+  else if(momdst_flag%100==2){
+    dlm_pT_eta_p = GetPtEta_13TeV(
+      TString::Format("%s/CatsFiles/Source/CECA/proton_pT/p_dist_13TeV_ClassI.root",GetCernBoxDimi()),
+      "Graph1D_y1", 500, 4050, EtaCut);
+    dlm_pT_eta_L = GetPtEta_13TeV(
+      TString::Format("%s/CatsFiles/Source/CECA/Lambda_pT/L_dist_13TeV_ClassI.root",GetCernBoxDimi()),
+      "Graph1D_y1", 400, 8000, EtaCut);
+  }
+  else{
+    printf("ERROR momdst_flag\n");
+    return 0;
+  }
+
+  for(TreParticle* prt : ParticleList){
+    if(prt->GetName()=="Proton"){
+      prt->SetMass(Mass_p);
+      prt->SetAbundance(100.-frac_proton_reso);
+      prt->SetRadius(hdr_size);
+      prt->SetRadiusSlope(hdr_slope);
+      prt->SetDelayTau(del_proton);
+      if(dlm_pT_eta_p) prt->SetPtEtaPhi(*dlm_pT_eta_p);
+      else prt->SetPtPz(0.85*prt->GetMass(),0.85*prt->GetMass());
+    }
+    else if(prt->GetName()=="ProtonReso"){
+      prt->SetMass(m_proton_reso);
+      prt->SetAbundance(frac_proton_reso);
+      prt->SetWidth(hbarc/tau_proton_reso);
+      prt->SetDelayTau(del_proton_reso);
+
+      prt->NewDecay();
+      prt->GetDecay(0)->AddDaughter(*Database.GetParticle("Proton"));
+      prt->GetDecay(0)->AddDaughter(*Database.GetParticle("Pion"));
+      prt->GetDecay(0)->SetBranching(100);
+
+      if(dlm_pT_eta_p) prt->SetPtEtaPhi(*dlm_pT_eta_p);
+      else prt->SetPtPz(0.85*prt->GetMass(),0.85*prt->GetMass());
+    }
+    else if(prt->GetName()=="Lambda"){
+      prt->SetMass(Mass_L);
+      prt->SetAbundance(100.-frac_lambda_reso);
+      prt->SetRadius(hdr_size);
+      prt->SetRadiusSlope(hdr_slope);
+      prt->SetDelayTau(del_lambda);
+      if(dlm_pT_eta_L) prt->SetPtEtaPhi(*dlm_pT_eta_L);
+      else prt->SetPtPz(0.85*prt->GetMass(),0.85*prt->GetMass());
+    }
+    else if(prt->GetName()=="LambdaReso"){
+      prt->SetMass(m_lambda_reso);
+      prt->SetAbundance(frac_lambda_reso);
+      prt->SetWidth(hbarc/tau_lambda_reso);
+      prt->SetDelayTau(del_lambda_reso);
+
+      prt->NewDecay();
+      prt->GetDecay(0)->AddDaughter(*Database.GetParticle("Lambda"));
+      prt->GetDecay(0)->AddDaughter(*Database.GetParticle("Pion"));
+      prt->GetDecay(0)->SetBranching(100);
+
+      if(dlm_pT_eta_L) prt->SetPtEtaPhi(*dlm_pT_eta_L);
+      else prt->SetPtPz(0.85*prt->GetMass(),0.85*prt->GetMass());
+    }
+    else if(prt->GetName()=="Pion"){
+      prt->SetMass(Mass_pic);
+      prt->SetAbundance(0);
+      prt->SetRadius(hdr_size);
+      prt->SetRadiusSlope(hdr_slope);
+    }
+  }//ParticleList
+
+  CECA Ivana(Database,ListOfParticles);
+
+  Ivana.SetDisplacementX(d_x);
+  Ivana.SetDisplacementY(d_y);
+  Ivana.SetDisplacementZ(d_z);
+
+  Ivana.SetHadronizationX(h_x);
+  Ivana.SetHadronizationY(h_y);
+  Ivana.SetHadronizationZ(h_z);
+  Ivana.SetHadrFluctuation(h_fct);
+
+  Ivana.SetTau(tau,tau_prp);
+  Ivana.SetTauFluct(tau_fct);
+
+  Ivana.SetThermalKick(th_kick);
+  Ivana.SetFixedHadr(fixed_hdr);
+  Ivana.SetFragmentBeta(frag_beta);
+
+  Ivana.SetTargetStatistics(target_yield);
+  Ivana.SetEventMult(multiplicity);
+  Ivana.SetSourceDim(2);
+  Ivana.SetDebugMode(false);
+
+  Ivana.SetThreadTimeout(TIMEOUT);
+  Ivana.SetGlobalTimeout(GLOB_TIMEOUT);
+  Ivana.EqualizeFsiTime(true);
+  Ivana.SetFemtoRegion(femto_region);
+
+  Ivana.GHETTO_EVENT = true;
+
+*/
 }
 
 
@@ -9343,7 +9550,9 @@ int FUN_WITH_CECA(int argc, char *argv[]){
   //Ceca_pd_1(0.0,-1100,"pp");
   //Ceca_pd_1(0.0,-1200,"pp");
   //Ceca_pd_1(0.0,-900,"pp");
-  Ceca_pd_1(0.0,atoi(argv[1]),"pp");
+  //Ceca_pd_1(0.0,atoi(argv[1]),"pp");
+
+  kstar_source_simple_1();
 
 
   //Ceca_pd_1(0.0,-1300,"pp");

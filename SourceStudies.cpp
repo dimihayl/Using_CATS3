@@ -4552,7 +4552,7 @@ void source_pp_syst(){
     TString HepFileName = TString::Format("%s/SourceStudies/source_pp_syst/HEP_PP_%u.yaml",GetFemtoOutputFolder(),uMt);
     ofstream hepfile (HepFileName.Data(),ios::out);
     hepfile << "dependent_variables:" << endl;
-    hepfile << "- header: {name: C(k*)}" << endl;
+    hepfile << "- header: {name: proton-proton C(k*) @ <mT>="<< TMath::Nint(bin_center.at(uMt)*1000.) <<" MeV}" << endl;
     hepfile << "  qualifiers:" << endl;
     hepfile << "  - {name: SQRT(S), units: GeV, value: '13000.0'}" << endl;
     hepfile << "  values:" << endl;
@@ -4631,7 +4631,7 @@ if(!InfoFor_ppForce)
 TString HepFileName_ME = TString::Format("%s/SourceStudies/source_pp_syst/HEP_ME_PP_%u.yaml",GetFemtoOutputFolder(),uMt);
 ofstream hepfile_ME (HepFileName_ME.Data(),ios::out);
 hepfile_ME << "dependent_variables:" << endl;
-hepfile_ME << "- header: {name: M(k*)}" << endl;
+hepfile_ME << "- header: {name: proton-proton M(k*) @ <mT>="<< TMath::Nint(bin_center.at(uMt)*1000.) <<" MeV}" << endl;
 hepfile_ME << "  qualifiers:" << endl;
 hepfile_ME << "  - {name: SQRT(S), units: GeV, value: '13000.0'}" << endl;
 hepfile_ME << "  values:" << endl;
@@ -4720,7 +4720,10 @@ hepfile_ME.close();
       kstar_max = hSmear[uProj]->GetXaxis()->GetBinUpEdge(uMom+1);
     }
 
+    double INT_BEFORE = hSmear[uProj]->Integral();
     hSmear[uProj]->Scale(1./hSmear[uProj]->Integral(),"width");
+    double INT_AFTER = hSmear[uProj]->Integral();
+    double SCALE = INT_AFTER/INT_BEFORE;
 
     for(unsigned uMom=0; uMom<hSmear[uProj]->GetNbinsX(); uMom++){
       if(hSmear[uProj]->GetBinContent(uMom+1)==0){
@@ -4793,16 +4796,16 @@ hepfile_ME.close();
     TString HepFileName_RESO = TString::Format("%s/SourceStudies/source_pp_syst/HEP_RESO_%.0f_PP.yaml",GetFemtoOutputFolder(),kstar_proj.at(uProj));
     ofstream hepfile_RESO (HepFileName_RESO.Data(),ios::out);
     hepfile_RESO << "dependent_variables:" << endl;
-    hepfile_RESO << "- header: {name: Momentum resolution}" << endl;
+    hepfile_RESO << "- header: {name: proton-proton Momentum resolution @ k*="<<kstar_proj.at(uProj)<<" MeV}" << endl;
     hepfile_RESO << "  qualifiers:" << endl;
     hepfile_RESO << "  - {name: SQRT(S), units: GeV, value: '13000.0'}" << endl;
     hepfile_RESO << "  values:" << endl;
     double hep_x,hep_y,hep_stat;
-    for(unsigned uBin=1; uBin<hSmear[0]->GetNbinsX(); uBin++){
+    for(unsigned uBin=1; uBin<=hSmear[0]->GetNbinsX(); uBin++){
       hep_x = hSmear[uProj]->GetBinCenter(uBin);
       hep_y = hSmear[uProj]->GetBinContent(uBin);
-      if(hep_y<10) continue;
-      hep_stat = sqrt(hep_y);
+      if(hep_y<10.*SCALE) continue;
+      hep_stat = hSmear[uProj]->GetBinError(uBin);
       hepfile_RESO << "  - errors:" << endl;
       hepfile_RESO << "    - {label: stat, symerror: "<<hep_stat<<"}" << endl;
       hepfile_RESO << "    value: "<<hep_y << endl;
@@ -4813,7 +4816,7 @@ hepfile_ME.close();
     for(unsigned uBin=1; uBin<hSmear[uProj]->GetNbinsX(); uBin++){
         hep_x = hSmear[uProj]->GetBinCenter(uBin);
         hep_y = hSmear[uProj]->GetBinContent(uBin);
-        if(hep_y<10) continue;
+        if(hep_y<10.*SCALE) continue;
         hepfile_RESO << "  - {value: "<<hep_x<<"}" << endl;
     }
     hepfile_RESO.close();
@@ -5059,7 +5062,7 @@ void source_pL_syst(){
     TString HepFileName = TString::Format("%s/SourceStudies/source_pL_syst/HEP_PL_%u.yaml",GetFemtoOutputFolder(),uMt);
     ofstream hepfile (HepFileName.Data(),ios::out);
     hepfile << "dependent_variables:" << endl;
-    hepfile << "- header: {name: C(k*)}" << endl;
+    hepfile << "- header: {name: proton-Lambda C(k*) @ <mT>="<< TMath::Nint(bin_center.at(uMt)*1000.) <<" MeV}" << endl;
     hepfile << "  qualifiers:" << endl;
     hepfile << "  - {name: SQRT(S), units: GeV, value: '13000.0'}" << endl;
     hepfile << "  values:" << endl;
@@ -5137,7 +5140,7 @@ void source_pL_syst(){
     TString HepFileName_ME = TString::Format("%s/SourceStudies/source_pL_syst/HEP_ME_PL_%u.yaml",GetFemtoOutputFolder(),uMt);
     ofstream hepfile_ME (HepFileName_ME.Data(),ios::out);
     hepfile_ME << "dependent_variables:" << endl;
-    hepfile_ME << "- header: {name: M(k*)}" << endl;
+    hepfile_ME << "- header: {name: proton-Lambda M(k*) @ <mT>="<< TMath::Nint(bin_center.at(uMt)*1000.) <<" MeV}" << endl;
     hepfile_ME << "  qualifiers:" << endl;
     hepfile_ME << "  - {name: SQRT(S), units: GeV, value: '13000.0'}" << endl;
     hepfile_ME << "  values:" << endl;
@@ -5217,7 +5220,10 @@ void source_pL_syst(){
       kstar_max = hSmear[uProj]->GetXaxis()->GetBinUpEdge(uMom+1);
     }
 
+    double INT_BEFORE = hSmear[uProj]->Integral();
     hSmear[uProj]->Scale(1./hSmear[uProj]->Integral(),"width");
+    double INT_AFTER = hSmear[uProj]->Integral();
+    double SCALE = INT_AFTER/INT_BEFORE;
 
     for(unsigned uMom=0; uMom<hSmear[uProj]->GetNbinsX(); uMom++){
       if(hSmear[uProj]->GetBinContent(uMom+1)==0){
@@ -5290,16 +5296,16 @@ void source_pL_syst(){
     TString HepFileName_RESO = TString::Format("%s/SourceStudies/source_pL_syst/HEP_RESO_%.0f_PL.yaml",GetFemtoOutputFolder(),kstar_proj.at(uProj));
     ofstream hepfile_RESO (HepFileName_RESO.Data(),ios::out);
     hepfile_RESO << "dependent_variables:" << endl;
-    hepfile_RESO << "- header: {name: Momentum resolution}" << endl;
+    hepfile_RESO << "- header: {name: proton-Lambda Momentum resolution @ k*="<<kstar_proj.at(uProj)<<" MeV}" << endl;
     hepfile_RESO << "  qualifiers:" << endl;
     hepfile_RESO << "  - {name: SQRT(S), units: GeV, value: '13000.0'}" << endl;
     hepfile_RESO << "  values:" << endl;
     double hep_x,hep_y,hep_stat;
-    for(unsigned uBin=1; uBin<hSmear[0]->GetNbinsX(); uBin++){
+    for(unsigned uBin=1; uBin<=hSmear[0]->GetNbinsX(); uBin++){
       hep_x = hSmear[uProj]->GetBinCenter(uBin);
       hep_y = hSmear[uProj]->GetBinContent(uBin);
-      if(hep_y<10) continue;
-      hep_stat = sqrt(hep_y);
+      if(hep_y<10.*SCALE) continue;
+      hep_stat = hSmear[uProj]->GetBinError(uBin);
       hepfile_RESO << "  - errors:" << endl;
       hepfile_RESO << "    - {label: stat, symerror: "<<hep_stat<<"}" << endl;
       hepfile_RESO << "    value: "<<hep_y << endl;
@@ -5310,7 +5316,7 @@ void source_pL_syst(){
     for(unsigned uBin=1; uBin<hSmear[uProj]->GetNbinsX(); uBin++){
         hep_x = hSmear[uProj]->GetBinCenter(uBin);
         hep_y = hSmear[uProj]->GetBinContent(uBin);
-        if(hep_y<10) continue;
+        if(hep_y<10.*SCALE) continue;
         hepfile_RESO << "  - {value: "<<hep_x<<"}" << endl;
     }
     hepfile_RESO.close();
@@ -5407,7 +5413,7 @@ int SOURCESTUDIES(int argc, char *argv[]){
     //Estimate_Reff("pd","oton","RSM_PLB",3.0);
     //Estimate_Reff("pd_max","oton","RSM_PLB",3.0);
 
-    source_pp_syst();
+    //source_pp_syst();
     //source_pL_syst();
     //estimate_syst_fit();
 

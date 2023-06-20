@@ -6701,6 +6701,10 @@ void Plot_Ck(
   TH1F* ht_1sig = new TH1F("ht_1sig","ht_1sig",1000,0,10);
   TH1F* hz_1sig = new TH1F("hz_1sig","hz_1sig",1200,0,12);
 
+  TH1F* wc_1sig = new TH1F("wc_1sig","wc_1sig",2000,1500,3500);
+  TH1F* rc_1sig = new TH1F("rc_1sig","rc_1sig",1000,0,1);
+  TH1F* sc_1sig = new TH1F("sc_1sig","sc_1sig",1000,0,1);
+
   CecaAnalysis1 CECA_ANA(AnaType,SourceDescription,cern_box+TString("/CatsFiles/"));
   CECA_ANA.SetUp_pp("AV18",0);
   CECA_ANA.SetUp_pL("UsmaniFit",0);
@@ -6884,6 +6888,8 @@ void Plot_Ck(
   double BestChi2=1e6;
   for(unsigned uEntry=0; uEntry<NumNtEntries; uEntry++){
     ntInput->GetEntry(uEntry);
+    //printf("%u: %f %f\n",uEntry,chi2_pp_fmt,chi2_pL_fmt);
+    //usleep(0.1e3);
     if(chi2_pp_fmt+chi2_pL_fmt<BestChi2){
       BestChi2 = chi2_pp_fmt+chi2_pL_fmt;
     }
@@ -6913,6 +6919,10 @@ void Plot_Ck(
       d_1sig->Fill(d_val);
       ht_1sig->Fill(ht_val);
       hz_1sig->Fill(hz_val);
+
+      wc_1sig->Fill(wc_val);
+      rc_1sig->Fill(rc_val);
+      sc_1sig->Fill(sc_val);
     }
     if(chi2_pp_fmt+chi2_pL_fmt<=BestChi2+dChi2_2sig){
       f1_2sig->Fill(f1_val);
@@ -7315,6 +7325,10 @@ void Plot_Ck(
   ht_1sig->Write();
   hz_1sig->Write();
 
+  wc_1sig->Write();
+  rc_1sig->Write();
+  sc_1sig->Write();
+
   for(unsigned uBin=1; uBin<=nsig_f1->GetNbinsX(); uBin++){
     if(nsig_f1->GetBinContent(uBin)){
       printf("f1 = %.3f is excluded by %.2f nσ\n",Check_f1,nsig_f1->GetBinCenter(uBin));
@@ -7430,7 +7444,7 @@ void Plot_Ck(
   double ht_mean = ht_1sig->GetMean();
   double ht_up;
   double ht_low;
-  printf("<d> = %.3f\n",ht_1sig->GetMean());
+  printf("<ht> = %.3f\n",ht_1sig->GetMean());
   for(int iBin=ht_1sig->GetNbinsX(); iBin>=1; iBin--){
     if(ht_1sig->GetBinContent(iBin)){
       ht_up = ht_1sig->GetBinCenter(iBin);
@@ -7450,7 +7464,7 @@ void Plot_Ck(
   double hz_mean = hz_1sig->GetMean();
   double hz_up;
   double hz_low;
-  printf("<d> = %.3f\n",hz_1sig->GetMean());
+  printf("<hz> = %.3f\n",hz_1sig->GetMean());
   for(int iBin=hz_1sig->GetNbinsX(); iBin>=1; iBin--){
     if(hz_1sig->GetBinContent(iBin)){
       hz_up = hz_1sig->GetBinCenter(iBin);
@@ -7466,6 +7480,69 @@ void Plot_Ck(
     }
   }
   printf("hz: %.3f +(%.3f) -(%.3f)\n", hz_mean, hz_up-hz_mean, -hz_low+hz_mean);
+
+
+  double wc_mean = wc_1sig->GetMean();
+  double wc_up;
+  double wc_low;
+  printf("<wc> = %.0f\n",wc_1sig->GetMean());
+  for(int iBin=wc_1sig->GetNbinsX(); iBin>=1; iBin--){
+    if(wc_1sig->GetBinContent(iBin)){
+      wc_up = wc_1sig->GetBinCenter(iBin);
+      printf("upper 1σ limit: %.0f\n",wc_up);
+      break;
+    }
+  }
+  for(int iBin=0; iBin<=wc_1sig->GetNbinsX(); iBin++){
+    if(wc_1sig->GetBinContent(iBin)){
+      wc_low = wc_1sig->GetBinCenter(iBin);
+      printf("lower 1σ limit: %.0f\n",wc_low);
+      break;
+    }
+  }
+  printf("wc: %.0f +(%.0f) -(%.0f)\n", wc_mean, wc_up-wc_mean, -wc_low+wc_mean);
+
+
+  double rc_mean = rc_1sig->GetMean();
+  double rc_up;
+  double rc_low;
+  printf("<rc> = %.4f\n",rc_1sig->GetMean());
+  for(int iBin=rc_1sig->GetNbinsX(); iBin>=1; iBin--){
+    if(rc_1sig->GetBinContent(iBin)){
+      rc_up = rc_1sig->GetBinCenter(iBin);
+      printf("upper 1σ limit: %.4f\n",rc_up);
+      break;
+    }
+  }
+  for(int iBin=0; iBin<=rc_1sig->GetNbinsX(); iBin++){
+    if(rc_1sig->GetBinContent(iBin)){
+      rc_low = rc_1sig->GetBinCenter(iBin);
+      printf("lower 1σ limit: %.4f\n",rc_low);
+      break;
+    }
+  }
+  printf("rc: %.4f +(%.4f) -(%.4f)\n", rc_mean, rc_up-rc_mean, -rc_low+rc_mean);
+
+
+  double sc_mean = sc_1sig->GetMean();
+  double sc_up;
+  double sc_low;
+  printf("<sc> = %.4f\n",sc_1sig->GetMean());
+  for(int iBin=sc_1sig->GetNbinsX(); iBin>=1; iBin--){
+    if(sc_1sig->GetBinContent(iBin)){
+      sc_up = sc_1sig->GetBinCenter(iBin);
+      printf("upper 1σ limit: %.4f\n",sc_up);
+      break;
+    }
+  }
+  for(int iBin=0; iBin<=sc_1sig->GetNbinsX(); iBin++){
+    if(sc_1sig->GetBinContent(iBin)){
+      sc_low = sc_1sig->GetBinCenter(iBin);
+      printf("lower 1σ limit: %.4f\n",sc_low);
+      break;
+    }
+  }
+  printf("sc: %.4f +(%.4f) -(%.4f)\n", sc_mean, sc_up-sc_mean, -sc_low+sc_mean);
 
 }
 
@@ -7650,8 +7727,375 @@ void CompareMomDist(){
   g_L_True->Write();
 }
 
+void pLambda_ScatteringData_FF(){
+
+  //0 = take all
+  //1 = take Haidenbauer (we take the second set from alex, where bins are chosen to have same yield)
+  //2 = take all published
+  int DataFlag = 1;
+
+  TGraphErrors* g_CS_Data = new TGraphErrors();
+  g_CS_Data->SetName("pLambda_ScatteringData");
+  g_CS_Data->SetLineColor(kCyan+1);
+  g_CS_Data->SetLineWidth(2);
+  g_CS_Data->SetMarkerColor(kCyan+1);
+  g_CS_Data->SetMarkerSize(1.25);
+  g_CS_Data->SetMarkerStyle(20);
+
+  g_CS_Data->GetXaxis()->SetLabelSize(0.055);
+  g_CS_Data->GetXaxis()->SetTitleSize(0.06);
+  g_CS_Data->GetXaxis()->SetLabelOffset(0.01);
+  g_CS_Data->GetXaxis()->SetTitleOffset(1.0);
+  g_CS_Data->GetXaxis()->SetLabelFont(42);
+  g_CS_Data->GetYaxis()->SetLabelSize(0.055);
+  g_CS_Data->GetYaxis()->SetTitleSize(0.06);
+
+  g_CS_Data->SetTitle("; #it{k*} (MeV/#it{c}); #it{#sigma} (mb)");
+  //g_CS_Data->GetYaxis()->SetRangeUser(0, 450);
+  g_CS_Data->GetXaxis()->SetNdivisions(505);
+  g_CS_Data->GetYaxis()->SetLabelOffset(0.01);
+  g_CS_Data->GetYaxis()->SetTitleOffset(0.8);
+
+  int NumPts=0;
+
+  //PhysRev.173.1452 = Alexander
+  //PhysRev.175.1735 = B. Sechi-Zorn
+  //Nucl. Phys. B 27 = F. Eisele
+  //Nucl.Phys.B 125 = J.M. Hauptman
+  //Phys. Rev. 159, 853 (R.C. Herndon, Y.C. Tang) --> not bublished
+
+  if(DataFlag==0 || DataFlag==1 || DataFlag==2){
+
+    //PhysRev.175.1735
+    g_CS_Data->SetPoint(NumPts,pLab_pCm(135.1,Mass_L,Mass_p),209);
+    g_CS_Data->SetPointError(NumPts++,0,58);
+
+    //PhysRev.173.1452
+    g_CS_Data->SetPoint(NumPts,pLab_pCm(145,Mass_L,Mass_p),180);
+    g_CS_Data->SetPointError(NumPts++,0,22);
+
+    //PhysRev.175.1735
+    g_CS_Data->SetPoint(NumPts,pLab_pCm(165.1,Mass_L,Mass_p),177);
+    g_CS_Data->SetPointError(NumPts++,0,38);
+
+
+    //PhysRev.173.1452
+    g_CS_Data->SetPoint(NumPts,pLab_pCm(185,Mass_L,Mass_p),130);
+    g_CS_Data->SetPointError(NumPts++,0,17);
+
+    //PhysRev.175.1735
+    g_CS_Data->SetPoint(NumPts,pLab_pCm(194,Mass_L,Mass_p),153);
+    g_CS_Data->SetPointError(NumPts++,0,27);
+
+
+
+    //PhysRev.173.1452
+    g_CS_Data->SetPoint(NumPts,pLab_pCm(210,Mass_L,Mass_p),118);
+    g_CS_Data->SetPointError(NumPts++,0,16);
+
+
+
+    //PhysRev.175.1735
+    g_CS_Data->SetPoint(NumPts,pLab_pCm(226,Mass_L,Mass_p),111);
+    g_CS_Data->SetPointError(NumPts++,0,18);
+
+    //PhysRev.173.1452
+    g_CS_Data->SetPoint(NumPts,pLab_pCm(230,Mass_L,Mass_p),101);
+    g_CS_Data->SetPointError(NumPts++,0,12);
+
+    //PhysRev.173.1452
+    g_CS_Data->SetPoint(NumPts,pLab_pCm(250,Mass_L,Mass_p),83);
+    g_CS_Data->SetPointError(NumPts++,0,9);
+
+    //PhysRev.175.1735
+    g_CS_Data->SetPoint(NumPts,pLab_pCm(252,Mass_L,Mass_p),87);
+    g_CS_Data->SetPointError(NumPts++,0,13);
+
+
+
+    //PhysRev.173.1452
+    g_CS_Data->SetPoint(NumPts,pLab_pCm(290,Mass_L,Mass_p),57);
+    g_CS_Data->SetPointError(NumPts++,0,9);
+
+    //PhysRev.175.1735
+    g_CS_Data->SetPoint(NumPts,pLab_pCm(293,Mass_L,Mass_p),46);
+    g_CS_Data->SetPointError(NumPts++,0,11);
+
+
+
+  }
+
+
+
+  if(DataFlag==0 || DataFlag==2){
+
+    //PhysRev.173.1452
+    g_CS_Data->SetPoint(NumPts,pLab_pCm(134.9,Mass_L,Mass_p),212);
+    g_CS_Data->SetPointError(NumPts++,0,36);
+    //PhysRev.173.1452
+    g_CS_Data->SetPoint(NumPts,pLab_pCm(164.9,Mass_L,Mass_p),141);
+    g_CS_Data->SetPointError(NumPts++,0,20);
+    //PhysRev.173.1452
+    g_CS_Data->SetPoint(NumPts,pLab_pCm(195,Mass_L,Mass_p),141);
+    g_CS_Data->SetPointError(NumPts++,0,16);
+    //PhysRev.173.1452
+    g_CS_Data->SetPoint(NumPts,pLab_pCm(225,Mass_L,Mass_p),95);
+    g_CS_Data->SetPointError(NumPts++,0,10);
+    //PhysRev.173.1452
+    g_CS_Data->SetPoint(NumPts,pLab_pCm(255,Mass_L,Mass_p),81);
+    g_CS_Data->SetPointError(NumPts++,0,8);
+    //PhysRev.173.1452
+    g_CS_Data->SetPoint(NumPts,pLab_pCm(295,Mass_L,Mass_p),56);
+    g_CS_Data->SetPointError(NumPts++,0,9);
+
+    //Nucl. Phys. B 27 (1971) 13
+    //sum up the bins pL->pL together, error from sqrt(N)
+    g_CS_Data->SetPoint(NumPts,pLab_pCm(300,Mass_L,Mass_p),24.95);
+    g_CS_Data->SetPointError(NumPts++,0,5.15);
+
+    ////Nucl.Phys.B 125
+    g_CS_Data->SetPoint(NumPts,pLab_pCm(345,Mass_L,Mass_p),17.18);
+    g_CS_Data->SetPointError(NumPts++,0,(25.85-8.51)*0.5);
+
+    //Nucl.Phys.B 125
+    g_CS_Data->SetPoint(NumPts,pLab_pCm(450,Mass_L,Mass_p),26.83);
+    g_CS_Data->SetPointError(NumPts++,0,(34.68-19.22)*0.5);
+
+    //Nucl. Phys. B 27 (1971) 13
+    //sum up the bins pL->pL together, error from sqrt(N)
+    g_CS_Data->SetPoint(NumPts,pLab_pCm(500,Mass_L,Mass_p),9.0);
+    g_CS_Data->SetPointError(NumPts++,0,1.98);
+
+    //Nucl.Phys.B 125
+    g_CS_Data->SetPoint(NumPts,pLab_pCm(550,Mass_L,Mass_p),6.79);
+    g_CS_Data->SetPointError(NumPts++,0,(10.88-3.03)*0.5);
+
+    //Nucl. Phys. B 27 (1971) 13
+    g_CS_Data->SetPoint(NumPts,pLab_pCm(650,Mass_L,Mass_p),16.7);
+    g_CS_Data->SetPointError(NumPts++,0,3.49);
+
+    //Nucl.Phys.B 125
+    g_CS_Data->SetPoint(NumPts,pLab_pCm(651,Mass_L,Mass_p),9.08);
+    g_CS_Data->SetPointError(NumPts++,0,(13.09-5.07)*0.5);
+
+    //Nucl. Phys. B 27 (1971) 13
+    g_CS_Data->SetPoint(NumPts,pLab_pCm(750,Mass_L,Mass_p),10.7);
+    g_CS_Data->SetPointError(NumPts++,0,2.74);
+
+    //Nucl.Phys.B 125
+    g_CS_Data->SetPoint(NumPts,pLab_pCm(751,Mass_L,Mass_p),13.58);
+    g_CS_Data->SetPointError(NumPts++,0,(18.08-9.16)*0.5);
+
+    //Nucl. Phys. B 27 (1971) 13
+    g_CS_Data->SetPoint(NumPts,pLab_pCm(850,Mass_L,Mass_p),10.2);
+    g_CS_Data->SetPointError(NumPts++,0,2.78);
+
+
+    //Nucl.Phys.B 125
+    g_CS_Data->SetPoint(NumPts,pLab_pCm(851,Mass_L,Mass_p),11.21);
+    g_CS_Data->SetPointError(NumPts++,0,(15.05-7.94)*0.5);
+
+    //Nucl.Phys.B 125
+    g_CS_Data->SetPoint(NumPts,pLab_pCm(954,Mass_L,Mass_p),11.21);
+    g_CS_Data->SetPointError(NumPts++,0,(15.05-7.94)*0.5);
+
+  }
+printf("pLab<=300 MeV (k*<=%.0f): #%u\n",pLab_pCm(300,Mass_L,Mass_p),NumPts);
+printf("pLab<=345 MeV (k*<=%.0f): #%u\n",pLab_pCm(345,Mass_L,Mass_p),NumPts);
+
+printf("pLab<=360 MeV (k*<=%.0f): #%u\n",pLab_pCm(360,Mass_L,Mass_p),NumPts);
+printf("pLab<=380 MeV (k*<=%.0f): #%u\n",pLab_pCm(380,Mass_L,Mass_p),NumPts);
+printf("pLab<=400 MeV (k*<=%.0f): #%u\n",pLab_pCm(400,Mass_L,Mass_p),NumPts);
+printf("pLab<=420 MeV (k*<=%.0f): #%u\n",pLab_pCm(420,Mass_L,Mass_p),NumPts);
+
+printf("pLab<=450 MeV (k*<=%.0f): #%u\n",pLab_pCm(450,Mass_L,Mass_p),NumPts);
+
+
+
+  printf("NumPts = %u\n",NumPts);
+
+  TFile fOutput(TString::Format("%s/CECA_Paper/pL_CS_Data.root",GetFemtoOutputFolder()),"recreate");
+  g_CS_Data->Write();
+
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
+
+  const unsigned NumMomBins = 40;
+  const double kMin = 0;
+  const double kMax = 160;
+  const double kChi2 = 135;
+  const double Eps = 1e-9;
+
+  //CATS set up with usmani
+  CATS Kitty_UsmDeflt;
+  Kitty_UsmDeflt.SetMomBins(NumMomBins,kMin,kMax);
+  AnalysisObject.SetUpCats_pL(Kitty_UsmDeflt,"UsmaniFit","Gauss",0,0);
+  Kitty_UsmDeflt.SetEpsilonConv(Eps);
+  Kitty_UsmDeflt.SetEpsilonProp(Eps);
+  Kitty_UsmDeflt.KillTheCat();
+
+  //CATS set up with usmani, but fixed to NLO19
+  CATS Kitty_UsmNLO19;
+  Kitty_UsmNLO19.SetMomBins(NumMomBins,kMin,kMax);
+  AnalysisObject.SetUpCats_pL(Kitty_UsmNLO19,"UsmaniFit","Gauss",0,0);
+  Kitty_UsmNLO19.SetEpsilonConv(Eps);
+  Kitty_UsmNLO19.SetEpsilonProp(Eps);
+  //to get the NNLO => - (f1=1.56)
+  Kitty_UsmNLO19.SetShortRangePotential(1,0,1,2279-13.5);
+  Kitty_UsmNLO19.SetShortRangePotential(1,0,2,0.3394);
+  Kitty_UsmNLO19.SetShortRangePotential(1,0,3,0.2614);
+  Kitty_UsmNLO19.KillTheCat();
+
+  //CATS set up with usmani, but fixed to femto data
+  CATS Kitty_UsmFemto;
+  Kitty_UsmFemto.SetMomBins(NumMomBins,kMin,kMax);
+  AnalysisObject.SetUpCats_pL(Kitty_UsmFemto,"UsmaniFit","Gauss",0,0);
+  Kitty_UsmFemto.SetEpsilonConv(Eps);
+  Kitty_UsmFemto.SetEpsilonProp(Eps);
+  //-10 is just a bit over 1 sigma away for both femto and scattering => f1 = 1.23
+  //-11 is half way
+  //-12 is the 1 sigma limit with respect to scattering => f1 = 1.25
+  Kitty_UsmFemto.SetShortRangePotential(1,0,1,2332-11);
+
+  Kitty_UsmFemto.SetShortRangePotential(1,0,2,0.3455);
+  Kitty_UsmFemto.SetShortRangePotential(1,0,3,0.2575);
+  Kitty_UsmFemto.KillTheCat();
+
+  TH1F* hPsSin_UsmDeflt = new TH1F("hPsSin_UsmDeflt","hPsSin_UsmDeflt",NumMomBins,kMin,kMax);
+  TH1F* hPsSin_UsmNLO19 = new TH1F("hPsSin_UsmNLO19","hPsSin_UsmNLO19",NumMomBins,kMin,kMax);
+  TH1F* hPsSin_UsmFemto = new TH1F("hPsSin_UsmFemto","hPsSin_UsmFemto",NumMomBins,kMin,kMax);
+
+  TH1F* hPsTri_UsmDeflt = new TH1F("hPsTri_UsmDeflt","hPsTri_UsmDeflt",NumMomBins,kMin,kMax);
+  TH1F* hPsTri_UsmNLO19 = new TH1F("hPsTri_UsmNLO19","hPsTri_UsmNLO19",NumMomBins,kMin,kMax);
+  TH1F* hPsTri_UsmFemto = new TH1F("hPsTri_UsmFemto","hPsTri_UsmFemto",NumMomBins,kMin,kMax);
+
+  TGraph* gCs_UsmDeflt = new TGraph();
+  TGraph* gCs_UsmNLO19 = new TGraph();
+  TGraph* gCs_UsmFemto = new TGraph();
+
+  gCs_UsmDeflt->SetName("gCs_UsmDeflt");
+  gCs_UsmNLO19->SetName("gCs_UsmNLO19");
+  gCs_UsmFemto->SetName("gCs_UsmFemto");
+
+  //double TotCrossSection
+  double CrossSection;
+  double PhaseShift;
+  double kstar;
+
+  for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+
+    kstar = Kitty_UsmDeflt.GetMomentum(uMom);
+
+    hPsSin_UsmDeflt->SetBinContent(uMom+1,Kitty_UsmDeflt.GetPhaseShift(uMom,0,0));
+    hPsTri_UsmDeflt->SetBinContent(uMom+1,Kitty_UsmDeflt.GetPhaseShift(uMom,1,0));
+
+    hPsSin_UsmNLO19->SetBinContent(uMom+1,Kitty_UsmNLO19.GetPhaseShift(uMom,0,0));
+    hPsTri_UsmNLO19->SetBinContent(uMom+1,Kitty_UsmNLO19.GetPhaseShift(uMom,1,0));
+
+    hPsSin_UsmFemto->SetBinContent(uMom+1,Kitty_UsmFemto.GetPhaseShift(uMom,0,0));
+    hPsTri_UsmFemto->SetBinContent(uMom+1,Kitty_UsmFemto.GetPhaseShift(uMom,1,0));
+
+    CrossSection = 0;
+    PhaseShift = Kitty_UsmDeflt.GetPhaseShift(uMom,0,0);
+    CrossSection += 0.25*4.*Pi*NuToFm*NuToFm*10./(kstar*kstar)*(pow(sin(PhaseShift),2));
+    PhaseShift = Kitty_UsmDeflt.GetPhaseShift(uMom,1,0);
+    CrossSection += 0.75*4.*Pi*NuToFm*NuToFm*10./(kstar*kstar)*(pow(sin(PhaseShift),2));
+    gCs_UsmDeflt->SetPoint(uMom,kstar,CrossSection);
+
+    CrossSection = 0;
+    PhaseShift = Kitty_UsmNLO19.GetPhaseShift(uMom,0,0);
+    CrossSection += 0.25*4.*Pi*NuToFm*NuToFm*10./(kstar*kstar)*(pow(sin(PhaseShift),2));
+    PhaseShift = Kitty_UsmNLO19.GetPhaseShift(uMom,1,0);
+    CrossSection += 0.75*4.*Pi*NuToFm*NuToFm*10./(kstar*kstar)*(pow(sin(PhaseShift),2));
+    gCs_UsmNLO19->SetPoint(uMom,kstar,CrossSection);
+
+    CrossSection = 0;
+    PhaseShift = Kitty_UsmFemto.GetPhaseShift(uMom,0,0);
+    CrossSection += 0.25*4.*Pi*NuToFm*NuToFm*10./(kstar*kstar)*(pow(sin(PhaseShift),2));
+    PhaseShift = Kitty_UsmFemto.GetPhaseShift(uMom,1,0);
+    CrossSection += 0.75*4.*Pi*NuToFm*NuToFm*10./(kstar*kstar)*(pow(sin(PhaseShift),2));
+    gCs_UsmFemto->SetPoint(uMom,kstar,CrossSection);
+
+  }
+
+  Kitty_UsmDeflt.SetNotifications(CATS::nWarning);
+  Kitty_UsmNLO19.SetNotifications(CATS::nWarning);
+  Kitty_UsmFemto.SetNotifications(CATS::nWarning);
+
+  TH1F* hFit;
+  TF1* fitSP;
+  double ScatLen,EffRan;
+
+  printf("UsmDeflt:\n");
+  GetScattParameters(Kitty_UsmDeflt, ScatLen, EffRan, hFit, fitSP, 3, false, false, 0);
+  printf("   S=0: f0 = %.2f; d0 = %.2f\n",ScatLen,EffRan);
+  delete hFit; delete fitSP;
+  GetScattParameters(Kitty_UsmDeflt, ScatLen, EffRan, hFit, fitSP, 3, false, false, 1);
+  printf("   S=1: f0 = %.2f; d0 = %.2f\n",ScatLen,EffRan);
+  delete hFit; delete fitSP;
+
+  printf("UsmNLO19:\n");
+  GetScattParameters(Kitty_UsmNLO19, ScatLen, EffRan, hFit, fitSP, 3, false, false, 0);
+  printf("   S=0: f0 = %.2f; d0 = %.2f\n",ScatLen,EffRan);
+  delete hFit; delete fitSP;
+  GetScattParameters(Kitty_UsmNLO19, ScatLen, EffRan, hFit, fitSP, 3, false, false, 1);
+  printf("   S=1: f0 = %.2f; d0 = %.2f\n",ScatLen,EffRan);
+  delete hFit; delete fitSP;
+
+  printf("UsmFemto:\n");
+  GetScattParameters(Kitty_UsmFemto, ScatLen, EffRan, hFit, fitSP, 3, false, false, 0);
+  printf("   S=0: f0 = %.2f; d0 = %.2f\n",ScatLen,EffRan);
+  delete hFit; delete fitSP;
+  GetScattParameters(Kitty_UsmFemto, ScatLen, EffRan, hFit, fitSP, 3, false, false, 1);
+  printf("   S=1: f0 = %.2f; d0 = %.2f\n",ScatLen,EffRan);
+  delete hFit; delete fitSP;
+
+  hPsSin_UsmDeflt->Write();
+  hPsTri_UsmDeflt->Write();
+  hPsSin_UsmNLO19->Write();
+  hPsTri_UsmNLO19->Write();
+  hPsSin_UsmFemto->Write();
+  hPsTri_UsmFemto->Write();
+
+  gCs_UsmDeflt->Write();
+  gCs_UsmNLO19->Write();
+  gCs_UsmFemto->Write();
+
+  double CsData;
+  double CsErr;
+
+  double Chi2_UsmDeflt=0;
+  double Chi2_UsmNLO19=0;
+  double Chi2_UsmFemto=0;
+
+  unsigned NDF=0;
+  for(unsigned uData=0; uData<g_CS_Data->GetN(); uData++){
+    g_CS_Data->GetPoint(uData,kstar,CsData);
+    if(kstar>kChi2) break;
+    CsErr = g_CS_Data->GetErrorY(uData);
+
+    Chi2_UsmDeflt += pow((CsData-gCs_UsmDeflt->Eval(kstar))/CsErr,2.);
+    Chi2_UsmNLO19 += pow((CsData-gCs_UsmNLO19->Eval(kstar))/CsErr,2.);
+    Chi2_UsmFemto += pow((CsData-gCs_UsmFemto->Eval(kstar))/CsErr,2.);
+    NDF++;
+  }
+
+  printf("chi2/ndf:\n");
+  printf("   UsmDeflt: %.1f/%u\n",Chi2_UsmDeflt,NDF);
+  printf("   UsmNLO19: %.1f/%u\n",Chi2_UsmNLO19,NDF);
+  printf("   UsmFemto: %.1f/%u\n",Chi2_UsmFemto,NDF);
+
+
+}
+
+
 int CECA_PAPER(int argc, char *argv[]){
   printf("CECA_PAPER\n\n");
+
+  pLambda_ScatteringData_FF(); return 0;
+  //printf("chi2 to get 2 sig: %.2f\n",GetDeltaChi2(8.4-4.5,3)); return 0;
+  //printf("nsig given 6 dof: %.2f\n",GetNsigma(8.4-4.5,3)); return 0;
+
   //how to read/write the Levy pars into a file
   //TestSaveStuctToFile();
 
@@ -7772,14 +8216,15 @@ ScanPsUsmani(
 
 //NB change to 1 sig
 //Plot_Ck("Reduced","Jaime1_ds24_hts36_hzs36",TString(GetCernBoxDimi()),
-//          TString::Format("%s/CecaPaper/ScanPsUsmani/CecaPaper_J1_UsmFit_2/Plot_Ck/",GetCernBoxDimi()),
-//          TString::Format("%s/CecaPaper/ScanPsUsmani/CecaPaper_J1_UsmFit_2/CecaPaper_J1_UsmFit_2.root",GetCernBoxDimi()),
+//          TString::Format("%s/CecaPaper/ScanPsUsmani/CecaPaper_J1M2_UsmFit/Plot_Ck/",GetCernBoxDimi()),
+//          TString::Format("%s/CecaPaper/ScanPsUsmani/CecaPaper_J1M2_UsmFit/US_Reduced_Jaime1_MD2_UpTo40.root",GetCernBoxDimi()),
 //          1,6,1000);
-//Plot_Ck("Reduced","Jaime1_ds24_hts36_hzs36",TString(GetCernBoxDimi()),
-//          TString::Format("%s/CecaPaper/ScanPsUsmani/CecaPaper_J1_UsmNLO19/Plot_Ck/",GetCernBoxDimi()),
-//          TString::Format("%s/CecaPaper/ScanPsUsmani/CecaPaper_J1_UsmNLO19/CecaPaper_J1_UsmNLO19.root",GetCernBoxDimi()),
-//          1,6,1000);
-
+/*
+Plot_Ck("Reduced","Jaime1_ds24_hts36_hzs36",TString(GetCernBoxDimi()),
+          TString::Format("%s/CecaPaper/ScanPsUsmani/CecaPaper_J1M2_UsmNLO19/Plot_Ck/",GetCernBoxDimi()),
+          TString::Format("%s/CecaPaper/ScanPsUsmani/CecaPaper_J1M2_UsmNLO19/CecaPaper_J1M2_UsmNLO19.root",GetCernBoxDimi()),
+          1,3,1000);
+*/
 
 
 //USE THIS ONE FOR THE PAPER
@@ -7946,6 +8391,7 @@ ScanPsUsmani(
                   atof(argv[2]), atoi(argv[3]));//mins and seed
 */
 //optimized v2a for the best fit, only 402 and 502 contribute, here we go to the second peak in ht that is visible
+/*
 ScanPsUsmani(
                   "Reduced","Jaime1_MD2",
                   TString(GetCernBoxDimi()), TString::Format("%s/CecaPaper/ScanPsUsmani/CecaPaper_J1M2_UsmNLO19/",GetCernBoxDimi()),
@@ -7957,7 +8403,7 @@ ScanPsUsmani(
                   0.2614, 0.2614,
                   atoi(argv[1]),//lambda vars (400,401,402,500,501,502)
                   atof(argv[2]), atoi(argv[3]));//mins and seed
-
+*/
 //this is the new mom distro, with Usmani fit
 /*
 ScanPsUsmani(

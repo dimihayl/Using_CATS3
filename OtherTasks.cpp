@@ -1,5 +1,6 @@
 
 #include "OtherTasks.h"
+#include "gsl_sf_coulomb.h"
 
 #include "CATS.h"
 #include "CATSconstants.h"
@@ -680,7 +681,6 @@ printf(" e2 = %f\n",dlm_McSe_pp.GetBinError(4));
     //fit_DataCk_pp->SetParameter(8,0); fit_DataCk_pp->SetParLimits(8,-1e-15,1e-15);
     */
     TF1* fit_DataCk_pp = new TF1("fit_DataCk_pp","(1-[0]*exp(-pow(x*[1]/197.327,[2])))*[3]*(1+[4]*x+[5]*x*x+[6]*x*x*x)*",300,2000);
-
 
     histo_DataCk_pp->Fit(fit_DataCk_pp,"S, N, R, M");
     histo_DataCk_pp->Write();
@@ -15543,11 +15543,473 @@ void pXi_BUG_TEST(){
 }
 
 
+void coal_test_1(){
+
+  const double reff_1stMt = 1.36;
+  const unsigned NumBins = 5;
+  double* BinLims = new double[NumBins+1];
+  BinLims[0] = 0.4;
+  BinLims[1] = 0.5;
+  BinLims[2] = 0.6;
+  BinLims[3] = 0.8;
+  BinLims[4] = 1.0;
+  BinLims[5] = 1.5;
+  TH1F* hB2_tot = new TH1F("hB2_tot","hB2_tot",NumBins,BinLims);
+  hB2_tot->SetBinContent(1, 0.0095);  hB2_tot->SetBinError(1, 0.001);
+  hB2_tot->SetBinContent(2, 0.01);    hB2_tot->SetBinError(2, 0.001);
+  hB2_tot->SetBinContent(3, 0.011);   hB2_tot->SetBinError(3, 0.001);
+  hB2_tot->SetBinContent(4, 0.012);   hB2_tot->SetBinError(4, 0.001);
+  hB2_tot->SetBinContent(5, 0.013);   hB2_tot->SetBinError(5, 0.001);
+
+  TH1F* hB2_jet = new TH1F("hB2_jet","hB2_jet",NumBins,BinLims);
+  hB2_jet->SetBinContent(1, 0.512);   hB2_jet->SetBinError(1, 0.19);
+  hB2_jet->SetBinContent(2, 0.413);   hB2_jet->SetBinError(2, 0.33);
+  hB2_jet->SetBinContent(3, 0.417);   hB2_jet->SetBinError(3, 0.06);
+  hB2_jet->SetBinContent(4, 0.322);   hB2_jet->SetBinError(4, 0.03);
+  hB2_jet->SetBinContent(5, 0.376);   hB2_jet->SetBinError(5, 0.02);
+
+  //const double PowCoeff = 0.67;
+  const double PowCoeff = 3;
+  const double Nconv = hB2_tot->GetBinContent(2)*pow(reff_1stMt,PowCoeff);
+
+  TFile fInput(TString::Format("%s/CatsFiles/Source/SourcePaper_Published.root",GetCernBoxDimi()),"read");
+  TGraphErrors* g_pp = (TGraphErrors*)fInput.Get("g_reff_pp");
+  //TGraphErrors* g_pL = (TGraphErrors*)fInput.Get("g_reff_pL");
+
+  TGraph* gRcoal = new TGraph();
+  gRcoal->SetName("gRcoal");
+
+  TGraph* gRjet = new TGraph();
+  gRjet->SetName("gRjet");
+
+  for(unsigned uBin=0; uBin<NumBins; uBin++){
+    double reff = pow(Nconv/hB2_tot->GetBinContent(uBin+1),1./PowCoeff);
+    gRcoal->SetPoint(uBin,hB2_tot->GetBinCenter(uBin+1)*2,reff);
+
+    reff = pow(Nconv/hB2_jet->GetBinContent(uBin+1),1./PowCoeff);
+    gRjet->SetPoint(uBin,hB2_jet->GetBinCenter(uBin+1)*2,reff);
+  }
+  TFile fOutput(TString::Format("%s/OtherTasks/coal_test_1.root",GetFemtoOutputFolder()),"recreate");
+  g_pp->Write();
+  gRcoal->Write();
+  gRjet->Write();
+
+  delete [] BinLims;
+}
 
 
+void test_sqwell(){
+
+  //std::vector<float> SrcSize = {0.7,1.0,1.4,2.0,2.8,4.0};
+  std::vector<float> SrcSize = {1.0};
+
+  const double kMin = 0;
+  const double kMax = 200;
+  const unsigned NumBins = 100;
+
+  const double SourceSize = 1.0;
+
+  const double V_1S0 = -16200./Mass_p*1.;//c.a. 17.27 MeV
+  const double d_1S0 = 2.3039*1.;
+
+  TGraph gPsSW;
+  gPsSW.SetName(TString::Format("gPsSW"));
+  gPsSW.Set(NumBins);
+
+  TGraph gPsAnaSW;
+  gPsAnaSW.SetName(TString::Format("gPsAnaSW"));
+  gPsAnaSW.Set(NumBins);
+
+  TGraph gPsAV18;
+  gPsAV18.SetName(TString::Format("gPsAV18"));
+  gPsAV18.Set(NumBins);
+
+  CATS KittySW;
+  KittySW.SetMomBins(NumBins,kMin,kMax);
+  CATSparameters cPars (CATSparameters::tSource,1,true);
+  cPars.SetParameter(0,SourceSize);
+  KittySW.SetAnaSource(GaussSource, cPars);
+  KittySW.SetUseAnalyticSource(true);
+  KittySW.SetMomentumDependentSource(false);
+  KittySW.SetExcludeFailedBins(false);
+  KittySW.SetQ1Q2(1);
+  KittySW.SetQuantumStatistics(true);
+  //KittySW.SetRedMass( (938.*1116.)/(938.+1116.) );
+  KittySW.SetRedMass( 0.5*Mass_p );
+  KittySW.SetNumChannels(2);
+  KittySW.SetNumPW(0,1);
+  KittySW.SetNumPW(1,0);
+  KittySW.SetSpin(0,0);
+  KittySW.SetSpin(1,1);
+  KittySW.SetChannelWeight(0, 1./4.);
+  KittySW.SetChannelWeight(1, 3./4.);
+  CATSparameters pPars1S0(CATSparameters::tPotential,2,true);
+  pPars1S0.SetParameter(0,V_1S0);
+  pPars1S0.SetParameter(1,d_1S0);
+  KittySW.SetShortRangePotential(0,0,SquareWell,pPars1S0);
+  KittySW.SetNotifications(CATS::nWarning);
+  //KittySW.SetMaxRad(128);
+  //KittySW.SetMaxRho(64);
+  //KittySW.KillTheCat();
+
+  CATS KittyAV18;
+  KittyAV18.SetMomBins(NumBins,kMin,kMax);
+  KittyAV18.SetAnaSource(GaussSource, cPars);
+  KittyAV18.SetUseAnalyticSource(true);
+  KittyAV18.SetMomentumDependentSource(false);
+  KittyAV18.SetExcludeFailedBins(false);
+  KittyAV18.SetQ1Q2(1);
+  KittyAV18.SetQuantumStatistics(true);
+  KittyAV18.SetRedMass( 0.5*Mass_p );
+  KittyAV18.SetNumChannels(2);
+  KittyAV18.SetNumPW(0,1);
+  KittyAV18.SetNumPW(1,0);
+  KittyAV18.SetSpin(0,0);
+  KittyAV18.SetSpin(1,1);
+  KittyAV18.SetChannelWeight(0, 1./4.);
+  KittyAV18.SetChannelWeight(1, 3./4.);
+  CATSparameters pPars1S0_AV18(CATSparameters::tPotential,8,true);
+  //        double PotPars1S0[8] = {NN_AV18, v18_Coupled3P2, 1, 1, 1, 0, 0, 0};
+  pPars1S0_AV18.SetParameter(0,NN_AV18);
+  pPars1S0_AV18.SetParameter(1,v18_Coupled3P2);
+  pPars1S0_AV18.SetParameter(2,1);
+  pPars1S0_AV18.SetParameter(3,1);
+  pPars1S0_AV18.SetParameter(4,1);
+  pPars1S0_AV18.SetParameter(5,0);
+  pPars1S0_AV18.SetParameter(6,0);
+  pPars1S0_AV18.SetParameter(7,0);
+  KittyAV18.SetShortRangePotential(0,0,fDlmPot,pPars1S0_AV18);
+  KittyAV18.SetNotifications(CATS::nWarning);
+  //KittyAV18.SetMaxRad(128);
+  //KittyAV18.SetMaxRho(64);
+  //KittyAV18.KillTheCat();
+
+  TFile* OutputFile = new TFile(
+	    TString::Format("%s/OtherTasks/test_sqwell/test1.root",GetFemtoOutputFolder()), "recreate");
+	printf("File Created\n");
+
+  for(float src_size : SrcSize){
+
+    KittySW.SetAnaSource(0,src_size);
+    KittySW.KillTheCat();
+    KittyAV18.SetAnaSource(0,src_size);
+    KittyAV18.KillTheCat();
+
+    TGraph gKittySW;
+    gKittySW.SetName(TString::Format("gKittySW_r%.1f",src_size));
+    gKittySW.Set(NumBins);
+
+
+    TGraph gKittyAV18;
+    gKittyAV18.SetName(TString::Format("gKittyAV18_r%.1f",src_size));
+    gKittyAV18.Set(NumBins);
+
+
+
+
+
+    for (unsigned uBin = 0; uBin < NumBins; uBin++) {
+      double kstar = KittySW.GetMomentum(uBin);
+      //printf("C(%.2f) = %.2f\n", Kitty_SE.GetMomentum(uBin), Kitty_SE.GetCorrFun(uBin));
+      gKittySW.SetPoint(uBin, kstar, KittySW.GetCorrFun(uBin));
+      gKittyAV18.SetPoint(uBin, kstar, KittyAV18.GetCorrFun(uBin));
+    }//mom
+    gKittySW.Write();
+    gKittyAV18.Write();
+
+
+  }//src
+
+  for (unsigned uBin = 0; uBin < NumBins; uBin++) {
+    double kstar = KittySW.GetMomentum(uBin);
+    gPsSW.SetPoint(uBin, kstar, KittySW.GetPhaseShift(uBin,0,0));
+    gPsAV18.SetPoint(uBin, kstar, KittyAV18.GetPhaseShift(uBin,0,0));
+
+    double redmass = KittySW.GetRedMass();
+    double q1q2 = KittySW.GetQ1Q2();
+    double kbar = sqrt(kstar*kstar-2.*redmass*V_1S0);
+    double eta = redmass*q1q2*AlphaFS/kstar;
+    double eta_bar = redmass*q1q2*AlphaFS/kbar;
+    double F_L;
+    double G_L;
+    double F1_L;
+    double G1_L;
+    double F_L_bar;
+    double G_L_bar;
+    double F1_L_bar;
+    double G1_L_bar;
+    double f_l;
+    double g_l;
+    double f_l_bar;
+    double g_l_bar;
+    double phase_shift;
+    double F_O;
+    double G_O;
+
+    double diff = 0.05*FmToNu;
+    gsl_sf_coulomb_wave_FG_array(0,0,eta,kstar*d_1S0*FmToNu,&F_L,&G_L,&F_O,&G_O);
+    gsl_sf_coulomb_wave_FG_array(0,0,eta,kstar*(d_1S0+diff)*FmToNu,&F1_L,&G1_L,&F_O,&G_O);
+    gsl_sf_coulomb_wave_FG_array(0,0,eta_bar,kbar*d_1S0*FmToNu,&F_L_bar,&G_L_bar,&F_O,&G_O);
+    gsl_sf_coulomb_wave_FG_array(0,0,eta_bar,kbar*(d_1S0+diff)*FmToNu,&F1_L_bar,&G1_L_bar,&F_O,&G_O);
+
+  //G_L = fabs(G_L);
+  //G_L_bar = fabs(G_L_bar);
+  //G1_L = fabs(G1_L);
+  //G1_L_bar = fabs(G1_L_bar);
+
+    f_l = log(F1_L)-log(F_L);
+  f_l = log(fabs(F1_L))-log(fabs(F_L));
+    f_l /= diff;
+
+    g_l = log(G1_L)-log(G_L);
+  g_l = log(fabs(G1_L))-log(fabs(G_L));
+    g_l /= diff;
+  //g_l = 0;
+
+    f_l_bar = log(F1_L_bar)-log(F_L_bar);
+  f_l_bar = log(fabs(F1_L_bar))-log(fabs(F_L_bar));
+    f_l_bar /= diff;
+
+    g_l_bar = log(G1_L_bar)-log(G_L_bar);
+  g_l_bar = log(fabs(G1_L_bar))-log(fabs(G_L_bar));
+    g_l_bar /= diff;
+
+    phase_shift = atan(F_L*(kstar*f_l-kbar*f_l_bar)/G_L/(kbar*f_l_bar-kstar*g_l));//as in slides
+
+    if(kstar>120 && kstar<160){
+      printf("kstar = %.2e\n",kstar);
+      printf("kbar = %.2e\n",kbar);
+      printf("F_L = %.2e\n",F_L);
+      printf("F1_L = %.2e\n",F1_L);
+      printf("F_L_bar = %.2e\n",F_L_bar);
+      printf("G_L = %.2e\n",G_L);
+      printf("G1_L = %.2e\n",G1_L);
+      printf("G_L_bar = %.2e\n",G_L_bar);
+      printf("f_l = %.2e\n",f_l);
+      printf("f_l_bar = %.2e\n",f_l_bar);
+      printf("g_l = %.2e\n",g_l);
+      printf("g_l_bar = %.2e\n",g_l_bar);
+      printf("phase_shift = %.2e\n",phase_shift);
+    }
+
+    gPsAnaSW.SetPoint(uBin, kstar, phase_shift);
+  }
+
+
+  gPsSW.Write();
+  gPsAV18.Write();
+  gPsAnaSW.Write();
+
+
+
+
+  double f0_SW;
+  double d0_SW;
+  double f0_AV18;
+  double d0_AV18;
+  TH1F* hDummy;
+  TF1* fDummy;
+  KittySW.SetQ1Q2(0);
+  KittySW.KillTheCat();
+  KittyAV18.SetQ1Q2(0);
+  KittyAV18.KillTheCat();
+  Eval_ScattParameters(KittySW,f0_SW,d0_SW,hDummy,fDummy,2,false,false,0);
+  delete hDummy; delete fDummy;
+  Eval_ScattParameters(KittyAV18,f0_AV18,d0_AV18,hDummy,fDummy,2,false,false,0);
+  delete hDummy; delete fDummy;
+  printf("SW vs AV18:\n");
+  printf(" f0: %.2f %.2f\n",f0_SW,f0_AV18);
+  printf(" d0: %.2f %.2f\n",d0_SW,d0_AV18);
+
+  TGraph gPsSW_0;
+  gPsSW_0.SetName(TString::Format("gPsSW_0"));
+  gPsSW_0.Set(NumBins);
+  for (unsigned uBin = 0; uBin < NumBins; uBin++) {
+    double kstar = KittySW.GetMomentum(uBin);
+    gPsSW_0.SetPoint(uBin,kstar,KittySW.GetPhaseShift(uBin,0,0));
+  }
+  gPsSW_0.Write();
+
+	delete OutputFile;
+}
+
+
+//par[0] is an overall normalization
+//than we have a pol4 = p0*(1+p1*k+p2*k^2+p3*k^3+p4*k^4), which has 3 free arguments and the following properties
+//par4!=0 (pol4 flat at 0)
+//	par1,par2 the two extrema, par3 is the p4, par4 is dummy
+//par4==0&&par3!=0 (pol3)
+//	par1,par2 the two extrema, par3 is p3
+//par4==0&&par3==0&&par2!=0 (pol2)
+//	par1 is the extrema, par2 is p2
+//par4==0&&par3==0&&par2==0&&par1!=0 (pol1)
+//	par1 is p1
+//to avoid problems with a starting parameter of zero, to switch the order of the par we use -1e6 as a value
+//a Mathematica computation of the equations is in your Femto folder
+double DongFang_BL1(double* x, double* par){
+    double& k = *x;
+    double& p0 = par[0];
+
+    double p1;
+    double p2;
+    double p3;
+    double p4;
+    if(par[4]!=-1e6){
+        p4 = par[3];
+        p3 = -4./3.*(par[1]+par[2])*p4;
+        p2 = 2.*par[1]*par[2]*p4;
+        p1 = 0;
+    }
+    else if(par[3]!=-1e6){
+        p4 = 0;
+        p3 = par[3];
+        p2 = -1.5*(par[1]+par[2])*p3;
+        p1 = 3.*par[1]*par[2]*p3;
+    }
+    else if(par[2]!=-1e6){
+        p4 = 0;
+        p3 = 0;
+        p2 = par[2];
+        p1 = -2.*par[1]*p2;
+    }
+    else{
+        p4 = 0;
+        p3 = 0;
+        p2 = 0;
+        p1 = par[1];
+    }
+    return p0*(1.+p1*k+p2*pow(k,2)+p3*pow(k,3)+p4*pow(k,4));
+
+}
+
+DLM_CkDecomposition* DongFang_FITTER;
+double DongFang_Femto1(double* x, double* par){
+  double& kstar = x[0];
+  double& source_size = par[0];
+  DongFang_FITTER->GetCk()->SetSourcePar(0,source_size);
+  DongFang_FITTER->Update();
+  return DongFang_FITTER->EvalCk(kstar);
+}
+
+//[0-4]: BL pars
+//[5]: radius
+double DongFang_Fit1(double* x, double* par){
+  double Baseline = DongFang_BL1(x,par);
+  double Femto = DongFang_Femto1(x,&par[5]);
+  return Baseline*Femto;
+}
+
+void DongFang_Example1(){
+
+
+  DLM_CommonAnaFunctions AnalysisObject;
+  //change the path to the location where you have downloaded the relevant CernBox folders
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles/",GetCernBoxDimi()));
+  TString SourceDescription = "Gauss";
+  unsigned NumMomBins_pp = 70;
+  double kMin_pp = 0;
+  double kMax_pp = 350;
+  double CkConv_pp = 700;//the point at which C(k) = 1
+  double SourceSize = 5.0;
+  const double FitRegion_min = 0;
+  const double FitRegion_max = kMax_pp;
+
+  //set up pp
+  CATS Kitty_pp;
+  Kitty_pp.SetMomBins(NumMomBins_pp,kMin_pp,kMax_pp);
+  AnalysisObject.SetUpCats_pp(Kitty_pp,"AV18",SourceDescription,0,0);
+  Kitty_pp.SetAnaSource(0,SourceSize);
+  Kitty_pp.SetNotifications(CATS::nWarning);//avoid printing stuff
+  //evaluate the theoretical correlation function (NO lambda pars, mom resolution etc.)
+  Kitty_pp.KillTheCat();
+
+  //something like a histogram
+  DLM_Ck* Ck_pp = new DLM_Ck(Kitty_pp.GetNumSourcePars(),0,Kitty_pp,2.*NumMomBins_pp,0,kMax_pp*2);
+  for(unsigned uSP=0; uSP<Kitty_pp.GetNumSourcePars(); uSP++){
+    Ck_pp->SetSourcePar(uSP,Kitty_pp.GetAnaSourcePar(uSP));
+  }
+  //extrapolate C(k) with a linear function between C(kMax_pp) --> 1 in the k* range of kMax_pp --> CkConv_pp
+  Ck_pp->SetCutOff(kMax_pp,CkConv_pp);
+
+  //set up pLambda (needed for feed-down)
+  CATS Kitty_pL;
+  Kitty_pL.SetMomBins(NumMomBins_pp,kMin_pp,kMax_pp);
+  //we will use the Usmani potential, due to the limited range in r* of the chiral wave functions
+  AnalysisObject.SetUpCats_pL(Kitty_pL,"UsmaniFit",SourceDescription,0,0);
+  //set the correct potential parameters foro the Usmani potential (tuned to NLO19)
+  //https://arxiv.org/pdf/2305.08441.pdf
+  Kitty_pL.SetShortRangePotential(1,0,1,2279.0);
+  Kitty_pL.SetShortRangePotential(1,0,2,0.3394);
+  Kitty_pL.SetShortRangePotential(1,0,3,0.2614);
+  Kitty_pL.SetAnaSource(0,SourceSize);
+  Kitty_pL.SetNotifications(CATS::nWarning);//avoid printing stuff
+  //evaluate the theoretical correlation function (NO lambda pars, mom resolution etc.)
+  Kitty_pL.KillTheCat();
+
+  //something like a histogram
+  DLM_Ck* Ck_pL = new DLM_Ck(Kitty_pL.GetNumSourcePars(),0,Kitty_pL,2.*NumMomBins_pp,0,kMax_pp*2);
+  for(unsigned uSP=0; uSP<Kitty_pL.GetNumSourcePars(); uSP++){
+    Ck_pL->SetSourcePar(uSP,Kitty_pL.GetAnaSourcePar(uSP));
+  }
+  //extrapolate C(k) with a linear function between C(kMax_pp) --> 1 in the k* range of kMax_pp --> CkConv_pp
+  Ck_pL->SetCutOff(kMax_pp,CkConv_pp);
+
+  //52.3% feed-down into pLambda, given 0.6% putity (https://inspirehep.net/literature/1857549)
+  //since we will not define fake contribution, we need to rescale the feed-down by 100%-0.6%
+  //N.B. this is now for pp 13 TeV, parhaps change in the future, no idea how different it is in PbPb
+  const double lam_pL_flat = (0.523)/0.994;
+
+  //figure it out from the template fits and purities
+  //details in appendix of https://inspirehep.net/literature/1675759
+  const double lam_pp_pL = 0.15;
+  const double lam_pp_flat = 0.15;
+  const double lam_pp_fake = 0.005;
+
+
+  //use you own, but here you can compare to the pp 13 TeV
+  //N.B.!!!!!!! if you use your own histogram, you have to have the axis in MEV !!!!!!!!!!!!!!!
+  TH2F* hReso_pp = AnalysisObject.GetResolutionMatrix("pp13TeV_HM_DimiJun20","pp");
+  //get the decay smear matrix
+  TH2F* hFeed_pp_pL = AnalysisObject.GetResidualMatrix("pp","pLambda");
+
+  DLM_CkDecomposition* CkDec_pL = new DLM_CkDecomposition("pLambda",1,*Ck_pL,NULL);
+  CkDec_pL->AddContribution(0,lam_pL_flat,DLM_CkDecomposition::cFeedDown);
+
+  //perhaps interesting to check differences in the hReso taken from pp 13 TeV HM (mixed events)
+  //and the one that you will get in PbPb (same events)
+  DLM_CkDecomposition* CkDec_pp = new DLM_CkDecomposition("pp",3,*Ck_pp,hReso_pp);;
+  CkDec_pp->AddContribution(0,lam_pp_pL,DLM_CkDecomposition::cFeedDown,CkDec_pL,hFeed_pp_pL);
+  CkDec_pp->AddContribution(1,lam_pp_flat,DLM_CkDecomposition::cFeedDown);
+  CkDec_pp->AddContribution(2,lam_pp_fake,DLM_CkDecomposition::cFake);
+  //this is your mixed event distribution (in MEV!!!), needed for the correct application of the smearing matrix
+  //https://docs.google.com/presentation/d/1fu88IniMeMGpJxmhl7KAwjby7s3qIwE4hNtsdZwjaRk/edit?usp=sharing
+  //CkDec_pp->AddPhaseSpace(hPs_pp);
+  //CkDec_pp->AddPhaseSpace(0,hPs_pp);
+
+  //load you data in MEV
+  TH1F* hData;
+
+
+  //[0] = norm constant
+  //[1,2] = the positions of the extrema of the polynomial function
+  //        typically we fix [1] to 0 and fit only [2] (=> smooth baseline at kstar=0)
+  //[3] = the 3rd coeficient of the polynomial function
+  //[4] = fix to zero to fit with a pol3 BL (otherwise pol4)
+  //[5] = source size
+  TF1* fit_pp = new TF1("fit_pp",DongFang_Fit1,FitRegion_min,FitRegion_max,6);
+  //set up starting values for the parameters, limits etc...
+  //fit your hData
+  //.........
+
+}
 
 //
 int OTHERTASKS(int argc, char *argv[]){
+
+  DongFang_Example1(); return 0;
+  //coal_test_1(); return 0;
+  //test_sqwell(); return 0;
+
   //TestMergeSort();return 0;
   //pp_at_different_radii("Gauss");return 0;
 //PlotAv18();return 0;
@@ -15668,7 +16130,7 @@ nsig 6 bins = 3.75
     //pp_for_rock(1.2+0.12);
 
     //Ledni_SmallRad_Random(atoi(argv[1]),atoi(argv[2]));
-    MakePotentials(atoi(argv[1]));return 0;
+  //  MakePotentials(atoi(argv[1]));return 0;
   //RoughPiPiPotScan(atoi(argv[1]),atoi(argv[2]));
   //pi_proton();
     //SelectEmmaPotential();
