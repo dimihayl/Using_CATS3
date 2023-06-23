@@ -411,7 +411,7 @@ void Test_pp_Statistics_1(){
 
 
 DLM_Histo<float>* GetPtEta(TString FileNameP, TString FileNameAP,
-  TString HistoNameP="pTDist_after", TString HistoNameAP="pTDist_after", const double EtaCut = 0.8){
+  TString HistoNameP, TString HistoNameAP, const double EtaCut){
 
   TH1F* h_pT_p;
   TH1F* h_pT_ap;
@@ -455,7 +455,7 @@ DLM_Histo<float>* GetPtEta(TString FileNameP, TString FileNameAP,
 
 //for Lambda, more like pT in 0.4 --> inf
 DLM_Histo<float>* GetPtEta_13TeV(TString FileNameIn,
-  TString GraphNameIn="Graph1D_y1", const double pT_min = 500, const double pT_max = 4050, const double EtaCut = 0.8){
+  TString GraphNameIn, const double pT_min, const double pT_max, const double EtaCut){
 
   TGraphAsymmErrors* gSpectrum;
   TFile file_in(FileNameIn,"read");

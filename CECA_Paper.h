@@ -13,6 +13,7 @@ class DLM_CecaSource_v0;
 class DLM_MultiFit;
 class DLM_CommonAnaFunctions;
 class TString;
+template <class Type> class DLM_Histo;
 
 int CECA_PAPER(int narg, char** ARGS);
 
@@ -225,5 +226,11 @@ int dadd_f(int argc, char *argv[]);
 int dlmhst_root(int argc, char *argv[]);
 int dlmhst_ceca_fit_wc0(int argc, char *argv[]);
 int dlmhst_ceca_kdpfit_wc0(int argc, char *argv[]);
+
+DLM_Histo<float>* GetPtEta_13TeV(TString FileNameIn,
+  TString GraphNameIn="Graph1D_y1", const double pT_min = 500, const double pT_max = 4050, const double EtaCut = 0.8);
+
+DLM_Histo<float>* GetPtEta(TString FileNameP, TString FileNameAP,
+  TString HistoNameP="pTDist_after", TString HistoNameAP="pTDist_after", const double EtaCut = 0.8);
 
 #endif

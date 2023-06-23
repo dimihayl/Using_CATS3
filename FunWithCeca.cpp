@@ -11,6 +11,7 @@
 #include "DLM_Potentials.h"
 #include "DLM_Histo.h"
 #include "DLM_MathFunctions.h"
+#include "CECA_Paper.h"
 
 #include <iostream>
 #include <unistd.h>
@@ -9306,8 +9307,10 @@ void Sources_In_SourcePaper(const TString WhichSystem, const int mode){
 }
 
 
-void kstar_source_simple_1(const int& flag, const TString type="pp"){
-/*
+//flag =  1 usmani fit results
+//        2 NLO fit results
+void kstar_source_simple_1(const int& flag, const TString type="pp", int SEED=1){
+
   double hdr_size = 0;//0.75
   double hdr_slope = 0;//0.2
 
@@ -9319,12 +9322,12 @@ void kstar_source_simple_1(const int& flag, const TString type="pp"){
   double tau_lambda_reso = 4.69;
 
   const double EtaCut = 0.8;
-  const double TIMEOUT = 30;
-  const double GLOB_TIMEOUT = 180*60/30;
+  const double TIMEOUT = 60*15;
+  const double GLOB_TIMEOUT = 22*60*60;
   const unsigned Multiplicity=2;
   const double femto_region = 100;
-  const unsigned target_yield = 1331*1000;
-  const unsigned NUM_CPU = 2*4;
+  const unsigned target_yield = 32000*1000;
+  const unsigned NumCPU = 6;
 
   float d_x = 0;
   float d_y = 0;
@@ -9339,6 +9342,11 @@ void kstar_source_simple_1(const int& flag, const TString type="pp"){
   float th_kick = 0;
   float fixed_hdr = 1;
   float frag_beta = 0;
+  float del_proton = 0;
+  float del_proton_reso = 0;
+  float del_lambda = 0;
+  float del_lambda_reso = 0;
+  int multiplicity = 2;
 
   TString BaseName = TString::Format("kstarSrc");
 
@@ -9358,7 +9366,7 @@ void kstar_source_simple_1(const int& flag, const TString type="pp"){
       tau = 3.76;
     }
     else if(flag==2){
-      //these values are for the ceca paper -> with usmani fit
+      //these values are for the ceca paper -> with NLO
       d_x = 0.288;
       d_x = d_y; d_x = d_z;
       h_x = 3.23;
@@ -9368,7 +9376,7 @@ void kstar_source_simple_1(const int& flag, const TString type="pp"){
   }
 
   TREPNI Database(0);
-  Database.SetSeed(11);
+  Database.SetSeed(SEED);
   std::vector<TreParticle*> ParticleList;
   ParticleList.push_back(Database.NewParticle("Proton"));
   ParticleList.push_back(Database.NewParticle("ProtonReso"));
@@ -9378,15 +9386,15 @@ void kstar_source_simple_1(const int& flag, const TString type="pp"){
 
   TString OutputFolderName;
   OutputFolderName = "FunWithCeca/kstar_source_simple_1";
-  TString BaseFileName = TString::Format("%s/%s/%s_%s_flag%i",
-  GetFemtoOutputFolder(),OutputFolderName.Data(),BaseName.Data(),type.Data(),flag);
+  TString BaseFileName = TString::Format("%s/%s/%s_%s_flag%i_sd%i",
+  GetFemtoOutputFolder(),OutputFolderName.Data(),BaseName.Data(),type.Data(),flag,SEED);
   TFile fOutput(BaseFileName+".root","recreate");
 
   DLM_Histo<float>* dlm_pT_eta_p = NULL;
   DLM_Histo<float>* dlm_pT_eta_L = NULL;
   //1 = Jaime (measured)
   //2 = full ALICE
-  const double momdst_flag = 2;
+  const int momdst_flag = 2;
   if(momdst_flag%100==1){
     dlm_pT_eta_p = GetPtEta(
      TString::Format("%s/Jaime/p_pT.root",GetCernBoxDimi()),
@@ -9407,7 +9415,7 @@ void kstar_source_simple_1(const int& flag, const TString type="pp"){
   }
   else{
     printf("ERROR momdst_flag\n");
-    return 0;
+    return;
   }
 
   for(TreParticle* prt : ParticleList){
@@ -9465,6 +9473,22 @@ void kstar_source_simple_1(const int& flag, const TString type="pp"){
     }
   }//ParticleList
 
+  std::vector<std::string> ListOfParticles;
+  if(type=="pp"){
+    ListOfParticles.push_back("Proton");
+    ListOfParticles.push_back("Proton");
+  }
+  else if(type=="pL"){
+    ListOfParticles.push_back("Proton");
+    ListOfParticles.push_back("Lambda");
+  }
+  else{
+    printf("Issue with the type!\n");
+    return;
+  }
+
+  printf("Set up IVANA\n");
+
   CECA Ivana(Database,ListOfParticles);
 
   Ivana.SetDisplacementX(d_x);
@@ -9495,7 +9519,184 @@ void kstar_source_simple_1(const int& flag, const TString type="pp"){
 
   Ivana.GHETTO_EVENT = true;
 
-*/
+  if(type=="pp"){
+      Ivana.Ghetto_NumMtBins = 10;
+      Ivana.Ghetto_MtBins = new double [Ivana.Ghetto_NumMtBins+1];
+      Ivana.Ghetto_MtBins[0] = 930; //avg  983 ( 985)
+      Ivana.Ghetto_MtBins[1] = 1020;//avg 1054 (1055)
+      Ivana.Ghetto_MtBins[2] = 1080;//avg 1110 (1110)
+      Ivana.Ghetto_MtBins[3] = 1140;//avg 1168 (1170)
+      Ivana.Ghetto_MtBins[4] = 1200;//avg 1228 (1230)
+      Ivana.Ghetto_MtBins[5] = 1260;//avg 1315 (1315)
+      Ivana.Ghetto_MtBins[6] = 1380;//avg 1463 (1460)
+      Ivana.Ghetto_MtBins[7] = 1570;//avg 1681 (1680)
+      Ivana.Ghetto_MtBins[8] = 1840;//avg 1923 (1920)
+      Ivana.Ghetto_MtBins[9] = 2030;//avg 2303 (2300)
+      Ivana.Ghetto_MtBins[10] = 4500;
+
+      Ivana.Ghetto_NumMomBins = 128;
+      Ivana.Ghetto_MomMin = 0;
+      Ivana.Ghetto_MomMax = 512;
+  }
+  else if(type=="pL"){
+      Ivana.Ghetto_NumMtBins = 8;
+      Ivana.Ghetto_MtBins = new double [Ivana.Ghetto_NumMtBins+1];
+      Ivana.Ghetto_MtBins[0] = 1000;//avg 1121 (1120)
+      Ivana.Ghetto_MtBins[1] = 1170;//avg 1210 (1210)
+      Ivana.Ghetto_MtBins[2] = 1250;//avg 1288 (1290)
+      Ivana.Ghetto_MtBins[3] = 1330;//avg 1377 (1380)
+      Ivana.Ghetto_MtBins[4] = 1430;//avg 1536 (1540)
+      Ivana.Ghetto_MtBins[5] = 1680;//avg 1753 (1750)
+      Ivana.Ghetto_MtBins[6] = 1840;//avg 1935 (1935)
+      Ivana.Ghetto_MtBins[7] = 2060;//avg 2334 (2330)
+      Ivana.Ghetto_MtBins[8] = 4800;
+
+      Ivana.Ghetto_NumMomBins = 128;
+      Ivana.Ghetto_MomMin = 0;
+      Ivana.Ghetto_MomMax = 512;
+  }
+
+  if(NumCPU>1){
+    Ivana.SetDebugMode(true);
+    for(unsigned uTh=0; uTh<NumCPU; uTh++){
+      Ivana.SetSeed(uTh,SEED*(NumCPU)+uTh);
+    }
+  }
+  else{
+    Ivana.SetDebugMode(false);
+    Ivana.SetSeed(0,SEED);
+  }
+
+  Ivana.GoBabyGo(NumCPU);
+
+  double TotPairs = Ivana.GhettoPrimReso[0]+Ivana.GhettoPrimReso[1]+Ivana.GhettoPrimReso[2]+Ivana.GhettoPrimReso[3];
+  double TotPP = double(Ivana.GhettoPrimReso[0])/TotPairs;
+  double TotPR = double(Ivana.GhettoPrimReso[1])/TotPairs;
+  double TotRP = double(Ivana.GhettoPrimReso[2])/TotPairs;
+  double TotRR = double(Ivana.GhettoPrimReso[3])/TotPairs;
+
+  double FemtoPairs = Ivana.GhettoFemtoPrimReso[0]+Ivana.GhettoFemtoPrimReso[1]+Ivana.GhettoFemtoPrimReso[2]+Ivana.GhettoFemtoPrimReso[3];
+  double FemtoPP = double(Ivana.GhettoFemtoPrimReso[0])/FemtoPairs;
+  double FemtoPR = double(Ivana.GhettoFemtoPrimReso[1])/FemtoPairs;
+  double FemtoRP = double(Ivana.GhettoFemtoPrimReso[2])/FemtoPairs;
+  double FemtoRR = double(Ivana.GhettoFemtoPrimReso[3])/FemtoPairs;
+
+  printf("    Total  Femto\n");
+  printf("PP %6.2f%% %6.2f\n",TotPP*100.,FemtoPP*100.);
+  printf("PR %6.2f%% %6.2f\n",TotPR*100.,FemtoPR*100.);
+  printf("RP %6.2f%% %6.2f\n",TotRP*100.,FemtoRP*100.);
+  printf("RR %6.2f%% %6.2f\n",TotRR*100.,FemtoRR*100.);
+
+  TH1F* h_Ghetto_rstar = Convert_DlmHisto_TH1F(Ivana.Ghetto_rstar,"Ghetto_rstar");
+  TH1F* h_Ghetto_kstar = Convert_DlmHisto_TH1F(Ivana.Ghetto_kstar,"Ghetto_kstar");
+  Ivana.Ghetto_kstar_rstar->ComputeError();
+  TH2F* h_Ghetto_kstar_rstar = Convert_DlmHisto_TH2F(Ivana.Ghetto_kstar_rstar,"Ghetto_kstar_rstar");
+  TH2F* h_Ghetto_mT_rstar = Convert_DlmHisto_TH2F(Ivana.Ghetto_mT_rstar,"Ghetto_mT_rstar");
+  TH2F* h_GhettoFemto_mT_rstar = Convert_DlmHisto_TH2F(Ivana.GhettoFemto_mT_rstar,"GhettoFemto_mT_rstar");
+  TH2F* h_GhettoFemto_mT_kstar = Convert_DlmHisto_TH2F(Ivana.GhettoFemto_mT_kstar,"GhettoFemto_mT_kstar");
+  TH2F* h_Ghetto_mT_costh = Convert_DlmHisto_TH2F(Ivana.Ghetto_mT_costh,"Ghetto_mT_costh");
+  TH2F* h_GhettoSP_pT_th = Convert_DlmHisto_TH2F(Ivana.GhettoSP_pT_th,"GhettoSP_pT_th");
+  TH1F* h_GhettoSP_pT_1 = Convert_DlmHisto_TH1F(Ivana.GhettoSP_pT_1,"GhettoSP_pT_1");
+  TH1F* h_GhettoSP_pT_2 = Convert_DlmHisto_TH1F(Ivana.GhettoSP_pT_2,"GhettoSP_pT_2");
+  Ivana.GhettoFemto_rstar->ComputeError();
+  TH1F* h_GhettoFemto_rstar = Convert_DlmHisto_TH1F(Ivana.GhettoFemto_rstar,"GhettoFemto_rstar");
+
+  fOutput.cd();
+
+  h_Ghetto_kstar_rstar->Write();
+  h_GhettoFemto_rstar->Write();
+
+  TGraph gMean_mT;
+  gMean_mT.SetName("gMean_mT");
+  TGraph* gMean_kstar = new TGraph [Ivana.GhettoFemto_mT_rstar->GetNbins(0)];
+  TH1F** hPP_kstar = new TH1F* [Ivana.GhettoFemto_mT_rstar->GetNbins(0)];
+  TH1F** hPR_kstar = new TH1F* [Ivana.GhettoFemto_mT_rstar->GetNbins(0)];
+  TH1F** hRP_kstar = new TH1F* [Ivana.GhettoFemto_mT_rstar->GetNbins(0)];
+  TH1F** hRR_kstar = new TH1F* [Ivana.GhettoFemto_mT_rstar->GetNbins(0)];
+
+  for(unsigned umT=0; umT<Ivana.GhettoFemto_mT_rstar->GetNbins(0); umT++){
+    TH1D* hProj = h_GhettoFemto_mT_rstar->ProjectionY(TString::Format("hProj"),umT+1,umT+1);
+    double Mean = hProj->GetMean();
+    delete hProj;
+    //double GFM = GaussFromMean(Mean);
+    gMean_mT.SetPoint(umT,Ivana.GhettoFemto_mT_rstar->GetBinCenter(0,umT),Mean);
+
+    //  //how the radius changes as a function of kstar
+    gMean_kstar[umT].SetName(TString::Format("gMean_kstar_mT%.0f",Ivana.GhettoFemto_mT_rstar->GetBinCenter(0,umT)));
+    if(umT<4) gMean_kstar[umT].SetLineColor(kRed+umT);
+    else if(umT<8)  gMean_kstar[umT].SetLineColor(kGreen+umT-4);
+    else if(umT<12) gMean_kstar[umT].SetLineColor(kBlue+umT-8);
+    else if(umT<16) gMean_kstar[umT].SetLineColor(kMagenta+umT-12);
+    else            gMean_kstar[umT].SetLineColor(kBlack);
+    gMean_kstar[umT].SetLineWidth(3);
+    gMean_kstar[umT].SetMarkerStyle(2);
+    gMean_kstar[umT].SetMarkerColor(kViolet);
+    gMean_kstar[umT].SetMarkerSize(1);
+    TH2F* h_Ghetto_kstar_rstar_mT = new TH2F(TString::Format("h_Ghetto_kstar_rstar_mT%.0f",Ivana.GhettoFemto_mT_rstar->GetBinCenter(0,umT)),
+            TString::Format("h_Ghetto_kstar_rstar_mT%.0f",Ivana.GhettoFemto_mT_rstar->GetBinCenter(0,umT)),
+            Ivana.Ghetto_kstar_rstar_mT->GetNbins(0),Ivana.Ghetto_kstar_rstar_mT->GetLowEdge(0),Ivana.Ghetto_kstar_rstar_mT->GetUpEdge(0),
+            Ivana.Ghetto_kstar_rstar_mT->GetNbins(1),Ivana.Ghetto_kstar_rstar_mT->GetLowEdge(1),Ivana.Ghetto_kstar_rstar_mT->GetUpEdge(1));
+    hPP_kstar[umT] = new TH1F(TString::Format("hPP_kstar_mT%.0f",Ivana.GhettoFemto_mT_rstar->GetBinCenter(0,umT)),
+            TString::Format("hPP_kstar_mT%.0f",Ivana.GhettoFemto_mT_rstar->GetBinCenter(0,umT)),
+            Ivana.Ghetto_kstar_rstar_mT->GetNbins(0),Ivana.Ghetto_kstar_rstar_mT->GetLowEdge(0),Ivana.Ghetto_kstar_rstar_mT->GetUpEdge(0)
+            );
+    hPR_kstar[umT] = new TH1F(TString::Format("hPR_kstar_mT%.0f",Ivana.GhettoFemto_mT_rstar->GetBinCenter(0,umT)),
+            TString::Format("hPR_kstar_mT%.0f",Ivana.GhettoFemto_mT_rstar->GetBinCenter(0,umT)),
+            Ivana.Ghetto_kstar_rstar_mT->GetNbins(0),Ivana.Ghetto_kstar_rstar_mT->GetLowEdge(0),Ivana.Ghetto_kstar_rstar_mT->GetUpEdge(0)
+            );
+    hRP_kstar[umT] = new TH1F(TString::Format("hRP_kstar_mT%.0f",Ivana.GhettoFemto_mT_rstar->GetBinCenter(0,umT)),
+            TString::Format("hRP_kstar_mT%.0f",Ivana.GhettoFemto_mT_rstar->GetBinCenter(0,umT)),
+            Ivana.Ghetto_kstar_rstar_mT->GetNbins(0),Ivana.Ghetto_kstar_rstar_mT->GetLowEdge(0),Ivana.Ghetto_kstar_rstar_mT->GetUpEdge(0)
+            );
+    hRR_kstar[umT] = new TH1F(TString::Format("hRR_kstar_mT%.0f",Ivana.GhettoFemto_mT_rstar->GetBinCenter(0,umT)),
+            TString::Format("hRR_kstar_mT%.0f",Ivana.GhettoFemto_mT_rstar->GetBinCenter(0,umT)),
+            Ivana.Ghetto_kstar_rstar_mT->GetNbins(0),Ivana.Ghetto_kstar_rstar_mT->GetLowEdge(0),Ivana.Ghetto_kstar_rstar_mT->GetUpEdge(0)
+            );
+    for(unsigned ukstar=0; ukstar<Ivana.Ghetto_kstar_rstar_mT->GetNbins(0); ukstar++){
+      for(unsigned urstar=0; urstar<Ivana.Ghetto_kstar_rstar_mT->GetNbins(1); urstar++){
+        h_Ghetto_kstar_rstar_mT->SetBinContent(ukstar+1,urstar+1,Ivana.Ghetto_kstar_rstar_mT->GetBinContent(ukstar,urstar,umT));
+        //printf("mt%u ks%u rs%u --> %.2f\n",umT,ukstar,urstar,Ivana.Ghetto_kstar_rstar_mT->GetBinContent(ukstar,urstar,umT));
+        //usleep(1e3);
+      }
+      double TOT_PAIRS = Ivana.Ghetto_kstar_reso_mT->GetBinContent(ukstar,0,umT);
+      TOT_PAIRS += Ivana.Ghetto_kstar_reso_mT->GetBinContent(ukstar,1,umT);
+      TOT_PAIRS += Ivana.Ghetto_kstar_reso_mT->GetBinContent(ukstar,2,umT);
+      TOT_PAIRS += Ivana.Ghetto_kstar_reso_mT->GetBinContent(ukstar,3,umT);
+      if(!TOT_PAIRS) TOT_PAIRS = 1;
+      hPP_kstar[umT]->SetBinContent(ukstar+1,double(Ivana.Ghetto_kstar_reso_mT->GetBinContent(ukstar,0,umT))/TOT_PAIRS);
+      hPR_kstar[umT]->SetBinContent(ukstar+1,double(Ivana.Ghetto_kstar_reso_mT->GetBinContent(ukstar,1,umT))/TOT_PAIRS);
+      hRP_kstar[umT]->SetBinContent(ukstar+1,double(Ivana.Ghetto_kstar_reso_mT->GetBinContent(ukstar,2,umT))/TOT_PAIRS);
+      hRR_kstar[umT]->SetBinContent(ukstar+1,double(Ivana.Ghetto_kstar_reso_mT->GetBinContent(ukstar,3,umT))/TOT_PAIRS);
+    }
+    for(unsigned ukstar=0; ukstar<Ivana.Ghetto_kstar_rstar_mT->GetNbins(0); ukstar++){
+      hProj = h_Ghetto_kstar_rstar_mT->ProjectionY(TString::Format("hProj"),ukstar+1,ukstar+1);
+      Mean = hProj->GetMean();
+      delete hProj;
+      //GFM = GaussFromMean(Mean);
+      gMean_kstar[umT].SetPoint(ukstar,Ivana.Ghetto_kstar_rstar_mT->GetBinCenter(0,ukstar),Mean);
+    }
+
+    fOutput.cd();
+    h_Ghetto_kstar_rstar_mT->Write();
+    gMean_kstar[umT].Write();
+    hPP_kstar[umT]->Write();
+    hPR_kstar[umT]->Write();
+    hRP_kstar[umT]->Write();
+    hRR_kstar[umT]->Write();
+    //delete h_Ghetto_kstar_rstar_mT;
+  }
+
+  gMean_mT.Write();
+
+  for(unsigned umT=0; umT<Ivana.GhettoFemto_mT_rstar->GetNbins(0); umT++){
+    delete hPP_kstar[umT];
+    delete hPR_kstar[umT];
+    delete hRP_kstar[umT];
+    delete hRR_kstar[umT];
+  }
+  delete [] hRR_kstar;
+
+  delete [] gMean_kstar;
 }
 
 
@@ -9552,8 +9753,7 @@ int FUN_WITH_CECA(int argc, char *argv[]){
   //Ceca_pd_1(0.0,-900,"pp");
   //Ceca_pd_1(0.0,atoi(argv[1]),"pp");
 
-  kstar_source_simple_1();
-
+  kstar_source_simple_1(1,"pp",11);
 
   //Ceca_pd_1(0.0,-1300,"pp");
   //Ceca_pd_1(0.0,-1,"pipi_core");
