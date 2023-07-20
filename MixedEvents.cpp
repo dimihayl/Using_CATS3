@@ -4144,6 +4144,49 @@ void ResoInfo(const int& ResoPid, int& ParentPid, double& Width, const TString& 
       }
     }
   }
+  else if(System=="etaReso_Xi"){
+
+    switch (abs(ResoPid)) {
+      case 220: Width=0; ParentPid=0; break;
+      case 221: Width=0; ParentPid=0; break;
+
+      case 1330: Width=0; ParentPid=0; break;
+      case 3322: Width=0; ParentPid=0; break;
+
+      case 330: Width=1; ParentPid=221; break;
+      case 132: Width=1; ParentPid=221; break;
+      case 232: Width=1; ParentPid=221; break;
+      case 10131: Width=1; ParentPid=221; break;
+      case 10231: Width=1; ParentPid=221; break;
+      case 1231: Width=1; ParentPid=221; break;
+      case 1131: Width=1; ParentPid=221; break;
+      case 1331: Width=1; ParentPid=221; break;
+
+      case 2331: Width=1; ParentPid=221; break;
+      case 140: Width=1; ParentPid=221; break;
+      case 240: Width=1; ParentPid=221; break;
+      case 2234: Width=1; ParentPid=221; break;
+      case 1134: Width=1; ParentPid=221; break;
+      case 1239: Width=1; ParentPid=221; break;
+      case 331: Width=1; ParentPid=221; break;
+      case 325: Width=1; ParentPid=221; break;
+      case 315: Width=1; ParentPid=221; break;
+      case 10323: Width=1; ParentPid=221; break;
+      case 10313: Width=1; ParentPid=221; break;
+      case 3214: Width=1; ParentPid=221; break;
+      case 3224: Width=1; ParentPid=221; break;
+      case 3324: Width=1; ParentPid=221; break;
+      case 3314: Width=1; ParentPid=221; break;
+      case 421: Width=1; ParentPid=221; break;
+      case 411: Width=1; ParentPid=221; break;
+      case 13116: Width=1; ParentPid=221; break;
+      case 13226: Width=1; ParentPid=221; break;
+      case 13216: Width=1; ParentPid=221; break;
+
+      default: printf("\033[1;33mWARNING:\033[0m Unexpected etaReso_Xi resonances!\n"); Width=0; ParentPid=1; break;
+    }
+
+  }
   //
   else if(System=="p_KaonReso"||System=="pReso_KaonReso"||System=="pReso_Kaon"){
     switch (abs(ResoPid)) {
@@ -4686,6 +4729,10 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
         InputFileName = TString::Format("%s/CatsFiles/Source/EposRawOutput/p_pi/Feb2023/piReso_p.f19",GetCernBoxDimi());
       }
     }
+    else if(DataSetDescr=="etaReso_Xi"){
+      InputFileName = TString::Format("%s/CatsFiles/Source/EposRawOutput/EtaXi/pp_etaReso_Xi_ALICE_Acceptance_FullWeights_AddedIntSurrogate_IncludesAllHeavy_reduced_width10GeV_fullscale.0",GetCernBoxDimi());
+    }
+
     else//
         InputFileName = TString::Format("%s/scratch6/dmihaylov/OutputEPOS/13TeV/EPOS_LBF_pp200/pp200_pResoLamReso_Oct2019_4PI_ReducedWeights.f19",GetNx2Folder());
         //InputFileName = "/home/dimihayl/Mount/nx1/scratch6/dmihaylov/OutputEPOS/13TeV/EPOS_LBF_pp200/pp200_pResoLamReso_Oct2019_4PI_ReducedWeights.f19";
@@ -5489,6 +5536,33 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
         FractionsNbody[2] = 0.0;
 
         UseResoInfo = true;
+    }
+    else if(DataSetDescr=="etaReso_Xi"){
+      pdgID[0] = 0;
+      pdgID[1] = 3322;
+      Original_eposID[0] = 220;
+      Original_eposID[1] = 1330;
+      Original_pdgID[0] = 221;
+      Original_pdgID[1] = 3322;
+
+      DaughterMassP1[0] = Mass_eta*0.001;
+      DaughterMassP1[1] = Mass_pic*0.001;
+      DaughterMassP1[2] = Mass_pic*0.001;//3B decay!!!
+      DaughterMassP1[3] = -1;
+
+      DaughterMassP2[0] = -1;
+      DaughterMassP2[1] = -1;
+      DaughterMassP2[2] = -1;
+      DaughterMassP2[3] = -1;
+
+      ResoMass[0] = 1.25;//coctail is 1.26
+      ResoMass[1] = -1;
+
+      FractionsNbody[0] = 1.0;
+      FractionsNbody[1] = 0.0;
+      FractionsNbody[2] = 0.0;
+
+      UseResoInfo = true;
     }
     else if(DataSetDescr=="LamReso_Xim"){
         pdgID[0] = 0;
@@ -7492,7 +7566,7 @@ int MIXEDEVENTS(int argc, char *argv[]){
     //ReferenceSampleStudy_2("Epos","pReso_Phi");
     //ReferenceSampleStudy_2("Epos","LamReso_Xim");
 
-    ReferenceSampleStudy_2("Marcelo","p_piReso");
+    ReferenceSampleStudy_2("Vale","etaReso_Xi");
     //ReferenceSampleStudy_2("Marcelo","pReso_pi");
     //ReferenceSampleStudy_2("Marcelo","pReso_piReso");
 

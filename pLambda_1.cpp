@@ -17601,14 +17601,111 @@ void pLambda_Compare_Tunes(){
   delete hAxis;
 }
 
+void N2LO_vs_others(){
+
+  std::vector<int> Potentials;
+
+  Potentials.push_back(21600);
+  Potentials.push_back(1600);
+  Potentials.push_back(11600);
+
+
+  const unsigned NumMomBins = 25;
+  const double kMin = 0;
+  const double kMax = 300;
+  const double CUSP_WEIGHT = 0.4;
+  const double SourceSize = 1.25;
+
+  TGraphErrors* gCk;
+  gCk = new TGraphErrors[Potentials.size()];
+
+  TGraphErrors* gCkRat;
+  gCkRat = new TGraphErrors[Potentials.size()];
+
+  DLM_DtColor DtCol(Potentials.size());
+
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
+
+  TCanvas* can = new TCanvas("can", "can", 1);
+  can->cd(0); can->SetCanvasSize(1920/2, 1080/2); can->SetMargin(0.15,0.05,0.2,0.05);//lrbt
+
+  TH1F* hAxis = new TH1F("hAxis","hAxis",NumMomBins,kMin,kMax);
+  hAxis->SetStats(false);
+  hAxis->GetYaxis()->SetRangeUser(0.9,3.0);
+
+  hAxis->Draw("axis");
+
+  for(int iPot=0; iPot<Potentials.size(); iPot++){
+    CATS AB_pL;
+    AB_pL.SetMomBins(NumMomBins,kMin,kMax);
+    AnalysisObject.SetUpCats_pL(AB_pL,"Chiral_Coupled_SPD","Gauss",Potentials.at(iPot),0);//NLO_Coupled_S
+    AB_pL.SetChannelWeight(7,1./4.*CUSP_WEIGHT);//1S0 SN(s) -> LN(s)
+    AB_pL.SetChannelWeight(8,3./4.*CUSP_WEIGHT);//3S1 SN(s) -> LN(s)
+    AB_pL.SetChannelWeight(10,3./4.*CUSP_WEIGHT);//3S1 SN(d) -> LN(s)
+    AB_pL.SetChannelWeight(13,3./20.*CUSP_WEIGHT);//3D1 SN(d) -> LN(d)
+    AB_pL.SetChannelWeight(15,3./20.*CUSP_WEIGHT);//3D1 SN(s) -> LN(d)
+    AB_pL.SetAnaSource(0,SourceSize);
+    //AB_pL.SetNotifications(CATS::nError);
+    AB_pL.KillTheCat();
+
+    double Momentum;
+    double CkVal;
+    double CkBase;
+    for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+
+      Momentum = AB_pL.GetMomentum(uMom);
+      CkVal = AB_pL.GetCorrFun(uMom);
+      gCk[iPot].SetPoint(uMom,Momentum,CkVal);
+
+      if(iPot){
+        gCk[0].GetPoint(uMom,Momentum,CkBase);
+      }
+      else{
+        CkBase = CkVal;
+      }
+
+      gCkRat[iPot].SetPoint(uMom,Momentum,CkBase/CkVal);
+
+    }
+
+    gCk[iPot].SetLineColor(DtCol.GetRainbow(iPot));
+    gCk[iPot].SetLineWidth(4);
+    gCk[iPot].SetName(TString::Format("gCk_%i",Potentials.at(iPot)));
+
+    gCkRat[iPot].SetLineColor(DtCol.GetRainbow(iPot));
+    gCkRat[iPot].SetLineWidth(4);
+    gCkRat[iPot].SetName(TString::Format("gCkRat_%i",Potentials.at(iPot)));
+
+    can->cd(0);
+    gCk[iPot].Draw("L,same");
+  }
+
+  TFile fOutput(TString::Format("%s/pLambda/N2LO_vs_others/fOutput.root",GetFemtoOutputFolder()),"recreate");
+  for(int iPot=0; iPot<Potentials.size(); iPot++){
+    gCk[iPot].Write();
+  }
+  for(int iPot=0; iPot<Potentials.size(); iPot++){
+    gCkRat[iPot].Write();
+  }
+
+  can->Write();
+  can->SaveAs(TString::Format("%s/pLambda/N2LO_vs_others/gCk.png",GetFemtoOutputFolder()));
+
+
+  delete [] gCk;
+  delete hAxis;
+}
+
 int PLAMBDA_1_MAIN(int argc, char *argv[]){
   //pLambda_Compare_Tunes(); return 0;
 //printf("PLAMBDA_1_MAIN\n");
 //SigmaFeed_kinematics();
 //return 0;
 //Effect_on_ME_of_mT_mult_binning();
-Match_Usmani_NLO(atoi(argv[1]),atoi(argv[2]));//32768
-return 0;
+//Match_Usmani_NLO(atoi(argv[1]),atoi(argv[2]));//32768
+//N2LO_vs_others();
+//return 0;
 
   //pL_EffectiveRadius(1.02);
   //Unfold_pL_ME(TString::Format("%s/CatsFiles/ExpData/ALICE_pp_13TeV_HM/DimiJun20/Norm240_340/DataSignal/",GetCernBoxDimi()),"TEST.root");
@@ -17720,8 +17817,8 @@ return 0;
 //MakeLATEXtable(TString::Format("%s/pLambda/151122/NoBoot/Plots108/",GetCernBoxDimi()),true,3);//w/o 140-200 MeV in fit
 //MakeLATEXtable(TString::Format("%s/pLambda/251122/NoBoot/Plots108/",GetCernBoxDimi()),true,3);//2x error above 108 MeV in fit
 //MakeLATEXtable(TString::Format("%s/pLambda/021222/NoBoot/Plots108/",GetCernBoxDimi()),true,4);//
-MakeLATEXtable(TString::Format("%s/pLambda/010223/NoBoot/Plots108/",GetCernBoxDimi()),true,3);//2x error above 108 MeV in fit
-return 0;
+//MakeLATEXtable(TString::Format("%s/pLambda/010223/NoBoot/Plots108/",GetCernBoxDimi()),true,3);//2x error above 108 MeV in fit
+//return 0;
 
 //Plot_pL_SystematicsMay2020_2(2,10,1500,2.0,
 //        "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/040620_Gauss/",
@@ -17760,7 +17857,8 @@ return 0;
                            //bool DataSyst, bool FitSyst, bool Bootstrap, unsigned NumIter,
                           // const char* CatsFileFolder, const char* OutputFolder
 //!!!!!!!!!!!!!!!!!!!!!!!!
-//pL_SystematicsMay2020(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]), atoi(argv[6]), atoi(argv[7]), atoi(argv[8]), atoi(argv[9]),
+pL_SystematicsMay2020(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]), atoi(argv[6]), atoi(argv[7]), atoi(argv[8]), atoi(argv[9]),
+argv[10], argv[11]);
 //pL_SystematicsMay2020(1,10,11602,1,311,1,1,0,4,
 //TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data(),
 //TString::Format("%s/pLambda/Dump/",GetCernBoxDimi()).Data());
@@ -17777,7 +17875,7 @@ return 0;
 //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/");
 //pL_SystematicsMay2020(1, 9, 11600, false, 3,
 //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/");
-//return 0;
+return 0;
 
 //    Plot_mT_Scale_pp_pL("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/Plot_mT_Scale_pp_pL/",
 //                        "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pp/Systematics_180919/NTfile_20.root",

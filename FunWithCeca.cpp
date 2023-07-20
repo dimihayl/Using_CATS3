@@ -1976,11 +1976,11 @@ void Ceca_pd_1(const double& d_delay, const int& EffFix, const TString type="pd"
   }
   double HadronSize = 0;//0.75
   double HadronSlope = 0;//0.2
-  const double EtaCut = 0.8*2.;
+  const double EtaCut = 0.8;
   const bool PROTON_RESO = true;
   const bool EQUALIZE_TAU = true;
   const double TIMEOUT = 30;
-  const double GLOB_TIMEOUT = 180*60/30;
+  const double GLOB_TIMEOUT = 2*60;
   const unsigned Multiplicity=2;
   const double femto_region = 100;
   const unsigned target_yield = 1331*1000;
@@ -2164,6 +2164,36 @@ void Ceca_pd_1(const double& d_delay, const int& EffFix, const TString type="pd"
       rSP_dispZ = 0.176;
       rSP_hadr = 2.68;
       rSP_tau = 3.76;
+    }
+    else if(EffFix==-1403){
+      rSP_core = 0.176;
+      rSP_dispZ = 0.176;
+      rSP_hadr = 2.70;
+      rSP_tau = 3.78;
+    }
+    else if(EffFix==-1404){
+      rSP_core = 0.176;
+      rSP_dispZ = 0.176;
+      rSP_hadr = 2.24;
+      rSP_tau = 3.13;
+    }
+    else if(EffFix==-1405){
+      rSP_core = 0.176;
+      rSP_dispZ = 0.176;
+      rSP_hadr = 1.96;
+      rSP_tau = 2.74;
+    }
+    else if(EffFix==-1406){
+      rSP_core = 0.176;
+      rSP_dispZ = 0.176;
+      rSP_hadr = 1.44;
+      rSP_tau = 2.02;
+    }
+    else if(EffFix==-1407){
+      rSP_core = 0.176;
+      rSP_dispZ = 0.176;
+      rSP_hadr = 2.00;
+      rSP_tau = 3.78;
     }
   }
   if(type=="Kd") {rSP_core = EffFix?0.950*1.075:0.950;rSP_dispZ = rSP_core;}
@@ -9322,12 +9352,12 @@ void kstar_source_simple_1(const int& flag, const TString type="pp", int SEED=1)
   double tau_lambda_reso = 4.69;
 
   const double EtaCut = 0.8;
-  const double TIMEOUT = 60*15;
-  const double GLOB_TIMEOUT = 22*60*60;
+  const double TIMEOUT = 60*1;
+  const double GLOB_TIMEOUT = 30*60;
   const unsigned Multiplicity=2;
   const double femto_region = 100;
-  const unsigned target_yield = 32000*1000;
-  const unsigned NumCPU = 6;
+  const unsigned target_yield = 1331*1000;
+  const unsigned NumCPU = 7;
 
   float d_x = 0;
   float d_y = 0;
@@ -9700,6 +9730,156 @@ void kstar_source_simple_1(const int& flag, const TString type="pp", int SEED=1)
 }
 
 
+void kstar_source_ck_TEST1(){
+
+  const double SourceSize = 1.0;
+  const double kMin = 0;
+  const double kMax = 320;
+  const unsigned NumMomBins = 80;
+  const double KstarStrength = 0.9;
+
+  //1D histo
+  DLM_Histo<float> HistoSourceR;
+  //2D histo (k,r in that order)
+  DLM_Histo<float> HistoSourceRK;
+  //the same as above, but the k relation is constant
+  //qa to reproduce HistoSourceR
+  DLM_Histo<float> HistoSourceRKconst;
+
+  const unsigned NumRadBins = 8192;
+  const double rMin = 0;
+  const double rMax = 96;
+
+  HistoSourceR.SetUp(1);
+  HistoSourceR.SetUp(0,NumRadBins,rMin,rMax);
+  HistoSourceR.Initialize();
+
+  HistoSourceRK.SetUp(2);
+  HistoSourceRK.SetUp(0,NumMomBins,kMin,kMax);
+  HistoSourceRK.SetUp(1,NumRadBins,rMin,rMax);
+  HistoSourceRK.Initialize();
+
+  HistoSourceRKconst.SetUp(2);
+  HistoSourceRKconst.SetUp(0,NumMomBins,kMin,kMax);
+  HistoSourceRKconst.SetUp(1,NumRadBins,rMin,rMax);
+  HistoSourceRKconst.Initialize();
+
+  double PARS[3];
+
+  for(unsigned uRad=0; uRad<NumRadBins; uRad++){
+    double rad = HistoSourceR.GetBinCenter(0,uRad);
+    PARS[1] = rad;
+    PARS[3] = SourceSize;
+    double Sr = GaussSource(PARS);
+    HistoSourceR.SetBinContent(uRad,Sr);
+    for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+      double Kstar = HistoSourceRK.GetBinCenter(0,uMom);
+      HistoSourceRKconst.SetBinContent(uMom,uRad,Sr);
+      //with this relation, the original source size is restored at 100 MeV
+      //while at kstar = 0 we have KstarStrength percent of the sources
+      PARS[3] = KstarStrength*SourceSize + (SourceSize - KstarStrength*SourceSize)*Kstar/100.;
+      SourceSize*Kstar/1000.;
+      double SrK = GaussSource(PARS);
+      HistoSourceRK.SetBinContent(uMom,uRad,SrK);
+    }
+  }
+
+  TString BaseFileName = TString::Format("%s/FunWithCeca/kstar_source_ck_TEST1/test1.root",GetFemtoOutputFolder());
+  TFile fOutput(BaseFileName,"recreate");
+
+  TH1F* hHistoSourceR = Convert_DlmHisto_TH1F(&HistoSourceR,"HistoSourceR");
+  TH2F* hHistoSourceRK = Convert_DlmHisto_TH2F(&HistoSourceRK,"HistoSourceRK");
+  TH2F* hHistoSourceRKconst = Convert_DlmHisto_TH2F(&HistoSourceRKconst,"HistoSourceRKconst");
+
+  fOutput.cd();
+  hHistoSourceR->Write();
+  hHistoSourceRK->Write();
+  hHistoSourceRKconst->Write();
+
+  CATS Kitty_Gr;
+  CATS Kitty_HGr;
+  CATS Kitty_HGrK;
+  CATS Kitty_HGrKconst;
+
+  Kitty_Gr.SetMomBins(NumMomBins,kMin,kMax);
+
+  Kitty_HGr.SetMomBins(NumMomBins,kMin,kMax);
+  Kitty_HGrK.SetMomBins(NumMomBins,kMin,kMax);
+  Kitty_HGrKconst.SetMomBins(NumMomBins,kMin,kMax);
+
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles/",GetCernBoxDimi()));
+
+  AnalysisObject.SetUpCats_pp(Kitty_Gr,"AV18","Gauss",0,0);
+  AnalysisObject.SetUpCats_pp(Kitty_HGr,"AV18","",0,0);
+  AnalysisObject.SetUpCats_pp(Kitty_HGrK,"AV18","",0,0);
+  AnalysisObject.SetUpCats_pp(Kitty_HGrKconst,"AV18","",0,0);
+
+  Kitty_Gr.SetAnaSource(0,SourceSize);
+
+  DLM_HistoSource src_HGr(HistoSourceR);
+  Kitty_HGr.SetAnaSource(CatsSourceForwarder, &src_HGr, 0);
+  Kitty_HGr.SetUseAnalyticSource(true);
+  Kitty_HGr.SetAutoNormSource(false);
+  Kitty_HGr.SetNormalizedSource(true);
+
+  DLM_HistoSource src_HGrKconst(HistoSourceRKconst);
+  Kitty_HGrKconst.SetAnaSource(CatsSourceForwarder, &src_HGrKconst, 0);
+  Kitty_HGrKconst.SetUseAnalyticSource(true);
+  Kitty_HGrKconst.SetAutoNormSource(false);
+  Kitty_HGrKconst.SetNormalizedSource(true);
+  Kitty_HGrKconst.SetMomentumDependentSource(true);
+
+  DLM_HistoSource src_HGrK(HistoSourceRK);
+  Kitty_HGrK.SetAnaSource(CatsSourceForwarder, &src_HGrK, 0);
+  Kitty_HGrK.SetUseAnalyticSource(true);
+  Kitty_HGrK.SetAutoNormSource(false);
+  Kitty_HGrK.SetNormalizedSource(true);
+  Kitty_HGrK.SetMomentumDependentSource(true);
+
+  Kitty_Gr.KillTheCat();
+  Kitty_HGr.KillTheCat();
+  Kitty_HGrK.KillTheCat();
+  Kitty_HGrKconst.KillTheCat();
+
+  TGraph Ck_Gr;
+  TGraph Ck_HGr;
+  TGraph Ck_HGrK;
+  TGraph Ck_HGrKconst;
+
+  Ck_Gr.SetName("Ck_Gr");
+  Ck_HGr.SetName("Ck_HGr");
+  Ck_HGrK.SetName("Ck_HGrK");
+  Ck_HGrKconst.SetName("Ck_HGrKconst");
+
+  for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+    double kstar = Kitty_Gr.GetMomentum(uMom);
+    Ck_Gr.SetPoint(uMom,kstar,Kitty_Gr.GetCorrFun(uMom));
+    Ck_HGr.SetPoint(uMom,kstar,Kitty_HGr.GetCorrFun(uMom));
+    Ck_HGrK.SetPoint(uMom,kstar,Kitty_HGrK.GetCorrFun(uMom));
+    Ck_HGrKconst.SetPoint(uMom,kstar,Kitty_HGrKconst.GetCorrFun(uMom));
+  }
+
+  Ck_Gr.Write();
+  Ck_HGr.Write();
+  Ck_HGrK.Write();
+  Ck_HGrKconst.Write();
+
+
+
+}
+
+
+void kstar_source_ck_1(TString InputFileName, TString type){
+
+
+  CATS Kitty;
+
+
+}
+
+
+
 int FUN_WITH_CECA(int argc, char *argv[]){
   //Sources_In_SourcePaper("pp",1);
   //Sources_In_SourcePaper("pL",1);
@@ -9751,9 +9931,12 @@ int FUN_WITH_CECA(int argc, char *argv[]){
   //Ceca_pd_1(0.0,-1100,"pp");
   //Ceca_pd_1(0.0,-1200,"pp");
   //Ceca_pd_1(0.0,-900,"pp");
-  //Ceca_pd_1(0.0,atoi(argv[1]),"pp");
+  Ceca_pd_1(0.0,atoi(argv[1]),"pp");
 
-  kstar_source_simple_1(1,"pp",11);
+//TFile fOutput(,"recreate");
+  //kstar_source_simple_1(1,"pp",12);
+  //kstar_source_ck_1(TString::Format("%s/FunWithCeca/kstar_source_simple_1/kstarSrc_pp_flag1_sd11and12.root",GetFemtoOutputFolder()));
+  //kstar_source_ck_TEST1();
 
   //Ceca_pd_1(0.0,-1300,"pp");
   //Ceca_pd_1(0.0,-1,"pipi_core");

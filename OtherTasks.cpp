@@ -16003,10 +16003,63 @@ void DongFang_Example1(){
 
 }
 
+void TestNewCutOff(){
+  const unsigned NumMomBins = 50;
+  const double kMin = 0;
+  const double kMax = 200;
+  const double kNonZero = 100;
+  DLM_Ck TestCk(NumMomBins,kMin,kMax);
+  for(unsigned uBin=0; uBin<NumMomBins; uBin++){
+    double Momentum = TestCk.GetBinCenter(0,uBin);
+    if(Momentum<kNonZero){
+      TestCk.SetBinContent(uBin,1.+exp(-pow(Momentum/50.,2.))-0.15*exp(-pow((Momentum-100)/30.,2.)));
+    }
+    else{
+      TestCk.SetBinContent(uBin,0);
+    }
+  }
+  TestCk.Update();
+
+  TGraph gTestCk;
+  gTestCk.SetName("gTestCk");
+
+  TGraph gEvTestCk;
+  gEvTestCk.SetName("gEvTestCk");
+
+  for(unsigned uBin=0; uBin<NumMomBins; uBin++){
+    double Momentum = TestCk.GetBinCenter(0,uBin);
+    gTestCk.SetPoint(uBin,Momentum,TestCk.GetBinContent(uBin));
+    gEvTestCk.SetPoint(uBin,Momentum,TestCk.Eval(Momentum));
+  }
+
+  TestCk.SetCutOff(kNonZero,kMax*2);
+  TestCk.Update(true);
+  TGraph gCutTestCk;
+  gCutTestCk.SetName("gCutTestCk");
+  TGraph gCutEvTestCk;
+  gCutEvTestCk.SetName("gCutEvTestCk");
+  for(unsigned uBin=0; uBin<NumMomBins; uBin++){
+    double Momentum = TestCk.GetBinCenter(0,uBin);
+    gCutTestCk.SetPoint(uBin,Momentum,TestCk.GetBinContent(uBin));
+    gCutEvTestCk.SetPoint(uBin,Momentum,TestCk.Eval(Momentum));
+  }
+
+
+  TFile fOutput(TString::Format("%s/OtherTasks/TestNewCutOff1.root",GetFemtoOutputFolder()),"recreate");
+  gTestCk.Write();
+  gEvTestCk.Write();
+  gCutTestCk.Write();
+  gCutEvTestCk.Write();
+
+}
+
 //
 int OTHERTASKS(int argc, char *argv[]){
 
-  DongFang_Example1(); return 0;
+
+  TestNewCutOff();
+
+  //DongFang_Example1(); return 0;
   //coal_test_1(); return 0;
   //test_sqwell(); return 0;
 

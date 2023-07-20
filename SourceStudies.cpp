@@ -5372,9 +5372,46 @@ void estimate_syst_fit(){
 }
 
 
+void SlopeOfMt_1(){
+
+  //should represent more or less the distances between two
+  //neighbouring particles on the hadronization surface.
+  const double RH = 0.5;
+
+  //should represent more or less the distances between two
+  //neighbouring particles at freeze-out
+  const double RF = 1.2;
+
+  //beta*gamma
+  const double BG = 1;
+
+  const double h_base = 2.7;
+  const double MN = h_base / RH;
+  const double M_base = 48.36;
+
+  std::vector<double> mult_val;
+  mult_val.push_back(13.75);
+  mult_val.push_back(25.48);
+  mult_val.push_back(33.16);
+  mult_val.push_back(48.36);
+
+  for(unsigned uMult=0; uMult<mult_val.size(); uMult++){
+    double MR = sqrt(mult_val.at(uMult)/M_base);
+    double h_par = RH*MN*MR;
+    double t_par = MN*MR*RF-h_par;
+    printf("h = %.2f\n",h_par);
+    printf("t = %.2f\n",t_par);
+    printf("----------------\n");
+  }
+
+}
+
+
 int SOURCESTUDIES(int argc, char *argv[]){
     //CompareCkAndSr();
     //Compare_2_vs_3_body();
+
+    SlopeOfMt_1(); return 0;
 
     //ConvertThetaAngleHisto("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/AngleStudy_1/DimiPhi_pp.root","h_rkAngle_Mom2",400,600);
     //AverageResoApprox_pp();
