@@ -9179,7 +9179,7 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
     //if 1: as intended for the paper (cleaner)
     //if 2: as intended for the thesis
     //if 3: as intended for PLB
-    const int PlotsType = 3;
+    const int PlotsType = 0;
     const bool WriteToInfoFile=true;
     int Panel_X = 0;
 //printf("0\n");
@@ -9643,8 +9643,13 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
                       PotDescr = "UsmaniFit";
                       PotFlag = -11600;
                       break;//
+          case 21600: PotName1 = "N2LO (600)";
+                      PotName2 = "with d-waves from NLO19 (600)";
+                      PotDescr = "N2LO-600";
+                      PotFlag = 21600;
+                      break;//
           default :   PotName1 = "Unknown potential";
-                      PotName2 = "";
+                      PotName2 = TString(WhichPotential);
                       PotDescr = "Unknown";
                       break;
       }
@@ -11842,6 +11847,7 @@ void Quick_pLambda_plotter_NLO13_vs_LO13(){
 //Type == 2: the many new Johann pots from 2022
 //Type == 3: the many many new Johann pots from 2022 (11x11 = 121)
 //Type == 4: the test of similar scatt length for different LECs
+//Type == 5: N2LO-600
 void MakeLATEXtable(TString InputFolder, bool Compact=false, int Type=0){
     TString OutputFileName;
     TString OutputFileNameNsig;
@@ -11863,6 +11869,7 @@ void MakeLATEXtable(TString InputFolder, bool Compact=false, int Type=0){
     else if(Type==2){NumLamVars=8+13;}
     else if(Type==3){NumLamVars=121;}
     else if(Type==4){NumLamVars=4;}
+    else if(Type==5){NumLamVars=1;}
 
     TString* PotName_pL = new TString [NumLamVars];
     if(Type==0||Type==1){
@@ -12079,6 +12086,10 @@ void MakeLATEXtable(TString InputFolder, bool Compact=false, int Type=0){
         }
       }
     }
+    if(Type==5){
+      PotFlag_pL[0] = 21600;
+      PotName_pL[0] = "N2LO-600";
+    }
 
 printf("2\n");
     //const unsigned NumSigVars = 3;
@@ -12184,7 +12195,7 @@ printf("2\n");
 
     FILE *fptr;
     fptr=fopen(OutputFileName.Data(),"w");
-    if(Compact || Type==2){
+    if(Compact || Type==2 || Type==5){
         fprintf(fptr,"\\begin{table} \n");
         fprintf(fptr,"\\begin{center} \n");
         fprintf(fptr,"\\begin{tabular}{r|c|c|} \n");
@@ -17778,11 +17789,11 @@ UpdateUnfoldFile(TString::Format("%s/CatsFiles/",GetCernBoxDimi()),
 //printf("hello\n");
 
 //const int& SIGMA_FEED, const int& WhichBaseline, const int& WhichPotential, const float& ValSourceAlpha,
-/*
+
 Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(atoi(argv[4]))/10.,
                             ///home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/100720_Unfolded/
                             //TString::Format("%s/pLambda/100720_Unfolded/",GetCernBoxDimi()),
-                            TString::Format("%s/pLambda/010223/NoBoot/",GetCernBoxDimi()),
+                            TString::Format("%s/pLambda/200723/NoBoot/",GetCernBoxDimi()),
                             //TString::Format("%s/pLambda/170721_NewUnfold/NoBoot/",GetCernBoxDimi()),
                             //TString::Format("%s/pLambda/170721_NewUnfold/Full/",GetCernBoxDimi()),
                             //TString::Format("%s/pLambda/PLB/NoBoot/",GetCernBoxDimi()),
@@ -17801,13 +17812,13 @@ Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(at
                             //TString::Format("%s/pLambda/PLB/NoBoot/Plots_v4/",GetCernBoxDimi()),
                             //TString::Format("%s/pLambda/020522/Full/Plots/",GetCernBoxDimi()),
                             //TString::Format("%s/pLambda/020522/FullData/Plots/",GetCernBoxDimi()),
-                            TString::Format("%s/pLambda/010223/NoBoot/Plots108/",GetCernBoxDimi()),
+                            TString::Format("%s/pLambda/200723/NoBoot/Plots108/",GetCernBoxDimi()),
                             //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/"
                             atoi(argv[5])///REMOVE FOR THE OLD PLOTS
                           );
 
 return 0;
-*/
+
 
 //MakeLATEXtable(TString::Format("%s/pLambda/PLB/NoBoot/Plots_v4/",GetCernBoxDimi()),false);
 //MakeLATEXtable(TString::Format("%s/pLambda/020522/NoBoot/Plots/",GetCernBoxDimi()),true,1);
@@ -17818,6 +17829,7 @@ return 0;
 //MakeLATEXtable(TString::Format("%s/pLambda/251122/NoBoot/Plots108/",GetCernBoxDimi()),true,3);//2x error above 108 MeV in fit
 //MakeLATEXtable(TString::Format("%s/pLambda/021222/NoBoot/Plots108/",GetCernBoxDimi()),true,4);//
 //MakeLATEXtable(TString::Format("%s/pLambda/010223/NoBoot/Plots108/",GetCernBoxDimi()),true,3);//2x error above 108 MeV in fit
+//MakeLATEXtable(TString::Format("%s/pLambda/200723/NoBoot/Plots108/",GetCernBoxDimi()),true,5);//N2LO
 //return 0;
 
 //Plot_pL_SystematicsMay2020_2(2,10,1500,2.0,
@@ -17857,8 +17869,8 @@ return 0;
                            //bool DataSyst, bool FitSyst, bool Bootstrap, unsigned NumIter,
                           // const char* CatsFileFolder, const char* OutputFolder
 //!!!!!!!!!!!!!!!!!!!!!!!!
-pL_SystematicsMay2020(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]), atoi(argv[6]), atoi(argv[7]), atoi(argv[8]), atoi(argv[9]),
-argv[10], argv[11]);
+//pL_SystematicsMay2020(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]), atoi(argv[6]), atoi(argv[7]), atoi(argv[8]), atoi(argv[9]),
+//argv[10], argv[11]);
 //pL_SystematicsMay2020(1,10,11602,1,311,1,1,0,4,
 //TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data(),
 //TString::Format("%s/pLambda/Dump/",GetCernBoxDimi()).Data());
@@ -17875,7 +17887,7 @@ argv[10], argv[11]);
 //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/");
 //pL_SystematicsMay2020(1, 9, 11600, false, 3,
 //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/");
-return 0;
+//return 0;
 
 //    Plot_mT_Scale_pp_pL("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/Plot_mT_Scale_pp_pL/",
 //                        "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/Fit_pp/Systematics_180919/NTfile_20.root",

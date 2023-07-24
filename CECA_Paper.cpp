@@ -6456,20 +6456,35 @@ void ScanPsUsmani(TString AnaType, TString SourceDescription, TString cern_box, 
 //Wc=2288; Rc=0.337; Sc=0.261; f1=1.49; d1=2.46; tDev=0.105
 //Wc=2288; Rc=0.346; Sc=0.258; f1=1.40; d1=2.65; tDev=0.124
 //Wc=1813; Rc=0.421; Sc=0.258; f1=1.31; d1=2.55; tDev=0.100
-void UsmaniFirstLook(int SEED){
+// Wc=1747; Rc=0.515; Sc=0.217; f1=1.65; d1=3.32; tDev=0.172
+//flag: 0 default set up, with some weird choice of randomness
+//flag: 1, where I create a histogram with a binning based on min/max/steps values for each par
+//      and for each iter I a sigle bin and draw the "center" from a uniform distribtion based on bin edges
+void UsmaniFirstLook(int SEED, const int flag = 0){
+  const double FT = 1./1.;
   TRandom3 rangen(SEED);
 
-  double Wc_Min = rangen.Uniform(2137-400,2137+600);
-  double Wc_Max = Wc_Min;
-  unsigned Wc_Steps = 1;
+  //double Wc_Min = rangen.Uniform(2137-400,2137+600);
+  //double Wc_Min = rangen.Uniform(2100,2180);
+  //double Wc_Max = Wc_Min;
+  double Wc_Min = 2137-600;
+  double Wc_Max = 2137;
+  unsigned Wc_Steps = 8;
 
-  double Rc_Min = rangen.Uniform(0.3,0.8);
-  double Rc_Max = Rc_Min*1.1;
+  //double Rc_Min = rangen.Uniform(0.3,0.8);
+  //double Rc_Max = Rc_Min*1.1;
+  //double Rc_Min = rangen.Uniform(0.3,0.6);
+  //double Rc_Max = Rc_Min*1.1;
+  double Rc_Min = 0.5-0.2;
+  double Rc_Max = 0.5+0.0;
   unsigned Rc_Steps = 8;
 
-  double Sc_Min = rangen.Uniform(0.1,0.3);
-  double Sc_Max = Sc_Min*1.1;
+  //double Sc_Min = rangen.Uniform(0.1,0.3);
+  //double Sc_Max = Sc_Min*1.1;
+  double Sc_Min = 0.2-0.05;
+  double Sc_Max = 0.2+0.1;
   unsigned Sc_Steps = 8;
+
 
   TH2F* hSL = new TH2F("hSL","hSL",Wc_Steps,Wc_Min,Wc_Max,Rc_Steps,Rc_Min,Rc_Max);
   TH2F* hER = new TH2F("hER","hER",Wc_Steps,Wc_Min,Wc_Max,Rc_Steps,Rc_Min,Rc_Max);
@@ -6478,6 +6493,8 @@ void UsmaniFirstLook(int SEED){
 
   const double fGoal = 1.41;
   const double dGoal = 2.53;
+  //const double fGoal = 1.66;
+  //const double dGoal = 2.5;
   double fDev, dDev, tDev;
 
   DLM_CommonAnaFunctions AnalysisObject;
@@ -6490,11 +6507,20 @@ void UsmaniFirstLook(int SEED){
   AnalysisObject.SetUpCats_pL(Kitty,"UsmaniFit","Gauss",0,0);//NLO_Coupled_S
 
   for(unsigned uWc=0; uWc<Wc_Steps; uWc++){
+    double Wc_Val = hSL->GetXaxis()->GetBinCenter(uWc+1);
+    if(flag==1){
+      Wc_Val = rangen.Uniform(hSL->GetXaxis()->GetBinLowEdge(uWc+1),hSL->GetXaxis()->GetBinUpEdge(uWc+1));
+    }
     for(unsigned uRc=0; uRc<Rc_Steps; uRc++){
+      double Rc_Val = hSL->GetYaxis()->GetBinCenter(uRc+1);
+      if(flag==1){
+        Rc_Val = rangen.Uniform(hSL->GetYaxis()->GetBinLowEdge(uRc+1),hSL->GetYaxis()->GetBinUpEdge(uRc+1));
+      }
       for(unsigned uSc=0; uSc<Sc_Steps; uSc++){
-        double Wc_Val = hSL->GetXaxis()->GetBinCenter(uWc+1);
-        double Rc_Val = hSL->GetYaxis()->GetBinCenter(uRc+1);
         double Sc_Val = hSc->GetXaxis()->GetBinCenter(uSc+1);
+        if(flag==1){
+          Sc_Val = rangen.Uniform(hSc->GetXaxis()->GetBinLowEdge(uSc+1),hSc->GetXaxis()->GetBinUpEdge(uSc+1));
+        }
         Kitty.SetShortRangePotential(1,0,1,Wc_Val);
         Kitty.SetShortRangePotential(1,0,2,Rc_Val);
         Kitty.SetShortRangePotential(1,0,3,Sc_Val);
@@ -6510,13 +6536,14 @@ void UsmaniFirstLook(int SEED){
         delete fPsFit;
 
         //tDev /= 16;
-        if(tDev<1./1.){
-          if(tDev>1./2.) printf("\033[41m ");
-          else if(tDev>1./4.) printf("\033[43m ");
-          else if(tDev>1./8.) printf("\033[42m ");
-          else if(tDev>1./16.) printf("\033[46m ");
+        if(tDev<1./1.*FT){
+          if(tDev>1./2.*FT) printf("\033[41m ");
+          else if(tDev>1./4.*FT) printf("\033[43m ");
+          else if(tDev>1./8.*FT) printf("\033[42m ");
+          else if(tDev>1./16.*FT) printf("\033[46m ");
           else printf("\033[44m ");
-          printf("Wc=%.0f; Rc=%.3f; Sc=%.3f; f1=%.2f; d1=%.2f; tDev=%.3f\033[0m\n",Wc_Val,Rc_Val,Sc_Val,f1,d1,tDev);
+          //printf("Wc=%.0f; Rc=%.3f; Sc=%.3f; f1=%.2f; d1=%.2f; tDev=%.3f\033[0m\n",Wc_Val,Rc_Val,Sc_Val,f1,d1,tDev);
+          printf("Wc=%.1f; Rc=%.4f; Sc=%.4f; f1=%.3f; d1=%.3f; tDev=%.4f\033[0m\n",Wc_Val,Rc_Val,Sc_Val,f1,d1,tDev);
         }
 
         //hSL->SetBinContent(uWc+1,uRc+1,f1);
@@ -7618,6 +7645,81 @@ void Usmani_vs_NLO19(){
 
 }
 
+void Usmani_vs_N2LO(){
+  const double SourceSize = 1.2;
+  const double kMin=0;
+  const double kMax=200;
+  const unsigned NumMomBins = 100;
+  //Wc=2279.0; Rc=0.3394; Sc=0.2614; f1=1.41; d1=2.53;
+
+  CATS CatN2LO;
+  CatN2LO.SetMomBins(NumMomBins,kMin,kMax);
+  CATS CatUsmDef;
+  CatUsmDef.SetMomBins(NumMomBins,kMin,kMax);
+  CATS CatUsmN2LO;
+  CatUsmN2LO.SetMomBins(NumMomBins,kMin,kMax);
+
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
+  AnalysisObject.SetUpCats_pL(CatN2LO,"Chiral_Coupled_SPD","Gauss",21600,0);
+  AnalysisObject.SetUpCats_pL(CatUsmDef,"Usmani","Gauss",0,0);
+  AnalysisObject.SetUpCats_pL(CatUsmN2LO,"UsmaniFit","Gauss",0,0);
+
+  CatN2LO.SetAnaSource(0,SourceSize);
+  CatUsmDef.SetAnaSource(0,SourceSize);
+  CatUsmN2LO.SetAnaSource(0,SourceSize);
+
+  CatUsmN2LO.SetShortRangePotential(1,0,1,2279);
+  CatUsmN2LO.SetShortRangePotential(1,0,2,0.3394);
+  CatUsmN2LO.SetShortRangePotential(1,0,3,0.2614);
+
+  CatN2LO.SetEpsilonConv(1e-10);
+  CatN2LO.SetEpsilonProp(1e-10);
+
+  CatUsmDef.SetEpsilonConv(1e-10);
+  CatUsmDef.SetEpsilonProp(1e-10);
+
+  CatUsmN2LO.SetEpsilonConv(1e-10);
+  CatUsmN2LO.SetEpsilonProp(1e-10);
+
+  CatN2LO.KillTheCat();
+  CatUsmDef.KillTheCat();
+  CatUsmN2LO.KillTheCat();
+
+  TGraph gN2LO;
+  TGraph gUsmDef;
+  TGraph gUsmN2LO;
+
+  TGraph gRatUsmDef;
+  TGraph gRatUsmN2LO;
+
+  gN2LO.SetName("gN2LO");
+  gUsmDef.SetName("gUsmDef");
+  gUsmN2LO.SetName("gUsmN2LO");
+  gRatUsmDef.SetName("gRatUsmDef");
+  gRatUsmN2LO.SetName("gRatUsmN2LO");
+
+  for(unsigned uBin=0; uBin<NumMomBins; uBin++){
+    double MOM = CatN2LO.GetMomentum(uBin);
+    gN2LO.SetPoint(uBin,MOM,CatN2LO.GetCorrFun(uBin));
+    gUsmDef.SetPoint(uBin,MOM,CatUsmDef.GetCorrFun(uBin));
+    gUsmN2LO.SetPoint(uBin,MOM,CatUsmN2LO.GetCorrFun(uBin)/1.01);
+    gRatUsmDef.SetPoint(uBin,MOM,CatUsmDef.GetCorrFun(uBin)/CatN2LO.GetCorrFun(uBin));
+    gRatUsmN2LO.SetPoint(uBin,MOM,CatUsmN2LO.GetCorrFun(uBin)/CatN2LO.GetCorrFun(uBin)/1.01);
+  }
+
+  TFile fOutput(TString::Format("%s/CECA_Paper/Usmani_vs_NLO19/fOutput.root",GetFemtoOutputFolder()),"recreate");
+  gN2LO.Write();
+  gUsmDef.Write();
+  gUsmN2LO.Write();
+  gRatUsmDef.Write();
+  gRatUsmN2LO.Write();
+
+
+}
+
+
+
 void CompareMomDist(){
   TString File_p_Raw = TString::Format("%s/Jaime/p_pT.root",GetCernBoxDimi());
   TString File_L_Raw = TString::Format("%s/Jaime/L_pT.root",GetCernBoxDimi());
@@ -8092,7 +8194,7 @@ printf("pLab<=450 MeV (k*<=%.0f): #%u\n",pLab_pCm(450,Mass_L,Mass_p),NumPts);
 int CECA_PAPER(int argc, char *argv[]){
   printf("CECA_PAPER\n\n");
 
-  pLambda_ScatteringData_FF(); return 0;
+  //pLambda_ScatteringData_FF(); return 0;
   //printf("chi2 to get 2 sig: %.2f\n",GetDeltaChi2(8.4-4.5,3)); return 0;
   //printf("nsig given 6 dof: %.2f\n",GetNsigma(8.4-4.5,3)); return 0;
 
@@ -8100,6 +8202,7 @@ int CECA_PAPER(int argc, char *argv[]){
   //TestSaveStuctToFile();
 
   //CompareMomDist();
+  UsmaniFirstLook(atoi(argv[1]),1);
   //return 0;
 
   //a test that extrapolation of Levy pars works

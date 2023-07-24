@@ -1979,12 +1979,12 @@ void Ceca_pd_1(const double& d_delay, const int& EffFix, const TString type="pd"
   const double EtaCut = 0.8;
   const bool PROTON_RESO = true;
   const bool EQUALIZE_TAU = true;
-  const double TIMEOUT = 30;
-  const double GLOB_TIMEOUT = 2*60;
+  const double TIMEOUT = 10;
+  const double GLOB_TIMEOUT = 1*60;
   const unsigned Multiplicity=2;
   const double femto_region = 100;
-  const unsigned target_yield = 1331*1000;
-  const unsigned NUM_CPU = 2*4;
+  const unsigned target_yield = 1331*100;
+  const unsigned NUM_CPU = 1;
   //TString BaseName = "KstarDist";
   TString BaseName = TString::Format("Eta%.1f",EtaCut);
 
