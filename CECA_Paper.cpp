@@ -6460,30 +6460,36 @@ void ScanPsUsmani(TString AnaType, TString SourceDescription, TString cern_box, 
 //flag: 0 default set up, with some weird choice of randomness
 //flag: 1, where I create a histogram with a binning based on min/max/steps values for each par
 //      and for each iter I a sigle bin and draw the "center" from a uniform distribtion based on bin edges
+
+//N2LO S=1:
+// Wc=1947.2; Rc=0.4545; Sc=0.2312; f1=1.559; d1=3.174; tDev=0.0043
+// Wc=2023.2; Rc=0.4427; Sc=0.2315; f1=1.563; d1=3.182; tDev=0.0123
+// Wc=2063.1; Rc=0.4347; Sc=0.2326; f1=1.560; d1=3.170; tDev=0.0004 !!!!!!!!!!
 void UsmaniFirstLook(int SEED, const int flag = 0){
-  const double FT = 1./1.;
+  const double FT = 1./64.;
   TRandom3 rangen(SEED);
 
   //double Wc_Min = rangen.Uniform(2137-400,2137+600);
   //double Wc_Min = rangen.Uniform(2100,2180);
   //double Wc_Max = Wc_Min;
-  double Wc_Min = 2137-600;
-  double Wc_Max = 2137;
-  unsigned Wc_Steps = 8;
+  //1920--2070, original 1800-2100, next 1920-2070, next 1935-1940, next3 2060-2065
+  double Wc_Min = 1935;
+  double Wc_Max = 1940;
+  unsigned Wc_Steps = 64/2;
 
   //double Rc_Min = rangen.Uniform(0.3,0.8);
   //double Rc_Max = Rc_Min*1.1;
   //double Rc_Min = rangen.Uniform(0.3,0.6);
   //double Rc_Max = Rc_Min*1.1;
-  double Rc_Min = 0.5-0.2;
-  double Rc_Max = 0.5+0.0;
-  unsigned Rc_Steps = 8;
+  double Rc_Min = 0.45;//??, next 0.43, next, 0.45, next3 0.43
+  double Rc_Max = 0.46;//??, next 0.47, next 0.46, next3 0.44
+  unsigned Rc_Steps = 32/2;
 
   //double Sc_Min = rangen.Uniform(0.1,0.3);
   //double Sc_Max = Sc_Min*1.1;
-  double Sc_Min = 0.2-0.05;
-  double Sc_Max = 0.2+0.1;
-  unsigned Sc_Steps = 8;
+  double Sc_Min = 0.230;//??, next 0.228, next 0.230, next3 0.231
+  double Sc_Max = 0.233;//??, next 0.238, next 0.233, next3 0.234
+  unsigned Sc_Steps = 32/2;
 
 
   TH2F* hSL = new TH2F("hSL","hSL",Wc_Steps,Wc_Min,Wc_Max,Rc_Steps,Rc_Min,Rc_Max);
@@ -6491,10 +6497,10 @@ void UsmaniFirstLook(int SEED, const int flag = 0){
 
   TH1F* hSc = new TH1F("hSc","hSc",Sc_Steps,Sc_Min,Sc_Max);
 
-  const double fGoal = 1.41;
-  const double dGoal = 2.53;
-  //const double fGoal = 1.66;
-  //const double dGoal = 2.5;
+  //const double fGoal = 1.41;
+  //const double dGoal = 2.53;
+  const double fGoal = 1.56;
+  const double dGoal = 3.17;
   double fDev, dDev, tDev;
 
   DLM_CommonAnaFunctions AnalysisObject;
@@ -6543,7 +6549,7 @@ void UsmaniFirstLook(int SEED, const int flag = 0){
           else if(tDev>1./16.*FT) printf("\033[46m ");
           else printf("\033[44m ");
           //printf("Wc=%.0f; Rc=%.3f; Sc=%.3f; f1=%.2f; d1=%.2f; tDev=%.3f\033[0m\n",Wc_Val,Rc_Val,Sc_Val,f1,d1,tDev);
-          printf("Wc=%.1f; Rc=%.4f; Sc=%.4f; f1=%.3f; d1=%.3f; tDev=%.4f\033[0m\n",Wc_Val,Rc_Val,Sc_Val,f1,d1,tDev);
+          printf("Wc=%.2f; Rc=%.5f; Sc=%.5f; f1=%.3f; d1=%.3f; tDev=%.5f\033[0m\n",Wc_Val,Rc_Val,Sc_Val,f1,d1,tDev);
         }
 
         //hSL->SetBinContent(uWc+1,uRc+1,f1);
