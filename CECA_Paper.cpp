@@ -6483,8 +6483,12 @@ void UsmaniFirstLook(int SEED, const int flag = 0, const int SPIN = 1){
   TRandom3 rangen(SEED);
 
 
-  double Wc_Min, Wc_Max, Rc_Min, Rc_Max, Sc_Min, Sc_Max;
-  unsigned Wc_Steps, Rc_Steps, Sc_Steps;
+  double Wc_Min, Wc_Max, Rc_Min, Rc_Max, Sc_Min, Sc_Max, Vs_Min, Vs_Max;
+  unsigned Wc_Steps, Rc_Steps, Sc_Steps, Vs_Steps;
+
+  Vs_Min = 0.25;
+  Vs_Max = 0.25;
+  Vs_Steps = 1;
 
   //double Wc_Min = rangen.Uniform(2137-400,2137+600);
   //double Wc_Min = rangen.Uniform(2100,2180);
@@ -6567,20 +6571,25 @@ void UsmaniFirstLook(int SEED, const int flag = 0, const int SPIN = 1){
 
     Wc_Min = 1900;
     Wc_Max = 2137;
-    Wc_Steps = 64/4;
+    Wc_Steps = 8/2;
 
     Rc_Min = 0.45;
     Rc_Max = 0.55;
-    Rc_Steps = 32/4;
+    Rc_Steps = 8/2;
 
     Sc_Min = 0.15;
     Sc_Max = 0.25;
-    Sc_Steps = 32/4;
+    Sc_Steps = 8/2;
+
+    Vs_Min = 0.15;
+    Vs_Max = 0.35;
+    Vs_Steps = 8/2;
   }
 
   TH2F* hSL = new TH2F("hSL","hSL",Wc_Steps,Wc_Min,Wc_Max,Rc_Steps,Rc_Min,Rc_Max);
   TH2F* hER = new TH2F("hER","hER",Wc_Steps,Wc_Min,Wc_Max,Rc_Steps,Rc_Min,Rc_Max);
   TH1F* hSc = new TH1F("hSc","hSc",Sc_Steps,Sc_Min,Sc_Max);
+  TH1F* hVs = new TH1F("hVs","hVs",Vs_Steps,Vs_Min,Vs_Max);
 
 
   DLM_CommonAnaFunctions AnalysisObject;
@@ -6590,7 +6599,7 @@ void UsmaniFirstLook(int SEED, const int flag = 0, const int SPIN = 1){
   Kitty.SetEpsilonConv(4e-8);
   Kitty.SetEpsilonProp(4e-8);
   Kitty.SetNotifications(CATS::nWarning);
-  AnalysisObject.SetUpCats_pL(Kitty,"UsmaniFit","Gauss",0,0);//NLO_Coupled_S
+  AnalysisObject.SetUpCats_pL(Kitty,"UsmaniFitAll","Gauss",0,0);//NLO_Coupled_S
 
   TString LogFileName;
   if(SPIN==0){
@@ -6618,90 +6627,99 @@ void UsmaniFirstLook(int SEED, const int flag = 0, const int SPIN = 1){
       }
       for(unsigned uSc=0; uSc<Sc_Steps; uSc++){
         double Sc_Val = hSc->GetXaxis()->GetBinCenter(uSc+1);
-        if(flag==1){
-          Sc_Val = rangen.Uniform(hSc->GetXaxis()->GetBinLowEdge(uSc+1),hSc->GetXaxis()->GetBinUpEdge(uSc+1));
-        }
-        if(SPIN==0 || SPIN==1){
-          Kitty.SetShortRangePotential(SPIN,0,1,Wc_Val);
-          Kitty.SetShortRangePotential(SPIN,0,2,Rc_Val);
-          Kitty.SetShortRangePotential(SPIN,0,3,Sc_Val);
-        }
-        else{
-          Kitty.SetShortRangePotential(0,0,1,Wc_Val);
-          Kitty.SetShortRangePotential(0,0,2,Rc_Val);
-          Kitty.SetShortRangePotential(0,0,3,Sc_Val);
-
-          Kitty.SetShortRangePotential(1,0,1,Wc_Val);
-          Kitty.SetShortRangePotential(1,0,2,Rc_Val);
-          Kitty.SetShortRangePotential(1,0,3,Sc_Val);
-        }
-
-        Kitty.KillTheCat();
-        double f0,d0,f1,d1;
-        TH1F* hPsFit;
-        TF1* fPsFit;
-        if(SPIN==0) GetScattParameters(Kitty,f0,d0,hPsFit,fPsFit,3,false,false,SPIN);
-        else if(SPIN==1) GetScattParameters(Kitty,f1,d1,hPsFit,fPsFit,3,false,false,SPIN);
-        else{
-          GetScattParameters(Kitty,f0,d0,hPsFit,fPsFit,3,false,false,0);
-          delete hPsFit;
-          delete fPsFit;
-          GetScattParameters(Kitty,f1,d1,hPsFit,fPsFit,3,false,false,1);
-        }
-        delete hPsFit;
-        delete fPsFit;
-
-
-        if(SPIN!=1){
-          fDev0 = f0-fGoal0;
-          dDev0 = d0-dGoal0;
-          tDev0 = sqrt(fDev0*fDev0+dDev0*dDev0);
-        }
-        if(SPIN!=0){
-          fDev1 = f1-fGoal1;
-          dDev1 = d1-dGoal1;
-          tDev1 = sqrt(fDev1*fDev1+dDev1*dDev1);
-        }
-
-        double tDev;
-        if(SPIN==0) tDev = tDev0;
-        else if(SPIN==1) tDev = tDev1;
-        else{
-          tDev = sqrt(tDev0*tDev0+tDev1*tDev1)/sqrt(2);
-        }
-
-        //tDev /= 16;
-        if(tDev<1./1.*FT){
-          //if(tDev>1./2.*FT) printf("\033[41m ");
-          //else if(tDev>1./4.*FT) printf("\033[43m ");
-          //else if(tDev>1./8.*FT) printf("\033[42m ");
-          //else if(tDev>1./16.*FT) printf("\033[46m ");
-          //else printf("\033[44m ");
-          //printf("Wc=%.0f; Rc=%.3f; Sc=%.3f; f1=%.2f; d1=%.2f; tDev=%.3f\033[0m\n",Wc_Val,Rc_Val,Sc_Val,f1,d1,tDev);
-          //printf("Wc=%.2f; Rc=%.5f; Sc=%.5f; f1=%.3f; d1=%.3f; tDev=%.5f\033[0m\n",Wc_Val,Rc_Val,Sc_Val,f1,d1,tDev);
-
-          TString OutputText;
-          if(tDev>1./2.*FT) OutputText = "\033[41m ";
-          else if(tDev>1./4.*FT) OutputText = "\033[43m ";
-          else if(tDev>1./8.*FT) OutputText = "\033[42m ";
-          else if(tDev>1./16.*FT) OutputText = "\033[46m ";
-          else OutputText = "\033[44m ";
-          //OutputText += TString::Format("Wc=%.2f; Rc=%.5f; Sc=%.5f; f1=%.3f; d1=%.3f; tDev=%.5f\033[0m",Wc_Val,Rc_Val,Sc_Val,f1,d1,tDev);
-          if(SPIN==0){
-            OutputText += TString::Format("Wc=%.2f; Rc=%.5f; Sc=%.5f; f0=%.3f; d0=%.3f; tDev=%.5f\033[0m",Wc_Val,Rc_Val,Sc_Val,f0,d0,tDev);
+        for(unsigned uVs=0; uVs<Vs_Steps; uVs++){
+          double Vs_Val = hVs->GetXaxis()->GetBinCenter(uVs+1);
+          if(flag==1){
+            Vs_Val = rangen.Uniform(hVs->GetXaxis()->GetBinLowEdge(uVs+1),hVs->GetXaxis()->GetBinUpEdge(uVs+1));
           }
-          else if(SPIN==1){
-            OutputText += TString::Format("Wc=%.2f; Rc=%.5f; Sc=%.5f; f1=%.3f; d1=%.3f; tDev=%.5f\033[0m",Wc_Val,Rc_Val,Sc_Val,f1,d1,tDev);
+
+          if(flag==1){
+            Sc_Val = rangen.Uniform(hSc->GetXaxis()->GetBinLowEdge(uSc+1),hSc->GetXaxis()->GetBinUpEdge(uSc+1));
+          }
+          if(SPIN==0 || SPIN==1){
+            Kitty.SetShortRangePotential(SPIN,0,1,Wc_Val);
+            Kitty.SetShortRangePotential(SPIN,0,2,Rc_Val);
+            Kitty.SetShortRangePotential(SPIN,0,3,Sc_Val);
           }
           else{
-            OutputText += TString::Format("Wc=%.2f; Rc=%.5f; Sc=%.5f; f0=%.3f; d0=%.3f; f1=%.3f; d1=%.3f; tDev=%.5f\033[0m",Wc_Val,Rc_Val,Sc_Val,f0,d0,f1,d1,tDev);
+            Kitty.SetShortRangePotential(0,0,1,Wc_Val);
+            Kitty.SetShortRangePotential(0,0,2,Rc_Val);
+            Kitty.SetShortRangePotential(0,0,3,Sc_Val);
+            Kitty.SetShortRangePotential(0,0,5,Vs_Val);
+
+            Kitty.SetShortRangePotential(1,0,1,Wc_Val);
+            Kitty.SetShortRangePotential(1,0,2,Rc_Val);
+            Kitty.SetShortRangePotential(1,0,3,Sc_Val);
+            Kitty.SetShortRangePotential(1,0,5,Vs_Val);
           }
-          logfile << OutputText.Data() << endl;
-        }
-//printf("Wc=%.2f; Rc=%.5f; Sc=%.5f; f1=%.3f; d1=%.3f; tDev=%.5f\n",Wc_Val,Rc_Val,Sc_Val,f1,d1,tDev);
-        //hSL->SetBinContent(uWc+1,uRc+1,f1);
-        //hER->SetBinContent(uWc+1,uRc+1,d1);
-      }
+
+          Kitty.KillTheCat();
+          double f0,d0,f1,d1;
+          TH1F* hPsFit;
+          TF1* fPsFit;
+          if(SPIN==0) GetScattParameters(Kitty,f0,d0,hPsFit,fPsFit,3,false,false,SPIN);
+          else if(SPIN==1) GetScattParameters(Kitty,f1,d1,hPsFit,fPsFit,3,false,false,SPIN);
+          else{
+            GetScattParameters(Kitty,f0,d0,hPsFit,fPsFit,3,false,false,0);
+            delete hPsFit;
+            delete fPsFit;
+            GetScattParameters(Kitty,f1,d1,hPsFit,fPsFit,3,false,false,1);
+          }
+          delete hPsFit;
+          delete fPsFit;
+
+
+          if(SPIN!=1){
+            fDev0 = f0-fGoal0;
+            dDev0 = d0-dGoal0;
+            tDev0 = sqrt(fDev0*fDev0+dDev0*dDev0);
+          }
+          if(SPIN!=0){
+            fDev1 = f1-fGoal1;
+            dDev1 = d1-dGoal1;
+            tDev1 = sqrt(fDev1*fDev1+dDev1*dDev1);
+          }
+
+          double tDev;
+          if(SPIN==0) tDev = tDev0;
+          else if(SPIN==1) tDev = tDev1;
+          else{
+            tDev = sqrt(tDev0*tDev0+tDev1*tDev1)/sqrt(2);
+          }
+
+          //tDev /= 16;
+          if(tDev<1./1.*FT){
+            //if(tDev>1./2.*FT) printf("\033[41m ");
+            //else if(tDev>1./4.*FT) printf("\033[43m ");
+            //else if(tDev>1./8.*FT) printf("\033[42m ");
+            //else if(tDev>1./16.*FT) printf("\033[46m ");
+            //else printf("\033[44m ");
+            //printf("Wc=%.0f; Rc=%.3f; Sc=%.3f; f1=%.2f; d1=%.2f; tDev=%.3f\033[0m\n",Wc_Val,Rc_Val,Sc_Val,f1,d1,tDev);
+            //printf("Wc=%.2f; Rc=%.5f; Sc=%.5f; f1=%.3f; d1=%.3f; tDev=%.5f\033[0m\n",Wc_Val,Rc_Val,Sc_Val,f1,d1,tDev);
+
+            TString OutputText;
+            if(tDev>1./2.*FT) OutputText = "\033[41m ";
+            else if(tDev>1./4.*FT) OutputText = "\033[43m ";
+            else if(tDev>1./8.*FT) OutputText = "\033[42m ";
+            else if(tDev>1./16.*FT) OutputText = "\033[46m ";
+            else OutputText = "\033[44m ";
+            //OutputText += TString::Format("Wc=%.2f; Rc=%.5f; Sc=%.5f; f1=%.3f; d1=%.3f; tDev=%.5f\033[0m",Wc_Val,Rc_Val,Sc_Val,f1,d1,tDev);
+            if(SPIN==0){
+              OutputText += TString::Format("Wc=%.2f; Rc=%.5f; Sc=%.5f; f0=%.3f; d0=%.3f; tDev=%.5f\033[0m",Wc_Val,Rc_Val,Sc_Val,f0,d0,tDev);
+            }
+            else if(SPIN==1){
+              OutputText += TString::Format("Wc=%.2f; Rc=%.5f; Sc=%.5f; f1=%.3f; d1=%.3f; tDev=%.5f\033[0m",Wc_Val,Rc_Val,Sc_Val,f1,d1,tDev);
+            }
+            else{
+              OutputText += TString::Format("Wc=%.2f; Rc=%.5f; Sc=%.5f; Vs=%.5f; f0=%.3f; d0=%.3f; f1=%.3f; d1=%.3f; tDev=%.5f\033[0m",Wc_Val,Rc_Val,Sc_Val,Vs_Val,f0,d0,f1,d1,tDev);
+            }
+            logfile << OutputText.Data() << endl;
+          }
+  //printf("Wc=%.2f; Rc=%.5f; Sc=%.5f; f1=%.3f; d1=%.3f; tDev=%.5f\n",Wc_Val,Rc_Val,Sc_Val,f1,d1,tDev);
+          //hSL->SetBinContent(uWc+1,uRc+1,f1);
+          //hER->SetBinContent(uWc+1,uRc+1,d1);
+        }//vsigma
+      }//THE CORE SLOPE
     }
   }
 
