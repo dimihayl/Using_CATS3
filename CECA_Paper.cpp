@@ -50,6 +50,8 @@
 #include "TFitResultPtr.h"
 #include "TFitResult.h"
 #include "TGraphAsymmErrors.h"
+#include "TLatex.h"
+#include "TStyle.h"
 
 #include <boost/algorithm/string.hpp>
 
@@ -6465,43 +6467,121 @@ void ScanPsUsmani(TString AnaType, TString SourceDescription, TString cern_box, 
 // Wc=1947.2; Rc=0.4545; Sc=0.2312; f1=1.559; d1=3.174; tDev=0.0043
 // Wc=2023.2; Rc=0.4427; Sc=0.2315; f1=1.563; d1=3.182; tDev=0.0123
 // Wc=2063.1; Rc=0.4347; Sc=0.2326; f1=1.560; d1=3.170; tDev=0.0004 !!!!!!!!!!
-void UsmaniFirstLook(int SEED, const int flag = 0){
-  const double FT = 1./64.;
+
+
+//for N2LO-600 (1.56, 3.17 fm):
+  //Wc=1939.44; Rc=0.45562; Sc=0.23117; f1=1.560; d1=3.171; tDev=0.00110
+  //Wc=2061.53; Rc=0.43493; Sc=0.23262; f1=1.560; d1=3.170; tDev=0.00026
+//for N2LO-550 (1.58, 3.09 fm) 3S1:
+  //
+  //
+//for N2LO-550 (2.79, 2.89 fm) 1S0:
+  //
+//if SPIN == 2, we try to fit both at the same time with the same core
+void UsmaniFirstLook(int SEED, const int flag = 0, const int SPIN = 1){
+  double FT;// = 1./64.;
   TRandom3 rangen(SEED);
+
+
+  double Wc_Min, Wc_Max, Rc_Min, Rc_Max, Sc_Min, Sc_Max;
+  unsigned Wc_Steps, Rc_Steps, Sc_Steps;
 
   //double Wc_Min = rangen.Uniform(2137-400,2137+600);
   //double Wc_Min = rangen.Uniform(2100,2180);
   //double Wc_Max = Wc_Min;
-  //1920--2070, original 1800-2100, next 1920-2070, next 1935-1940, next3 2060-2065
-  double Wc_Min = 1935;
-  double Wc_Max = 1940;
-  unsigned Wc_Steps = 64/2;
+  //1920--2070, original 1800-2100, next 1920-2070, next 1935-1937, next3 2060-2065
+  //N2LO-550: 1934-1937
+  //Wc_Min = 1934;
+  //Wc_Max = 1937;
+  //Wc_Steps = 64/2;
 
   //double Rc_Min = rangen.Uniform(0.3,0.8);
   //double Rc_Max = Rc_Min*1.1;
   //double Rc_Min = rangen.Uniform(0.3,0.6);
   //double Rc_Max = Rc_Min*1.1;
-  double Rc_Min = 0.45;//??, next 0.43, next, 0.45, next3 0.43
-  double Rc_Max = 0.46;//??, next 0.47, next 0.46, next3 0.44
-  unsigned Rc_Steps = 32/2;
+  //Rc_Min = 0.448;//??, next 0.43, next, 0.45, next3 0.43, N2LO-550: 0.448-0.454
+  //Rc_Max = 0.454;//??, next 0.47, next 0.46, next3 0.44
+  //Rc_Steps = 32/2;
+
 
   //double Sc_Min = rangen.Uniform(0.1,0.3);
   //double Sc_Max = Sc_Min*1.1;
-  double Sc_Min = 0.230;//??, next 0.228, next 0.230, next3 0.231
-  double Sc_Max = 0.233;//??, next 0.238, next 0.233, next3 0.234
-  unsigned Sc_Steps = 32/2;
-
-
-  TH2F* hSL = new TH2F("hSL","hSL",Wc_Steps,Wc_Min,Wc_Max,Rc_Steps,Rc_Min,Rc_Max);
-  TH2F* hER = new TH2F("hER","hER",Wc_Steps,Wc_Min,Wc_Max,Rc_Steps,Rc_Min,Rc_Max);
-
-  TH1F* hSc = new TH1F("hSc","hSc",Sc_Steps,Sc_Min,Sc_Max);
+  //Sc_Min = 0.232;//??, next 0.228, next 0.230, next3 0.231, N2LO-550: 0.232-0.234
+  //Sc_Max = 0.234;//??, next 0.238, next 0.233, next3 0.234
+  //Sc_Steps = 32/2;
 
   //const double fGoal = 1.41;
   //const double dGoal = 2.53;
-  const double fGoal = 1.56;
-  const double dGoal = 3.17;
-  double fDev, dDev, tDev;
+  //const double fGoal = 1.56;//n2lo600
+  //const double dGoal = 3.17;
+  //const double fGoal = 1.58;//n2lo550
+  //const double dGoal = 3.09;
+  //const double fGoal = 2.79;//1s0 n2lo550
+  //const double dGoal = 2.89;
+  double fDev0, dDev0, tDev0, fDev1, dDev1, tDev1, fGoal0, dGoal0, fGoal1, dGoal1;
+  if(SPIN==0){
+    FT = 1./1.;
+
+    fGoal0 = 2.79;
+    dGoal0 = 2.89;
+
+    Wc_Min = 1800;
+    Wc_Max = 2100;
+    Wc_Steps = 64/8;
+
+    Rc_Min = 0.44;
+    Rc_Max = 0.46;
+    Rc_Steps = 32/4;
+
+    Sc_Min = 0.22;
+    Sc_Max = 0.24;
+    Sc_Steps = 32/4;
+  }
+  else if(SPIN==1){
+    //Wc=1934.58; Rc=0.45104; Sc=0.23342; f1=1.580; d1=3.090; tDev=0.00017
+    FT = 1./64.;
+
+    fGoal1 = 1.58;
+    dGoal1 = 3.09;
+
+    Wc_Min = 1934;
+    Wc_Max = 1937;
+    Wc_Steps = 64/2;
+
+    Rc_Min = 0.448;
+    Rc_Max = 0.454;
+    Rc_Steps = 32/2;
+
+    Sc_Min = 0.232;
+    Sc_Max = 0.234;
+    Sc_Steps = 32/2;
+  }
+  else{
+    FT = 1./1.;
+
+    fGoal0 = 2.79;
+    dGoal0 = 2.89;
+
+    fGoal1 = 1.58;
+    dGoal1 = 3.09;
+
+    Wc_Min = 1900;
+    Wc_Max = 2137;
+    Wc_Steps = 64/4;
+
+    Rc_Min = 0.45;
+    Rc_Max = 0.55;
+    Rc_Steps = 32/4;
+
+    Sc_Min = 0.15;
+    Sc_Max = 0.25;
+    Sc_Steps = 32/4;
+  }
+
+  TH2F* hSL = new TH2F("hSL","hSL",Wc_Steps,Wc_Min,Wc_Max,Rc_Steps,Rc_Min,Rc_Max);
+  TH2F* hER = new TH2F("hER","hER",Wc_Steps,Wc_Min,Wc_Max,Rc_Steps,Rc_Min,Rc_Max);
+  TH1F* hSc = new TH1F("hSc","hSc",Sc_Steps,Sc_Min,Sc_Max);
+
 
   DLM_CommonAnaFunctions AnalysisObject;
   AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
@@ -6511,6 +6591,20 @@ void UsmaniFirstLook(int SEED, const int flag = 0){
   Kitty.SetEpsilonProp(4e-8);
   Kitty.SetNotifications(CATS::nWarning);
   AnalysisObject.SetUpCats_pL(Kitty,"UsmaniFit","Gauss",0,0);//NLO_Coupled_S
+
+  TString LogFileName;
+  if(SPIN==0){
+    LogFileName = TString::Format("logUsmani_S%i_f%.2f_d%.2f_RS%i.txt",SPIN,fGoal0,dGoal0,SEED);
+  }
+  else if(SPIN==1){
+    LogFileName = TString::Format("logUsmani_S%i_f%.2f_d%.2f_RS%i.txt",SPIN,fGoal1,dGoal1,SEED);
+  }
+  else{
+    LogFileName = TString::Format("logUsmani_BOTH_fs%.2f_ds%.2f_ft%.2f_dt%.2f_RS%i.txt",fGoal0,dGoal0,fGoal1,dGoal1,SEED);
+  }
+
+
+  ofstream logfile (LogFileName.Data(),ios::out);
 
   for(unsigned uWc=0; uWc<Wc_Steps; uWc++){
     double Wc_Val = hSL->GetXaxis()->GetBinCenter(uWc+1);
@@ -6527,36 +6621,92 @@ void UsmaniFirstLook(int SEED, const int flag = 0){
         if(flag==1){
           Sc_Val = rangen.Uniform(hSc->GetXaxis()->GetBinLowEdge(uSc+1),hSc->GetXaxis()->GetBinUpEdge(uSc+1));
         }
-        Kitty.SetShortRangePotential(1,0,1,Wc_Val);
-        Kitty.SetShortRangePotential(1,0,2,Rc_Val);
-        Kitty.SetShortRangePotential(1,0,3,Sc_Val);
+        if(SPIN==0 || SPIN==1){
+          Kitty.SetShortRangePotential(SPIN,0,1,Wc_Val);
+          Kitty.SetShortRangePotential(SPIN,0,2,Rc_Val);
+          Kitty.SetShortRangePotential(SPIN,0,3,Sc_Val);
+        }
+        else{
+          Kitty.SetShortRangePotential(0,0,1,Wc_Val);
+          Kitty.SetShortRangePotential(0,0,2,Rc_Val);
+          Kitty.SetShortRangePotential(0,0,3,Sc_Val);
+
+          Kitty.SetShortRangePotential(1,0,1,Wc_Val);
+          Kitty.SetShortRangePotential(1,0,2,Rc_Val);
+          Kitty.SetShortRangePotential(1,0,3,Sc_Val);
+        }
+
         Kitty.KillTheCat();
-        double f1,d1;
+        double f0,d0,f1,d1;
         TH1F* hPsFit;
         TF1* fPsFit;
-        GetScattParameters(Kitty,f1,d1,hPsFit,fPsFit,3,false,false,1);
-        fDev = f1-fGoal;
-        dDev = d1-dGoal;
-        tDev = sqrt(fDev*fDev+dDev*dDev);
+        if(SPIN==0) GetScattParameters(Kitty,f0,d0,hPsFit,fPsFit,3,false,false,SPIN);
+        else if(SPIN==1) GetScattParameters(Kitty,f1,d1,hPsFit,fPsFit,3,false,false,SPIN);
+        else{
+          GetScattParameters(Kitty,f0,d0,hPsFit,fPsFit,3,false,false,0);
+          delete hPsFit;
+          delete fPsFit;
+          GetScattParameters(Kitty,f1,d1,hPsFit,fPsFit,3,false,false,1);
+        }
         delete hPsFit;
         delete fPsFit;
 
-        //tDev /= 16;
-        if(tDev<1./1.*FT){
-          if(tDev>1./2.*FT) printf("\033[41m ");
-          else if(tDev>1./4.*FT) printf("\033[43m ");
-          else if(tDev>1./8.*FT) printf("\033[42m ");
-          else if(tDev>1./16.*FT) printf("\033[46m ");
-          else printf("\033[44m ");
-          //printf("Wc=%.0f; Rc=%.3f; Sc=%.3f; f1=%.2f; d1=%.2f; tDev=%.3f\033[0m\n",Wc_Val,Rc_Val,Sc_Val,f1,d1,tDev);
-          printf("Wc=%.2f; Rc=%.5f; Sc=%.5f; f1=%.3f; d1=%.3f; tDev=%.5f\033[0m\n",Wc_Val,Rc_Val,Sc_Val,f1,d1,tDev);
+
+        if(SPIN!=1){
+          fDev0 = f0-fGoal0;
+          dDev0 = d0-dGoal0;
+          tDev0 = sqrt(fDev0*fDev0+dDev0*dDev0);
+        }
+        if(SPIN!=0){
+          fDev1 = f1-fGoal1;
+          dDev1 = d1-dGoal1;
+          tDev1 = sqrt(fDev1*fDev1+dDev1*dDev1);
         }
 
+        double tDev;
+        if(SPIN==0) tDev = tDev0;
+        else if(SPIN==1) tDev = tDev1;
+        else{
+          tDev = sqrt(tDev0*tDev0+tDev1*tDev1)/sqrt(2);
+        }
+
+        //tDev /= 16;
+        if(tDev<1./1.*FT){
+          //if(tDev>1./2.*FT) printf("\033[41m ");
+          //else if(tDev>1./4.*FT) printf("\033[43m ");
+          //else if(tDev>1./8.*FT) printf("\033[42m ");
+          //else if(tDev>1./16.*FT) printf("\033[46m ");
+          //else printf("\033[44m ");
+          //printf("Wc=%.0f; Rc=%.3f; Sc=%.3f; f1=%.2f; d1=%.2f; tDev=%.3f\033[0m\n",Wc_Val,Rc_Val,Sc_Val,f1,d1,tDev);
+          //printf("Wc=%.2f; Rc=%.5f; Sc=%.5f; f1=%.3f; d1=%.3f; tDev=%.5f\033[0m\n",Wc_Val,Rc_Val,Sc_Val,f1,d1,tDev);
+
+          TString OutputText;
+          if(tDev>1./2.*FT) OutputText = "\033[41m ";
+          else if(tDev>1./4.*FT) OutputText = "\033[43m ";
+          else if(tDev>1./8.*FT) OutputText = "\033[42m ";
+          else if(tDev>1./16.*FT) OutputText = "\033[46m ";
+          else OutputText = "\033[44m ";
+          //OutputText += TString::Format("Wc=%.2f; Rc=%.5f; Sc=%.5f; f1=%.3f; d1=%.3f; tDev=%.5f\033[0m",Wc_Val,Rc_Val,Sc_Val,f1,d1,tDev);
+          if(SPIN==0){
+            OutputText += TString::Format("Wc=%.2f; Rc=%.5f; Sc=%.5f; f0=%.3f; d0=%.3f; tDev=%.5f\033[0m",Wc_Val,Rc_Val,Sc_Val,f0,d0,tDev);
+          }
+          else if(SPIN==1){
+            OutputText += TString::Format("Wc=%.2f; Rc=%.5f; Sc=%.5f; f1=%.3f; d1=%.3f; tDev=%.5f\033[0m",Wc_Val,Rc_Val,Sc_Val,f1,d1,tDev);
+          }
+          else{
+            OutputText += TString::Format("Wc=%.2f; Rc=%.5f; Sc=%.5f; f0=%.3f; d0=%.3f; f1=%.3f; d1=%.3f; tDev=%.5f\033[0m",Wc_Val,Rc_Val,Sc_Val,f0,d0,f1,d1,tDev);
+          }
+          logfile << OutputText.Data() << endl;
+        }
+//printf("Wc=%.2f; Rc=%.5f; Sc=%.5f; f1=%.3f; d1=%.3f; tDev=%.5f\n",Wc_Val,Rc_Val,Sc_Val,f1,d1,tDev);
         //hSL->SetBinContent(uWc+1,uRc+1,f1);
         //hER->SetBinContent(uWc+1,uRc+1,d1);
       }
     }
   }
+
+  logfile.close();
+
 
   TFile fOutput(TString::Format("%s/CECA_Paper/UsmaniFirstLook/fOutput.root",GetFemtoOutputFolder()),"recreate");
   hSL->Write();
@@ -7580,7 +7730,11 @@ void Plot_Ck(
 }
 
 void Usmani_vs_NLO19(){
-  const double SourceSize = 1.2;
+  std::vector<double> SourceSize;
+  for(unsigned u=0; u<26; u++){
+    SourceSize.push_back(0.5+0.04*u);
+  }
+  //SourceSize.push_back(1.2);
   const double kMin=0;
   const double kMax=200;
   const unsigned NumMomBins = 100;
@@ -7598,57 +7752,187 @@ void Usmani_vs_NLO19(){
   AnalysisObject.SetUpCats_pL(CatUsmDef,"Usmani","Gauss",0,0);
   AnalysisObject.SetUpCats_pL(CatUsmNLO,"UsmaniFit","Gauss",0,0);
 
-  CatNLO19.SetAnaSource(0,SourceSize);
-  CatUsmDef.SetAnaSource(0,SourceSize);
-  CatUsmNLO.SetAnaSource(0,SourceSize);
-
   CatUsmNLO.SetShortRangePotential(1,0,1,2279);
   CatUsmNLO.SetShortRangePotential(1,0,2,0.3394);
   CatUsmNLO.SetShortRangePotential(1,0,3,0.2614);
 
-  CatNLO19.SetEpsilonConv(1e-10);
-  CatNLO19.SetEpsilonProp(1e-10);
+  CatNLO19.SetEpsilonConv(2e-9);
+  CatNLO19.SetEpsilonProp(2e-9);
 
-  CatUsmDef.SetEpsilonConv(1e-10);
-  CatUsmDef.SetEpsilonProp(1e-10);
+  CatUsmDef.SetEpsilonConv(2e-9);
+  CatUsmDef.SetEpsilonProp(2e-9);
 
-  CatUsmNLO.SetEpsilonConv(1e-10);
-  CatUsmNLO.SetEpsilonProp(1e-10);
+  CatUsmNLO.SetEpsilonConv(2e-9);
+  CatUsmNLO.SetEpsilonProp(2e-9);
 
-  CatNLO19.KillTheCat();
-  CatUsmDef.KillTheCat();
-  CatUsmNLO.KillTheCat();
-
-  TGraph gNLO19;
-  TGraph gUsmDef;
-  TGraph gUsmNLO;
-
-  TGraph gRatUsmDef;
-  TGraph gRatUsmNLO;
-
-  gNLO19.SetName("gNLO19");
-  gUsmDef.SetName("gUsmDef");
-  gUsmNLO.SetName("gUsmNLO");
-  gRatUsmDef.SetName("gRatUsmDef");
-  gRatUsmNLO.SetName("gRatUsmNLO");
-
-  for(unsigned uBin=0; uBin<NumMomBins; uBin++){
-    double MOM = CatNLO19.GetMomentum(uBin);
-    gNLO19.SetPoint(uBin,MOM,CatNLO19.GetCorrFun(uBin));
-    gUsmDef.SetPoint(uBin,MOM,CatUsmDef.GetCorrFun(uBin));
-    gUsmNLO.SetPoint(uBin,MOM,CatUsmNLO.GetCorrFun(uBin)/1.01);
-    gRatUsmDef.SetPoint(uBin,MOM,CatUsmDef.GetCorrFun(uBin)/CatNLO19.GetCorrFun(uBin));
-    gRatUsmNLO.SetPoint(uBin,MOM,CatUsmNLO.GetCorrFun(uBin)/CatNLO19.GetCorrFun(uBin)/1.01);
-  }
+  CatUsmNLO.SetNotifications(CATS::nWarning);
+  CatNLO19.SetNotifications(CATS::nWarning);
+  CatUsmDef.SetNotifications(CATS::nWarning);
 
   TFile fOutput(TString::Format("%s/CECA_Paper/Usmani_vs_NLO19/fOutput.root",GetFemtoOutputFolder()),"recreate");
-  gNLO19.Write();
-  gUsmDef.Write();
-  gUsmNLO.Write();
-  gRatUsmDef.Write();
-  gRatUsmNLO.Write();
+  TCanvas* canRat = new TCanvas("canRat", "canRat", 1);
+  canRat->cd(0); canRat->SetCanvasSize(1280, 720); canRat->SetMargin(0.15,0.05,0.2,0.05);//lrbt
+
+  bool minCoreShown = false;
+  bool minEffShown = false;
+  bool maxEffShown = false;
+
+  for(unsigned uSrc=0; uSrc<SourceSize.size(); uSrc++){
+    printf("%u/%u\n", uSrc, unsigned(SourceSize.size()));
+
+    CatNLO19.SetAnaSource(0,SourceSize.at(uSrc));
+    CatUsmDef.SetAnaSource(0,SourceSize.at(uSrc));
+    CatUsmNLO.SetAnaSource(0,SourceSize.at(uSrc));
 
 
+    #pragma omp parallel sections
+    {
+      #pragma omp section
+      {
+        //printf("nlo9\n");
+        CatNLO19.KillTheCat();
+      }
+      #pragma omp section
+      {
+        //printf("usmdef\n");
+        CatUsmDef.KillTheCat();
+      }
+      #pragma omp section
+      {
+        //printf("usmnlo\n");
+        CatUsmNLO.KillTheCat();
+      }
+    }
+
+    TGraph gNLO19;
+    TGraph gUsmDef;
+    TGraph gUsmNLO;
+
+    TGraph gRatUsmDef;
+    TGraph gRatUsmNLO;
+    TGraph gUnity;
+
+
+    gNLO19.SetName(TString::Format("gNLO19_%.1f",SourceSize.at(uSrc)));
+    gUsmDef.SetName(TString::Format("gUsmDef_%.1f",SourceSize.at(uSrc)));
+    gUsmNLO.SetName(TString::Format("gUsmNLO_%.1f",SourceSize.at(uSrc)));
+    gRatUsmDef.SetName(TString::Format("gRatUsmDef_%.1f",SourceSize.at(uSrc)));
+    gRatUsmNLO.SetName(TString::Format("gRatUsmNLO_%.1f",SourceSize.at(uSrc)));
+    gUnity.SetName("gUnity");
+
+    gRatUsmNLO.SetLineColor(kRed+1);
+    gRatUsmNLO.SetLineWidth(4);
+
+    gUnity.SetLineColor(kBlack);
+    gUnity.SetLineWidth(2);
+
+    double NORM = 1.01;
+    double NormAt = 1;
+    unsigned uNORM = CatUsmNLO.GetMomBin(NormAt);
+
+    for(unsigned uBin=0; uBin<NumMomBins; uBin++){
+      double MOM = CatNLO19.GetMomentum(uBin);
+      gNLO19.SetPoint(uBin,MOM,CatNLO19.GetCorrFun(uBin));
+      gUsmDef.SetPoint(uBin,MOM,CatUsmDef.GetCorrFun(uBin));
+      //gUsmNLO.SetPoint(uBin,MOM,CatUsmNLO.GetCorrFun(uBin)/1.01);//as in paper
+      NORM = CatUsmNLO.GetCorrFun(uNORM)/CatNLO19.GetCorrFun(uNORM);
+      gUsmNLO.SetPoint(uBin,MOM,CatUsmNLO.GetCorrFun(uBin)/NORM);
+      gRatUsmDef.SetPoint(uBin,MOM,CatUsmDef.GetCorrFun(uBin)/CatNLO19.GetCorrFun(uBin));
+      //gRatUsmNLO.SetPoint(uBin,MOM,CatUsmNLO.GetCorrFun(uBin)/CatNLO19.GetCorrFun(uBin)/1.01);//as in paper
+      NORM = CatUsmNLO.GetCorrFun(uNORM)/CatNLO19.GetCorrFun(uNORM);
+      gRatUsmNLO.SetPoint(uBin,MOM,CatUsmNLO.GetCorrFun(uBin)/CatNLO19.GetCorrFun(uBin)/NORM);
+
+      gUnity.SetPoint(uBin,MOM,1);
+    }
+
+    gNLO19.Write();
+    gUsmDef.Write();
+    gUsmNLO.Write();
+    gRatUsmDef.Write();
+    gRatUsmNLO.Write();
+
+
+    TH1F* hAxisRat = new TH1F("hAxisRat", "hAxisRat", NumMomBins, kMin, kMax);
+    hAxisRat->SetStats(false);
+    hAxisRat->SetTitle("");
+    //hAxisRat->SetTitle("; #it{k*} (MeV/#it{c}); #it{C}(#it{k*})");
+    hAxisRat->SetTitle("; #it{k*} (MeV/#it{c}); Ratio to NLO19");
+    hAxisRat->GetXaxis()->SetTitleSize(0.06);
+    hAxisRat->GetXaxis()->SetLabelSize(0.06);
+    hAxisRat->GetXaxis()->CenterTitle();
+    hAxisRat->GetXaxis()->SetTitleOffset(1.3);
+    hAxisRat->GetXaxis()->SetLabelOffset(0.02);
+
+    hAxisRat->GetYaxis()->SetTitleSize(0.06);
+    hAxisRat->GetYaxis()->SetLabelSize(0.06);
+    hAxisRat->GetYaxis()->CenterTitle();
+    hAxisRat->GetYaxis()->SetTitleOffset(1.10);
+
+    if(NormAt<100){
+      hAxisRat->GetYaxis()->SetRangeUser(0.9, 1.10);
+    }
+    else{
+      hAxisRat->GetYaxis()->SetRangeUser(0.95, 1.2);
+    }
+
+    TLegend* legRat = new TLegend(0.35,0.825,0.95,0.95);//lbrt
+    legRat->SetName("legRat");
+    legRat->SetTextSize(0.055);
+    legRat->AddEntry(&gRatUsmNLO, TString::Format("NLO19: Usmani/WF @ %.2f fm", SourceSize.at(uSrc)));
+    legRat->Draw("same");
+
+    canRat->cd();
+    TLatex SomeText;
+    SomeText.SetTextSize(gStyle->GetTextSize());
+    //SomeText.SetTextFont(42);
+    SomeText.SetNDC(kTRUE);
+
+    int Delay = 12;
+
+    TString TheText;
+    if(uSrc<SourceSize.size()-1 && !minCoreShown && SourceSize.at(uSrc+1)>0.75){
+      TheText = "MIN R_CORE";
+      Delay = 96;
+      minCoreShown = true;
+      //printf("C1\n");
+    }
+    else if(uSrc<SourceSize.size()-1 && !minEffShown && SourceSize.at(uSrc+1)>1.0){
+      TheText = "MIN R_EFF";
+      Delay = 96;
+      minEffShown = true;
+      //printf("C2\n");
+    }
+    else if(uSrc<SourceSize.size()-1 && !maxEffShown && SourceSize.at(uSrc+1)>1.45){
+      TheText = "MAX R_EFF";
+      Delay = 96;
+      maxEffShown = true;
+      //printf("C3\n");
+    }
+    else{
+      //printf("C4\n");
+      //SomeText.DrawLatex(0.35, 0.79, "");
+      TheText = "";
+    }
+
+
+    hAxisRat->Draw("axis");
+    gUnity.Draw("L same");
+    gRatUsmNLO.Draw("L same");
+    legRat->Draw("same");
+    SomeText.DrawLatex(0.75, 0.74, TheText);
+
+    if(uSrc==0){
+      canRat->SaveAs(TString::Format("%s/CECA_Paper/Usmani_vs_NLO19/animUsmWF.gif",GetFemtoOutputFolder()));
+    }
+    else{
+      canRat->SaveAs(TString::Format("%s/CECA_Paper/Usmani_vs_NLO19/animUsmWF.gif+%i",GetFemtoOutputFolder(),Delay));
+    }
+
+    delete hAxisRat;
+    delete legRat;
+
+  }
+  canRat->Write();
 }
 
 void Usmani_vs_N2LO(){
@@ -8208,8 +8492,8 @@ int CECA_PAPER(int argc, char *argv[]){
   //TestSaveStuctToFile();
 
   //CompareMomDist();
-  UsmaniFirstLook(atoi(argv[1]),1);
-  //return 0;
+  UsmaniFirstLook(atoi(argv[1]),1,2);
+  return 0;
 
   //a test that extrapolation of Levy pars works
   //TestDoubleSourceOperation();
