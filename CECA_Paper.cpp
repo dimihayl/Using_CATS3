@@ -6561,7 +6561,7 @@ void UsmaniFirstLook(int SEED, const int flag = 0, const int SPIN = 1){
     Sc_Steps = 32/2;
   }
   else{
-    FT = 1./1.;
+    FT = 1./2.;
 
     fGoal0 = 2.79;
     dGoal0 = 2.89;
@@ -6569,21 +6569,21 @@ void UsmaniFirstLook(int SEED, const int flag = 0, const int SPIN = 1){
     fGoal1 = 1.58;
     dGoal1 = 3.09;
 
-    Wc_Min = 1900;
-    Wc_Max = 2137;
-    Wc_Steps = 8/2;
+    Wc_Min = 1906;
+    Wc_Max = 2127;
+    Wc_Steps = 8/1;
 
     Rc_Min = 0.45;
-    Rc_Max = 0.55;
-    Rc_Steps = 8/2;
+    Rc_Max = 0.50;
+    Rc_Steps = 8/1;
 
-    Sc_Min = 0.15;
-    Sc_Max = 0.25;
-    Sc_Steps = 8/2;
+    Sc_Min = 0.213;
+    Sc_Max = 0.225;
+    Sc_Steps = 8/1;
 
-    Vs_Min = 0.15;
-    Vs_Max = 0.35;
-    Vs_Steps = 8/2;
+    Vs_Min = 0.153;
+    Vs_Max = 0.193;
+    Vs_Steps = 8/1;
   }
 
   TH2F* hSL = new TH2F("hSL","hSL",Wc_Steps,Wc_Min,Wc_Max,Rc_Steps,Rc_Min,Rc_Max);
@@ -6601,15 +6601,15 @@ void UsmaniFirstLook(int SEED, const int flag = 0, const int SPIN = 1){
   Kitty.SetNotifications(CATS::nWarning);
   AnalysisObject.SetUpCats_pL(Kitty,"UsmaniFitAll","Gauss",0,0);//NLO_Coupled_S
 
-  TString LogFileName;
+  TString LogFileName = TString::Format("%s/CecaPaper/FollowUp/FineTuneBothS/",GetCernBoxDimi()).Data();
   if(SPIN==0){
-    LogFileName = TString::Format("logUsmani_S%i_f%.2f_d%.2f_RS%i.txt",SPIN,fGoal0,dGoal0,SEED);
+    LogFileName += TString::Format("logUsmani_S%i_f%.2f_d%.2f_RS%i.txt",SPIN,fGoal0,dGoal0,SEED);
   }
   else if(SPIN==1){
-    LogFileName = TString::Format("logUsmani_S%i_f%.2f_d%.2f_RS%i.txt",SPIN,fGoal1,dGoal1,SEED);
+    LogFileName += TString::Format("logUsmani_S%i_f%.2f_d%.2f_RS%i.txt",SPIN,fGoal1,dGoal1,SEED);
   }
   else{
-    LogFileName = TString::Format("logUsmani_BOTH_fs%.2f_ds%.2f_ft%.2f_dt%.2f_RS%i.txt",fGoal0,dGoal0,fGoal1,dGoal1,SEED);
+    LogFileName += TString::Format("logUsmani_BOTH_fs%.2f_ds%.2f_ft%.2f_dt%.2f_RS%i.txt",fGoal0,dGoal0,fGoal1,dGoal1,SEED);
   }
 
 
