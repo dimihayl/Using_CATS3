@@ -9185,6 +9185,7 @@ const bool DEBUG = false;
       V_2 = bV_2;
       mu_2 = bmu_2;
       Started = true;
+      //printf("STARTING: V1=%.f\n",V_1);
     }
     else{
       if(CurrentPot=="YukawaDimiCore"){
@@ -9230,6 +9231,7 @@ const bool DEBUG = false;
         mu_2 = 0;
       }
       else{
+        //printf("V1=%.f\n",V_1);
         //this is the long range guy, we expect it to be negative for positive f0
         //do {
         if(!SinglePar||SinglePar==1){
@@ -9252,6 +9254,8 @@ const bool DEBUG = false;
           do{mu_2 = rangen.Gaus(bmu_2,0.001+1.*Convergence[4]*Convergence[0]*FineTune);}
           while(mu_2<0.||mu_2>2.5);
         }
+        //printf(" ---> V1=%.f\n",V_1);
+        //usleep(100e3);
       }
     }
 
@@ -10066,6 +10070,7 @@ void MakePotentials(int flag){
     ef0 = VAR_FLAG%10==0?0.1:0.01;
     ed0 = 1.0;
     d0 = 1.2;
+    double FineTune = 1./16.;
     if(flag/10<80){
       for(unsigned uVar=0; uVar<10; uVar++){
         if(VAR_FLAG<10&&uVar!=VAR_FLAG) continue;
@@ -10084,14 +10089,66 @@ void MakePotentials(int flag){
         }
       }
     }
+    else if(flag/10<90){
+      for(unsigned uVar=0; uVar<10; uVar++){
+        if(VAR_FLAG<10&&uVar!=VAR_FLAG) continue;
+        switch (uVar) {
+          //    Nucl.Phys.A 221 (1974) 253-268 (case 0 and 1)
+          case 0: f0 = -2.73; d0 = 2.27; break;//S = 1/2
+          case 1: f0 = -11.88; d0 = 2.63; break;//S = 3/2
+          default: printf("Weird flags for producing the potentials for Bhawani\n"); return;
+        }
+      }
+      FineTune = 1./4.;
+      ef0 = 0.01*64*FineTune;//0.01 for fine tune = 64, at FT=8 this is 0.08
+      ed0 = 0.02*64*FineTune;
+    }
     else{
       //NEGATIVE EFFECTIVE RANGE FOR THIS MODEL, WE PUT IT ON HOLD
     }
     double StartPars[5];
+    if(VAR_FLAG==0){
+      //first good solution, with negative potential ???
+      //it should be, as BS is here. It struggled to find good sol with positive pot pars
+      //StartPars[0] = -1.548378e+03;
+      //StartPars[1] = 5.455562e-01;
+      //StartPars[2] = -1.053892e+03;
+      //StartPars[3] = 1.560974e+00;
+      //ed0 /= 4;
+      StartPars[0] = -7.792753e+02;
+      StartPars[1] = 1.014193e+00;
+      StartPars[2] = 3.425267e+02;
+      StartPars[3] = 2.014962e+00;
+      ed0/=4;
+
+      //FineTune = 1./11512.;
+      //printf("hello\n");
+    }
+    else if(VAR_FLAG==1){
+      //f0 = -11.885 fm
+      //d0 = 2.54 fm
+      // V1 = 1.613084e+02
+      // mu1 = 1.631784e+00
+      // V2 = -5.414474e+02
+      // mu2 = 1.364351e+00
+      StartPars[0] =1.613084e+02;
+      StartPars[1] = 1.631784e+00;
+      StartPars[2] = -5.414474e+02;
+      StartPars[3] = 1.364351e+00;
+
+      //f0 = -11.879 fm
+      //d0 = 2.61 fm
+      //V1 = 1.607812e+02
+      //mu1 = 1.614273e+00
+      //V2 = -5.372152e+02
+      //mu2 = 1.362657e+00
+
+
+    }
     //OkayishStartingPars(Potential,f0,d0,StartPars[0],StartPars[1],StartPars[2],StartPars[3],StartPars[4]);
     //ManufacturePotential(f0,ef0,d0,ed0,Radii,NumR,V1,mu1,V2,mu2,Potential,OutputFolder,11,StartPars);
-    ManufacturePotential(f0,ef0,d0,ed0,Radii,NumR,V1,mu1,V2,mu2,Potential,OutputFolder,32,NULL,
-      (Mass_p*Mass_d)/(Mass_p+Mass_d),1./16.);
+    ManufacturePotential(f0,ef0,d0,ed0,Radii,NumR,V1,mu1,V2,mu2,Potential,OutputFolder,16,StartPars,
+      (Mass_p*Mass_d)/(Mass_p+Mass_d),FineTune);
   }
   //901,911,921,... (for double gauss)
   else if(flag/10>=90&&flag/10<=99){
@@ -16183,7 +16240,7 @@ nsig 6 bins = 3.75
     //pp_for_rock(1.2+0.12);
 
     //Ledni_SmallRad_Random(atoi(argv[1]),atoi(argv[2]));
-  //  MakePotentials(atoi(argv[1]));return 0;
+    MakePotentials(atoi(argv[1]));return 0;
   //RoughPiPiPotScan(atoi(argv[1]),atoi(argv[2]));
   //pi_proton();
     //SelectEmmaPotential();

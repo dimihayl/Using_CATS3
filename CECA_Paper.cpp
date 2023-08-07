@@ -19,8 +19,6 @@
 #include "DLM_SubPads.h"
 #include "FemtoBoyzScripts.h"
 
-
-
 #include <iostream>
 #include <unistd.h>
 #include <omp.h>
@@ -32,7 +30,6 @@
 #include "CATSconstants.h"
 #include "CATStools.h"
 #include "CECA.h"
-
 
 #include "TCanvas.h"
 #include "TH1F.h"
@@ -6448,6 +6445,278 @@ void ScanPsUsmani(TString AnaType, TString SourceDescription, TString cern_box, 
 
 
 
+void ScanPsUsmani_ForPython(TString AnaType, TString SourceDescription, TString cern_box, TString out_folder,
+                  double val_d,
+                  double val_ht,
+                  double val_hz, double max_hz,
+                  double val_wc0, double max_wc,
+                  double val_rc0, double max_rc,
+                  double val_sc0, double max_sc,
+                  int VAR_L,
+                  double Minutes, int SEED
+){
+
+  TRandom3 rangen(SEED);
+
+  const long long JobTimeLimit = (long long)(Minutes*60.);
+  DLM_Timer JobTime;
+
+  //for the Chi2
+  const double FemtoLimit = 180;
+  CecaAnalysis1 CECA_ANA(AnaType,SourceDescription,cern_box+TString("/CatsFiles/"));
+
+  CECA_ANA.SetUp_pp("AV18",0);
+////Wc=2279.0; Rc=0.3394; Sc=0.2614; f1=1.41; d1=2.53; tDev=0.003
+  CECA_ANA.SetUp_pL("UsmaniFit",0);
+  CECA_ANA.Kitty_pL->SetShortRangePotential(1,0,1,2279.0);
+  CECA_ANA.Kitty_pL->SetShortRangePotential(1,0,2,0.3394);
+  CECA_ANA.Kitty_pL->SetShortRangePotential(1,0,3,0.2614);
+  CECA_ANA.Kitty_pL->SetNotifications(CATS::nWarning);
+
+  TNtuple* ntResult;
+  //16
+  ntResult = new TNtuple("ntResult", "ntResult","VAR_L:d:ht:hz:wc:rc:sc:f1:d1:chi2_pp:ndp_pp:chi2_pL:ndp_pL:chi2_pp_fmt:ndp_pp_fmt:chi2_pL_fmt:ndp_pL_fmt");
+  Float_t* Entries = new Float_t [17];
+
+  double f0,d0;
+  double f1,d1;
+  TH1F* hPsFit;
+  TF1* fPsFit;
+
+  CECA_ANA.SetUp_pS0("Chiral",0);
+  CECA_ANA.SetUp_pXim("pXim_HALQCDPaper2020",0);
+  CECA_ANA.SetUp_pXi0("pXim_HALQCDPaper2020",0);
+  CECA_ANA.SetUp_Decomposition(0,VAR_L);
+  CECA_ANA.SetUp_Fits("SingleCeca",false);
+
+  double* Best_Chi2_pp = new double [7];
+  double* Best_Dsp_pp = new double [7];
+  double* Best_Ht_pp = new double [7];
+  double* Best_Hz_pp = new double [7];
+  for(unsigned uMt=0; uMt<7; uMt++){
+    Best_Chi2_pp[uMt] = 1e16;
+    Best_Dsp_pp[uMt] = 0;
+    Best_Ht_pp[uMt] = 0;
+    Best_Hz_pp[uMt] = 0;
+  }
+
+  double* Best_Chi2_pL = new double [6];
+  double* Best_Dsp_pL = new double [6];
+  double* Best_Ht_pL = new double [6];
+  double* Best_Hz_pL = new double [6];
+  for(unsigned uMt=0; uMt<6; uMt++){
+    Best_Chi2_pL[uMt] = 1e16;
+    Best_Dsp_pL[uMt] = 0;
+    Best_Ht_pL[uMt] = 0;
+    Best_Hz_pL[uMt] = 0;
+  }
+
+  double Best_Chi2_tot = 1e16;
+  double Best_Dsp_tot = 0;
+  double Best_Ht_tot = 0;
+  double Best_Hz_tot = 0;
+
+  //[tot/pp/pL][tot/up to 180]
+  double** Chi2 = new double* [3];
+  double** Best_Chi2 = new double* [3];
+  double** Best_Dsp = new double* [3];
+  double** Best_Ht = new double* [3];
+  double** Best_Hz = new double* [3];
+  unsigned** Ndp = new unsigned* [3];
+
+  for(unsigned uSce=0; uSce<3; uSce++){
+    Chi2[uSce] = new double [2];
+    Best_Chi2[uSce] = new double [2];
+    Best_Dsp[uSce] = new double [2];
+    Best_Ht[uSce] = new double [2];
+    Best_Hz[uSce] = new double [2];
+    Ndp[uSce] = new unsigned [2];
+
+    for(unsigned uRng=0; uRng<2; uRng++){
+      Best_Chi2[uSce][uRng] = 1e16;
+      Best_Dsp[uSce][uRng] = 0;
+      Best_Ht[uSce][uRng] = 0;
+      Best_Hz[uSce][uRng] = 0;
+      Ndp[uSce][uRng] = 0;
+    }
+  }
+
+  long long TotalTime = 0;
+  int Iter = 0;
+  while(TotalTime<JobTimeLimit){
+    double ran_d = rangen.Uniform(min_d,max_d);
+    double ran_ht = rangen.Uniform(min_ht,max_ht);
+    double ran_hz = rangen.Uniform(min_hz,max_hz);
+    double ran_wc = rangen.Uniform(min_wc,max_wc);
+    double ran_rc = rangen.Uniform(min_rc,max_rc);
+    double ran_sc = rangen.Uniform(min_sc,max_sc);
+
+    CECA_ANA.Kitty_pL->SetShortRangePotential(1,0,1,ran_wc);
+    CECA_ANA.Kitty_pL->SetShortRangePotential(1,0,2,ran_rc);
+    CECA_ANA.Kitty_pL->SetShortRangePotential(1,0,3,ran_sc);
+    CECA_ANA.Kitty_pL->KillTheCat();
+
+    GetScattParameters(*CECA_ANA.Kitty_pL,f1,d1,hPsFit,fPsFit,2,false,false,1);
+    delete hPsFit;
+    delete fPsFit;
+
+    CECA_ANA.GetFit("pp",0)->FixParameter(0,1.10770e+03);
+    CECA_ANA.GetFit("pp",1)->FixParameter(0,1.16830e+03);
+    CECA_ANA.GetFit("pp",2)->FixParameter(0,1.22840e+03);
+    CECA_ANA.GetFit("pp",3)->FixParameter(0,1.31560e+03);
+    CECA_ANA.GetFit("pp",4)->FixParameter(0,1.46280e+03);
+    CECA_ANA.GetFit("pp",5)->FixParameter(0,1.68720e+03);
+    CECA_ANA.GetFit("pp",6)->FixParameter(0,2.21160e+03);
+    for(unsigned uMt=0; uMt<7; uMt++){
+      CECA_ANA.GetFit("pp",uMt)->FixParameter(1,ran_d);
+      CECA_ANA.GetFit("pp",uMt)->FixParameter(2,ran_ht);
+      CECA_ANA.GetFit("pp",uMt)->FixParameter(3,ran_hz);
+      CECA_ANA.GetFit("pp",uMt)->FixParameter(4,1.0);
+    }
+
+    CECA_ANA.GetFit("pL",0)->FixParameter(0,1.21240e+03);
+    CECA_ANA.GetFit("pL",1)->FixParameter(0,1.28960e+03);
+    CECA_ANA.GetFit("pL",2)->FixParameter(0,1.37600e+03);
+    CECA_ANA.GetFit("pL",3)->FixParameter(0,1.54070e+03);
+    CECA_ANA.GetFit("pL",4)->FixParameter(0,1.75600e+03);
+    CECA_ANA.GetFit("pL",5)->FixParameter(0,2.25940e+03);
+    for(unsigned uMt=0; uMt<6; uMt++){
+      CECA_ANA.GetFit("pL",uMt)->FixParameter(1,ran_d);
+      CECA_ANA.GetFit("pL",uMt)->FixParameter(2,ran_ht);
+      CECA_ANA.GetFit("pL",uMt)->FixParameter(3,ran_hz);
+      CECA_ANA.GetFit("pL",uMt)->FixParameter(4,1.0);
+    }
+
+    CECA_ANA.GoBabyGo(false);
+
+    for(unsigned uSce=0; uSce<3; uSce++){for(unsigned uRng=0; uRng<2; uRng++){
+        Ndp[uSce][uRng] = 0;
+        Chi2[uSce][uRng] = 0;
+    }}
+
+    for(unsigned uMt=0; uMt<7; uMt++){
+      double Chi2_val = CECA_ANA.GetFit("pp",uMt)->GetChisquare();
+      Ndp[0][0] += CECA_ANA.GetFit("pp",uMt)->GetNumberFitPoints();
+      Ndp[1][0] += CECA_ANA.GetFit("pp",uMt)->GetNumberFitPoints();
+      Chi2[0][0] += Chi2_val;
+      Chi2[1][0] += Chi2_val;
+
+      for(unsigned uMom=0; uMom<CECA_ANA.GetData("pp",uMt)->GetNbinsX(); uMom++){
+        double MOM = CECA_ANA.GetData("pp",uMt)->GetBinCenter(uMom+1);
+        if(MOM>FemtoLimit) break;
+        double Chi2_fmt;
+        if(CECA_ANA.GetData("pp",uMt)->GetBinContent(uMom+1)==0 || CECA_ANA.GetData("pp",uMt)->GetBinError(uMom+1)==0){
+          Chi2_fmt = 0;
+        }
+        else{
+          Chi2_fmt = CECA_ANA.GetData("pp",uMt)->GetBinContent(uMom+1)-CECA_ANA.GetFit("pp",uMt)->Eval(MOM);
+          Chi2_fmt /= CECA_ANA.GetData("pp",uMt)->GetBinError(uMom+1);
+          Chi2_fmt = Chi2_fmt*Chi2_fmt;
+        }
+        Chi2[0][1] += Chi2_fmt;
+        Chi2[1][1] += Chi2_fmt;
+        Ndp[0][1]++;
+        Ndp[1][1]++;
+      }
+    }//uMt pp
+
+    for(unsigned uMt=0; uMt<6; uMt++){
+      double Chi2_val = CECA_ANA.GetFit("pL",uMt)->GetChisquare();
+      Ndp[0][0] += CECA_ANA.GetFit("pL",uMt)->GetNumberFitPoints();
+      Ndp[2][0] += CECA_ANA.GetFit("pL",uMt)->GetNumberFitPoints();
+      Chi2[0][0] += Chi2_val;
+      Chi2[2][0] += Chi2_val;
+
+      for(unsigned uMom=0; uMom<CECA_ANA.GetData("pL",uMt)->GetNbinsX(); uMom++){
+        double MOM = CECA_ANA.GetData("pL",uMt)->GetBinCenter(uMom+1);
+        if(MOM>FemtoLimit) break;
+        if(MOM>260&&MOM<300){
+          continue;
+        }
+        double Chi2_fmt;
+        if(CECA_ANA.GetData("pL",uMt)->GetBinContent(uMom+1)==0 || CECA_ANA.GetData("pL",uMt)->GetBinError(uMom+1)==0){
+          Chi2_fmt = 0;
+        }
+        else{
+          Chi2_fmt = CECA_ANA.GetData("pL",uMt)->GetBinContent(uMom+1)-CECA_ANA.GetFit("pL",uMt)->Eval(MOM);
+          Chi2_fmt /= CECA_ANA.GetData("pL",uMt)->GetBinError(uMom+1);
+          Chi2_fmt = Chi2_fmt*Chi2_fmt;
+        }
+        Chi2[0][1] += Chi2_fmt;
+        Chi2[2][1] += Chi2_fmt;
+        Ndp[0][1]++;
+        Ndp[2][1]++;
+      }
+    }//uMt pL
+
+    for(unsigned uSce=0; uSce<3; uSce++){for(unsigned uRng=0; uRng<2; uRng++){
+      if(Chi2[uSce][uRng]<Best_Chi2[uSce][uRng]){
+        //all fits are the same, so it does not matter which mT bin or pp/pL we take
+        Best_Chi2[uSce][uRng] = Chi2[uSce][uRng];
+        Best_Dsp[uSce][uRng] =  CECA_ANA.GetFit("pp",0)->GetParameter(1);
+        Best_Ht[uSce][uRng] =  CECA_ANA.GetFit("pp",0)->GetParameter(2);
+        Best_Hz[uSce][uRng] =  CECA_ANA.GetFit("pp",0)->GetParameter(3);
+      }
+
+    }}
+
+    //d:ht:hz:wc:rc:sc:f1:d1:chi2_pp:ndp_pp:chi2_pL:ndp_pL:chi2_pp_fmt:ndp_pp_fmt:chi2_pL_fmt:ndp_pL_fmt
+    Entries[0] = VAR_L;
+    Entries[1] = ran_d;
+    Entries[2] = ran_ht;
+    Entries[3] = ran_hz;
+    Entries[4] = ran_wc;
+    Entries[5] = ran_rc;
+    Entries[6] = ran_sc;
+    Entries[7] = f1;
+    Entries[8] = d1;
+    Entries[9] = Chi2[1][0];
+    Entries[10] = Ndp[1][0];
+    Entries[11] = Chi2[2][0];
+    Entries[12] = Ndp[2][0];
+    Entries[13] = Chi2[1][1];
+    Entries[14] = Ndp[1][1];
+    Entries[15] = Chi2[2][1];
+    Entries[16] = Ndp[2][1];
+
+    ntResult->Fill(Entries);
+
+    TotalTime = JobTime.Stop()/1000000.;
+    Iter++;
+    if(Iter%10==0) printf("iIter = %i\n",Iter);
+  }
+
+  TFile fOutput(out_folder+TString::Format("/US_%s_%s_s%i.root",AnaType.Data(),SourceDescription.Data(),SEED),"recreate");
+  ntResult->Write();
+
+  delete [] Best_Chi2_pp;
+  delete [] Best_Dsp_pp;
+  delete [] Best_Ht_pp;
+  delete [] Best_Hz_pp;
+
+  delete [] Best_Chi2_pL;
+  delete [] Best_Dsp_pL;
+  delete [] Best_Ht_pL;
+  delete [] Best_Hz_pL;
+
+  for(unsigned uSce=0; uSce<3; uSce++){
+    delete [] Ndp[uSce];
+    delete [] Chi2[uSce];
+    delete [] Best_Chi2[uSce];
+    delete [] Best_Dsp[uSce];
+    delete [] Best_Ht[uSce];
+    delete [] Best_Hz[uSce];
+  }
+  delete [] Ndp;
+  delete [] Chi2;
+  delete [] Best_Chi2;
+  delete [] Best_Dsp;
+  delete [] Best_Ht;
+  delete [] Best_Hz;
+
+  delete [] Entries;
+  delete ntResult;
+}
 
 
 
@@ -6561,29 +6830,29 @@ void UsmaniFirstLook(int SEED, const int flag = 0, const int SPIN = 1){
     Sc_Steps = 32/2;
   }
   else{
-    FT = 1./2.;
+    FT = 1./4.;
 
     fGoal0 = 2.79;
     dGoal0 = 2.89;
 
     fGoal1 = 1.58;
     dGoal1 = 3.09;
+//in brackets some tests I do from time to time, labled with seed above 2000
+    Wc_Min = 1990;//1900, 1906, (1990, 2080)
+    Wc_Max = 2120;//2137, 2127, (2120, 2120)
+    Wc_Steps = 8/2;
 
-    Wc_Min = 1906;
-    Wc_Max = 2127;
-    Wc_Steps = 8/1;
+    Rc_Min = 0.45;//0.45, 0.45, (0.45, 0.45)
+    Rc_Max = 0.48;//0.55, 0.50, (0.48, 0.465)
+    Rc_Steps = 8/2;
 
-    Rc_Min = 0.45;
-    Rc_Max = 0.50;
-    Rc_Steps = 8/1;
+    Sc_Min = 0.218;//0.175, 0.213, (0.218, 0.219)
+    Sc_Max = 0.224;//0.240, 0.225, (0.224, 0.223)
+    Sc_Steps = 8/4;
 
-    Sc_Min = 0.213;
-    Sc_Max = 0.225;
-    Sc_Steps = 8/1;
-
-    Vs_Min = 0.153;
-    Vs_Max = 0.193;
-    Vs_Steps = 8/1;
+    Vs_Min = 0.175;//0.150, 0.153, (0.175, 0.175)
+    Vs_Max = 0.185;//0.350, 0.193, (0.185, 0.179)
+    Vs_Steps = 8/4;
   }
 
   TH2F* hSL = new TH2F("hSL","hSL",Wc_Steps,Wc_Min,Wc_Max,Rc_Steps,Rc_Min,Rc_Max);
@@ -6801,6 +7070,397 @@ void UsmaniSecondLook(int Wc_Steps, int SEED){
     }
   }
 }
+
+char* replaceSubstring(const char* input, const char* target, const char* replacement) {
+    std::string result(input);
+    size_t pos = 0;
+    while ((pos = result.find(target, pos)) != std::string::npos) {
+        result.replace(pos, strlen(target), replacement);
+        pos += strlen(replacement);
+    }
+    char* output = new char[result.length() + 1];
+    strcpy(output, result.c_str());
+    return output;
+}
+
+
+
+void UsmaniPythonLook(char* InputFileName){
+
+  FILE* InFile;
+  InFile = fopen(InputFileName, "r");
+
+  if(InFile == nullptr){
+    printf("Error opening file: %s\n", InputFileName);
+    return;
+  }
+
+  int unique_id, NumIterCPU;
+  if(!fscanf(InFile, "%d %d", &unique_id, &NumIterCPU)){
+      printf("\033[1;33mWARNING (1)!\033[0m Possible bad input-file, error when reading from %s!\n",InputFileName);
+  }
+
+
+  double fGoal0, dGoal0, fGoal1, dGoal1;
+  if(!fscanf(InFile, "%lf %lf %lf %lf", &fGoal0, &dGoal0, &fGoal1, &dGoal1)){
+      printf("\033[1;33mWARNING (2)!\033[0m Possible bad input-file, error when reading from %s!\n",InputFileName);
+  }
+
+  std::vector<double> Wc0_values, Rc0_values, Sc0_values, Wc1_values, Rc1_values, Sc1_values, Vs_values, Vb_values;
+  std::vector<double> fRes0_values, dRes0_values, fRes1_values, dRes1_values, tDev_values;
+
+  for (int iCPU = 0; iCPU < NumIterCPU; iCPU++) {
+      double Wc0, Rc0, Sc0, Wc1, Rc1, Sc1, Vs, Vb;
+
+      if(!fscanf(InFile, "%lf %lf %lf %lf %lf %lf %lf %lf", &Wc0, &Rc0, &Sc0, &Wc1, &Rc1, &Sc1, &Vs, &Vb)){
+          printf("\033[1;33mWARNING (3)!\033[0m Possible bad input-file, error when reading from %s!\n",InputFileName);
+          continue;
+      }
+
+      Wc0_values.push_back(Wc0);
+      Rc0_values.push_back(Rc0);
+      Sc0_values.push_back(Sc0);
+      Wc1_values.push_back(Wc1);
+      Rc1_values.push_back(Rc1);
+      Sc1_values.push_back(Sc1);
+      Vs_values.push_back(Vs);
+      Vb_values.push_back(Vb);
+  }
+
+  fclose(InFile);
+
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
+  CATS Kitty;
+  Kitty.SetMomBins(30,0,120);
+  AnalysisObject.SetUpCats_pL(Kitty,"UsmaniFitAll","Gauss",0,0);//NLO_Coupled_S
+  Kitty.SetEpsilonConv(4e-8);
+  Kitty.SetEpsilonProp(4e-8);
+  Kitty.SetNotifications(CATS::nWarning);
+
+  for(int iIter=0; iIter<NumIterCPU; iIter++){
+    Kitty.SetShortRangePotential(0,0,1,Wc0_values.at(iIter));
+    Kitty.SetShortRangePotential(0,0,2,Rc0_values.at(iIter));
+    Kitty.SetShortRangePotential(0,0,3,Sc0_values.at(iIter));
+    Kitty.SetShortRangePotential(0,0,4,Vb_values.at(iIter));
+    Kitty.SetShortRangePotential(0,0,5,Vs_values.at(iIter));
+
+    if(!Wc1_values.at(iIter)) Kitty.SetShortRangePotential(1,0,1,Wc0_values.at(iIter));
+    else Kitty.SetShortRangePotential(1,0,1,Wc1_values.at(iIter));
+    if(!Rc1_values.at(iIter)) Kitty.SetShortRangePotential(1,0,2,Rc0_values.at(iIter));
+    else Kitty.SetShortRangePotential(1,0,2,Rc1_values.at(iIter));
+    if(!Sc1_values.at(iIter)) Kitty.SetShortRangePotential(1,0,3,Sc0_values.at(iIter));
+    else Kitty.SetShortRangePotential(1,0,3,Sc1_values.at(iIter));
+    Kitty.SetShortRangePotential(1,0,4,Vb_values.at(iIter));
+    Kitty.SetShortRangePotential(1,0,5,Vs_values.at(iIter));
+
+    Kitty.KillTheCat();
+
+    double f0,d0,f1,d1;
+    TH1F* hPsFit;
+    TF1* fPsFit;
+    GetScattParameters(Kitty,f0,d0,hPsFit,fPsFit,3,false,false,0);
+    delete hPsFit;
+    delete fPsFit;
+    GetScattParameters(Kitty,f1,d1,hPsFit,fPsFit,3,false,false,1);
+    delete hPsFit;
+    delete fPsFit;
+
+    double fDev0 = f0-fGoal0;
+    double dDev0 = d0-dGoal0;
+    double tDev0 = sqrt(fDev0*fDev0+dDev0*dDev0);
+
+    double fDev1 = f1-fGoal1;
+    double dDev1 = d1-dGoal1;
+    double tDev1 = sqrt(fDev1*fDev1+dDev1*dDev1);
+
+    double tDev = sqrt(tDev0*tDev0+tDev1*tDev1)/sqrt(2);
+
+    fRes0_values.push_back(f0);
+    dRes0_values.push_back(d0);
+    fRes1_values.push_back(f1);
+    dRes1_values.push_back(d1);
+    tDev_values.push_back(tDev);
+  }
+
+  char* OutputFileName = replaceSubstring(InputFileName, "Input", "Output");
+
+  FILE* OutFile;
+  OutFile = fopen(OutputFileName, "w");
+
+  if (OutFile == nullptr) {
+      printf("Error opening file: %s\n", OutputFileName);
+      return;
+  }
+
+  fprintf(OutFile, "%d %d\n", unique_id, NumIterCPU);
+  fprintf(OutFile, "%lf %lf %lf %lf\n", fGoal0, dGoal0, fGoal1, dGoal1);
+
+  for(int iIter=0; iIter<NumIterCPU; iIter++){
+      fprintf(OutFile, "%lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf\n", Wc0_values.at(iIter), Rc0_values.at(iIter), Sc0_values.at(iIter),
+              Wc1_values.at(iIter), Rc1_values.at(iIter), Sc1_values.at(iIter), Vs_values.at(iIter), Vb_values.at(iIter),
+              fRes0_values.at(iIter), dRes0_values.at(iIter), fRes1_values.at(iIter), dRes1_values.at(iIter), tDev_values.at(iIter));
+  }
+
+  fclose(OutFile);
+
+  delete [] OutputFileName;
+
+/*
+  double FT;// = 1./64.;
+  TRandom3 rangen(unique_id);
+
+  double Wc_Min, Wc_Max, Rc_Min, Rc_Max, Sc_Min, Sc_Max, Vs_Min, Vs_Max, Vb_Min, Vb_Max;
+  //unsigned Wc_Steps, Rc_Steps, Sc_Steps, Vs_Steps;
+
+
+
+  //double Wc_Min = rangen.Uniform(2137-400,2137+600);
+  //double Wc_Min = rangen.Uniform(2100,2180);
+  //double Wc_Max = Wc_Min;
+  //1920--2070, original 1800-2100, next 1920-2070, next 1935-1937, next3 2060-2065
+  //N2LO-550: 1934-1937
+  //Wc_Min = 1934;
+  //Wc_Max = 1937;
+  //Wc_Steps = 64/2;
+
+  //double Rc_Min = rangen.Uniform(0.3,0.8);
+  //double Rc_Max = Rc_Min*1.1;
+  //double Rc_Min = rangen.Uniform(0.3,0.6);
+  //double Rc_Max = Rc_Min*1.1;
+  //Rc_Min = 0.448;//??, next 0.43, next, 0.45, next3 0.43, N2LO-550: 0.448-0.454
+  //Rc_Max = 0.454;//??, next 0.47, next 0.46, next3 0.44
+  //Rc_Steps = 32/2;
+
+
+  //double Sc_Min = rangen.Uniform(0.1,0.3);
+  //double Sc_Max = Sc_Min*1.1;
+  //Sc_Min = 0.232;//??, next 0.228, next 0.230, next3 0.231, N2LO-550: 0.232-0.234
+  //Sc_Max = 0.234;//??, next 0.238, next 0.233, next3 0.234
+  //Sc_Steps = 32/2;
+
+  //const double fGoal = 1.41;
+  //const double dGoal = 2.53;
+  //const double fGoal = 1.56;//n2lo600
+  //const double dGoal = 3.17;
+  //const double fGoal = 1.58;//n2lo550
+  //const double dGoal = 3.09;
+  //const double fGoal = 2.79;//1s0 n2lo550
+  //const double dGoal = 2.89;
+  double fDev0, dDev0, tDev0, fDev1, dDev1, tDev1, fGoal0, dGoal0, fGoal1, dGoal1;
+  if(SPIN==0){
+    FT = 1./1.;
+
+    fGoal0 = 2.79;
+    dGoal0 = 2.89;
+
+    Wc_Min = 1800;
+    Wc_Max = 2100;
+    Wc_Steps = 64/8;
+
+    Rc_Min = 0.44;
+    Rc_Max = 0.46;
+    Rc_Steps = 32/4;
+
+    Sc_Min = 0.22;
+    Sc_Max = 0.24;
+    Sc_Steps = 32/4;
+  }
+  else if(SPIN==1){
+    //Wc=1934.58; Rc=0.45104; Sc=0.23342; f1=1.580; d1=3.090; tDev=0.00017
+    FT = 1./64.;
+
+    fGoal1 = 1.58;
+    dGoal1 = 3.09;
+
+    Wc_Min = 1934;
+    Wc_Max = 1937;
+    Wc_Steps = 64/2;
+
+    Rc_Min = 0.448;
+    Rc_Max = 0.454;
+    Rc_Steps = 32/2;
+
+    Sc_Min = 0.232;
+    Sc_Max = 0.234;
+    Sc_Steps = 32/2;
+  }
+  else{
+    FT = 1./4.;
+
+    fGoal0 = 2.79;
+    dGoal0 = 2.89;
+
+    fGoal1 = 1.58;
+    dGoal1 = 3.09;
+//in brackets some tests I do from time to time, labled with seed above 2000
+    Wc_Min = 1990;//1900, 1906, (1990, 2080)
+    Wc_Max = 2120;//2137, 2127, (2120, 2120)
+    Wc_Steps = 8/1;
+
+    Rc_Min = 0.45;//0.45, 0.45, (0.45, 0.45)
+    Rc_Max = 0.48;//0.55, 0.50, (0.48, 0.465)
+    Rc_Steps = 8/1;
+
+    Sc_Min = 0.218;//0.175, 0.213, (0.218, 0.219)
+    Sc_Max = 0.224;//0.240, 0.225, (0.224, 0.223)
+    Sc_Steps = 8/1;
+
+    Vs_Min = 0.175;//0.150, 0.153, (0.175, 0.175)
+    Vs_Max = 0.185;//0.350, 0.193, (0.185, 0.179)
+    Vs_Steps = 8/1;
+  }
+
+  TH2F* hSL = new TH2F("hSL","hSL",Wc_Steps,Wc_Min,Wc_Max,Rc_Steps,Rc_Min,Rc_Max);
+  TH2F* hER = new TH2F("hER","hER",Wc_Steps,Wc_Min,Wc_Max,Rc_Steps,Rc_Min,Rc_Max);
+  TH1F* hSc = new TH1F("hSc","hSc",Sc_Steps,Sc_Min,Sc_Max);
+  TH1F* hVs = new TH1F("hVs","hVs",Vs_Steps,Vs_Min,Vs_Max);
+
+
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
+  CATS Kitty;
+  Kitty.SetMomBins(30,0,120);
+  Kitty.SetEpsilonConv(4e-8);
+  Kitty.SetEpsilonProp(4e-8);
+  Kitty.SetNotifications(CATS::nWarning);
+  AnalysisObject.SetUpCats_pL(Kitty,"UsmaniFitAll","Gauss",0,0);//NLO_Coupled_S
+
+  TString LogFileName = TString::Format("%s/CecaPaper/FollowUp/FineTuneBothS/",GetCernBoxDimi()).Data();
+  if(SPIN==0){
+    LogFileName += TString::Format("logUsmani_S%i_f%.2f_d%.2f_RS%i.txt",SPIN,fGoal0,dGoal0,SEED);
+  }
+  else if(SPIN==1){
+    LogFileName += TString::Format("logUsmani_S%i_f%.2f_d%.2f_RS%i.txt",SPIN,fGoal1,dGoal1,SEED);
+  }
+  else{
+    LogFileName += TString::Format("logUsmani_BOTH_fs%.2f_ds%.2f_ft%.2f_dt%.2f_RS%i.txt",fGoal0,dGoal0,fGoal1,dGoal1,SEED);
+  }
+
+
+  ofstream logfile (LogFileName.Data(),ios::out);
+
+  for(unsigned uWc=0; uWc<Wc_Steps; uWc++){
+    double Wc_Val = hSL->GetXaxis()->GetBinCenter(uWc+1);
+    if(flag==1){
+      Wc_Val = rangen.Uniform(hSL->GetXaxis()->GetBinLowEdge(uWc+1),hSL->GetXaxis()->GetBinUpEdge(uWc+1));
+    }
+    for(unsigned uRc=0; uRc<Rc_Steps; uRc++){
+      double Rc_Val = hSL->GetYaxis()->GetBinCenter(uRc+1);
+      if(flag==1){
+        Rc_Val = rangen.Uniform(hSL->GetYaxis()->GetBinLowEdge(uRc+1),hSL->GetYaxis()->GetBinUpEdge(uRc+1));
+      }
+      for(unsigned uSc=0; uSc<Sc_Steps; uSc++){
+        double Sc_Val = hSc->GetXaxis()->GetBinCenter(uSc+1);
+        for(unsigned uVs=0; uVs<Vs_Steps; uVs++){
+          double Vs_Val = hVs->GetXaxis()->GetBinCenter(uVs+1);
+          if(flag==1){
+            Vs_Val = rangen.Uniform(hVs->GetXaxis()->GetBinLowEdge(uVs+1),hVs->GetXaxis()->GetBinUpEdge(uVs+1));
+          }
+
+          if(flag==1){
+            Sc_Val = rangen.Uniform(hSc->GetXaxis()->GetBinLowEdge(uSc+1),hSc->GetXaxis()->GetBinUpEdge(uSc+1));
+          }
+          if(SPIN==0 || SPIN==1){
+            Kitty.SetShortRangePotential(SPIN,0,1,Wc_Val);
+            Kitty.SetShortRangePotential(SPIN,0,2,Rc_Val);
+            Kitty.SetShortRangePotential(SPIN,0,3,Sc_Val);
+          }
+          else{
+            Kitty.SetShortRangePotential(0,0,1,Wc_Val);
+            Kitty.SetShortRangePotential(0,0,2,Rc_Val);
+            Kitty.SetShortRangePotential(0,0,3,Sc_Val);
+            Kitty.SetShortRangePotential(0,0,5,Vs_Val);
+
+            Kitty.SetShortRangePotential(1,0,1,Wc_Val);
+            Kitty.SetShortRangePotential(1,0,2,Rc_Val);
+            Kitty.SetShortRangePotential(1,0,3,Sc_Val);
+            Kitty.SetShortRangePotential(1,0,5,Vs_Val);
+          }
+
+          Kitty.KillTheCat();
+          double f0,d0,f1,d1;
+          TH1F* hPsFit;
+          TF1* fPsFit;
+          if(SPIN==0) GetScattParameters(Kitty,f0,d0,hPsFit,fPsFit,3,false,false,SPIN);
+          else if(SPIN==1) GetScattParameters(Kitty,f1,d1,hPsFit,fPsFit,3,false,false,SPIN);
+          else{
+            GetScattParameters(Kitty,f0,d0,hPsFit,fPsFit,3,false,false,0);
+            delete hPsFit;
+            delete fPsFit;
+            GetScattParameters(Kitty,f1,d1,hPsFit,fPsFit,3,false,false,1);
+          }
+          delete hPsFit;
+          delete fPsFit;
+
+
+          if(SPIN!=1){
+            fDev0 = f0-fGoal0;
+            dDev0 = d0-dGoal0;
+            tDev0 = sqrt(fDev0*fDev0+dDev0*dDev0);
+          }
+          if(SPIN!=0){
+            fDev1 = f1-fGoal1;
+            dDev1 = d1-dGoal1;
+            tDev1 = sqrt(fDev1*fDev1+dDev1*dDev1);
+          }
+
+          double tDev;
+          if(SPIN==0) tDev = tDev0;
+          else if(SPIN==1) tDev = tDev1;
+          else{
+            tDev = sqrt(tDev0*tDev0+tDev1*tDev1)/sqrt(2);
+          }
+
+          //tDev /= 16;
+          if(tDev<1./1.*FT){
+            //if(tDev>1./2.*FT) printf("\033[41m ");
+            //else if(tDev>1./4.*FT) printf("\033[43m ");
+            //else if(tDev>1./8.*FT) printf("\033[42m ");
+            //else if(tDev>1./16.*FT) printf("\033[46m ");
+            //else printf("\033[44m ");
+            //printf("Wc=%.0f; Rc=%.3f; Sc=%.3f; f1=%.2f; d1=%.2f; tDev=%.3f\033[0m\n",Wc_Val,Rc_Val,Sc_Val,f1,d1,tDev);
+            //printf("Wc=%.2f; Rc=%.5f; Sc=%.5f; f1=%.3f; d1=%.3f; tDev=%.5f\033[0m\n",Wc_Val,Rc_Val,Sc_Val,f1,d1,tDev);
+
+            TString OutputText;
+            if(tDev>1./2.*FT) OutputText = "\033[41m ";
+            else if(tDev>1./4.*FT) OutputText = "\033[43m ";
+            else if(tDev>1./8.*FT) OutputText = "\033[42m ";
+            else if(tDev>1./16.*FT) OutputText = "\033[46m ";
+            else OutputText = "\033[44m ";
+            //OutputText += TString::Format("Wc=%.2f; Rc=%.5f; Sc=%.5f; f1=%.3f; d1=%.3f; tDev=%.5f\033[0m",Wc_Val,Rc_Val,Sc_Val,f1,d1,tDev);
+            if(SPIN==0){
+              OutputText += TString::Format("Wc=%.2f; Rc=%.5f; Sc=%.5f; f0=%.3f; d0=%.3f; tDev=%.5f\033[0m",Wc_Val,Rc_Val,Sc_Val,f0,d0,tDev);
+            }
+            else if(SPIN==1){
+              OutputText += TString::Format("Wc=%.2f; Rc=%.5f; Sc=%.5f; f1=%.3f; d1=%.3f; tDev=%.5f\033[0m",Wc_Val,Rc_Val,Sc_Val,f1,d1,tDev);
+            }
+            else{
+              OutputText += TString::Format("Wc=%.2f; Rc=%.5f; Sc=%.5f; Vs=%.5f; f0=%.3f; d0=%.3f; f1=%.3f; d1=%.3f; tDev=%.5f\033[0m",Wc_Val,Rc_Val,Sc_Val,Vs_Val,f0,d0,f1,d1,tDev);
+            }
+            logfile << OutputText.Data() << endl;
+          }
+  //printf("Wc=%.2f; Rc=%.5f; Sc=%.5f; f1=%.3f; d1=%.3f; tDev=%.5f\n",Wc_Val,Rc_Val,Sc_Val,f1,d1,tDev);
+          //hSL->SetBinContent(uWc+1,uRc+1,f1);
+          //hER->SetBinContent(uWc+1,uRc+1,d1);
+        }//vsigma
+      }//THE CORE SLOPE
+    }
+  }
+
+  logfile.close();
+
+
+  TFile fOutput(TString::Format("%s/CECA_Paper/UsmaniFirstLook/fOutput.root",GetFemtoOutputFolder()),"recreate");
+  hSL->Write();
+  hER->Write();
+
+  delete hSL;
+  delete hER;
+  delete hSc;
+  */
+}
+
 
 
 //Color code by 1/4
@@ -7747,7 +8407,16 @@ void Plot_Ck(
 
 }
 
-void Usmani_vs_NLO19(){
+//21600
+//flag 0 is NLO19
+//flag 1 is N2LO where both S=0 and S=1 are tuned
+void Usmani_vs_NLO19(const int flag=0){
+
+  if(flag!=0 && flag!=1){
+    printf("ISSUE in flag Usmani_vs_NLO19\n");
+    return;
+  }
+
   std::vector<double> SourceSize;
   for(unsigned u=0; u<26; u++){
     SourceSize.push_back(0.5+0.04*u);
@@ -7766,13 +8435,32 @@ void Usmani_vs_NLO19(){
 
   DLM_CommonAnaFunctions AnalysisObject;
   AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
-  AnalysisObject.SetUpCats_pL(CatNLO19,"Chiral_Coupled_SPD","Gauss",11600,0);
+  if(flag==0) AnalysisObject.SetUpCats_pL(CatNLO19,"Chiral_Coupled_SPD","Gauss",11600,0);
+  else if(flag==1) AnalysisObject.SetUpCats_pL(CatNLO19,"Chiral_Coupled_SPD","Gauss",21600,0);
   AnalysisObject.SetUpCats_pL(CatUsmDef,"Usmani","Gauss",0,0);
   AnalysisObject.SetUpCats_pL(CatUsmNLO,"UsmaniFit","Gauss",0,0);
 
-  CatUsmNLO.SetShortRangePotential(1,0,1,2279);
-  CatUsmNLO.SetShortRangePotential(1,0,2,0.3394);
-  CatUsmNLO.SetShortRangePotential(1,0,3,0.2614);
+  if(flag==0){
+    CatUsmNLO.SetShortRangePotential(1,0,1,2279);
+    CatUsmNLO.SetShortRangePotential(1,0,2,0.3394);
+    CatUsmNLO.SetShortRangePotential(1,0,3,0.2614);
+  }
+  else if(flag==1){
+    //#Best parameters from studyC: {'Wc0': 2059.1005393716473, 'Rc0': 0.5118561845743458, 'Sc0': 0.19913041894543965, 'Wc1': 2006.6982057937016, 'Rc1': 0.43881023877482567, 'Sc1': 0.23416073838885446, 'Vs': 0.25, 'Vb': 6.2}
+    //#Best chi2 value from studyC: 0.0025786229690798698
+    //#(f0, d0) = 2.790127 2.898929
+    //#(f1, d1) = 1.581081 3.091951
+
+    CatUsmNLO.SetShortRangePotential(0,0,1,2059.10);
+    CatUsmNLO.SetShortRangePotential(0,0,2,0.511856);
+    CatUsmNLO.SetShortRangePotential(0,0,3,0.199130);
+
+    CatUsmNLO.SetShortRangePotential(1,0,1,2006.70);
+    CatUsmNLO.SetShortRangePotential(1,0,2,0.438810);
+    CatUsmNLO.SetShortRangePotential(1,0,3,0.234161);
+
+  }
+
 
   CatNLO19.SetEpsilonConv(2e-9);
   CatNLO19.SetEpsilonProp(2e-9);
@@ -7787,7 +8475,14 @@ void Usmani_vs_NLO19(){
   CatNLO19.SetNotifications(CATS::nWarning);
   CatUsmDef.SetNotifications(CATS::nWarning);
 
-  TFile fOutput(TString::Format("%s/CECA_Paper/Usmani_vs_NLO19/fOutput.root",GetFemtoOutputFolder()),"recreate");
+  TString OutputFileName;
+  if(flag==0){
+    OutputFileName = TString::Format("%s/CECA_Paper/Usmani_vs_NLO19/fOutputNLO19.root",GetFemtoOutputFolder());
+  }
+  else if(flag==1){
+    OutputFileName = TString::Format("%s/CECA_Paper/Usmani_vs_NLO19/fOutputN2LO.root",GetFemtoOutputFolder());
+  }
+  TFile fOutput(OutputFileName,"recreate");
   TCanvas* canRat = new TCanvas("canRat", "canRat", 1);
   canRat->cd(0); canRat->SetCanvasSize(1280, 720); canRat->SetMargin(0.15,0.05,0.2,0.05);//lrbt
 
@@ -7830,12 +8525,21 @@ void Usmani_vs_NLO19(){
     TGraph gRatUsmNLO;
     TGraph gUnity;
 
+    if(flag==0){
+      gNLO19.SetName(TString::Format("gNLO19_%.1f",SourceSize.at(uSrc)));
+      gUsmDef.SetName(TString::Format("gUsmDef_%.1f",SourceSize.at(uSrc)));
+      gUsmNLO.SetName(TString::Format("gUsmNLO_%.1f",SourceSize.at(uSrc)));
+      gRatUsmDef.SetName(TString::Format("gRatUsmDef_%.1f",SourceSize.at(uSrc)));
+      gRatUsmNLO.SetName(TString::Format("gRatUsmNLO_%.1f",SourceSize.at(uSrc)));
+    }
+    else if(flag==1){
+      gNLO19.SetName(TString::Format("gN2LO_%.1f",SourceSize.at(uSrc)));
+      gUsmDef.SetName(TString::Format("gUsmDef_%.1f",SourceSize.at(uSrc)));
+      gUsmNLO.SetName(TString::Format("gUsmN2LO_%.1f",SourceSize.at(uSrc)));
+      gRatUsmDef.SetName(TString::Format("gRatUsmDef_%.1f",SourceSize.at(uSrc)));
+      gRatUsmNLO.SetName(TString::Format("gRatUsmN2LO_%.1f",SourceSize.at(uSrc)));
+    }
 
-    gNLO19.SetName(TString::Format("gNLO19_%.1f",SourceSize.at(uSrc)));
-    gUsmDef.SetName(TString::Format("gUsmDef_%.1f",SourceSize.at(uSrc)));
-    gUsmNLO.SetName(TString::Format("gUsmNLO_%.1f",SourceSize.at(uSrc)));
-    gRatUsmDef.SetName(TString::Format("gRatUsmDef_%.1f",SourceSize.at(uSrc)));
-    gRatUsmNLO.SetName(TString::Format("gRatUsmNLO_%.1f",SourceSize.at(uSrc)));
     gUnity.SetName("gUnity");
 
     gRatUsmNLO.SetLineColor(kRed+1);
@@ -7874,7 +8578,8 @@ void Usmani_vs_NLO19(){
     hAxisRat->SetStats(false);
     hAxisRat->SetTitle("");
     //hAxisRat->SetTitle("; #it{k*} (MeV/#it{c}); #it{C}(#it{k*})");
-    hAxisRat->SetTitle("; #it{k*} (MeV/#it{c}); Ratio to NLO19");
+    if(flag==0) hAxisRat->SetTitle("; #it{k*} (MeV/#it{c}); Ratio to NLO19");
+    else if(flag==1) hAxisRat->SetTitle("; #it{k*} (MeV/#it{c}); Ratio to N2LO");
     hAxisRat->GetXaxis()->SetTitleSize(0.06);
     hAxisRat->GetXaxis()->SetLabelSize(0.06);
     hAxisRat->GetXaxis()->CenterTitle();
@@ -7896,7 +8601,8 @@ void Usmani_vs_NLO19(){
     TLegend* legRat = new TLegend(0.35,0.825,0.95,0.95);//lbrt
     legRat->SetName("legRat");
     legRat->SetTextSize(0.055);
-    legRat->AddEntry(&gRatUsmNLO, TString::Format("NLO19: Usmani/WF @ %.2f fm", SourceSize.at(uSrc)));
+    if(flag==0) legRat->AddEntry(&gRatUsmNLO, TString::Format("NLO19: Usmani/WF @ %.2f fm", SourceSize.at(uSrc)));
+    else if(flag==1) legRat->AddEntry(&gRatUsmNLO, TString::Format("N2LO: Usmani/WF @ %.2f fm", SourceSize.at(uSrc)));
     legRat->Draw("same");
 
     canRat->cd();
@@ -7939,11 +8645,16 @@ void Usmani_vs_NLO19(){
     legRat->Draw("same");
     SomeText.DrawLatex(0.75, 0.74, TheText);
 
+    TString BaseGifName;
+    if(flag==0) BaseGifName=TString::Format("%s/CECA_Paper/Usmani_vs_NLO19/animUsmWF_NLO19.gif",GetFemtoOutputFolder());
+    else if(flag==1) BaseGifName=TString::Format("%s/CECA_Paper/Usmani_vs_NLO19/animUsmWF_N2LO.gif",GetFemtoOutputFolder());
+
     if(uSrc==0){
-      canRat->SaveAs(TString::Format("%s/CECA_Paper/Usmani_vs_NLO19/animUsmWF.gif",GetFemtoOutputFolder()));
+      canRat->SaveAs(BaseGifName);
     }
     else{
-      canRat->SaveAs(TString::Format("%s/CECA_Paper/Usmani_vs_NLO19/animUsmWF.gif+%i",GetFemtoOutputFolder(),Delay));
+      //canRat->SaveAs(TString::Format("%s/CECA_Paper/Usmani_vs_NLO19/animUsmWF.gif+%i",GetFemtoOutputFolder(),Delay));
+      canRat->SaveAs(TString::Format("%s+%i",BaseGifName.Data(),Delay));
     }
 
     delete hAxisRat;
@@ -8510,8 +9221,9 @@ int CECA_PAPER(int argc, char *argv[]){
   //TestSaveStuctToFile();
 
   //CompareMomDist();
-  UsmaniFirstLook(atoi(argv[1]),1,2);
-  return 0;
+  //UsmaniFirstLook(atoi(argv[1]),1,2);
+  //UsmaniPythonLook(argv[1]);
+  //return 0;
 
   //a test that extrapolation of Levy pars works
   //TestDoubleSourceOperation();
@@ -8566,7 +9278,8 @@ int CECA_PAPER(int argc, char *argv[]){
   //ScanPs();
   //UsmaniSecondLook(atoi(argv[1]),atoi(argv[2]));
   //UsmaniFineCheck();
-  //Usmani_vs_NLO19();
+
+  //Usmani_vs_NLO19(1);
 
 
 
