@@ -50,7 +50,7 @@ const double kMax = 160;
 const double kChi2 = 135;
 const double Eps = 1e-9;
 
-double CrossSectionFit_pL(CATS& Kitty)
+void CrossSectionFit_pL(CATS& Kitty, double& chi2, int& ndp)
 {
   // 1) Reading the scattering data
   // 0 = take all
@@ -139,18 +139,18 @@ double CrossSectionFit_pL(CATS& Kitty)
     g_CS_Data->SetPointError(NumPts++, 0, 11);
   }
 
-  printf("pLab<=300 MeV (k*<=%.0f): #%u\n", pLab_pCm(300, Mass_L, Mass_p), NumPts);
-  printf("pLab<=345 MeV (k*<=%.0f): #%u\n", pLab_pCm(345, Mass_L, Mass_p), NumPts);
+  //printf("pLab<=300 MeV (k*<=%.0f): #%u\n", pLab_pCm(300, Mass_L, Mass_p), NumPts);
+  //printf("pLab<=345 MeV (k*<=%.0f): #%u\n", pLab_pCm(345, Mass_L, Mass_p), NumPts);
 
-  printf("pLab<=360 MeV (k*<=%.0f): #%u\n", pLab_pCm(360, Mass_L, Mass_p), NumPts);
-  printf("pLab<=380 MeV (k*<=%.0f): #%u\n", pLab_pCm(380, Mass_L, Mass_p), NumPts);
-  printf("pLab<=400 MeV (k*<=%.0f): #%u\n", pLab_pCm(400, Mass_L, Mass_p), NumPts);
-  printf("pLab<=420 MeV (k*<=%.0f): #%u\n", pLab_pCm(420, Mass_L, Mass_p), NumPts);
+  //printf("pLab<=360 MeV (k*<=%.0f): #%u\n", pLab_pCm(360, Mass_L, Mass_p), NumPts);
+  //printf("pLab<=380 MeV (k*<=%.0f): #%u\n", pLab_pCm(380, Mass_L, Mass_p), NumPts);
+  //printf("pLab<=400 MeV (k*<=%.0f): #%u\n", pLab_pCm(400, Mass_L, Mass_p), NumPts);
+  //printf("pLab<=420 MeV (k*<=%.0f): #%u\n", pLab_pCm(420, Mass_L, Mass_p), NumPts);
 
-  printf("pLab<=450 MeV (k*<=%.0f): #%u\n", pLab_pCm(450, Mass_L, Mass_p), NumPts);
+  //printf("pLab<=450 MeV (k*<=%.0f): #%u\n", pLab_pCm(450, Mass_L, Mass_p), NumPts);
 
-  TFile fOutput(TString::Format("/Users/sartozza/cernbox/EoSFemto/EoSPaperPheno/pL_CS_Data.root"), "recreate");
-  g_CS_Data->Write();
+  //TFile fOutput(TString::Format("/Users/sartozza/cernbox/EoSFemto/EoSPaperPheno/pL_CS_Data.root"), "recreate");
+  //g_CS_Data->Write();
 
   TH1F *hPsSin_UsmFemto = new TH1F("hPsSin_UsmFemto", "hPsSin_UsmFemto", NumMomBins, kMin, kMax);
   TH1F *hPsTri_UsmFemto = new TH1F("hPsTri_UsmFemto", "hPsTri_UsmFemto", NumMomBins, kMin, kMax);
@@ -179,23 +179,23 @@ double CrossSectionFit_pL(CATS& Kitty)
   Kitty.SetNotifications(CATS::nWarning);
 
   //3) Fit to scatt. data
-  TH1F *hFit;
-  TF1 *fitSP;
-  double ScatLen, EffRan;
+  //TH1F *hFit;
+  //TF1 *fitSP;
+  //double ScatLen, EffRan;
 
-  printf("UsmFemto:\n");
-  GetScattParameters(Kitty, ScatLen, EffRan, hFit, fitSP, 3, false, false, 0);
-  printf("   S=0: f0 = %.2f; d0 = %.2f\n", ScatLen, EffRan);
-  delete hFit;
-  delete fitSP;
-  GetScattParameters(Kitty, ScatLen, EffRan, hFit, fitSP, 3, false, false, 1);
-  printf("   S=1: f0 = %.2f; d0 = %.2f\n", ScatLen, EffRan);
-  delete hFit;
-  delete fitSP;
+  //printf("UsmFemto:\n");
+  //GetScattParameters(Kitty, ScatLen, EffRan, hFit, fitSP, 3, false, false, 0);
+  //printf("   S=0: f0 = %.2f; d0 = %.2f\n", ScatLen, EffRan);
+  //delete hFit;
+  //delete fitSP;
+  //GetScattParameters(Kitty, ScatLen, EffRan, hFit, fitSP, 3, false, false, 1);
+  //printf("   S=1: f0 = %.2f; d0 = %.2f\n", ScatLen, EffRan);
+  //delete hFit;
+  //delete fitSP;
 
-  hPsSin_UsmFemto->Write();
-  hPsTri_UsmFemto->Write();
-  gCs_UsmFemto->Write();
+  //hPsSin_UsmFemto->Write();
+  //hPsTri_UsmFemto->Write();
+  //gCs_UsmFemto->Write();
 
   //4) Evaluate chi-square
   double CsData;
@@ -215,10 +215,16 @@ double CrossSectionFit_pL(CATS& Kitty)
     NDF++;
   }
 
-  printf("chi2/ndf:\n");
-  printf("   UsmFemto: %.1f/%u\n", Chi2_UsmFemto, NDF);
+  //printf("chi2/ndf:\n");
+  //printf("   UsmFemto: %.1f/%u\n", Chi2_UsmFemto, NDF);
 
-  return Chi2_UsmFemto;
+  chi2 = Chi2_UsmFemto;
+  ndp = NDF;
+
+  delete g_CS_Data;
+  delete hPsSin_UsmFemto;
+  delete hPsTri_UsmFemto;
+  delete gCs_UsmFemto;
 }
 int EOSDIMIVALE(int argc, char *argv[])
 {
@@ -237,7 +243,9 @@ int EOSDIMIVALE(int argc, char *argv[])
   Kitty_Charlotte.SetShortRangePotential(1,0,3,0.2614);
   Kitty_Charlotte.KillTheCat();
 
-  double check = CrossSectionFit_pL(Kitty_Charlotte);
+  double chi2;
+  int ndp;
+  CrossSectionFit_pL(Kitty_Charlotte,chi2,ndp);
 
   return 0;
 }

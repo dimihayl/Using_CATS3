@@ -18,6 +18,7 @@
 #include "DLM_MultiFit.h"
 #include "DLM_SubPads.h"
 #include "FemtoBoyzScripts.h"
+#include "EosDimiVale.h"
 
 #include <iostream>
 #include <unistd.h>
@@ -55,6 +56,18 @@
 #include<fstream>
 
 using namespace std;
+
+char* replaceSubstring(const char* input, const char* target, const char* replacement) {
+    std::string result(input);
+    size_t pos = 0;
+    while ((pos = result.find(target, pos)) != std::string::npos) {
+        result.replace(pos, strlen(target), replacement);
+        pos += strlen(replacement);
+    }
+    char* output = new char[result.length() + 1];
+    strcpy(output, result.c_str());
+    return output;
+}
 
 void TestSaveStuctToFile(){
   DoubleLevy SourcePars;
@@ -4100,7 +4113,7 @@ void CecaAnalysis1::LoadData(){
 
 
 DLM_Ck* CecaAnalysis1::GetCkHistory(TString system, unsigned WhichMt){
-  if(!CkDec_pp || !CkDec_pL || !CkDec_pS0 || !CkDec_pXim || !CkDec_pXi0 || !CkDec_pXim1530){
+  if(!CkDec_pp || !CkDec_pL || !CkDec_pXim || !CkDec_pXi0 || !CkDec_pXim1530){
     return NULL;
   }
 
@@ -4199,7 +4212,7 @@ DLM_Ck* CecaAnalysis1::GetCkHistory(TString system, unsigned WhichMt){
 //DEB Check your notes what and how this should be set up
         CkDec_pp->GetCk()->SetSourcePar(uPar,MtVal);
         CkDec_pL->GetCk()->SetSourcePar(uPar,MtVal);
-        CkDec_pS0->GetCk()->SetSourcePar(uPar,MtVal);
+        if(CkDec_pS0) CkDec_pS0->GetCk()->SetSourcePar(uPar,MtVal);
         CkDec_pXim->GetCk()->SetSourcePar(uPar,MtVal);
         CkDec_pXi0->GetCk()->SetSourcePar(uPar,MtVal);
       }
@@ -4210,7 +4223,7 @@ DLM_Ck* CecaAnalysis1::GetCkHistory(TString system, unsigned WhichMt){
         //}
         CkDec_pp->GetCk()->SetSourcePar(uPar,PresentPars[uPar]);
         CkDec_pL->GetCk()->SetSourcePar(uPar,PresentPars[uPar]);
-        CkDec_pS0->GetCk()->SetSourcePar(uPar,PresentPars[uPar]);
+        if(CkDec_pS0) CkDec_pS0->GetCk()->SetSourcePar(uPar,PresentPars[uPar]);
         CkDec_pXim->GetCk()->SetSourcePar(uPar,PresentPars[uPar]);
         CkDec_pXi0->GetCk()->SetSourcePar(uPar,PresentPars[uPar]);
       }
@@ -4219,7 +4232,7 @@ DLM_Ck* CecaAnalysis1::GetCkHistory(TString system, unsigned WhichMt){
     if(PresentPars[0]!=-1 || uMt==0){
       CkDec_pXim->Update();
       CkDec_pXi0->Update();
-      CkDec_pS0->Update();
+      if(CkDec_pS0) CkDec_pS0->Update();
       CkDec_pL->Update();
       CkDec_pp->Update();
     }
@@ -4246,14 +4259,14 @@ DLM_Ck* CecaAnalysis1::GetCkHistory(TString system, unsigned WhichMt){
 //DEB Check your notes what and how this should be set up
         //CkDec_pp->GetCk()->SetSourcePar(uPar,MtVal);
         CkDec_pL->GetCk()->SetSourcePar(uPar,MtVal);
-        CkDec_pS0->GetCk()->SetSourcePar(uPar,MtVal);
+        if(CkDec_pS0) CkDec_pS0->GetCk()->SetSourcePar(uPar,MtVal);
         CkDec_pXim->GetCk()->SetSourcePar(uPar,MtVal);
         CkDec_pXi0->GetCk()->SetSourcePar(uPar,MtVal);
       }
       else{
         //CkDec_pp->GetCk()->SetSourcePar(uPar,PresentPars[uPar]);
         CkDec_pL->GetCk()->SetSourcePar(uPar,PresentPars[uPar]);
-        CkDec_pS0->GetCk()->SetSourcePar(uPar,PresentPars[uPar]);
+        if(CkDec_pS0) CkDec_pS0->GetCk()->SetSourcePar(uPar,PresentPars[uPar]);
         CkDec_pXim->GetCk()->SetSourcePar(uPar,PresentPars[uPar]);
         CkDec_pXi0->GetCk()->SetSourcePar(uPar,PresentPars[uPar]);
       }
@@ -4262,7 +4275,7 @@ DLM_Ck* CecaAnalysis1::GetCkHistory(TString system, unsigned WhichMt){
     if(PresentPars[0]!=-1 || uMt==0){
       CkDec_pXim->Update();
       CkDec_pXi0->Update();
-      CkDec_pS0->Update();
+      if(CkDec_pS0) CkDec_pS0->Update();
       CkDec_pL->Update();
       //CkDec_pp->Update();
     }
@@ -4444,6 +4457,10 @@ void CecaAnalysis1::SetUp_pS0(const TString &POT, const int &PotVar){
     return;
   }
 
+  if(POT=="flat"||POT=="FLAT"||POT=="Flat"){
+    return;
+  }
+
   Kitty_pS0->SetMomBins(pL_cats_max/12,0,pL_cats_max);
   AnalysisObject->SetUpCats_pS0(*Kitty_pS0,POT,"",PotVar,0);
   Kitty_pS0->SetUseAnalyticSource(true);
@@ -4460,8 +4477,6 @@ void CecaAnalysis1::SetUp_pS0(const TString &POT, const int &PotVar){
     Ck_pS0->SetSourcePar(uSP,Kitty_pS0->GetAnaSourcePar(uSP));
   }
   Ck_pS0->SetCutOff(pL_cats_max,CkConv_pL);
-
-
 
   printf("--> Completed\n");
 }
@@ -4556,7 +4571,7 @@ void CecaAnalysis1::SetUp_Decomposition(const int &Variation_p, const int &Varia
     hReso_pL = AnalysisObject->GetResolutionMatrix("pp13TeV_HM_DimiJun20","pLambda");
     CkDec_pL = new DLM_CkDecomposition("pL",5,*Ck_pL,hReso_pL);
 
-    CkDec_pS0 = new DLM_CkDecomposition("pS0",0,*Ck_pS0,NULL);
+    if(Ck_pS0) CkDec_pS0 = new DLM_CkDecomposition("pS0",0,*Ck_pS0,NULL);
 
     CkDec_pXim = new DLM_CkDecomposition("pXim",2,*Ck_pXim,NULL);
     CkDec_pXi0 = new DLM_CkDecomposition("pXi0",2,*Ck_pXi0,NULL);
@@ -4684,7 +4699,8 @@ void CecaAnalysis1::SetUp_Decomposition(const int &Variation_p, const int &Varia
     CkDec_pp->AddPhaseSpace(0,hPs_pp);
 
     if(!SILENT) printf("   Link the pL contributions...\n");
-    CkDec_pL->AddContribution(0,lam[pL_pS0],DLM_CkDecomposition::cFeedDown,CkDec_pS0,hFeed_pL_pS0);
+    if(CkDec_pS0) CkDec_pL->AddContribution(0,lam[pL_pS0],DLM_CkDecomposition::cFeedDown,CkDec_pS0,hFeed_pL_pS0);
+    else CkDec_pL->AddContribution(0,lam[pL_pS0],DLM_CkDecomposition::cFeedDown);
     CkDec_pL->AddContribution(1,lam[pL_pXim],DLM_CkDecomposition::cFeedDown,CkDec_pXim,hFeed_pL_pXim);
     CkDec_pL->AddContribution(2,lam[pL_pXi0],DLM_CkDecomposition::cFeedDown,CkDec_pXi0,hFeed_pL_pXi0);
     CkDec_pL->AddContribution(3,lam[pL_flt],DLM_CkDecomposition::cFeedDown);
@@ -4704,7 +4720,7 @@ void CecaAnalysis1::SetUp_Decomposition(const int &Variation_p, const int &Varia
     CkDec_pXi0->AddPhaseSpace(0,hPs_pL);
 
   }
-  else if(!CkDec_pp || !CkDec_pL || !CkDec_pS0 || !CkDec_pXim || !CkDec_pXi0 || !CkDec_pXim1530){
+  else if(!CkDec_pp || !CkDec_pL || !CkDec_pXim || !CkDec_pXi0 || !CkDec_pXim1530){
     printf("\033[1;31mERROR:\033[0m SetUp_Decomposition has an impossible set of pointers!!! BUG!?\n");
     return;
   }
@@ -6444,49 +6460,110 @@ void ScanPsUsmani(TString AnaType, TString SourceDescription, TString cern_box, 
 
 
 
+//in the input file, the parameters on the second line are AnaType, SourceDescription, cern_box
+void ScanPsUsmani_ForPython(char* InputFileName){
 
-void ScanPsUsmani_ForPython(TString AnaType, TString SourceDescription, TString cern_box, TString out_folder,
-                  double val_d,
-                  double val_ht,
-                  double val_hz, double max_hz,
-                  double val_wc0, double max_wc,
-                  double val_rc0, double max_rc,
-                  double val_sc0, double max_sc,
-                  int VAR_L,
-                  double Minutes, int SEED
-){
+  FILE* InFile;
+  InFile = fopen(InputFileName, "r");
 
-  TRandom3 rangen(SEED);
+  if(InFile == nullptr){
+    printf("Error opening file: %s\n", InputFileName);
+    return;
+  }
 
-  const long long JobTimeLimit = (long long)(Minutes*60.);
-  DLM_Timer JobTime;
+
+  //the parameters are AnaType, SourceDescription, cern_box, all are strings
+  int unique_id, NumIterCPU, NumPars;
+  if(!fscanf(InFile, "%d %d %d", &unique_id, &NumIterCPU, &NumPars)){
+      printf("\033[1;33mWARNING (1)!\033[0m Possible bad input-file, error when reading from %s!\n",InputFileName);
+  }
+  if(NumPars!=5){
+    printf("\033[1;31mERROR:\033[0m We need 5 input args, something is wrong\n");
+    return;
+  }
+
+  char** InputParameters = new char* [NumPars];
+  for(int inPar=0; inPar<NumPars; inPar++){
+    InputParameters[inPar] = new char [128];
+    if(!fscanf(InFile, "%s", InputParameters[inPar])){
+        printf("\033[1;33mWARNING (2)!\033[0m Possible bad input-file, error when reading from %s!\n",InputFileName);
+    }
+  }
+  TString AnaType = InputParameters[0];
+  TString SourceDescription = InputParameters[1];
+  TString cern_box = InputParameters[2];
+  TString EstimatorType = InputParameters[3];
+  //FLAG1:
+  //the digits counted from back to front
+  //BA: settings for pp. 00 = default, 01 = exclude last two mt bins
+  //DC: 00 = flat, 01 = chiral (NLO)
+  //e.g. full fit with chiral is 0100, exluding last pp mt bins and flat sigma will be 0001, chiral sigma but exluding mt bins is 0101
+  int FLAG1 = atoi(InputParameters[4]);
+
+  std::vector<int> VAR_L_values;
+  std::vector<double> Wc0_values, Rc0_values, Sc0_values, Wc1_values, Rc1_values, Sc1_values, Vs_values, Vb_values;
+  //ldel_values NOT implemented yet
+  std::vector<double> disp_values, hadr_values, tau_values, ldel_values;
+  std::vector<double> fRes0_values, dRes0_values, fRes1_values, dRes1_values, tDev_values;
+
+  for (int iIter = 0; iIter < NumIterCPU; iIter++) {
+      double Wc0, Rc0, Sc0, Wc1, Rc1, Sc1, Vs, Vb, disp, hadr, tau, ldel;
+      //VAR_L are 400,401,402,500,501,502.
+      //The first two digits are related to purity (4=95.3%, 5=96.3%)
+      //The second two digits are related to the sig:lam ratio (0=33%, 1=27%, 2=40%)
+      int VAR_L;
+
+      if(!fscanf(InFile, "%lf %lf %lf %lf %lf %lf %lf %lf %d %lf %lf %lf %lf", &Wc0, &Rc0, &Sc0, &Wc1, &Rc1, &Sc1, &Vs, &Vb, &VAR_L, &disp, &hadr, &tau, &ldel)){
+          printf("\033[1;33mWARNING (3)!\033[0m Possible bad input-file, error when reading from %s!\n",InputFileName);
+          continue;
+      }
+
+      Wc0_values.push_back(Wc0);
+      Rc0_values.push_back(Rc0);
+      Sc0_values.push_back(Sc0);
+      Wc1_values.push_back(Wc1);
+      Rc1_values.push_back(Rc1);
+      Sc1_values.push_back(Sc1);
+      Vs_values.push_back(Vs);
+      Vb_values.push_back(Vb);
+
+      VAR_L_values.push_back(VAR_L);
+
+      disp_values.push_back(disp);
+      hadr_values.push_back(hadr);
+      tau_values.push_back(tau);
+      ldel_values.push_back(ldel);
+
+      //printf("disp %f hadr %f tau %f\n",disp,hadr,tau);
+  }
+
+  fclose(InFile);
+
+  TRandom3 rangen(unique_id);
 
   //for the Chi2
   const double FemtoLimit = 180;
   CecaAnalysis1 CECA_ANA(AnaType,SourceDescription,cern_box+TString("/CatsFiles/"));
 
   CECA_ANA.SetUp_pp("AV18",0);
-////Wc=2279.0; Rc=0.3394; Sc=0.2614; f1=1.41; d1=2.53; tDev=0.003
-  CECA_ANA.SetUp_pL("UsmaniFit",0);
-  CECA_ANA.Kitty_pL->SetShortRangePotential(1,0,1,2279.0);
-  CECA_ANA.Kitty_pL->SetShortRangePotential(1,0,2,0.3394);
-  CECA_ANA.Kitty_pL->SetShortRangePotential(1,0,3,0.2614);
+  CECA_ANA.SetUp_pL("UsmaniFitAll",0);
   CECA_ANA.Kitty_pL->SetNotifications(CATS::nWarning);
 
   TNtuple* ntResult;
   //16
-  ntResult = new TNtuple("ntResult", "ntResult","VAR_L:d:ht:hz:wc:rc:sc:f1:d1:chi2_pp:ndp_pp:chi2_pL:ndp_pL:chi2_pp_fmt:ndp_pp_fmt:chi2_pL_fmt:ndp_pL_fmt");
-  Float_t* Entries = new Float_t [17];
+  ntResult = new TNtuple("ntResult", "ntResult","FLAG1:VAR_L:d:ht:hz:ldel:wc0:rc0:sc0:wc1:rc1:sc1:Vs:Vb:f0:d0:f1:d1:chi2_pp:ndp_pp:chi2_pL:ndp_pL:chi2_pp_fmt:ndp_pp_fmt:chi2_pL_fmt:ndp_pL_fmt:chi2_pL_sct:ndp_pL_sct:t_dev");
+  Float_t* Entries = new Float_t [29];
 
   double f0,d0;
   double f1,d1;
   TH1F* hPsFit;
   TF1* fPsFit;
 
-  CECA_ANA.SetUp_pS0("Chiral",0);
+  if( (FLAG1/100)%100 == 0 ) CECA_ANA.SetUp_pS0("Flat",0);
+  else CECA_ANA.SetUp_pS0("Chiral",0);
   CECA_ANA.SetUp_pXim("pXim_HALQCDPaper2020",0);
   CECA_ANA.SetUp_pXi0("pXim_HALQCDPaper2020",0);
-  CECA_ANA.SetUp_Decomposition(0,VAR_L);
+  CECA_ANA.SetUp_Decomposition(0,400);//should work in the loop !
   CECA_ANA.SetUp_Fits("SingleCeca",false);
 
   double* Best_Chi2_pp = new double [7];
@@ -6541,24 +6618,39 @@ void ScanPsUsmani_ForPython(TString AnaType, TString SourceDescription, TString 
     }
   }
 
-  long long TotalTime = 0;
-  int Iter = 0;
-  while(TotalTime<JobTimeLimit){
-    double ran_d = rangen.Uniform(min_d,max_d);
-    double ran_ht = rangen.Uniform(min_ht,max_ht);
-    double ran_hz = rangen.Uniform(min_hz,max_hz);
-    double ran_wc = rangen.Uniform(min_wc,max_wc);
-    double ran_rc = rangen.Uniform(min_rc,max_rc);
-    double ran_sc = rangen.Uniform(min_sc,max_sc);
+  for (int iIter = 0; iIter < NumIterCPU; iIter++){
 
-    CECA_ANA.Kitty_pL->SetShortRangePotential(1,0,1,ran_wc);
-    CECA_ANA.Kitty_pL->SetShortRangePotential(1,0,2,ran_rc);
-    CECA_ANA.Kitty_pL->SetShortRangePotential(1,0,3,ran_sc);
+    CECA_ANA.Kitty_pL->SetShortRangePotential(0,0,1,Wc0_values.at(iIter));
+    CECA_ANA.Kitty_pL->SetShortRangePotential(0,0,2,Rc0_values.at(iIter));
+    CECA_ANA.Kitty_pL->SetShortRangePotential(0,0,3,Sc0_values.at(iIter));
+    CECA_ANA.Kitty_pL->SetShortRangePotential(0,0,4,Vb_values.at(iIter));
+    CECA_ANA.Kitty_pL->SetShortRangePotential(0,0,5,Vs_values.at(iIter));
+
+    if(Wc1_values.at(iIter)) CECA_ANA.Kitty_pL->SetShortRangePotential(1,0,1,Wc1_values.at(iIter));
+    else CECA_ANA.Kitty_pL->SetShortRangePotential(1,0,1,Wc0_values.at(iIter));
+    if(Rc1_values.at(iIter)) CECA_ANA.Kitty_pL->SetShortRangePotential(1,0,2,Rc1_values.at(iIter));
+    else CECA_ANA.Kitty_pL->SetShortRangePotential(1,0,2,Rc0_values.at(iIter));
+    if(Sc1_values.at(iIter)) CECA_ANA.Kitty_pL->SetShortRangePotential(1,0,3,Sc1_values.at(iIter));
+    else CECA_ANA.Kitty_pL->SetShortRangePotential(1,0,3,Sc0_values.at(iIter));
+    CECA_ANA.Kitty_pL->SetShortRangePotential(1,0,4,Vb_values.at(iIter));
+    CECA_ANA.Kitty_pL->SetShortRangePotential(1,0,5,Vs_values.at(iIter));
+
+    CECA_ANA.SetUp_Decomposition(0,VAR_L_values.at(iIter));
+    CECA_ANA.Kitty_pL->SetEpsilonConv(1e-8);
+    CECA_ANA.Kitty_pL->SetEpsilonProp(1e-8);
     CECA_ANA.Kitty_pL->KillTheCat();
 
-    GetScattParameters(*CECA_ANA.Kitty_pL,f1,d1,hPsFit,fPsFit,2,false,false,1);
+//ORIGINALLY IN CECA PAPER I FITTED USING 2 PARS, NOT 3
+    GetScattParameters(*CECA_ANA.Kitty_pL,f0,d0,hPsFit,fPsFit,3,false,false,0);
     delete hPsFit;
     delete fPsFit;
+    GetScattParameters(*CECA_ANA.Kitty_pL,f1,d1,hPsFit,fPsFit,3,false,false,1);
+    delete hPsFit;
+    delete fPsFit;
+    fRes0_values.push_back(f0);
+    dRes0_values.push_back(d0);
+    fRes1_values.push_back(f1);
+    dRes1_values.push_back(d1);
 
     CECA_ANA.GetFit("pp",0)->FixParameter(0,1.10770e+03);
     CECA_ANA.GetFit("pp",1)->FixParameter(0,1.16830e+03);
@@ -6568,9 +6660,9 @@ void ScanPsUsmani_ForPython(TString AnaType, TString SourceDescription, TString 
     CECA_ANA.GetFit("pp",5)->FixParameter(0,1.68720e+03);
     CECA_ANA.GetFit("pp",6)->FixParameter(0,2.21160e+03);
     for(unsigned uMt=0; uMt<7; uMt++){
-      CECA_ANA.GetFit("pp",uMt)->FixParameter(1,ran_d);
-      CECA_ANA.GetFit("pp",uMt)->FixParameter(2,ran_ht);
-      CECA_ANA.GetFit("pp",uMt)->FixParameter(3,ran_hz);
+      CECA_ANA.GetFit("pp",uMt)->FixParameter(1,disp_values.at(iIter));
+      CECA_ANA.GetFit("pp",uMt)->FixParameter(2,hadr_values.at(iIter));
+      CECA_ANA.GetFit("pp",uMt)->FixParameter(3,tau_values.at(iIter));
       CECA_ANA.GetFit("pp",uMt)->FixParameter(4,1.0);
     }
 
@@ -6581,9 +6673,9 @@ void ScanPsUsmani_ForPython(TString AnaType, TString SourceDescription, TString 
     CECA_ANA.GetFit("pL",4)->FixParameter(0,1.75600e+03);
     CECA_ANA.GetFit("pL",5)->FixParameter(0,2.25940e+03);
     for(unsigned uMt=0; uMt<6; uMt++){
-      CECA_ANA.GetFit("pL",uMt)->FixParameter(1,ran_d);
-      CECA_ANA.GetFit("pL",uMt)->FixParameter(2,ran_ht);
-      CECA_ANA.GetFit("pL",uMt)->FixParameter(3,ran_hz);
+      CECA_ANA.GetFit("pL",uMt)->FixParameter(1,disp_values.at(iIter));
+      CECA_ANA.GetFit("pL",uMt)->FixParameter(2,hadr_values.at(iIter));
+      CECA_ANA.GetFit("pL",uMt)->FixParameter(3,tau_values.at(iIter));
       CECA_ANA.GetFit("pL",uMt)->FixParameter(4,1.0);
     }
 
@@ -6595,6 +6687,7 @@ void ScanPsUsmani_ForPython(TString AnaType, TString SourceDescription, TString 
     }}
 
     for(unsigned uMt=0; uMt<7; uMt++){
+      if( FLAG1%100==1 && uMt>4 ) break;
       double Chi2_val = CECA_ANA.GetFit("pp",uMt)->GetChisquare();
       Ndp[0][0] += CECA_ANA.GetFit("pp",uMt)->GetNumberFitPoints();
       Ndp[1][0] += CECA_ANA.GetFit("pp",uMt)->GetNumberFitPoints();
@@ -6660,34 +6753,154 @@ void ScanPsUsmani_ForPython(TString AnaType, TString SourceDescription, TString 
 
     }}
 
-    //d:ht:hz:wc:rc:sc:f1:d1:chi2_pp:ndp_pp:chi2_pL:ndp_pL:chi2_pp_fmt:ndp_pp_fmt:chi2_pL_fmt:ndp_pL_fmt
-    Entries[0] = VAR_L;
-    Entries[1] = ran_d;
-    Entries[2] = ran_ht;
-    Entries[3] = ran_hz;
-    Entries[4] = ran_wc;
-    Entries[5] = ran_rc;
-    Entries[6] = ran_sc;
-    Entries[7] = f1;
-    Entries[8] = d1;
-    Entries[9] = Chi2[1][0];
-    Entries[10] = Ndp[1][0];
-    Entries[11] = Chi2[2][0];
-    Entries[12] = Ndp[2][0];
-    Entries[13] = Chi2[1][1];
-    Entries[14] = Ndp[1][1];
-    Entries[15] = Chi2[2][1];
-    Entries[16] = Ndp[2][1];
+    double penalty = 1;
+    //penalty factor for having a wrong sign in the f or d
+    if(fRes0_values.at(iIter)<0 || fRes1_values.at(iIter)<0 || dRes0_values.at(iIter)<0 || dRes1_values.at(iIter)<0) penalty = 4;
+    //penalty factor for having too low scattering length to support hypertriton
+    else if(fRes0_values.at(iIter)<2.0) penalty = 1.+2.*fabs(2.0-fRes0_values.at(iIter));
+    //let us not get carried away
+    else if(fRes0_values.at(iIter)>6.0) penalty = 1.+2.*fabs(5.0-fRes0_values.at(iIter));
 
+
+    double nsig_pp = sqrt(2)*TMath::ErfcInverse(TMath::Prob(Chi2[1][1],Ndp[1][1]));
+    if(nsig_pp==0) nsig_pp = 10;
+
+    //acounting for 7 parameters (4 for interaction and 3 for the source)
+    double nsig_pL = sqrt(2)*TMath::ErfcInverse(TMath::Prob(Chi2[2][1],Ndp[2][1]-7));
+    if(nsig_pL==0) nsig_pL = 10;
+
+    //double nsig_fem = 1./sqrt(2.)*sqrt(nsig_pp*nsig_pp+nsig_pL*nsig_pL);
+
+    double Chi2_sct = 0;
+    int Ndp_sct = 1;
+    CrossSectionFit_pL(*CECA_ANA.Kitty_pL, Chi2_sct, Ndp_sct);
+    //acounting for 4 parameters (for the interaction)
+    double nsig_sct = sqrt(2)*TMath::ErfcInverse(TMath::Prob(Chi2_sct,Ndp_sct-4));
+    if(nsig_sct==0) nsig_sct = 10;
+
+    //we should be able to get down to at least 1.6 (assuming chi2 110 and 5 for fmt and sct)
+    double nsig_tot = penalty/sqrt(2.)*sqrt(nsig_pL*nsig_pL+nsig_sct*nsig_sct);
+
+
+
+    //the sum of the chi2 for pp and pL in the femto region
+    //tDev_values.push_back(Chi2[1][1]+Chi2[2][1]);
+    //tDev_values.push_back(nsig_tot);
+
+    //this neeeds to be fixed by hand after fitting
+    //the pL seems to bias the pp result, so the fit will be done with free source and Wc1
+    double BEST_PP_CHI2 = 274;//257 for Wc1 var only; 240 (238) in the original CECA paper (Python rerun); 274 fixed to NLO19, N2LO is actaully lower
+    if(FLAG1%100==1) BEST_PP_CHI2 = 125;//if we consider only the first 5 bins
+    //so lets take the NLO19, which by accident seems to be worst one, and add the 3sigma (so 21) to that.
+    //So to QA output, make sure chi2_pp_fmt<295 for best solution, if it is too close to that be careful with interpretation
+    const double Chi2Tolerance_pp = GetDeltaChi2(3,7);//7 as technically speaking f0,d0,f1 and d1 would play a role + 3 source pars
+    const double Chi2Baseline_pp = BEST_PP_CHI2+Chi2Tolerance_pp;
+    double DeltaChi2_pp = Chi2[1][0] - Chi2Baseline_pp;
+
+    //if we are below the tolerance, consider it as we dont have any deviation
+    double nsigRed_pp = 0;
+    if(DeltaChi2_pp>0){
+      nsigRed_pp = GetNsigma(DeltaChi2_pp,7);
+      if(nsigRed_pp==0) nsigRed_pp = 10;
+    }
+    else DeltaChi2_pp = 0;
+
+    //artificially increase the nsigma if the pp fit goes beyond 3sigma based on the already bad fit using nlo19 for the pL feed
+    //nsig_tot += nsig_pp;
+
+    //the CURRENT ESTIMATOR:
+    if(EstimatorType=="sct"){
+      tDev_values.push_back( penalty*nsig_sct );
+    }
+    else if(EstimatorType=="pL"){
+      tDev_values.push_back( penalty*nsig_pL );
+    }
+    else if(EstimatorType=="pp"){
+      tDev_values.push_back( nsig_pp );
+    }
+    else if(EstimatorType=="pp_pL"){
+      tDev_values.push_back( 1./sqrt(2.)*sqrt(nsig_pp*nsig_pp+penalty*nsig_pL*penalty*nsig_pL) );
+    }
+    else if(EstimatorType=="pp_pL_sct"){
+      tDev_values.push_back( 1./sqrt(3.)*sqrt(nsig_pp*nsig_pp+penalty*nsig_pL*penalty*nsig_pL+penalty*nsig_sct*penalty*nsig_sct) );
+    }
+    else if(EstimatorType=="pL_sct"){
+      tDev_values.push_back( 1./sqrt(2.)*sqrt(penalty*nsig_pL*penalty*nsig_pL+penalty*nsig_sct*penalty*nsig_sct) );
+    }
+    //add the pp reduced nsigma as an estimator that your source is completely off
+    else if(EstimatorType=="ppQA_pL_sct"){
+      tDev_values.push_back( 1./sqrt(2.)*sqrt(nsigRed_pp*nsigRed_pp+penalty*nsig_pL*penalty*nsig_pL+penalty*nsig_sct*penalty*nsig_sct) );
+    }
+    else if(EstimatorType=="ppQA_chi2_pL_sct"){
+      tDev_values.push_back( Chi2[2][1] + Chi2_sct + DeltaChi2_pp );
+    }
+    //tDev_values.push_back( nsig_tot );
+    //tDev_values.push_back( Chi2[1][1] );
+    //tDev_values.push_back(penalty*( Chi2[1][1]/double(Ndp[1][1]) + Chi2[2][1]/double(Ndp[2][1]) + Chi2_sct/double(Ndp_sct) )/3.);
+    //tDev_values.push_back(penalty*( Chi2[1][1]/double(Ndp[1][1]) + Chi2[2][1]/double(Ndp[2][1]) + Chi2_sct/double(Ndp_sct) )/3.);
+
+    //FLAG1:VAR_L:d:ht:hz:ldel:wc0:rc0:sc0:wc1:rc1:sc1:Vs:Vb:f0:d0:f1:d1:chi2_pp:ndp_pp:chi2_pL:ndp_pL:chi2_pp_fmt:ndp_pp_fmt:chi2_pL_fmt:ndp_pL_fmt
+    Entries[0] = FLAG1;
+    Entries[1] = VAR_L_values.at(iIter);
+    Entries[2] = disp_values.at(iIter);
+    Entries[3] = hadr_values.at(iIter);
+    Entries[4] = tau_values.at(iIter);
+    Entries[5] = ldel_values.at(iIter);
+    Entries[6] = Wc0_values.at(iIter);
+    Entries[7] = Rc0_values.at(iIter);
+    Entries[8] = Sc0_values.at(iIter);
+    Entries[9] = Wc1_values.at(iIter)?Wc1_values.at(iIter):Wc0_values.at(iIter);
+    Entries[10] = Rc1_values.at(iIter)?Rc1_values.at(iIter):Rc0_values.at(iIter);
+    Entries[11] = Sc1_values.at(iIter)?Sc1_values.at(iIter):Sc0_values.at(iIter);
+    Entries[12] = Vs_values.at(iIter);
+    Entries[13] = Vb_values.at(iIter);
+    Entries[14] = fRes0_values.at(iIter);
+    Entries[15] = dRes0_values.at(iIter);
+    Entries[16] = fRes1_values.at(iIter);
+    Entries[17] = dRes1_values.at(iIter);
+    Entries[18] = Chi2[1][0];//chi2_pp
+    Entries[19] = Ndp[1][0];
+    Entries[20] = Chi2[2][0];//chi2_pL
+    Entries[21] = Ndp[2][0];
+    Entries[22] = Chi2[1][1];//chi2_pp_fmt
+    Entries[23] = Ndp[1][1];
+    Entries[24] = Chi2[2][1];//chi2_pL_fmt
+    Entries[25] = Ndp[2][1];
+    Entries[26] = Chi2_sct;//chi2_pL_sct
+    Entries[27] = Ndp_sct;
+    Entries[28] = tDev_values.at(iIter);
     ntResult->Fill(Entries);
-
-    TotalTime = JobTime.Stop()/1000000.;
-    Iter++;
-    if(Iter%10==0) printf("iIter = %i\n",Iter);
   }
 
-  TFile fOutput(out_folder+TString::Format("/US_%s_%s_s%i.root",AnaType.Data(),SourceDescription.Data(),SEED),"recreate");
+  char* OutputFileName = replaceSubstring(InputFileName, "Input", "Output");
+  char* OutputFileNameRoot = replaceSubstring(OutputFileName, ".txt", ".root");
+
+  TFile fOutput(OutputFileNameRoot,"recreate");
   ntResult->Write();
+
+  FILE* OutFile;
+  OutFile = fopen(OutputFileName, "w");
+
+  if (OutFile == nullptr) {
+      printf("Error opening file: %s\n", OutputFileName);
+      return;
+  }
+
+  fprintf(OutFile, "%d %d %d\n", unique_id, NumIterCPU, NumPars);
+  for(int inPar=0; inPar<NumPars-1; inPar++){
+    fprintf(OutFile, "%s ", InputParameters[inPar]);
+  }
+  fprintf(OutFile, "%s\n", InputParameters[NumPars-1]);
+
+  for(int iIter=0; iIter<NumIterCPU; iIter++){
+      fprintf(OutFile, "%lf %lf %lf %lf %lf %lf %lf %lf %d %lf %lf %lf %lf %lf %lf %lf %lf %lf\n", Wc0_values.at(iIter), Rc0_values.at(iIter), Sc0_values.at(iIter),
+              Wc1_values.at(iIter), Rc1_values.at(iIter), Sc1_values.at(iIter), Vs_values.at(iIter), Vb_values.at(iIter),
+              VAR_L_values.at(iIter), disp_values.at(iIter), hadr_values.at(iIter), tau_values.at(iIter), ldel_values.at(iIter),
+              fRes0_values.at(iIter), dRes0_values.at(iIter), fRes1_values.at(iIter), dRes1_values.at(iIter), tDev_values.at(iIter));
+  }
+
+  fclose(OutFile);
+
 
   delete [] Best_Chi2_pp;
   delete [] Best_Dsp_pp;
@@ -6715,6 +6928,13 @@ void ScanPsUsmani_ForPython(TString AnaType, TString SourceDescription, TString 
   delete [] Best_Hz;
 
   delete [] Entries;
+  delete [] OutputFileName;
+  delete [] OutputFileNameRoot;
+
+  for(int inPar=0; inPar<NumPars; inPar++){
+    delete [] InputParameters[inPar];
+  }
+  delete [] InputParameters;
   delete ntResult;
 }
 
@@ -7071,17 +7291,7 @@ void UsmaniSecondLook(int Wc_Steps, int SEED){
   }
 }
 
-char* replaceSubstring(const char* input, const char* target, const char* replacement) {
-    std::string result(input);
-    size_t pos = 0;
-    while ((pos = result.find(target, pos)) != std::string::npos) {
-        result.replace(pos, strlen(target), replacement);
-        pos += strlen(replacement);
-    }
-    char* output = new char[result.length() + 1];
-    strcpy(output, result.c_str());
-    return output;
-}
+
 
 
 
@@ -8899,7 +9109,6 @@ void pLambda_ScatteringData_FF(){
     g_CS_Data->SetPoint(NumPts,pLab_pCm(165.1,Mass_L,Mass_p),177);
     g_CS_Data->SetPointError(NumPts++,0,38);
 
-
     //PhysRev.173.1452
     g_CS_Data->SetPoint(NumPts,pLab_pCm(185,Mass_L,Mass_p),130);
     g_CS_Data->SetPointError(NumPts++,0,17);
@@ -8908,13 +9117,9 @@ void pLambda_ScatteringData_FF(){
     g_CS_Data->SetPoint(NumPts,pLab_pCm(194,Mass_L,Mass_p),153);
     g_CS_Data->SetPointError(NumPts++,0,27);
 
-
-
     //PhysRev.173.1452
     g_CS_Data->SetPoint(NumPts,pLab_pCm(210,Mass_L,Mass_p),118);
     g_CS_Data->SetPointError(NumPts++,0,16);
-
-
 
     //PhysRev.175.1735
     g_CS_Data->SetPoint(NumPts,pLab_pCm(226,Mass_L,Mass_p),111);
@@ -8932,8 +9137,6 @@ void pLambda_ScatteringData_FF(){
     g_CS_Data->SetPoint(NumPts,pLab_pCm(252,Mass_L,Mass_p),87);
     g_CS_Data->SetPointError(NumPts++,0,13);
 
-
-
     //PhysRev.173.1452
     g_CS_Data->SetPoint(NumPts,pLab_pCm(290,Mass_L,Mass_p),57);
     g_CS_Data->SetPointError(NumPts++,0,9);
@@ -8941,8 +9144,6 @@ void pLambda_ScatteringData_FF(){
     //PhysRev.175.1735
     g_CS_Data->SetPoint(NumPts,pLab_pCm(293,Mass_L,Mass_p),46);
     g_CS_Data->SetPointError(NumPts++,0,11);
-
-
 
   }
 
@@ -9216,6 +9417,11 @@ int CECA_PAPER(int argc, char *argv[]){
   //pLambda_ScatteringData_FF(); return 0;
   //printf("chi2 to get 2 sig: %.2f\n",GetDeltaChi2(8.4-4.5,3)); return 0;
   //printf("nsig given 6 dof: %.2f\n",GetNsigma(8.4-4.5,3)); return 0;
+
+
+ScanPsUsmani_ForPython(argv[1]);
+//cout << GetDeltaChi2(1,6) << endl;
+return 0;
 
   //how to read/write the Levy pars into a file
   //TestSaveStuctToFile();
