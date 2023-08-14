@@ -15,6 +15,7 @@ class DLM_CommonAnaFunctions;
 class TString;
 template <class Type> class DLM_Histo;
 
+void ScanPsUsmani_ForPython(char* InputFileName);
 int CECA_PAPER(int narg, char** ARGS);
 
 class CecaAnalysis1{
