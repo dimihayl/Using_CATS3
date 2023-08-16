@@ -6477,8 +6477,8 @@ void ScanPsUsmani_ForPython(char* InputFileName){
   if(!fscanf(InFile, "%d %d %d", &unique_id, &NumIterCPU, &NumPars)){
       printf("\033[1;33mWARNING (1)!\033[0m Possible bad input-file, error when reading from %s!\n",InputFileName);
   }
-  if(NumPars!=5){
-    printf("\033[1;31mERROR:\033[0m We need 5 input args, something is wrong\n");
+  if(NumPars!=9){
+    printf("\033[1;31mERROR:\033[0m We need 9 input args, something is wrong\n");
     return;
   }
 
@@ -6493,6 +6493,7 @@ void ScanPsUsmani_ForPython(char* InputFileName){
   TString SourceDescription = InputParameters[1];
   TString cern_box = InputParameters[2];
   TString EstimatorType = InputParameters[3];
+
   //FLAG1:
   //the digits counted from back to front
   //BA: settings for pp. 00 = default, 01 = exclude last two mt bins
@@ -6500,8 +6501,14 @@ void ScanPsUsmani_ForPython(char* InputFileName){
   //e.g. full fit with chiral is 0100, exluding last pp mt bins and flat sigma will be 0001, chiral sigma but exluding mt bins is 0101
   int FLAG1 = atoi(InputParameters[4]);
 
+  double f0_Goal = atof(InputParameters[5]);
+  double f0_err = atof(InputParameters[6]);
+  double f1_Goal = atof(InputParameters[7]);
+  double f1_err = atof(InputParameters[8]);
+
   std::vector<int> VAR_L_values;
   std::vector<double> Wc0_values, Rc0_values, Sc0_values, Wc1_values, Rc1_values, Sc1_values, Vs_values, Vb_values;
+  std::vector<double> f0_Goal_values, f0_err_values, f1_Goal_values, f1_err_values;
   //ldel_values NOT implemented yet
   std::vector<double> disp_values, hadr_values, tau_values, ldel_values;
   std::vector<double> fRes0_values, dRes0_values, fRes1_values, dRes1_values, tDev_values;
@@ -6533,6 +6540,11 @@ void ScanPsUsmani_ForPython(char* InputFileName){
       hadr_values.push_back(hadr);
       tau_values.push_back(tau);
       ldel_values.push_back(ldel);
+
+      f0_Goal_values.push_back(f0_Goal);
+      f0_err_values.push_back(f0_err);
+      f1_Goal_values.push_back(f1_Goal);
+      f1_err_values.push_back(f1_err);
 
       //printf("disp %f hadr %f tau %f\n",disp,hadr,tau);
   }
@@ -6797,6 +6809,7 @@ void ScanPsUsmani_ForPython(char* InputFileName){
     const double Chi2Baseline_pp = BEST_PP_CHI2+Chi2Tolerance_pp;
     double DeltaChi2_pp = Chi2[1][0] - Chi2Baseline_pp;
 
+    double tDev;
     //if we are below the tolerance, consider it as we dont have any deviation
     double nsigRed_pp = 0;
     if(DeltaChi2_pp>0){
@@ -6808,36 +6821,46 @@ void ScanPsUsmani_ForPython(char* InputFileName){
     //artificially increase the nsigma if the pp fit goes beyond 3sigma based on the already bad fit using nlo19 for the pL feed
     //nsig_tot += nsig_pp;
 
+    double Chi2_fGoal = 0;
+    if(f0_Goal && f0_err){
+      Chi2_fGoal += pow((f0_Goal - fRes0_values.at(iIter))/f0_err,2.);
+    }
+    if(f1_Goal && f1_err){
+      Chi2_fGoal += pow((f1_Goal - fRes1_values.at(iIter))/f1_err,2.);
+    }
+
     //the CURRENT ESTIMATOR:
     if(EstimatorType=="sct"){
-      tDev_values.push_back( penalty*nsig_sct );
+      tDev = penalty*nsig_sct + sqrt(Chi2_fGoal);
     }
     else if(EstimatorType=="pL"){
-      tDev_values.push_back( penalty*nsig_pL );
+      tDev = penalty*nsig_pL + sqrt(Chi2_fGoal);
     }
     else if(EstimatorType=="pp"){
-      tDev_values.push_back( nsig_pp );
+      tDev = nsig_pp;
     }
     else if(EstimatorType=="pp_pL"){
-      tDev_values.push_back( 1./sqrt(2.)*sqrt(nsig_pp*nsig_pp+penalty*nsig_pL*penalty*nsig_pL) );
+      tDev = 1./sqrt(2.)*sqrt(nsig_pp*nsig_pp+penalty*nsig_pL*penalty*nsig_pL+Chi2_fGoal);
     }
     else if(EstimatorType=="pp_pL_sct"){
-      tDev_values.push_back( 1./sqrt(3.)*sqrt(nsig_pp*nsig_pp+penalty*nsig_pL*penalty*nsig_pL+penalty*nsig_sct*penalty*nsig_sct) );
+      tDev = 1./sqrt(3.)*sqrt(nsig_pp*nsig_pp+penalty*nsig_pL*penalty*nsig_pL+penalty*nsig_sct*penalty*nsig_sct+Chi2_fGoal);
     }
     else if(EstimatorType=="pL_sct"){
-      tDev_values.push_back( 1./sqrt(2.)*sqrt(penalty*nsig_pL*penalty*nsig_pL+penalty*nsig_sct*penalty*nsig_sct) );
+      tDev = 1./sqrt(2.)*sqrt(penalty*nsig_pL*penalty*nsig_pL+penalty*nsig_sct*penalty*nsig_sct+Chi2_fGoal);
     }
     //add the pp reduced nsigma as an estimator that your source is completely off
     else if(EstimatorType=="ppQA_pL_sct"){
-      tDev_values.push_back( 1./sqrt(2.)*sqrt(nsigRed_pp*nsigRed_pp+penalty*nsig_pL*penalty*nsig_pL+penalty*nsig_sct*penalty*nsig_sct) );
+      tDev = 1./sqrt(2.)*sqrt(nsigRed_pp*nsigRed_pp+penalty*nsig_pL*penalty*nsig_pL+penalty*nsig_sct*penalty*nsig_sct+Chi2_fGoal);
     }
     else if(EstimatorType=="ppQA_chi2_pL_sct"){
-      tDev_values.push_back( Chi2[2][1] + Chi2_sct + DeltaChi2_pp );
+      tDev = Chi2[2][1] + Chi2_sct + DeltaChi2_pp + Chi2_fGoal;
     }
     //tDev_values.push_back( nsig_tot );
     //tDev_values.push_back( Chi2[1][1] );
     //tDev_values.push_back(penalty*( Chi2[1][1]/double(Ndp[1][1]) + Chi2[2][1]/double(Ndp[2][1]) + Chi2_sct/double(Ndp_sct) )/3.);
     //tDev_values.push_back(penalty*( Chi2[1][1]/double(Ndp[1][1]) + Chi2[2][1]/double(Ndp[2][1]) + Chi2_sct/double(Ndp_sct) )/3.);
+
+    tDev_values.push_back( tDev );
 
     //FLAG1:VAR_L:d:ht:hz:ldel:wc0:rc0:sc0:wc1:rc1:sc1:Vs:Vb:f0:d0:f1:d1:chi2_pp:ndp_pp:chi2_pL:ndp_pL:chi2_pp_fmt:ndp_pp_fmt:chi2_pL_fmt:ndp_pL_fmt
     Entries[0] = FLAG1;
