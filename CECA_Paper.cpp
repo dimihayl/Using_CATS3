@@ -6461,7 +6461,7 @@ void ScanPsUsmani(TString AnaType, TString SourceDescription, TString cern_box, 
 
 
 //in the input file, the parameters on the second line are AnaType, SourceDescription, cern_box
-void ScanPsUsmani_ForPython(char* InputFileName){
+void ScanPsUsmani_ForPython(char* InputFileName, bool PLOT_EXAMPLE){
 
   FILE* InFile;
   InFile = fopen(InputFileName, "r");
@@ -6630,6 +6630,15 @@ void ScanPsUsmani_ForPython(char* InputFileName){
     }
   }
 
+  char* OutputFileName = replaceSubstring(InputFileName, "Input", "Output");
+  char* OutputFileNameRoot = replaceSubstring(OutputFileName, ".txt", ".root");
+  char* OutputFileNameRootTEMP = replaceSubstring(OutputFileNameRoot, "Output", "Laura");
+
+  TFile* fOutputTEMP = NULL;
+  if(PLOT_EXAMPLE){
+    fOutputTEMP = new TFile(OutputFileNameRootTEMP,"recreate");
+  }
+
   for (int iIter = 0; iIter < NumIterCPU; iIter++){
 
     CECA_ANA.Kitty_pL->SetShortRangePotential(0,0,1,Wc0_values.at(iIter));
@@ -6752,6 +6761,13 @@ void ScanPsUsmani_ForPython(char* InputFileName){
         Ndp[0][1]++;
         Ndp[2][1]++;
       }
+
+      if(fOutputTEMP){
+        fOutputTEMP->cd();
+        CECA_ANA.GetData("pL",uMt)->Write();
+        CECA_ANA.GetFit("pL",uMt)->Write();
+      }
+
     }//uMt pL
 
     for(unsigned uSce=0; uSce<3; uSce++){for(unsigned uRng=0; uRng<2; uRng++){
@@ -6785,7 +6801,7 @@ void ScanPsUsmani_ForPython(char* InputFileName){
 
     double Chi2_sct = 0;
     int Ndp_sct = 1;
-    CrossSectionFit_pL(*CECA_ANA.Kitty_pL, Chi2_sct, Ndp_sct);
+    CrossSectionFit_pL(*CECA_ANA.Kitty_pL, Chi2_sct, Ndp_sct,fOutputTEMP);
     //acounting for 4 parameters (for the interaction)
     double nsig_sct = sqrt(2)*TMath::ErfcInverse(TMath::Prob(Chi2_sct,Ndp_sct-4));
     if(nsig_sct==0) nsig_sct = 10;
@@ -6853,7 +6869,10 @@ void ScanPsUsmani_ForPython(char* InputFileName){
       tDev = 1./sqrt(2.)*sqrt(nsigRed_pp*nsigRed_pp+penalty*nsig_pL*penalty*nsig_pL+penalty*nsig_sct*penalty*nsig_sct+Chi2_fGoal);
     }
     else if(EstimatorType=="ppQA_chi2_pL_sct"){
-      tDev = Chi2[2][1] + Chi2_sct + DeltaChi2_pp + Chi2_fGoal;
+      tDev = penalty*penalty*Chi2[2][1] + penalty*penalty*Chi2_sct + DeltaChi2_pp + Chi2_fGoal;
+    }
+    else if(EstimatorType=="ppQA_chi2_pL"){
+      tDev = penalty*penalty*Chi2[2][1] + DeltaChi2_pp + Chi2_fGoal;
     }
     //tDev_values.push_back( nsig_tot );
     //tDev_values.push_back( Chi2[1][1] );
@@ -6893,10 +6912,9 @@ void ScanPsUsmani_ForPython(char* InputFileName){
     Entries[27] = Ndp_sct;
     Entries[28] = tDev_values.at(iIter);
     ntResult->Fill(Entries);
-  }
+  }//NumCPU
 
-  char* OutputFileName = replaceSubstring(InputFileName, "Input", "Output");
-  char* OutputFileNameRoot = replaceSubstring(OutputFileName, ".txt", ".root");
+
 
   TFile fOutput(OutputFileNameRoot,"recreate");
   ntResult->Write();
@@ -6959,6 +6977,11 @@ void ScanPsUsmani_ForPython(char* InputFileName){
   }
   delete [] InputParameters;
   delete ntResult;
+
+  if(fOutputTEMP){
+    delete fOutputTEMP;
+    fOutputTEMP = NULL;
+  }
 }
 
 
@@ -9442,8 +9465,12 @@ int CECA_PAPER(int argc, char *argv[]){
   //printf("nsig given 6 dof: %.2f\n",GetNsigma(8.4-4.5,3)); return 0;
 
 
-ScanPsUsmani_ForPython(argv[1]);
-//cout << GetDeltaChi2(1,6) << endl;
+//ScanPsUsmani_ForPython(argv[1], true);
+//ScanPsUsmani_ForPython(argv[1]);
+cout << GetDeltaChi2(1,1) << endl;
+cout << GetDeltaChi2(2,1) << endl;
+cout << GetDeltaChi2(1,9) << endl;
+
 return 0;
 
   //how to read/write the Levy pars into a file

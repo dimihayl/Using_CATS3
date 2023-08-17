@@ -4,7 +4,7 @@
 #include <stdlib.h>
 
 #include "CATS.h"
-#include "CommonAnaFunctions.h"
+#include "EosDimiVale.h"
 #include "DLM_Potentials.h"
 #include "DLM_Random.h"
 #include "DLM_CkDecomposition.h"
@@ -44,13 +44,13 @@
 #include "TColor.h"
 
 // make script that evaluates the cross-section using the CATS object already setup and returns the chi-square
-const unsigned NumMomBins = 40;
-const double kMin = 0;
-const double kMax = 160;
-const double kChi2 = 135;
-const double Eps = 1e-9;
+//const unsigned NumMomBins = 40;
+//const double kMin = 0;
+//const double kMax = 160;
+//const double kChi2 = 135;
+//const double Eps = 1e-9;
 
-void CrossSectionFit_pL(CATS& Kitty, double& chi2, int& ndp)
+void CrossSectionFit_pL(CATS& Kitty, double& chi2, int& ndp, TFile* fOutput)
 {
   // 1) Reading the scattering data
   // 0 = take all
@@ -150,10 +150,14 @@ void CrossSectionFit_pL(CATS& Kitty, double& chi2, int& ndp)
   //printf("pLab<=450 MeV (k*<=%.0f): #%u\n", pLab_pCm(450, Mass_L, Mass_p), NumPts);
 
   //TFile fOutput(TString::Format("/Users/sartozza/cernbox/EoSFemto/EoSPaperPheno/pL_CS_Data.root"), "recreate");
-  //g_CS_Data->Write();
+  if(fOutput){
+    fOutput->cd();
+    g_CS_Data->Write();
+  }
 
-  TH1F *hPsSin_UsmFemto = new TH1F("hPsSin_UsmFemto", "hPsSin_UsmFemto", NumMomBins, kMin, kMax);
-  TH1F *hPsTri_UsmFemto = new TH1F("hPsTri_UsmFemto", "hPsTri_UsmFemto", NumMomBins, kMin, kMax);
+
+  TH1F *hPsSin_UsmFemto = new TH1F("hPsSin_UsmFemto", "hPsSin_UsmFemto", Kitty.GetNumMomBins(), Kitty.GetMomBinLowEdge(0), Kitty.GetMomBinUpEdge(Kitty.GetNumMomBins()-1));
+  TH1F *hPsTri_UsmFemto = new TH1F("hPsTri_UsmFemto", "hPsTri_UsmFemto", Kitty.GetNumMomBins(), Kitty.GetMomBinLowEdge(0), Kitty.GetMomBinUpEdge(Kitty.GetNumMomBins()-1));
   TGraph *gCs_UsmFemto = new TGraph();
   gCs_UsmFemto->SetName("gCs_UsmFemto");
 
@@ -161,7 +165,7 @@ void CrossSectionFit_pL(CATS& Kitty, double& chi2, int& ndp)
   double PhaseShift;
   double kstar;
 
-  for (unsigned uMom = 0; uMom < NumMomBins; uMom++)
+  for (unsigned uMom = 0; uMom < Kitty.GetNumMomBins(); uMom++)
   {
 
     kstar = Kitty.GetMomentum(uMom);
@@ -174,6 +178,7 @@ void CrossSectionFit_pL(CATS& Kitty, double& chi2, int& ndp)
     PhaseShift = Kitty.GetPhaseShift(uMom, 1, 0);
     CrossSection += 0.75 * 4. * Pi * NuToFm * NuToFm * 10. / (kstar * kstar) * (pow(sin(PhaseShift), 2));
     gCs_UsmFemto->SetPoint(uMom, kstar, CrossSection);
+    printf("%u %f %f\n",uMom, kstar, CrossSection);
   }
 
   Kitty.SetNotifications(CATS::nWarning);
@@ -193,9 +198,12 @@ void CrossSectionFit_pL(CATS& Kitty, double& chi2, int& ndp)
   //delete hFit;
   //delete fitSP;
 
-  //hPsSin_UsmFemto->Write();
-  //hPsTri_UsmFemto->Write();
-  //gCs_UsmFemto->Write();
+  if(fOutput){
+    fOutput->cd();
+    hPsSin_UsmFemto->Write();
+    hPsTri_UsmFemto->Write();
+    gCs_UsmFemto->Write();
+  }
 
   //4) Evaluate chi-square
   double CsData;
@@ -207,8 +215,8 @@ void CrossSectionFit_pL(CATS& Kitty, double& chi2, int& ndp)
   for (unsigned uData = 0; uData < g_CS_Data->GetN(); uData++)
   {
     g_CS_Data->GetPoint(uData, kstar, CsData);
-    if (kstar > kChi2)
-      break;
+    //if (kstar > kChi2)
+    //  break;
     CsErr = g_CS_Data->GetErrorY(uData);
 
     Chi2_UsmFemto += pow((CsData - gCs_UsmFemto->Eval(kstar)) / CsErr, 2.);
@@ -233,19 +241,20 @@ int EOSDIMIVALE(int argc, char *argv[])
   DLM_CommonAnaFunctions AnalysisObject;
 
   // CATS set up with usmani, but fixed to femto data
-  CATS Kitty_Charlotte;
-  Kitty_Charlotte.SetMomBins(NumMomBins, kMin, kMax);
-  AnalysisObject.SetUpCats_pL(Kitty_Charlotte, "UsmaniFit", "Gauss", 0, 0);
-  Kitty_Charlotte.SetEpsilonConv(Eps);
-  Kitty_Charlotte.SetEpsilonProp(Eps);
-  Kitty_Charlotte.SetShortRangePotential(1,0,1,2279-13.5);
-  Kitty_Charlotte.SetShortRangePotential(1,0,2,0.3394);
-  Kitty_Charlotte.SetShortRangePotential(1,0,3,0.2614);
-  Kitty_Charlotte.KillTheCat();
 
-  double chi2;
-  int ndp;
-  CrossSectionFit_pL(Kitty_Charlotte,chi2,ndp);
+  //CATS Kitty_Charlotte;
+  //Kitty_Charlotte.SetMomBins(NumMomBins, kMin, kMax);
+  //AnalysisObject.SetUpCats_pL(Kitty_Charlotte, "UsmaniFit", "Gauss", 0, 0);
+  //Kitty_Charlotte.SetEpsilonConv(Eps);
+  //Kitty_Charlotte.SetEpsilonProp(Eps);
+  //Kitty_Charlotte.SetShortRangePotential(1,0,1,2279-13.5);
+  //Kitty_Charlotte.SetShortRangePotential(1,0,2,0.3394);
+  //Kitty_Charlotte.SetShortRangePotential(1,0,3,0.2614);
+  //Kitty_Charlotte.KillTheCat();
+
+  //double chi2;
+  //int ndp;
+  //CrossSectionFit_pL(Kitty_Charlotte,chi2,ndp);
 
   return 0;
 }
