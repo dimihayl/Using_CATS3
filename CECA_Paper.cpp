@@ -50,6 +50,7 @@
 #include "TGraphAsymmErrors.h"
 #include "TLatex.h"
 #include "TStyle.h"
+#include "TTreeFormula.h"
 
 #include <boost/algorithm/string.hpp>
 
@@ -7356,7 +7357,6 @@ void UsmaniPythonLook(char* InputFileName){
       printf("\033[1;33mWARNING (1)!\033[0m Possible bad input-file, error when reading from %s!\n",InputFileName);
   }
 
-
   double fGoal0, dGoal0, fGoal1, dGoal1;
   if(!fscanf(InFile, "%lf %lf %lf %lf", &fGoal0, &dGoal0, &fGoal1, &dGoal1)){
       printf("\033[1;33mWARNING (2)!\033[0m Possible bad input-file, error when reading from %s!\n",InputFileName);
@@ -9456,6 +9456,164 @@ printf("pLab<=450 MeV (k*<=%.0f): #%u\n",pLab_pCm(450,Mass_L,Mass_p),NumPts);
 
 }
 
+//type = fmt, sct, tot
+void BigPythonFilter(TString type){
+  const TString InFileName = TString::Format("%s/CecaPaper/BigPythonFit/LotsOfStuff_v1/LotsOfStuff_v1.root",GetCernBoxDimi());
+
+  TFile InFile(InFileName,"read");
+  TNtuple* ntResult = (TNtuple*)InFile.Get("ntResult");
+
+  const int MinNumEntries = 2;
+  const float dEstimator = 1;
+
+  const int Num_f0 = 256;
+  const float Min_f0 = 1.5;
+  const float Max_f0 = 4.0;
+
+  const int Num_f1 = 256;
+  const float Min_f1 = 0.8;
+  const float Max_f1 = 2.0;
+
+  TH2F* h_f0f1_BestChi2 = new TH2F("h_f0f1_BestChi2","h_f0f1_BestChi2",Num_f0,Min_f0,Max_f0,Num_f1,Min_f1,Max_f1);
+  TH2I* h_f0f1_NumEntr_fem = new TH2I("h_f0f1_NumEntr_fem","h_f0f1_NumEntr_fem",Num_f0,Min_f0,Max_f0,Num_f1,Min_f1,Max_f1);
+  TH2I* h_f0f1_NumEntr_sct = new TH2I("h_f0f1_NumEntr_sct","h_f0f1_NumEntr_sct",Num_f0,Min_f0,Max_f0,Num_f1,Min_f1,Max_f1);
+
+  //TH1F* hf1 = new TH1F("hf1","hf1",Num_f1,Min_f1,Max_f1);
+  //std::vector<unsigned>** EntryID;
+  //EntryID = new std::vector<unsigned>* [Num_f0];
+  for(unsigned uf0=0; uf0<Num_f0; uf0++){
+  //  EntryID[uf0] = new std::vector<unsigned> [Num_f1];
+    for(unsigned uf1=0; uf1<Num_f1; uf1++){
+      h_f0f1_BestChi2->SetBinContent(uf0+1,uf1+1,1e6);
+      h_f0f1_NumEntr_fem->SetBinContent(uf0+1,uf1+1,0);
+      h_f0f1_NumEntr_sct->SetBinContent(uf0+1,uf1+1,0);
+    }
+  }
+
+  const double nsig_pp = 5;
+  const double nsig_pL = 3.5;
+  const double nsig_pL_sct = 3.5;
+
+  double dChi2_pp = GetDeltaChi2(nsig_pp,3);
+  double dChi2_pL = GetDeltaChi2(nsig_pL,9);
+  double dChi2_pL_sct = GetDeltaChi2(nsig_pp,6);
+  if(type=="fmt"){
+    dChi2_pL_sct = -1;
+  }
+  if(type=="sct"){
+    dChi2_pp = -1;
+    dChi2_pL = -1;
+  }
+
+  double BestChi2_pp = 1e6;
+  double BestChi2_pL = 1e6;
+  double BestChi2_pL_sct = 1e6;
+
+  Float_t chi2_pp_fmt;
+  Float_t chi2_pL_fmt;
+  Float_t chi2_pL_sct;
+  Float_t f0_val;
+  Float_t f1_val;
+
+  //ntResult->SetBranchAddress("FLAG1",&FLAG1);
+  //ntResult->SetBranchAddress("VAR_L",&VAR_L);
+  //ntResult->SetBranchAddress("d",&d_val);
+  //ntResult->SetBranchAddress("ht",&ht_val);
+  //ntResult->SetBranchAddress("hz",&hz_val);
+  //ntResult->SetBranchAddress("ldel",&ldel);
+  //ntResult->SetBranchAddress("wc0",&wc0);
+  //ntResult->SetBranchAddress("rc0",&rc0);
+  //ntResult->SetBranchAddress("sc0",&sc0);
+  //ntResult->SetBranchAddress("wc1",&wc1);
+  //ntResult->SetBranchAddress("rc1",&rc1);
+  //ntResult->SetBranchAddress("sc1",&sc1);
+  //ntResult->SetBranchAddress("Vs",&Vs_val);
+  //ntResult->SetBranchAddress("Vb",&Vb_val);
+  ntResult->SetBranchAddress("f0",&f0_val);
+  //ntResult->SetBranchAddress("d0",&d0_val);
+  ntResult->SetBranchAddress("f1",&f1_val);
+  //
+
+  ntResult->SetBranchAddress("chi2_pp_fmt",&chi2_pp_fmt);
+  ntResult->SetBranchAddress("chi2_pL_fmt",&chi2_pL_fmt);
+  ntResult->SetBranchAddress("chi2_pL_sct",&chi2_pL_sct);
+
+
+  const unsigned NumEntries = ntResult->GetEntries();
+  //find best chi2s
+  for(unsigned uEntry=0; uEntry<NumEntries; uEntry++){
+    ntResult->GetEntry(uEntry);
+    if(chi2_pp_fmt<BestChi2_pp){
+      BestChi2_pp = chi2_pp_fmt;
+    }
+    if(chi2_pL_fmt<BestChi2_pL){
+      BestChi2_pL = chi2_pL_fmt;
+    }
+    if(chi2_pL_sct<BestChi2_pL_sct){
+      BestChi2_pL_sct = chi2_pL_sct;
+    }
+  }
+
+
+  //figure out which entries to keep. First, we fill the best estimator for each f0,f1 bin
+  for(unsigned uEntry=0; uEntry<NumEntries; uEntry++){
+    ntResult->GetEntry(uEntry);
+    //basic chi2 cut
+    if( (chi2_pp_fmt<BestChi2_pp+dChi2_pp && chi2_pL_fmt<BestChi2_pL+dChi2_pL) || chi2_pL_sct<BestChi2_pL_sct+dChi2_pL_sct ){
+      //are we in the correct range of f0 and f1
+      if(f0_val>Min_f0 && f0_val<Max_f0 && f1_val>Min_f1 && f1_val<Max_f1){
+        double estimator = chi2_pp_fmt+chi2_pL_fmt+chi2_pL_sct;
+        if(type=="fmt") estimator = chi2_pp_fmt+chi2_pL_fmt;
+        if(type=="sct") estimator = chi2_pL_sct;
+        unsigned WhichBin = h_f0f1_BestChi2->FindBin(f0_val,f1_val);
+        if(estimator < h_f0f1_BestChi2->GetBinContent(WhichBin)){
+          h_f0f1_BestChi2->SetBinContent(WhichBin,estimator);
+        }
+        if(chi2_pp_fmt<BestChi2_pp+dChi2_pp && chi2_pL_fmt<BestChi2_pL+dChi2_pL){
+          h_f0f1_NumEntr_fem->SetBinContent(WhichBin,h_f0f1_NumEntr_fem->GetBinContent(WhichBin)+1);
+        }
+        if(chi2_pL_sct<BestChi2_pL_sct+dChi2_pL_sct){
+          h_f0f1_NumEntr_sct->SetBinContent(WhichBin,h_f0f1_NumEntr_sct->GetBinContent(WhichBin)+1);
+        }
+      }
+    }
+  }
+  TString suffix = TString::Format("_filteted_%s.root",type.Data());
+  char* OutputFileName = replaceSubstring(InFileName.Data(), ".root", suffix.Data());
+  gROOT->cd();
+  TNtuple* outputNt = (TNtuple*)ntResult->CloneTree(0);
+  //now we actually decide which entries to keep
+  for(unsigned uEntry=0; uEntry<NumEntries; uEntry++){
+    ntResult->GetEntry(uEntry);
+    //basic chi2 cut
+    if( (chi2_pp_fmt<BestChi2_pp+dChi2_pp && chi2_pL_fmt<BestChi2_pL+dChi2_pL) || chi2_pL_sct<BestChi2_pL_sct+dChi2_pL_sct ){
+      //are we in the correct range of f0 and f1
+      if(f0_val>Min_f0 && f0_val<Max_f0 && f1_val>Min_f1 && f1_val<Max_f1){
+        double estimator = chi2_pp_fmt+chi2_pL_fmt+chi2_pL_sct;
+        if(type=="fmt") estimator = chi2_pp_fmt+chi2_pL_fmt;
+        if(type=="sct") estimator = chi2_pL_sct;
+        unsigned WhichBin = h_f0f1_BestChi2->FindBin(f0_val,f1_val);
+        double best_estimator = h_f0f1_BestChi2->GetBinContent(WhichBin);
+        if(estimator < best_estimator + dEstimator && (h_f0f1_NumEntr_fem->GetBinContent(WhichBin)>=MinNumEntries || h_f0f1_NumEntr_sct->GetBinContent(WhichBin)>=MinNumEntries) ){
+          outputNt->Fill(ntResult->GetArgs());
+        }
+      }
+    }
+  }
+
+  //printf("outputNt->GetEntries()=%u\n",ntResult->GetEntries());
+  TFile fOutput(OutputFileName,"recreate");
+  outputNt->Write();
+
+  //TString CutExpression = TString::Format("(chi2_pp_fmt<%.2f && chi2_pL_fmt<%.2f) || chi2_pL_sct<%.3f",BestChi2_pp+dChi2_pp,BestChi2_pL+dChi2_pL,BestChi2_pL_sct+dChi2_pL_sct);
+  //printf("%s\n",CutExpression.Data());
+
+  //TNtuple* outputNt = (TNtuple*)ntResult->CopyTree(CutExpression);
+
+  //outputNt->Write();
+
+
+}
 
 int CECA_PAPER(int argc, char *argv[]){
   printf("CECA_PAPER\n\n");
@@ -9467,9 +9625,11 @@ int CECA_PAPER(int argc, char *argv[]){
 
 //ScanPsUsmani_ForPython(argv[1], true);
 //ScanPsUsmani_ForPython(argv[1]);
-cout << GetDeltaChi2(1,1) << endl;
-cout << GetDeltaChi2(2,1) << endl;
-cout << GetDeltaChi2(1,9) << endl;
+//cout << "pp    : " << GetDeltaChi2(5,3) << endl;
+//cout << "pL_fem: " << GetDeltaChi2(3.5,9) << endl;
+//cout << "pp_sct: " << GetDeltaChi2(3.5,6) << endl;
+
+  BigPythonFilter(argv[1]);
 
 return 0;
 

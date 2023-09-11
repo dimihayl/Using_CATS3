@@ -16110,11 +16110,200 @@ void TestNewCutOff(){
 
 }
 
+
+//study the effect of the feed-down
+void pSigmaPlus_pp(){
+
+  const double SourzeSize = 1.2;
+  const int NumMomBins = 160;
+  const double kMin = 0;
+  const double kMax = 320;
+  CATS Kitty_pp;
+  Kitty_pp.SetMomBins(NumMomBins,kMin,kMax);
+
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
+  AnalysisObject.SetUpCats_pp(Kitty_pp,"AV18","Gauss",1,0);
+
+  CATS Kitty_pSpC;
+  Kitty_pSpC.SetMomBins(NumMomBins,kMin,kMax);
+
+  CATS Kitty_pSpSI;
+  Kitty_pSpSI.SetMomBins(NumMomBins,kMin,kMax);
+
+  //v_par1     8.866115114890029
+  //v_par2     1.8034128744458975
+  //v_par3     -53.5975705172924
+  //v_par4     0.285089368768813
+  //f_best     -0.48559596096672497
+  //d_best     -5.096338909557391
+
+
+}
+
+//study the effect on Ck of the interaction / source(k*),Levy
+//with the RC in p-wave, we see effect at large k*, the bump ~200 MeV can dissapear if we have enough RC
+//however, we see this bump in pretty much all mT bins, theoretically we expect to see it for all sources. So all is fine in p-waves.
+//for the s-wave the effect of RC is at low k*, it changes peak amplitude and even slightly the position.
+//at first look it seems also the s-wave effects all radii, so we should have seen effects also in the other bins
+void PlayWithProtons(){
+
+  std::vector<float> rad;
+  rad.push_back(0.95);
+  rad.push_back(1.3);
+  const int NumMomBins = 160;
+  const double kMin = 0;
+  const double kMax = 320;
+  CATS KittyAV18;
+  KittyAV18.SetMomBins(NumMomBins,kMin,kMax);
+
+  CATS Kitty;
+  Kitty.SetMomBins(NumMomBins,kMin,kMax);
+
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
+  AnalysisObject.SetUpCats_pp(Kitty,"pp_AV18_Toy","Gauss",0,0);
+  AnalysisObject.SetUpCats_pp(KittyAV18,"AV18","Gauss",1,0);
+
+  //Kitty.SetShortRangePotential(0,0,1,-2000);
+  //Kitty.SetShortRangePotential(0,0,2,0.24);
+
+  //Kitty.SetShortRangePotential(3,1,1,-4000);
+  //Kitty.SetShortRangePotential(3,1,2,0.4);
+
+  Kitty.SetShortRangePotential(3,1,1,-1500);
+  Kitty.SetShortRangePotential(3,1,2,0.4);
+
+  //Kitty.SetQ1Q2(0);
+  //Kitty.SetQuantumStatistics(false);
+  //KittyAV18.SetQ1Q2(0);
+  //KittyAV18.SetQuantumStatistics(false);
+
+  Kitty.KillTheCat();
+  KittyAV18.KillTheCat();
+
+  Kitty.SetNotifications(CATS::nWarning);
+  KittyAV18.SetNotifications(CATS::nWarning);
+
+  const int NumCk = 1;
+  TGraph* gAV18 = new TGraph [rad.size()];
+  TGraph** gCk = new TGraph*[NumCk];
+  TString* CkInfo = new TString [NumCk];
+
+  TGraph g1S0_AV18;
+  TGraph* g1S0_MODY = new TGraph [NumCk];
+  TGraph g3P2_AV18;
+  TGraph* g3P2_MODY = new TGraph [NumCk];
+
+  TGraph gPs1S0_AV18;
+  TGraph* gPs1S0_MODY = new TGraph [NumCk];
+  TGraph gPs3P2_AV18;
+  TGraph* gPs3P2_MODY = new TGraph [NumCk];
+
+  CkInfo[0] = "Modified";
+
+  g1S0_AV18.SetName("g1S0_AV18");
+  g3P2_AV18.SetName("g3P2_AV18");
+  gPs1S0_AV18.SetName("gPs1S0_AV18");
+  gPs3P2_AV18.SetName("gPs3P2_AV18");
+  for(unsigned uRad=0; uRad<rad.size(); uRad++)
+    gAV18[uRad].SetName(TString::Format("gAV18_%.2f",rad.at(uRad)));
+
+  for(unsigned uRstar=0; uRstar<1024; uRstar++){
+    double rstar = double(uRstar+1)*4./1000.;
+    double V1S0 = KittyAV18.EvaluateThePotential(0,0,5,rstar);
+    double V3P2 = KittyAV18.EvaluateThePotential(3,1,5,rstar);
+    g1S0_AV18.SetPoint(uRstar,rstar,V1S0);
+    g3P2_AV18.SetPoint(uRstar,rstar,V3P2);
+  }
+  for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+    double MOM = Kitty.GetMomentum(uMom);
+    double Ps1S0 = KittyAV18.GetPhaseShift(uMom,0,0);
+    double Ps3P2 = KittyAV18.GetPhaseShift(uMom,3,1);
+    gPs1S0_AV18.SetPoint(uMom,MOM,Ps1S0);
+    gPs3P2_AV18.SetPoint(uMom,MOM,Ps3P2);
+  }
+
+  for(unsigned uCk=0; uCk<NumCk; uCk++){
+    gCk[uCk] = new TGraph [rad.size()];
+    g1S0_MODY[uCk].SetName(TString::Format("g1S0_MODY_%s",CkInfo[uCk].Data()));
+    g3P2_MODY[uCk].SetName(TString::Format("g3P2_MODY_%s",CkInfo[uCk].Data()));
+    gPs1S0_MODY[uCk].SetName(TString::Format("gPs1S0_MODY_%s",CkInfo[uCk].Data()));
+    gPs3P2_MODY[uCk].SetName(TString::Format("gPs3P2_MODY_%s",CkInfo[uCk].Data()));
+    for(unsigned uRad=0; uRad<rad.size(); uRad++){
+      gCk[uCk][uRad].SetName(TString::Format("gCk_%s_%.2f",CkInfo[uCk].Data(),rad.at(uRad)));
+      Kitty.SetAnaSource(0,rad.at(uRad));
+      KittyAV18.SetAnaSource(0,rad.at(uRad));
+      Kitty.KillTheCat();
+      KittyAV18.KillTheCat();
+      for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+        double MOM = Kitty.GetMomentum(uMom);
+        double Ck_val = Kitty.GetCorrFun(uMom);
+        gCk[uCk][uRad].SetPoint(uMom,MOM,Ck_val);
+        if(uCk==0){
+          Ck_val = KittyAV18.GetCorrFun(uMom);
+          gAV18[uRad].SetPoint(uMom,MOM,Ck_val);
+        }
+      }
+    }//uRad
+    for(unsigned uRstar=0; uRstar<1024; uRstar++){
+      double rstar = double(uRstar+1)*4./1000.;
+      double V1S0 = Kitty.EvaluateThePotential(0,0,5,rstar);
+      double V3P2 = Kitty.EvaluateThePotential(3,1,5,rstar);
+      g1S0_MODY[uCk].SetPoint(uRstar,rstar,V1S0);
+      g3P2_MODY[uCk].SetPoint(uRstar,rstar,V3P2);
+    }
+    for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+      double MOM = Kitty.GetMomentum(uMom);
+      double Ps1S0 = Kitty.GetPhaseShift(uMom,0,0);
+      double Ps3P2 = Kitty.GetPhaseShift(uMom,3,1);
+      gPs1S0_MODY[uCk].SetPoint(uMom,MOM,Ps1S0);
+      gPs3P2_MODY[uCk].SetPoint(uMom,MOM,Ps3P2);
+    }
+  }
+
+  TString OutputFileName = TString::Format("%s/OtherTasks/PlayWithProtons/fOutput.root",GetFemtoOutputFolder());
+  TFile fOutput(OutputFileName,"recreate");
+
+  for(unsigned uRad=0; uRad<rad.size(); uRad++){
+    gAV18[uRad].Write();
+    for(unsigned uCk=0; uCk<NumCk; uCk++){
+      gCk[uCk][uRad].Write();
+    }
+  }
+
+  g1S0_AV18.Write();
+  gPs1S0_AV18.Write();
+  g3P2_AV18.Write();
+  gPs3P2_AV18.Write();
+  for(unsigned uCk=0; uCk<NumCk; uCk++){
+    g1S0_MODY[uCk].Write();
+    gPs1S0_MODY[uCk].Write();
+    g3P2_MODY[uCk].Write();
+    gPs3P2_MODY[uCk].Write();
+  }
+
+
+  for(unsigned uRad=0; uRad<rad.size(); uRad++){
+    delete [] gCk[uRad];
+  }
+
+  delete [] g1S0_MODY;
+  delete [] g3P2_MODY;
+  delete [] gPs1S0_MODY;
+  delete [] gPs3P2_MODY;
+  delete [] gAV18;
+  delete [] gCk;
+  delete [] CkInfo;
+}
+
 //
 int OTHERTASKS(int argc, char *argv[]){
 
+  PotentialDesignerEngine(argv[1]); return 0;
 
-  TestNewCutOff();
+  //PlayWithProtons();return 0;
+  //TestNewCutOff();
 
   //DongFang_Example1(); return 0;
   //coal_test_1(); return 0;
