@@ -21,6 +21,7 @@
 #include "DLM_Unfold.h"
 #include "DLM_Sort.h"
 #include "DLM_DrawingTools.h"
+#include "DLM_DecayMatrix.h"
 
 #include "TGraph.h"
 #include "TGraphErrors.h"
@@ -16102,19 +16103,20 @@ void TestNewCutOff(){
   }
 
 
+
   TFile fOutput(TString::Format("%s/OtherTasks/TestNewCutOff1.root",GetFemtoOutputFolder()),"recreate");
   gTestCk.Write();
   gEvTestCk.Write();
   gCutTestCk.Write();
   gCutEvTestCk.Write();
 
+
 }
 
 
 //study the effect of the feed-down
-void pSigmaPlus_pp(TString Potential = "N2LO"){
+void pSigmaPlus_pp(TString Potential, double SourzeSize){
 
-  const double SourzeSize = 2.5/sqrt(2.);
   const int NumMomBins = 160;
   const double kMin = 0;
   const double kMax = 320;
@@ -16124,6 +16126,8 @@ void pSigmaPlus_pp(TString Potential = "N2LO"){
   DLM_CommonAnaFunctions AnalysisObject;
   AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
   AnalysisObject.SetUpCats_pp(Kitty_pp,"AV18","Gauss",1,0);
+  Kitty_pp.SetAnaSource(0, SourzeSize);
+  Kitty_pp.KillTheCat();
 
   CATSparameters cPars(CATSparameters::tSource,1,true);
   cPars.SetParameter(0,SourzeSize);
@@ -16171,12 +16175,16 @@ void pSigmaPlus_pp(TString Potential = "N2LO"){
   CATSparameters pPars3S1(CATSparameters::tPotential,4,true);
 
   if(Potential=="N2LO"){
+    //f_best     3.3900003896617
+    //d_best     3.7267469996733706
     Kitty_pSpSI.SetShortRangePotential(0, 0, DoubleGaussSum, pPars1S0);
     Kitty_pSpSI.SetShortRangePotential(0, 0, 0, -79.07298063891983);
     Kitty_pSpSI.SetShortRangePotential(0, 0, 1, 1.3716237629795942);
     Kitty_pSpSI.SetShortRangePotential(0, 0, 2, 2287.907638142889);
     Kitty_pSpSI.SetShortRangePotential(0, 0, 3, 0.43371332814881547);
 
+    //f_best     -0.47641737043176346
+    //d_best     -5.495670225918186
     Kitty_pSpSI.SetShortRangePotential(1, 0, DoubleGaussSum, pPars3S1);
     Kitty_pSpSI.SetShortRangePotential(1, 0, 0, 6.6923386649252645);
     Kitty_pSpSI.SetShortRangePotential(1, 0, 1, 1.970250601599477);
@@ -16192,59 +16200,177 @@ void pSigmaPlus_pp(TString Potential = "N2LO"){
     Kitty_pSpSI.SetShortRangePotential(0, 0, 2, 2274.508479434418);
     Kitty_pSpSI.SetShortRangePotential(0, 0, 3, 0.4182867242441114);
 
-    //f_best     -0.48202692395147395
-    //d_best     -5.474790596696132
+    //f_best     -0.46965864027889725
+    //d_best     -5.778925131802048
     Kitty_pSpSI.SetShortRangePotential(1, 0, DoubleGaussSum, pPars3S1);
-    Kitty_pSpSI.SetShortRangePotential(1, 0, 0, 6.97900756374422);
-    Kitty_pSpSI.SetShortRangePotential(1, 0, 1, 1.9652284406458556);
-    Kitty_pSpSI.SetShortRangePotential(1, 0, 2, -75.00567653152805);
-    Kitty_pSpSI.SetShortRangePotential(1, 0, 3, 0.35269994339279626);
+    Kitty_pSpSI.SetShortRangePotential(1, 0, 0, 6.295180245126864);
+    Kitty_pSpSI.SetShortRangePotential(1, 0, 1, 1.995145226219902);
+    Kitty_pSpSI.SetShortRangePotential(1, 0, 2, -58.68689895288922);
+    Kitty_pSpSI.SetShortRangePotential(1, 0, 3, 0.32017712049353114);
   }
 
-
-
-
   Kitty_pSpSI.KillTheCat();
+
+  DLM_Ck dlmCk_pp(Kitty_pp.GetNumSourcePars(),0,Kitty_pp);
+  DLM_Ck dlmCk_pSpC(Kitty_pSpC.GetNumSourcePars(),0,Kitty_pSpC);
+  DLM_Ck dlmCk_pSpSI(Kitty_pSpSI.GetNumSourcePars(),0,Kitty_pSpSI);
+
+  TH2F* hResolution_pp = AnalysisObject.GetResolutionMatrix("pp13TeV_HM_DimiJun20","pp");
+  TH2F* hFeed_pp_pSp = AnalysisObject.GetResidualMatrix("pp","pSigmaPlus");
+  const double lam_gen = 0.67;
+  const double lam_pSp = 0.085;
+  const double lam_flat = 1.-lam_gen-lam_pSp;
+
+  DLM_CkDecomposition decCk_pp_flt("pp",1,dlmCk_pp,hResolution_pp);
+  DLM_CkDecomposition decCk_pp_pSpC("pp",2,dlmCk_pp,hResolution_pp);
+  DLM_CkDecomposition decCk_pp_pSpSI("pp",2,dlmCk_pp,hResolution_pp);
+
+  DLM_CkDecomposition decCk_pSpC("pSpSI",0,dlmCk_pSpC,NULL);
+  DLM_CkDecomposition decCk_pSpSI("pSpSI",0,dlmCk_pSpSI,NULL);
+
+  decCk_pp_flt.AddContribution(0,lam_pSp+lam_flat,DLM_CkDecomposition::cFeedDown);
+
+  decCk_pp_pSpC.AddContribution(0,lam_pSp,DLM_CkDecomposition::cFeedDown,&decCk_pSpC,hFeed_pp_pSp);
+  decCk_pp_pSpC.AddContribution(1,lam_flat,DLM_CkDecomposition::cFeedDown);
+
+  decCk_pp_pSpSI.AddContribution(0,lam_pSp,DLM_CkDecomposition::cFeedDown,&decCk_pSpC,hFeed_pp_pSp);
+  decCk_pp_pSpSI.AddContribution(1,lam_flat,DLM_CkDecomposition::cFeedDown);
+
+  TH1F* hME_PP;
+  TH1F* hME_APAP;
+  TH1F* hPs_pp;
+  TString FileName;
+  //for(unsigned uMt=0; uMt<NumMtBins_pp; uMt++){
+  unsigned uMt = 3;
+  FileName = TString::Format("%s/CatsFiles/ExpData/Bernie_Source/ppData/mTBin_%i/CFOutput_mT_ppVar0_HM_%i.root",
+                                      GetCernBoxDimi(),uMt+1,uMt);
+  TFile* inFile = new TFile(FileName,"read");
+  //PARTICLES
+  TList* list1_tmp = (TList*)inFile->Get("PairDist");
+  TList* list2_tmp = (TList*)list1_tmp->FindObject("PairFixShifted");//there is also PairShifted ?? which one ??
+  hME_PP = (TH1F*)list2_tmp->FindObject(TString::Format("MEPart_mT_%i_FixShifted",uMt));
+  list1_tmp = (TList*)inFile->Get("AntiPairDist");
+  list2_tmp = (TList*)list1_tmp->FindObject("PairFixShifted");
+  hME_APAP = (TH1F*)list2_tmp->FindObject(TString::Format("MEAntiPart_mT_%i_FixShifted",uMt));
+  gROOT->cd();
+  hPs_pp = (TH1F*)hME_PP->Clone("hPs_pp");
+  hPs_pp->Add(hME_APAP);
+  hPs_pp->GetXaxis()->SetLimits(hPs_pp->GetXaxis()->GetXmin()*1000.,hPs_pp->GetXaxis()->GetXmax()*1000.);
+  delete inFile;
+  //}
+
+  decCk_pp_flt.AddPhaseSpace(hPs_pp);
+  decCk_pp_pSpC.AddPhaseSpace(hPs_pp);
+  decCk_pp_pSpSI.AddPhaseSpace(hPs_pp);
+
+  decCk_pp_pSpC.AddPhaseSpace(0,hPs_pp);
+  decCk_pp_pSpSI.AddPhaseSpace(0,hPs_pp);
+
+  decCk_pp_flt.Update(true,true);
+  decCk_pp_pSpC.Update(true,true);
+  decCk_pp_pSpSI.Update(true,true);
 
   TGraph g_pSp_Coulomb;
   g_pSp_Coulomb.SetName("g_pSp_Coulomb");
   TGraph g_pSp_CoulombSI;
   g_pSp_CoulombSI.SetName("g_pSp_CoulombSI");
 
+  TGraph g_pp_flt;
+  g_pp_flt.SetName("g_pp_flt");
+  TGraph g_pp_pSpC;
+  g_pp_pSpC.SetName("g_pp_pSpC");
+  TGraph g_pp_pSpSI;
+  g_pp_pSpSI.SetName("g_pp_pSpSI");
+
+
+
   for(unsigned uMom=0; uMom<NumMomBins; uMom++){
     double MOM = Kitty_pSpC.GetMomentum(uMom);
     g_pSp_Coulomb.SetPoint(uMom,MOM,Kitty_pSpC.GetCorrFun(uMom));
     g_pSp_CoulombSI.SetPoint(uMom,MOM,Kitty_pSpSI.GetCorrFun(uMom));
+
+    g_pp_flt.SetPoint(uMom,MOM,decCk_pp_flt.EvalCk(MOM));
+    g_pp_pSpC.SetPoint(uMom,MOM,decCk_pp_pSpC.EvalCk(MOM));
+    g_pp_pSpSI.SetPoint(uMom,MOM,decCk_pp_pSpSI.EvalCk(MOM));
   }
-printf("Its all done\n");
-  TFile fOutput(TString::Format("%s/OtherTasks/pSigmaPlus_pp/fOutput_%s.root",GetFemtoOutputFolder(),Potential.Data()),"recreate");
+  TFile fOutput(TString::Format("%s/OtherTasks/pSigmaPlus_pp/fOutput_%s_r%.2f.root",GetFemtoOutputFolder(),Potential.Data(),SourzeSize),"recreate");
   g_pSp_Coulomb.Write();
   g_pSp_CoulombSI.Write();
+  g_pp_flt.Write();
+  g_pp_pSpC.Write();
+  g_pp_pSpSI.Write();
 
-//1S0
-  //v_par1     -79.07298063891983
-  //v_par2     1.3716237629795942
-  //v_par3     2287.907638142889
-  //v_par4     0.43371332814881547
-  //f_best     3.3900003896617
-  //d_best     3.7267469996733706
+  delete hPs_pp;
+}
 
-//3S1
-//first fit (to PS)
-  //v_par1     8.866115114890029
-  //v_par2     1.8034128744458975
-  //v_par3     -53.5975705172924
-  //v_par4     0.285089368768813
-  //f_best     -0.48559596096672497
-  //d_best     -5.096338909557391
-//second fit, should be better (to f0,d0)
-  //v_par1     6.6923386649252645
-  //v_par2     1.970250601599477
-  //v_par3     -48.30709539991798
-  //v_par4     0.3549784459798298
-  //f_best     -0.47641737043176346
-  //d_best     -5.495670225918186
+void pSigmaPlus_NL19_data(){
+  TGraph gNLO19_1p2;
+  gNLO19_1p2.SetName("gNLO19_1p2");
+  gNLO19_1p2.SetPoint(0, 9.773158484268876, 0.5042434679244419);
+  gNLO19_1p2.SetPoint(1, 11.273497565473114, 0.6018135129574737);
+  gNLO19_1p2.SetPoint(2, 12.457614849470772, 0.7003527968484495);
+  gNLO19_1p2.SetPoint(3, 14.586587623917005, 0.8008153188506288);
+  gNLO19_1p2.SetPoint(4, 17.031020215335587, 0.9012747929318712);
+  gNLO19_1p2.SetPoint(5, 19.15999298978182, 1.0017373149340503);
+  gNLO19_1p2.SetPoint(6, 23.49566052256602, 1.1041108833636852);
+  gNLO19_1p2.SetPoint(7, 28.510252444051567, 1.1456083269199995);
+  gNLO19_1p2.SetPoint(8, 31.03240701936189, 1.1475163254265182);
+  gNLO19_1p2.SetPoint(9, 33.56065743654607, 1.1416947964369801);
+  gNLO19_1p2.SetPoint(10, 40.21122092092927, 1.1087802982390635);
+  gNLO19_1p2.SetPoint(11, 46.87778599023138, 1.0555757903639977);
+  gNLO19_1p2.SetPoint(12, 53.229653222795385, 1.0014081394728618);
+  gNLO19_1p2.SetPoint(13, 64.94357536365507, 0.9481548648628053);
+  gNLO19_1p2.SetPoint(14, 74.12010332451973, 0.9123174104863718);
+  gNLO19_1p2.SetPoint(15, 86.12738785555902, 0.8870806251285839);
+  gNLO19_1p2.SetPoint(16, 102.85209201673308, 0.8801557487598769);
+  gNLO19_1p2.SetPoint(17, 117.04473585955176, 0.8838833560657433);
+  gNLO19_1p2.SetPoint(18, 134.7021038274267, 0.8943407728003533);
+  gNLO19_1p2.SetPoint(19, 151.0961085669438, 0.9067427630927252);
+  gNLO19_1p2.SetPoint(20, 167.8055731234332, 0.91914170546416);
+  gNLO19_1p2.SetPoint(21, 188.301317463825, 0.9305378818473445);
+  gNLO19_1p2.SetPoint(22, 211.0083284439602, 0.9380479590359423);
+  gNLO19_1p2.SetPoint(23, 235.29263850895703, 0.9455427966198553);
+  gNLO19_1p2.SetPoint(24, 262.1006271097328, 0.953013250836273);
+  gNLO19_1p2.SetPoint(25, 294.2744805199754, 0.9565671266487343);
 
+  TGraph gNLO19_2p5;
+  gNLO19_2p5.SetName("gNLO19_2p5");
+  gNLO19_2p5.SetPoint(0, 11.907379733799992, 0.500377077993976);
+  gNLO19_2p5.SetPoint(1, 13.255414205077791, 0.5989005118040123);
+  gNLO19_2p5.SetPoint(2, 16.195383698151794, 0.7032620730772506);
+  gNLO19_2p5.SetPoint(3, 19.12915889153009, 0.7998188167339007);
+  gNLO19_2p5.SetPoint(4, 24.924700544324104, 0.9022012992543611);
+  gNLO19_2p5.SetPoint(5, 29.406276374166687, 0.9489868448560212);
+  gNLO19_2p5.SetPoint(6, 37.3543371712182, 0.963543449140928);
+  gNLO19_2p5.SetPoint(7, 50.04336009786994, 0.9517123367221314);
+  gNLO19_2p5.SetPoint(8, 68.45746451827708, 0.9534839064351031);
+  gNLO19_2p5.SetPoint(9, 121.80896779738447, 0.9763780381104289);
+  gNLO19_2p5.SetPoint(10, 166.57749456063058, 0.9847217598005436);
+  gNLO19_2p5.SetPoint(11, 210.70723416775712, 0.9881936647799863);
+  gNLO19_2p5.SetPoint(12, 246.26406299602792, 0.9897979884011738);
+  gNLO19_2p5.SetPoint(13, 297.6930105070808, 0.9902718523278953);
+
+  TFile fOutput(TString::Format("%s/OtherTasks/pSigmaPlus_pp/fData.root",GetFemtoOutputFolder()),"recreate");
+  gNLO19_1p2.Write();
+  gNLO19_2p5.Write();
+
+}
+
+void pp_pSp_Decay(int SEED, int MilNumIter){
+  DLM_DecayMatrix decMat;
+  TString OutputFileName = TString::Format("%s/CatsFiles/DecaySmear/Decay_matrix_pp_pSp_RS%i.root",GetCernBoxDimi(),SEED);
+  decMat.SetFileName(OutputFileName.Data());
+  decMat.SetHistoName("hRes_pp_pSp");
+  decMat.SetBins(1024,0,1024);
+  decMat.SetNumDaughters1(1);
+  decMat.SetMotherMass1(Mass_p);
+  decMat.SetNumDaughters2(2);
+  decMat.SetDaughterMass2(0,Mass_p);
+  decMat.SetDaughterMass2(1,Mass_pi0);
+  decMat.SetMotherMass2(Mass_Sch);
+  decMat.SetMeanMomentum(0);
+  decMat.SetMomentumSpread(350);
+  decMat.Run(SEED,MilNumIter*1000*1000);
 }
 
 //study the effect on Ck of the interaction / source(k*),Levy
@@ -16403,12 +16529,89 @@ void PlayWithProtons(){
   delete [] CkInfo;
 }
 
+void pn_Xchecks_1(){
+  const unsigned NumMomBins = 80;
+  const double kMin = 0;
+  const double kMax = 320;
+  const double SourceSize = 1.0;
+
+  DLM_CommonAnaFunctions AnalysisObject;
+  //change the path to the location where you have downloaded the relevant CernBox folders
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles/",GetCernBoxDimi()));
+  TString SourceDescription = "Gauss";
+
+  //s and p waves
+  CATS Kitty_pn;
+  Kitty_pn.SetMomBins(NumMomBins,kMin,kMax);
+  AnalysisObject.SetUpCats_pp(Kitty_pn,"AV18_pn",SourceDescription,0,0);
+  Kitty_pn.SetAnaSource(0, SourceSize);
+
+  //Kitty_pn.RemoveShortRangePotential(0,1);
+  Kitty_pn.SetOnlyNumericalPw(0,0);
+  Kitty_pn.SetChannelWeight(0,1);
+  Kitty_pn.SetChannelWeight(1,0);
+  Kitty_pn.SetChannelWeight(2,0);
+  Kitty_pn.SetChannelWeight(3,0);
+
+  Kitty_pn.KillTheCat();
+
+  //Kitty_pn.SetThetaDependentSource(false);
+  //CATSparameters cPars(CATSparameters::tSource, 1, true);
+  //cPars.SetParameter(0, SourceSize);
+  //Kitty_pn.SetAnaSource(GaussSource, cPars);
+  //Kitty_pn.SetUseAnalyticSource(true);
+  //Kitty_pn.SetMomentumDependentSource(false);
+  //Kitty_pn.SetExcludeFailedBins(false);
+  //Kitty_pn.SetQ1Q2(1);
+  //Kitty_pn.SetPdgId(2212, 2212);
+  //Kitty_pn.SetRedMass(0.5 * Mass_p);
+  //Kitty_pn.SetNumChannels(4);
+  //Kitty_pn.SetNumPW(0, 2);
+  //Kitty_pn.SetNumPW(1, 2);
+  //Kitty_pn.SetNumPW(2, 2);
+  //Kitty_pn.SetNumPW(3, 2);
+  //Kitty_pn.SetSpin(0, 0);
+  //Kitty_pn.SetSpin(1, 1);
+  //Kitty_pn.SetSpin(2, 1);
+  //Kitty_pn.SetSpin(3, 1);
+  //Kitty_pn.SetChannelWeight(0, 3. / 12.);
+  //Kitty_pn.SetChannelWeight(1, 1. / 12.);
+  //Kitty_pn.SetChannelWeight(2, 3. / 12.);
+  //Kitty_pn.SetChannelWeight(3, 5. / 12.);
+
+  TGraph gCk_pn;
+  gCk_pn.SetName("gCk_pn");
+
+  TGraph gPs1S0_pn;
+  gPs1S0_pn.SetName("gPs1S0_pn");
+
+  for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+    double MOM = Kitty_pn.GetMomentum(uMom);
+    double Ck_val = Kitty_pn.GetCorrFun(uMom);
+    gCk_pn.SetPoint(uMom,MOM,Ck_val);
+    gPs1S0_pn.SetPoint(uMom,MOM,Kitty_pn.GetPhaseShift(uMom,0,0));
+  }
+
+  TString OutputFileName = TString::Format("%s/OtherTasks/pn_Xchecks_1/fOutput.root",GetFemtoOutputFolder());
+  TFile fOutput(OutputFileName,"recreate");
+
+  gCk_pn.Write();
+  gPs1S0_pn.Write();
+
+}
+
 //
 int OTHERTASKS(int argc, char *argv[]){
 
+  //pp_pSp_Decay(atoi(argv[1]), atoi(argv[2]));
+
   //PotentialDesignerEngine(argv[1]); return 0;
 
-  pSigmaPlus_pp(argv[1]);
+  //pSigmaPlus_pp(argv[1], atof(argv[2]));
+  //pSigmaPlus_NL19_data();
+
+  pn_Xchecks_1();
+
 
   //PlayWithProtons();return 0;
   //TestNewCutOff();
