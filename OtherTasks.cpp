@@ -23,6 +23,7 @@
 #include "DLM_DrawingTools.h"
 #include "DLM_DecayMatrix.h"
 
+#include <TApplication.h>
 #include "TGraph.h"
 #include "TGraphErrors.h"
 //#include "TGraphMultiErrors.h"
@@ -16303,7 +16304,9 @@ void pSigmaPlus_pp(TString Potential, double SourzeSize){
   delete hPs_pp;
 }
 
-void pSigmaPlus_NL19_data(){
+
+//compare this to the actual result from JH wave function
+void pSigmaPlus_NLO19_data(){
   TGraph gNLO19_1p2;
   gNLO19_1p2.SetName("gNLO19_1p2");
   gNLO19_1p2.SetPoint(0, 9.773158484268876, 0.5042434679244419);
@@ -16350,11 +16353,84 @@ void pSigmaPlus_NL19_data(){
   gNLO19_2p5.SetPoint(12, 246.26406299602792, 0.9897979884011738);
   gNLO19_2p5.SetPoint(13, 297.6930105070808, 0.9902718523278953);
 
+  const int NumMomBins = 160;
+  const double kMin = 0;
+  const double kMax = 320;
+  const double SourzeSize = 1.2;
+
+
+  CATS Kitty_pSp_Haide;
+  Kitty_pSp_Haide.SetMomBins(NumMomBins,kMin,kMax);
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
+  AnalysisObject.SetUpCats_pSp(Kitty_pSp_Haide,"N2LO","Gauss",1,0);
+  Kitty_pSp_Haide.SetAnaSource(0, SourzeSize);
+  Kitty_pSp_Haide.KillTheCat();
+
+  CATS Kitty_pSp_DG;
+  Kitty_pSp_DG.SetMomBins(NumMomBins,kMin,kMax);
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
+  AnalysisObject.SetUpCats_pSp(Kitty_pSp_DG,"DG_N2LO","Gauss",1,0);
+  Kitty_pSp_DG.SetAnaSource(0, SourzeSize);
+  Kitty_pSp_DG.KillTheCat();
+
+  TGraph gHaide;
+  gHaide.SetName("gHaide");
+  TGraph gDG;
+  gDG.SetName("gDG");
+  for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+    gHaide.SetPoint(uMom,Kitty_pSp_Haide.GetMomentum(uMom),Kitty_pSp_Haide.GetCorrFun(uMom));
+    gDG.SetPoint(uMom,Kitty_pSp_DG.GetMomentum(uMom),Kitty_pSp_DG.GetCorrFun(uMom));
+  }
+
+
   TFile fOutput(TString::Format("%s/OtherTasks/pSigmaPlus_pp/fData.root",GetFemtoOutputFolder()),"recreate");
   gNLO19_1p2.Write();
   gNLO19_2p5.Write();
+  gHaide.Write();
+  gDG.Write();
 
 }
+
+void Test_CoulombEffRangeExp(){
+
+  TApplication *myapp = new TApplication("myapp", 0, 0);
+
+  const unsigned NumMomBins = 100;
+  const double kMin = 0;
+  const double kMax = 200;
+
+  const double f_val = 4.0;
+  const double d_val = 3.0;
+  double q1q2rm = (1.)*(Mass_p*Mass_Sch)/(Mass_p+Mass_Sch);
+  double PARS[5];
+  PARS[0] = q1q2rm;
+  PARS[1] = 1./f_val;
+  PARS[2] = d_val;
+  PARS[3] = 0;
+  PARS[4] = 0;
+
+  TH1F* hPS_cs = new TH1F("hPS_cs","hPS_cs",NumMomBins,kMin,kMax);
+  TH1F* hPS_s = new TH1F("hPS_s","hPS_s",NumMomBins,kMin,kMax);
+
+  for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+    double kstar = hPS_cs->GetBinCenter(uMom+1);
+
+    PARS[0] = q1q2rm;
+    double ps_val = atan(kstar/EffRangeExp(&kstar,PARS));
+    hPS_cs->SetBinContent(uMom+1,ps_val);
+
+    PARS[0] = 0;
+    ps_val = atan(kstar/EffRangeExp(&kstar,PARS));
+    hPS_s->SetBinContent(uMom+1,ps_val);
+  }
+
+  hPS_cs->Draw();
+  hPS_s->Draw("same");
+
+  myapp->Run();
+}
+
 
 void pp_pSp_Decay(int SEED, int MilNumIter){
   DLM_DecayMatrix decMat;
@@ -16605,13 +16681,13 @@ int OTHERTASKS(int argc, char *argv[]){
 
   //pp_pSp_Decay(atoi(argv[1]), atoi(argv[2]));
 
-  //PotentialDesignerEngine(argv[1]); return 0;
+  PotentialDesignerEngine(argv[1]); return 0;
+  //Test_CoulombEffRangeExp(); return 0;
 
   //pSigmaPlus_pp(argv[1], atof(argv[2]));
-  //pSigmaPlus_NL19_data();
+  //pSigmaPlus_NLO19_data();
 
-  pn_Xchecks_1();
-
+  //pn_Xchecks_1();
 
   //PlayWithProtons();return 0;
   //TestNewCutOff();

@@ -6875,6 +6875,17 @@ void ScanPsUsmani_ForPython(char* InputFileName, bool PLOT_EXAMPLE){
     else if(EstimatorType=="ppQA_chi2_pL"){
       tDev = penalty*penalty*Chi2[2][1] + DeltaChi2_pp + Chi2_fGoal;
     }
+    //MQA = minimal QA, i.e. only the pp source is checked
+    else if(EstimatorType=="ppMQA_chi2_pL"){
+      tDev = Chi2[2][1] + Chi2_sct + DeltaChi2_pp + Chi2_fGoal;
+    }
+    else if(EstimatorType=="ppMQA_chi2_pL_sct"){
+      tDev = Chi2_sct + DeltaChi2_pp + Chi2_fGoal;
+    }
+    else if(EstimatorType=="ppMQA_chi2_pL_fmt"){
+      tDev = Chi2[2][1] + DeltaChi2_pp + Chi2_fGoal;
+    }
+
     //tDev_values.push_back( nsig_tot );
     //tDev_values.push_back( Chi2[1][1] );
     //tDev_values.push_back(penalty*( Chi2[1][1]/double(Ndp[1][1]) + Chi2[2][1]/double(Ndp[2][1]) + Chi2_sct/double(Ndp_sct) )/3.);
@@ -9458,7 +9469,7 @@ printf("pLab<=450 MeV (k*<=%.0f): #%u\n",pLab_pCm(450,Mass_L,Mass_p),NumPts);
 
 //type = fmt, sct, tot
 void BigPythonFilter(TString type){
-  const TString InFileName = TString::Format("%s/CecaPaper/BigPythonFit/LotsOfStuff_v1/LotsOfStuff_v1.root",GetCernBoxDimi());
+  const TString InFileName = TString::Format("%s/CecaPaper/BigPythonFit/LotsOfStuff_v1/MERGED/LotsOfStuff_v2.root",GetCernBoxDimi());
 
   TFile InFile(InFileName,"read");
   TNtuple* ntResult = (TNtuple*)InFile.Get("ntResult");
@@ -9467,12 +9478,12 @@ void BigPythonFilter(TString type){
   const float dEstimator = 1;
 
   const int Num_f0 = 256;
-  const float Min_f0 = 1.5;
-  const float Max_f0 = 4.0;
+  const float Min_f0 = 1.0;
+  const float Max_f0 = 4.2;
 
   const int Num_f1 = 256;
-  const float Min_f1 = 0.8;
-  const float Max_f1 = 2.0;
+  const float Min_f1 = 0.75;
+  const float Max_f1 = 2.1;
 
   TH2F* h_f0f1_BestChi2 = new TH2F("h_f0f1_BestChi2","h_f0f1_BestChi2",Num_f0,Min_f0,Max_f0,Num_f1,Min_f1,Max_f1);
   TH2I* h_f0f1_NumEntr_fem = new TH2I("h_f0f1_NumEntr_fem","h_f0f1_NumEntr_fem",Num_f0,Min_f0,Max_f0,Num_f1,Min_f1,Max_f1);
@@ -9491,8 +9502,8 @@ void BigPythonFilter(TString type){
   }
 
   const double nsig_pp = 5;
-  const double nsig_pL = 3.5;
-  const double nsig_pL_sct = 3.5;
+  const double nsig_pL = 4;
+  const double nsig_pL_sct = 4;
 
   double dChi2_pp = GetDeltaChi2(nsig_pp,3);
   double dChi2_pL = GetDeltaChi2(nsig_pL,9);
@@ -9604,6 +9615,9 @@ void BigPythonFilter(TString type){
   //printf("outputNt->GetEntries()=%u\n",ntResult->GetEntries());
   TFile fOutput(OutputFileName,"recreate");
   outputNt->Write();
+  h_f0f1_BestChi2->Write();
+  h_f0f1_NumEntr_fem->Write();
+  h_f0f1_NumEntr_sct->Write();
 
   //TString CutExpression = TString::Format("(chi2_pp_fmt<%.2f && chi2_pL_fmt<%.2f) || chi2_pL_sct<%.3f",BestChi2_pp+dChi2_pp,BestChi2_pL+dChi2_pL,BestChi2_pL_sct+dChi2_pL_sct);
   //printf("%s\n",CutExpression.Data());
