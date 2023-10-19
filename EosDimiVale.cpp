@@ -178,7 +178,7 @@ void CrossSectionFit_pL(CATS& Kitty, double& chi2, int& ndp, TFile* fOutput)
     PhaseShift = Kitty.GetPhaseShift(uMom, 1, 0);
     CrossSection += 0.75 * 4. * Pi * NuToFm * NuToFm * 10. / (kstar * kstar) * (pow(sin(PhaseShift), 2));
     gCs_UsmFemto->SetPoint(uMom, kstar, CrossSection);
-    printf("%u %f %f\n",uMom, kstar, CrossSection);
+    //printf("%u %f %f\n",uMom, kstar, CrossSection);
   }
 
   Kitty.SetNotifications(CATS::nWarning);

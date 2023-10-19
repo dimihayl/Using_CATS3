@@ -6520,7 +6520,7 @@ void ScanPsUsmani_ForPython(char* InputFileName, bool PLOT_EXAMPLE){
       //The first two digits are related to purity (4=95.3%, 5=96.3%)
       //The second two digits are related to the sig:lam ratio (0=33%, 1=27%, 2=40%)
       int VAR_L;
-
+      
       if(!fscanf(InFile, "%lf %lf %lf %lf %lf %lf %lf %lf %d %lf %lf %lf %lf", &Wc0, &Rc0, &Sc0, &Wc1, &Rc1, &Sc1, &Vs, &Vb, &VAR_L, &disp, &hadr, &tau, &ldel)){
           printf("\033[1;33mWARNING (3)!\033[0m Possible bad input-file, error when reading from %s!\n",InputFileName);
           continue;
@@ -6641,7 +6641,6 @@ void ScanPsUsmani_ForPython(char* InputFileName, bool PLOT_EXAMPLE){
   }
 
   for (int iIter = 0; iIter < NumIterCPU; iIter++){
-
     CECA_ANA.Kitty_pL->SetShortRangePotential(0,0,1,Wc0_values.at(iIter));
     CECA_ANA.Kitty_pL->SetShortRangePotential(0,0,2,Rc0_values.at(iIter));
     CECA_ANA.Kitty_pL->SetShortRangePotential(0,0,3,Sc0_values.at(iIter));
@@ -6661,7 +6660,6 @@ void ScanPsUsmani_ForPython(char* InputFileName, bool PLOT_EXAMPLE){
     CECA_ANA.Kitty_pL->SetEpsilonConv(1e-8);
     CECA_ANA.Kitty_pL->SetEpsilonProp(1e-8);
     CECA_ANA.Kitty_pL->KillTheCat();
-
 //ORIGINALLY IN CECA PAPER I FITTED USING 2 PARS, NOT 3
     GetScattParameters(*CECA_ANA.Kitty_pL,f0,d0,hPsFit,fPsFit,3,false,false,0);
     delete hPsFit;
@@ -6782,14 +6780,14 @@ void ScanPsUsmani_ForPython(char* InputFileName, bool PLOT_EXAMPLE){
 
     }}
 
+    double MinPenalty = 1;
     double penalty = 1;
     //penalty factor for having a wrong sign in the f or d
-    if(fRes0_values.at(iIter)<0 || fRes1_values.at(iIter)<0 || dRes0_values.at(iIter)<0 || dRes1_values.at(iIter)<0) penalty = 4;
+    if(fRes0_values.at(iIter)<0 || fRes1_values.at(iIter)<0 || dRes0_values.at(iIter)<0 || dRes1_values.at(iIter)<0) {penalty = 4; MinPenalty = 4;}
     //penalty factor for having too low scattering length to support hypertriton
     else if(fRes0_values.at(iIter)<2.0) penalty = 1.+2.*fabs(2.0-fRes0_values.at(iIter));
     //let us not get carried away
     else if(fRes0_values.at(iIter)>6.0) penalty = 1.+2.*fabs(5.0-fRes0_values.at(iIter));
-
 
     double nsig_pp = sqrt(2)*TMath::ErfcInverse(TMath::Prob(Chi2[1][1],Ndp[1][1]));
     if(nsig_pp==0) nsig_pp = 10;
@@ -6799,7 +6797,6 @@ void ScanPsUsmani_ForPython(char* InputFileName, bool PLOT_EXAMPLE){
     if(nsig_pL==0) nsig_pL = 10;
 
     //double nsig_fem = 1./sqrt(2.)*sqrt(nsig_pp*nsig_pp+nsig_pL*nsig_pL);
-
     double Chi2_sct = 0;
     int Ndp_sct = 1;
     CrossSectionFit_pL(*CECA_ANA.Kitty_pL, Chi2_sct, Ndp_sct,fOutputTEMP);
@@ -6809,8 +6806,6 @@ void ScanPsUsmani_ForPython(char* InputFileName, bool PLOT_EXAMPLE){
 
     //we should be able to get down to at least 1.6 (assuming chi2 110 and 5 for fmt and sct)
     double nsig_tot = penalty/sqrt(2.)*sqrt(nsig_pL*nsig_pL+nsig_sct*nsig_sct);
-
-
 
     //the sum of the chi2 for pp and pL in the femto region
     //tDev_values.push_back(Chi2[1][1]+Chi2[2][1]);
@@ -6825,7 +6820,6 @@ void ScanPsUsmani_ForPython(char* InputFileName, bool PLOT_EXAMPLE){
     const double Chi2Tolerance_pp = GetDeltaChi2(3,7);//7 as technically speaking f0,d0,f1 and d1 would play a role + 3 source pars
     const double Chi2Baseline_pp = BEST_PP_CHI2+Chi2Tolerance_pp;
     double DeltaChi2_pp = Chi2[1][0] - Chi2Baseline_pp;
-
     double tDev;
     //if we are below the tolerance, consider it as we dont have any deviation
     double nsigRed_pp = 0;
@@ -6837,7 +6831,6 @@ void ScanPsUsmani_ForPython(char* InputFileName, bool PLOT_EXAMPLE){
 
     //artificially increase the nsigma if the pp fit goes beyond 3sigma based on the already bad fit using nlo19 for the pL feed
     //nsig_tot += nsig_pp;
-
     double Chi2_fGoal = 0;
     if(f0_Goal && f0_err){
       Chi2_fGoal += pow((f0_Goal - fRes0_values.at(iIter))/f0_err,2.);
@@ -6845,7 +6838,6 @@ void ScanPsUsmani_ForPython(char* InputFileName, bool PLOT_EXAMPLE){
     if(f1_Goal && f1_err){
       Chi2_fGoal += pow((f1_Goal - fRes1_values.at(iIter))/f1_err,2.);
     }
-
     //the CURRENT ESTIMATOR:
     if(EstimatorType=="sct"){
       tDev = penalty*nsig_sct + sqrt(Chi2_fGoal);
@@ -6877,14 +6869,15 @@ void ScanPsUsmani_ForPython(char* InputFileName, bool PLOT_EXAMPLE){
     }
     //MQA = minimal QA, i.e. only the pp source is checked
     else if(EstimatorType=="ppMQA_chi2_pL"){
-      tDev = Chi2[2][1] + Chi2_sct + DeltaChi2_pp + Chi2_fGoal;
+      tDev = MinPenalty*MinPenalty*Chi2[2][1] + MinPenalty*MinPenalty*Chi2_sct + DeltaChi2_pp + Chi2_fGoal;
     }
     else if(EstimatorType=="ppMQA_chi2_pL_sct"){
-      tDev = Chi2_sct + DeltaChi2_pp + Chi2_fGoal;
+      tDev = MinPenalty*MinPenalty*Chi2_sct + DeltaChi2_pp + Chi2_fGoal;
     }
     else if(EstimatorType=="ppMQA_chi2_pL_fmt"){
-      tDev = Chi2[2][1] + DeltaChi2_pp + Chi2_fGoal;
+      tDev = MinPenalty*MinPenalty*Chi2[2][1] + DeltaChi2_pp + Chi2_fGoal;
     }
+
 
     //tDev_values.push_back( nsig_tot );
     //tDev_values.push_back( Chi2[1][1] );
@@ -9638,12 +9631,12 @@ int CECA_PAPER(int argc, char *argv[]){
 
 
 //ScanPsUsmani_ForPython(argv[1], true);
-//ScanPsUsmani_ForPython(argv[1]);
+ScanPsUsmani_ForPython(argv[1]);
 //cout << "pp    : " << GetDeltaChi2(5,3) << endl;
 //cout << "pL_fem: " << GetDeltaChi2(3.5,9) << endl;
 //cout << "pp_sct: " << GetDeltaChi2(3.5,6) << endl;
 
-  BigPythonFilter(argv[1]);
+ // BigPythonFilter(argv[1]);
 
 return 0;
 
