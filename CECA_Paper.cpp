@@ -9462,7 +9462,7 @@ printf("pLab<=450 MeV (k*<=%.0f): #%u\n",pLab_pCm(450,Mass_L,Mass_p),NumPts);
 
 //type = fmt, sct, tot
 void BigPythonFilter(TString type){
-  const TString InFileName = TString::Format("%s/CecaPaper/BigPythonFit/LotsOfStuff_v1/MERGED/LotsOfStuff_v2.root",GetCernBoxDimi());
+  const TString InFileName = TString::Format("%s/CecaPaper/BigPythonFit/LotsOfStuff_v1/MERGED/LotsOfStuff_v3.root",GetCernBoxDimi());
 
   TFile InFile(InFileName,"read");
   TNtuple* ntResult = (TNtuple*)InFile.Get("ntResult");
@@ -9631,14 +9631,14 @@ int CECA_PAPER(int argc, char *argv[]){
 
 
 //ScanPsUsmani_ForPython(argv[1], true);
-ScanPsUsmani_ForPython(argv[1]);
+//ScanPsUsmani_ForPython(argv[1]);
 //cout << "pp    : " << GetDeltaChi2(5,3) << endl;
 //cout << "pL_fem: " << GetDeltaChi2(3.5,9) << endl;
 //cout << "pp_sct: " << GetDeltaChi2(3.5,6) << endl;
 
- // BigPythonFilter(argv[1]);
+  BigPythonFilter(argv[1]);
 
-return 0;
+//return 0;
 
   //how to read/write the Levy pars into a file
   //TestSaveStuctToFile();
