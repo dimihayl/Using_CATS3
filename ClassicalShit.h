@@ -1,4 +1,6 @@
+#ifndef CLASSICALSHIT_H
+#define CLASSICALSHIT_H
 
+int CLASSICALSHIT(int narg, char** ARGS);
 
-
-int CLASSICALSHIT(int argc, char *argv[]);
+#endif

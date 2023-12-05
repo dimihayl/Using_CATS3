@@ -29,6 +29,7 @@
 #include "TNtuple.h"
 #include "TVector3.h"
 #include "TAxis.h"
+#include "TStyle.h"
 
 
 
@@ -529,7 +530,7 @@ void EffectOnTailFor_pp_pL(){
 
 
 
-void SetUpReso_pipi(CATS& Kitty, DLM_CleverMcLevyResoTM& CleverMcLevyResoTM, const double& cTau, const double& avgmass, const double& fraction, const double& fractionomega, const double& fractionlong, const bool& randomangle=false){
+void SetUpReso_pipi_CUSTOM(CATS& Kitty, DLM_CleverMcLevyResoTM& CleverMcLevyResoTM, const double& cTau, const double& avgmass, const double& fraction, const double& fractionomega, const double& fractionlong, const bool& randomangle=false){
 
     Kitty.SetThetaDependentSource(false);
 
@@ -544,7 +545,8 @@ void SetUpReso_pipi(CATS& Kitty, DLM_CleverMcLevyResoTM& CleverMcLevyResoTM, con
     Float_t k_D,fP1,fP2,fM1,fM2,Tau1,Tau2,AngleRcP1,AngleRcP2,AngleP1P2;
     DLM_Random RanGen(11);
     double RanVal1,RanVal2,RanVal3;
-    TFile* F_EposDisto_p_pReso = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/Max/ForMax_pi_piReso_withOmega.root");
+    //TFile* F_EposDisto_p_pReso = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/Max/ForMax_pi_piReso_withOmega.root");
+    TFile* F_EposDisto_p_pReso = new TFile(TString::Format("%s/CatsFiles/Source/EposAngularDist/ForMax_pi_piReso_withOmega.root",GetCernBoxDimi()));
     TNtuple* T_EposDisto_p_pReso = (TNtuple*)F_EposDisto_p_pReso->Get("InfoTuple_ClosePairs");
     unsigned N_EposDisto_p_pReso = T_EposDisto_p_pReso->GetEntries();
 N_EposDisto_p_pReso = 10000;
@@ -577,7 +579,8 @@ fM2 = 1000;
     }
     delete F_EposDisto_p_pReso;
 
-    TFile* F_EposDisto_pReso_pReso = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/Max/ForMax_piReso_piReso_withOmega.root");
+    //TFile* F_EposDisto_pReso_pReso = new TFile("/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/MixedEvents/Max/ForMax_piReso_piReso_withOmega.root");
+    TFile* F_EposDisto_pReso_pReso = new TFile(TString::Format("%s/CatsFiles/Source/EposAngularDist/ForMax_piReso_piReso_withOmega.root",GetCernBoxDimi()));
     TNtuple* T_EposDisto_pReso_pReso = (TNtuple*)F_EposDisto_pReso_pReso->Get("InfoTuple_ClosePairs");
     unsigned N_EposDisto_pReso_pReso = T_EposDisto_pReso_pReso->GetEntries();
 N_EposDisto_pReso_pReso = 10000;
@@ -647,17 +650,20 @@ printf("pion_core_effect_plots\n");
     TH1F* hAxis = new TH1F("hAxis","hAxis",128,0,160);
     hAxis->SetStats(false);
     hAxis->SetTitle("");
-    hAxis->GetXaxis()->SetTitle("k* (MeV)");
+    hAxis->GetXaxis()->SetTitle("#it{k*} (MeV/#it{c})");
     hAxis->GetXaxis()->SetTitleSize(0.06);
     hAxis->GetXaxis()->SetLabelSize(0.06);
     hAxis->GetXaxis()->SetTitleOffset(1.3);
     hAxis->GetXaxis()->SetLabelOffset(0.02);
 
-    hAxis->GetYaxis()->SetTitle("C(k*)");
+    hAxis->GetYaxis()->SetTitle("#it{C(k*)}");
     hAxis->GetYaxis()->SetTitleSize(0.06);
     hAxis->GetYaxis()->SetLabelSize(0.06);
     hAxis->GetYaxis()->SetTitleOffset(1.10);
     hAxis->GetYaxis()->SetRangeUser(0.95,1.85);
+
+    gStyle->SetPadTickX(1);
+    gStyle->SetPadTickY(1);
 
     TFile myfile(FolderName+"fOutput"+NameAddOn+".root","update");
     TGraph* gCore = (TGraph*)myfile.Get("KittyCore");
@@ -821,6 +827,7 @@ printf("pion_core_effect_plots\n");
     cCk_OmegaLambda->SaveAs(FolderName+"cCk_OmegaLambda"+NameAddOn+".png");
 
     TCanvas* cCk_Full = new TCanvas("cCk_Full", "cCk_Full", 1);
+
     cCk_Full->cd(0);
     cCk_Full->SetCanvasSize(1280, 720);
     cCk_Full->SetMargin(0.15,0.05,0.2,0.05);//lrbt
@@ -828,12 +835,13 @@ printf("pion_core_effect_plots\n");
     l_Full->SetName(TString::Format("l_Full"));
     l_Full->SetTextSize(0.05);
     l_Full->SetBorderSize(0);
-    l_Full->AddEntry(gCore,"r_{core} = 1.5 fm");
-    l_Full->AddEntry(gFull,"r_{core} #oplus all reso");
+    l_Full->AddEntry(gCore,"#it{r}_{core} = 1.5 fm");
+    l_Full->AddEntry(gFull,"#it{r}_{core} #oplus all resonances");
     hAxis->Draw("axis");
     gCore->Draw("C,same");
     gFull->Draw("C,same");
     l_Full->Draw("same");
+
     //gFull->Write();
     cCk_Full->Write();
     cCk_Full->SaveAs(FolderName+"cCk_Full"+NameAddOn+".pdf");
@@ -847,8 +855,8 @@ printf("pion_core_effect_plots\n");
     l_LongLambda->SetName(TString::Format("l_LongLambda"));
     l_LongLambda->SetTextSize(0.05);
     l_LongLambda->SetBorderSize(0);
-    l_LongLambda->AddEntry(gCore,"r_{core} = 1.5 fm");
-    l_LongLambda->AddEntry(gFull,"r_{core} #oplus all reso");
+    l_LongLambda->AddEntry(gCore,"#it{r}_{core} = 1.5 fm");
+    l_LongLambda->AddEntry(gFull,"#it{r}_{core} #oplus all resonances");
     l_LongLambda->AddEntry(gLongLambda,"c#tau > c#tau(#omega) assumed flat");
     hAxis->Draw("axis");
     gCore->Draw("C,same");
@@ -868,9 +876,9 @@ printf("pion_core_effect_plots\n");
     l_Cauchy->SetName(TString::Format("l_Cauchy"));
     l_Cauchy->SetTextSize(0.05);
     l_Cauchy->SetBorderSize(0);
-    l_Cauchy->AddEntry(gCore,"r_{core} = 1.5 fm");
-    l_Cauchy->AddEntry(gFull,"r_{core} #oplus all reso");
-    l_Cauchy->AddEntry(gCauchy,"r_{exp} = 2.0 fm; #lambda = 0.9");
+    l_Cauchy->AddEntry(gCore,"#it{r}_{core} = 1.5 fm");
+    l_Cauchy->AddEntry(gFull,"#it{r}_{core} #oplus all resonances");
+    l_Cauchy->AddEntry(gCauchy,"#it{r}_{exp} = 2.0 fm; #it{#lambda} = 0.9");
     hAxis->Draw("axis");
     gCore->Draw("C,same");
     gFull->Draw("C,same");
@@ -888,13 +896,13 @@ printf("pion_core_effect_plots\n");
         TH1F* hSrAxis = new TH1F("hSrAxis","hSrAxis",128,0,15);
         hSrAxis->SetStats(false);
         hSrAxis->SetTitle("");
-        hSrAxis->GetXaxis()->SetTitle("r* (fm)");
+        hSrAxis->GetXaxis()->SetTitle("#it{r*} (fm)");
         hSrAxis->GetXaxis()->SetTitleSize(0.06);
         hSrAxis->GetXaxis()->SetLabelSize(0.06);
         hSrAxis->GetXaxis()->SetTitleOffset(1.3);
         hSrAxis->GetXaxis()->SetLabelOffset(0.02);
 
-        if(iLog<=1) hSrAxis->GetYaxis()->SetTitle("4#pir*^{2}S(r*) (1/fm)");
+        if(iLog<=1) hSrAxis->GetYaxis()->SetTitle("4#it{#pir*}^{2}#it{S(r*)} (1/fm)");
         else hSrAxis->GetYaxis()->SetTitle("S(r*) (1/fm^{3})");
         hSrAxis->GetYaxis()->SetTitleSize(0.06);
         hSrAxis->GetYaxis()->SetLabelSize(0.06);
@@ -1160,7 +1168,8 @@ void pion_core_effect(const bool& randomangle){
     const double ctau_long = 3.35;
     const double ctau_NoLong = (ctau_short*reso_short+ctau_rho*reso_rho+ctau_long*reso_long)/(reso_short+reso_rho+reso_long);
 
-    TString OutputFolderName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/Pions/pion_core_effect/";
+    TString OutputFolderName = TString::Format("%s/PionAnalysis/pion_core_effect/",GetFemtoOutputFolder());
+    //TString OutputFolderName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/Pions/pion_core_effect/";
     //TString OutputFolderName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/Pions/JerkingOff/";
     TString NameAddOn = "";
     if(randomangle) NameAddOn = "_RA";
@@ -1170,7 +1179,7 @@ void pion_core_effect(const bool& randomangle){
     CATS KittyCore;
     DLM_CleverMcLevyResoTM CMLRTM_Core;
     KittyCore.SetMomBins(NumMomBins,kMin,kMax);
-    SetUpReso_pipi(KittyCore, CMLRTM_Core, 0, 1180, 0, 0, 0, randomangle);
+    SetUpReso_pipi_CUSTOM(KittyCore, CMLRTM_Core, 0, 1180, 0, 0, 0, randomangle);
     KittyCore.SetAnaSource(0,SourceSize);
     KittyCore.SetAutoNormSource(false);
     KittyCore.KillTheCat();
@@ -1180,7 +1189,7 @@ void pion_core_effect(const bool& randomangle){
     CATS KittyShort;
     DLM_CleverMcLevyResoTM CMLRTM_Short;
     KittyShort.SetMomBins(NumMomBins,kMin,kMax);
-    SetUpReso_pipi(KittyShort, CMLRTM_Short, ctau_short, 1300, reso_short, 0, 0, randomangle);
+    SetUpReso_pipi_CUSTOM(KittyShort, CMLRTM_Short, ctau_short, 1300, reso_short, 0, 0, randomangle);
     printf("Short: cTau = %.2f; f = %.2f\n",ctau_short,reso_short);
     KittyShort.SetAnaSource(0,SourceSize);
     KittyShort.SetAutoNormSource(false);
@@ -1192,7 +1201,7 @@ void pion_core_effect(const bool& randomangle){
     DLM_CleverMcLevyResoTM CMLRTM_ShortRho;
     KittyShortRho.SetMomBins(NumMomBins,kMin,kMax);
     //SetUpReso_pipi(KittyShortRho, CMLRTM_ShortRho, ctau_ShortRho, 1000, reso_short+reso_rho, 0, 0, randomangle);
-    SetUpReso_pipi(KittyShortRho, CMLRTM_ShortRho, 1.0, 1000, 1.0, 0, 0, randomangle);
+    SetUpReso_pipi_CUSTOM(KittyShortRho, CMLRTM_ShortRho, 1.0, 1000, 1.0, 0, 0, randomangle);
     printf("ShortRho: cTau = %.2f; f = %.2f\n",ctau_ShortRho,reso_short+reso_rho);
     KittyShortRho.SetAnaSource(0,SourceSize);
     KittyShortRho.SetAutoNormSource(false);
@@ -1203,7 +1212,7 @@ void pion_core_effect(const bool& randomangle){
     CATS KittyNoLong;
     DLM_CleverMcLevyResoTM CMLRTM_NoLong;
     KittyNoLong.SetMomBins(NumMomBins,kMin,kMax);
-    SetUpReso_pipi(KittyNoLong, CMLRTM_NoLong, ctau_NoLong, 1180, reso_short+reso_rho+reso_inter+reso_long, 0, 0, randomangle);
+    SetUpReso_pipi_CUSTOM(KittyNoLong, CMLRTM_NoLong, ctau_NoLong, 1180, reso_short+reso_rho+reso_inter+reso_long, 0, 0, randomangle);
     printf("NoLong: cTau = %.2f; f = %.2f\n",ctau_NoLong,reso_short+reso_rho+reso_inter+reso_long);
     KittyNoLong.SetAnaSource(0,SourceSize);
     KittyNoLong.SetAutoNormSource(false);
@@ -1214,7 +1223,7 @@ void pion_core_effect(const bool& randomangle){
     CATS KittyOmega;
     DLM_CleverMcLevyResoTM CMLRTM_Omega;
     KittyOmega.SetMomBins(NumMomBins,kMin,kMax);
-    SetUpReso_pipi(KittyOmega, CMLRTM_Omega, 1.5, 1180, reso_short+reso_rho+reso_inter+reso_long, reso_omega, 0, randomangle);
+    SetUpReso_pipi_CUSTOM(KittyOmega, CMLRTM_Omega, 1.5, 1180, reso_short+reso_rho+reso_inter+reso_long, reso_omega, 0, randomangle);
     printf("Omega: cTau = %.2f; f = %.2f\n",1.5,reso_short+reso_rho+reso_inter+reso_long+reso_omega);
     KittyOmega.SetAnaSource(0,SourceSize);
     KittyOmega.SetAutoNormSource(false);
@@ -1225,7 +1234,7 @@ void pion_core_effect(const bool& randomangle){
     CATS KittyOmegaLambda;
     DLM_CleverMcLevyResoTM CMLRTM_OmegaLambda;
     KittyOmegaLambda.SetMomBins(NumMomBins,kMin,kMax);
-    SetUpReso_pipi(KittyOmegaLambda, CMLRTM_OmegaLambda, 1.5, 1180, reso_short+reso_rho+reso_inter+reso_long, 0, 0, randomangle);
+    SetUpReso_pipi_CUSTOM(KittyOmegaLambda, CMLRTM_OmegaLambda, 1.5, 1180, reso_short+reso_rho+reso_inter+reso_long, 0, 0, randomangle);
     printf("OmegaLambda: cTau = %.2f; f = %.2f\n",1.5,reso_short+reso_rho+reso_inter+reso_long);
     KittyOmegaLambda.SetAnaSource(0,SourceSize);
     KittyOmegaLambda.SetAutoNormSource(false);
@@ -1240,7 +1249,7 @@ void pion_core_effect(const bool& randomangle){
     CATS KittyFull;
     DLM_CleverMcLevyResoTM CMLRTM_Full;
     KittyFull.SetMomBins(NumMomBins,kMin,kMax);
-    SetUpReso_pipi(KittyFull, CMLRTM_Full, 1.5, 1180, reso_short+reso_rho+reso_inter+reso_long, reso_omega, reso_infinite, randomangle);
+    SetUpReso_pipi_CUSTOM(KittyFull, CMLRTM_Full, 1.5, 1180, reso_short+reso_rho+reso_inter+reso_long, reso_omega, reso_infinite, randomangle);
     printf("Full: cTau = %.2f; f = %.2f\n",1.5,reso_short+reso_rho+reso_inter+reso_long+reso_omega+reso_infinite);
     KittyFull.SetAnaSource(0,SourceSize);
     KittyFull.SetAutoNormSource(false);
@@ -1251,7 +1260,7 @@ void pion_core_effect(const bool& randomangle){
     CATS KittyLongLambda;
     DLM_CleverMcLevyResoTM CMLRTM_LongLambda;
     KittyLongLambda.SetMomBins(NumMomBins,kMin,kMax);
-    SetUpReso_pipi(KittyLongLambda, CMLRTM_LongLambda, 1.5, 1180, reso_short+reso_rho+reso_inter+reso_long, reso_omega, 0, randomangle);
+    SetUpReso_pipi_CUSTOM(KittyLongLambda, CMLRTM_LongLambda, 1.5, 1180, reso_short+reso_rho+reso_inter+reso_long, reso_omega, 0, randomangle);
     printf("LongLambda: cTau = %.2f; f = %.2f\n",1.5,reso_short+reso_rho+reso_inter+reso_long);
     KittyLongLambda.SetAnaSource(0,SourceSize);
     KittyLongLambda.SetAutoNormSource(false);
@@ -1752,7 +1761,7 @@ if(uMom>=12*0)
 int PION_ANA(int narg, char** ARGS){
     //FAST_MT_PLOTS();
     //pion_core_effect(false);
-    //pion_core_effect(true);
+    pion_core_effect(true);
     //pipi_alarm();
     //pipi_test();
     //pipi_omega();
@@ -1761,7 +1770,7 @@ int PION_ANA(int narg, char** ARGS){
 
     //pion_proton_FirstLook();
     //pion_proton_FastLook(1.0,0.6,0.02,0.004,0.002);
-    pion_proton_FastLook();
+    //pion_proton_FastLook();
     //pion_proton_FastLook(1.0,0.6,0.1,0.1,0.1);
     //pion_proton_FastLook(1.2,0.6,0.1,0.1,0.1);
 

@@ -1,6 +1,7 @@
 
 #include "OtherTasks.h"
 #include "gsl_sf_coulomb.h"
+#include <bitset>
 
 #include "CATS.h"
 #include "CATSconstants.h"
@@ -22,6 +23,7 @@
 #include "DLM_Sort.h"
 #include "DLM_DrawingTools.h"
 #include "DLM_DecayMatrix.h"
+#include "DLM_MathFunctions.h"
 
 #include <TApplication.h>
 #include "TGraph.h"
@@ -16449,6 +16451,44 @@ void pp_pSp_Decay(int SEED, int MilNumIter){
   decMat.Run(SEED,MilNumIter*1000*1000);
 }
 
+void piXi1530_piXi_Decay(int SEED, int MilNumIter){
+  DLM_DecayMatrix decMat;
+  TString OutputFileName = TString::Format("%s/CatsFiles/DecaySmear/Decay_matrix_piXim_piXim1530_RS%i.root",GetCernBoxDimi(),SEED);
+  decMat.SetFileName(OutputFileName.Data());
+  decMat.SetHistoName("hRes_piXim_piXim1530");
+  decMat.SetBins(1024,0,1024);
+
+  decMat.SetNumDaughters1(1);
+  decMat.SetMotherMass1(Mass_pic);
+
+  decMat.SetNumDaughters2(2);
+  decMat.SetDaughterMass2(0,Mass_Xim);
+  decMat.SetDaughterMass2(1,Mass_pic);
+  decMat.SetMotherMass2(Mass_Xim1530);
+  decMat.SetMeanMomentum(0);
+  decMat.SetMomentumSpread(350);
+  decMat.Run(SEED,MilNumIter*1000*1000);
+}
+
+void KplusXi1530_KplusXi_Decay(int SEED, int MilNumIter){
+  DLM_DecayMatrix decMat;
+  TString OutputFileName = TString::Format("%s/CatsFiles/DecaySmear/Decay_matrix_KplusXim_KplusXim1530_RS%i.root",GetCernBoxDimi(),SEED);
+  decMat.SetFileName(OutputFileName.Data());
+  decMat.SetHistoName("hRes_KplusXim_KplusXim1530");
+  decMat.SetBins(1024,0,1024);
+
+  decMat.SetNumDaughters1(1);
+  decMat.SetMotherMass1(Mass_Kch);
+
+  decMat.SetNumDaughters2(2);
+  decMat.SetDaughterMass2(0,Mass_Xim);
+  decMat.SetDaughterMass2(1,Mass_pic);
+  decMat.SetMotherMass2(Mass_Xim1530);
+  decMat.SetMeanMomentum(0);
+  decMat.SetMomentumSpread(350);
+  decMat.Run(SEED,MilNumIter*1000*1000);
+}
+
 //study the effect on Ck of the interaction / source(k*),Levy
 //with the RC in p-wave, we see effect at large k*, the bump ~200 MeV can dissapear if we have enough RC
 //however, we see this bump in pretty much all mT bins, theoretically we expect to see it for all sources. So all is fine in p-waves.
@@ -16676,12 +16716,104 @@ void pn_Xchecks_1(){
 
 }
 
+void Test_chiral_2023(TString Singlet, TString Triplet){
+  CATS Kitty;
+  Kitty.SetMomBins(40,0,200);
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
+
+  CATSparameters cPars(CATSparameters::tSource, 1, true);
+  cPars.SetParameter(0, 1.2);
+  Kitty.SetAnaSource(GaussSource, cPars);
+  DLM_Histo<complex<double>> ***ExternalWF = NULL;
+  ExternalWF = Init_pL_Haidenbauer2023(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data(),Kitty,Singlet.Data(),Triplet.Data());
+  for(unsigned uCh=0; uCh<Kitty.GetNumChannels(); uCh++){
+    Kitty.SetChannelWeight(uCh,0);
+  }
+  Kitty.SetChannelWeight(0,1./4.);
+  Kitty.SetChannelWeight(1,3./4.);
+  Kitty.SetExternalWaveFunction(0, 0, ExternalWF[0][0][0], ExternalWF[1][0][0]);
+  Kitty.SetExternalWaveFunction(1, 0, ExternalWF[0][1][0], ExternalWF[1][1][0]);
+  Kitty.KillTheCat();
+
+  CATS FatKitty;
+  FatKitty.SetMomBins(40,0,320);
+  FatKitty.SetAnaSource(GaussSource, cPars);
+  AnalysisObject.SetUpCats_pL(FatKitty,"Chiral2023_"+Singlet+"_and_"+Triplet,"Gauss",0,0);
+  FatKitty.SetAnaSource(0,1.2);
+  FatKitty.KillTheCat();
+
+
+  TString OutputFileName = TString::Format("%s/OtherTasks/Test_chiral_2023/%s_and_%s.root",GetFemtoOutputFolder(),Singlet.Data(),Triplet.Data());
+  TFile fOutput(OutputFileName,"recreate");
+
+  TGraph gCk;
+  gCk.SetName(Singlet+"_and_"+Triplet);
+
+  TGraph gCkFat;
+  gCkFat.SetName(Singlet+"_FAT_"+Triplet);
+
+  for(unsigned uBin=0; uBin<Kitty.GetNumMomBins(); uBin++){
+    gCk.SetPoint(uBin, Kitty.GetMomentum(uBin), Kitty.GetCorrFun(uBin));
+    gCkFat.SetPoint(uBin, FatKitty.GetMomentum(uBin), FatKitty.GetCorrFun(uBin));
+  }
+
+  gCk.Write();
+  gCkFat.Write();
+
+  //if(Singlet=="NLO19_600_291_s" && Triplet=="NLO19_600_141_s"){
+    CATS Original;
+    Original.SetMomBins(40,0,320);
+    Original.SetAnaSource(GaussSource, cPars);
+    AnalysisObject.SetUpCats_pL(Original,"Chiral_Coupled_SPD","Gauss",11600,0);
+    Original.SetAnaSource(0,1.2);
+    Original.KillTheCat();
+    TGraph gCkO;
+    gCkO.SetName(Singlet+"_Paper_"+Triplet);
+    for(unsigned uBin=0; uBin<Original.GetNumMomBins(); uBin++){
+      gCkO.SetPoint(uBin, Original.GetMomentum(uBin), Original.GetCorrFun(uBin));
+    }
+    gCkO.Write();
+  //}
+
+}
+
+void printFloatBits(float value) {
+    // Create a pointer to the float
+    unsigned int* floatBits = reinterpret_cast<unsigned int*>(&value);
+
+    // Use std::bitset to print the bits
+    std::bitset<sizeof(float) * 8> bits(*floatBits);
+    std::cout << "Float: " << value << "\nBits: " << bits << std::endl;
+}
+
+
+
+
+
 //
 int OTHERTASKS(int argc, char *argv[]){
 
   //pp_pSp_Decay(atoi(argv[1]), atoi(argv[2]));
+  //piXi1530_piXi_Decay(atoi(argv[1]), atoi(argv[2]));
+  KplusXi1530_KplusXi_Decay(atoi(argv[1]), atoi(argv[2]));
 
-  PotentialDesignerEngine(argv[1]); return 0;
+  //Test_chiral_2023("NLO19_600_291_sd","NLO19_600_141_sd"); 
+  //Test_chiral_2023("NLO19_600_253_sd","NLO19_600_141_sd"); 
+  //Test_chiral_2023("NLO19_600_291_sd","NLO19_600_132_sd");
+  //Test_chiral_2023("NLO19_600_253_sd","NLO19_600_132_sd");
+  //Test_chiral_2023("NLO19_600_291_sd","NLO19_600_115_sd");
+  //Test_chiral_2023("NLO19_600_253_sd","NLO19_600_115_sd");
+
+  //Test_chiral_2023("NLO19_600_291_s_elastic","NLO19_600_141_s_elastic");
+  //Test_chiral_2023("NLO19_600_291_s","NLO19_600_141_s");
+  //Test_chiral_2023("NLO19_600_291_sp","NLO19_600_141_sp");
+  //Test_chiral_2023("NLO19_600_291_sd","NLO19_600_141_sd");
+  //Test_chiral_2023("NLO19_600_291_spd","NLO19_600_141_spd");
+  
+  return 0;
+
+  //PotentialDesignerEngine(argv[1]); return 0;
   //Test_CoulombEffRangeExp(); return 0;
 
   //pSigmaPlus_pp(argv[1], atof(argv[2]));
@@ -16763,9 +16895,9 @@ int OTHERTASKS(int argc, char *argv[]){
     //Ledni_SmallRad("custom");
     //Ledni_SmallRad("Toy1");
     //Ledni_SmallRad("Yukawa1");
-    //Ledni_SmallRad("pKplusI0");
-    //Ledni_SmallRad("pKplusI1");
-    //Ledni_SmallRad("pKplusYuki");
+    Ledni_SmallRad("pKplusI0");
+    Ledni_SmallRad("pKplusI1");
+    Ledni_SmallRad("pKplusYuki");
     //pXi_Pot();
     //Raffa_Errors();
     //ppp_errors(atoi(argv[1]),atoi(argv[2]));

@@ -17708,7 +17708,123 @@ void N2LO_vs_others(){
   delete hAxis;
 }
 
+//compare  Fix f0 = 2.5 fm -1sig : f0, f1 = 2.50, 1.32 with nsig = 1.1 chi2 = 104.4 + 17.4 = 121.8
+//between Usmani, chiral default, chiral su3b
+void CompareFewVersions_pL(){
+    double chi2_limit = 122;
+    double f0_goal = 2.5;
+    double f1_goal = 1.32;
+    TString InputFileName = TString::Format("%s/CecaPaper/BigPythonFit/LotsOfStuff_v1/MERGED/LotsOfStuff_v2_filteted_tot.root",GetCernBoxDimi());
+    TFile fInput(InputFileName,"read");
+    TNtuple* ntResult = (TNtuple*)fInput.Get("ntResult");
+    float wc0,rc0,sc0,wc1,rc1,sc1,f0,f1,chi2_pL_fmt,chi2_pL_sct;
+
+    const unsigned NumMomBins = 40;
+    const double kMin = 0;
+    const double kMax = 200;
+
+    ntResult->SetBranchAddress("wc0",&wc0);
+    ntResult->SetBranchAddress("rc0",&rc0);
+    ntResult->SetBranchAddress("sc0",&sc0);
+    ntResult->SetBranchAddress("wc1",&wc1);
+    ntResult->SetBranchAddress("rc1",&rc1);
+    ntResult->SetBranchAddress("sc1",&sc1);
+    ntResult->SetBranchAddress("f0",&f0);
+    ntResult->SetBranchAddress("f1",&f1);
+    ntResult->SetBranchAddress("chi2_pL_fmt",&chi2_pL_fmt);
+    ntResult->SetBranchAddress("chi2_pL_sct",&chi2_pL_sct);
+
+    CATSparameters cPar1S0(CATSparameters::tPotential, 4, true);
+    CATSparameters cPar3S1(CATSparameters::tPotential, 4, true);
+
+    for(unsigned uEntry=0; uEntry<ntResult->GetEntries(); uEntry++){
+        ntResult->GetEntry(uEntry);
+        if(chi2_pL_fmt+chi2_pL_sct<chi2_limit && fabs(f0_goal-f0)<0.01 && fabs(f1_goal-f1)<0.005){
+            printf("Suitable Usmani parameterization found:\n");
+            printf(" wc0 = %.3f\n",wc0);
+            printf(" rc0 = %.7f\n",rc0);
+            printf(" sc0 = %.7f\n",sc0);
+            printf(" wc1 = %.3f\n",wc1);
+            printf(" rc1 = %.7f\n",rc1);
+            printf(" sc1 = %.7f\n",sc1);
+
+            cPar1S0.SetParameter(0, 0);
+            cPar1S0.SetParameter(1, wc0);
+            cPar1S0.SetParameter(2, rc0);
+            cPar1S0.SetParameter(3, sc0);
+
+            cPar3S1.SetParameter(0, 1);
+            cPar3S1.SetParameter(1, wc1);
+            cPar3S1.SetParameter(2, rc1);
+            cPar3S1.SetParameter(3, sc1);
+        }
+    }
+
+    CATS CatUsmani;
+    CATS CatJohann;
+    CATS CatSu3bJohann;
+    //CATS CatSu3bJohann_sOnly;
+
+    CatUsmani.SetMomBins(NumMomBins,kMin,kMax);
+    CatJohann.SetMomBins(NumMomBins,kMin,kMax);
+    CatSu3bJohann.SetMomBins(NumMomBins,kMin,kMax);
+
+    DLM_CommonAnaFunctions AnalysisObject;
+    AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
+    AnalysisObject.SetUpCats_pL(CatUsmani,"UsmaniFit","Gauss",0,0);
+
+    CatUsmani.SetShortRangePotential(0,0,1,cPar1S0.GetParameter(1));
+    CatUsmani.SetShortRangePotential(0,0,2,cPar1S0.GetParameter(2));
+    CatUsmani.SetShortRangePotential(0,0,3,cPar1S0.GetParameter(3));
+
+    CatUsmani.SetShortRangePotential(1,0,1,cPar3S1.GetParameter(1));
+    CatUsmani.SetShortRangePotential(1,0,2,cPar3S1.GetParameter(2));
+    CatUsmani.SetShortRangePotential(1,0,3,cPar3S1.GetParameter(3));
+
+    CatUsmani.KillTheCat();
+
+    AnalysisObject.SetUpCats_pL(CatJohann,"Chiral2023_NLO19_600_250_spd_and_NLO19_600_132_spd","Gauss",0,0);
+    //AnalysisObject.SetUpCats_pL(CatSu3bJohann,"Chiral2023_NLO19_600_250_spd_and_NLO19_600_132_spd","Gauss",0,0);
+    AnalysisObject.SetUpCats_pL(CatSu3bJohann,"Chiral2023_NLO19_600_250_spd_su3b_and_NLO19_600_132_spd_su3b","Gauss",0,0);
+
+    CatJohann.KillTheCat();
+    CatSu3bJohann.KillTheCat();
+
+    TGraph gUsmani;
+    gUsmani.SetName("gUsmani");
+    TGraph gJohann;
+    gJohann.SetName("gJohann");
+    TGraph gSu3bJohann;
+    gSu3bJohann.SetName("gSu3bJohann");
+
+    double Momentum;
+    double CkVal;
+    double Norm;
+    for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+        Momentum = CatUsmani.GetMomentum(uMom);
+
+        CkVal = CatUsmani.GetCorrFun(uMom);
+        gUsmani.SetPoint(uMom,Momentum,CkVal);
+
+        CkVal = CatJohann.GetCorrFun(uMom);
+        Norm = CatUsmani.GetCorrFun(0)/CatJohann.GetCorrFun(0);
+        gJohann.SetPoint(uMom,Momentum,CkVal*Norm);
+        //printf("%f x %f\n",CkVal,Norm);
+
+        CkVal = CatSu3bJohann.GetCorrFun(uMom);
+        Norm = CatUsmani.GetCorrFun(0)/CatSu3bJohann.GetCorrFun(0);
+        gSu3bJohann.SetPoint(uMom,Momentum,CkVal*Norm);
+
+    }
+
+    TFile fOutput(TString::Format("%s/pLambda/CompareFewVersions_pL/fOutput.root",GetFemtoOutputFolder()),"recreate");
+    gUsmani.Write();
+    gJohann.Write();
+    gSu3bJohann.Write();
+}
+
 int PLAMBDA_1_MAIN(int argc, char *argv[]){
+    CompareFewVersions_pL(); return 0;
   //pLambda_Compare_Tunes(); return 0;
 //printf("PLAMBDA_1_MAIN\n");
 //SigmaFeed_kinematics();
