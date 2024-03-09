@@ -16489,161 +16489,6 @@ void KplusXi1530_KplusXi_Decay(int SEED, int MilNumIter){
   decMat.Run(SEED,MilNumIter*1000*1000);
 }
 
-//study the effect on Ck of the interaction / source(k*),Levy
-//with the RC in p-wave, we see effect at large k*, the bump ~200 MeV can dissapear if we have enough RC
-//however, we see this bump in pretty much all mT bins, theoretically we expect to see it for all sources. So all is fine in p-waves.
-//for the s-wave the effect of RC is at low k*, it changes peak amplitude and even slightly the position.
-//at first look it seems also the s-wave effects all radii, so we should have seen effects also in the other bins
-void PlayWithProtons(){
-
-  std::vector<float> rad;
-  rad.push_back(0.95);
-  rad.push_back(1.3);
-  const int NumMomBins = 160;
-  const double kMin = 0;
-  const double kMax = 320;
-  CATS KittyAV18;
-  KittyAV18.SetMomBins(NumMomBins,kMin,kMax);
-
-  CATS Kitty;
-  Kitty.SetMomBins(NumMomBins,kMin,kMax);
-
-  DLM_CommonAnaFunctions AnalysisObject;
-  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
-  AnalysisObject.SetUpCats_pp(Kitty,"pp_AV18_Toy","Gauss",0,0);
-  AnalysisObject.SetUpCats_pp(KittyAV18,"AV18","Gauss",1,0);
-
-  //Kitty.SetShortRangePotential(0,0,1,-2000);
-  //Kitty.SetShortRangePotential(0,0,2,0.24);
-
-  //Kitty.SetShortRangePotential(3,1,1,-4000);
-  //Kitty.SetShortRangePotential(3,1,2,0.4);
-
-  Kitty.SetShortRangePotential(3,1,1,-1500);
-  Kitty.SetShortRangePotential(3,1,2,0.4);
-
-  //Kitty.SetQ1Q2(0);
-  //Kitty.SetQuantumStatistics(false);
-  //KittyAV18.SetQ1Q2(0);
-  //KittyAV18.SetQuantumStatistics(false);
-
-  Kitty.KillTheCat();
-  KittyAV18.KillTheCat();
-
-  Kitty.SetNotifications(CATS::nWarning);
-  KittyAV18.SetNotifications(CATS::nWarning);
-
-  const int NumCk = 1;
-  TGraph* gAV18 = new TGraph [rad.size()];
-  TGraph** gCk = new TGraph*[NumCk];
-  TString* CkInfo = new TString [NumCk];
-
-  TGraph g1S0_AV18;
-  TGraph* g1S0_MODY = new TGraph [NumCk];
-  TGraph g3P2_AV18;
-  TGraph* g3P2_MODY = new TGraph [NumCk];
-
-  TGraph gPs1S0_AV18;
-  TGraph* gPs1S0_MODY = new TGraph [NumCk];
-  TGraph gPs3P2_AV18;
-  TGraph* gPs3P2_MODY = new TGraph [NumCk];
-
-  CkInfo[0] = "Modified";
-
-  g1S0_AV18.SetName("g1S0_AV18");
-  g3P2_AV18.SetName("g3P2_AV18");
-  gPs1S0_AV18.SetName("gPs1S0_AV18");
-  gPs3P2_AV18.SetName("gPs3P2_AV18");
-  for(unsigned uRad=0; uRad<rad.size(); uRad++)
-    gAV18[uRad].SetName(TString::Format("gAV18_%.2f",rad.at(uRad)));
-
-  for(unsigned uRstar=0; uRstar<1024; uRstar++){
-    double rstar = double(uRstar+1)*4./1000.;
-    double V1S0 = KittyAV18.EvaluateThePotential(0,0,5,rstar);
-    double V3P2 = KittyAV18.EvaluateThePotential(3,1,5,rstar);
-    g1S0_AV18.SetPoint(uRstar,rstar,V1S0);
-    g3P2_AV18.SetPoint(uRstar,rstar,V3P2);
-  }
-  for(unsigned uMom=0; uMom<NumMomBins; uMom++){
-    double MOM = Kitty.GetMomentum(uMom);
-    double Ps1S0 = KittyAV18.GetPhaseShift(uMom,0,0);
-    double Ps3P2 = KittyAV18.GetPhaseShift(uMom,3,1);
-    gPs1S0_AV18.SetPoint(uMom,MOM,Ps1S0);
-    gPs3P2_AV18.SetPoint(uMom,MOM,Ps3P2);
-  }
-
-  for(unsigned uCk=0; uCk<NumCk; uCk++){
-    gCk[uCk] = new TGraph [rad.size()];
-    g1S0_MODY[uCk].SetName(TString::Format("g1S0_MODY_%s",CkInfo[uCk].Data()));
-    g3P2_MODY[uCk].SetName(TString::Format("g3P2_MODY_%s",CkInfo[uCk].Data()));
-    gPs1S0_MODY[uCk].SetName(TString::Format("gPs1S0_MODY_%s",CkInfo[uCk].Data()));
-    gPs3P2_MODY[uCk].SetName(TString::Format("gPs3P2_MODY_%s",CkInfo[uCk].Data()));
-    for(unsigned uRad=0; uRad<rad.size(); uRad++){
-      gCk[uCk][uRad].SetName(TString::Format("gCk_%s_%.2f",CkInfo[uCk].Data(),rad.at(uRad)));
-      Kitty.SetAnaSource(0,rad.at(uRad));
-      KittyAV18.SetAnaSource(0,rad.at(uRad));
-      Kitty.KillTheCat();
-      KittyAV18.KillTheCat();
-      for(unsigned uMom=0; uMom<NumMomBins; uMom++){
-        double MOM = Kitty.GetMomentum(uMom);
-        double Ck_val = Kitty.GetCorrFun(uMom);
-        gCk[uCk][uRad].SetPoint(uMom,MOM,Ck_val);
-        if(uCk==0){
-          Ck_val = KittyAV18.GetCorrFun(uMom);
-          gAV18[uRad].SetPoint(uMom,MOM,Ck_val);
-        }
-      }
-    }//uRad
-    for(unsigned uRstar=0; uRstar<1024; uRstar++){
-      double rstar = double(uRstar+1)*4./1000.;
-      double V1S0 = Kitty.EvaluateThePotential(0,0,5,rstar);
-      double V3P2 = Kitty.EvaluateThePotential(3,1,5,rstar);
-      g1S0_MODY[uCk].SetPoint(uRstar,rstar,V1S0);
-      g3P2_MODY[uCk].SetPoint(uRstar,rstar,V3P2);
-    }
-    for(unsigned uMom=0; uMom<NumMomBins; uMom++){
-      double MOM = Kitty.GetMomentum(uMom);
-      double Ps1S0 = Kitty.GetPhaseShift(uMom,0,0);
-      double Ps3P2 = Kitty.GetPhaseShift(uMom,3,1);
-      gPs1S0_MODY[uCk].SetPoint(uMom,MOM,Ps1S0);
-      gPs3P2_MODY[uCk].SetPoint(uMom,MOM,Ps3P2);
-    }
-  }
-
-  TString OutputFileName = TString::Format("%s/OtherTasks/PlayWithProtons/fOutput.root",GetFemtoOutputFolder());
-  TFile fOutput(OutputFileName,"recreate");
-
-  for(unsigned uRad=0; uRad<rad.size(); uRad++){
-    gAV18[uRad].Write();
-    for(unsigned uCk=0; uCk<NumCk; uCk++){
-      gCk[uCk][uRad].Write();
-    }
-  }
-
-  g1S0_AV18.Write();
-  gPs1S0_AV18.Write();
-  g3P2_AV18.Write();
-  gPs3P2_AV18.Write();
-  for(unsigned uCk=0; uCk<NumCk; uCk++){
-    g1S0_MODY[uCk].Write();
-    gPs1S0_MODY[uCk].Write();
-    g3P2_MODY[uCk].Write();
-    gPs3P2_MODY[uCk].Write();
-  }
-
-
-  for(unsigned uRad=0; uRad<rad.size(); uRad++){
-    delete [] gCk[uRad];
-  }
-
-  delete [] g1S0_MODY;
-  delete [] g3P2_MODY;
-  delete [] gPs1S0_MODY;
-  delete [] gPs3P2_MODY;
-  delete [] gAV18;
-  delete [] gCk;
-  delete [] CkInfo;
-}
 
 void pn_Xchecks_1(){
   const unsigned NumMomBins = 80;
@@ -16787,16 +16632,160 @@ void printFloatBits(float value) {
     std::cout << "Float: " << value << "\nBits: " << bits << std::endl;
 }
 
+void StableDisto_DlmRan_Test(){
+  const float srcsize = 1.0;
+  std::vector<float> alpha_par;
+  alpha_par.push_back(1);
+  alpha_par.push_back(1.2);
+  alpha_par.push_back(1.4);
+  alpha_par.push_back(1.6);
+  alpha_par.push_back(1.8);
+  alpha_par.push_back(2.0);
 
+  const unsigned NumRndPts = 1000*1000;
+  
+  DLM_Random RanGen(11);
+
+  TH1F** hLevy = new TH1F* [alpha_par.size()];
+  TH1F** hLevy3D = new TH1F* [alpha_par.size()];
+  TH1F** hLevy6D = new TH1F* [alpha_par.size()];
+  TH1F** hLevySrc1 = new TH1F* [alpha_par.size()];
+  const unsigned NumRadBins = 1024;
+  const float rMax = 16;
+
+  for(unsigned uLev=0; uLev<alpha_par.size(); uLev++){
+    float lev = alpha_par.at(uLev);
+    float rx1,ry1,rz1;
+    float rx2,ry2,rz2;
+    hLevy[uLev] = new TH1F(TString::Format("hLevy_%.2f",lev),TString::Format("hLevy_%.2f",lev),NumRadBins,-rMax*0.5,rMax*0.5);
+    hLevy3D[uLev] = new TH1F(TString::Format("hLevy3D_%.2f",lev),TString::Format("hLevy3D_%.2f",lev),NumRadBins,0,rMax);
+    hLevy6D[uLev] = new TH1F(TString::Format("hLevy6D_%.2f",lev),TString::Format("hLevy6D_%.2f",lev),NumRadBins,0,rMax);
+    hLevySrc1[uLev] = new TH1F(TString::Format("hLevySrc1_%.2f",lev),TString::Format("hLevySrc1_%.2f",lev),NumRadBins,0,rMax);
+    for(unsigned uIter=0; uIter<NumRndPts; uIter++){
+      rx1 = RanGen.Stable(lev, 0, srcsize);
+      ry1 = RanGen.Stable(lev, 0, srcsize);
+      rz1 = RanGen.Stable(lev, 0, srcsize);
+      rx2 = RanGen.Stable(lev, 0, srcsize);
+      ry2 = RanGen.Stable(lev, 0, srcsize);
+      rz2 = RanGen.Stable(lev, 0, srcsize);
+      hLevy[uLev]->Fill(rx1);
+      hLevy[uLev]->Fill(ry1);
+      hLevy[uLev]->Fill(rz1);
+      hLevy[uLev]->Fill(rx2);
+      hLevy[uLev]->Fill(ry2);
+      hLevy[uLev]->Fill(rz2);      
+
+      hLevy3D[uLev]->Fill(sqrt(rx1*rx1+ry1*ry1+rz1*rz1));
+      hLevy3D[uLev]->Fill(sqrt(rx2*rx2+ry2*ry2+rz2*rz2));
+
+      hLevy6D[uLev]->Fill(sqrt(pow(rx1-rx2,2.)+pow(ry1-ry2,2.)+pow(rz1-rz2,2.)));
+    }
+    double PARS[5];
+    for(unsigned uRad=0; uRad<NumRadBins; uRad++){
+      double RAD = hLevySrc1[uLev]->GetBinCenter(uRad+1);
+      PARS[1] = RAD;
+      PARS[3] = srcsize;
+      PARS[4] = lev;
+      hLevySrc1[uLev]->SetBinContent(uRad+1, LevySource3D_2particle(PARS));
+    }
+  }
+
+  
+
+  TString OutputFileName = TString::Format("%s/OtherTasks/StableDisto_DlmRan_Test/fOutput.root",GetFemtoOutputFolder());
+  TFile fOutput(OutputFileName,"recreate");
+  for(unsigned uLev=0; uLev<alpha_par.size(); uLev++){
+    hLevy[uLev]->Sumw2();
+    hLevy[uLev]->Scale(1./hLevy[uLev]->Integral(),"width");
+    hLevy3D[uLev]->Scale(1./hLevy3D[uLev]->Integral(),"width");
+    hLevy6D[uLev]->Scale(hLevySrc1[uLev]->Integral()/hLevy6D[uLev]->Integral());
+
+
+    hLevy[uLev]->Write();
+    hLevy3D[uLev]->Write();
+    hLevy6D[uLev]->Write();
+    hLevySrc1[uLev]->Write();
+  }
+
+}
+
+
+//from kstar 0 to 200 typically 2x less CA
+//at kstar = 0 we have some larger amount, say 70% of CA, say f(x) = 2/3∙exp(−x/300) for CA weight
+void pp_Gauss_Cauchy_Mix(){
+  const double NonCaSrcSize = 1.2;//gauss
+  const double CaSrcSize = 1.2*sqrt(2);//cauchy
+  
+  const unsigned NumMomBins = 80;
+  const double kMin = 0;
+  const double kMax = 320;
+
+  const unsigned NumRadBins = 1024;
+  const double rMin = 0;
+  const double rMax = 16; 
+
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles/",GetCernBoxDimi()));
+
+
+  CATS Gauss_Cat;
+  CATS Cauchy_Cat;
+
+  Gauss_Cat.SetMomBins(NumMomBins,kMin,kMax);
+  Cauchy_Cat.SetMomBins(NumMomBins,kMin,kMax);
+
+  AnalysisObject.SetUpCats_pp(Gauss_Cat,"AV18","Gauss",0,0);
+  AnalysisObject.SetUpCats_pp(Cauchy_Cat,"AV18","Cauchy",0,0);
+
+  Gauss_Cat.SetAnaSource(0, NonCaSrcSize);
+  Cauchy_Cat.SetAnaSource(0, CaSrcSize);
+
+  Gauss_Cat.KillTheCat();
+  Cauchy_Cat.KillTheCat();
+
+  TGraph gGauss_Cat;
+  gGauss_Cat.SetName("gGauss_Cat");
+  TGraph gCauchy_Cat;
+  gCauchy_Cat.SetName("gCauchy_Cat");
+
+  TGraph gGauss_Src;
+  gGauss_Src.SetName("gGauss_Src");
+  TGraph gCauchy_Src;
+  gCauchy_Src.SetName("gCauchy_Src");
+
+  for(unsigned uBin=0; uBin<NumMomBins; uBin++){
+    double kstar = Gauss_Cat.GetMomentum(uBin);
+    gGauss_Cat.SetPoint(uBin, kstar, Gauss_Cat.GetCorrFun(uBin));
+    gCauchy_Cat.SetPoint(uBin, kstar, Cauchy_Cat.GetCorrFun(uBin));
+  }
+
+
+  for(unsigned uRad=0; uRad<NumRadBins; uRad++){
+    double rstar = (rMax-rMin)/double(NumRadBins) * (0.5 + double(uRad));
+    gGauss_Src.SetPoint(uRad, rstar, Gauss_Cat.EvaluateTheSource(10, rstar, 0));
+    gCauchy_Src.SetPoint(uRad, rstar, Cauchy_Cat.EvaluateTheSource(10, rstar, 0));
+  }
+
+  TString OutputFileName = TString::Format("%s/OtherTasks/pp_Gauss_Cauchy_Mix/fOutput.root",GetFemtoOutputFolder());
+  TFile fOutput(OutputFileName,"recreate");
+  gGauss_Cat.Write();
+  gCauchy_Cat.Write();
+  gGauss_Src.Write();
+  gCauchy_Src.Write();
+  
+}
 
 
 
 //
 int OTHERTASKS(int argc, char *argv[]){
 
+  //StableDisto_DlmRan_Test(); return 0;
+  pp_Gauss_Cauchy_Mix(); return 0;
+
   //pp_pSp_Decay(atoi(argv[1]), atoi(argv[2]));
   //piXi1530_piXi_Decay(atoi(argv[1]), atoi(argv[2]));
-  KplusXi1530_KplusXi_Decay(atoi(argv[1]), atoi(argv[2]));
+  //KplusXi1530_KplusXi_Decay(atoi(argv[1]), atoi(argv[2]));
 
   //Test_chiral_2023("NLO19_600_291_sd","NLO19_600_141_sd"); 
   //Test_chiral_2023("NLO19_600_253_sd","NLO19_600_141_sd"); 
@@ -16821,7 +16810,7 @@ int OTHERTASKS(int argc, char *argv[]){
 
   //pn_Xchecks_1();
 
-  //PlayWithProtons();return 0;
+  //
   //TestNewCutOff();
 
   //DongFang_Example1(); return 0;

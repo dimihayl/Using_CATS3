@@ -9622,8 +9622,36 @@ void BigPythonFilter(TString type){
 
 }
 
+
+void fit_linear_f0_f1(){
+  TGraphErrors gToFit;
+  gToFit.SetName("gToFit");
+
+  gToFit.SetPoint(0, 2.1, 1.56);
+  gToFit.SetPointError(0, 0, 0.01);
+
+  gToFit.SetPoint(1, 2.5, 1.46);
+  gToFit.SetPointError(1, 0, 0.01);
+
+  gToFit.SetPoint(2, 2.91, 1.32);
+  gToFit.SetPointError(2, 0, 0.02);
+
+  gToFit.SetPoint(3, 3.34, 1.18);
+  gToFit.SetPointError(3, 0, 0.02);
+
+  TF1* fitLin = new TF1("fitLin", "[0]*x+[1]",2.0,3.4);
+  fitLin->SetParameter(0, -0.3);
+  fitLin->SetParameter(1, 2.2);
+  gToFit.Fit(fitLin, "S, N, R, M");
+  
+
+}
+
 int CECA_PAPER(int argc, char *argv[]){
   printf("CECA_PAPER\n\n");
+
+  fit_linear_f0_f1();
+  return 0;
 
   //pLambda_ScatteringData_FF(); return 0;
   //printf("chi2 to get 2 sig: %.2f\n",GetDeltaChi2(8.4-4.5,3)); return 0;
@@ -9636,7 +9664,7 @@ int CECA_PAPER(int argc, char *argv[]){
 //cout << "pL_fem: " << GetDeltaChi2(3.5,9) << endl;
 //cout << "pp_sct: " << GetDeltaChi2(3.5,6) << endl;
 
-  BigPythonFilter(argv[1]);
+  //BigPythonFilter(argv[1]);
 
 //return 0;
 

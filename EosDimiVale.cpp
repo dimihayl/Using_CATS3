@@ -161,9 +161,13 @@ void CrossSectionFit_pL(CATS& Kitty, double& chi2, int& ndp, TFile* fOutput)
   TGraph *gCs_UsmFemto = new TGraph();
   gCs_UsmFemto->SetName("gCs_UsmFemto");
 
+  TGraph *gCk_UsmFemto = new TGraph();
+  gCk_UsmFemto->SetName("gCk_UsmFemto");  
+
   double CrossSection;
   double PhaseShift;
   double kstar;
+  double Ck;
 
   for (unsigned uMom = 0; uMom < Kitty.GetNumMomBins(); uMom++)
   {
@@ -177,9 +181,12 @@ void CrossSectionFit_pL(CATS& Kitty, double& chi2, int& ndp, TFile* fOutput)
     CrossSection += 0.25 * 4. * Pi * NuToFm * NuToFm * 10. / (kstar * kstar) * (pow(sin(PhaseShift), 2));
     PhaseShift = Kitty.GetPhaseShift(uMom, 1, 0);
     CrossSection += 0.75 * 4. * Pi * NuToFm * NuToFm * 10. / (kstar * kstar) * (pow(sin(PhaseShift), 2));
+    Ck = Kitty.GetCorrFun(uMom);
     gCs_UsmFemto->SetPoint(uMom, kstar, CrossSection);
+    gCk_UsmFemto->SetPoint(uMom, kstar, Ck);
     //printf("%u %f %f\n",uMom, kstar, CrossSection);
-  }
+
+}
 
   Kitty.SetNotifications(CATS::nWarning);
 
@@ -198,11 +205,30 @@ void CrossSectionFit_pL(CATS& Kitty, double& chi2, int& ndp, TFile* fOutput)
   //delete hFit;
   //delete fitSP;
 
+
+    unsigned NumRadBins = 384;
+    const float rMin = 0;
+    const float rMax = 4;
+    TH1F* hPotS0 = new TH1F("hPotS0", "hPotS0", NumRadBins, rMin, rMax);
+    TH1F* hPotS1 = new TH1F("hPotS1", "hPotS1", NumRadBins, rMin, rMax);
+    for(unsigned uRad=0; uRad<NumRadBins; uRad++){
+      float rstar = hPotS0->GetBinCenter(uRad+1);
+      //const unsigned short& usCh, const unsigned short& usPW, const double& Momentum, const double& Radius
+      float pot_val = Kitty.EvaluateThePotential(0, 0, 10, rstar);
+      hPotS0->SetBinContent(uRad+1, pot_val);
+      pot_val = Kitty.EvaluateThePotential(1, 0, 10, rstar);
+      hPotS1->SetBinContent(uRad+1, pot_val);
+    }
+
+
   if(fOutput){
     fOutput->cd();
+    hPotS0->Write();
     hPsSin_UsmFemto->Write();
+    hPotS1->Write();
     hPsTri_UsmFemto->Write();
     gCs_UsmFemto->Write();
+    gCk_UsmFemto->Write();
   }
 
   //4) Evaluate chi-square
@@ -233,6 +259,9 @@ void CrossSectionFit_pL(CATS& Kitty, double& chi2, int& ndp, TFile* fOutput)
   delete hPsSin_UsmFemto;
   delete hPsTri_UsmFemto;
   delete gCs_UsmFemto;
+  delete gCk_UsmFemto;
+  delete hPotS0;
+  delete hPotS1;
 }
 int EOSDIMIVALE(int argc, char *argv[])
 {
@@ -241,20 +270,47 @@ int EOSDIMIVALE(int argc, char *argv[])
   DLM_CommonAnaFunctions AnalysisObject;
 
   // CATS set up with usmani, but fixed to femto data
+  const unsigned NumMomBins = 60;
+  float kMin = 0;
+  float kMax = 240;
+  float Eps = 1e-8;
 
-  //CATS Kitty_Charlotte;
-  //Kitty_Charlotte.SetMomBins(NumMomBins, kMin, kMax);
-  //AnalysisObject.SetUpCats_pL(Kitty_Charlotte, "UsmaniFit", "Gauss", 0, 0);
-  //Kitty_Charlotte.SetEpsilonConv(Eps);
-  //Kitty_Charlotte.SetEpsilonProp(Eps);
-  //Kitty_Charlotte.SetShortRangePotential(1,0,1,2279-13.5);
-  //Kitty_Charlotte.SetShortRangePotential(1,0,2,0.3394);
-  //Kitty_Charlotte.SetShortRangePotential(1,0,3,0.2614);
-  //Kitty_Charlotte.KillTheCat();
 
-  //double chi2;
-  //int ndp;
-  //CrossSectionFit_pL(Kitty_Charlotte,chi2,ndp);
+//The values that I get for value ii) of the potential in the table (f0 = 2.1 fm and f1 = 1.56 fm)
+//we have:
+
+//For SPIN 0:
+//Wc = 2084.27
+//Rc = 0.501872
+//dc = 0.204962
+
+//For SPIN1:
+//Wc = 2069.51
+//Rc = 0.442597
+//dc = 0.228846
+
+  CATS Kitty_Charlotte;
+  Kitty_Charlotte.SetMomBins(NumMomBins, kMin, kMax);
+  AnalysisObject.SetUpCats_pL(Kitty_Charlotte, "UsmaniFit", "Gauss", 0, 0);
+  Kitty_Charlotte.SetAnaSource(0, 1.23);
+
+  Kitty_Charlotte.SetEpsilonConv(Eps);
+  Kitty_Charlotte.SetEpsilonProp(Eps);
+
+  Kitty_Charlotte.SetShortRangePotential(0,0,1,atof(argv[2]));
+  Kitty_Charlotte.SetShortRangePotential(0,0,2,atof(argv[3]));
+  Kitty_Charlotte.SetShortRangePotential(0,0,3,atof(argv[4]));
+
+  Kitty_Charlotte.SetShortRangePotential(1,0,1,atof(argv[5]));
+  Kitty_Charlotte.SetShortRangePotential(1,0,2,atof(argv[6]));
+  Kitty_Charlotte.SetShortRangePotential(1,0,3,atof(argv[7]));
+
+  Kitty_Charlotte.KillTheCat();
+
+  double chi2;
+  int ndp;
+  TFile fOutput(argv[1], "recreate");
+  CrossSectionFit_pL(Kitty_Charlotte,chi2,ndp,&fOutput);
 
   return 0;
 }
