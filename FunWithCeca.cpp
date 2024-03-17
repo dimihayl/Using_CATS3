@@ -2955,7 +2955,7 @@ printf("fb %.3f\n",rSP_FragBeta);
 
   Ivana.GhettoFemto_pT1_pT2->ComputeError();
   TH2F* h_GhettoFemto_pT1_pT2 = Convert_DlmHisto_TH2F(Ivana.GhettoFemto_pT1_pT2,"GhettoFemto_pT1_pT2");
-  
+
   Ivana.GhettoFemto_pT1_div_pT->ComputeError();
   TH1F* h_GhettoFemto_pT1_div_pT = Convert_DlmHisto_TH1F(Ivana.GhettoFemto_pT1_div_pT,"GhettoFemto_pT1_div_pT");
 
@@ -5623,30 +5623,30 @@ void Ceca_vs_RSM_1(const std::string part1, const std::string part2){
 
 void Ceca_vs_RSM_2(const std::string part1, const std::string part2, const bool PropMother){
   const double reff = sqrt(2);
-  const double rSP = 0.25*1.04;//1.0
+  const double rSP = 0.176;//1.0,0.25*1.04
   //const double rSP = 0.92;
-  const double FORCED_RCORE = 0.98;
+  const double FORCED_RCORE = 0;//0.98;
 
   //only concider this mt range in the S(r) disto.
   //To exclude the fit, put the range to be very large
-  const double MeanMt = 1.55;
+  const double MeanMt = 1.43;
   //const double MeanMtRange = 1e16;
   const double MeanMtRange = 0.075;
 
   const double EtaCut = 0.8;
   const bool EQUALIZE_TAU = true;
-  const double TIMEOUT = 30.*(1.);
+  const double TIMEOUT = 60.*(1.);
   const double FracProtonReso = 0.6422*1;
   const double FracLambdaReso = 0.6438*1;
-  const double PancakeT = 2.3*1.04;
+  const double PancakeT = 2.68;//2.3*1.04;
   //const double PancakeT = 7.5;
   const double PancakeZ = 0.0;
-  const double Tau = 3.55*1.04;
+  const double Tau = 3.76;//3.55*1.04;
   const double PancakeFluct = 0;//in % !!!
   unsigned THREADS = 8;
   const double MomSpread = 1061;
   const bool THERMAL_KICK = false;
-  const double q_CutOff = 200;
+  const double q_CutOff = 100*2;
   const double DisplT = rSP;
   const double DisplZ = rSP;
 
@@ -9927,7 +9927,7 @@ void CECA_primoridal_disto(int SEED, unsigned NUM_CPU){
   dlm_pT_eta_p = GetPtEta_13TeV(
       TString::Format("%s/CatsFiles/Source/CECA/proton_pT/p_dist_13TeV_ClassI.root",GetCernBoxDimi()),
       "Graph1D_y1", 500, 4050, EtaCut);
-  
+
   double HadronSize = 0;//0.75
   double HadronSlope = 0;//0.2
   const bool PROTON_RESO = true;
@@ -9955,7 +9955,7 @@ void CECA_primoridal_disto(int SEED, unsigned NUM_CPU){
   bool rSP_FixedHadr = true;
   //default is 0
   float rSP_FragBeta = 0;
-  
+
   //this so happens to be exactly the mean of the results from the ceca paper
   //the errors are the half of the difference of the two ceca results + in ^2 the two errors from the paper
   rSP_core = (0.176+0.288)*0.5;
@@ -10006,7 +10006,7 @@ void CECA_primoridal_disto(int SEED, unsigned NUM_CPU){
 
   ListOfParticles.push_back("Proton");
   ListOfParticles.push_back("Proton");
- 
+
   CECA Ivana(Database,ListOfParticles);
 
   Ivana.SetDisplacementZ(rSP_dispZ);
@@ -10058,7 +10058,7 @@ void CECA_primoridal_disto(int SEED, unsigned NUM_CPU){
   h_GhettoFemto_mT_kstar->Write();
   h_Frac_Prim->Write();
   outFile->Close();
-  
+
 
   // Clean up memory
   delete outFile;
@@ -10067,7 +10067,7 @@ void CECA_primoridal_disto(int SEED, unsigned NUM_CPU){
 
 
 
-//a first attempt to simulate CECA events for pp, to be used by the AI people 
+//a first attempt to simulate CECA events for pp, to be used by the AI people
 void CECA_sim_for_AI_pp_v0(int SEED, unsigned NUM_CPU){
 
   double EtaCut = 0.8;
@@ -10075,7 +10075,7 @@ void CECA_sim_for_AI_pp_v0(int SEED, unsigned NUM_CPU){
   dlm_pT_eta_p = GetPtEta_13TeV(
       TString::Format("%s/CatsFiles/Source/CECA/proton_pT/p_dist_13TeV_ClassI.root",GetCernBoxDimi()),
       "Graph1D_y1", 500, 4050, EtaCut);
-  
+
   double HadronSize = 0;//0.75
   double HadronSlope = 0;//0.2
   const bool PROTON_RESO = true;
@@ -10103,7 +10103,7 @@ void CECA_sim_for_AI_pp_v0(int SEED, unsigned NUM_CPU){
   bool rSP_FixedHadr = true;
   //default is 0
   float rSP_FragBeta = 0;
-  
+
   //this so happens to be exactly the mean of the results from the ceca paper
   //the errors are the half of the difference of the two ceca results + in ^2 the two errors from the paper
   rSP_core = (0.176+0.288)*0.5;
@@ -10115,11 +10115,11 @@ void CECA_sim_for_AI_pp_v0(int SEED, unsigned NUM_CPU){
 
   rSP_hadr = (2.68+3.23)*0.5;
   double rSP_hadr_SIG = fabs(2.68-3.23)*0.5;
-  rSP_hadr_SIG = sqrt(pow(rSP_hadr_SIG,2.)+pow(0.175,2.)+pow(0.05,2.));  
+  rSP_hadr_SIG = sqrt(pow(rSP_hadr_SIG,2.)+pow(0.175,2.)+pow(0.05,2.));
 
   rSP_tau = (3.76+3.26)*0.5;
   double rSP_tau_SIG = fabs(3.76-3.26)*0.5;
-  rSP_tau_SIG = sqrt(pow(rSP_tau_SIG,2.)+pow(0.1,2.)+pow(0.04,2.));  
+  rSP_tau_SIG = sqrt(pow(rSP_tau_SIG,2.)+pow(0.1,2.)+pow(0.04,2.));
 
   printf("rSP_core = %.4e +/- %.4e\n",rSP_core, rSP_core_SIG);
   printf("rSP_hadr = %.4e +/- %.4e\n",rSP_hadr, rSP_hadr_SIG);
@@ -10172,7 +10172,7 @@ void CECA_sim_for_AI_pp_v0(int SEED, unsigned NUM_CPU){
 
   ListOfParticles.push_back("Proton");
   ListOfParticles.push_back("Proton");
- 
+
   CECA Ivana(Database,ListOfParticles);
 
   Ivana.SetDisplacementZ(rSP_dispZ);
@@ -10216,7 +10216,7 @@ void CECA_sim_for_AI_pp_v0(int SEED, unsigned NUM_CPU){
 
   // Open the text file
   std::ifstream inFile(pair_file_name);
-  
+
   if (!inFile.is_open()) {
       std::cerr << "Error opening input file." << std::endl;
       return;
@@ -10252,7 +10252,7 @@ void CECA_sim_for_AI_pp_v0(int SEED, unsigned NUM_CPU){
 
   // Clean up memory
   delete outFile;
-  delete ntuple;  
+  delete ntuple;
 
 //rd,h,tau --> get a list of pairs with r* and mT
 //sample rd,h,tau randomly from a gauss
@@ -10284,7 +10284,7 @@ int FUN_WITH_CECA(int argc, char *argv[]){
   //CecaTest_p_pi_1(true);
 
   //CECA_sim_for_AI_pp_v0(atoi(argv[1]), atoi(argv[2]));
-  CECA_primoridal_disto(atoi(argv[1]), atoi(argv[2]));
+  //CECA_primoridal_disto(atoi(argv[1]), atoi(argv[2]));
 
 //printf("GaussFromMean 2.97 = %f\n",GaussFromMean(2.97));
 
@@ -10340,7 +10340,7 @@ int FUN_WITH_CECA(int argc, char *argv[]){
   //Ceca_pd_1(0.0,-3,"pK");
   //Ceca_pd_1(0.0,-1100,"pK");
 
-return 0;
+//return 0;
 
 /*
   Ceca_AB(211,211,1);
@@ -10403,7 +10403,7 @@ return 0;
 
 //concentrate on this one, in particular the prop mother ceca based rsm, seems to almost work
   //Ceca_vs_RSM_2("Proton","Proton",true);
-  //Ceca_vs_RSM_2("Proton","Lambda",true);
+  Ceca_vs_RSM_2("Proton","Lambda",true);
   //Ceca_vs_RSM_2("Proton","Proton",false);
   //Ceca_vs_RSM_2("Proton","Lambda",false);
 
