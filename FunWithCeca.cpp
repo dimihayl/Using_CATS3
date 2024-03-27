@@ -5621,7 +5621,8 @@ void Ceca_vs_RSM_1(const std::string part1, const std::string part2){
   delete f_rcore_Rsm;
 }
 
-void Ceca_vs_RSM_2(const std::string part1, const std::string part2, const bool PropMother){
+void Ceca_vs_RSM_2(const std::string part1, const std::string part2, const bool PropMother, 
+      const double mean_mt=0, const double reso_var=1){
   const double reff = sqrt(2);
   const double rSP = 0.176;//1.0,0.25*1.04
   //const double rSP = 0.92;
@@ -5629,21 +5630,24 @@ void Ceca_vs_RSM_2(const std::string part1, const std::string part2, const bool 
 
   //only concider this mt range in the S(r) disto.
   //To exclude the fit, put the range to be very large
-  const double MeanMt = 1.43;
+  //Raffa: For p-p --->  mT = 1.30 GeV
+  //Raffa: For p-Lambda ---> mT = 1.43 GeV
+  double MeanMt = 1.43;
+  if(mean_mt) MeanMt = mean_mt;
   //const double MeanMtRange = 1e16;
   const double MeanMtRange = 0.075;
 
   const double EtaCut = 0.8;
   const bool EQUALIZE_TAU = true;
-  const double TIMEOUT = 60.*(1.);
-  const double FracProtonReso = 0.6422*1;
-  const double FracLambdaReso = 0.6438*1;
+  const double TIMEOUT = 30.*(1.);
+  const double FracProtonReso = 0.6422*1 * reso_var;
+  const double FracLambdaReso = 0.6438*1 * reso_var;
   const double PancakeT = 2.68;//2.3*1.04;
   //const double PancakeT = 7.5;
   const double PancakeZ = 0.0;
   const double Tau = 3.76;//3.55*1.04;
   const double PancakeFluct = 0;//in % !!!
-  unsigned THREADS = 8;
+  unsigned THREADS = 24;
   const double MomSpread = 1061;
   const bool THERMAL_KICK = false;
   const double q_CutOff = 100*2;
@@ -10263,6 +10267,157 @@ void CECA_sim_for_AI_pp_v0(int SEED, unsigned NUM_CPU){
 }
 
 
+// rho0 = 2.5, RM = 1.25, based on the two-body source
+// the best fit of the 3B points to rho0 = 1.8 to 2.0 (RM = 0.9 - 1)
+void ThreeBody_test1(){
+
+  double HadronSize = 0;//0.75
+  double HadronSlope = 0;//0.2
+  const double EtaCut = 0.8;
+  const bool PROTON_RESO = true;
+  const bool EQUALIZE_TAU = true;
+  //const double TIMEOUT = 60;
+  //const double GLOB_TIMEOUT = 30*60;
+  const double TIMEOUT = 1;
+  const double GLOB_TIMEOUT = 1;
+  const unsigned Multiplicity=3;
+  const double femto_region = 400;
+  const unsigned target_yield = 64*1000;
+  const unsigned NUM_CPU = 1;
+
+  DLM_Histo<float>* dlm_pT_eta_p;
+  DLM_Histo<float>* dlm_pT_eta_L;
+
+  dlm_pT_eta_p = GetPtEta_13TeV(
+    TString::Format("%s/CatsFiles/Source/CECA/proton_pT/p_dist_13TeV_ClassI.root",GetCernBoxDimi()),
+    "Graph1D_y1", 500, 4050, EtaCut);
+  dlm_pT_eta_L = GetPtEta_13TeV(
+    TString::Format("%s/CatsFiles/Source/CECA/Lambda_pT/L_dist_13TeV_ClassI.root",GetCernBoxDimi()),
+    "Graph1D_y1", 400, 8000, EtaCut);
+
+  double rSP_core=0;
+  double rSP_dispZ=0;
+  double rSP_hadr=0;
+  double rSP_hadrZ=0;
+  double rSP_hflc=0;
+  double rSP_tau=0;
+  bool tau_prp = true;
+  double rSP_tflc=0;
+  double rSP_ThK=0;
+  //default is true
+  bool rSP_FixedHadr = true;
+  //default is 0
+  float rSP_FragBeta = 0;
+
+  TString type = "ppp";
+
+  if(type=="ppp"){
+    //this so happens to be exactly as the usmani fit in the ceca paper
+    rSP_core = 0.176;
+    rSP_dispZ = 0.176;
+    rSP_hadr = 2.68;
+    rSP_tau = 3.76;
+
+    rSP_core = 1.62;
+    rSP_dispZ = 1.62;
+    rSP_hadr = 0.0;
+    rSP_tau = 0.0;   
+  }
+  else{
+    printf("BAD STUFF!\n");
+    return;
+  }
+
+  TREPNI Database(0);
+  Database.SetSeed(11);
+  std::vector<TreParticle*> ParticleList;
+  ParticleList.push_back(Database.NewParticle("Proton"));
+  ParticleList.push_back(Database.NewParticle("Pion"));
+  ParticleList.push_back(Database.NewParticle("ProtonReso"));
+
+  TString OutputFolderName;
+  OutputFolderName = "FunWithCeca/ThreeBody_test1";
+  TString BaseFileName = TString::Format("%s/%s/fOutput",GetFemtoOutputFolder(),OutputFolderName.Data());
+
+  TFile fOutput(BaseFileName+".root","recreate");
+
+  for(TreParticle* prt : ParticleList){
+    if(prt->GetName()=="Proton"){
+      prt->SetMass(Mass_p);
+      if(type=="pp") prt->SetAbundance(35.78+64.22*(!PROTON_RESO));
+      else if(type=="pP") prt->SetAbundance(100.);
+      else prt->SetAbundance(0);
+      prt->SetRadius(HadronSize);
+      prt->SetRadiusSlope(HadronSlope);
+      if(dlm_pT_eta_p) prt->SetPtEtaPhi(*dlm_pT_eta_p);
+      else
+        prt->SetPtPz(0.85*prt->GetMass(),0.85*prt->GetMass());
+    }
+    else if(prt->GetName()=="Pion"){
+        prt->SetMass(Mass_pic);
+        prt->SetAbundance(0);
+        prt->SetRadius(HadronSize);
+        prt->SetRadiusSlope(HadronSlope);
+    }
+    else if(prt->GetName()=="ProtonReso"){
+      prt->SetMass(1362);
+      prt->SetAbundance(64.22*PROTON_RESO);
+      prt->SetWidth(hbarc/1.65);
+      prt->SetRadius(HadronSize);
+      prt->SetRadiusSlope(HadronSlope);
+      if(dlm_pT_eta_p) prt->SetPtEtaPhi(*dlm_pT_eta_p);
+      else
+        prt->SetPtPz(0.85*prt->GetMass(),0.85*prt->GetMass());
+
+      prt->NewDecay();
+      prt->GetDecay(0)->AddDaughter(*Database.GetParticle("Proton"));
+      prt->GetDecay(0)->AddDaughter(*Database.GetParticle("Pion"));
+      prt->GetDecay(0)->SetBranching(100);
+    }
+  }
+
+  std::vector<std::string> ListOfParticles;
+
+  ListOfParticles.push_back("Proton");
+  ListOfParticles.push_back("Proton");
+  ListOfParticles.push_back("Proton");
+
+  CECA Ivana(Database,ListOfParticles);
+
+  Ivana.SetDisplacementZ(rSP_dispZ);
+  Ivana.SetDisplacementT(rSP_core);
+  Ivana.SetHadronizationZ(rSP_hadrZ);//0
+  Ivana.SetHadronizationT(rSP_hadr);
+  Ivana.SetHadrFluctuation(rSP_hflc);
+  Ivana.SetTau(rSP_tau,tau_prp);
+  Ivana.SetTauFluct(rSP_tflc);
+  Ivana.SetThermalKick(rSP_ThK);
+  Ivana.SetFixedHadr(rSP_FixedHadr);
+  Ivana.SetFragmentBeta(rSP_FragBeta);
+
+  Ivana.SetTargetStatistics(target_yield);
+  Ivana.SetEventMult(Multiplicity);
+  Ivana.SetSourceDim(3);
+  Ivana.SetDebugMode(true);
+  Ivana.SetThreadTimeout(TIMEOUT);
+  Ivana.SetGlobalTimeout(GLOB_TIMEOUT);
+  Ivana.EqualizeFsiTime(EQUALIZE_TAU);
+  Ivana.SetFemtoRegion(femto_region);
+  Ivana.GHETTO_EVENT = true;
+
+  printf("GoBabyGo\n");
+  Ivana.GoBabyGo(NUM_CPU);
+
+  fOutput.cd();
+  Ivana.Ghetto_kstar_rstar->ComputeError();
+  TH2F* h_Ghetto_kstar_rstar = Convert_DlmHisto_TH2F(Ivana.Ghetto_kstar_rstar,"Ghetto_kstar_rstar");
+
+  fOutput.cd();
+  h_Ghetto_kstar_rstar->Write();
+
+}
+
+
 int FUN_WITH_CECA(int argc, char *argv[]){
   //Sources_In_SourcePaper("pp",1);
   //Sources_In_SourcePaper("pL",1);
@@ -10402,8 +10557,8 @@ int FUN_WITH_CECA(int argc, char *argv[]){
   //ceca_test();
 
 //concentrate on this one, in particular the prop mother ceca based rsm, seems to almost work
-  //Ceca_vs_RSM_2("Proton","Proton",true);
-  Ceca_vs_RSM_2("Proton","Lambda",true);
+  //Ceca_vs_RSM_2("Proton","Proton",true,1.3,1.1);
+  //Ceca_vs_RSM_2("Proton","Lambda",true,1.43,1.1);
   //Ceca_vs_RSM_2("Proton","Proton",false);
   //Ceca_vs_RSM_2("Proton","Lambda",false);
 
@@ -10420,6 +10575,8 @@ int FUN_WITH_CECA(int argc, char *argv[]){
   //RandomParallel(4);
 
   //TestTime();
+
+  ThreeBody_test1();
 
   return 0;
 }

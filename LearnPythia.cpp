@@ -669,7 +669,7 @@ void online_example_1(int seed){
     }
 
 
-    printf("num_ca = %i, num_cm = %i, num_cg = %i\n",num_ca,num_cm,num_cg);
+    //printf("num_ca = %i, num_cm = %i, num_cg = %i\n",num_ca,num_cm,num_cg);
 
     return;
 }
