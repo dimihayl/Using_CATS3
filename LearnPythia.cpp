@@ -40,7 +40,7 @@ struct PairPid {
 //Check if each two protons have a common Ancestor
 //Check if each two protons have a common Mother
 //plot the k* disto for the 2 cases above, as well as for the case of no common things at all
-void online_example_1(int seed){
+void online_example_1(int seed, char* OutputFolder){
     // --- Initialization ---
     Pythia pythia; // Define Pythia object.
     Pythia8::Event& event = pythia.event; // quick access to current event.
@@ -639,7 +639,14 @@ void online_example_1(int seed){
     }
 
 
-    TString OutputFileName = TString::Format("%s/LearnPythia/TomAndJerry_S%i.root",GetFemtoOutputFolder(),seed);
+    TString OutputFileName;
+    if(OutputFolder){
+        OutputFileName = TString::Format("%s/TomAndJerry_S%i.root",OutputFolder,seed);
+    }
+    else{
+        OutputFileName = TString::Format("%s/LearnPythia/TomAndJerry_S%i.root",GetFemtoOutputFolder(),seed);
+    }
+
     TFile fOutput(OutputFileName, "recreate");
     pythiaTree->Write();
     hEventSize->Write();
@@ -682,7 +689,7 @@ int LEARN_PYTHIA(int argc, char *argv[]){
     printf("LEARN_PYTHIA, HELLO!!!\n\n");
     //Compare_pp_AV18_Haide_SingleGauss(atoi(argv[1]));
 
-    online_example_1(atoi(argv[1]));
+    online_example_1(atoi(argv[1]), NULL);
 
 
     return 0;
