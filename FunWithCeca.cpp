@@ -10268,6 +10268,7 @@ void CECA_sim_for_AI_pp_v0(int SEED, unsigned NUM_CPU){
 
 
 // rho0 = 2.5, RM = 1.25, based on the two-body source
+//it seems raffa used for the plot M = 3mp, just as it comes out from the code below, as it stands on 27th March 2024
 // the best fit of the 3B points to rho0 = 1.8 to 2.0 (RM = 0.9 - 1)
 void ThreeBody_test1(){
 

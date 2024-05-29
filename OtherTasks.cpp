@@ -27,6 +27,7 @@
 
 #include <TApplication.h>
 #include "TGraph.h"
+#include "TGraph2D.h"
 #include "TGraphErrors.h"
 //#include "TGraphMultiErrors.h"
 #include "TGraphAsymmErrors.h"
@@ -35,6 +36,7 @@
 #include "TH1F.h"
 #include "TH1D.h"
 #include "TH2F.h"
+#include "TUnfoldDensity.h"
 #include "TNtuple.h"
 #include "TRandom3.h"
 #include "TF1.h"
@@ -16775,13 +16777,503 @@ void pp_Gauss_Cauchy_Mix(){
   
 }
 
+void Unfold_test1(){
 
+  unsigned NumMomBins = 80;
+  double kMin = 0;
+  double kMax = 320;
+  double kMaxX = 960;
+  unsigned NumMomBinsXX = 240;
+  double SourceSize = 1.2;
+  double ERROR_FACTOR = 25;
+
+  //ME true
+  TH1F* hRef_True;
+  //ME CATS smear
+  TH1F* hRef_Det;
+  //ME brute force smear
+  TH1F* hRef_BS;
+  //SE true
+  TH1F* hSame_True;
+  //ME CATS smear
+  TH1F* hSame_Det;
+  //ME brute force smear
+  TH1F* hSame_BS;
+
+  //Ck theo
+  TH1F* hCk_Theo;
+  //Ck true
+  TH1F* hCk_True;
+  //Ck CATS smear of SE/ME
+  TH1F* hCk_Det;
+  //Ck CATS smear with PS
+  TH1F* hCk_Decomp;
+
+  const TString ME_FileName = TString::Format("%s/CatsFiles/ExpData/ALICE_pp_13TeV_HM/Sample10HM/AnalysisResults.root",GetCernBoxDimi());
+  const TString DirName = "HMResults";
+  //this is the reweighted ME sample
+  const TString HistoName = "MEDist_Particle0_Particle0";
+  TFile* fIn_ME = new TFile(ME_FileName,"read");
+  TDirectoryFile* dir_ME=(TDirectoryFile*)(fIn_ME->FindObjectAny(DirName));
+  TList* list1_tmp;
+  dir_ME->GetObject(DirName,list1_tmp);
+  TList* list2_tmp = (TList*)list1_tmp->FindObject("Particle0_Particle0");
+
+  TH1F* hD_ME;
+  hD_ME = (TH1F*)list2_tmp->FindObject(HistoName);
+  printf("hD_ME %p\n",hD_ME);
+  gROOT->cd();
+  hRef_True = new TH1F("hRef_True","hRef_True",hD_ME->GetNbinsX(),
+  hD_ME->GetXaxis()->GetBinLowEdge(1)*1000,hD_ME->GetXaxis()->GetBinLowEdge(hD_ME->GetNbinsX()+1)*1000);
+
+  hCk_Theo = new TH1F("hCk_Theo","hCk_Theo",hD_ME->GetNbinsX(),
+  hD_ME->GetXaxis()->GetBinLowEdge(1)*1000,hD_ME->GetXaxis()->GetBinLowEdge(hD_ME->GetNbinsX()+1)*1000);
+
+  for(unsigned uBin=0; uBin<hD_ME->GetNbinsX(); uBin++){
+    hRef_True->SetBinContent(uBin+1,hD_ME->GetBinContent(uBin+1));
+    //hRef_True->SetBinError(uBin+1,hD_ME->GetBinError(uBin+1));
+  }
+  hRef_True->Sumw2();
+
+  hRef_Det = (TH1F*)hRef_True->Clone("hRef_Det");
+  hRef_BS = (TH1F*)hRef_True->Clone("hRef_BS");
+  TH1F* hRef_X = new TH1F("hRef_X","hRef_X",NumMomBinsXX,kMin,kMaxX);
+//fill in this limited distribution, to try and unfold with less binsw
+ // for(unsigned uBin=0; uBin<NumMomBinsXX; uBin++){
+  //  hRef_X
+ // }
+
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles/",GetCernBoxDimi()));
+
+  CATS Kitty_pp;
+  Kitty_pp.SetMomBins(NumMomBins,kMin,kMax);
+  AnalysisObject.SetUpCats_pp(Kitty_pp,"AV18","Gauss",0,0);
+  Kitty_pp.SetAnaSource(0,SourceSize);
+  Kitty_pp.SetNotifications(CATS::nWarning);//avoid printing stuff
+  //evaluate the theoretical correlation function (NO lambda pars, mom resolution etc.)
+  Kitty_pp.KillTheCat();
+
+  DLM_Ck DlmCk_pp(Kitty_pp.GetNumSourcePars(),0,Kitty_pp);
+  DlmCk_pp.SetCutOff(300,700);
+
+  TH2F* hReso_pp = AnalysisObject.GetResolutionMatrix("pp13TeV_HM_DimiJun20","pp");
+  DLM_CkDecomposition CkDecomp_pp("pp",0,DlmCk_pp,hReso_pp);
+  CkDecomp_pp.AddPhaseSpace(hRef_True);
+  CkDecomp_pp.Update();
+
+  TRandom3 rangen(11);
+
+  hSame_True = (TH1F*)hRef_True->Clone("hSame_True");
+  for(unsigned uBin=0; uBin<hSame_True->GetNbinsX(); uBin++){
+    double kstar = hSame_True->GetBinCenter(uBin+1);
+    double MeVal = hRef_True->GetBinContent(uBin+1);
+    double SeVal = -1;
+    double SeErr = hRef_True->GetBinError(uBin+1)*ERROR_FACTOR;
+    //double CkVal = 0;
+    while(SeVal<0){
+      SeVal = rangen.Gaus(MeVal*DlmCk_pp.Eval(kstar), SeErr);
+    }
+    hSame_True->SetBinContent(uBin+1, SeVal);
+    hSame_True->SetBinError(uBin+1, SeErr);
+    hCk_Theo->SetBinContent(uBin+1, DlmCk_pp.Eval(kstar));
+  }
+
+  hSame_Det = (TH1F*)hSame_True->Clone("hSame_Det");
+  hSame_BS = (TH1F*)hSame_True->Clone("hSame_BS");
+
+  hCk_True = (TH1F*)hSame_True->Clone("hCk_True");
+  hCk_Decomp = new TH1F("hCk_Decomp","hCk_Decomp",NumMomBins,kMin,kMax);
+  hCk_True->Divide(hRef_True);
+
+  for(unsigned uBin=0; uBin<NumMomBins; uBin++){
+    double kstar = Kitty_pp.GetMomentum(uBin);
+    hCk_Decomp->SetBinContent(uBin+1, CkDecomp_pp.EvalCk(kstar));
+    //hCk_Decomp->SetBinContent(uBin+1, DlmCk_pp.Eval(kstar));
+ 
+  }
+
+  DLM_Ck DlmSe_pp(NumMomBinsXX, kMin, kMaxX);
+  DLM_Ck DlmMe_pp(NumMomBinsXX, kMin, kMaxX);
+  for(unsigned uBin=0; uBin<NumMomBinsXX; uBin++){
+    DlmSe_pp.SetBinContent(uBin, hSame_True->GetBinContent(uBin+1));
+    DlmMe_pp.SetBinContent(uBin, hRef_True->GetBinContent(uBin+1));
+  }
+  DLM_CkDecomposition SeDecomp_pp("pp",0,DlmSe_pp,hReso_pp);
+  DLM_CkDecomposition MeDecomp_pp("pp",0,DlmMe_pp,hReso_pp);
+
+  hCk_Det = new TH1F("hCk_Det","hCk_Det",NumMomBinsXX,kMin,kMaxX);
+  for(unsigned uBin=0; uBin<NumMomBinsXX; uBin++){
+    double kstar = DlmSe_pp.GetBinCenter(0, uBin);
+    hCk_Det->SetBinContent(uBin+1,SeDecomp_pp.EvalCk(kstar)/MeDecomp_pp.EvalCk(kstar));
+    hSame_Det->SetBinContent(uBin+1,SeDecomp_pp.EvalCk(kstar));
+    hRef_Det->SetBinContent(uBin+1,MeDecomp_pp.EvalCk(kstar));
+  }
+
+  double bin_width = hSame_True->GetBinWidth(1);
+  double bin_width_reso = hReso_pp->GetXaxis()->GetBinWidth(1);
+  int rescale_factor = TMath::Nint(bin_width/bin_width_reso);
+  printf("bw, bwr, rf = %.2f, %.2f, %i\n", bin_width, bin_width_reso, rescale_factor);
+  TH2F* hReso_pp_rsc = (TH2F*)hReso_pp->Clone("hReso_pp_rsc");
+  hReso_pp_rsc->Rebin2D(rescale_factor,rescale_factor);
+  TH1F* hCk_BS2 = (TH1F*)hCk_True->Clone("hCk_BS2");
+  //brute force smear, should actually be the most accurate
+  for(unsigned uBinY=0; uBinY<NumMomBinsXX; uBinY++){
+    double Sk_val = 0;
+    double Rk_val = 0;
+    double Ck_val = 0;
+    double Norm_val = 0;
+    double NormCk_val = 0;
+    for(unsigned uBinX=0; uBinX<NumMomBinsXX; uBinX++){
+      Sk_val += hReso_pp_rsc->GetBinContent(uBinX+1, uBinY+1)*hSame_True->GetBinContent(uBinX+1);
+      Rk_val += hReso_pp_rsc->GetBinContent(uBinX+1, uBinY+1)*hRef_True->GetBinContent(uBinX+1);
+      Ck_val += hReso_pp_rsc->GetBinContent(uBinX+1, uBinY+1)*hRef_True->GetBinContent(uBinX+1)*hCk_True->GetBinContent(uBinX+1);
+      Norm_val += hReso_pp_rsc->GetBinContent(uBinX+1, uBinY+1);
+      NormCk_val += hReso_pp_rsc->GetBinContent(uBinX+1, uBinY+1)*hRef_True->GetBinContent(uBinX+1);
+    }
+    Sk_val /= Norm_val;
+    Rk_val /= Norm_val;
+    Ck_val /= NormCk_val;
+    hSame_BS->SetBinContent(uBinY+1, Sk_val);
+    hSame_BS->SetBinError(uBinY+1, sqrt(Sk_val)*ERROR_FACTOR);
+    hRef_BS->SetBinContent(uBinY+1, Rk_val);
+    hRef_BS->SetBinError(uBinY+1, sqrt(Rk_val));
+    hCk_BS2->SetBinContent(uBinY+1, Ck_val);
+  }
+  TH1F* hCk_BS = (TH1F*)hSame_BS->Clone("hCk_BS");
+  hCk_BS->Divide(hRef_BS);
+
+
+  // regularize curvature
+  TUnfold::ERegMode regMode =
+     TUnfold::kRegModeCurvature;
+ // preserve the area
+  TUnfold::EConstraint constraintMode=
+     TUnfold::kEConstraintArea;
+  // bin content is divided by the bin width
+  TUnfoldDensity::EDensityMode densityFlags=
+     TUnfoldDensity::kDensityModeBinWidth;
+  // set up matrix of migrations
+  TUnfoldDensity unfold1(hReso_pp,TUnfold::kHistMapOutputHoriz,
+                        regMode,constraintMode,densityFlags);
+
+    // define the input vector (the measured data distribution)
+  unfold1.SetInput(hRef_BS);
+  // run the unfolding
+  Int_t nScan=30;
+  TSpline *logTauX,*logTauY;
+  TGraph *lCurve;
+  // this method scans the parameter tau and finds the kink in the L curve
+  // finally, the unfolding is done for the best choice of tau
+  Int_t iBest=unfold1.ScanLcurve(nScan,0.,0.,&lCurve,&logTauX,&logTauY);
+  cout<<"chi**2="<<unfold1.GetChi2A()<<"+"<<unfold1.GetChi2L()
+      <<" / "<<unfold1.GetNdf()<<"\n";
+
+
+
+
+  TFile fOutput(TString::Format("%s/OtherTasks/Unfold_test1/Unfold_test1.root",GetFemtoOutputFolder()), "recreate");
+  hSame_True->Write();
+  hSame_Det->Write();
+  hSame_BS->Write();
+  hRef_True->Write();
+  hRef_Det->Write();
+  hRef_BS->Write();
+  hCk_Theo->Write();
+  hCk_True->Write();
+  hReso_pp->Write();
+  hCk_Decomp->Write();
+  hCk_Det->Write();
+  hCk_BS->Write();
+  //should actually be the most accurate
+  hCk_BS2->Write();
+  //hUnfolded1->Write();
+  
+  delete hRef_True;
+  delete hRef_Det;
+  delete hRef_BS;
+  delete hSame_True;
+  delete hSame_Det;
+  delete hSame_BS;
+  delete hCk_True;
+  delete hCk_Det;
+  delete hCk_Theo;
+  delete hCk_BS;
+  delete hCk_BS2;
+  //delete hUnfolded1; 
+}
+
+void generate_pp_Neelima(){
+
+  double kMin = 1.25;
+  double kMax = 301.25;
+  unsigned NumMomBins = 120;
+
+  double rMin = 0.7-0.01/2.;
+  double rMax = 1.4+0.01/2.;
+  unsigned NumRadBins = 71;
+
+  CATS Kitty_pp;
+  Kitty_pp.SetMomBins(NumMomBins, kMin, kMax);
+
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
+
+  AnalysisObject.SetUpCats_pp(Kitty_pp,"AV18","Gauss",0,0);
+  //
+  Kitty_pp.SetNotifications(CATS::nWarning);//avoid printing stuff
+  //evaluate the theoretical correlation function (NO lambda pars, mom resolution etc.)
+  Kitty_pp.SetEpsilonConv(1e-8);
+  Kitty_pp.SetEpsilonProp(1e-8);
+  //Kitty_pp.KillTheCat();
+
+  TH2F* h2D_pp_spd = new TH2F("h2D_pp_spd","h2D_pp_spd", NumMomBins, kMin, kMax, NumRadBins, rMin, rMax);
+  TGraph2D g2D_pp_spd;
+  g2D_pp_spd.SetName("g2D_pp_spd");
+
+  for(unsigned uRad=0; uRad<NumRadBins; uRad++){
+    double rad = h2D_pp_spd->GetYaxis()->GetBinCenter(uRad+1);
+    printf("rad = %.3f\n",rad);
+    if(uRad%10==0)
+      Kitty_pp.SetAnaSource(0,rad);
+    else
+      Kitty_pp.SetAnaSource(0,rad,true);
+    Kitty_pp.KillTheCat();
+
+    for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+      double CkVal = Kitty_pp.GetCorrFun(uMom);
+      double mom = Kitty_pp.GetMomentum(uMom);
+      h2D_pp_spd->SetBinContent(uMom+1,uRad+1,CkVal);
+      g2D_pp_spd.SetPoint(uRad*NumRadBins+uMom,mom,rad,CkVal);
+    }
+  }
+
+
+
+  TH2F* h2D_pp_s = new TH2F("h2D_pp_s","h2D_pp_s", NumMomBins, kMin, kMax, NumRadBins, rMin, rMax);
+  TGraph2D g2D_pp_s;
+  g2D_pp_s.SetName("g2D_pp_s");
+
+
+    Kitty_pp.RemoveShortRangePotential(0,2);
+    Kitty_pp.RemoveShortRangePotential(1,1);
+    Kitty_pp.RemoveShortRangePotential(2,1);
+    Kitty_pp.RemoveShortRangePotential(3,1);
+
+  for(unsigned uRad=0; uRad<NumRadBins; uRad++){
+    double rad = h2D_pp_s->GetYaxis()->GetBinCenter(uRad+1);
+    printf("rad = %.3f\n",rad);
+    if(uRad%10==0)
+      Kitty_pp.SetAnaSource(0,rad);
+    else
+      Kitty_pp.SetAnaSource(0,rad,true);
+    Kitty_pp.KillTheCat();
+
+    for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+      double CkVal = Kitty_pp.GetCorrFun(uMom);
+      double mom = Kitty_pp.GetMomentum(uMom);
+      h2D_pp_s->SetBinContent(uMom+1,uRad+1,CkVal);
+      g2D_pp_s.SetPoint(uRad*NumRadBins+uMom,mom,rad,CkVal);
+    }
+  }
+
+
+
+  TFile fOutput(TString::Format("%s/OtherTasks//generate_pp_Neelima.root",GetFemtoOutputFolder()), "recreate");
+  h2D_pp_spd->Write();
+  g2D_pp_spd.Write();
+  h2D_pp_s->Write();
+  g2D_pp_s.Write();
+
+  //g2D_pp.SetPoint(0,-1,-1,1);
+  //g2D_pp.SetPoint(1,1,-1,1);
+  //g2D_pp.SetPoint(2,-1,1,2);
+  //g2D_pp.SetPoint(3,1,1,2);
+
+  //printf("0, -1: %.2f\n", g2D_pp.Interpolate(0,-1));
+  //printf(" 1, 0: %.2f\n", g2D_pp.Interpolate(1,0));
+  //printf(" 0, 1: %.2f\n", g2D_pp.Interpolate(0,1));
+  //printf("-1, 0: %.2f\n", g2D_pp.Interpolate(-1,0));
+  //printf(" 0, 0: %.2f\n", g2D_pp.Interpolate(0,0));
+  //printf(" 0, 0.5: %.2f\n", g2D_pp.Interpolate(0,0.5));
+
+  delete h2D_pp_spd;
+  delete h2D_pp_s;
+}
+
+//run using the old code, to set a baseline to reproduce
+void TestLambdaKstar_Baseline(TString OutputFileName){
+  unsigned NumMomBins_pp = 75;
+  unsigned NumMomBins_pL = 25;
+  double kMin = 0;
+  double kMax = 300;
+
+  CATS Kitty_pp;
+  Kitty_pp.SetMomBins(NumMomBins_pp, kMin, kMax);
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
+  AnalysisObject.SetUpCats_pp(Kitty_pp,"AV18","Gauss",0,0);
+  Kitty_pp.KillTheCat();
+
+  CATS Kitty_pL;
+  Kitty_pL.SetMomBins(NumMomBins_pL, kMin, kMax);
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
+  AnalysisObject.SetUpCats_pL(Kitty_pL,"Usmani","Gauss",0,0);
+  Kitty_pL.KillTheCat();  
+
+  DLM_Ck Ck_Kitty_pp(Kitty_pp.GetNumSourcePars(),0,Kitty_pp,NumMomBins_pp*3,kMin,kMax*3);
+  DLM_Ck Ck_Kitty_pL(Kitty_pL.GetNumSourcePars(),0,Kitty_pL,NumMomBins_pL*3,kMin,kMax*3);
+
+  Ck_Kitty_pp.SetCutOff(300,700);
+  Ck_Kitty_pL.SetCutOff(300,700);
+
+  Ck_Kitty_pp.Update();
+  Ck_Kitty_pL.Update();
+
+  TH2F* hReso_pp = AnalysisObject.GetResolutionMatrix("pp13TeV_HM_DimiJun20","pp");
+  TH2F* hFeed_pp_pL = AnalysisObject.GetResidualMatrix("pp","pLambda");
+
+  DLM_CkDecomposition CkDecomp_pp("pp",3,Ck_Kitty_pp,hReso_pp);
+  DLM_CkDecomposition CkDecomp_pL("pLambda",2,Ck_Kitty_pL,NULL);
+
+
+  CkDecomp_pL.AddContribution(0,0.4,DLM_CkDecomposition::cFeedDown);
+  CkDecomp_pL.AddContribution(1,0.1,DLM_CkDecomposition::cFake);
+
+  CkDecomp_pp.AddContribution(0,0.2,DLM_CkDecomposition::cFeedDown,&CkDecomp_pL,hFeed_pp_pL);
+  CkDecomp_pp.AddContribution(1,0.1,DLM_CkDecomposition::cFeedDown);
+  CkDecomp_pp.AddContribution(2,0.01,DLM_CkDecomposition::cFake);
+
+  CkDecomp_pp.Update();
+  CkDecomp_pL.Update();
+
+  TFile fOutput(TString::Format("%s/OtherTasks/TestLambdaKstar/%s.root",GetFemtoOutputFolder(),OutputFileName.Data()), "recreate");
+  TGraph g_cats_pp;
+  g_cats_pp.SetName("g_cats_pp");
+  g_cats_pp.SetLineWidth(6);
+  g_cats_pp.SetLineColor(kGreen+1);
+  TGraph g_ck_pp;
+  g_ck_pp.SetName("g_ck_pp");
+  g_ck_pp.SetLineWidth(5);
+  g_ck_pp.SetLineColor(kBlue);
+  g_ck_pp.SetLineStyle(2);
+  TGraph g_dec_pp;
+  g_dec_pp.SetName("g_dec_pp");
+  g_dec_pp.SetLineWidth(4);
+  g_dec_pp.SetLineColor(kRed+1);
+  for(unsigned uMom=0; uMom<NumMomBins_pp*3; uMom++){
+    double kstar = Ck_Kitty_pp.GetBinCenter(0, uMom);
+    if(kstar<kMax) g_cats_pp.SetPoint(uMom, kstar, Kitty_pp.GetCorrFun(uMom));
+    g_ck_pp.SetPoint(uMom, kstar, Ck_Kitty_pp.GetBinContent(uMom));
+    g_dec_pp.SetPoint(uMom, kstar, CkDecomp_pp.EvalCk(kstar));
+  }
+  g_cats_pp.Write();
+  g_ck_pp.Write();
+  g_dec_pp.Write();
+}
+
+//use the new code with fixed lambda pars, to see if you reproduce your baseline
+void TestLambdaKstar_NewCode(){
+
+}
+
+//introduce some kstar dependance, to see if it makes sence
+void TestLambdaKstar_KstarDep(TString OutputFileName){
+  unsigned NumMomBins_pp = 75;
+  unsigned NumMomBins_pL = 25;
+  double kMin = 0;
+  double kMax = 300;
+
+  CATS Kitty_pp;
+  Kitty_pp.SetMomBins(NumMomBins_pp, kMin, kMax);
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
+  AnalysisObject.SetUpCats_pp(Kitty_pp,"AV18","Gauss",0,0);
+  Kitty_pp.KillTheCat();
+
+  CATS Kitty_pL;
+  Kitty_pL.SetMomBins(NumMomBins_pL, kMin, kMax);
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
+  AnalysisObject.SetUpCats_pL(Kitty_pL,"Usmani","Gauss",0,0);
+  Kitty_pL.KillTheCat();  
+
+  DLM_Ck Ck_Kitty_pp(Kitty_pp.GetNumSourcePars(),0,Kitty_pp,NumMomBins_pp*3,kMin,kMax*3);
+  DLM_Ck Ck_Kitty_pL(Kitty_pL.GetNumSourcePars(),0,Kitty_pL,NumMomBins_pL*3,kMin,kMax*3);
+
+  Ck_Kitty_pp.SetCutOff(300,700);
+  Ck_Kitty_pL.SetCutOff(300,700);
+
+  Ck_Kitty_pp.Update();
+  Ck_Kitty_pL.Update();
+
+  TH2F* hReso_pp = AnalysisObject.GetResolutionMatrix("pp13TeV_HM_DimiJun20","pp");
+  TH2F* hFeed_pp_pL = AnalysisObject.GetResidualMatrix("pp","pLambda");
+
+  DLM_CkDecomposition CkDecomp_pp("pp",3,Ck_Kitty_pp,hReso_pp);
+  DLM_CkDecomposition CkDecomp_pL("pLambda",2,Ck_Kitty_pL,NULL);
+
+  DLM_Histo<double> lambda_pL_to_pp;
+  lambda_pL_to_pp.SetUp(1);
+  lambda_pL_to_pp.SetUp(0,100,0,1000);
+  lambda_pL_to_pp.Initialize();
+  lambda_pL_to_pp.SetBinContentAll(0.2);
+  if(OutputFileName=="Dynamic"){
+    for(unsigned uBin=0; uBin<lambda_pL_to_pp.GetNbins(); uBin++){
+      if(lambda_pL_to_pp.GetBinCenter(0,uBin)<40){
+        lambda_pL_to_pp.SetBinContent(uBin,0.05);
+      }
+    }
+  }
+
+  CkDecomp_pL.AddContribution(0,0.4,DLM_CkDecomposition::cFeedDown);
+  CkDecomp_pL.AddContribution(1,0.1,DLM_CkDecomposition::cFake);
+
+  CkDecomp_pp.AddContribution(0,lambda_pL_to_pp,DLM_CkDecomposition::cFeedDown,&CkDecomp_pL,hFeed_pp_pL);
+  CkDecomp_pp.AddContribution(1,0.1,DLM_CkDecomposition::cFeedDown);
+  CkDecomp_pp.AddContribution(2,0.01,DLM_CkDecomposition::cFake);
+
+  CkDecomp_pp.Update();
+  CkDecomp_pL.Update();
+
+  TFile fOutput(TString::Format("%s/OtherTasks/TestLambdaKstar/%s.root",GetFemtoOutputFolder(),OutputFileName.Data()), "recreate");
+  TGraph g_cats_pp;
+  g_cats_pp.SetName("g_cats_pp");
+  g_cats_pp.SetLineWidth(6);
+  g_cats_pp.SetLineColor(kGreen+1);
+  TGraph g_ck_pp;
+  g_ck_pp.SetName("g_ck_pp");
+  g_ck_pp.SetLineWidth(5);
+  g_ck_pp.SetLineColor(kBlue);
+  g_ck_pp.SetLineStyle(2);
+  TGraph g_dec_pp;
+  g_dec_pp.SetName("g_dec_pp");
+  g_dec_pp.SetLineWidth(4);
+  g_dec_pp.SetLineColor(kRed+1);
+  for(unsigned uMom=0; uMom<NumMomBins_pp*3; uMom++){
+    double kstar = Ck_Kitty_pp.GetBinCenter(0, uMom);
+    if(kstar<kMax) g_cats_pp.SetPoint(uMom, kstar, Kitty_pp.GetCorrFun(uMom));
+    g_ck_pp.SetPoint(uMom, kstar, Ck_Kitty_pp.GetBinContent(uMom));
+    g_dec_pp.SetPoint(uMom, kstar, CkDecomp_pp.EvalCk(kstar));
+  }
+  g_cats_pp.Write();
+  g_ck_pp.Write();
+  g_dec_pp.Write();
+}
 
 //
 int OTHERTASKS(int argc, char *argv[]){
 
+  //TestLambdaKstar_Baseline("Baseline");
+  //TestLambdaKstar_Baseline("NewCode");
+  //TestLambdaKstar_KstarDep("Static");
+  TestLambdaKstar_KstarDep("Dynamic");
+  return 0;
+
   //StableDisto_DlmRan_Test(); return 0;
-  pp_Gauss_Cauchy_Mix(); return 0;
+  //pp_Gauss_Cauchy_Mix(); return 0;
+
+  Unfold_test1();
+  //generate_pp_Neelima();
 
   //pp_pSp_Decay(atoi(argv[1]), atoi(argv[2]));
   //piXi1530_piXi_Decay(atoi(argv[1]), atoi(argv[2]));

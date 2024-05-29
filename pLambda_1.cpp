@@ -8260,7 +8260,7 @@ void Plot_pL_SystematicsMay2020(const int& SIGMA_FEED, const int& WhichSourceAlp
 	plambdaTree->SetBranchAddress("lam_Xim_genuine",&lam_Xim_genuine);
 	plambdaTree->SetBranchAddress("lam_Xim_Flat",&lam_Xim_Flat);
 	plambdaTree->SetBranchAddress("WhichData",&WhichData);
-  plambdaTree->SetBranchAddress("WhichPS",&WhichPS);
+    plambdaTree->SetBranchAddress("WhichPS",&WhichPS);
 	plambdaTree->SetBranchAddress("pval",&pval);
 	plambdaTree->SetBranchAddress("DefaultVariation",&DefaultVariation);
 
@@ -16085,7 +16085,6 @@ void EffectOfLambdaKaon(){
     DLM_CkDecomposition CkDec_LambdaKaon("LambdaKaon",0,Ck_LambdaKaon,NULL);
     CkDec_LambdaKaon.Update();
 
-
     DLM_Ck Dummy_pL(0,0,NumMomBins,kMin,kMax,Flat_Residual);
     Dummy_pL.Update();
     DLM_CkDecomposition CkDec_pL("pLambda",1,Dummy_pL,NULL);
@@ -17161,6 +17160,122 @@ void Match_Usmani_NLO(const int& RndSeed, const unsigned& NumRndSteps=1){
 }
 
 
+
+
+
+
+void Compare_Usmani_NLO(bool Norm){
+
+  const unsigned NumMomBins = 27;
+  const double kMin = 0;
+  const double kMax = 324;
+
+  const double reff = 1.23;
+
+  const double NormAt = 180;
+
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
+
+  CATS Kitty_pL_NLO;
+  Kitty_pL_NLO.SetMomBins(NumMomBins,kMin,kMax);
+  AnalysisObject.SetUpCats_pL(Kitty_pL_NLO,"Chiral_Coupled_SPD","Gauss",11600,0);
+  Kitty_pL_NLO.SetAnaSource(0,reff);
+
+  CATS Kitty_pL_Usmani;
+  Kitty_pL_Usmani.SetMomBins(NumMomBins,kMin,kMax);
+  AnalysisObject.SetUpCats_pL(Kitty_pL_Usmani,"UsmaniFitAll","Gauss",0,0);
+  Kitty_pL_Usmani.SetAnaSource(0,reff);
+
+  Kitty_pL_NLO.KillTheCat();
+  Kitty_pL_Usmani.KillTheCat();
+
+
+  CATS Kitty_pL_Usmani_NLO;
+  Kitty_pL_Usmani_NLO.SetMomBins(NumMomBins,kMin,kMax);
+  AnalysisObject.SetUpCats_pL(Kitty_pL_Usmani_NLO,"UsmaniFitAll","Gauss",0,0);
+  Kitty_pL_Usmani_NLO.SetAnaSource(0,reff);
+  Kitty_pL_Usmani_NLO.SetShortRangePotential(1,0,1,2279.0);
+  Kitty_pL_Usmani_NLO.SetShortRangePotential(1,0,2,0.3394);
+  Kitty_pL_Usmani_NLO.SetShortRangePotential(1,0,3,0.2614);
+  Kitty_pL_Usmani_NLO.KillTheCat();
+
+  CATS Kitty_pL_NLO_Elastic;
+  Kitty_pL_NLO_Elastic.SetMomBins(NumMomBins,kMin,kMax);
+  AnalysisObject.SetUpCats_pL(Kitty_pL_NLO_Elastic,"Chiral_Coupled_SPD","Gauss",11600,0);
+  Kitty_pL_NLO_Elastic.SetAnaSource(0,reff);
+  //switch off elastic channels
+  for(unsigned uCh=7; uCh<Kitty_pL_NLO_Elastic.GetNumChannels(); uCh++){
+    Kitty_pL_NLO_Elastic.SetChannelWeight(uCh,0);
+  }
+  Kitty_pL_NLO_Elastic.KillTheCat();
+  
+
+  TGraph grNLO;
+  grNLO.SetName("grNLO");
+  grNLO.SetLineWidth(5);
+  grNLO.SetLineColor(kCyan);
+  TH1F* hNLO = new TH1F("hNLO","hNLO",NumMomBins,kMin,kMax);
+
+  TGraph grUsmani;
+  grUsmani.SetName("grUsmani");
+  grUsmani.SetLineWidth(5);
+  grUsmani.SetLineColor(kBlue+1);
+
+  TGraph grNLO_Elastic;
+  grNLO_Elastic.SetName("grNLO_Elastic");
+  grNLO_Elastic.SetLineWidth(5);
+  grNLO_Elastic.SetLineColor(kViolet);
+  TH1F* hNLO_Elastic = new TH1F("hNLO_Elastic","hNLO_Elastic",NumMomBins,kMin,kMax);
+
+  TGraph grUsmani_NLO;
+  grUsmani_NLO.SetName("grUsmani_NLO");
+  grUsmani_NLO.SetLineWidth(5);
+  grUsmani_NLO.SetLineColor(kCyan+2);
+
+  double NormBL = Kitty_pL_Usmani.EvalCorrFun(NormAt);
+  double Norm_NLO = NormBL/Kitty_pL_NLO.EvalCorrFun(NormAt);
+  double Norm_NLO_Elastic = NormBL/Kitty_pL_NLO_Elastic.EvalCorrFun(NormAt);
+  double Norm_Usmani_NLO = NormBL/Kitty_pL_Usmani_NLO.EvalCorrFun(NormAt);
+  if(Norm==false){
+    Norm_NLO = 1;
+    Norm_NLO_Elastic = 1;
+    Norm_Usmani_NLO = 1;
+  }
+
+
+  for(unsigned uBin=0; uBin<NumMomBins; uBin++){
+    double kstar = Kitty_pL_NLO.GetMomentum(uBin);
+    grNLO.SetPoint(uBin,kstar,Kitty_pL_NLO.GetCorrFun(uBin)*Norm_NLO);
+    hNLO->SetBinContent(uBin+1,Kitty_pL_NLO.GetCorrFun(uBin)*Norm_NLO);
+    hNLO->SetBinError(uBin+1,Kitty_pL_NLO.GetCorrFun(uBin)*Norm_NLO*0.005);
+
+    grNLO_Elastic.SetPoint(uBin,kstar,Kitty_pL_NLO_Elastic.GetCorrFun(uBin)*Norm_NLO_Elastic);
+    hNLO_Elastic->SetBinContent(uBin+1,Kitty_pL_NLO_Elastic.GetCorrFun(uBin)*Norm_NLO_Elastic);
+    hNLO_Elastic->SetBinError(uBin+1,Kitty_pL_NLO_Elastic.GetCorrFun(uBin)*Norm_NLO_Elastic*0.005);
+
+    grUsmani.SetPoint(uBin,kstar,Kitty_pL_Usmani.GetCorrFun(uBin));
+    grUsmani_NLO.SetPoint(uBin,kstar,Kitty_pL_Usmani_NLO.GetCorrFun(uBin)*Norm_Usmani_NLO);
+  }
+
+
+  TFile fOutput(TString::Format("%s/pLambda/Compare_Usmani_NLO_N%i.root",GetFemtoOutputFolder(),Norm),"recreate");
+  grNLO.Write();
+  grUsmani_NLO.Write();
+  grNLO_Elastic.Write();
+  grUsmani.Write();
+
+  delete hNLO;
+  delete hNLO_Elastic;
+
+}
+
+
+
+
+
+
+
 //goal: read the 2D SE and ME vs either mT or Mult, and plot the simple total ME (sum of all differential bins)
 //and compared it to a case where each ME is scaled by the total number of pairs in the SE (the corresponding differential bin).
 //plot the ratio of the total ME vs the weighted cases.
@@ -17823,8 +17938,24 @@ void CompareFewVersions_pL(){
     gSu3bJohann.Write();
 }
 
+void Evaluate_reff_pL(){
+    std::vector<double> rcore;
+
+    rcore.push_back(1.02);
+    rcore.push_back(0.94);
+
+    DLM_CleverMcLevyResoTM MagicSource_Epos_pL;
+    SetUp_RSM_pL(MagicSource_Epos_pL,GetCernBoxDimi());
+    for(unsigned uR=0; uR<rcore.size(); uR++){
+        double R_CORE = rcore.at(uR);
+        printf(" r_core = %.3f --> r_eff = %.3f fm\n", R_CORE, GetReff(MagicSource_Epos_pL, R_CORE));
+    }
+}
+
 int PLAMBDA_1_MAIN(int argc, char *argv[]){
-    CompareFewVersions_pL(); return 0;
+    Evaluate_reff_pL();
+    //Compare_Usmani_NLO(0); Compare_Usmani_NLO(1); return 0;
+    //CompareFewVersions_pL(); return 0;
   //pLambda_Compare_Tunes(); return 0;
 //printf("PLAMBDA_1_MAIN\n");
 //SigmaFeed_kinematics();
