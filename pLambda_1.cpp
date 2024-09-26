@@ -7087,6 +7087,7 @@ std::vector<SpecialRange> ReweightError;
     //1 - extend cusp radius whatever it was back in the day
     //2 - extend the variations such, only to cover more radii
 const int ExtendedSyst = 0;
+const bool NEW_CORE = true;
 
     //if we go beyond the 1 hour 50 minutes mark, we stop
     //safety for the batch farm
@@ -7106,7 +7107,7 @@ const int ExtendedSyst = 0;
     // new syst: pLambda(1.55):   low 0.853396 mean 0.877717 up 0.90239
     //the values below is for the updated epos version of the source
     const float SourceSizeErr = (1.05676-0.980842)*0.5;
-    const float SourceSize = (1.05676+0.980842)*0.5;//+2.*SourceSizeErr;
+    const float SourceSize = NEW_CORE==false?(1.05676+0.980842)*0.5:(1.05676+0.980842)*0.5 - 2*SourceSizeErr;//+2.*SourceSizeErr;
 
     float SourceAlpha = 2.0;
 
@@ -9202,8 +9203,9 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
     TString BlName1;
     TString BlName2;
     TString BlDescr;
+    //what I found out, is that for the PLB I have actaully used only 1.02 -- 1.06 radii, and best fits happen at 0.98 .....
     const float MinRad = PlotsType?0.96:0.96;//0.96
-    const float MaxRad = PlotsType?1.08:1.08;
+    const float MaxRad = PlotsType?1.08-0.03:1.08-0.03;
     const float MinOmega = PlotsType?0.35:0.35;//0.25
 //const float MinOmega = PlotsType?0.25:0.25;//0.25
     const float MaxOmega = PlotsType?0.45:0.45;
@@ -12269,7 +12271,6 @@ printf("2\n");
         }
 
 
-
         if(Type==2){
           fprintf(fptr," & %.1f & %.1f",
                   val_chiral_cubic,
@@ -12288,17 +12289,15 @@ printf("2\n");
         }
 
         fprintf(fptr," \\\\ \n");
-
-        unsigned uS0 = upL/NumS1;
-        unsigned uS1 = upL%NumS1;
+        unsigned uS0 = 0; if(NumS1) uS0 = upL/NumS1;
+        unsigned uS1 = 0; if(NumS1) uS1 = upL%NumS1;
         double chi2_chi = (val_chiral_cubic*NDF);
         double chi2_flt = (val_flat_cubic*NDF);
         double chi2_tot = chi2_chi<chi2_flt?chi2_chi:chi2_flt;
-        hChi2_Chiral1->SetBinContent(uS0+1,uS1+1,chi2_chi);
-        hChi2_Flat1->SetBinContent(uS0+1,uS1+1,chi2_flt);
-        hChi2_1->SetBinContent(uS0+1,uS1+1,chi2_tot);
-//printf("hi\n");
-
+        if(hChi2_Chiral1) hChi2_Chiral1->SetBinContent(uS0+1,uS1+1,chi2_chi);
+        if(hChi2_Flat1) hChi2_Flat1->SetBinContent(uS0+1,uS1+1,chi2_flt);
+        if(hChi2_1) hChi2_1->SetBinContent(uS0+1,uS1+1,chi2_tot);
+printf("hi\n");
         if(BestChi2_const>val_chiral_const*NDF) BestChi2_const=val_chiral_const*NDF;
         if(BestChi2_const>val_flat_const*NDF) BestChi2_const=val_flat_const*NDF;
 
@@ -12639,9 +12638,9 @@ nsig_flat_const = sqrt(2)*TMath::ErfcInverse(pval);
 
     TFile fOutput(InputFolder+"Exclusion.root","recreate");
 
-    double MinChi2_1 = hChi2_1->GetBinContent(hChi2_1->GetMinimumBin());
-    double MinChi2_Chiral1 = hChi2_Chiral1->GetBinContent(hChi2_Chiral1->GetMinimumBin());
-    double MinChi2_Flat1 = hChi2_Flat1->GetBinContent(hChi2_Flat1->GetMinimumBin());
+    double MinChi2_1; if(hChi2_1) MinChi2_1 = hChi2_1->GetBinContent(hChi2_1->GetMinimumBin());
+    double MinChi2_Chiral1; if(hChi2_Chiral1) MinChi2_Chiral1 = hChi2_Chiral1->GetBinContent(hChi2_Chiral1->GetMinimumBin());
+    double MinChi2_Flat1; if(hChi2_Flat1) MinChi2_Flat1 = hChi2_Flat1->GetBinContent(hChi2_Flat1->GetMinimumBin());
 
     //hChi2_1->GetZaxis()->SetRangeUser(13,20);
 
@@ -12659,30 +12658,33 @@ nsig_flat_const = sqrt(2)*TMath::ErfcInverse(pval);
 
     //gStyle->SetPalette(2);
 
-    hChi2_Chiral1->GetZaxis()->SetRangeUser(NDF,3*NDF);
-    hChi2_Flat1->GetZaxis()->SetRangeUser(NDF,3*NDF);
-    hChi2_1->GetZaxis()->SetRangeUser(NDF,3*NDF);
-    //hChi2_1->SetMinimum(NDF);
-    //hChi2_1->SetMaximum(3*NDF);
+    if(hChi2_1){
+        hChi2_Chiral1->GetZaxis()->SetRangeUser(NDF,3*NDF);
+        hChi2_Flat1->GetZaxis()->SetRangeUser(NDF,3*NDF);
+        hChi2_1->GetZaxis()->SetRangeUser(NDF,3*NDF);
+        //hChi2_1->SetMinimum(NDF);
+        //hChi2_1->SetMaximum(3*NDF);
 
-    hDeltaChi2_Chiral1->GetZaxis()->SetRangeUser(0,6.2);
-    hDeltaChi2_Flat1->GetZaxis()->SetRangeUser(0,6.2);
-    hDeltaChi2_1->GetZaxis()->SetRangeUser(0,6.2);
+        hDeltaChi2_Chiral1->GetZaxis()->SetRangeUser(0,6.2);
+        hDeltaChi2_Flat1->GetZaxis()->SetRangeUser(0,6.2);
+        hDeltaChi2_1->GetZaxis()->SetRangeUser(0,6.2);
 
-    hChi2_Chiral1->SetStats(false);
-    hChi2_Flat1->SetStats(false);
-    hChi2_1->SetStats(false);
-    hDeltaChi2_Chiral1->SetStats(false);
-    hDeltaChi2_Flat1->SetStats(false);
-    hDeltaChi2_1->SetStats(false);
+        hChi2_Chiral1->SetStats(false);
+        hChi2_Flat1->SetStats(false);
+        hChi2_1->SetStats(false);
+        hDeltaChi2_Chiral1->SetStats(false);
+        hDeltaChi2_Flat1->SetStats(false);
+        hDeltaChi2_1->SetStats(false);
 
-    hChi2_Chiral1->Write();
-    hChi2_Flat1->Write();
-    hChi2_1->Write();
+        hChi2_Chiral1->Write();
+        hChi2_Flat1->Write();
+        hChi2_1->Write();
 
-    hDeltaChi2_Chiral1->Write();
-    hDeltaChi2_Flat1->Write();
-    hDeltaChi2_1->Write();
+        hDeltaChi2_Chiral1->Write();
+        hDeltaChi2_Flat1->Write();
+        hDeltaChi2_1->Write();
+    }
+
 
     delete [] fs0_t3;
     delete [] fs1_t3;
@@ -17952,8 +17954,37 @@ void Evaluate_reff_pL(){
     }
 }
 
+void Evaluate_DG_From_CECA(){
+    int flag = -1408;
+    int first_mt = 4;//4
+    int last_mt = 16;
+    TFile fInput(TString::Format("%s/FunWithCeca/Ceca_pL_EffFix/Eta0.8_pL_ET1_PR1_DD0.0_EF%i.root",GetFemtoOutputFolder(),flag),"read");
+
+
+    TH2F* GhettoFemto_mT_rstar = (TH2F*)fInput.Get("GhettoFemto_mT_rstar");
+    TH1F* hSource = (TH1F*)GhettoFemto_mT_rstar->ProjectionY(TString::Format("hSource"),first_mt,last_mt);
+    hSource->Scale(1./hSource->Integral(),"width");
+    TF1* fSource = new TF1("fSource",NormDoubleGaussSourceTF1,0.5,8,4);
+    fSource->FixParameter(3,1);
+    fSource->SetParameter(0,1.0);
+    fSource->SetParLimits(0,0.5,1.25);
+    fSource->SetParameter(1,2.0);
+    fSource->SetParLimits(1,1.25,2.5);
+    fSource->SetParameter(2,0.5);
+    fSource->SetParLimits(2,0,1);
+    hSource->Fit(fSource,"S, N, R, M");
+
+    TFile fOutput(TString::Format("%s/FunWithCeca/Ceca_pL_EffFix/FIT_EF%i.root",GetFemtoOutputFolder(),flag),"recreate");
+    hSource->Write();
+    fSource->Write();
+
+    delete hSource;
+    delete fSource;
+}
+
 int PLAMBDA_1_MAIN(int argc, char *argv[]){
-    Evaluate_reff_pL();
+    //Evaluate_DG_From_CECA(); return 0;
+    //Evaluate_reff_pL();
     //Compare_Usmani_NLO(0); Compare_Usmani_NLO(1); return 0;
     //CompareFewVersions_pL(); return 0;
   //pLambda_Compare_Tunes(); return 0;
@@ -18035,15 +18066,19 @@ UpdateUnfoldFile(TString::Format("%s/CatsFiles/",GetCernBoxDimi()),
 //return 0;
 //printf("hello\n");
 
-//const int& SIGMA_FEED, const int& WhichBaseline, const int& WhichPotential, const float& ValSourceAlpha,
+//const int& SIGMA_FEED, const int& WhichBaseline, const int& WhichPotential, const float& ValSourceAlpha==2 for gaus core,
 
+//WhichBaseline==11 or 0
+//SIGMA_FEED 0 flat 1 is chiral
+/*
 Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(atoi(argv[4]))/10.,
                             ///home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/100720_Unfolded/
-                            //TString::Format("%s/pLambda/100720_Unfolded/",GetCernBoxDimi()),
-                            TString::Format("%s/pLambda/200723/NoBoot/",GetCernBoxDimi()),
-                            //TString::Format("%s/pLambda/170721_NewUnfold/NoBoot/",GetCernBoxDimi()),
+                            //TString::Format("%s/pLambda/100720_Unfolded/",GetCernBoxDimi()),//default, I think
+                            //TString::Format("%s/pLambda/200723/NoBoot/",GetCernBoxDimi()),
+                            TString::Format("%s/pLambda/170721_NewUnfold/NoBoot/",GetCernBoxDimi()),//I think the second default
+                            //TString::Format("%s/pLambda/231020_NoBootstrap/",GetCernBoxDimi()),
                             //TString::Format("%s/pLambda/170721_NewUnfold/Full/",GetCernBoxDimi()),
-                            //TString::Format("%s/pLambda/PLB/NoBoot/",GetCernBoxDimi()),
+                            //TString::Format("%s/pLambda/PLB/NoBoot/",GetCernBoxDimi())
                             //TString::Format("%s/pLambda/020522/Full/",GetCernBoxDimi()),
                             TString::Format("Merged_pp13TeV_HM_DimiJun21_POT%i_BL%i_SIG%i.root",
                             //TString::Format("Merged_pp13TeV_HM_Dec19_POT%i_BL%i_SIG%i.root",
@@ -18052,21 +18087,22 @@ Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(at
                             atoi(argv[1]),atoi(argv[2]),atoi(argv[3])),
                             //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/",
                             //"UnfoldRefine_pp13TeV_HM_DimiJul20_POT11600_BL10_SIG1.root",
-                            //TString::Format("%s/pLambda/100720_Unfolded/PaperPlotsUpdate5/",GetCernBoxDimi()),
+                            TString::Format("%s/pLambda/100720_Unfolded/Plots_SourceErratum/",GetCernBoxDimi()),
                             //TString::Format("%s/pLambda/170721_NewUnfold/NoBoot/PlotsAnaNote/",GetCernBoxDimi()),
                             //TString::Format("%s/pLambda/PLB/Full/Plots_v1/",GetCernBoxDimi()),
                             //TString::Format("%s/pLambda/PLB/NoBoot/Plots_v2/",GetCernBoxDimi()),
                             //TString::Format("%s/pLambda/PLB/NoBoot/Plots_v4/",GetCernBoxDimi()),
                             //TString::Format("%s/pLambda/020522/Full/Plots/",GetCernBoxDimi()),
                             //TString::Format("%s/pLambda/020522/FullData/Plots/",GetCernBoxDimi()),
-                            TString::Format("%s/pLambda/200723/NoBoot/Plots108/",GetCernBoxDimi()),
+                            //TString::Format("%s/pLambda/200723/NoBoot/Plots108/",GetCernBoxDimi()),
                             //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/"
                             atoi(argv[5])///REMOVE FOR THE OLD PLOTS
                           );
 
 return 0;
+*/
 
-
+MakeLATEXtable(TString::Format("%s/pLambda/100720_Unfolded/Plots_SourceErratum/",GetCernBoxDimi()),false);
 //MakeLATEXtable(TString::Format("%s/pLambda/PLB/NoBoot/Plots_v4/",GetCernBoxDimi()),false);
 //MakeLATEXtable(TString::Format("%s/pLambda/020522/NoBoot/Plots/",GetCernBoxDimi()),true,1);
 //MakeLATEXtable(TString::Format("%s/pLambda/020522/NoBoot/Plots108/",GetCernBoxDimi()),true,1);
@@ -18077,7 +18113,7 @@ return 0;
 //MakeLATEXtable(TString::Format("%s/pLambda/021222/NoBoot/Plots108/",GetCernBoxDimi()),true,4);//
 //MakeLATEXtable(TString::Format("%s/pLambda/010223/NoBoot/Plots108/",GetCernBoxDimi()),true,3);//2x error above 108 MeV in fit
 //MakeLATEXtable(TString::Format("%s/pLambda/200723/NoBoot/Plots108/",GetCernBoxDimi()),true,5);//N2LO
-//return 0;
+return 0;
 
 //Plot_pL_SystematicsMay2020_2(2,10,1500,2.0,
 //        "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/040620_Gauss/",

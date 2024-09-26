@@ -17260,19 +17260,430 @@ void TestLambdaKstar_KstarDep(TString OutputFileName){
   g_dec_pp.Write();
 }
 
+
+void Raffa_pLambda_Gauss(){
+    const double Pi = TMath::Pi();
+    const double fermi = 1./197.3269631;
+    const double m1 = 938.2720813;
+    const double m2 = 938.2720813;
+    const double m3 = 1115.683;
+    const double mu23 = m2*m3/(m2+m3);
+
+    const int nBins = 100;
+    const double kmin = 0.;
+    const double kmax = 250.;
+
+
+    const double SourceRadValue_pL = 1.19;//1.23;//1.15; // Effective Source after ERRATUM
+
+    double V0NLO13[] = {-35.13,-30.18,-30.574,-31.851,-34.831,-37.198};
+    double r0NLO13[] = {1.375,1.467,1.459,1.434,1.38,1.342};
+    double V1NLO13[] = {-23.239,-29.205,-33.839,-36.258,-38.455,-39.143};
+    double r1NLO13[] = {1.482,1.338,1.247,1.216,1.183,1.17};
+    TString NLO13label[] = {"pLCF_NLO13_450","pLCF_NLO13_500","pLCF_NLO13_550","pLCF_NLO13_600","pLCF_NLO13_650","pLCF_NLO13_700"}; 
+
+    double V0NLO19[] = {-25.954,-28.817,-31.851,-34.831};
+    double r0NLO19[] = {1.563,1.495,1.434,1.38};
+    double V1NLO19[] = {-38.984,-39.470,-42.055,-40.373};
+    double r1NLO19[] = {1.178,1.163,1.126,1.143};
+    TString NLO19label[] = {"pLCF_NLO19_500","pLCF_NLO19_550","pLCF_NLO19_600","pLCF_NLO19_650"}; 
+
+    double V0SMS[] = {-31.14,-29.753,-34.273};
+    double r0SMS[] = {1.439,1.466,1.382};
+    double V1SMS[] = {-27.544,-28.609,-27.392};
+    double r1SMS[] = {1.361,1.344,1.364};
+    TString SMSlabel[] = {"pLCF_SMS_500","pLCF_SMS_550","pLCF_SMS_600"}; 
+
+    double V0 = -29.9;
+    double r0 = 1.47;
+    double V1 = -20.6;
+    double r1 = 1.547;
+
+    double V00 = -25.954;
+    double r00 = 1.563;
+    double V10 = -38.984;
+    double r10 = 1.178;
+
+
+
+    //CATS NLO13[6];
+    TGraph *hCFNLO13[6];
+    TGraph *hCFNLO19[4];
+    TGraph *hCFSMS[3];
+    TGraph *hCFUsmani;
+
+    for (int i = 0; i < 6; i++)
+    {
+        CATS NLO13;
+        NLO13.SetMomBins(nBins, kmin, kmax);
+        CATSparameters* cParSource = new CATSparameters(CATSparameters::tSource, 1, true);
+        cParSource->SetParameter(0, SourceRadValue_pL);
+        NLO13.SetAnaSource(GaussSource, *cParSource);
+        NLO13.SetQ1Q2(0); // 1 same charge; 0 neutral charge; -1
+        NLO13.SetQuantumStatistics(false); // set it to true if you want quantum statistics
+        NLO13.SetRedMass(mu23);
+        NLO13.SetNumChannels(2);
+        NLO13.SetNumPW(0,1);
+        NLO13.SetNumPW(1,1);
+        NLO13.SetSpin(0,0);
+        NLO13.SetSpin(1,1);
+        NLO13.SetChannelWeight(0, 1./4.);
+        NLO13.SetChannelWeight(1, 3./4.);
+        CATSparameters cParPotS0Gauss(CATSparameters::tPotential, 2, true);
+        cParPotS0Gauss.SetParameter(0, V0NLO13[i]);
+        cParPotS0Gauss.SetParameter(1, 1./pow(r0NLO13[i],2));
+        NLO13.SetShortRangePotential(0, 0, Gaussian, cParPotS0Gauss);
+        CATSparameters cParPotS1Gauss(CATSparameters::tPotential, 2, true);
+        cParPotS1Gauss.SetParameter(0, V1NLO13[i]);
+        cParPotS1Gauss.SetParameter(1, 1./pow(r1NLO13[i],2));
+        NLO13.SetShortRangePotential(1, 0, Gaussian, cParPotS1Gauss);
+        NLO13.SetNotifications(CATS::nWarning);
+        NLO13.SetMaxNumThreads(1);
+        NLO13.KillTheCat();
+        
+        hCFNLO13[i] = new TGraph();
+        for (int j = 0; j < nBins; j++)
+        {
+          hCFNLO13[i]->SetPoint(j,NLO13.GetMomentum(j),NLO13.GetCorrFun(j));
+        }
+    }
+
+    for (int i = 0; i < 4; i++)
+    {
+        CATS NLO19;
+        NLO19.SetMomBins(nBins, kmin, kmax);
+        CATSparameters* cParSource = new CATSparameters(CATSparameters::tSource, 1, true);
+        cParSource->SetParameter(0, SourceRadValue_pL);
+        NLO19.SetAnaSource(GaussSource, *cParSource);
+        NLO19.SetQ1Q2(0); // 1 same charge; 0 neutral charge; -1
+        NLO19.SetQuantumStatistics(false); // set it to true if you want quantum statistics
+        NLO19.SetRedMass(mu23);
+        NLO19.SetNumChannels(2);
+        NLO19.SetNumPW(0,1);
+        NLO19.SetNumPW(1,1);
+        NLO19.SetSpin(0,0);
+        NLO19.SetSpin(1,1);
+        NLO19.SetChannelWeight(0, 1./4.);
+        NLO19.SetChannelWeight(1, 3./4.);
+        CATSparameters cParPotS0Gauss(CATSparameters::tPotential, 2, true);
+        cParPotS0Gauss.SetParameter(0, V0NLO19[i]);
+        cParPotS0Gauss.SetParameter(1, 1./pow(r0NLO19[i],2));
+        NLO19.SetShortRangePotential(0, 0, Gaussian, cParPotS0Gauss);
+        CATSparameters cParPotS1Gauss(CATSparameters::tPotential, 2, true);
+        cParPotS1Gauss.SetParameter(0, V1NLO19[i]);
+        cParPotS1Gauss.SetParameter(1, 1./pow(r1NLO19[i],2));
+        NLO19.SetShortRangePotential(1, 0, Gaussian, cParPotS1Gauss);
+        NLO19.SetNotifications(CATS::nWarning);
+        NLO19.SetMaxNumThreads(1);
+        NLO19.KillTheCat();
+        
+        hCFNLO19[i] = new TGraph();
+        for (int j = 0; j < nBins; j++)
+        {
+          hCFNLO19[i]->SetPoint(j,NLO19.GetMomentum(j),NLO19.GetCorrFun(j));
+        }
+    }
+
+    for (int i = 0; i < 3; i++)
+    {
+        CATS SMS;
+        SMS.SetMomBins(nBins, kmin, kmax);
+        CATSparameters* cParSource = new CATSparameters(CATSparameters::tSource, 1, true);
+        cParSource->SetParameter(0, SourceRadValue_pL);
+        SMS.SetAnaSource(GaussSource, *cParSource);
+        SMS.SetQ1Q2(0); // 1 same charge; 0 neutral charge; -1
+        SMS.SetQuantumStatistics(false); // set it to true if you want quantum statistics
+        SMS.SetRedMass(mu23);
+        SMS.SetNumChannels(2);
+        SMS.SetNumPW(0,1);
+        SMS.SetNumPW(1,1);
+        SMS.SetSpin(0,0);
+        SMS.SetSpin(1,1);
+        SMS.SetChannelWeight(0, 1./4.);
+        SMS.SetChannelWeight(1, 3./4.);
+        CATSparameters cParPotS0Gauss(CATSparameters::tPotential, 2, true);
+        cParPotS0Gauss.SetParameter(0, V0SMS[i]);
+        cParPotS0Gauss.SetParameter(1, 1./pow(r0SMS[i],2));
+        SMS.SetShortRangePotential(0, 0, Gaussian, cParPotS0Gauss);
+        CATSparameters cParPotS1Gauss(CATSparameters::tPotential, 2, true);
+        cParPotS1Gauss.SetParameter(0, V1SMS[i]);
+        cParPotS1Gauss.SetParameter(1, 1./pow(r1SMS[i],2));
+        SMS.SetShortRangePotential(1, 0, Gaussian, cParPotS1Gauss);
+        SMS.SetNotifications(CATS::nWarning);
+        SMS.SetMaxNumThreads(1);
+        SMS.KillTheCat();
+    
+        double ScatLen, EffRan;
+        TH1F *hFit;
+        TF1 *fitSP;
+        GetScattParameters(SMS, ScatLen, EffRan, hFit, fitSP, 3, false, false, 0);
+        cout<< i <<" Spin 0 "<<ScatLen<<"    "<<EffRan<<endl;
+        delete hFit;
+        delete fitSP;
+
+        GetScattParameters(SMS, ScatLen, EffRan, hFit, fitSP, 3, false, false, 1);
+        cout<< i<<" Spin 1 "<<ScatLen<<"    "<<EffRan<<endl;
+        delete hFit;
+        delete fitSP;
+     
+        hCFSMS[i] = new TGraph();
+        for (int j = 0; j < nBins; j++)
+        {
+          hCFSMS[i]->SetPoint(j,SMS.GetMomentum(j),SMS.GetCorrFun(j));
+        }
+    }
+    CATS Usmani;
+    Usmani.SetMomBins(nBins, kmin, kmax);
+    CATSparameters* cParSource = new CATSparameters(CATSparameters::tSource, 1, true);
+    cParSource->SetParameter(0, SourceRadValue_pL);
+    Usmani.SetAnaSource(GaussSource, *cParSource);
+    Usmani.SetQ1Q2(0); // 1 same charge; 0 neutral charge; -1
+    Usmani.SetQuantumStatistics(false); // set it to true if you want quantum statistics
+    Usmani.SetRedMass(mu23);
+    Usmani.SetNumChannels(2);
+    Usmani.SetNumPW(0,1);
+    Usmani.SetNumPW(1,1);
+    Usmani.SetSpin(0,0);
+    Usmani.SetSpin(1,1);
+    Usmani.SetChannelWeight(0, 1./4.);
+    Usmani.SetChannelWeight(1, 3./4.);
+    CATSparameters cParPotS0Gauss(CATSparameters::tPotential, 2, true);
+    cParPotS0Gauss.SetParameter(0, V0);
+    cParPotS0Gauss.SetParameter(1, 1./pow(r0,2));
+    Usmani.SetShortRangePotential(0, 0, Gaussian, cParPotS0Gauss);
+    CATSparameters cParPotS1Gauss(CATSparameters::tPotential, 2, true);
+    cParPotS1Gauss.SetParameter(0, V1);
+    cParPotS1Gauss.SetParameter(1, 1./pow(r1,2));
+    Usmani.SetShortRangePotential(1, 0, Gaussian, cParPotS1Gauss);
+    Usmani.SetNotifications(CATS::nWarning);
+    Usmani.SetMaxNumThreads(1);
+    Usmani.KillTheCat();
+    
+    
+    hCFUsmani = new TGraph();
+    for (int j = 0; j < nBins; j++)
+    {
+        hCFUsmani->SetPoint(j,Usmani.GetMomentum(j),Usmani.GetCorrFun(j));
+    }
+
+
+    CATS NLO190;
+    NLO190.SetMomBins(nBins, kmin, kmax);
+    NLO190.SetAnaSource(GaussSource, *cParSource);
+    NLO190.SetQ1Q2(0); // 1 same charge; 0 neutral charge; -1
+    NLO190.SetQuantumStatistics(false); // set it to true if you want quantum statistics
+    NLO190.SetRedMass(mu23);
+    NLO190.SetNumChannels(2);
+    NLO190.SetNumPW(0,1);
+    NLO190.SetNumPW(1,1);
+    NLO190.SetSpin(0,0);
+    NLO190.SetSpin(1,1);
+    NLO190.SetChannelWeight(0, 1./4.);
+    NLO190.SetChannelWeight(1, 3./4.);
+    cParPotS0Gauss.SetParameter(0, V00);
+    cParPotS0Gauss.SetParameter(1, 1./pow(r00,2));
+    NLO190.SetShortRangePotential(0, 0, Gaussian, cParPotS0Gauss);
+    cParPotS1Gauss.SetParameter(0, V10);
+    cParPotS1Gauss.SetParameter(1, 1./pow(r10,2));
+    NLO190.SetShortRangePotential(1, 0, Gaussian, cParPotS1Gauss);
+    NLO190.SetNotifications(CATS::nWarning);
+    NLO190.SetMaxNumThreads(1);
+    NLO190.KillTheCat();
+    
+    for (int j = 0; j < nBins; j++)
+    {
+        hCFNLO19[0]->SetPoint(j,NLO190.GetMomentum(j),NLO190.GetCorrFun(j));
+    }
+
+
+    TFile *OutFile = new TFile("OutRaf.root","recreate");
+    OutFile->cd();
+        for (int i = 0; i < 6; i++)
+        {
+            hCFNLO13[i]->Write(Form("%s",NLO13label[i].Data()));
+        }
+        for (int i = 0; i < 4; i++)
+        {
+            hCFNLO19[i]->Write(Form("%s",NLO19label[i].Data()));
+        }
+        for (int i = 0; i < 3; i++)
+        {
+            hCFSMS[i]->Write(Form("%s",SMSlabel[i].Data()));
+        }
+        hCFUsmani->Write("pLCF_Usmani");
+        
+    OutFile->Close();
+
+}
+
+
+void Quick_pXi(){
+    
+    double kMin = 0;
+    double kMax = 10;
+    unsigned kSteps = 1;
+
+    const unsigned NumPotentials = 71;
+
+
+    DLM_CommonAnaFunctions AnalysisObject;
+    AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles/",GetCernBoxDimi()));
+
+    CATS Kitty;
+    Kitty.SetMomBins(kSteps, kMin, kMax);
+    AnalysisObject.SetUpCats_pXim(Kitty,"pXim_HALQCDPaper2020","Gauss",0, 0);
+    Kitty.SetAnaSource(0,1.2);
+    Kitty.SetNotifications(CATS::nWarning);
+    Kitty.SetEpsilonProp(1e-10);
+    Kitty.SetEpsilonConv(1e-10);
+    //Kitty.SetQ1Q2(0);
+
+    double min_val = 1000;
+    double max_val = 0;
+    unsigned min_sol = 1000;
+    unsigned max_sol = 1000;
+
+    for(unsigned uPot=0; uPot<NumPotentials; uPot++){
+        Kitty.SetShortRangePotential(0, 0, 1, uPot);
+        Kitty.SetShortRangePotential(1, 0, 1, uPot);
+        Kitty.SetShortRangePotential(2, 0, 1, uPot);
+        Kitty.SetShortRangePotential(3, 0, 1, uPot);
+        Kitty.KillTheCat();
+        if(Kitty.GetCorrFun(0) < min_val){
+            min_val = Kitty.GetCorrFun(0);
+            min_sol = uPot;
+        }
+        if(Kitty.GetCorrFun(0) > max_val){
+            max_val = Kitty.GetCorrFun(0);
+            max_sol = uPot;
+        }        
+        printf("uPot = %u; C(5) = %.2f\n", uPot, Kitty.GetCorrFun(0));
+    }
+
+    printf("MIN: %.2f @ %u\n", min_val, min_sol);
+    printf("MAX: %.2f @ %u\n", max_val, max_sol);
+
+}
+
+
+void pp_reff(double r_core){
+
+
+    DLM_CleverMcLevyResoTM MagicSource;
+
+    //0 = correct sign
+    SetUp_RSM_pp(MagicSource, TString::Format("%s",GetCernBoxDimi()).Data(), 0);
+
+    double r_eff = GetReff(MagicSource, r_core);
+
+    printf("r_core = %.3f --> r_eff = %.3f\n", r_core, r_eff);
+
+}
+
+
+void pSp_test1(){
+
+    const unsigned NumMomBins = 100;
+    const double kMin = 0;
+    const double kMax = 400;
+
+
+    CATSparameters cParSource = CATSparameters(CATSparameters::tSource, 1, true);
+    cParSource.SetParameter(0, 1.2);
+
+    CATS Cat_Old;
+    Cat_Old.SetMomBins(NumMomBins,kMin,kMax);
+    Cat_Old.SetAnaSource(GaussSource, cParSource);
+
+
+    CATS Cat_New;
+    Cat_New.SetMomBins(NumMomBins,kMin,kMax);
+    Cat_New.SetAnaSource(GaussSource, cParSource);
+
+    DLM_Histo<complex<double>> ***ExternalWF_Old = Init_pSigmaPlus_Haidenbauer(TString::Format("%s/CatsFiles/Interaction/Haidenbauer/pSigmaPlus/",GetCernBoxDimi()).Data(), Cat_Old, 0);
+    DLM_Histo<complex<double>> ***ExternalWF_New = Init_pSigmaPlus_Haidenbauer(TString::Format("%s/CatsFiles/Interaction/Haidenbauer/pSigmaPlus/",GetCernBoxDimi()).Data(), Cat_New, 1);
+
+    Cat_Old.SetExternalWaveFunction(0, 0, ExternalWF_Old[0][0][0], ExternalWF_Old[1][0][0]);
+    Cat_Old.SetExternalWaveFunction(1, 0, ExternalWF_Old[0][1][0], ExternalWF_Old[1][1][0]);
+
+    Cat_New.SetExternalWaveFunction(0, 0, ExternalWF_New[0][0][0], ExternalWF_New[1][0][0]);
+    Cat_New.SetExternalWaveFunction(1, 0, ExternalWF_New[0][1][0], ExternalWF_New[1][1][0]);
+
+    Cat_Old.KillTheCat();
+    Cat_New.KillTheCat();
+
+    TGraph gCat_Old;
+    gCat_Old.SetName("gCat_Old");
+    TGraph gCat_New;
+    gCat_New.SetName("gCat_New");
+
+    for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+        double kstar = Cat_Old.GetMomentum(uMom);
+        gCat_Old.SetPoint(uMom, kstar, Cat_Old.GetCorrFun(uMom));
+        gCat_New.SetPoint(uMom, kstar, Cat_New.GetCorrFun(uMom));
+    }
+
+    TFile fOutput(TString::Format("%s/OtherTasks/pSp_test1.root",GetFemtoOutputFolder()), "recreate");
+    gCat_Old.Write();
+    gCat_New.Write();
+
+}
+
+
+void pSp_test2(){
+
+    const unsigned NumMomBins = 100;
+    const double kMin = 0;
+    const double kMax = 400;
+
+
+    CATSparameters cParSource = CATSparameters(CATSparameters::tSource, 1, true);
+    cParSource.SetParameter(0, 1.2);//source size, assuming we use a Gauss
+
+    CATS Cat;
+    Cat.SetMomBins(NumMomBins,kMin,kMax);
+    Cat.SetAnaSource(GaussSource, cParSource);
+
+    DLM_Histo<complex<double>> ***ExternalWF = Init_pSigmaPlus_Haidenbauer(TString::Format("%s/CatsFiles/Interaction/Haidenbauer/pSigmaPlus/",GetCernBoxDimi()).Data(), Cat, 1);
+
+    Cat.SetExternalWaveFunction(0, 0, ExternalWF[0][0][0], ExternalWF[1][0][0]);
+    Cat.SetExternalWaveFunction(1, 0, ExternalWF[0][1][0], ExternalWF[1][1][0]);
+
+    Cat.KillTheCat();
+
+    TGraph gCat;
+    gCat.SetName("gCat");
+
+    for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+        double kstar = Cat.GetMomentum(uMom);
+        gCat.SetPoint(uMom, kstar, Cat.GetCorrFun(uMom));
+    }
+
+    TFile fOutput(TString::Format("%s/OtherTasks/pSp_test2.root",GetFemtoOutputFolder()), "recreate");
+    gCat.Write();
+
+}
+
 //
 int OTHERTASKS(int argc, char *argv[]){
 
   //TestLambdaKstar_Baseline("Baseline");
   //TestLambdaKstar_Baseline("NewCode");
   //TestLambdaKstar_KstarDep("Static");
-  TestLambdaKstar_KstarDep("Dynamic");
-  return 0;
+  //TestLambdaKstar_KstarDep("Dynamic");
+
+//Quick_pXi(); return 0;
+    //pp_reff(1.075); return 0;
+    pSp_test2(); return 0;
+
+  
+  //Raffa_pLambda_Gauss();
+  //return 0;
 
   //StableDisto_DlmRan_Test(); return 0;
   //pp_Gauss_Cauchy_Mix(); return 0;
 
-  Unfold_test1();
+  //Unfold_test1();
   //generate_pp_Neelima();
 
   //pp_pSp_Decay(atoi(argv[1]), atoi(argv[2]));
@@ -17376,9 +17787,9 @@ int OTHERTASKS(int argc, char *argv[]){
     //Ledni_SmallRad("custom");
     //Ledni_SmallRad("Toy1");
     //Ledni_SmallRad("Yukawa1");
-    Ledni_SmallRad("pKplusI0");
-    Ledni_SmallRad("pKplusI1");
-    Ledni_SmallRad("pKplusYuki");
+    //Ledni_SmallRad("pKplusI0");
+    //Ledni_SmallRad("pKplusI1");
+    //Ledni_SmallRad("pKplusYuki");
     //pXi_Pot();
     //Raffa_Errors();
     //ppp_errors(atoi(argv[1]),atoi(argv[2]));
