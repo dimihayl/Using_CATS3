@@ -9173,8 +9173,8 @@ void Plot_pL_SystematicsMay2020_2(const int& SIGMA_FEED,
 //return;
 
     //300 or 108
-    const double Chi2RANGE = 108;
-    //const double Chi2RANGE = 300;
+    //const double Chi2RANGE = 108;
+    const double Chi2RANGE = 300;
 //printf("debug\n");
     //if 0, we have much more info on the plots
     //if 1: as intended for the paper (cleaner)
@@ -18075,7 +18075,8 @@ Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(at
                             ///home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/BatchFarm/100720_Unfolded/
                             //TString::Format("%s/pLambda/100720_Unfolded/",GetCernBoxDimi()),//default, I think
                             //TString::Format("%s/pLambda/200723/NoBoot/",GetCernBoxDimi()),
-                            TString::Format("%s/pLambda/170721_NewUnfold/NoBoot/",GetCernBoxDimi()),//I think the second default
+                            //TString::Format("%s/pLambda/170721_NewUnfold/NoBoot/",GetCernBoxDimi()),//I think the second default
+                            TString::Format("%s/pLambda/260924/NoBoot/",GetCernBoxDimi()),//new rcore
                             //TString::Format("%s/pLambda/231020_NoBootstrap/",GetCernBoxDimi()),
                             //TString::Format("%s/pLambda/170721_NewUnfold/Full/",GetCernBoxDimi()),
                             //TString::Format("%s/pLambda/PLB/NoBoot/",GetCernBoxDimi())
@@ -18087,7 +18088,7 @@ Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(at
                             atoi(argv[1]),atoi(argv[2]),atoi(argv[3])),
                             //"/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/pLambda_1/pL_SystematicsMay2020/Test/",
                             //"UnfoldRefine_pp13TeV_HM_DimiJul20_POT11600_BL10_SIG1.root",
-                            TString::Format("%s/pLambda/100720_Unfolded/Plots_SourceErratum/",GetCernBoxDimi()),
+                            TString::Format("%s/pLambda/260924/Plots300_SourceErratum/",GetCernBoxDimi()),
                             //TString::Format("%s/pLambda/170721_NewUnfold/NoBoot/PlotsAnaNote/",GetCernBoxDimi()),
                             //TString::Format("%s/pLambda/PLB/Full/Plots_v1/",GetCernBoxDimi()),
                             //TString::Format("%s/pLambda/PLB/NoBoot/Plots_v2/",GetCernBoxDimi()),
@@ -18102,7 +18103,7 @@ Plot_pL_SystematicsMay2020_2(atoi(argv[3]),atoi(argv[2]),atoi(argv[1]),double(at
 return 0;
 */
 
-MakeLATEXtable(TString::Format("%s/pLambda/100720_Unfolded/Plots_SourceErratum/",GetCernBoxDimi()),false);
+MakeLATEXtable(TString::Format("%s/pLambda/260924/Plots300_SourceErratum/",GetCernBoxDimi()),false);
 //MakeLATEXtable(TString::Format("%s/pLambda/PLB/NoBoot/Plots_v4/",GetCernBoxDimi()),false);
 //MakeLATEXtable(TString::Format("%s/pLambda/020522/NoBoot/Plots/",GetCernBoxDimi()),true,1);
 //MakeLATEXtable(TString::Format("%s/pLambda/020522/NoBoot/Plots108/",GetCernBoxDimi()),true,1);

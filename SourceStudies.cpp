@@ -6272,9 +6272,9 @@ void Analyse_fit_results_pp(TString InputFolder){
   enum err_type { stat, syst, tot };
 
   //compared ot iv in the johann paper
-  //std::vector<double> nlo_shift = {-0.077, -0.067, -0.062, -0.061, -0.056, -0.051};
+  std::vector<double> nlo_shift = {-0.077, -0.067, -0.062, -0.061, -0.056, -0.051};
   //compared to nlo19 in the johann paper
-  std::vector<double> nlo_shift = {-0.030, -0.027, -0.025, -0.026, -0.023, -0.021};
+  //std::vector<double> nlo_shift = {-0.030, -0.027, -0.025, -0.026, -0.023, -0.021};
 
   unsigned NumMtBins = 7;
   unsigned NumMtBins_pL = 6;
@@ -6583,7 +6583,8 @@ printf("3\n");
     g_pp[ana_original_pL_NLO][src_rsm][tot].SetPointError(uPt,mt_err,gDummy->GetErrorY(uPt));
 
     g_pp[ana_original_pL_NLO_modified][src_rsm][tot].SetPoint(uPt,gDummy->GetPointX(uPt),gDummy->GetPointY(uPt)+nlo_shift.at(uPt));
-    g_pp[ana_original_pL_NLO_modified][src_rsm][tot].SetPointError(uPt,mt_err,gDummy->GetErrorY(uPt));
+    double rel_shift = 1;// + nlo_shift.at(uPt)/gDummy->GetPointY(uPt);
+    g_pp[ana_original_pL_NLO_modified][src_rsm][tot].SetPointError(uPt,mt_err,gDummy->GetErrorY(uPt)*rel_shift);
   }
 
   gDummy = (TGraphErrors*)fOriginal.Get("g_rcore_pL_NLO_stat");
@@ -6593,7 +6594,8 @@ printf("3\n");
     g_pp[ana_original_pL_NLO][src_rsm][stat].SetPointError(uPt,mt_err,gDummy->GetErrorY(uPt));
 
     g_pp[ana_original_pL_NLO_modified][src_rsm][stat].SetPoint(uPt,gDummy->GetPointX(uPt),gDummy->GetPointY(uPt)+nlo_shift.at(uPt));
-    g_pp[ana_original_pL_NLO_modified][src_rsm][stat].SetPointError(uPt,mt_err,gDummy->GetErrorY(uPt));
+    double rel_shift = 1;// + nlo_shift.at(uPt)/gDummy->GetPointY(uPt);
+    g_pp[ana_original_pL_NLO_modified][src_rsm][stat].SetPointError(uPt,mt_err,gDummy->GetErrorY(uPt)*rel_shift);
   }
 
   gDummy = (TGraphErrors*)fOriginal.Get("g_rcore_pL_NLO_syst");
@@ -6603,7 +6605,8 @@ printf("3\n");
     g_pp[ana_original_pL_NLO][src_rsm][syst].SetPointError(uPt,mt_err*0.5,gDummy->GetErrorY(uPt));
 
     g_pp[ana_original_pL_NLO_modified][src_rsm][syst].SetPoint(uPt,gDummy->GetPointX(uPt),gDummy->GetPointY(uPt)+nlo_shift.at(uPt));
-    g_pp[ana_original_pL_NLO_modified][src_rsm][syst].SetPointError(uPt,mt_err*0.5,gDummy->GetErrorY(uPt));    
+    double rel_shift = 1;// + nlo_shift.at(uPt)/gDummy->GetPointY(uPt);
+    g_pp[ana_original_pL_NLO_modified][src_rsm][syst].SetPointError(uPt,mt_err*0.5,gDummy->GetErrorY(uPt)*rel_shift);
   }
 
   gDummy = (TGraphErrors*)fOriginal.Get("g_reff_pL_NLO");
@@ -6613,7 +6616,8 @@ printf("3\n");
     g_pp[ana_original_pL_NLO][src_gauss][tot].SetPointError(uPt,mt_err,gDummy->GetErrorY(uPt));
 
     g_pp[ana_original_pL_NLO_modified][src_gauss][tot].SetPoint(uPt,gDummy->GetPointX(uPt),gDummy->GetPointY(uPt)+nlo_shift.at(uPt));
-    g_pp[ana_original_pL_NLO_modified][src_gauss][tot].SetPointError(uPt,mt_err,gDummy->GetErrorY(uPt));    
+    double rel_shift = 1;// + nlo_shift.at(uPt)/gDummy->GetPointY(uPt);
+    g_pp[ana_original_pL_NLO_modified][src_gauss][tot].SetPointError(uPt,mt_err,gDummy->GetErrorY(uPt)*rel_shift);    
   }
   gDummy = (TGraphErrors*)fOriginal.Get("g_reff_pL_NLO_stat");
   for(unsigned uPt=0; uPt<gDummy->GetN(); uPt++){
@@ -6622,7 +6626,8 @@ printf("3\n");
     g_pp[ana_original_pL_NLO][src_gauss][stat].SetPointError(uPt,mt_err,gDummy->GetErrorY(uPt));
 
     g_pp[ana_original_pL_NLO_modified][src_gauss][stat].SetPoint(uPt,gDummy->GetPointX(uPt),gDummy->GetPointY(uPt)+nlo_shift.at(uPt));
-    g_pp[ana_original_pL_NLO_modified][src_gauss][stat].SetPointError(uPt,mt_err,gDummy->GetErrorY(uPt));   
+    double rel_shift = 1;// + nlo_shift.at(uPt)/gDummy->GetPointY(uPt);
+    g_pp[ana_original_pL_NLO_modified][src_gauss][stat].SetPointError(uPt,mt_err,gDummy->GetErrorY(uPt)*rel_shift);   
   }
   gDummy = (TGraphErrors*)fOriginal.Get("g_reff_pL_NLO_syst");
   for(unsigned uPt=0; uPt<gDummy->GetN(); uPt++){
@@ -6631,7 +6636,8 @@ printf("3\n");
     g_pp[ana_original_pL_NLO][src_gauss][syst].SetPointError(uPt,mt_err*0.5,gDummy->GetErrorY(uPt));
 
     g_pp[ana_original_pL_NLO_modified][src_gauss][syst].SetPoint(uPt,gDummy->GetPointX(uPt),gDummy->GetPointY(uPt)+nlo_shift.at(uPt));
-    g_pp[ana_original_pL_NLO_modified][src_gauss][syst].SetPointError(uPt,mt_err*0.5,gDummy->GetErrorY(uPt));
+    double rel_shift = 1;// + nlo_shift.at(uPt)/gDummy->GetPointY(uPt);
+    g_pp[ana_original_pL_NLO_modified][src_gauss][syst].SetPointError(uPt,mt_err*0.5,gDummy->GetErrorY(uPt)*rel_shift);
   }  
 
 unsigned NumDataVar = 27;//27
@@ -7304,7 +7310,7 @@ if(uAna!=ana_true && BaselineVar==10) continue;//this is our default, with pol0/
   lLegend_ghetto_oton_dariusz_pp_pL->SetTextSize(0.04);
   lLegend_ghetto_oton_dariusz_pp_pL->AddEntry(&g_pp[ana_remake][src_rsm][syst], "p#minusp (AV18)", "pef");
   //lLegend_ghetto_oton_dariusz_pp_pL->AddEntry(gOtonScript_remake, "#it{r}_{core} = #it{a} #upoint #LT#it{m}_{T}#GT^{#it{b}} + #it{c}","fe");
-  lLegend_ghetto_oton_dariusz_pp_pL->AddEntry(&g_pp[ana_original_pL_NLO][src_rsm][syst], "p#minus#kern[-0.1]{#Lambda} (NLO)", "pef");
+  lLegend_ghetto_oton_dariusz_pp_pL->AddEntry(&g_pp[ana_original_pL_NLO][src_rsm][syst], "p#minus#kern[-0.1]{#Lambda} (NLO13)", "pef");
   lLegend_ghetto_oton_dariusz_pp_pL->AddEntry(&g_pp[ana_original_pL_LO][src_rsm][syst], "p#minus#kern[-0.1]{#Lambda} (LO)", "pef");
   lLegend_ghetto_oton_dariusz_pp_pL->SetBorderSize(0);
   lLegend_ghetto_oton_dariusz_pp_pL->Draw("same");
@@ -7357,6 +7363,34 @@ if(uAna!=ana_true && BaselineVar==10) continue;//this is our default, with pol0/
 
   g_pp[ana_remake][src_rsm][syst].Draw("2PSAME");
   g_pp[ana_remake][src_rsm][stat].Draw("pez same");
+
+  //HEP data for pp updated results
+    TString HepFileName = InputFolder+"pp_rcore_update_fig1_right.yaml";
+    ofstream hepfile (HepFileName.Data(),ios::out);
+    hepfile << "dependent_variables:" << endl;
+    hepfile << "- header:" << endl;
+    hepfile << "    name: $r_{core}$ p-p" << endl;
+    hepfile << "    units: fm" << endl;
+    hepfile << "  values:" << endl;
+    for(int iMt=0; iMt<NumMtBins; iMt++){
+        hepfile << "  - errors:" << endl;
+        hepfile << "    - label: syst" << endl;
+        hepfile << "      symerror: " << g_pp[ana_remake][src_rsm][syst].GetErrorY(iMt) << endl;
+        hepfile << "    - label: stat" << endl;
+        hepfile << "      symerror: " << g_pp[ana_remake][src_rsm][stat].GetErrorY(iMt) << endl;
+        hepfile << "    value: " << g_pp[ana_remake][src_rsm][stat].GetPointY(iMt) << endl;        
+    }
+    hepfile << "independent_variables:" << endl;
+    hepfile << "- header:" << endl;
+    hepfile << "    name: $m_{T}$" << endl;
+    hepfile << "    units: GeV/$c^{2}$" << endl;
+    hepfile << "  values:" << endl;
+    for(int iMt=0; iMt<NumMtBins; iMt++){
+        hepfile << "  - value: " << mt_values[iMt];
+        if(iMt<NumMtBins-1) hepfile << endl;
+    }
+    hepfile.close();
+
   //gFit->Draw("P, same");
   lLegend_ghetto_oton_dariusz_pp_pL->Draw("same");
   TLatex BeamText_oton_dariusz_pp_pL;
@@ -7373,8 +7407,6 @@ if(uAna!=ana_true && BaselineVar==10) continue;//this is our default, with pol0/
   BeamText_oton_dariusz_pp_pL_OLD_UPD.SetNDC(kTRUE);
   BeamText_oton_dariusz_pp_pL_OLD_UPD.DrawLatex(0.60, 0.65, "Updated result");
   can_ghetto_oton_daruisz_pp_pL->SaveAs(InputFolder+"Results_ghetto_oton_daruisz_pp_pL.pdf");
-
-
 
 //dariusz, but only new result
 
@@ -7418,6 +7450,9 @@ if(uAna!=ana_true && BaselineVar==10) continue;//this is our default, with pol0/
   //gOtonScript_original_pL->Draw("3, same");
   gOtonScript_remake->Draw("3, same");
 
+  g_pp[ana_remake][src_rsm][syst].Draw("2PSAME");
+  g_pp[ana_remake][src_rsm][stat].Draw("pez same"); 
+
   TLegend *lLegend_ghetto_oton_dariusz_pp_pLtuned = new TLegend(0.15, 0.203, 0.38, 0.37); // lbrt
   lLegend_ghetto_oton_dariusz_pp_pLtuned->SetName(TString::Format("lLegend_ghetto_oton_dariusz_pp_ONLY"));
   lLegend_ghetto_oton_dariusz_pp_pLtuned->SetTextSize(0.04);
@@ -7440,6 +7475,32 @@ if(uAna!=ana_true && BaselineVar==10) continue;//this is our default, with pol0/
   BeamText_oton_dariusz_pp_pLtuned.DrawLatex(0.5, 0.76, "Gaussian + Resonance Source");
   can_ghetto_oton_daruisz_pp_pLtuned->SaveAs(InputFolder+"Results_ghetto_oton_daruisz_pp_pLtuned.pdf");
 
+  //HEP data for pp updated results
+    TString HepFileName_pL = InputFolder+"pL_rcore_update_fig2_right.yaml";
+    ofstream hepfile_pL (HepFileName_pL.Data(),ios::out);
+    hepfile_pL << "dependent_variables:" << endl;
+    hepfile_pL << "- header:" << endl;
+    hepfile_pL << "    name: $r_{core}$ p-$\\Lambda$ (Usmani-tuned)" << endl;
+    hepfile_pL << "    units: fm" << endl;
+    hepfile_pL << "  values:" << endl;
+    for(int iMt=0; iMt<NumMtBins_pL; iMt++){
+        hepfile_pL << "  - errors:" << endl;
+        hepfile_pL << "    - label: syst" << endl;
+        hepfile_pL << "      symerror: " << g_pp[ana_original_pL_NLO_modified][src_rsm][syst].GetErrorY(iMt) << endl;
+        hepfile_pL << "    - label: stat" << endl;
+        hepfile_pL << "      symerror: " << g_pp[ana_original_pL_NLO_modified][src_rsm][stat].GetErrorY(iMt) << endl;
+        hepfile_pL << "    value: " << g_pp[ana_original_pL_NLO_modified][src_rsm][stat].GetPointY(iMt) << endl;
+    }
+    hepfile_pL << "independent_variables:" << endl;
+    hepfile_pL << "- header:" << endl;
+    hepfile_pL << "    name: $m_{T}$" << endl;
+    hepfile_pL << "    units: GeV/$c^{2}$" << endl;
+    hepfile_pL << "  values:" << endl;
+    for(int iMt=0; iMt<NumMtBins_pL; iMt++){
+        hepfile_pL << "  - value: " << mt_values_pL[iMt];
+        if(iMt<NumMtBins_pL-1) hepfile_pL << endl;
+    }
+    hepfile_pL.close();
 
 
 //dariusz, but old vs new
@@ -7688,15 +7749,15 @@ int SOURCESTUDIES(int argc, char *argv[]){
     for(int iMt=0; iMt<6; iMt++){
         printf("MT %i\n",iMt);
         double r_core_Def = SourcePaper_pL("McGauss_ResoTM", 0, 0, iMt, "UsmaniNLO13", "/home/dimihayl/Software/LocalFemto/Output/SourceStudies/SourcePaper_pL/test1/");
-        double r_core_New = SourcePaper_pL("McGauss_ResoTM", 0, 0, iMt, "UsmaniNLO19", "/home/dimihayl/Software/LocalFemto/Output/SourceStudies/SourcePaper_pL/test1/");
+        double r_core_New = SourcePaper_pL("McGauss_ResoTM", 0, 0, iMt, "UsmaniBest", "/home/dimihayl/Software/LocalFemto/Output/SourceStudies/SourcePaper_pL/test1/");
         double diff = r_core_New - r_core_Def;
         printf("%i) The DIFF is %.3f fm, or %.2f%%\n", iMt, diff, 200.*fabs(diff)/(r_core_Def+r_core_New));
     }
     */
     //SourcePaper_pL(argv[1],atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),argv[5]);
     
-    Estimate_pp_pL_discr(); return 0;
-    //Analyse_fit_results_pp(TString::Format("%s/SourceRun2_reanalysis/BigLoop_v7_all/",GetCernBoxDimi()));
+    //Estimate_pp_pL_discr(); return 0;
+    Analyse_fit_results_pp(TString::Format("%s/SourceRun2_reanalysis/BigLoop_v7_all/",GetCernBoxDimi()));
 
     //TestReadTTree();
     //Estimate_Reff("pLambda","oton","RSM_PLB",3.0);

@@ -3,6 +3,7 @@
 
 #include "EnvVars.h"
 #include "CATS.h"
+#include "CATStools.h"
 #include "DLM_Source.h"
 #include "DLM_Potentials.h"
 #include "CommonAnaFunctions.h"
@@ -11,6 +12,7 @@
 #include "DLM_RootWrapper.h"
 #include "DLM_MathFunctions.h"
 #include "DLM_Ck.h"
+#include "DLM_CkDecomposition.h"
 
 #include "TGraph.h"
 #include "TGraphErrors.h"
@@ -693,10 +695,21 @@ void pi_d_source(){
     hSourceLower->SetBinContent(uRad+1,1e6);
   }
 
+  std::vector<float> core_radii_mTint = {1.036,1.075,1.112};
+  std::vector<float> core_radii_mT0 = {1.163,1.216,1.271};
+  std::vector<float> core_radii_mT1 = {1.068,1.109,1.150};
+  std::vector<float> core_radii_mT2 = {0.996,1.033,1.068};
+  std::vector<float> core_radii_mT3 = {0.932,0.968,1.003};
+  std::vector<float> core_radii_mT4 = {0.782,0.831,0.880};
+  std::vector<float> vectors[] = {core_radii_mTint, core_radii_mT0, core_radii_mT1, core_radii_mT2, core_radii_mT3, core_radii_mT4};
 
   for(int uA=0; uA<1; uA++){for(int uB=0; uB<1; uB++){for(int uE=0; uE<3; uE++){
         //#for the sake of simplicity, make it 1.074 +/- 0.39 and min/avg/max = 1.035/1.074/1.113
-        std::vector<float> core_radii = {1.035,1.074,1.113};
+        //std::vector<float> core_radii = {1.035,1.074,1.113};//mt integrated
+        std::vector<float> core_radii = {0.782,0.831,0.880};
+        //for (const auto& vec : vectors) {
+        //    core_radii.insert(core_radii.end(), vec.begin(), vec.end());
+        //}
 
         DLM_CommonAnaFunctions AnalysisObject;
         AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
@@ -711,6 +724,9 @@ void pi_d_source(){
         printf("%i %i %i\n",uA,uB,uE);
         
         for(unsigned uSrc=0; uSrc<core_radii.size(); uSrc++){
+          if(uSrc%3==0){
+            printf("mT%i-----------------\n",int(uSrc)/3-1);
+          }
           double r_eff = GetReff(*MagicSource, core_radii.at(uSrc));
           if(uA==0&&uB==0&&uE==0&&uSrc==1) reff_def = r_eff;
           printf("rcore = %.3f; reff = %.3f\n", core_radii.at(uSrc), r_eff);
@@ -756,6 +772,7 @@ void pi_d_source(){
   //EvaluateTheSource
 
   printf("reff_min = %.3f; reff_max = %.3f\n", reff_min, reff_max);
+  printf("=> %.3f +/- %.3f\n", (reff_max+reff_min)*0.5, (reff_max-reff_min)*0.5);
 
   delete hSource;
   delete hSourceLower;
@@ -763,7 +780,854 @@ void pi_d_source(){
 
 }
 
+//a fitter inspired by marcel
+//we create the shape of the delta, and can fit it
+//in addition, we have a dimi-style baseline
+//! CHECK ABOUT THE UNFOLDING !!
+void pi_d_DLM_fitter1(){
 
+}
+
+void test_sill_ps(){
+  TF1* fSill = new TF1("fSill",SillPhaseSpaceKstar,0,1000,7);
+//par[0/1] = masses of the daughters
+//par[2] = mass (mother)
+//par[3] = width
+//par[4] = Resonance pT, if zero no PS
+//par[5] = Temperature, if zero no PS
+  fSill->SetParameter(0, 1);
+  fSill->SetParameter(1, Mass_pic);
+  fSill->SetParameter(2, Mass_p);
+  fSill->SetParameter(3, 1215);
+  fSill->SetParameter(4, 100);
+  fSill->SetParameter(5, 1000);
+  fSill->SetParameter(6, 30);
+
+//    TFile* fOutput = new TFile(TString::Format("%s/OtherTasks/Georgios_LXi_ResoTest/fOutput_%i_%.2f.root",GetFemtoOutputFolder(),int(SmoothSampling),CoreSize),"recreate");
+
+  double Integral = fSill->Integral(0,1000);
+  printf("Integral = %.2e\n",Integral);
+  fSill->SetParameter(0,1./Integral);
+  Integral = fSill->Integral(0,1000);
+  printf("Integral = %.2e\n",Integral);
+
+  TFile fOutput(TString::Format("%s/Deuteron/test_sill_ps.root",GetFemtoOutputFolder()), "recreate");
+  fSill->Write();
+}
+
+
+void test_sill_invM_to_kstar(){
+  double MASS = 1232;
+  double WIDTH = 120;
+  double AVG_PT = 1000;
+  double EFF_TEMP = 30;
+  double MASS_D1 = Mass_pic;
+  double MASS_D2 = Mass_p;
+  TH1F* hInvMass = new TH1F("hInvMass","hInvMass",1024,1000,3000);
+  TH1F* hKstar = new TH1F("hKstar","hKstar",1024,0,2000);
+
+  TH1F* hBoltzmannInvMass = new TH1F("hBoltzmannInvMass","hBoltzmannInvMass",1024,1000,3000);
+  TH1F* hBoltzmannKstar = new TH1F("hBoltzmannKstar","hBoltzmannKstar",1024,0,2000);
+
+  TH1F* hSillBoltzmann_IM = new TH1F("hSillBoltzmann_IM","hSillBoltzmann_IM",1024,1000,3000);
+  TH1F* hSillBoltzmann_kstar = new TH1F("hSillBoltzmann_kstar","hSillBoltzmann_kstar",1024,0,2000);
+
+  TF1* fSill_IM = new TF1("fSill_IM",Sill_IM,1000,3000,5);
+  fSill_IM->SetParameter(0, -1e6);
+  fSill_IM->SetParameter(1, MASS_D1);
+  fSill_IM->SetParameter(2, MASS_D2);
+  fSill_IM->SetParameter(3, MASS);
+  fSill_IM->SetParameter(4, WIDTH);  
+  fSill_IM->SetNpx(1024);
+
+  TF1* fSill_kstar = new TF1("fSill_kstar",Sill_kstar,0,2000,5);
+  fSill_kstar->SetParameter(0, -1e6);
+  fSill_kstar->SetParameter(1, MASS_D1);
+  fSill_kstar->SetParameter(2, MASS_D2);
+  fSill_kstar->SetParameter(3, MASS);
+  fSill_kstar->SetParameter(4, WIDTH);  
+  fSill_kstar->SetNpx(1024);
+
+
+  TF1* fBoltzmann_IM = new TF1("fBoltzmann_IM",Boltzmann_IM,1000,3000,3);
+  fBoltzmann_IM->SetParameter(0, -1e6);
+  fBoltzmann_IM->SetParameter(1, AVG_PT);
+  fBoltzmann_IM->SetParameter(2, EFF_TEMP);
+  fBoltzmann_IM->SetNpx(1024);
+
+//par[0] = NORM
+//par[1/2] = masses of the daughters
+//par[3] = mass (mother)
+//par[4] = width
+//par[5] = avg pt, if zero no PS
+//par[6] = Temperature, if zero no PS
+
+  TF1* fSillBoltzmann_IM = new TF1("fSillBoltzmann_IM",SillBoltzmann_IM,1000,3000,7);
+  fSillBoltzmann_IM->SetParameter(0, -1e6);
+  fSillBoltzmann_IM->SetParameter(1, MASS_D1);
+  fSillBoltzmann_IM->SetParameter(2, MASS_D2);
+  fSillBoltzmann_IM->SetParameter(3, MASS);
+  fSillBoltzmann_IM->SetParameter(4, WIDTH);
+  fSillBoltzmann_IM->SetParameter(5, AVG_PT);
+  fSillBoltzmann_IM->SetParameter(6, EFF_TEMP);  
+  fSillBoltzmann_IM->SetNpx(1024);
+
+  TF1* fSillBoltzmann_kstar = new TF1("fSillBoltzmann_kstar",SillBoltzmann_kstar,0,2000,7);
+  fSillBoltzmann_kstar->SetParameter(0, -1e6);
+  fSillBoltzmann_kstar->SetParameter(1, MASS_D1);
+  fSillBoltzmann_kstar->SetParameter(2, MASS_D2);
+  fSillBoltzmann_kstar->SetParameter(3, MASS);
+  fSillBoltzmann_kstar->SetParameter(4, WIDTH);
+  fSillBoltzmann_kstar->SetParameter(5, AVG_PT);
+  fSillBoltzmann_kstar->SetParameter(6, EFF_TEMP);  
+  fSillBoltzmann_kstar->SetNpx(1024);
+
+  TRandom3 rangen(23);
+
+  double my_convert = sqrt(pow(0.5*MASS - 0.5*(MASS_D1*MASS_D1+MASS_D2*MASS_D2)/MASS,2.) - pow(MASS_D1*MASS_D2/MASS,2.));
+  cout << IM_to_kstar(MASS, MASS_D1, MASS_D2) << " vs " << my_convert << endl;
+//return ;
+  int NumIter = 100*1000;
+  for(int iIter=0; iIter<NumIter; iIter++){
+    double ran_im = fSill_IM->GetRandom(1000,3000,&rangen);
+    double ran_kstar = IM_to_kstar(ran_im, MASS_D1, MASS_D2);
+    hInvMass->Fill(ran_im);
+    hKstar->Fill(ran_kstar);
+
+
+    ran_im = fSillBoltzmann_IM->GetRandom(1000,3000,&rangen);
+    ran_kstar = IM_to_kstar(ran_im, MASS_D1, MASS_D2);
+    hSillBoltzmann_IM->Fill(ran_im);
+    hSillBoltzmann_kstar->Fill(ran_kstar);
+
+
+    ran_im = fBoltzmann_IM->GetRandom(1000,3000,&rangen);
+    ran_kstar = IM_to_kstar(ran_im, MASS_D1, MASS_D2);
+    hBoltzmannInvMass->Fill(ran_im);
+    hBoltzmannKstar->Fill(ran_kstar);
+
+    
+    
+
+  }
+
+  hInvMass->Scale(fSill_IM->Integral(1000,3000)/hInvMass->Integral(),"width");
+  hKstar->Scale(fSill_kstar->Integral(0,2000)/hKstar->Integral(),"width");
+
+  hBoltzmannInvMass->Scale(fBoltzmann_IM->Integral(1000,3000)/hBoltzmannInvMass->Integral(),"width");
+  hBoltzmannKstar->Scale(1./hBoltzmannKstar->Integral(),"width");
+
+  hSillBoltzmann_IM->Scale(fSillBoltzmann_IM->Integral(1000,3000)/hSillBoltzmann_IM->Integral(),"width");
+  hSillBoltzmann_kstar->Scale(fSillBoltzmann_kstar->Integral(0,2000)/hSillBoltzmann_kstar->Integral(),"width");
+
+  TFile fOutput(TString::Format("%s/Deuteron/test_sill_invM_to_kstar.root",GetFemtoOutputFolder()), "recreate");
+  hInvMass->Write();
+  fSill_IM->Write();
+  hKstar->Write();
+  fSill_kstar->Write();
+
+  hSillBoltzmann_IM->Write();
+  fSillBoltzmann_IM->Write();
+  hSillBoltzmann_kstar->Write();
+  fSillBoltzmann_kstar->Write();
+
+  hBoltzmannInvMass->Write();
+  fBoltzmann_IM->Write();
+  hBoltzmannKstar->Write();
+
+}
+
+//par[0] = NORM
+//par[1/2] = masses of the daughters
+//par[3] = mass (mother)
+//par[4] = width
+//par[5] = avg pt, if zero no PS
+//par[6] = Temperature, if zero no PS
+
+
+void clean_graph(TGraph* gInput){
+  int num_pts = gInput->GetN();
+  for(int iPts=num_pts-1; iPts>=0; iPts--){
+    gInput->RemovePoint(iPts);
+  }
+}
+
+//par[0] = source size
+//par[1] = alpha par
+//par[2] = lambda_genuine
+//par[3] = fraction_d_from_Delta = frac_D
+//par[4] = delta_amplitude
+//par[5] = CkCutOff
+//par[6] = CkConv
+//par[7] = treat it as a flag for the fit. 0 = my style where we do NOT multiply C_Delta with C_femto, and 1 where we do so
+//par[8] = Delta normalization, should be a dummy fixed to -1e6, giving instructions to the code to renorm
+//par[9] = mass of daughter 1 (say the pion)
+//par[10] = mass of daughter 2 (say the proton)
+//par[11] = mass of the delta
+//par[12] = width of the delta
+//par[13] = avg pT of the daughters
+//par[14] = effective temperature
+//par[15] = just in case
+//par[16] = norm
+//par[17] = 0 to castrate the pol3
+//par[18] = position of the max of the pol3
+//par[19] = p3 parameter of the pol3
+//par[20] = -1e6 to switch off the pol4
+//the total fit function is:
+//Baseline*(lambda_femto*Ck_femto + lambda_delta*Ck_delta + lamda_flat)
+DLM_CkDecomposition* Bulgaristan_CkDec=NULL;
+TGraph* Kstar_Modifier = NULL;
+double Bulgaristan_fit(double* kstar, double* par){
+  if(!Bulgaristan_CkDec) return 0;
+  double& MOM = kstar[0];
+  //double lambda_flat = par[3];
+  //double lambda_fd = 1.-lambda_flat;
+  //double lambda_femto = par[2]*lambda_fd/(1.+par[2]);
+  //double lambda_delta = lambda_fd - lambda_femto;
+  
+
+  Bulgaristan_CkDec->GetCk()->SetSourcePar(0, par[0]);
+  Bulgaristan_CkDec->GetCk()->SetCutOff(par[5],par[6]);
+  Bulgaristan_CkDec->Update();
+
+  double Baseline = DLM_Baseline(kstar, &par[16]);
+  //pid / pip kstar is around 1.1 => as kstar[0] is the pid, modified is pip, we need to divide here
+  double modified_kstar = kstar[0]/1.1;//roughly what happens after the boost @ 120 MeV, see the original calc.
+  //if(kstar[0]<=50) modified_kstar = kstar[0]/1.065;
+  //else if(kstar[0]>=100) modified_kstar = kstar[0]/1.075;
+  //else if(kstar[0]>=200) modified_kstar = kstar[0]/1.11;
+  //else if(kstar[0]>=300) modified_kstar = kstar[0]/1.13;
+  //else 
+  modified_kstar = kstar[0]/Kstar_Modifier->Eval(kstar[0]);
+  
+  double Delta = SillBoltzmann_kstar(&modified_kstar, &par[8]);
+  double Femto = Bulgaristan_CkDec->EvalCk(MOM);
+  //if(MOM==10){
+  //  printf("%.3e * (%.3e*%.3e + %.3e*%.3e + %.3e)\n",Baseline, par[2], Femto, par[3], Delta, 1.-par[2]);
+  //}
+  //N.B. the Delta goes to zero, hence does not count as a proper lambda par!
+  if(TMath::Nint(par[7])==0){
+    return Baseline*(par[2]*(1.-par[3])*Femto + par[4]*Delta + (1.-par[2]));
+  }
+  else{
+    return Baseline*(par[2]*(1.-par[3])*Femto + par[4]*Delta*Femto + (1.-par[2]));
+  }
+  
+}
+
+//if the |mT_bin|>100 => we deal with pi^- d
+void BulgarianIndianGhetto(TString Description, int mt_bin, int NumIter, bool Bootstrap=true, bool DataVar=true, bool FitVar=true, int SEED=0){
+printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n AND UPDATE THE WIDTH AND TEMP BASED ON THE NEW RANGES!!! USE PythonPlot_Pi_d.py to get them out\n");
+  if(mt_bin%100<-1 || mt_bin%100>5){
+    printf("Bad mT bin\n");
+    abort();
+  }
+  TString InputDataFileName = 
+    TString::Format("%s/pi_d/FitOct2024_Files/Systematics_pp.root",GetCernBoxDimi());
+  TString DefaultHistoName = "histDefault";
+  TString VarDirName = "Raw";
+  TString VarHistoBaseName = "histVar_";
+  TString MeListName1 = "PairDist";
+  TString MeListName2 = "PairReweighted";
+  TString MeHistName = "hTotalMEpairs _Rebinned_5_Reweighted";
+  //pip d mt diff
+  if(mt_bin>=0 && mt_bin<100){
+    InputDataFileName = 
+    TString::Format("%s/pi_d/FitOct2024_Files/mT_2024-10-11/mT06102024Signal_sum_Mt_%i.root",GetCernBoxDimi(),mt_bin+1);
+    DefaultHistoName = "hCk_ReweightedMeV_2";
+    if(DataVar==true){
+      printf("ERROR: At the moment we do not have mt variations\n");
+      abort();
+    }
+  }
+  //pim d mt diff
+  else if(mt_bin>=100 && mt_bin<200){
+    InputDataFileName = 
+    TString::Format("%s/pi_d/FitOct2024_Files/AntiPionDeuteron/22102024FilesSignal_antisum_Mt_%i.root",GetCernBoxDimi(),mt_bin%100+1);
+    DefaultHistoName = "hCk_ReweightedMeV_2";
+    MeListName1 = "PairDist";
+    MeListName2 = "PairReweighted";
+    //hTotalMEapairs _Rebinned_5_Reweighted
+    //MeHistName = TString::Format("MEmTMult_%i_Particle1_Particle20 _Rebinned_5_Reweighted", mt_bin%100+1);
+    MeHistName = TString::Format("hTotalMEapairs _Rebinned_5_Reweighted");
+    if(DataVar==true){
+      printf("ERROR: At the moment we do not have mt variations\n");
+      abort();
+    }
+  }
+
+  //TString InputConversionFileName = 
+  //  TString::Format("%s/pi_d/Bhawani/ForDimi/ForDimi/Output/ResonanceOutput_2024-10-10.root",GetCernBoxDimi());
+
+  //N.B. PURE vars, the default does not count here
+  const double NumDataVars = 26;
+
+  const double max_kstar = 700;
+  const unsigned max_mom_bins = 35;
+  //std::vector<float> fit_range = {520, 440, 600};
+  std::vector<float> fit_range = {600, 500};
+  std::vector<float> eff_source_radii;// = {1.51, 1.39, 1.63};
+  std::vector<float> lambda_gen_relvar = {1.0, 0.95, 1.05};
+  //the ratio of the lambda pars (yields) of pairs counting as primary
+  //or decay products of the delta. If negative, the value is fitted, with 
+  //starting value of fabs(1st elements) and limits fabs(2nd and 3rd element)
+  std::vector<float> amplitude_delta = {-1e8, -1, -1e14};
+  //these are the scenario B and A (B = 2/3 became my default it seems) for how the pT of the p-pi relates to d-pi
+  std::vector<float> pT_scale = {2./3., 3./4.};
+  std::vector<TString> InputConversionFileName = 
+    { TString::Format("%s/pi_d/Bhawani/ForDimi/ForDimi/Output/ResonanceOutput_B.root",GetCernBoxDimi()), 
+      TString::Format("%s/pi_d/Bhawani/ForDimi/ForDimi/Output/ResonanceOutput_A.root",GetCernBoxDimi())};
+  float CKCUTOFF = 380;
+  const double CkConv = 700;
+
+  //0 - do NOT multiply C_Delta
+  //1 - do multiply C_Delta by C_genuine
+  std::vector<int> fit_types = {1,0};
+  //based on ME of a local test, for pairs below k* 300 MeV
+  std::vector<float> piN_pT = {560, 800, 1000, 1200, 1500};
+  float piN_pT_avg = 900;
+  //these are all per mt bin
+  std::vector<std::vector<float>> mT_low;
+  std::vector<std::vector<float>> mT_up;
+  std::vector<float> mT_low_pip_v1 = {1030,1160,1280,1400,1550};
+  std::vector<float> mT_up_pip_v1 = {1160,1280,1400,1550,2400};
+  std::vector<float> mT_low_pim_v1 = {1030,1160,1240,1380,1520};
+  std::vector<float> mT_up_pim_v1 = {1160,1240,1380,1520,2400};
+
+  mT_low.push_back(mT_low_pip_v1);
+  mT_low.push_back(mT_low_pim_v1);
+
+  mT_up.push_back(mT_up_pip_v1);
+  mT_up.push_back(mT_up_pim_v1);
+
+  double avg_mt = 1270;
+  if(mt_bin>=0){
+    avg_mt = 0.5*(mT_up.at(mt_bin%100)+mT_low.at(mt_bin%100));
+  }
+  double avg_mass_pid = 0.5*(Mass_d+Mass_pic);
+  double kay_tee = sqrt(avg_mt*avg_mt-avg_mass_pid*avg_mass_pid);
+  
+  std::vector<float> lambda_gen_avg = {0.850, 0.874, 0.888, 0.897, 0.918};
+  double lambda_gen_mTint = 0.88;//avg_mt of 1.27
+
+  //take 0.75 or 0 weight for the Delta++, based on the system (pip or pim)
+  //N.B. for pim we should actually have 1/2 D0 and 1/2 D-, but we dont have access to it
+  double Dpp_weight = 0.75;
+  if(fabs(mt_bin)>=100) Dpp_weight = 0;
+  std::vector<float> marcel_gamma_D0 = {74.11, 74.06, 74.02, 70.19, 90.29};
+  std::vector<float> marcel_temp_D0 = {18.51, 18.27, 18.04, 16.49, 17.41};
+  std::vector<float> marcel_gamma_Dpp = {109.63, 106.28, 103.21, 99.56, 86.01};
+  std::vector<float> marcel_temp_Dpp = {26.49, 26.71, 26.92, 26.30, 23.25};
+  //these values are avaraged over Delta++ and 0, with weight of 0.75 for the ++
+  std::vector<float> marcel_gamma = {100.75, 98.23, 95.92, 92.22, 87.53};
+  std::vector<float> marcel_temp = {24.49, 24.60, 24.70, 23.84, 21.79};
+  float marcel_avg_gamma = 95;
+  float marcel_avg_temp = 24.5;
+
+  std::vector<float> reff_avg_val = {1.673, 1.552, 1.464, 1.390, 1.226};
+  std::vector<float> reff_avg_err = {0.132, 0.119, 0.115, 0.118, 0.141};
+  double reff_mTint_val = 1.513;//avg_mt of 1.27
+  double reff_mTint_err = 0.117;
+  if(mt_bin>=0){
+    eff_source_radii.push_back(reff_avg_val.at(mt_bin%100));
+    eff_source_radii.push_back(reff_avg_val.at(mt_bin%100)-reff_avg_err.at(mt_bin%100));
+    eff_source_radii.push_back(reff_avg_val.at(mt_bin%100)+reff_avg_err.at(mt_bin%100));
+  }
+  else{
+    eff_source_radii.push_back(reff_mTint_val);
+    eff_source_radii.push_back(reff_mTint_val-reff_mTint_err);
+    eff_source_radii.push_back(reff_mTint_val+reff_mTint_err);
+  }
+  
+
+  TRandom3 rangen(SEED);
+
+  //printf("file %s\n",InputDataFileName.Data());
+  TFile fInputData(InputDataFileName, "read");
+  TDirectoryFile* fDir = NULL;
+  TH1F* hData = NULL;
+  TList* fList1 = NULL;
+  TList* fList2 = NULL;
+  TH1D* hME = NULL;
+  fList1 = (TList*)(fInputData.FindObjectAny(MeListName1));
+  if(fList1) fList2 = (TList*)fList1->FindObject(MeListName2);
+  //fList2->ls();
+  if(fList2) hME = (TH1D*)fList2->FindObject(MeHistName);
+  if(hME){
+    hME->GetXaxis()->SetLimits(hME->GetXaxis()->GetXmin()*1000.,hME->GetXaxis()->GetXmax()*1000.);
+  }
+
+  //printf("%p %p %p\n",fList1,fList2,hME);
+
+  TGraphErrors  gData(max_mom_bins);
+  gData.SetName("gData");
+  gData.SetLineColor(kBlack);
+  gData.SetLineWidth(4);
+
+  TGraph gFit(max_mom_bins);
+  gFit.SetName("gFit");
+  gFit.SetLineColor(kPink-9);
+  gFit.SetLineWidth(4);
+
+  TGraph gBaseline(max_mom_bins);
+  gBaseline.SetName("gBaseline");
+  gBaseline.SetLineColor(kGreen-5);
+  gBaseline.SetLineWidth(4);
+
+  TGraph gFemto(max_mom_bins);
+  gFemto.SetName("gFemto");
+  gFemto.SetLineColor(kBlue+2);
+  gFemto.SetLineWidth(4);
+
+  TGraph gDelta(max_mom_bins);
+  gDelta.SetName("gDelta");
+  gDelta.SetLineColor(kOrange-1);
+  gDelta.SetLineWidth(4);
+
+  float MT_LOW;
+  float MT_UP;
+  float RADIUS;
+  int DATA_TYPE;
+  int FIT_TYPE;
+  int MT_ID = mt_bin;
+  float FIT_RANGE;
+  float LAM_GEN;
+  float FRAC_D;
+  float AMP_DELTA;
+  float DELTA_MASS;
+  float DELTA_WIDTH;
+  float PS_PT;
+  float PS_TEMP;
+  float CHI2_500;
+  float PT_SCALE;
+
+  if(mt_bin==-1){
+    MT_LOW = mT_low.at(0);
+    MT_UP = mT_up.at(mT_up.size()-1);
+  }
+  else if(mt_bin%100>=0 && mt_bin%100<=4){
+    MT_LOW = mT_low.at(mt_bin%100);
+    MT_UP = mT_up.at(mt_bin%100);    
+  }
+  else{
+    printf("Silly mT bin\n");
+    abort();
+  }
+
+  //int SEED, int mt_bin, int NumIter, bool Bootstrap=true, bool DataVar=true, bool FitVar=true
+  TFile fOutputFile(TString::Format("%s/pi_d/FitOct2024_Files/Results/%s_mT%i_B%i_DV%i_FV%i_S%i.root",
+    GetCernBoxDimi(), Description.Data(), mt_bin, Bootstrap, DataVar, FitVar, SEED), "recreate");
+  TTree* pi_d_Tree = new TTree("pi_d_Tree","pi_d_Tree");
+  //pi_d_Tree->Branch("seed",&SEED,"seed/I")
+  pi_d_Tree->Branch("gData","TGraphErrors",&gData,32000,0);//
+  pi_d_Tree->Branch("gFit","TGraph",&gFit,32000,0);//
+  pi_d_Tree->Branch("gBaseline","TGraph",&gBaseline,32000,0);//
+  pi_d_Tree->Branch("gFemto","TGraph",&gFemto,32000,0);//
+  pi_d_Tree->Branch("gDelta","TGraph",&gDelta,32000,0);//
+  pi_d_Tree->Branch("mT_low",&MT_LOW,"mT_low/F");//
+  pi_d_Tree->Branch("mT_up",&MT_UP,"mT_up/F");//
+  pi_d_Tree->Branch("mT_id",&MT_ID,"mT_id/I");//
+  pi_d_Tree->Branch("rad",&RADIUS,"rad/F");//
+  pi_d_Tree->Branch("data_type",&DATA_TYPE,"data_type/I");//ABC, A=0 => no boot, A=1 = bootstrap, BC = variation ID. If negative => default
+  pi_d_Tree->Branch("fit_type",&FIT_TYPE,"fit_type/I");
+  pi_d_Tree->Branch("fit_range",&FIT_RANGE,"fit_range/F");//
+  pi_d_Tree->Branch("lam_gen",&LAM_GEN,"lam_gen/F");//
+  pi_d_Tree->Branch("frac_D",&FRAC_D,"frac_D/F");//
+  pi_d_Tree->Branch("amp_delta",&AMP_DELTA,"amp_delta/F");//
+  pi_d_Tree->Branch("CkCutOff",&CKCUTOFF,"CkCutOff/F");//
+  pi_d_Tree->Branch("delta_mass",&DELTA_MASS,"delta_mass/F");//
+  pi_d_Tree->Branch("delta_width",&DELTA_WIDTH,"delta_width/F");//
+  pi_d_Tree->Branch("ps_pT",&PS_PT,"ps_pT/F");//
+  pi_d_Tree->Branch("ps_Temp",&PS_TEMP,"ps_Temp/F");//
+  pi_d_Tree->Branch("pT_scale",&PT_SCALE,"pT_scale/F");//
+  pi_d_Tree->Branch("chi2_500",&CHI2_500,"chi2_500/F");//
+/*
+  ppTree->Branch("gBl","TGraph",&GBL,32000,0);//
+  ppTree->Branch("gFemto","TGraph",&GFEMTO,32000,0);//
+  ppTree->Branch("BaselineVar",&BASELINEVAR,"BaselineVar/I");//
+  ppTree->Branch("FemtoRegion",&FEMTOREGION,"FemtoRegion/F");//
+  ppTree->Branch("pS0",&PS0,"pS0/I");//
+  ppTree->Branch("SmearStrategy",&SMEARSTRATEGY,"SmearStrategy/I");//
+  ppTree->Branch("pp_lam_var",&PP_LAM_VAR,"pp_lam_var/I");//
+  ppTree->Branch("MomSmearVar","TString",&MOMSMEARVAR,8000,0);//
+  ppTree->Branch("CkCutOff",&CKCUTOFF,"CkCutOff/F");//
+  ppTree->Branch("pL_pot_var",&PL_POT_VAR,"pL_pot_var/I");//
+  ppTree->Branch("SourceVar","TString",&SOURCEVAR,8000,0);//
+  ppTree->Branch("lam_pp",&LAM_PP,"lam_pp/F");//
+  ppTree->Branch("lam_ppL",&LAM_PPL,"lam_ppL/F");//
+  ppTree->Branch("nsig",&NSIG,"nsig/F");//
+  ppTree->Branch("rad",&RADIUS,"rad/F");//
+  ppTree->Branch("raderr",&RADERR,"raderr/F");//
+*/
+  unsigned NumMomBins = 20;
+  double kCatMin = 0;
+  double kCatMax = 400;
+  CATS Kitty;
+  Kitty.SetMomBins(NumMomBins, kCatMin, kCatMax);
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
+  AnalysisObject.SetUpCats_pi_d(Kitty, "", "Gauss", 0, 0);
+  Kitty.SetQ1Q2(+1);
+  if(fabs(mt_bin)>=100) Kitty.SetQ1Q2(-1);
+  Kitty.SetAnaSource(0, eff_source_radii.at(0));
+  if(Kitty.GetNumSourcePars()>1) Kitty.SetAnaSource(1, 2);
+  Kitty.KillTheCat();
+  Kitty.SetNotifications(CATS::nWarning);
+
+  DLM_Ck CkKitty(Kitty.GetNumSourcePars(),0,Kitty,max_mom_bins,0,max_kstar);
+  CkKitty.SetSourcePar(0,Kitty.GetAnaSourcePar(0));
+  if(Kitty.GetNumSourcePars()>1) CkKitty.SetSourcePar(1,Kitty.GetAnaSourcePar(1));
+  CkKitty.SetCutOff(CKCUTOFF,CkConv);
+  CkKitty.Update();
+
+  DLM_CkDecomposition CkDecKitty("pi_d",0,CkKitty,NULL);
+  CkDecKitty.Update(true, true);
+  Bulgaristan_CkDec = &CkDecKitty;
+
+
+  for(unsigned uIter=0; uIter<NumIter; uIter++){
+    int iDataVar = -1;
+    if(DataVar==true){
+      //if we get a -1, it is the default
+      iDataVar = rangen.Integer(NumDataVars+1)-1;
+    }
+
+    fInputData.cd();
+    //printf("iDataVar=%i\n",iDataVar);
+    //fInputData.ls();
+    if(iDataVar==-1){
+      hData = (TH1F*)fInputData.Get(DefaultHistoName);
+    }
+    else{
+      fDir = (TDirectoryFile*)(fInputData.FindObjectAny(VarDirName));
+      fDir->GetObject(VarHistoBaseName+TString::Format("%i",iDataVar),hData);
+    }
+    
+
+    if(!hData){
+      printf("!hData\n");
+      abort();
+    }
+
+
+    TH1F* hDataToFit = (TH1F*)hData->Clone("hDataToFit");;
+    if(Bootstrap==true){
+      double MOM = 0;
+      unsigned uMom = 0;
+      while(MOM<max_kstar){
+        MOM = hData->GetBinCenter(uMom+1);
+        double new_value;
+        do{
+          new_value = rangen.Gaus(hData->GetBinContent(uMom+1), hData->GetBinError(uMom+1));
+        }
+        while(new_value<0);
+        //printf("%.3f +/- %.3f --> %.3f\n",hData->GetBinContent(uMom+1), hData->GetBinError(uMom+1), new_value);
+        hDataToFit->SetBinContent(uMom+1, new_value);
+        uMom++;
+      }
+    }
+
+    int pt_scale_int = 0;
+    FIT_RANGE = fit_range.at(0);
+    RADIUS = eff_source_radii.at(0);
+    PT_SCALE = pT_scale.at(pt_scale_int);
+    FIT_TYPE = fit_types.at(0);
+    if(mt_bin<0) LAM_GEN = lambda_gen_mTint;
+    else LAM_GEN = lambda_gen_avg.at(mt_bin%100);
+    AMP_DELTA = amplitude_delta.at(0);
+    if(FitVar){
+      int rndint = rangen.Integer(fit_range.size());
+      FIT_RANGE = fit_range.at(rndint);
+      //printf("%f %i %i\n", FIT_RANGE, rndint, fit_range.size());
+      RADIUS = eff_source_radii.at(rangen.Integer(eff_source_radii.size()));
+      if(LAM_GEN>=0){
+        if(mt_bin<0) LAM_GEN = lambda_gen_mTint*lambda_gen_relvar.at(rangen.Integer(lambda_gen_relvar.size()));
+        else LAM_GEN = lambda_gen_avg.at(mt_bin%100)*lambda_gen_relvar.at(rangen.Integer(lambda_gen_relvar.size()));
+      }
+      if(AMP_DELTA>=0) AMP_DELTA = amplitude_delta.at(rangen.Integer(amplitude_delta.size()));
+
+      rndint = rangen.Integer(pT_scale.size());
+      PT_SCALE = pT_scale.at(rndint);
+
+
+      rndint = rangen.Integer(fit_types.size());
+      FIT_TYPE = fit_types.at(rndint);
+    }
+
+    TFile fConversion(InputConversionFileName.at(pt_scale_int), "read");
+    Kstar_Modifier = (TGraph*)fConversion.Get("gR_ppi_dpi_c");
+
+
+    DATA_TYPE = abs(iDataVar);
+    if(Bootstrap==true) DATA_TYPE += 100;
+    if(iDataVar<0) DATA_TYPE = -DATA_TYPE;
+
+    //par[0] = source size
+    //par[1] = alpha par
+    //par[2] = lambda_genuine
+    //par[3] = lambda_d
+    //par[4] = delta_amplitude
+    //par[5] = CkCutOff
+    //par[6] = CkConv
+    //par[7] = just in case
+    //par[8] = Delta normalization, should be a dummy fixed to -1e6, giving instructions to the code to renorm
+    //par[9] = mass of daughter 1 (say the pion)
+    //par[10] = mass of daughter 2 (say the proton)
+    //par[11] = mass of the delta
+    //par[12] = width of the delta
+    //par[13] = avg pT of the daughters
+    //par[14] = effective temperature
+    //par[15] = just in case
+    //par[16] = norm
+    //par[17] = 0 to castrate the pol3
+    //par[18] = position of the max of the pol3
+    //par[19] = p3 parameter of the pol3
+    //par[20] = -1e6 to switch off the pol4
+    const int NumFitPar = 21;
+    TF1* fData = new TF1("fData",Bulgaristan_fit,0,FIT_RANGE,NumFitPar);
+    TF1* fDataDummy = new TF1("fDataDummy",Bulgaristan_fit,0,FIT_RANGE,NumFitPar);
+
+
+    //hDataToFit->Fit(fData,"Q, S, N, R, M");
+
+    //minimum is one, if you whant to refine the FRAC_D recursively, increase it
+    int RepeatFit = 3;
+    int iRepeat = 0;
+    FRAC_D = 1.5e-2;
+    do{
+
+
+      fData->FixParameter(0, RADIUS);
+      fData->FixParameter(1, 2);
+      if(LAM_GEN>=0) fData->FixParameter(2, LAM_GEN);
+      else{
+        if(mt_bin<0){
+          fData->SetParameter(2, fabs(lambda_gen_mTint));
+          fData->SetParLimits(2, fabs(lambda_gen_mTint*lambda_gen_relvar.at(0)), fabs(lambda_gen_mTint*lambda_gen_relvar.at(1)));        
+        }
+        else{
+          fData->SetParameter(2, fabs(lambda_gen_avg.at(mt_bin%100)));
+          fData->SetParLimits(2, fabs(lambda_gen_avg.at(mt_bin%100)*lambda_gen_relvar.at(0)), fabs(lambda_gen_avg.at(mt_bin%100)*lambda_gen_relvar.at(1)));        
+        }
+      }
+      //fData->SetParameter(3,0.5);
+      //fData->SetParLimits(3,0,1);
+      //3 will be fixed later on (do-while)
+      //fData->FixParameter(3,1.5e-02);
+      if(AMP_DELTA>=0) fData->FixParameter(4, AMP_DELTA);
+      else{
+        fData->SetParameter(4, fabs(amplitude_delta.at(0)));
+        fData->SetParLimits(4, fabs(amplitude_delta.at(1)), fabs(amplitude_delta.at(2)));
+      }
+      fData->FixParameter(5, CKCUTOFF);
+      fData->FixParameter(6, CkConv);
+
+      fData->FixParameter(7, FIT_TYPE);
+
+      fData->FixParameter(8, -1e6);
+      fData->FixParameter(9, Mass_pic);
+      fData->FixParameter(10, Mass_p);
+      fData->SetParameter(11,1232);
+      fData->SetParLimits(11,1180,1260);
+  //fData->FixParameter(11,1232); 
+  fData->FixParameter(11,1215);  
+      fData->SetParameter(12,100);
+      fData->SetParLimits(12,40,200);
+  //fData->FixParameter(12,90); 
+      //this can be perhaps fixed. Marcel does it, but based on the mT
+      /*
+      mT Bin: 1
+      Average mT in GeV Delta: 0.675343
+      Average kT in GeV Delta: 0.407003
+      Average pT in MeV Delta: 814.007
+      mT Bin: 2
+      Average mT in GeV Delta: 0.838604
+      Average kT in GeV Delta: 0.642511
+      Average pT in MeV Delta: 1285.02
+      mT Bin: 3
+      Average mT in GeV Delta: 1.0609
+      Average kT in GeV Delta: 0.913824
+      Average pT in MeV Delta: 1827.65
+      mT Bin: 4
+      Average mT in GeV Delta: 1.33761
+      Average kT in GeV Delta: 1.22424
+      Average pT in MeV Delta: 2448.49
+      mT Bin: 5
+      Average mT in GeV Delta: 1.69694
+      Average kT in GeV Delta: 1.60909
+      Average pT in MeV Delta: 3218.18
+      mT Bin: 6
+      Average mT in GeV Delta: 2.14387
+      Average kT in GeV Delta: 2.07503
+      Average pT in MeV Delta: 4150.05
+      */
+
+      double kT_Delta;
+      //kT_Delta = 2.*kay_tee*PT_SCALE; //estimate from the mT converted
+      //fData->SetParameter(13,400);
+      //fData->SetParLimits(13,150,1000);
+      //printf("kT_Delta = %f\n",kT_Delta);
+      //printf("kay_tee = %f\n",kay_tee);
+      //printf("PT_SCALE = %f\n",PT_SCALE);
+      if(mt_bin<0){
+        kT_Delta = piN_pT_avg;
+      }
+      else{
+        kT_Delta = piN_pT.at(mt_bin%100);
+      }
+      fData->FixParameter(13, kT_Delta);
+
+      //fData->SetParameter(13,kT_Delta);
+      //fData->SetParLimits(13,kT_Delta*0.7,kT_Delta*1.3);
+      fData->SetParameter(14,15);
+      fData->SetParLimits(14,5,60);
+
+  //fix temp and gamma based on marcel
+      if(mt_bin<0){
+        fData->FixParameter(12,marcel_avg_gamma);//gamma
+        fData->SetParameter(14,marcel_avg_temp);//temp
+      }
+      else{
+        fData->FixParameter(12,marcel_gamma_Dpp.at(mt_bin%100)*Dpp_weight + marcel_gamma_D0.at(mt_bin%100)*(1.-Dpp_weight));//gamma
+        fData->SetParameter(14,marcel_temp_Dpp.at(mt_bin%100)*Dpp_weight + marcel_temp_D0.at(mt_bin%100)*(1.-Dpp_weight));//temp
+      }
+
+      fData->FixParameter(15, 0);
+
+      fData->SetParameter(16,1);
+      fData->SetParLimits(16,0.9,1.1);
+      fData->FixParameter(17, 0);
+      fData->SetParameter(18,400);
+      fData->SetParLimits(18,5,20000);
+      fData->SetParameter(19,0);
+      fData->SetParLimits(19,-1e-9,1e-9);
+      fData->FixParameter(20, -1e6);
+//printf("FRAC_D = %f\n",FRAC_D);
+      fData->FixParameter(3,FRAC_D);
+      hDataToFit->Fit(fData,"Q, S, N, R, M");   
+
+      RADIUS = fData->GetParameter(0);
+      LAM_GEN = fData->GetParameter(2);
+      //FRAC_D = fData->GetParameter(3);
+      AMP_DELTA = fData->GetParameter(4);
+      CKCUTOFF = fData->GetParameter(5);
+      DELTA_MASS = fData->GetParameter(11);
+      DELTA_WIDTH = fData->GetParameter(12);
+      PS_PT = fData->GetParameter(13);
+      PS_TEMP = fData->GetParameter(14);
+      CHI2_500 = 0;
+      for(unsigned uBin=0; uBin<hDataToFit->GetNbinsX(); uBin++){
+        double MOM = hDataToFit->GetBinCenter(uBin+1);
+        if(MOM>500.001) break;
+        CHI2_500 += pow((hDataToFit->GetBinContent(uBin+1) - fData->Eval(MOM))/hDataToFit->GetBinError(uBin+1),2.);
+      }
+
+      clean_graph(&gData);
+      clean_graph(&gFit);
+      clean_graph(&gFemto);
+      clean_graph(&gBaseline);
+      clean_graph(&gDelta);
+
+      for(unsigned uBin=0; uBin<hDataToFit->GetNbinsX(); uBin++){
+        double MOM = hDataToFit->GetBinCenter(uBin+1);
+        if(MOM>FIT_RANGE) break;
+        gData.SetPoint(uBin, MOM, hDataToFit->GetBinContent(uBin+1));
+        gData.SetPointError(uBin, hDataToFit->GetBinWidth(uBin+1)*0.5, hDataToFit->GetBinError(uBin+1));
+        gFit.SetPoint(uBin, MOM, fData->Eval(MOM));
+      }
+
+
+      fOutputFile.cd();
+      for(int iPar=0; iPar<NumFitPar; iPar++){
+        fDataDummy->FixParameter(iPar, fData->GetParameter(iPar));
+      }
+      hDataToFit->SetName(hDataToFit->GetName()+TString::Format("_uIter%i",uIter));
+      fData->SetName(fData->GetName()+TString::Format("_uIter%i",uIter));
+      //hDataToFit->Write();
+      //fData->Write();
+
+      //return Baseline*(par[2]*Femto + par[3]*Delta + (1.-par[2]));
+      double par_bl0 = fData->GetParameter(16);
+      double par_bl1 = fData->GetParameter(17);
+      double par_bl2 = fData->GetParameter(18);
+      double par_bl3 = fData->GetParameter(19);
+      double par_bl4 = fData->GetParameter(20);
+      double par_fmt = fData->GetParameter(2);
+      double par_dlt = fData->GetParameter(4);
+
+      fDataDummy->FixParameter(2, 0);
+      fDataDummy->FixParameter(4, 0);
+      for(unsigned uBin=0; uBin<hDataToFit->GetNbinsX(); uBin++){
+        double MOM = hDataToFit->GetBinCenter(uBin+1);
+        if(MOM>FIT_RANGE) break;
+        gBaseline.SetPoint(uBin, MOM, fDataDummy->Eval(MOM));
+      }
+
+      fDataDummy->FixParameter(16, 1);
+      fDataDummy->FixParameter(17, 0);
+      fDataDummy->FixParameter(18, 0);
+      fDataDummy->FixParameter(19, 0);
+      fDataDummy->FixParameter(20, 0);
+      fDataDummy->FixParameter(2, par_fmt);
+      fDataDummy->FixParameter(4, 0);
+      for(unsigned uBin=0; uBin<hDataToFit->GetNbinsX(); uBin++){
+        double MOM = hDataToFit->GetBinCenter(uBin+1);
+        if(MOM>FIT_RANGE) break;
+        gFemto.SetPoint(uBin, MOM, fDataDummy->Eval(MOM));
+      }
+
+      fDataDummy->FixParameter(2, 0);
+      fDataDummy->FixParameter(4, par_dlt);
+      for(unsigned uBin=0; uBin<hDataToFit->GetNbinsX(); uBin++){
+        double MOM = hDataToFit->GetBinCenter(uBin+1);
+        if(MOM>FIT_RANGE) break;
+        gDelta.SetPoint(uBin, MOM, fDataDummy->Eval(MOM));
+      }
+
+      //evaluate the integrals of the SE related to d from Delta and d not from Delta
+      //the norm of the integral is not relevant, as we only care about the ratio FRAC_D
+      double Integral_Primary = 0;
+      double Integral_FromDelta = 0;
+      FRAC_D = 0;
+      if(hME){
+        for(unsigned uBin=0; uBin<hME->GetNbinsX(); uBin++){
+          double MOM = hME->GetBinCenter(uBin+1);
+          if(MOM<FIT_RANGE){
+            Integral_Primary += hME->GetBinContent(uBin+1) * (gFemto.Eval(MOM) - (1.-par_fmt));
+            Integral_FromDelta += hME->GetBinContent(uBin+1) * (gDelta.Eval(MOM)-1);
+            //printf("at %.0f += %.3e and %.3e -> %.3e vs %.3e\n",MOM,gFemto.Eval(MOM),gDelta.Eval(MOM)-1,Integral_Primary,Integral_FromDelta);
+          }
+          else{
+            //we assume gFemto is 1, while gDelta is zero
+            Integral_Primary += hME->GetBinContent(uBin+1);
+          }
+        }   
+        FRAC_D = Integral_FromDelta/(Integral_FromDelta+Integral_Primary);   
+      }
+      //printf("%i FRAC_D = %.3e\n",iRepeat,FRAC_D);
+      iRepeat++;
+    }
+    while(iRepeat<RepeatFit);
+
+    pi_d_Tree->Fill();
+
+    //gData.Write();
+    //gFit.Write();
+    //gFemto.Write();
+    //gDelta.Write();
+    //gBaseline.Write();
+
+    delete fData;
+    delete fDataDummy;
+    delete hDataToFit;
+  }
+
+  fOutputFile.cd();
+  pi_d_Tree->Write();
+
+  fInputData.Close();
+  fOutputFile.Close();
+}
 
 int DEUTERON_MAIN(int argc, char *argv[]){
   //p_pn_cumulant();
@@ -771,7 +1635,14 @@ int DEUTERON_MAIN(int argc, char *argv[]){
   //SetUp_Kdp_Kd();
   //Fit_WithCECA_kstarInt(1024,11);
 
-  pi_d_source();
+  //pi_d_source();
+
+  //test_sill_invM_to_kstar();
+  //test_sill_ps();
+  //TString Description, int mt_bin, int NumIter, bool Bootstrap=true, bool DataVar=true, bool FitVar=true, int SEED
+  //BulgarianIndianGhetto("ghetto_output", atoi(argv[1]),atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),atoi(argv[5]),atoi(argv[6]));
+  BulgarianIndianGhetto("v2024-10-25", atoi(argv[1]),atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),atoi(argv[5]),atoi(argv[6]));
+  //BulgarianIndianGhetto(-1,10,true,true,true,23);
 
   return 0;
 }
