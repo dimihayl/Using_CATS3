@@ -685,11 +685,183 @@ void online_example_1(int seed, char* OutputFolder){
 
 
 
+void Test_pReso_Omega_angulars(int seed, char* OutputFolder){
+    // --- Initialization ---
+    Pythia pythia; // Define Pythia object.
+    Pythia8::Event& event = pythia.event; // quick access to current event.
+    // Read in settings
+    //pythia.readString("..."); // line by line...
+    //pythia.readFile("cardfile.cmnd"); // or via file.
+    //pythia.readString("Top:gg2ttbar = on"); // Switch on process., originally I had it on
+    pythia.readString("Beams:eCM = 13600."); // 13 TeV CM energy.
+    pythia.readString("Beams:idA = 2212");
+    pythia.readString("Beams:idB = 2212");
+    pythia.readString("Next:numberShowEvent = 0");
+    pythia.readString("Random:setSeed = on");
+    // needed for production vertex
+    pythia.readString("Fragmentation:setVertices = on");
+    pythia.readString("PartonVertex:setVertex = on");
+    pythia.readString(Form("Tune:pp = 14"));//Monash 
+    pythia.readString("SoftQCD:all = on");    // Switch on process., originally I had it off
+
+    pythia.readString(TString::Format("Random:seed %d", seed).Data());
+
+    TRandom3 rangen(seed);
+
+    int maxEvents = 10*1000;
+   // maxEvents = 10;
+
+    std::vector<PairPid> particle_pairs_pid;
+
+
+    std::vector<int> primordial_pid;
+    std::vector<int> resonance_pid;
+    //particles_pid.push_back(2212);
+    //particles_pid.push_back(2112);
+    primordial_pid.push_back(4122);
+
+    resonance_pid.push_back(2224);
+    resonance_pid.push_back(2214);
+    resonance_pid.push_back(2114);
+    resonance_pid.push_back(1114);
+    resonance_pid.push_back(12112);
+    resonance_pid.push_back(1214); 
+    resonance_pid.push_back(12116); 
+
+    resonance_pid.push_back(22212); 
+    resonance_pid.push_back(12212); 
+    resonance_pid.push_back(2124); 
+    resonance_pid.push_back(2126);
+    resonance_pid.push_back(31214);
+    resonance_pid.push_back(3124);
+    resonance_pid.push_back(12216);
+    resonance_pid.push_back(22112);
+    resonance_pid.push_back(2126);
+    resonance_pid.push_back(32224);
+    resonance_pid.push_back(32112);
+    resonance_pid.push_back(2216);
+    resonance_pid.push_back(2222);
+    resonance_pid.push_back(3225);
+
+    //PairPid pair_pp;
+    //pair_pp.first = 2212;
+    //pair_pp.second = 2212;
+    //pair_pp.name = "pp";
+    //particle_pairs_pid.push_back(pair_pp);
+
+
+
+    const float EtaCut = 0.8;
+    const float PtMin = 400;//its 300 for tha lambdas, and 500 for the protons in the analysis note (7 TeV)
+    const int EventSizeMin = 0;
+    const int EventSizeMax = 1e6;
+    const float MtMin = 1000;
+    const float MtMax = 1e6;
+    const float KstarCut = 1e6;
+
+
+    Int_t ComRel;
+    Int_t Type;
+    Int_t pidLc;
+    Int_t pidReso;
+    Float_t kstar;
+    Float_t rstar;
+    Float_t ptLc;
+    Float_t ptReso;
+    Float_t mT;
+    Float_t cos_Lc_Reso;
+    TTree* pythiaTree = new TTree("pythiaTree","pythiaTree");
+    pythiaTree->Branch("pidLc", &pidLc, "pidLc/I");
+    pythiaTree->Branch("pidReso", &pidReso, "pidReso/I");    
+    pythiaTree->Branch("kstar", &kstar, "kstar/F");//of the final pair, after decay Reso -> ppi
+    pythiaTree->Branch("rstar", &rstar, "rstar/F");
+    pythiaTree->Branch("cos_Lc_Reso", &cos_Lc_Reso, "cos_Lc_Reso/F");
+    pythiaTree->Branch("ptLc", &ptLc, "ptLc/F");
+    pythiaTree->Branch("ptReso", &ptReso, "ptReso/F");
+    pythiaTree->Branch("mT", &mT, "mT/F");
+
+    
+//an ntuple for the pairs:
+//k*, rstar, pt1, pt2, mT, common relative, classification (Type)
+//common relative = an integer, where last digit if they have a CA at all, second to last is if they share a mother, third to last is if they share a grandmother
+//classification: an integer of two digits, where each refers to one of the particles. if 0, it means the particle is primordial, if 1 it comes from a resonance
+
+
+    pythia.init(); // Initialize
+    printf("INITIALIZED!\n");
+    printf("Num of events: %i\n", maxEvents);
+
+
+
+    TH1F* hEventSize = new TH1F("hEventSize","hEventSize",5120,0,5120);
+
+
+    // --- The event loop ---
+    for(int iEvent = 0; iEvent < maxEvents; iEvent++){
+        // Generate next event;
+        // Produce the next event, returns true on success.
+        if(!pythia.next()) {
+        // Any error handling goes here.
+            printf("ERROR!!!\n");
+        }
+
+        if(pythia.event.size()<EventSizeMin || pythia.event.size()>EventSizeMax) continue;
+
+        hEventSize->Fill(pythia.event.size());
+
+        std::vector<int> Lc_position;
+        std::vector<int> Reso_position;
+        if(iEvent%1000 == 0)
+            printf(" EVENT %i: size = %i\n", iEvent, pythia.event.size());
+
+        //printf("es%i\n",event.size()-1);
+        for(int iPart1=3; iPart1<pythia.event.size()-1; iPart1++){
+            //printf("%i\n",iPart1);
+
+            int pid_tmp = pythia.event.at(iPart1).id();
+            if(abs(pid_tmp)==abs(primordial_pid.at(0))){
+                Lc_position.push_back(iPart1);
+                printf("Lc pid = %i\n", pid_tmp);
+            }
+            for(int& reso_id : resonance_pid ){
+                if(abs(pid_tmp)==abs(reso_id)){
+                    Reso_position.push_back(iPart1);
+                    //printf("Reso pid = %i\n", pid_tmp);
+                }
+            }
+
+        }
+
+    }
+
+    TString OutputFileName;
+    if(OutputFolder){
+        OutputFileName = TString::Format("%s/TomAndJerry_S%i.root",OutputFolder,seed);
+    }
+    else{
+        OutputFileName = TString::Format("%s/LearnPythia/Nibles_Lc_Reso_S%i.root",GetFemtoOutputFolder(),seed);
+    }
+
+    TFile fOutput(OutputFileName, "recreate");
+    pythiaTree->Write();
+    hEventSize->Write();
+
+    //printf("num_ca = %i, num_cm = %i, num_cg = %i\n",num_ca,num_cm,num_cg);
+
+    return;
+
+}
+
+
+
+
 int LEARN_PYTHIA(int argc, char *argv[]){
     printf("LEARN_PYTHIA, HELLO!!!\n\n");
     //Compare_pp_AV18_Haide_SingleGauss(atoi(argv[1]));
 
-    online_example_1(atoi(argv[1]), NULL);
+    //online_example_1(atoi(argv[1]), NULL);
+
+    Test_pReso_Omega_angulars(11, NULL);
 
 
     return 0;

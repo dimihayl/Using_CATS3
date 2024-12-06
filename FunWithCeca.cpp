@@ -1982,15 +1982,15 @@ void Ceca_pd_1(const double& d_delay, const int& EffFix, const TString type="pd"
   double HadronSlope = 0;//0.2
   const double EtaCut = 0.8;
   const bool PROTON_RESO = true;
-  const double frac_protons = 35.78*0.9;
-  const double frac_kaons = 52.4*0.9;
+  const double frac_protons = 35.78;
+  const double frac_kaons = 52.4*1.1;
   const bool EQUALIZE_TAU = true;
-  const double TIMEOUT = 30;
+  const double TIMEOUT = 20;
   const double GLOB_TIMEOUT = 60*60;
   const unsigned Multiplicity=2;
   const double femto_region = 100;
-  const unsigned target_yield = 4096*1000;
-  const unsigned NUM_CPU = 3;
+  const unsigned target_yield = 512*1000;//originally 4M
+  const unsigned NUM_CPU = 6;
   //TString BaseName = "KstarDist";
   TString BaseName = TString::Format("Eta%.1f",EtaCut);
 
@@ -2267,14 +2267,15 @@ void Ceca_pd_1(const double& d_delay, const int& EffFix, const TString type="pd"
   ParticleList.push_back(Database.NewParticle("Dch_star"));
 
   TString OutputFolderName;
-  if(EffFix) OutputFolderName = "FunWithCeca/Ceca_"+type+"_FAST";
+  if(EffFix) OutputFolderName = "FunWithCeca/Ceca_"+type+"_Frascati_v1";
   else OutputFolderName = "FunWithCeca/Ceca_"+type+"_CoreFix";
+OutputFolderName = "dKaon/Frascati/Sources/Raw";
   //OutputFolderName = "FunWithCeca";
   TString BaseFileName = TString::Format("%s/%s/%s_%s_ET%i_PR%i_DD%.1f_EF%i",
-  GetFemtoOutputFolder(),OutputFolderName.Data(),BaseName.Data(),type.Data(),EQUALIZE_TAU,PROTON_RESO,d_delay,EffFix);
+  GetCernBoxDimi(),OutputFolderName.Data(),BaseName.Data(),type.Data(),EQUALIZE_TAU,PROTON_RESO,d_delay,EffFix);
   if(type=="Kd"||type=="KdReso"){
    BaseFileName = TString::Format("%s/%s/%s_%s_PR%.2f_KR%.2f_DD%.2f",
-    GetFemtoOutputFolder(),OutputFolderName.Data(),BaseName.Data(),type.Data(),PROTON_RESO*frac_protons,frac_kaons,d_delay);   
+    GetCernBoxDimi(),OutputFolderName.Data(),BaseName.Data(),type.Data(),PROTON_RESO*frac_protons,frac_kaons,d_delay);   
   }
   TFile fOutput(BaseFileName+".root","recreate");
 
@@ -2590,6 +2591,7 @@ void Ceca_pd_1(const double& d_delay, const int& EffFix, const TString type="pd"
       prt->SetWidth(hbarc/1.65);
       prt->SetRadius(HadronSize*1.5);
       prt->SetRadiusSlope(HadronSlope);
+      //the resonance is also delayed. While this makes no sence, it is kind of equivelent as delaying the deuteron formation.
       prt->SetDelayTau(d_delay);
       if(dlm_pT_d)prt->SetPtEtaPhi(dlm_pT_eta_d);
       else prt->SetPtPz(0.85*prt->GetMass(),0.85*prt->GetMass());
@@ -3191,7 +3193,7 @@ printf("fb %.3f\n",rSP_FragBeta);
 
   GetCentralInterval(*h_GhettoFemto_rstar, 0.9, lowerlimit, upperlimit, true);
   //TF1* fitDG_rstar = new TF1("fitDG_rstar",NormDoubleGaussSourceTF1,lowerlimit,upperlimit,4);
-  TF1* fitDG_rstar = new TF1("fitDG_rstar",NormDoubleGaussSourceTF1,0.4,5.0,4);
+  TF1* fitDG_rstar = new TF1("fitDG_rstar",NormDoubleGaussSourceTF1,0.4,16.0,4);
   //fitDG_rstar->SetParameter(3,1);
   //fitDG_rstar->SetParLimits(3,0.8,1.0);//norm
   fitDG_rstar->FixParameter(3,1);
@@ -3201,7 +3203,7 @@ printf("fb %.3f\n",rSP_FragBeta);
   fitDG_rstar->FixParameter(0,fit_rcore->GetParameter(1));//3.30932e-01
 
   fitDG_rstar->SetParameter(1,1.30);//1.23015e+00
-  fitDG_rstar->SetParLimits(1,0.9,2.0);//second source
+  fitDG_rstar->SetParLimits(1,0.9,5.0);//second source
 
   //fitDG_rstar->SetParameter(2,0.24);//weight of first source
   //fitDG_rstar->SetParLimits(2,0.0,0.4);
@@ -10766,12 +10768,317 @@ void ThreeBody_test1(){
 }
 
 
+//generate a source, and a create a dummy correlation with errors. Fit it using CECA source.
+//give it to Max, see what he gets with ML
+void MC_closure_for_Max(int SEED){
+  //std::vector<double> input_rd = {0.21, 0.23, 0.25, 0.27, 0.29};
+  //std::vector<double> input_ht = {3.9, 4.2, 4.5, 4.8, 5.1};
+  //std::vector<double> input_tau = {2.1, 2.3, 2.5, 2.7, 2.9};
+
+  std::vector<double> input_rd = {0.22, 0.25, 0.28};
+  std::vector<double> input_ht = {4.0, 4.5, 5.0};
+  std::vector<double> input_tau = {2.2, 2.5, 2.8};
+
+  std::vector<float> mT_values = {1100, 1200, 1300, 1400, 1600, 1900};
+
+  double kMin = 0;
+  double kMax = 160;
+  unsigned kSteps = 20;
+  //in bins of 8 MeV, errors given in %
+  TH1F* hErrors = new TH1F("hErrors", "hErrors", kSteps, kMin, kMax);
+  hErrors->SetBinContent(1, 1);
+  hErrors->SetBinError(1, 20./100.);
+  for(unsigned uMom=1; uMom<kSteps; uMom++){
+    hErrors->SetBinContent(uMom+1, 1);
+    double old_error = hErrors->GetBinError(uMom);
+    double new_error = old_error / pow(2,0.5);
+    if(new_error<0.08) new_error = old_error / pow(2,0.25);
+    if(new_error<0.02) new_error = old_error / pow(2,0.125);
+    hErrors->SetBinError(uMom+1, new_error);
+    printf("%u %.3f\n", uMom, new_error*100);
+  }
+
+  double EtaCut = 0.8;
+  DLM_Histo<float>* dlm_pT_eta_p;
+  dlm_pT_eta_p = GetPtEta_13TeV(
+      TString::Format("%s/CatsFiles/Source/CECA/proton_pT/p_dist_13TeV_ClassI.root",GetCernBoxDimi()),
+      "Graph1D_y1", 500, 4050, EtaCut);
+
+  double HadronSize = 0;//0.75
+  double HadronSlope = 0;//0.2
+  const bool PROTON_RESO = true;
+  const bool EQUALIZE_TAU = true;
+  const double TIMEOUT = 30;
+  const double GLOB_TIMEOUT = 24*60*60;
+  const unsigned Multiplicity=2;
+  const double femto_region = 100;
+  const unsigned target_yield = 11*23*1000;
+  const unsigned NUM_CPU = 16;
+  TString BaseName = TString::Format("Eta%.1f",EtaCut);
+
+  //we run to either reproduce the core of 0.97,
+  //or the upper limit of reff = 1.06+0.04
+  //this leads to a 10% difference in the SP core source
+  double rSP_core=0;
+  double rSP_dispZ=0;
+  double rSP_hadr=0;
+  double rSP_hadrZ=0;
+  double rSP_hflc=0;
+  double rSP_tau=0;
+  bool tau_prp = true;
+  double rSP_tflc=0;
+  double rSP_ThK=0;
+  //default is true
+  bool rSP_FixedHadr = true;
+  //default is 0
+  float rSP_FragBeta = 0;
+
+  TRandom3 rangen(SEED);
+
+  TString OutputFolderName;
+  OutputFolderName = TString::Format("%s/FunWithCeca/MC_closure_for_Max",GetFemtoOutputFolder());
+  //TFile fOutput(BaseFileName+".root","recreate");
+
+  // Save TNtuple to ROOT file
+  TString pair_root_name(TString::Format(OutputFolderName+"/pp_S%i_TY%iK.root",SEED,target_yield/1000).Data());
+  TFile* outFile = new TFile(pair_root_name, "RECREATE");
+
+  // Create TNtuple
+  //TNtuple* ntuple = new TNtuple("CECA_Data", "CECA_Data", "config_id:kstar:rstar:mT:rd:h:tau");
+
+  for(unsigned urd=0; urd<input_rd.size(); urd++){
+  for(unsigned uht=0; uht<input_ht.size(); uht++){
+  for(unsigned utau=0; utau<input_tau.size(); utau++){
+
+  //for(unsigned uConfig=0; uConfig<NUM_CONFIGS; uConfig++){
+    //this so happens to be exactly the mean of the results from the ceca paper
+    //the errors are the half of the difference of the two ceca results + in ^2 the two errors from the paper
+    //rSP_core = (0.176+0.288)*0.5;
+    //double rSP_core_AVG = rSP_core;
+    //double rSP_core_SIG = fabs(0.176-0.288)*0.5;
+    //rSP_core_SIG = sqrt(pow(rSP_core_SIG,2.)+pow(0.013,2.)+pow(0.005,2.));
+    rSP_core = input_rd.at(urd);
+
+    rSP_dispZ = rSP_core;
+    //double rSP_dispZ_SIG = rSP_core_SIG;
+
+    //rSP_hadr = (2.68+3.23)*0.5;
+    //double rSP_hadr_AVG = rSP_hadr;
+    //double rSP_hadr_SIG = fabs(2.68-3.23)*0.5;
+    //rSP_hadr_SIG = sqrt(pow(rSP_hadr_SIG,2.)+pow(0.175,2.)+pow(0.05,2.));
+    rSP_hadr = input_ht.at(uht);
+
+    //rSP_tau = (3.76+3.26)*0.5;
+    //double rSP_tau_AVG = rSP_tau;
+    //double rSP_tau_SIG = fabs(3.76-3.26)*0.5;
+    //rSP_tau_SIG = sqrt(pow(rSP_tau_SIG,2.)+pow(0.1,2.)+pow(0.04,2.));
+    rSP_tau = input_tau.at(utau);
+
+    printf("rSP_core = %.4e\n",rSP_core);
+    printf("rSP_hadr = %.4e\n",rSP_hadr);
+    printf("rSP_tau = %.4e\n",rSP_tau);   
+
+    TREPNI Database(0);
+    Database.SetSeed(11);
+    std::vector<TreParticle*> ParticleList;
+    ParticleList.push_back(Database.NewParticle("Proton"));
+    ParticleList.push_back(Database.NewParticle("Pion"));
+    ParticleList.push_back(Database.NewParticle("ProtonReso"));    
+
+    for(TreParticle* prt : ParticleList){
+      if(prt->GetName()=="Proton"){
+        prt->SetMass(Mass_p);
+        prt->SetAbundance(35.78+64.22*(!PROTON_RESO));
+        prt->SetRadius(HadronSize);
+        prt->SetRadiusSlope(HadronSlope);
+        prt->SetPtEtaPhi(*dlm_pT_eta_p);
+      }
+      else if(prt->GetName()=="Pion"){
+        prt->SetMass(Mass_pic);
+        prt->SetAbundance(0);
+        prt->SetRadius(HadronSize);
+        prt->SetRadiusSlope(HadronSlope);
+      }
+      else if(prt->GetName()=="ProtonReso"){
+        prt->SetMass(1362);
+        prt->SetAbundance(64.22*PROTON_RESO);
+        prt->SetWidth(hbarc/1.65);
+        prt->SetRadius(HadronSize);
+        prt->SetRadiusSlope(HadronSlope);
+        prt->SetPtEtaPhi(*dlm_pT_eta_p);
+
+        prt->NewDecay();
+        prt->GetDecay(0)->AddDaughter(*Database.GetParticle("Proton"));
+        prt->GetDecay(0)->AddDaughter(*Database.GetParticle("Pion"));
+        prt->GetDecay(0)->SetBranching(100);
+      }
+    }
+
+    std::vector<std::string> ListOfParticles;
+
+    ListOfParticles.push_back("Proton");
+    ListOfParticles.push_back("Proton");
+
+    CECA Ivana(Database,ListOfParticles);
+
+    Ivana.SetDisplacementZ(rSP_dispZ);
+    Ivana.SetDisplacementT(rSP_core);
+    //Ivana.SetDisplacementEbe(rSP_core_SIG/rSP_core);
+    Ivana.SetHadronizationZ(rSP_hadrZ);//0
+    Ivana.SetHadronizationT(rSP_hadr);
+    //Ivana.SetHadronizationEbe(rSP_hadr_SIG/rSP_hadr);
+    Ivana.SetHadrFluctuation(rSP_hflc);
+    Ivana.SetTau(rSP_tau,tau_prp);
+    //Ivana.SetTauEbe(rSP_tau_SIG/rSP_tau);
+    Ivana.SetTauFluct(rSP_tflc);
+    Ivana.SetThermalKick(rSP_ThK);
+    Ivana.SetFixedHadr(rSP_FixedHadr);
+    Ivana.SetFragmentBeta(rSP_FragBeta);
+
+    Ivana.SetTargetStatistics(target_yield);
+    Ivana.SetEventMult(Multiplicity);
+    Ivana.SetSourceDim(2);
+    Ivana.SetDebugMode(true);
+    Ivana.SetThreadTimeout(TIMEOUT);
+    Ivana.SetGlobalTimeout(GLOB_TIMEOUT);
+    Ivana.EqualizeFsiTime(EQUALIZE_TAU);
+    Ivana.SetFemtoRegion(femto_region);
+    Ivana.GHETTO_EVENT = true;
+    std::string pair_file_name(TString::Format(OutputFolderName+"/pair_info_S%i_TY%iK.data",SEED,target_yield/1000).Data());
+    Ivana.SetExportPairs(2,pair_file_name);
+
+    if(NUM_CPU>1){
+      Ivana.SetDebugMode(true);
+      for(unsigned uTh=0; uTh<NUM_CPU; uTh++){
+        Ivana.SetSeed(uTh,SEED*(NUM_CPU)+uTh);
+      }
+    }
+    else{
+      Ivana.SetDebugMode(false);
+      Ivana.SetSeed(0,SEED);
+    }
+
+    Ivana.Ghetto_NumRadBins = 4096;
+    Ivana.Ghetto_RadMax = 64;
+    Ivana.GoBabyGo(NUM_CPU);
+
+    Ivana.GhettoFemto_mT_rstar->ComputeError();
+
+
+
+    for(unsigned uMt=0; uMt<mT_values.size(); uMt++){
+
+      double mT_val = mT_values.at(uMt);
+      
+      
+
+      DLM_Histo<float> HistoSourceR;
+      HistoSourceR.SetUp(1);
+      HistoSourceR.SetUp(0,Ivana.Ghetto_NumRadBins,Ivana.Ghetto_RadMin,Ivana.Ghetto_RadMax);
+      HistoSourceR.Initialize();
+
+      TH1F* hSource = new TH1F(TString::Format("hSource_%.0f_%.2f_%.2f_%.2f", mT_val, rSP_core, rSP_hadr, rSP_tau), 
+        TString::Format("hSource_%.0f_%.2f_%.2f_%.2f", mT_val, rSP_core, rSP_hadr, rSP_tau), 
+        Ivana.Ghetto_NumRadBins,Ivana.Ghetto_RadMin,Ivana.Ghetto_RadMax);
+      
+      //TH1F* hCk = new TH1F(TString::Format("hCk_%.0f", mT_val), TString::Format("hCk_%.0f", mT_val), 
+      //  kSteps, kMin, kMax); 
+      for(unsigned uRad=0; uRad<Ivana.Ghetto_NumRadBins; uRad++){
+        //mT,rstar
+        double rad_val = HistoSourceR.GetBinCenter(0, uRad);
+        //HistoSourceR.SetBinContent(uRad, Ivana.GhettoFemto_mT_rstar->Eval2D(mT_val, rad_val));
+        //HistoSourceR.SetBinError(uRad, Ivana.GhettoFemto_mT_rstar->EvalError2D(mT_val, rad_val));
+        hSource->SetBinContent(uRad+1, Ivana.GhettoFemto_mT_rstar->Eval2D(mT_val, rad_val));
+        hSource->SetBinError(uRad+1, Ivana.GhettoFemto_mT_rstar->EvalError2D(mT_val, rad_val));
+      }
+      hSource->Scale(1./hSource->Integral(), "width");
+      for(unsigned uRad=0; uRad<Ivana.Ghetto_NumRadBins; uRad++){
+        HistoSourceR.SetBinContent(uRad, hSource->GetBinContent(uRad+1));
+        HistoSourceR.SetBinError(uRad, hSource->GetBinError(uRad+1));      
+      }
+
+      //CATS Kitty_Dummy;
+      //Kitty_Dummy.SetMomBins(kSteps,kMin,kMax);
+      //DLM_CommonAnaFunctions AnalysisObject;
+      //AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles/",GetCernBoxDimi()));
+      //AnalysisObject.SetUpCats_pp(Kitty_Dummy,"AV18","",0,0);
+      //DLM_HistoSource src_CECA(HistoSourceR);
+      //Kitty_Dummy.SetAnaSource(CatsSourceForwarder, &src_CECA, 0);
+      //Kitty_Dummy.SetUseAnalyticSource(true);
+      //Kitty_Dummy.SetAutoNormSource(false);
+      //Kitty_Dummy.SetNormalizedSource(true);
+
+      //Kitty_Dummy.KillTheCat();
+
+      //for(unsigned uMom=0; uMom<kSteps; uMom++){
+      //  double Ck_Mean = Kitty_Dummy.GetCorrFun(uMom);
+      //  double Ck_Err = Ck_Mean*hErrors->GetBinError(uMom+1);
+      //  if(uMom==0) Ck_Err = hErrors->GetBinError(uMom+1);
+      //  double Ck_Val = -1;
+      //  while(Ck_Val<0){
+      //    Ck_Val = rangen.Gaus(Ck_Mean, Ck_Err);
+      //  }
+      //  printf("%u %.3f %.3f\n", uMom, Ck_Mean, Ck_Err);
+      //  hCk->SetBinContent(uMom+1, Ck_Val);
+      //  hCk->SetBinError(uMom+1, Ck_Err);
+      //}
+
+      outFile->cd();
+      hSource->Write();
+      //hCk->Write();
+      delete hSource;
+      //delete hCk;
+    }
+
+    outFile->cd();
+    //ntuple->Write();
+
+    // Clean up memory
+    //delete ntuple;
+    //delete outFile;
+  
+  }}} 
+
+  delete outFile;
+//rd,h,tau --> get a list of pairs with r* and mT
+//sample rd,h,tau randomly from a gauss
+//for the output, we need not a histo, but an ASCII or binary file with:
+//kstar,rstar,mT,rd,h,tau
+
+  delete dlm_pT_eta_p;
+}
+
+void MC_closure_FIT_for_Max(){
+  TString InputFileName = TString::Format("%s/FunWithCeca/MC_closure_for_Max/pp_S23_TY529K.root",GetFemtoOutputFolder());
+  TFile InputFile(InputFileName,"read");
+
+    //CATS Kitty_Dummy;
+    //Kitty_Dummy.SetMomBins(kSteps,kMin,kMax);
+    //DLM_CommonAnaFunctions AnalysisObject;
+    //AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles/",GetCernBoxDimi()));
+    //AnalysisObject.SetUpCats_pp(Kitty_Dummy,"AV18","",0,0);
+    //DLM_HistoSource src_CECA(HistoSourceR);
+    //Kitty_Dummy.SetAnaSource(CatsSourceForwarder, &src_CECA, 0);
+    //Kitty_Dummy.SetUseAnalyticSource(true);
+    //Kitty_Dummy.SetAutoNormSource(false);
+    //Kitty_Dummy.SetNormalizedSource(true);
+
+
+
+}
+
+
 int FUN_WITH_CECA(int argc, char *argv[]){
   //Sources_In_SourcePaper("pp",1);
   //Sources_In_SourcePaper("pL",1);
   //return 0;
 //DLM_Random rangen(1);
 //for(int i=0; i<20; i++) printf("%i\n", rangen.Int(1));
+
+
+  MC_closure_for_Max(23); return 0;
+
+
 
   //Test1();
   //Test2();
@@ -10788,7 +11095,7 @@ int FUN_WITH_CECA(int argc, char *argv[]){
 
   //CECA_sim_for_AI_pp_v0(atoi(argv[1]), atoi(argv[2]));
   //void CECA_sim_for_AI_pp_v1(int SEED, unsigned NUM_CPU, unsigned NUM_CONFIGS, unsigned K_YIELD_PER_CONFIG)
-  CECA_sim_for_AI_pp_v1(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), atoi(argv[4])); return 0;
+  //CECA_sim_for_AI_pp_v1(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), atoi(argv[4])); return 0;
   //CECA_primoridal_disto(atoi(argv[1]), atoi(argv[2]));
 
 //printf("GaussFromMean 2.97 = %f\n",GaussFromMean(2.97));
@@ -10796,11 +11103,15 @@ int FUN_WITH_CECA(int argc, char *argv[]){
   //for(int TAU=0; TAU<=120; TAU+=5){
   //  if(TMath::Nint(TAU)%20==0) continue;
   //for(int TAU=0; TAU<=120; TAU+=20){
-  std::vector<double> tau_list = {0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5};
+  //std::vector<double> tau_list = {0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5};
+  //std::vector<double> tau_list = {0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0};
+  std::vector<double> tau_list = {2.25, 4.75};
+  //Ceca_pd_1(0,-1402,"KdReso");
   for(double TAU : tau_list){
-  //  Ceca_pd_1(TAU,true,"Kd");
+    //Ceca_pd_1(TAU,true,"Kd");
   //  Ceca_pd_1(TAU,false,"Kd");
-    Ceca_pd_1(TAU,-1402,"KdReso");
+    //Ceca_pd_1(TAU,-1408,"Kd");
+    //Ceca_pd_1(TAU,-1408,"KdReso");
   }return 0;
   //Ceca_pd_1(0,true,"pd");
   //Ceca_pd_1(30,true,"pd");

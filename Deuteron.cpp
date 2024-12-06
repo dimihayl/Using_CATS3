@@ -1,4 +1,6 @@
 
+#include <fstream>
+
 #include "Deuteron.h"
 
 #include "EnvVars.h"
@@ -22,6 +24,9 @@
 #include "TF1.h"
 #include "TRandom3.h"
 #include "TTree.h"
+#include "TSystem.h"
+#include "TROOT.h"
+#include "TCanvas.h"
 
 //s-wave only
 void p_pn_cumulant(){
@@ -209,7 +214,8 @@ void MyOwn_Kd_v1(){
   //1.04 original, 0.96 updated
   const double SourceSize = 1.04;
 
-  const double lam_gen = 0.91;
+  //const double lam_gen = 0.91;//real values
+  const double lam_gen = 1.0;
   const double avg_mt = 1500;
 
   DLM_CommonAnaFunctions AnalysisObject;
@@ -276,8 +282,10 @@ void MyOwn_Kd_v1(){
   CATS Kd_ER_G;
   Kd_ER_G.SetMomBins(kSteps, kMin, kMax);
   AnalysisObject.SetUpCats_Kd(Kd_ER_G,"DG_ER","DoubleGauss",0,0);//NLO_Coupled_S
-  Kd_ER_G.SetAnaSource(0, 1.1);
-  Kd_ER_G.SetAnaSource(1, 2.14);
+  //Kd_ER_G.SetAnaSource(0, 1.1);//old source
+  //Kd_ER_G.SetAnaSource(1, 2.14);//old source
+  Kd_ER_G.SetAnaSource(0, 1.04);//updated source
+  Kd_ER_G.SetAnaSource(1, 2.01);//updated source
   Kd_ER_G.SetAnaSource(2, 0.76);
   Kd_ER_G.KillTheCat();
 
@@ -293,6 +301,16 @@ void MyOwn_Kd_v1(){
   AnalysisObject.SetUpCats_Kd(Kd_FCA,"DG_FCA","McGauss_ResoTM",0,202);//NLO_Coupled_S
   Kd_FCA.SetAnaSource(0, SourceSize);
   Kd_FCA.KillTheCat();
+
+  CATS Kd_FCA_G;
+  Kd_FCA_G.SetMomBins(kSteps, kMin, kMax);
+  AnalysisObject.SetUpCats_Kd(Kd_FCA_G,"DG_ER","DoubleGauss",0,0);//NLO_Coupled_S
+  //Kd_FCA_G.SetAnaSource(0, 1.1);//old source
+  //Kd_FCA_G.SetAnaSource(1, 2.14);//old source
+  Kd_FCA_G.SetAnaSource(0, 1.04);//updated source
+  Kd_FCA_G.SetAnaSource(1, 2.01);//updated source
+  Kd_FCA_G.SetAnaSource(2, 0.76);
+  Kd_FCA_G.KillTheCat();
 
   TGraph gCk_ER;
   gCk_ER.SetName("gCk_ER");
@@ -314,7 +332,10 @@ void MyOwn_Kd_v1(){
   gCk_FCA.SetLineColor(kAzure+1);
   gCk_FCA.SetLineWidth(4);
 
-
+  TGraph gCk_FCA_G;
+  gCk_FCA_G.SetName("gCk_FCA_G");
+  gCk_FCA_G.SetLineColor(kAzure+2);
+  gCk_FCA_G.SetLineWidth(5);
 
   double rMin = 0;
   double rMax = 64;
@@ -328,6 +349,7 @@ void MyOwn_Kd_v1(){
     gCk_ER_G.SetPoint(uPts,kstar,Kd_ER_G.GetCorrFun(uPts)*lam_gen+1-lam_gen);
     gCk_ER_CECA.SetPoint(uPts,kstar,Kd_ER_CECA.GetCorrFun(uPts)*lam_gen+1-lam_gen);
     gCk_FCA.SetPoint(uPts,kstar,Kd_FCA.GetCorrFun(uPts)*lam_gen+1-lam_gen);
+    gCk_FCA_G.SetPoint(uPts,kstar,Kd_FCA_G.GetCorrFun(uPts)*lam_gen+1-lam_gen);
   }
 
 
@@ -345,6 +367,8 @@ void MyOwn_Kd_v1(){
   gCk_ER_G.Write();
   gCk_ER_CECA.Write();
   gCk_FCA.Write();
+  gCk_FCA_G.Write();
+
 
   for(int iTau=0; iTau<21; iTau++){
     if(gCk_ER_CECA_Tau)
@@ -361,6 +385,505 @@ void MyOwn_Kd_v1(){
   delete dlmGhettoFemto_rstar;
 }
 
+
+//in frascatti, compare to LL, produce the needed output for Oton
+void MyOwn_Kd_v2(){
+
+  //1.04 original, 0.96 updated
+  const double SourceSize = 1.04;
+
+  //const double lam_gen = 0.91;//real values
+  const double lam_gen = 1.0;
+  const double avg_mt = 1500;
+
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
+
+  double kMin = 0;
+  double kMax = 400;
+  unsigned kSteps = 100;
+
+  double ScatLen, EffRan;
+  TH1F* hFit;
+  TF1* fitSP;
+
+  CATS Kd_ER;
+  Kd_ER.SetMomBins(kSteps, kMin, kMax);
+  AnalysisObject.SetUpCats_Kd(Kd_ER,"DG_ER","Gauss",0,202);//NLO_Coupled_S
+  Kd_ER.SetAnaSource(0, SourceSize);
+  Kd_ER.KillTheCat();
+
+  CATS Kd_ER_G;
+  Kd_ER_G.SetMomBins(kSteps, kMin, kMax);
+  AnalysisObject.SetUpCats_Kd(Kd_ER_G,"DG_ER","DoubleGauss",0,0);//NLO_Coupled_S
+  //Kd_ER_G.SetAnaSource(0, 1.1);//old source
+  //Kd_ER_G.SetAnaSource(1, 2.14);//old source
+  Kd_ER_G.SetAnaSource(0, 1.04);//updated source
+  Kd_ER_G.SetAnaSource(1, 2.01);//updated source
+  Kd_ER_G.SetAnaSource(2, 0.76);
+  Kd_ER_G.SetQ1Q2(0);
+  Kd_ER_G.KillTheCat();
+  GetScattParameters(Kd_ER_G, ScatLen, EffRan, hFit, fitSP, 3, false, false, 0);
+  printf("ER DG Scattering Parameters: f0 = %.2f, d0 = %.2f\n", ScatLen, EffRan);  
+  Kd_ER_G.SetQ1Q2(1);
+  Kd_ER_G.KillTheCat();
+
+  CATS Kd_ER_SG_1fm;
+  Kd_ER_SG_1fm.SetMomBins(kSteps, kMin, kMax);
+  AnalysisObject.SetUpCats_Kd(Kd_ER_SG_1fm,"DG_ER","Gauss",0,0);//NLO_Coupled_S
+  Kd_ER_SG_1fm.SetAnaSource(0, 1);
+  Kd_ER_SG_1fm.KillTheCat();
+
+  CATS Kd_ER_SG_3fm;
+  Kd_ER_SG_3fm.SetMomBins(kSteps, kMin, kMax);
+  AnalysisObject.SetUpCats_Kd(Kd_ER_SG_3fm,"DG_ER","Gauss",0,0);//NLO_Coupled_S
+  Kd_ER_SG_3fm.SetAnaSource(0, 3);
+  Kd_ER_SG_3fm.KillTheCat();
+
+  CATS Kd_FCA;
+  Kd_FCA.SetMomBins(kSteps, kMin, kMax);
+  AnalysisObject.SetUpCats_Kd(Kd_FCA,"DG_FCA","McGauss_ResoTM",0,202);//NLO_Coupled_S
+  Kd_FCA.SetAnaSource(0, SourceSize);
+  Kd_FCA.KillTheCat();
+
+  CATS Kd_FCA_G;
+  Kd_FCA_G.SetMomBins(kSteps, kMin, kMax);
+  AnalysisObject.SetUpCats_Kd(Kd_FCA_G,"DG_FCA","DoubleGauss",0,0);//NLO_Coupled_S
+  //Kd_FCA_G.SetAnaSource(0, 1.1);//old source
+  //Kd_FCA_G.SetAnaSource(1, 2.14);//old source
+  Kd_FCA_G.SetAnaSource(0, 1.04);//updated source
+  Kd_FCA_G.SetAnaSource(1, 2.01);//updated source
+  Kd_FCA_G.SetAnaSource(2, 0.76);
+  Kd_FCA_G.KillTheCat();
+
+  CATS Kd_FCA_SG;
+  Kd_FCA_SG.SetMomBins(kSteps, kMin, kMax);
+  AnalysisObject.SetUpCats_Kd(Kd_FCA_SG,"DG_FCA","Gauss",0,0);//NLO_Coupled_S
+  Kd_FCA_SG.SetAnaSource(0, 3);
+  Kd_FCA_SG.KillTheCat();
+
+  //square well potential,see mail from Johann @ CERN on 27.11.2024
+  CATS Kd_SW_G;
+  Kd_SW_G.SetMomBins(kSteps, kMin, kMax);
+  AnalysisObject.SetUpCats_Kd(Kd_SW_G,"SW_ER","DoubleGauss",0,0);//NLO_Coupled_S
+  //Kd_ER_G.SetAnaSource(0, 1.1);//old source
+  //Kd_ER_G.SetAnaSource(1, 2.14);//old source
+  Kd_SW_G.SetAnaSource(0, 1.04);//updated source
+  Kd_SW_G.SetAnaSource(1, 2.01);//updated source
+  Kd_SW_G.SetAnaSource(2, 0.76);
+  Kd_SW_G.SetQ1Q2(0);
+  Kd_SW_G.KillTheCat();
+  GetScattParameters(Kd_SW_G, ScatLen, EffRan, hFit, fitSP, 3, false, false, 0);
+  printf("Square Well Scattering Parameters: f0 = %.2f, d0 = %.2f\n", ScatLen, EffRan);
+  Kd_SW_G.SetQ1Q2(1);
+  Kd_SW_G.KillTheCat();
+
+  CATS Kd_SW_SG_1fm;
+  Kd_SW_SG_1fm.SetMomBins(kSteps, kMin, kMax);
+  AnalysisObject.SetUpCats_Kd(Kd_SW_SG_1fm,"SW_ER","Gauss",0,0);//NLO_Coupled_S
+  Kd_SW_SG_1fm.SetAnaSource(0, 1);
+  Kd_SW_SG_1fm.KillTheCat();
+
+  CATS Kd_SW_SG_3fm;
+  Kd_SW_SG_3fm.SetMomBins(kSteps, kMin, kMax);
+  AnalysisObject.SetUpCats_Kd(Kd_SW_SG_3fm,"SW_ER","Gauss",0,0);//NLO_Coupled_S
+  Kd_SW_SG_3fm.SetAnaSource(0, 3);
+  Kd_SW_SG_3fm.KillTheCat();
+
+
+  TGraph gCk_ER;
+  gCk_ER.SetName("gCk_ER");
+  gCk_ER.SetLineColor(kCyan);
+  gCk_ER.SetLineWidth(6);
+
+  TGraph gCk_ER_G;
+  gCk_ER_G.SetName("gCk_ER_G");
+  gCk_ER_G.SetLineColor(kCyan+1);
+  gCk_ER_G.SetLineWidth(5);
+
+  TGraph gCk_ER_SG_1fm;
+  gCk_ER_SG_1fm.SetName("gCk_ER_SG_1fm");
+  gCk_ER_SG_1fm.SetLineColor(kCyan+3);
+  gCk_ER_SG_1fm.SetLineWidth(5);
+
+  TGraph gCk_ER_SG_3fm;
+  gCk_ER_SG_3fm.SetName("gCk_ER_SG_3fm");
+  gCk_ER_SG_3fm.SetLineColor(kCyan-2);
+  gCk_ER_SG_3fm.SetLineWidth(5);
+
+  TGraph gCk_ER_CECA;
+  gCk_ER_CECA.SetName("gCk_ER_CECA");
+  gCk_ER_CECA.SetLineColor(kCyan+2);
+  gCk_ER_CECA.SetLineWidth(5);
+
+  TGraph gCk_SWER_G;
+  gCk_SWER_G.SetName("gCk_SWER_G");
+  gCk_SWER_G.SetLineColor(kCyan-1);
+  gCk_SWER_G.SetLineWidth(5);
+
+
+  TGraph gCk_SWER_SG_1fm;
+  gCk_SWER_SG_1fm.SetName("gCk_SWER_SG_1fm");
+  gCk_SWER_SG_1fm.SetLineColor(kCyan-3);
+  gCk_SWER_SG_1fm.SetLineWidth(5);
+
+  TGraph gCk_SWER_SG_3fm;
+  gCk_SWER_SG_3fm.SetName("gCk_SWER_SG_3fm");
+  gCk_SWER_SG_3fm.SetLineColor(kCyan-4);
+  gCk_SWER_SG_3fm.SetLineWidth(5);
+
+  TGraph gCk_FCA;
+  gCk_FCA.SetName("gCk_FCA");
+  gCk_FCA.SetLineColor(kAzure+1);
+  gCk_FCA.SetLineWidth(4);
+
+  TGraph gCk_FCA_G;
+  gCk_FCA_G.SetName("gCk_FCA_G");
+  gCk_FCA_G.SetLineColor(kAzure+2);
+  gCk_FCA_G.SetLineWidth(5);
+
+  TGraph gCk_FCA_SG;
+  gCk_FCA_SG.SetName("gCk_FCA_SG");
+  gCk_FCA_SG.SetLineColor(kAzure+3);
+  gCk_FCA_SG.SetLineWidth(5);
+
+  double rMin = 0;
+  double rMax = 64;
+  unsigned rSteps = 4096;
+  TH1F* hSrc_RSM = new TH1F("hSrc_RSM","hSrc_RSM",rSteps,rMin,rMax);
+  TH1F* hSrc_DG = new TH1F("hSrc_DG","hSrc_DG",rSteps,rMin,rMax);
+
+  for(unsigned uPts=0; uPts<kSteps; uPts++){
+    double kstar = Kd_ER.GetMomentum(uPts);
+    gCk_ER.SetPoint(uPts,kstar,Kd_ER.GetCorrFun(uPts)*lam_gen+1-lam_gen);
+    gCk_ER_G.SetPoint(uPts,kstar,Kd_ER_G.GetCorrFun(uPts)*lam_gen+1-lam_gen);
+    gCk_ER_SG_1fm.SetPoint(uPts,kstar,Kd_ER_SG_1fm.GetCorrFun(uPts)*lam_gen+1-lam_gen);
+    gCk_ER_SG_3fm.SetPoint(uPts,kstar,Kd_ER_SG_3fm.GetCorrFun(uPts)*lam_gen+1-lam_gen);
+    gCk_FCA.SetPoint(uPts,kstar,Kd_FCA.GetCorrFun(uPts)*lam_gen+1-lam_gen);
+    gCk_FCA_G.SetPoint(uPts,kstar,Kd_FCA_G.GetCorrFun(uPts)*lam_gen+1-lam_gen);
+    gCk_FCA_SG.SetPoint(uPts,kstar,Kd_FCA_SG.GetCorrFun(uPts)*lam_gen+1-lam_gen);
+    gCk_SWER_G.SetPoint(uPts,kstar,Kd_SW_G.GetCorrFun(uPts)*lam_gen+1-lam_gen);
+    gCk_SWER_SG_1fm.SetPoint(uPts,kstar,Kd_SW_SG_1fm.GetCorrFun(uPts)*lam_gen+1-lam_gen);
+    gCk_SWER_SG_3fm.SetPoint(uPts,kstar,Kd_SW_SG_3fm.GetCorrFun(uPts)*lam_gen+1-lam_gen);
+
+  }
+
+
+  for(unsigned uRad=0; uRad<rSteps; uRad++){
+    double rstar = hSrc_RSM->GetBinCenter(uRad+1);
+    double src_rsm = Kd_ER.EvaluateTheSource(1,rstar,0);
+    double src_dg = Kd_ER_G.EvaluateTheSource(1,rstar,0);
+
+    hSrc_RSM->SetBinContent(uRad+1,src_rsm);
+    hSrc_DG->SetBinContent(uRad+1,src_dg);
+  }
+
+  TFile fOutput(TString::Format("%s/Deuteron/MyOwn_Kd_v2/MyOwn_Kd_v2_Full.root",GetFemtoOutputFolder()),"recreate");
+  gCk_ER.Write();
+  gCk_ER_G.Write();
+  gCk_ER_SG_1fm.Write();
+  gCk_ER_SG_3fm.Write();
+  gCk_SWER_G.Write();
+  gCk_SWER_SG_1fm.Write();
+  gCk_SWER_SG_3fm.Write();
+  gCk_FCA.Write();
+  gCk_FCA_G.Write();
+  gCk_FCA_SG.Write();
+
+  hSrc_RSM->Write();
+  hSrc_DG->Write();
+
+  delete hSrc_RSM;
+  delete hSrc_DG;
+}
+
+//takes the CECA output, and creates a KDP file with certain settings for the kstar and mT.
+//the output will contain the full mt binnig so that we can better estimate the source for a specific mT, 
+//but has a single kstar bin, that is integrated up to a cutoff value (100 MeV to mimic CECA paper)
+//the input file is NOT the root, but the DLM_Histo
+void MyOwn_Kd_v2_CreateKdp(double kstar_cutoff=100){
+
+  TFile fSummary(TString::Format("%s/dKaon/Frascati/Sources/kdp_maps_full_v2.root",GetCernBoxDimi()), "recreate");
+
+  std::vector<double> DD = {0,0.5,1.0,1.5,2.0,2.25,2.5,3.0,3.5,4.0,4.5,4.75,5.0,5.5,6.0,6.5,7.0,7.5,8.0,8.5,9.0,9.5,10.0};
+  //std::vector<double> DD = {0,3.0};
+  std::vector<double> DD_bins;
+  DD_bins.push_back( DD.at(0) - (DD.at(1)-DD.at(0))*0.5 );
+  for(unsigned uEl=0; uEl<DD.size()-1; uEl++){
+    DD_bins.push_back( (DD.at(uEl+1)+DD.at(uEl))*0.5 );
+  }
+  DD_bins.push_back( DD.at(DD.size()-1) + (DD.at(DD.size()-1)-DD.at(DD.size()-2))*0.5 );
+  //for(unsigned uEl=0; uEl<DD.size()+1; uEl++){
+  //  printf("%.3f ", DD_bins.at(uEl));
+  //}
+  //printf("\n");
+//return;
+
+  std::vector<float> KR = {47.16, 52.40, 57.64};
+  std::vector<TString> SPAR = {"FIT","NLO19"};
+  std::vector<TString> TYPE = {"Kd","KdReso"};
+
+  for(TString& sTYPE : TYPE){
+    printf("sTYPE = %s\n",sTYPE.Data());
+    for(TString& sSPAR : SPAR){
+      printf(" sSPAR = %s\n",sSPAR.Data());
+      for(float& fKR : KR){
+        printf("  fKR = %.3f\n",fKR);
+        //this will be a 2D kdp map in mt and d_delay
+        DLM_Histo<KdpPars>* dlm_kdp_map = NULL;
+        for(double& fDD : DD){
+          printf("   fDD = %.3f\n",fDD);
+          TString InputFileName = TString::Format("%s/dKaon/Frascati/Sources/Raw/%s/Eta0.8_%s_PR35.78_KR%.2f_DD%.2f.Ghetto_kstar_rstar_mT",
+            GetCernBoxDimi(), sSPAR.Data(), sTYPE.Data(), fKR, fDD);
+          DLM_Histo<float> dlmSrc;
+          dlmSrc.QuickLoad(InputFileName.Data());
+          dlmSrc.ComputeError();
+
+          DLM_Histo<float> dlmSrc_trimmed;
+          dlmSrc_trimmed.SetUp(3);
+          dlmSrc_trimmed.SetUp(0,1,0,kstar_cutoff);
+          dlmSrc_trimmed.SetUp(1,dlmSrc,1);//rstar
+          dlmSrc_trimmed.SetUp(2,dlmSrc,2);//mT
+          dlmSrc_trimmed.Initialize();
+          for(unsigned uKstar=0; uKstar<dlmSrc.GetNbins(0); uKstar++){
+            double kstar = dlmSrc.GetBinCenter(0, uKstar);
+            if(kstar>kstar_cutoff) break;
+            for(unsigned uRstar=0; uRstar<dlmSrc.GetNbins(1); uRstar++){
+              for(unsigned uMt=0; uMt<dlmSrc.GetNbins(2); uMt++){
+                double current_value = dlmSrc_trimmed.GetBinContent(0, uRstar, uMt);
+                double current_error = dlmSrc_trimmed.GetBinError(0, uRstar, uMt);
+                dlmSrc_trimmed.SetBinContent(0, uRstar, uMt, current_value + dlmSrc.GetBinContent(uKstar, uRstar, uMt));
+                dlmSrc_trimmed.SetBinError(0, uRstar, uMt, sqrt(current_error*current_error + pow(dlmSrc.GetBinError(uKstar, uRstar, uMt),2.)));
+              }
+            }
+          }
+
+          //takes a 3D histo of Kstar Rstar Mt and returns a 2D kdp histo of Mt Kstar (in that order)
+          DLM_Histo<KdpPars>* dlm_kdp_2D = Convert_3Dsource_Kdp(dlmSrc_trimmed,true,3,96,3);
+          //DLM_Histo<KdpPars>* dlm_kdp_2D_kstar = Convert_3Dsource_Kdp(dlmSrc,true,3,96,3);
+          //we create the 2D kdp histo, including tau, at the first iteration
+          if(dlm_kdp_map==NULL){
+            dlm_kdp_map = new DLM_Histo<KdpPars>();
+            dlm_kdp_map->SetUp(2);
+            dlm_kdp_map->SetUp(0, *dlm_kdp_2D, 0);//mT
+            double* a_DD_bins = &DD_bins[0];
+            double* a_DD = &DD[0];
+            dlm_kdp_map->SetUp(1, DD.size(), a_DD_bins, a_DD);
+            dlm_kdp_map->Initialize();
+          }
+          //we fill up the whole big histo
+          for(unsigned uMt=0; uMt<dlm_kdp_2D->GetNbins(0); uMt++){
+            dlm_kdp_map->SetBinContent(uMt, dlm_kdp_map->GetBin(1, fDD), dlm_kdp_2D->GetBinContent(uMt, 0));
+          }
+
+          TString base_name = TString::Format("%s_%s_PR35.78_KR%.2f_DD%.2f", sSPAR.Data(), sTYPE.Data(), fKR, fDD);
+
+          fSummary.cd();
+          TH1F* hSource = new TH1F("hSource_"+base_name, "hSource_"+base_name, 4096, 0, 64);
+          TGraph* gSource = new TGraph();
+          gSource->SetName("gSource_"+base_name);
+          double eval_at[2];
+          eval_at[0] = 1500;
+          eval_at[1] = kstar_cutoff*0.5;
+          KdpPars current_kdp = dlm_kdp_2D->Eval(eval_at);
+          //KdpPars current_kdp = dlm_kdp_2D->GetBinContent(2, 0);
+          //dlm_kdp_2D->GetBinContent(1, 0).Print();
+          //dlm_kdp_2D->GetBinContent(2, 0).Print();
+          //dlm_kdp_2D->GetBinContent(3, 0).Print();
+          //current_kdp.Print();
+          //printf("%f\n", dlm_kdp_2D->GetBinCenter(0, 0));
+          //printf("%f\n", dlm_kdp_2D->GetBinCenter(0, 1));
+          //printf("%f\n", dlm_kdp_2D->GetBinCenter(0, 2));
+          //printf("%f\n", dlm_kdp_2D->GetBinCenter(0, 3));
+          //printf("%f\n", dlm_kdp_2D->GetBinCenter(0, 4));
+          for(unsigned uRad=0; uRad<hSource->GetNbinsX(); uRad++){
+            double rstar = hSource->GetBinCenter(uRad+1);
+            double src = PoissonSum(rstar, current_kdp);
+            hSource->SetBinContent(uRad+1, src);
+            gSource->SetPoint(uRad, rstar, src);
+          }
+          DLM_Histo<float>* dlmSource = Convert_TH1F_DlmHisto(hSource);
+
+          DLM_CommonAnaFunctions AnalysisObject;
+          AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
+          double kMin = 0;
+          double kMax = 400;
+          unsigned kSteps = 40;
+
+          //printf("hello\n");
+          CATS Kd_DG_ER_CECA;
+          Kd_DG_ER_CECA.SetMomBins(kSteps, kMin, kMax);
+          AnalysisObject.SetUpCats_Kd(Kd_DG_ER_CECA,"DG_ER","",0,0);
+          DLM_HistoSource dlmCecaSource(dlmSource);
+          Kd_DG_ER_CECA.SetAnaSource(CatsSourceForwarder, &dlmCecaSource, 0);
+          Kd_DG_ER_CECA.SetUseAnalyticSource(true);
+          Kd_DG_ER_CECA.SetAutoNormSource(false);
+          Kd_DG_ER_CECA.SetNormalizedSource(true);
+          Kd_DG_ER_CECA.SetNotifications(CATS::nWarning);   
+          Kd_DG_ER_CECA.KillTheCat();
+          TGraph gCk_DG_ER;
+          gCk_DG_ER.SetName("gCk_DG_ER_"+base_name);
+          for(unsigned uKstar=0; uKstar<kSteps; uKstar++){
+            double kstar = Kd_DG_ER_CECA.GetMomentum(uKstar);
+            gCk_DG_ER.SetPoint(uKstar, kstar, Kd_DG_ER_CECA.GetCorrFun(uKstar));
+          }
+
+
+          CATS Kd_SW_ER_CECA;
+          Kd_SW_ER_CECA.SetMomBins(kSteps, kMin, kMax);
+          AnalysisObject.SetUpCats_Kd(Kd_SW_ER_CECA,"SW_ER","",0,0);
+          //DLM_HistoSource dlmCecaSource(dlmSource);
+          Kd_SW_ER_CECA.SetAnaSource(CatsSourceForwarder, &dlmCecaSource, 0);
+          Kd_SW_ER_CECA.SetUseAnalyticSource(true);
+          Kd_SW_ER_CECA.SetAutoNormSource(false);
+          Kd_SW_ER_CECA.SetNormalizedSource(true);
+          Kd_SW_ER_CECA.SetNotifications(CATS::nWarning);   
+          Kd_SW_ER_CECA.KillTheCat();
+          TGraph gCk_SW_ER;
+          gCk_SW_ER.SetName("gCk_SW_ER_"+base_name);
+          for(unsigned uKstar=0; uKstar<kSteps; uKstar++){
+            double kstar = Kd_SW_ER_CECA.GetMomentum(uKstar);
+            gCk_SW_ER.SetPoint(uKstar, kstar, Kd_SW_ER_CECA.GetCorrFun(uKstar));
+          }
+/*
+          CATS Kd_DG_ER_CECA_kstar;
+          Kd_DG_ER_CECA_kstar.SetMomBins(kSteps, kMin, kMax);
+          AnalysisObject.SetUpCats_Kd(Kd_DG_ER_CECA_kstar,"DG_ER","",0,0);
+          DLM_MtKstar_KdpSource source_kdp(dlm_kdp_2D_kstar);
+          Kd_DG_ER_CECA_kstar.SetUseAnalyticSource(true);
+          Kd_DG_ER_CECA_kstar.SetMomentumDependentSource(true);
+          Kd_DG_ER_CECA_kstar.SetAnaSource(CatsSourceForwarder, &source_kdp, 2);
+          Kd_DG_ER_CECA_kstar.SetAnaSource(0, 1500);
+          Kd_DG_ER_CECA_kstar.SetAutoNormSource(false);
+          Kd_DG_ER_CECA_kstar.SetNormalizedSource(true);
+          Kd_DG_ER_CECA_kstar.SetNotifications(CATS::nWarning);   
+          Kd_DG_ER_CECA_kstar.KillTheCat();
+          TGraph gCk_DG_ER_kstar;
+          gCk_DG_ER_kstar.SetName("gCk_DG_ER_kstar_"+base_name);
+          for(unsigned uKstar=0; uKstar<kSteps; uKstar++){
+            double kstar = Kd_DG_ER_CECA_kstar.GetMomentum(uKstar);
+            gCk_DG_ER_kstar.SetPoint(uKstar, kstar, Kd_DG_ER_CECA_kstar.GetCorrFun(uKstar));
+          }
+*/
+          CATS Kd_DG_FCA_CECA;
+          Kd_DG_FCA_CECA.SetMomBins(kSteps, kMin, kMax);
+          AnalysisObject.SetUpCats_Kd(Kd_DG_FCA_CECA,"DG_FCA","",0,0);
+          //DLM_HistoSource dlmCecaSource(dlmSource);
+          Kd_DG_FCA_CECA.SetAnaSource(CatsSourceForwarder, &dlmCecaSource, 0);
+          Kd_DG_FCA_CECA.SetUseAnalyticSource(true);
+          Kd_DG_FCA_CECA.SetAutoNormSource(false);
+          Kd_DG_FCA_CECA.SetNormalizedSource(true);
+          Kd_DG_FCA_CECA.SetNotifications(CATS::nWarning);   
+          Kd_DG_FCA_CECA.KillTheCat();
+          TGraph gCk_DG_FCA;
+          gCk_DG_FCA.SetName("gCk_DG_FCA_"+base_name);
+          for(unsigned uKstar=0; uKstar<kSteps; uKstar++){
+            double kstar = Kd_DG_FCA_CECA.GetMomentum(uKstar);
+            gCk_DG_FCA.SetPoint(uKstar, kstar, Kd_DG_FCA_CECA.GetCorrFun(uKstar));
+          }
+
+          //printf("hello\n");
+          fSummary.cd();
+          gSource->Write();
+          hSource->Write();
+          //gCk_DG_ER_kstar.Write();
+          gCk_DG_ER.Write();
+          gCk_SW_ER.Write();
+          gCk_DG_FCA.Write();
+          //printf("hello2\n");
+          delete hSource;
+          delete gSource;
+          delete dlmSource;
+          delete dlm_kdp_2D;
+          //printf("hello3\n");
+        }//fDD
+        //printf("hello4\n");
+        dlm_kdp_map->QuickWrite(TString::Format("%s/dKaon/Frascati/Sources/kdp_map_%s_%s_PR35.78_KR%.2f.dlm",
+                  GetCernBoxDimi(),sSPAR.Data(), sTYPE.Data(), fKR), true);
+        delete dlm_kdp_map;
+        
+
+
+      }
+    }
+  }
+
+
+}
+
+//it creates a TGraph, which though will have to be deleted later by you
+//example:  TGraph* MyGraph = MyOwn_Kd_v2_InterpolateCk(...);
+//          --- do something ---
+//          delete MyGraph;
+//InputFileName -> full path to the kdp_maps file that you use
+//FSI_type -> DG_ER or SW_ER or DG_FCA
+//CECA_type -> FIT or NLO19
+//d_type -> Kd or KdReso
+//KR_val -> 47.16 or 52.40  or 57.64
+//binning -> the currectly available delay_step
+TGraph* MyOwn_Kd_v2_InterpolateCk(TString InputFileName, TString FSI_type, TString CECA_type, TString d_type, double KR_val, double delay_val, double delay_step = 0.5){
+  TFile InputFile(InputFileName, "read");
+
+  TGraph* gCkFinal = NULL;
+
+  //if we are almost demanding a specific existing step
+  if( fabs((delay_val/delay_step) - TMath::Nint(delay_val/delay_step))<1e-4 ){
+    InputFile.Get(TString::Format("gCk_"));
+
+    return gCkFinal;
+  }
+
+}
+
+void Check_Source_Means(){
+  TFile fSummary(TString::Format("%s/dKaon/Frascati/Sources/kdp_maps_full_v2.root",GetCernBoxDimi()), "read");
+
+  TH1F* hSource_A_up = (TH1F*)fSummary.Get("hSource_FIT_KdReso_PR35.78_KR47.16_DD1.00");
+  TH1F* hSource_A_low = (TH1F*)fSummary.Get("hSource_FIT_KdReso_PR35.78_KR57.64_DD1.00");
+  TH1F* hSource_B_up = (TH1F*)fSummary.Get("hSource_FIT_Kd_PR35.78_KR47.16_DD1.00");
+  TH1F* hSource_B_low = (TH1F*)fSummary.Get("hSource_FIT_Kd_PR35.78_KR57.64_DD1.00"); 
+
+  double mean_A_up = hSource_A_up->GetMean();
+
+
+  TF1* fSource = new TF1("fSource",NormDoubleGaussSourceTF1,0,100,4);
+  fSource->FixParameter(3,1);
+  fSource->FixParameter(0,1.10+0.04);
+  fSource->FixParameter(1,2.14+0.03);
+  fSource->FixParameter(2,0.76);
+  double prx_mean_up = fSource->Mean(0, 100);
+
+  fSource->FixParameter(3,1);
+  fSource->FixParameter(0,1.10-0.04);
+  fSource->FixParameter(1,2.14-0.07);
+  fSource->FixParameter(2,0.76);
+  double prx_mean_low = fSource->Mean(0, 100);
+
+  double prx_mean = 0.5*(prx_mean_up+prx_mean_low);
+  double prx_err = 0.5*(prx_mean_up-prx_mean_low);
+
+  double SceA_up = hSource_A_up->GetMean();
+  double SceA_low = hSource_A_low->GetMean();
+  double SceA_mean = 0.5*(SceA_up+SceA_low);
+  double SceA_err = 0.5*(SceA_up-SceA_low);
+
+  double SceB_up = hSource_B_up->GetMean();
+  double SceB_low = hSource_B_low->GetMean();
+  double SceB_mean = 0.5*(SceB_up+SceB_low);
+  double SceB_err = 0.5*(SceB_up-SceB_low);
+
+  printf("PRX: %.3f +/- %.3f\n",prx_mean,prx_err);
+  printf("SCA: %.3f +/- %.3f\n",SceA_mean,SceA_err);
+  printf("SCB: %.3f +/- %.3f\n",SceB_mean,SceB_err);
+
+
+  //TH1F* hSource_DG_up;
+  //TH1F* hSource_DG_low;
+}
+
+void MyOwn_Kd_v2_CreateCk(TString InputFile, TString OutputFile){
+
+}
 
 //creates a KDP source, where the dimensions are mt, kstar, tau(delay)
 void SetUp_Kdp_Kd(){
@@ -386,7 +909,7 @@ void SetUp_Kdp_Kd(){
     dlmSrc.QuickLoad(list_of_files.at(iTau));
     dlmSrc.ComputeError();
 
-    //takes a 3D histo of Kstar Rstar Mt and returns a 2D kdp histo of Mt Kstar
+    //takes a 3D histo of Kstar Rstar Mt and returns a 2D kdp histo of Mt Kstar (in that order)
     printf("hi\n");
     DLM_Histo<KdpPars>* dlm_kdp_2D = Convert_3Dsource_Kdp(dlmSrc,true,3,96,3);
     //we create the 3D kdp histo, including tau, at the first iteration
@@ -974,7 +1497,7 @@ void clean_graph(TGraph* gInput){
 //par[19] = p3 parameter of the pol3
 //par[20] = -1e6 to switch off the pol4
 //the total fit function is:
-//Baseline*(lambda_femto*Ck_femto + lambda_delta*Ck_delta + lamda_flat)
+//Baseline*(lambda_femto*(1-frac_d)*Ck_femto + norm_delta*Ck_delta*(either 1 or Ck_femto) + lamda_flat)
 DLM_CkDecomposition* Bulgaristan_CkDec=NULL;
 TGraph* Kstar_Modifier = NULL;
 double Bulgaristan_fit(double* kstar, double* par){
@@ -1000,8 +1523,16 @@ double Bulgaristan_fit(double* kstar, double* par){
   //else 
   modified_kstar = kstar[0]/Kstar_Modifier->Eval(kstar[0]);
   
-  double Delta = SillBoltzmann_kstar(&modified_kstar, &par[8]);
+  double Delta;
+  //kaon shit
+  if(par[11]<500){
+    Delta = TMath::BreitWigner(MOM, par[11], par[12]);
+  }
+  else{
+    Delta = SillBoltzmann_kstar(&modified_kstar, &par[8]);
+  }
   double Femto = Bulgaristan_CkDec->EvalCk(MOM);
+  //printf("%f %f\n",MOM, Femto);
   //if(MOM==10){
   //  printf("%.3e * (%.3e*%.3e + %.3e*%.3e + %.3e)\n",Baseline, par[2], Femto, par[3], Delta, 1.-par[2]);
   //}
@@ -1022,6 +1553,8 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
     printf("Bad mT bin\n");
     abort();
   }
+  //these are the first file you got from Bhawani. On 29th Oct 2024 this was updated and now completely
+  //converd by the if statements below, these paths here are for bookkeeping only and have no affect right now!
   TString InputDataFileName = 
     TString::Format("%s/pi_d/FitOct2024_Files/Systematics_pp.root",GetCernBoxDimi());
   TString DefaultHistoName = "histDefault";
@@ -1030,8 +1563,10 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
   TString MeListName1 = "PairDist";
   TString MeListName2 = "PairReweighted";
   TString MeHistName = "hTotalMEpairs _Rebinned_5_Reweighted";
-  //pip d mt diff
-  if(mt_bin>=0 && mt_bin<100){
+  TString SeHistName = "";
+  //pip d mt diff, as used for Approval at CF
+  /*
+  if(mt_bin>=0 && mt_bin<100 && false){
     InputDataFileName = 
     TString::Format("%s/pi_d/FitOct2024_Files/mT_2024-10-11/mT06102024Signal_sum_Mt_%i.root",GetCernBoxDimi(),mt_bin+1);
     DefaultHistoName = "hCk_ReweightedMeV_2";
@@ -1040,8 +1575,8 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
       abort();
     }
   }
-  //pim d mt diff
-  else if(mt_bin>=100 && mt_bin<200){
+  //pim d mt diff, as used for Approval at CF
+  else if(mt_bin>=100 && mt_bin<200 && false){
     InputDataFileName = 
     TString::Format("%s/pi_d/FitOct2024_Files/AntiPionDeuteron/22102024FilesSignal_antisum_Mt_%i.root",GetCernBoxDimi(),mt_bin%100+1);
     DefaultHistoName = "hCk_ReweightedMeV_2";
@@ -1055,12 +1590,50 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
       abort();
     }
   }
+  //pip d mt diff, as used for Approval at PF, includes systematics
+  else if(mt_bin>=0 && mt_bin<100 && true){
+    InputDataFileName = 
+    TString::Format("%s/pi_d/FitNov2024_Files/Files/PionDeuteron/mT_differential/mTBin%i/Systematics_pp.root",GetCernBoxDimi(),abs(mt_bin)%100+1);
+  }
+  //pim d mt diff, as used for Approval at CF, includes systematics
+  else if(mt_bin>=100 && mt_bin<200 && true){
+    InputDataFileName = 
+    TString::Format("%s/pi_d/FitNov2024_Files/Files/AntiPionDeuteron/mT_differential/mTBin%i/Systematics_pp.root",GetCernBoxDimi(),abs(mt_bin)%100+1);
+  }
+  //mt integrated pip - d, 2024-10-29
+  else if(mt_bin==-1){
+  //  TString::Format("%s/pi_d/FitOct2024_Files/2024-10-29/20MeVBins_pip_d/CF_Piondeuteron_Var0.root",GetCernBoxDimi());
+  //  DefaultHistoName = "hCk_ReweightedPidVar0MeV_0";
+  //  VarDirName = "";
+  //  VarHistoBaseName = "histVar_";
+
+  }
+  //mt integrated pim - d, 2024-10-29
+  else if(mt_bin==-101){
+
+  }
+  else{
+    printf("Bad mT bin %i\n", mt_bin);
+    abort();    
+  }
 
   //TString InputConversionFileName = 
   //  TString::Format("%s/pi_d/Bhawani/ForDimi/ForDimi/Output/ResonanceOutput_2024-10-10.root",GetCernBoxDimi());
 
   //N.B. PURE vars, the default does not count here
-  const double NumDataVars = 26;
+  double NumDataVars = 26;
+  if(mt_bin==-1){
+    //NumDataVars = 27;
+  }
+  else if(mt_bin==-101){
+    //NumDataVars = 35;
+  }
+  */
+  //N.B. Sometimes variations are missing if they did not pass some criteria
+  //what this is is the MAX number of data variations, if we try to open non-existing
+  //variation we will resample
+  int NumDataVars = 44;
+
 
   const double max_kstar = 700;
   const unsigned max_mom_bins = 35;
@@ -1101,19 +1674,19 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
   mT_up.push_back(mT_up_pim_v1);
 
   double avg_mt = 1270;
-  if(mt_bin>=0){
-    avg_mt = 0.5*(mT_up.at(mt_bin%100)+mT_low.at(mt_bin%100));
+  if(mt_bin>=0 && mt_bin<1000){
+    avg_mt = 0.5*(mT_up.at(mt_bin/100).at(mt_bin%100)+mT_low.at(mt_bin/100).at(mt_bin%100));
   }
   double avg_mass_pid = 0.5*(Mass_d+Mass_pic);
   double kay_tee = sqrt(avg_mt*avg_mt-avg_mass_pid*avg_mass_pid);
   
-  std::vector<float> lambda_gen_avg = {0.850, 0.874, 0.888, 0.897, 0.918};
-  double lambda_gen_mTint = 0.88;//avg_mt of 1.27
+  std::vector<float> lambda_gen_avg = {0.850*0.88, 0.874*0.88, 0.888*0.88, 0.897*0.88, 0.918*0.88};
+  double lambda_gen_mTint = 0.88*0.88;//avg_mt of 1.27
 
   //take 0.75 or 0 weight for the Delta++, based on the system (pip or pim)
   //N.B. for pim we should actually have 1/2 D0 and 1/2 D-, but we dont have access to it
   double Dpp_weight = 0.75;
-  if(fabs(mt_bin)>=100) Dpp_weight = 0;
+  if(fabs(mt_bin)>=100 && mt_bin<1000) Dpp_weight = 0;
   std::vector<float> marcel_gamma_D0 = {74.11, 74.06, 74.02, 70.19, 90.29};
   std::vector<float> marcel_temp_D0 = {18.51, 18.27, 18.04, 16.49, 17.41};
   std::vector<float> marcel_gamma_Dpp = {109.63, 106.28, 103.21, 99.56, 86.01};
@@ -1128,10 +1701,13 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
   std::vector<float> reff_avg_err = {0.132, 0.119, 0.115, 0.118, 0.141};
   double reff_mTint_val = 1.513;//avg_mt of 1.27
   double reff_mTint_err = 0.117;
-  if(mt_bin>=0){
+  if(mt_bin>=0 && mt_bin<1000){
     eff_source_radii.push_back(reff_avg_val.at(mt_bin%100));
     eff_source_radii.push_back(reff_avg_val.at(mt_bin%100)-reff_avg_err.at(mt_bin%100));
     eff_source_radii.push_back(reff_avg_val.at(mt_bin%100)+reff_avg_err.at(mt_bin%100));
+  }
+  else if(mt_bin==1000){
+    eff_source_radii.push_back(1.35);
   }
   else{
     eff_source_radii.push_back(reff_mTint_val);
@@ -1139,9 +1715,22 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
     eff_source_radii.push_back(reff_mTint_val+reff_mTint_err);
   }
   
+  TH2F* hResolution_pd = NULL;
+  TH2F* hTemp = NULL;
+  //printf("...\n");
+  TFile* fReso = new TFile(TString::Format("%s/pi_d/Bhawani/PdMomResoMEinjected.root",GetCernBoxDimi()), "read");
+  //printf("%p\n",fReso);
+  hTemp = (TH2F*)fReso->Get("MomentumResolutionME_Particle0_Particle2");
+  //printf("%p\n",hTemp);
+  gROOT->cd();
+  hResolution_pd = (TH2F*)hTemp->Clone("hResolution_pd");
+  hResolution_pd->GetXaxis()->SetLimits(hTemp->GetXaxis()->GetXmin()*1000.,hTemp->GetXaxis()->GetXmax()*1000.);
+  hResolution_pd->GetYaxis()->SetLimits(hTemp->GetYaxis()->GetXmin()*1000.,hTemp->GetYaxis()->GetXmax()*1000.);
+  delete fReso;
 
   TRandom3 rangen(SEED);
 
+/*
   //printf("file %s\n",InputDataFileName.Data());
   TFile fInputData(InputDataFileName, "read");
   TDirectoryFile* fDir = NULL;
@@ -1156,8 +1745,80 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
   if(hME){
     hME->GetXaxis()->SetLimits(hME->GetXaxis()->GetXmin()*1000.,hME->GetXaxis()->GetXmax()*1000.);
   }
+*/
+
+
+
+
+  //GET THE PTs
+  TFile fInput_pT(TString::Format("%s/pi_d/FitOct2024_Files/AnalysisResults_for_pT.root",GetCernBoxDimi()), "read");
+  //printf("hi\n");
+  TDirectory* fDir_temp = NULL;
+  fDir_temp = (TDirectoryFile*)(fInput_pT.FindObjectAny("HMResults0"));
+  //printf("%p\n",fDir_temp);
+  TList* fList_temp1;
+  //fDir_temp->ls();
+  fDir_temp->GetObject("HMResults0", fList_temp1);
+  //printf("%p\n",fList_temp1);
+
+  //TList* fList_temp2 = (TList*)fList_temp1->FindObject("HMResults0");
+  //    printf("%p\n",fList_temp2);
+
+  TList* fList_P02 = (TList*)fList_temp1->FindObject("Particle0_Particle2");
+  TList* fList_P13 = (TList*)fList_temp1->FindObject("Particle1_Particle3");
+  TList* fList_P03 = (TList*)fList_temp1->FindObject("Particle0_Particle3");
+  TList* fList_P12 = (TList*)fList_temp1->FindObject("Particle1_Particle2");
+  int which_mt_bin = abs(mt_bin%100) + 1;
+  //if(abs(mt_bin)>=100){which_mt_bin -= 100;}
+  if(mt_bin<0) {which_mt_bin = 3;}
+
+  //printf("%p, %p, %p, %p\n", fList_P02, fList_P13, fList_P03, fList_P12);
+  printf("which_mt_bin = %i\n",which_mt_bin);
+  TH2F* h_P02 = NULL;
+  TH2F* h_P13 = NULL;
+  TH2F* h_P03 = NULL;
+  TH2F* h_P12 = NULL;
+
+  if(mt_bin!=1000){
+    h_P02 = (TH2F*)fList_P02->FindObject(TString::Format("MEmT_%i_pT_PionNucleon0_2_vs_kStar", which_mt_bin));
+    h_P13 = (TH2F*)fList_P13->FindObject(TString::Format("MEmT_%i_pT_PionNucleon1_3_vs_kStar", which_mt_bin));
+    h_P03 = (TH2F*)fList_P03->FindObject(TString::Format("MEmT_%i_pT_PionNucleon0_3_vs_kStar", which_mt_bin));
+    h_P12 = (TH2F*)fList_P12->FindObject(TString::Format("MEmT_%i_pT_PionNucleon1_2_vs_kStar", which_mt_bin));
+  }
+
+  double mean_pNucl_pT_below300=0;
+  TH2F* h_pT_Nucl = NULL;
+  //pim_d
+  if(mt_bin==1000){
+
+  }
+  else if(abs(mt_bin)>=100){
+    h_pT_Nucl = (TH2F*)h_P03->Clone("h_pT_Nucl");
+    h_pT_Nucl->Add(h_P12);
+    //printf("A\n");
+  }
+  else{
+    h_pT_Nucl = (TH2F*)h_P02->Clone("h_pT_Nucl");
+    h_pT_Nucl->Add(h_P13);
+    //printf("B\n");
+  }
+
+  TH1F* hProj = NULL;
+  if(mt_bin!=1000){
+    hProj = (TH1F*)h_pT_Nucl->ProjectionY(TString::Format("h_pT_Nucl_Proj"),h_pT_Nucl->GetXaxis()->FindBin(0.5*0.001),h_pT_Nucl->GetXaxis()->FindBin(299.5*0.001));
+    mean_pNucl_pT_below300 = hProj->GetMean()*1000.;
+  }
+  //TCanvas c1("can1", "can1", 1);
+  //hResolution_pd->Draw("colz");
+  ////hProj->Draw();
+  //c1.SaveAs("/home/dimihayl/Desktop/hProj.png");
+  //hProj->Draw();
+  //usleep(10e6);
+  //printf("mean_pNucl_pT_below300 = %.3f (%i %i)\n",mean_pNucl_pT_below300,h_pT_Nucl->GetXaxis()->FindBin(0.5*0.001),h_pT_Nucl->GetXaxis()->FindBin(299.5*0.001));
+  delete hProj;
 
   //printf("%p %p %p\n",fList1,fList2,hME);
+  //printf("hello\n");
 
   TGraphErrors  gData(max_mom_bins);
   gData.SetName("gData");
@@ -1193,6 +1854,7 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
   float FIT_RANGE;
   float LAM_GEN;
   float FRAC_D;
+  float NUM_DELTAS;
   float AMP_DELTA;
   float DELTA_MASS;
   float DELTA_WIDTH;
@@ -1201,13 +1863,21 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
   float CHI2_500;
   float PT_SCALE;
 
-  if(mt_bin==-1){
-    MT_LOW = mT_low.at(0);
-    MT_UP = mT_up.at(mT_up.size()-1);
+  if(mt_bin==1000){
+    MT_LOW = 0;
+    MT_UP = 10000;  
+  }
+  else if(mt_bin==-1){
+    MT_LOW = mT_low.at(0).at(0);
+    MT_UP = mT_up.at(0).at(mT_up.at(0).size()-1);
+  }
+  else if(mt_bin==-101){
+    MT_LOW = mT_low.at(1).at(0);
+    MT_UP = mT_up.at(1).at(mT_up.at(0).size()-1);
   }
   else if(mt_bin%100>=0 && mt_bin%100<=4){
-    MT_LOW = mT_low.at(mt_bin%100);
-    MT_UP = mT_up.at(mt_bin%100);    
+    MT_LOW = mT_low.at(mt_bin/100).at(mt_bin%100);
+    MT_UP = mT_up.at(mt_bin/100).at(mt_bin%100);    
   }
   else{
     printf("Silly mT bin\n");
@@ -1215,7 +1885,7 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
   }
 
   //int SEED, int mt_bin, int NumIter, bool Bootstrap=true, bool DataVar=true, bool FitVar=true
-  TFile fOutputFile(TString::Format("%s/pi_d/FitOct2024_Files/Results/%s_mT%i_B%i_DV%i_FV%i_S%i.root",
+  TFile fOutputFile(TString::Format("%s/pi_d/FitNov2024_Files/Results/%s_mT%i_B%i_DV%i_FV%i_S%i.root",
     GetCernBoxDimi(), Description.Data(), mt_bin, Bootstrap, DataVar, FitVar, SEED), "recreate");
   TTree* pi_d_Tree = new TTree("pi_d_Tree","pi_d_Tree");
   //pi_d_Tree->Branch("seed",&SEED,"seed/I")
@@ -1233,6 +1903,7 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
   pi_d_Tree->Branch("fit_range",&FIT_RANGE,"fit_range/F");//
   pi_d_Tree->Branch("lam_gen",&LAM_GEN,"lam_gen/F");//
   pi_d_Tree->Branch("frac_D",&FRAC_D,"frac_D/F");//
+  pi_d_Tree->Branch("num_deltas",&NUM_DELTAS,"num_deltas/F");//
   pi_d_Tree->Branch("amp_delta",&AMP_DELTA,"amp_delta/F");//
   pi_d_Tree->Branch("CkCutOff",&CKCUTOFF,"CkCutOff/F");//
   pi_d_Tree->Branch("delta_mass",&DELTA_MASS,"delta_mass/F");//
@@ -1266,32 +1937,321 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
   Kitty.SetMomBins(NumMomBins, kCatMin, kCatMax);
   DLM_CommonAnaFunctions AnalysisObject;
   AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
-  AnalysisObject.SetUpCats_pi_d(Kitty, "", "Gauss", 0, 0);
-  Kitty.SetQ1Q2(+1);
-  if(fabs(mt_bin)>=100) Kitty.SetQ1Q2(-1);
+  if(mt_bin==1000){
+    AnalysisObject.SetUpCats_Kd(Kitty, "", "Gauss", 0, 0);
+    Kitty.SetQ1Q2(-1);
+  }
+  if(fabs(mt_bin)>=100){
+    AnalysisObject.SetUpCats_pi_d(Kitty, "Gauss", "Gauss", -1, 0);
+    Kitty.SetQ1Q2(-1);
+  }
+  else{
+    AnalysisObject.SetUpCats_pi_d(Kitty, "", "Gauss", 0, 0);
+    Kitty.SetQ1Q2(+1);    
+  }
   Kitty.SetAnaSource(0, eff_source_radii.at(0));
   if(Kitty.GetNumSourcePars()>1) Kitty.SetAnaSource(1, 2);
   Kitty.KillTheCat();
   Kitty.SetNotifications(CATS::nWarning);
 
-  DLM_Ck CkKitty(Kitty.GetNumSourcePars(),0,Kitty,max_mom_bins,0,max_kstar);
-  CkKitty.SetSourcePar(0,Kitty.GetAnaSourcePar(0));
-  if(Kitty.GetNumSourcePars()>1) CkKitty.SetSourcePar(1,Kitty.GetAnaSourcePar(1));
+  DLM_Ck CkKitty_Default(Kitty.GetNumSourcePars(),0,Kitty,max_mom_bins,0,max_kstar);
+  DLM_Ck CkKitty_Wioleta(max_mom_bins,0,max_kstar);
+  //DLM_Ck CkKitty(Kitty.GetNumSourcePars(),0,Kitty,max_mom_bins,0,max_kstar);
+  if(mt_bin==1000){
+    //  TFile fOutputFile(TString::Format("%s/pi_d/FitNov2024_Files/Results/%s_mT%i_B%i_DV%i_FV%i_S%i.root",
+
+    TFile fWioleta(TString::Format("%s/pi_d/Kd/LL/K-dWioletaAN_1p351.root",GetCernBoxDimi()));
+    TGraph* gCgen = (TGraph*)fWioleta.Get("gCgen");
+    for(unsigned uMom=0; uMom<max_mom_bins; uMom++){
+      double MOM = CkKitty_Wioleta.GetBinCenter(0, uMom);
+      CkKitty_Wioleta.SetBinContent(uMom, gCgen->Eval(MOM));
+      //printf("%f %f\n",MOM, gCgen->Eval(MOM));
+    }
+    fWioleta.Close();
+  }
+  else{//the default stuff
+    CkKitty_Default.SetSourcePar(0,Kitty.GetAnaSourcePar(0));
+    if(Kitty.GetNumSourcePars()>1) CkKitty_Default.SetSourcePar(1,Kitty.GetAnaSourcePar(1));
+  }
+  DLM_Ck& CkKitty = mt_bin==1000?CkKitty_Wioleta:CkKitty_Default;
+  
   CkKitty.SetCutOff(CKCUTOFF,CkConv);
   CkKitty.Update();
 
-  DLM_CkDecomposition CkDecKitty("pi_d",0,CkKitty,NULL);
+  DLM_CkDecomposition CkDecKitty("pi_d",0,CkKitty,hResolution_pd);
+  //DLM_CkDecomposition CkDecKitty("pi_d",0,CkKitty,NULL);
   CkDecKitty.Update(true, true);
   Bulgaristan_CkDec = &CkDecKitty;
 
+  double Progress = 0;
+  bool data_saved = false;
+  for(int uIter=0; uIter<NumIter; uIter++){
+    //printf("uIter = %u\n",uIter);
+    TFile* fInputData = NULL;
+    TH1F* hData = NULL;
+    TDirectoryFile* fDir = NULL;
+    TList* fList1 = NULL;
+    TList* fList2 = NULL;
+    TH1F* hME = NULL;
+    TH1F* hSE = NULL;
 
-  for(unsigned uIter=0; uIter<NumIter; uIter++){
+    //-1 is default, -2 is default without bootstrap
     int iDataVar = -1;
-    if(DataVar==true){
-      //if we get a -1, it is the default
-      iDataVar = rangen.Integer(NumDataVars+1)-1;
-    }
+    do{
+      if(DataVar==true){
+        //if we get a -1, it is the default
+        iDataVar = rangen.Integer(NumDataVars+1)-1;
+      }
+      if(!data_saved){
+        iDataVar = -2;
+        data_saved = true;
+      }
 
+
+      //mt int pip_d used for aprovals at CF and PF
+      if(mt_bin == -1){
+        if(iDataVar==-1 || iDataVar==-2){
+          InputDataFileName = TString::Format("%s/pi_d/FitOct2024_Files/2024-10-29/20MeVBins_pip_d/CF_Piondeuteron_Var0.root",GetCernBoxDimi());
+          DefaultHistoName = "hCk_ReweightedPidVar0MeV_0";
+          MeListName1 = "PairDist";
+          MeListName2 = "PairReweighted";
+          MeHistName = "hTotalME _Rebinned_5_Reweighted";
+          SeHistName = "hTotalSE _Rebinned_5_Reweighted";
+        }
+        else{
+          InputDataFileName = TString::Format("%s/pi_d/FitOct2024_Files/2024-10-29/20MeVBins_pip_d/CF_Pid_Var%i.root",GetCernBoxDimi(), iDataVar+1);
+          DefaultHistoName = TString::Format("hCk_ReweightedReweightedPidVar%iMeV_1MeV_0", iDataVar+1);
+          MeListName1 = "PairDist";
+          MeListName2 = "PairReweighted";
+          MeHistName = TString::Format("hTotalME_PidVar%i_Rebinned_5_Reweighted", iDataVar+1);
+          SeHistName = TString::Format("hTotalSE_PidVar%i_Rebinned_5_Reweighted", iDataVar+1);
+        }
+        std::ifstream file(InputDataFileName.Data());
+        if(file.good()) fInputData = new TFile(InputDataFileName, "read");
+        if(fInputData) hData = (TH1F*)fInputData->Get(DefaultHistoName);
+
+        if(fInputData) fList1 = (TList*)(fInputData->FindObjectAny(MeListName1));
+        if(fList1) fList2 = (TList*)fList1->FindObject(MeListName2);
+        if(fList2) hME = (TH1F*)fList2->FindObject(MeHistName);
+        if(hME){
+          hME->GetXaxis()->SetLimits(hME->GetXaxis()->GetXmin()*1000.,hME->GetXaxis()->GetXmax()*1000.);
+        }
+        if(fList2) hSE = (TH1F*)fList2->FindObject(SeHistName);
+        if(hSE){
+          hSE->GetXaxis()->SetLimits(hSE->GetXaxis()->GetXmin()*1000.,hSE->GetXaxis()->GetXmax()*1000.);
+        }
+
+      }
+      //mt int pim_d used for approvals at CF and PF
+      else if(mt_bin == -101){
+        if(iDataVar==-1 || iDataVar==-2){
+          InputDataFileName = TString::Format("%s/pi_d/FitOct2024_Files/2024-10-29/mTIntegrated_pim_d/CF_AntiPiondeuteron_Var0.root",GetCernBoxDimi());
+          DefaultHistoName = "hCk_ReweightedPidVar0MeV_0";
+          MeListName1 = "PairDist";
+          MeListName2 = "PairReweighted";
+          MeHistName = "hTotalME _Rebinned_5_Reweighted";
+          SeHistName = "hTotalSE _Rebinned_5_Reweighted";
+        }
+        else{
+          InputDataFileName = TString::Format("%s/pi_d/FitOct2024_Files/2024-10-29/mTIntegrated_pim_d/CF_AntiPid_Var%i.root",GetCernBoxDimi(), iDataVar+1);
+          DefaultHistoName = TString::Format("hCk_ReweightedReweightedPidVar%iMeV_1MeV_0", iDataVar+1);
+          MeListName1 = "PairDist";
+          MeListName2 = "PairReweighted";
+          MeHistName = TString::Format("hTotalME_PidVar%i_Rebinned_5_Reweighted", iDataVar+1);    
+          SeHistName = TString::Format("hTotalSE_PidVar%i_Rebinned_5_Reweighted", iDataVar+1);      
+        }
+        std::ifstream file(InputDataFileName.Data());
+        if(file.good()) fInputData = new TFile(InputDataFileName, "read");
+        if(fInputData) hData = (TH1F*)fInputData->Get(DefaultHistoName);
+
+        if(fInputData) fList1 = (TList*)(fInputData->FindObjectAny(MeListName1));
+        if(fList1) fList2 = (TList*)fList1->FindObject(MeListName2);
+        if(fList2) hME = (TH1F*)fList2->FindObject(MeHistName);
+        if(hME){
+          hME->GetXaxis()->SetLimits(hME->GetXaxis()->GetXmin()*1000.,hME->GetXaxis()->GetXmax()*1000.);
+        }
+        if(fList2) hSE = (TH1F*)fList2->FindObject(SeHistName);
+        if(hSE){
+          hSE->GetXaxis()->SetLimits(hSE->GetXaxis()->GetXmin()*1000.,hSE->GetXaxis()->GetXmax()*1000.);
+        }
+      }
+      //mt diff pip_d used for approvals at CF
+      else if(mt_bin>=0 && mt_bin<100 && false){
+        InputDataFileName = TString::Format("%s/pi_d/FitOct2024_Files/mT_2024-10-11/mT06102024Signal_sum_Mt_%i.root",GetCernBoxDimi(),mt_bin+1);
+        DefaultHistoName = "hCk_ReweightedMeV_2";
+        if(DataVar==true){
+          printf("ERROR: At the moment we do not have mt variations\n");
+          abort();
+        }
+        //VarDirName = "Raw";
+        MeListName1 = "PairDist";
+        MeListName2 = "PairReweighted";
+        MeHistName = "hTotalMEpairs _Rebinned_5_Reweighted";
+        fInputData = new TFile(InputDataFileName, "read");
+        if(fInputData) hData = (TH1F*)fInputData->Get(DefaultHistoName);
+        //printf("fInputData = %p\n",fInputData);
+        //fDir = (TDirectoryFile*)(fInputData->FindObjectAny(VarDirName));
+        //printf("fDir = %p\n",fDir);
+        //fDir->GetObject(VarHistoBaseName+TString::Format("%i",iDataVar),hData);
+        //printf("hData = %p\n",hData);
+        if(fInputData) fList1 = (TList*)(fInputData->FindObjectAny(MeListName1));
+        //printf("fList1 = %p\n",fList1);
+        if(fList1) fList2 = (TList*)fList1->FindObject(MeListName2);
+        if(fList2) hME = (TH1F*)fList2->FindObject(MeHistName);
+        if(hME){
+          hME->GetXaxis()->SetLimits(hME->GetXaxis()->GetXmin()*1000.,hME->GetXaxis()->GetXmax()*1000.);
+        }
+        if(fList2) hSE = (TH1F*)fList2->FindObject(SeHistName);
+        if(hSE){
+          hSE->GetXaxis()->SetLimits(hSE->GetXaxis()->GetXmin()*1000.,hSE->GetXaxis()->GetXmax()*1000.);
+        }
+      }
+      //mt diff pim_d used for approvals at CF
+      else if(mt_bin>=100 && mt_bin<200 && false){
+        InputDataFileName = TString::Format("%s/pi_d/FitOct2024_Files/AntiPionDeuteron/22102024FilesSignal_antisum_Mt_%i.root",GetCernBoxDimi(),mt_bin%100+1);
+        DefaultHistoName = "hCk_ReweightedMeV_2";
+        if(DataVar==true){
+          printf("ERROR: At the moment we do not have mt variations\n");
+          abort();
+        }
+        VarDirName = "Raw";
+        MeListName1 = "PairDist";
+        MeListName2 = "PairReweighted";
+        MeHistName = "hTotalMEapairs _Rebinned_5_Reweighted";
+        fInputData = new TFile(InputDataFileName, "read");
+        if(fInputData) hData = (TH1F*)fInputData->Get(DefaultHistoName);
+        //fDir = (TDirectoryFile*)(fInputData->FindObjectAny(VarDirName));
+        //fDir->GetObject(VarHistoBaseName+TString::Format("%i",iDataVar),hData);
+        if(fInputData) fList1 = (TList*)(fInputData->FindObjectAny(MeListName1));
+        if(fList1) fList2 = (TList*)fList1->FindObject(MeListName2);
+        if(fList2) hME = (TH1F*)fList2->FindObject(MeHistName);
+        if(hME){
+          hME->GetXaxis()->SetLimits(hME->GetXaxis()->GetXmin()*1000.,hME->GetXaxis()->GetXmax()*1000.);
+        }
+        if(fList2) hSE = (TH1F*)fList2->FindObject(SeHistName);
+        if(hSE){
+          hSE->GetXaxis()->SetLimits(hSE->GetXaxis()->GetXmin()*1000.,hSE->GetXaxis()->GetXmax()*1000.);
+        }
+      }
+      //mt diff pip_d used for approvals at PF
+      else if(mt_bin>=0 && mt_bin<100 && true){
+        if(iDataVar==-1 || iDataVar==-2){
+          InputDataFileName = TString::Format("%s/pi_d/FitNov2024_Files/Files/PionDeuteron/mT_differential/mTBin%i/CF_Piondeuteron_Var0.root",GetCernBoxDimi(),abs(mt_bin)%100+1);
+          DefaultHistoName = "hCk_ReweightedPidVar0MeV_0";
+          MeListName1 = "PairDist";
+          MeListName2 = "PairReweighted";
+          MeHistName = "hTotalME _Rebinned_5_Reweighted";
+        }
+        else{
+          InputDataFileName = TString::Format("%s/pi_d/FitNov2024_Files/Files/PionDeuteron/mT_differential/mTBin%i/CF_Pid_Var%i.root",
+            GetCernBoxDimi(),abs(mt_bin)%100+1,iDataVar+1);
+          DefaultHistoName = TString::Format("hCk_ReweightedReweightedPidVar%iMeV_1MeV_0", iDataVar+1);
+          MeListName1 = "PairDist";
+          MeListName2 = "PairReweighted";
+          MeHistName = TString::Format("hTotalME_PidVar%i_Rebinned_5_Reweighted", iDataVar+1);
+        }
+        std::ifstream file(InputDataFileName.Data());
+        if(file.good()) fInputData = new TFile(InputDataFileName, "read");
+        //else printf("bad file %s\n", InputDataFileName.Data());
+        if(fInputData) hData = (TH1F*)fInputData->Get(DefaultHistoName);
+
+        if(fInputData) fList1 = (TList*)(fInputData->FindObjectAny(MeListName1));
+        if(fList1) fList2 = (TList*)fList1->FindObject(MeListName2);
+        if(fList2) hME = (TH1F*)fList2->FindObject(MeHistName);
+        if(hME){
+          hME->GetXaxis()->SetLimits(hME->GetXaxis()->GetXmin()*1000.,hME->GetXaxis()->GetXmax()*1000.);
+        }
+        if(fList2) hSE = (TH1F*)fList2->FindObject(SeHistName);
+        if(hSE){
+          hSE->GetXaxis()->SetLimits(hSE->GetXaxis()->GetXmin()*1000.,hSE->GetXaxis()->GetXmax()*1000.);
+        }
+      } 
+      //mt diff pim_d used for approvals at PF
+      else if(mt_bin>=100 && mt_bin<200 && true){
+
+        if(iDataVar==-1 || iDataVar==-2){
+          InputDataFileName = TString::Format("%s/pi_d/FitNov2024_Files/Files/AntiPionDeuteron/mT_differential/mTBin%i/CF_AntiPiondeuteron_Var0.root",GetCernBoxDimi(),abs(mt_bin)%100+1);
+          DefaultHistoName = "hCk_ReweightedPidVar0MeV_0";
+          MeListName1 = "PairDist";
+          MeListName2 = "PairReweighted";
+          MeHistName = "hTotalME _Rebinned_5_Reweighted";
+        }
+        else{
+          InputDataFileName = TString::Format("%s/pi_d/FitNov2024_Files/Files/AntiPionDeuteron/mT_differential/mTBin%i/CF_AntiPid_Var%i.root",
+            GetCernBoxDimi(),abs(mt_bin)%100+1,iDataVar+1);
+          DefaultHistoName = TString::Format("hCk_ReweightedReweightedPidVar%iMeV_1MeV_0", iDataVar+1);
+          MeListName1 = "PairDist";
+          MeListName2 = "PairReweighted";
+          MeHistName = TString::Format("hTotalME_PidVar%i_Rebinned_5_Reweighted", iDataVar+1);
+        }
+        std::ifstream file(InputDataFileName.Data());
+        if(file.good()) fInputData = new TFile(InputDataFileName, "read");
+        //else printf("bad file %s\n", InputDataFileName.Data());
+        if(fInputData) hData = (TH1F*)fInputData->Get(DefaultHistoName);
+
+        if(fInputData) fList1 = (TList*)(fInputData->FindObjectAny(MeListName1));
+        if(fList1) fList2 = (TList*)fList1->FindObject(MeListName2);
+        if(fList2) hME = (TH1F*)fList2->FindObject(MeHistName);
+        if(hME){
+          hME->GetXaxis()->SetLimits(hME->GetXaxis()->GetXmin()*1000.,hME->GetXaxis()->GetXmax()*1000.);
+        }
+        if(fList2) hSE = (TH1F*)fList2->FindObject(SeHistName);
+        if(hSE){
+          hSE->GetXaxis()->SetLimits(hSE->GetXaxis()->GetXmin()*1000.,hSE->GetXaxis()->GetXmax()*1000.);
+        }
+
+      }
+      //this is the ULTRA-GHETTO Kminus-d fit, demanded by Laura on 14th Nov
+      else if(mt_bin==1000){
+        //printf("Kd\n");
+        InputDataFileName = TString::Format("%s/pi_d/Kd/outKD_mydeuteronsOpenPIDDCA_std.root",GetCernBoxDimi());
+        std::ifstream file(InputDataFileName.Data());
+        if(file.good()) fInputData = new TFile(InputDataFileName, "read");
+        //fInputData->ls();
+        TGraphErrors* gData_Kd = (TGraphErrors*)fInputData->Get("gCF");
+        //printf("%p\n",gData_Kd);
+        gROOT->cd();
+        if(hData) delete hData;
+        hData = new TH1F("hData", "hData", 40, 0, 800);
+        for(unsigned uMom=0; uMom<hData->GetNbinsX(); uMom++){
+          double xval, yval;
+          gData_Kd->GetPoint(uMom, xval, yval);
+          //printf("%f %f\n",xval, yval);
+          hData->SetBinContent(uMom+1, yval);
+          hData->SetBinError(uMom+1, gData_Kd->GetErrorY(uMom));
+          //printf("%f %f %f\n",xval,yval,gData_Kd->GetErrorY(uMom));
+        }
+        hME = (TH1F*)fInputData->Get("ME");
+        hSE = (TH1F*)fInputData->Get("SE");
+      }
+
+        if(!hME){
+          //printf("fuck %i! %p (%s) %p %p\n", iDataVar, fInputData, InputDataFileName.Data(), fList1, fList2);
+          //if(fList2){
+          //  fList2->ls();
+          //  printf(" ME_name = %s\n",MeHistName.Data());
+          //}
+        }
+
+    }
+    //while(hData==NULL && iDataVar!=-1);//I dont know why this was like this
+    while(hData==NULL);
+    //printf("GOING FORWARD\n");
+
+    //TDirectoryFile* fDir = NULL;
+    //TH1F* hData = NULL;
+    //TList* fList1 = NULL;
+    //TList* fList2 = NULL;
+    //TH1D* hME = NULL;
+    //fList1 = (TList*)(fInputData.FindObjectAny(MeListName1));
+    //if(fList1) fList2 = (TList*)fList1->FindObject(MeListName2);
+    ////fList2->ls();
+    //if(fList2) hME = (TH1D*)fList2->FindObject(MeHistName);
+    //if(hME){
+    //  hME->GetXaxis()->SetLimits(hME->GetXaxis()->GetXmin()*1000.,hME->GetXaxis()->GetXmax()*1000.);
+    //}
+
+/*
     fInputData.cd();
     //printf("iDataVar=%i\n",iDataVar);
     //fInputData.ls();
@@ -1302,16 +2262,16 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
       fDir = (TDirectoryFile*)(fInputData.FindObjectAny(VarDirName));
       fDir->GetObject(VarHistoBaseName+TString::Format("%i",iDataVar),hData);
     }
-    
+*/
 
     if(!hData){
       printf("!hData\n");
       abort();
     }
 
-
+    gROOT->cd();
     TH1F* hDataToFit = (TH1F*)hData->Clone("hDataToFit");;
-    if(Bootstrap==true){
+    if(Bootstrap==true && iDataVar!=-2){
       double MOM = 0;
       unsigned uMom = 0;
       while(MOM<max_kstar){
@@ -1333,6 +2293,7 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
     PT_SCALE = pT_scale.at(pt_scale_int);
     FIT_TYPE = fit_types.at(0);
     if(mt_bin<0) LAM_GEN = lambda_gen_mTint;
+    else if(mt_bin==1000) LAM_GEN = 0.9;
     else LAM_GEN = lambda_gen_avg.at(mt_bin%100);
     AMP_DELTA = amplitude_delta.at(0);
     if(FitVar){
@@ -1342,6 +2303,7 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
       RADIUS = eff_source_radii.at(rangen.Integer(eff_source_radii.size()));
       if(LAM_GEN>=0){
         if(mt_bin<0) LAM_GEN = lambda_gen_mTint*lambda_gen_relvar.at(rangen.Integer(lambda_gen_relvar.size()));
+        else if(mt_bin==1000) LAM_GEN = 0.9;
         else LAM_GEN = lambda_gen_avg.at(mt_bin%100)*lambda_gen_relvar.at(rangen.Integer(lambda_gen_relvar.size()));
       }
       if(AMP_DELTA>=0) AMP_DELTA = amplitude_delta.at(rangen.Integer(amplitude_delta.size()));
@@ -1353,6 +2315,9 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
       rndint = rangen.Integer(fit_types.size());
       FIT_TYPE = fit_types.at(rndint);
     }
+    if(mt_bin==1000){
+      RADIUS = 1.35;
+    }
 
     TFile fConversion(InputConversionFileName.at(pt_scale_int), "read");
     Kstar_Modifier = (TGraph*)fConversion.Get("gR_ppi_dpi_c");
@@ -1361,6 +2326,8 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
     DATA_TYPE = abs(iDataVar);
     if(Bootstrap==true) DATA_TYPE += 100;
     if(iDataVar<0) DATA_TYPE = -DATA_TYPE;
+    //overrides the other stuff, this is default data with no boot
+    if(iDataVar==-2) DATA_TYPE = -2;
 
     //par[0] = source size
     //par[1] = alpha par
@@ -1405,6 +2372,9 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
           fData->SetParameter(2, fabs(lambda_gen_mTint));
           fData->SetParLimits(2, fabs(lambda_gen_mTint*lambda_gen_relvar.at(0)), fabs(lambda_gen_mTint*lambda_gen_relvar.at(1)));        
         }
+        else if(mt_bin==1000){
+          fData->FixParameter(2, LAM_GEN);
+        }
         else{
           fData->SetParameter(2, fabs(lambda_gen_avg.at(mt_bin%100)));
           fData->SetParLimits(2, fabs(lambda_gen_avg.at(mt_bin%100)*lambda_gen_relvar.at(0)), fabs(lambda_gen_avg.at(mt_bin%100)*lambda_gen_relvar.at(1)));        
@@ -1414,7 +2384,11 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
       //fData->SetParLimits(3,0,1);
       //3 will be fixed later on (do-while)
       //fData->FixParameter(3,1.5e-02);
-      if(AMP_DELTA>=0) fData->FixParameter(4, AMP_DELTA);
+      if(mt_bin==1000){
+        fData->SetParameter(4, 1);
+        fData->SetParLimits(4, 1e-4, 10);        
+      }
+      else if(AMP_DELTA>=0) fData->FixParameter(4, AMP_DELTA);
       else{
         fData->SetParameter(4, fabs(amplitude_delta.at(0)));
         fData->SetParLimits(4, fabs(amplitude_delta.at(1)), fabs(amplitude_delta.at(2)));
@@ -1430,7 +2404,11 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
       fData->SetParameter(11,1232);
       fData->SetParLimits(11,1180,1260);
   //fData->FixParameter(11,1232); 
-  fData->FixParameter(11,1215);  
+  fData->FixParameter(11,1215);
+  if(mt_bin==1000){
+    fData->SetParameter(11,275);
+    fData->SetParLimits(11,250,300);
+  }
       fData->SetParameter(12,100);
       fData->SetParLimits(12,40,200);
   //fData->FixParameter(12,90); 
@@ -1469,13 +2447,17 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
       //printf("kT_Delta = %f\n",kT_Delta);
       //printf("kay_tee = %f\n",kay_tee);
       //printf("PT_SCALE = %f\n",PT_SCALE);
-      if(mt_bin<0){
-        kT_Delta = piN_pT_avg;
-      }
-      else{
-        kT_Delta = piN_pT.at(mt_bin%100);
-      }
-      fData->FixParameter(13, kT_Delta);
+      
+      //if(mt_bin<0){
+      //  kT_Delta = piN_pT_avg;
+      //}
+      //else{
+      //  kT_Delta = piN_pT.at(mt_bin%100);
+      //}
+      //fData->FixParameter(13, kT_Delta);
+
+      fData->SetParameter(13,mean_pNucl_pT_below300);
+      fData->SetParLimits(13,mean_pNucl_pT_below300*0.8,mean_pNucl_pT_below300*1.2);
 
       //fData->SetParameter(13,kT_Delta);
       //fData->SetParLimits(13,kT_Delta*0.7,kT_Delta*1.3);
@@ -1487,6 +2469,11 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
         fData->FixParameter(12,marcel_avg_gamma);//gamma
         fData->SetParameter(14,marcel_avg_temp);//temp
       }
+      else if(mt_bin==1000){
+        fData->SetParameter(12,15.6);//gamma
+        fData->SetParLimits(12,13.1,20.6);
+        fData->FixParameter(14,0);//temp
+      }
       else{
         fData->FixParameter(12,marcel_gamma_Dpp.at(mt_bin%100)*Dpp_weight + marcel_gamma_D0.at(mt_bin%100)*(1.-Dpp_weight));//gamma
         fData->SetParameter(14,marcel_temp_Dpp.at(mt_bin%100)*Dpp_weight + marcel_temp_D0.at(mt_bin%100)*(1.-Dpp_weight));//temp
@@ -1494,14 +2481,28 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
 
       fData->FixParameter(15, 0);
 
-      fData->SetParameter(16,1);
-      fData->SetParLimits(16,0.9,1.1);
-      fData->FixParameter(17, 0);
-      fData->SetParameter(18,400);
-      fData->SetParLimits(18,5,20000);
-      fData->SetParameter(19,0);
-      fData->SetParLimits(19,-1e-9,1e-9);
-      fData->FixParameter(20, -1e6);
+
+      if(mt_bin==1000){
+        fData->SetParameter(16,1);
+        fData->SetParLimits(16,0.9,1.1);
+        fData->SetParameter(17, 300);
+        fData->SetParLimits(17, 150,450);
+        fData->SetParameter(18,2000);
+        fData->SetParLimits(18,450,50000);
+        fData->SetParameter(19,0);
+        fData->SetParLimits(19,-1e-8,1e-8);
+        fData->FixParameter(20, 1);
+      }
+      else{
+        fData->SetParameter(16,1);
+        fData->SetParLimits(16,0.9,1.1);
+        fData->FixParameter(17, 0);
+        fData->SetParameter(18,400);
+        fData->SetParLimits(18,1,100000);
+        fData->SetParameter(19,0);
+        fData->SetParLimits(19,-1e-8,1e-8);
+        fData->FixParameter(20, -1e6);
+      }
 //printf("FRAC_D = %f\n",FRAC_D);
       fData->FixParameter(3,FRAC_D);
       hDataToFit->Fit(fData,"Q, S, N, R, M");   
@@ -1519,8 +2520,12 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
       for(unsigned uBin=0; uBin<hDataToFit->GetNbinsX(); uBin++){
         double MOM = hDataToFit->GetBinCenter(uBin+1);
         if(MOM>500.001) break;
-        CHI2_500 += pow((hDataToFit->GetBinContent(uBin+1) - fData->Eval(MOM))/hDataToFit->GetBinError(uBin+1),2.);
+        if(hDataToFit->GetBinError(uBin+1))
+          CHI2_500 += pow((hDataToFit->GetBinContent(uBin+1) - fData->Eval(MOM))/hDataToFit->GetBinError(uBin+1),2.);
+        else
+          CHI2_500 += pow((hDataToFit->GetBinContent(uBin+1) - fData->Eval(MOM))/1.,2.);
       }
+      //printf("chi500 = %e\n", CHI2_500);
 
       clean_graph(&gData);
       clean_graph(&gFit);
@@ -1552,8 +2557,9 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
       double par_bl2 = fData->GetParameter(18);
       double par_bl3 = fData->GetParameter(19);
       double par_bl4 = fData->GetParameter(20);
-      double par_fmt = fData->GetParameter(2);
+      double par_fmt = fData->GetParameter(2);//lambda_gen
       double par_dlt = fData->GetParameter(4);
+      double par_frc = fData->GetParameter(3);
 
       fDataDummy->FixParameter(2, 0);
       fDataDummy->FixParameter(4, 0);
@@ -1570,6 +2576,7 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
       fDataDummy->FixParameter(20, 0);
       fDataDummy->FixParameter(2, par_fmt);
       fDataDummy->FixParameter(4, 0);
+      fDataDummy->FixParameter(3, 0);
       for(unsigned uBin=0; uBin<hDataToFit->GetNbinsX(); uBin++){
         double MOM = hDataToFit->GetBinCenter(uBin+1);
         if(MOM>FIT_RANGE) break;
@@ -1577,6 +2584,7 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
       }
 
       fDataDummy->FixParameter(2, 0);
+      fDataDummy->FixParameter(3, par_frc);
       fDataDummy->FixParameter(4, par_dlt);
       for(unsigned uBin=0; uBin<hDataToFit->GetNbinsX(); uBin++){
         double MOM = hDataToFit->GetBinCenter(uBin+1);
@@ -1604,10 +2612,21 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
         }   
         FRAC_D = Integral_FromDelta/(Integral_FromDelta+Integral_Primary);   
       }
-      //printf("%i FRAC_D = %.3e\n",iRepeat,FRAC_D);
+      //printf("%i FRAC_D = %.3e at %p\n",iRepeat,FRAC_D, hME);
       iRepeat++;
     }
     while(iRepeat<RepeatFit);
+
+    double IntME = hME->Integral();
+    double IntSE = hSE->Integral();
+    NUM_DELTAS = 0;
+    for(unsigned uBin=0; uBin<hME->GetNbinsX(); uBin++){
+      //checked, this is correct
+      double MOM = hME->GetBinCenter(uBin+1);
+      NUM_DELTAS += hME->GetBinContent(uBin+1) * (gDelta.Eval(MOM)-1);
+    }
+    NUM_DELTAS *= IntSE;
+    NUM_DELTAS /= IntME;
 
     pi_d_Tree->Fill();
 
@@ -1617,21 +2636,61 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
     //gDelta.Write();
     //gBaseline.Write();
 
+    //Progress = double(uIter)/double(NumIter+1);
+
     delete fData;
     delete fDataDummy;
     delete hDataToFit;
+    delete fInputData;
+    if(hData && mt_bin==1000) {delete hData; hData=NULL;}
   }
 
   fOutputFile.cd();
   pi_d_Tree->Write();
 
-  fInputData.Close();
+  //fInputData.Close();
   fOutputFile.Close();
+}
+
+//the SI is set to -0.037 fm as by Wioleta
+void pim_d_Coulomb_vs_RealSI(){
+  CATS Kitty;
+  Kitty.SetMomBins(100,0,400);
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
+  AnalysisObject.SetUpCats_pi_d(Kitty, "Gauss", "Gauss", -1, 0);
+  Kitty.SetQ1Q2(-1);
+  Kitty.KillTheCat();
+
+  CATS KittyC;
+  KittyC.SetMomBins(100,0,400);
+  AnalysisObject.SetUpCats_pi_d(KittyC, "", "Gauss", 0, 0);
+  KittyC.SetQ1Q2(-1);
+  KittyC.KillTheCat();
+
+
+  TGraph g_pim_d_SIplusC;
+  g_pim_d_SIplusC.SetName("g_pim_d_SIplusC");
+
+  TGraph g_pim_d_C;
+  g_pim_d_C.SetName("g_pim_d_C");
+
+  for(unsigned uMom=0; uMom<Kitty.GetNumMomBins(); uMom++){
+    g_pim_d_SIplusC.SetPoint(uMom, Kitty.GetMomentum(uMom), Kitty.GetCorrFun(uMom));
+    g_pim_d_C.SetPoint(uMom, KittyC.GetMomentum(uMom), KittyC.GetCorrFun(uMom));
+  }
+  TFile fOutputFile(TString::Format("%s/pi_d/RealPotential/pim_d.root", GetCernBoxDimi()), "recreate");
+  g_pim_d_SIplusC.Write();
+  g_pim_d_C.Write();
 }
 
 int DEUTERON_MAIN(int argc, char *argv[]){
   //p_pn_cumulant();
-  //MyOwn_Kd_v1();
+  //MyOwn_Kd_v2();
+
+  //MyOwn_Kd_v2_CreateKdp();
+  //Check_Source_Means();
+
   //SetUp_Kdp_Kd();
   //Fit_WithCECA_kstarInt(1024,11);
 
@@ -1641,8 +2700,12 @@ int DEUTERON_MAIN(int argc, char *argv[]){
   //test_sill_ps();
   //TString Description, int mt_bin, int NumIter, bool Bootstrap=true, bool DataVar=true, bool FitVar=true, int SEED
   //BulgarianIndianGhetto("ghetto_output", atoi(argv[1]),atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),atoi(argv[5]),atoi(argv[6]));
-  BulgarianIndianGhetto("v2024-10-25", atoi(argv[1]),atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),atoi(argv[5]),atoi(argv[6]));
+  //USE THIS:
+  BulgarianIndianGhetto("pid_withMomReso_2024-12-06", atoi(argv[1]),atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),atoi(argv[5]),atoi(argv[6]));
+  //BulgarianIndianGhetto("TEST", atoi(argv[1]),atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),atoi(argv[5]),atoi(argv[6]));
   //BulgarianIndianGhetto(-1,10,true,true,true,23);
+
+  //pim_d_Coulomb_vs_RealSI();
 
   return 0;
 }

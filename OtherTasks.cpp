@@ -17664,8 +17664,427 @@ void pSp_test2(){
 
 }
 
+void pp_large_RSM_source(){
+    double kMin = 0;
+    double kMax = 300;
+    unsigned NumMomBins = 75;
+
+    double rMin = 0;
+    double rMax = 64;
+    unsigned NumRadBins = 4096;
+
+    std::vector<float> CoreSize = {1,2,2.5,3.0,3.5,4};
+
+    TH1F** hSource = new TH1F*[CoreSize.size()];
+    for(unsigned uSrc=0; uSrc<CoreSize.size(); uSrc++){
+        hSource[uSrc] = new TH1F(
+            TString::Format("hSrc_%.2f",CoreSize.at(uSrc)), 
+            TString::Format("hSrc_%.2f",CoreSize.at(uSrc)), 
+            NumRadBins, rMin, rMax);
+    }
+
+    CATS Kitty;
+    Kitty.SetMomBins(NumMomBins, kMin, kMax);
+
+    DLM_CommonAnaFunctions AnalysisObject;
+    AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles/",GetCernBoxDimi()));
+    AnalysisObject.SetUpCats_pp(Kitty,"AV18","McLevy_ResoTM",0, 202);
+    for(unsigned uSrc=0; uSrc<CoreSize.size(); uSrc++){
+        //AnalysisObject->GetCleverMcLevyResoTM_pp()
+        Kitty.SetAnaSource(0, CoreSize.at(uSrc));
+        Kitty.KillTheCat();
+
+        for(unsigned uRad=0; uRad<NumRadBins; uRad++){
+            double rad = hSource[uSrc]->GetBinCenter(uRad+1);
+            double src = Kitty.EvaluateTheSource(1, rad, 0);
+            hSource[uSrc]->SetBinContent(uRad+1, src);
+        }
+    }
+    
+    TFile fOutput(TString::Format("%s/OtherTasks/pp_large_RSM_source.root",GetFemtoOutputFolder()), "recreate");
+    for(unsigned uSrc=0; uSrc<CoreSize.size(); uSrc++){
+        hSource[uSrc]->Write();
+    }
+}
+
+
+void pd_withQS(){
+    unsigned NumMomBins = 40;
+    double kMin = 0;
+    double kMax = 400;
+
+    std::vector<float> source_size = {1.0/sqrt(2), 1.08/sqrt(2), 1.43/sqrt(2), 2.0/sqrt(2), 3.0/sqrt(2), 5.0/sqrt(2), 5, 7};
+    std::vector<int> colors = {kBlack, kCyan+1, kGreen+1, kBlue, kRed, kYellow+1, kRed+2, kBlue-2};
+
+
+
+    CATS Kitty;
+    Kitty.SetMomBins(NumMomBins, kMin, kMax);
+    CATSparameters cParSource = CATSparameters(CATSparameters::tSource, 1, true);
+    //cParSource->SetParameter(0, SourceRadValue_pL);
+
+
+    Kitty.SetAnaSource(GaussSource, cParSource);
+    Kitty.SetQ1Q2(1); // 1 same charge; 0 neutral charge; -1
+    Kitty.SetQuantumStatistics(true); // set it to true if you want quantum statistics
+    Kitty.SetRedMass((Mass_p * Mass_d)/(Mass_p + Mass_d));
+    Kitty.SetNumChannels(2);
+    Kitty.SetNumPW(0,1);
+    Kitty.SetNumPW(1,1);
+    Kitty.SetSpin(0,0);
+    Kitty.SetSpin(1,1);
+    Kitty.SetChannelWeight(0, 1./3.);
+    Kitty.SetChannelWeight(1, 2./3.);
+    //Kitty.SetNotifications(CATS::nWarning);
+    //Usmani.SetMaxNumThreads(1);
+
+
+
+    CATS KittyC;
+    KittyC.SetMomBins(NumMomBins, kMin, kMax);
+    CATSparameters cParSourceC = CATSparameters(CATSparameters::tSource, 1, true);
+    //cParSource->SetParameter(0, SourceRadValue_pL);
+
+
+    KittyC.SetAnaSource(GaussSource, cParSourceC);
+    KittyC.SetQ1Q2(1); // 1 same charge; 0 neutral charge; -1
+    KittyC.SetQuantumStatistics(false); // set it to true if you want quantum statistics
+    KittyC.SetRedMass((Mass_p * Mass_d)/(Mass_p + Mass_d));
+    KittyC.SetNumChannels(2);
+    KittyC.SetNumPW(0,1);
+    KittyC.SetNumPW(1,1);
+    KittyC.SetSpin(0,0);
+    KittyC.SetSpin(1,1);
+    KittyC.SetChannelWeight(0, 1./4.);
+    KittyC.SetChannelWeight(1, 3./4.);
+
+
+    CATS KittyQS;
+    KittyQS.SetMomBins(NumMomBins, kMin, kMax);
+    CATSparameters cParSourceQS = CATSparameters(CATSparameters::tSource, 1, true);
+    //cParSource->SetParameter(0, SourceRadValue_pL);
+
+
+    KittyQS.SetAnaSource(GaussSource, cParSourceQS);
+    KittyQS.SetQ1Q2(0); // 1 same charge; 0 neutral charge; -1
+    KittyQS.SetQuantumStatistics(true); // set it to true if you want quantum statistics
+    KittyQS.SetRedMass((Mass_p * Mass_d)/(Mass_p + Mass_d));
+    KittyQS.SetNumChannels(2);
+    KittyQS.SetNumPW(0,1);
+    KittyQS.SetNumPW(1,1);
+    KittyQS.SetSpin(0,0);
+    KittyQS.SetSpin(1,1);
+    KittyQS.SetChannelWeight(0, 1./3.);
+    KittyQS.SetChannelWeight(1, 2./3.);
+
+
+    TGraph* gCk_CQS = new TGraph[source_size.size()];
+    TGraph* gCk_C = new TGraph[source_size.size()];
+    TGraph* gCk_QS = new TGraph[source_size.size()];
+
+    for(unsigned uSrc=0; uSrc<source_size.size(); uSrc++){
+        double SrcSize = source_size.at(uSrc);
+        gCk_CQS[uSrc].SetName(TString::Format("gCk_CQS_Src%.2fm", SrcSize));
+        gCk_CQS[uSrc].SetLineWidth(4);
+        gCk_CQS[uSrc].SetLineColor(colors.at(uSrc));
+        gCk_CQS[uSrc].SetMarkerStyle(8);
+        gCk_CQS[uSrc].SetMarkerColor(colors.at(uSrc));
+        gCk_CQS[uSrc].SetMarkerSize(1);
+
+        gCk_QS[uSrc].SetName(TString::Format("gCk_QS_Src%.2fm", SrcSize));
+        gCk_QS[uSrc].SetLineWidth(4);
+        gCk_QS[uSrc].SetLineColor(colors.at(uSrc));
+        gCk_QS[uSrc].SetLineStyle(3);
+        gCk_QS[uSrc].SetMarkerStyle(8);
+        gCk_QS[uSrc].SetMarkerColor(colors.at(uSrc));
+        gCk_QS[uSrc].SetMarkerSize(1);
+
+        gCk_C[uSrc].SetName(TString::Format("gCk_C_Src%.2fm", SrcSize));
+        gCk_C[uSrc].SetLineWidth(4);
+        gCk_C[uSrc].SetLineColor(colors.at(uSrc));
+        gCk_C[uSrc].SetLineStyle(2);
+        gCk_C[uSrc].SetMarkerStyle(4);
+        gCk_C[uSrc].SetMarkerColor(colors.at(uSrc));
+        gCk_C[uSrc].SetMarkerSize(1);
+
+        Kitty.SetAnaSource(0, SrcSize);
+        Kitty.KillTheCat();
+        for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+            double MOM = Kitty.GetMomentum(uMom);
+            gCk_CQS[uSrc].SetPoint(uMom, MOM, Kitty.GetCorrFun(uMom));
+        }
+
+        KittyC.SetAnaSource(0, SrcSize);
+        KittyC.KillTheCat(CATS::kAllChanged);
+        for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+        double MOM = KittyC.GetMomentum(uMom);
+        gCk_C[uSrc].SetPoint(uMom, MOM, KittyC.GetCorrFun(uMom));
+        }
+
+        KittyQS.SetAnaSource(0, SrcSize);
+        KittyQS.KillTheCat();
+        for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+            double MOM = Kitty.GetMomentum(uMom);
+            gCk_QS[uSrc].SetPoint(uMom, MOM, KittyQS.GetCorrFun(uMom));
+        }
+    }
+
+    TFile fOutput(TString::Format("%s/OtherTasks/pd_withQS.root",GetFemtoOutputFolder()), "recreate");
+    for(unsigned uSrc=0; uSrc<source_size.size(); uSrc++){
+        gCk_C[uSrc].Write();
+    }
+    for(unsigned uSrc=0; uSrc<source_size.size(); uSrc++){
+        gCk_QS[uSrc].Write();
+    }   
+    for(unsigned uSrc=0; uSrc<source_size.size(); uSrc++){
+        gCk_CQS[uSrc].Write();
+    }
+
+    delete [] gCk_QS;
+    delete [] gCk_CQS;
+    delete [] gCk_C;
+
+
+}
+
+
+
+//DummyBootTest_pSigma_inspired, singlet
+//two gaussians, one dummy to bring it all to zero (fixed pars) and 
+//one extra. Amplitude width and mean a linked to mimic femto
+double DBST_PS_INSP_sin(double* x, double* pars){
+    double& rad = *x;
+    double zero_gauss = 1.-exp(-pow(-(rad)/(10.),2.));
+    double femto_gauss = pars[0]/15.*exp(-pow(-(rad-pars[0]*1.3)/(pars[0]),2.))+1;
+    return zero_gauss*femto_gauss;
+}
+
+//similar
+double DBST_PS_INSP_tri(double* x, double* pars){
+    double& rad = *x;
+    double zero_gauss = 1.-exp(-pow(-(rad)/(10.),2.));
+    double femto_exp = -exp(-(rad+50.)/(pars[0]))+1;
+    //double femto_gauss = -pars[0]/360.*exp(-pow(-(rad)/(pars[0]),2.))+1;
+    return zero_gauss*femto_exp;
+}
+
+double DBST_PS_INSP_tot(double* x, double* pars){
+    return 0.25*DBST_PS_INSP_sin(x, pars) + 0.75*DBST_PS_INSP_tri(x, &pars[1]);
+}
+
+//generate Ck as two gaussians, which look a bit like the two channels.
+//generate dummy data
+//with the bootstrap, see which delta chi2 you get for 1 sigma
+void DummyBootTest_pSigma_inspired(){
+
+    double kMin = 20;
+    double kMax = 420;
+    unsigned NumMomBins = 10;
+
+    //40,80,120,160,200,240,280,320,360,400
+    std::vector<double> bin_center = {55,90,125,160,200,240,280,320,360,400};
+    double MOM;
+    double Ck_s;
+    double Ck_t;
+    double Ck;
+    double Ck_s_rnd;
+    double Ck_t_rnd;   
+    double Ck_rnd;
+
+    TF1* fSin = new TF1("fSin",DBST_PS_INSP_sin,kMin,kMax,1);
+    fSin->SetParameter(0, 40);
+
+    TF1* fTri = new TF1("fTri",DBST_PS_INSP_tri,kMin,kMax,1);
+    fTri->SetParameter(0, 120);    
+
+    TF1* fTot = new TF1("fTot",DBST_PS_INSP_tot,kMin,kMax,2);
+    fTot->SetParameter(0, 40);
+    fTot->SetParameter(1, 120);
+
+    TH2F* h_fit_result = new TH2F("h_fit_result", "h_fit_result", 256, 0, 80, 256, 0, 240);
+
+    TH2F* h_fit_result_v1p0 = (TH2F*)h_fit_result->Clone("h_fit_result_v1p0");
+    TH2F* h_fit_result_v2p3 = (TH2F*)h_fit_result->Clone("h_fit_result_v2p3");
+
+
+    TH2F* h_fit_result_dlt1p0 = (TH2F*)h_fit_result->Clone("h_fit_result_dlt1p0");
+    TH2F* h_fit_result_dlt2p3 = (TH2F*)h_fit_result->Clone("h_fit_result_dlt2p3");
+
+    TH2F* h_fit_result_hc1 = (TH2F*)h_fit_result->Clone("h_fit_result_hc1");
+    TH2F* h_fit_result_hc2 = (TH2F*)h_fit_result->Clone("h_fit_result_hc2");   
+
+
+    TRandom3 rangen(23);
+
+    TGraphErrors* gData = new TGraphErrors();
+    gData->SetName("gData");
+    for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+        MOM = bin_center.at(uMom);
+        Ck_s = fSin->Eval(MOM);
+        Ck_t = fTri->Eval(MOM);
+        gData->SetPoint(uMom, MOM, 0.25*Ck_s + 0.75*Ck_t);
+    }
+    gData->SetPointError(0,0,0.1);
+    gData->SetPointError(1,0,0.06);
+    gData->SetPointError(2,0,0.05);
+    gData->SetPointError(3,0,0.04);
+    gData->SetPointError(4,0,0.035);
+    gData->SetPointError(5,0,0.03);
+    gData->SetPointError(6,0,0.025);
+    gData->SetPointError(7,0,0.02);
+    gData->SetPointError(8,0,0.015);
+    gData->SetPointError(9,0,0.01);
+
+    for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+        MOM = bin_center.at(uMom);
+        Ck_s = fSin->Eval(MOM);
+        Ck_t = fTri->Eval(MOM);
+        Ck = 0.25*Ck_s+0.75*Ck_t;
+        Ck_rnd = -1; while(Ck_rnd<=0) Ck_rnd = rangen.Gaus(Ck, gData->GetErrorY(uMom));
+        gData->SetPoint(uMom, MOM, Ck_rnd);
+    }
+
+
+    //fit the generated data to get the baseline parameters
+    gData->Fit(fTot,"S, N, R, M");
+    double Base_Chi2 = fTot->GetChisquare();
+//Base_Chi2 = NumMomBins-2;
+    fSin->SetParameter(0, fTot->GetParameter(0));
+    fTri->SetParameter(0, fTot->GetParameter(1));
+
+    TGraphErrors* gBoot = (TGraphErrors*)gData->Clone("gBoot");
+
+    unsigned NumBootIter = 100*1000;
+    double BestChi2 = 1e6;
+
+    for(unsigned uBoot=0; uBoot<NumBootIter; uBoot++){
+        for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+            MOM = bin_center.at(uMom);
+            Ck_s = fSin->Eval(MOM);
+            Ck_t = fTri->Eval(MOM);
+            Ck = 0.25*Ck_s+0.75*Ck_t;
+            Ck_rnd = -1; while(Ck_rnd<=0) Ck_rnd = rangen.Gaus(Ck, gData->GetErrorY(uMom));
+            gBoot->SetPoint(uMom, MOM, Ck_rnd);
+        }
+        gBoot->Fit(fTot,"Q, S, N, R, M");
+        double Chi2_fit = fTot->GetChisquare();
+        double Chi2_dlm=0;
+        for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+            MOM = bin_center.at(uMom);
+            Chi2_dlm += pow((fTot->Eval(MOM)-gBoot->Eval(MOM))/gBoot->GetErrorY(uMom),2.);
+        }
+        //printf("chi2 = %f %f\n", Chi2_fit, Chi2_dlm);
+        h_fit_result->Fill(fTot->GetParameter(0), fTot->GetParameter(1));
+        if(Chi2_dlm<1) h_fit_result_v1p0->Fill(fTot->GetParameter(0), fTot->GetParameter(1));
+        if(Chi2_dlm<2.3) h_fit_result_v2p3->Fill(fTot->GetParameter(0), fTot->GetParameter(1));
+
+        if(Chi2_dlm<1+Base_Chi2) h_fit_result_dlt1p0->Fill(fTot->GetParameter(0), fTot->GetParameter(1));
+        if(Chi2_dlm<2.3+Base_Chi2) h_fit_result_dlt2p3->Fill(fTot->GetParameter(0), fTot->GetParameter(1));
+
+
+        if(Chi2_dlm<BestChi2) BestChi2 = Chi2_dlm;
+
+    }
+    printf("BestChi2 = %f\n",BestChi2);
+
+
+    double MaxAllowedChi2 = 0;
+    for(unsigned uBinX=0; uBinX<h_fit_result->GetXaxis()->GetNbins(); uBinX++){
+        for(unsigned uBinY=0; uBinY<h_fit_result->GetYaxis()->GetNbins(); uBinY++){
+            if(float(h_fit_result->GetBinContent(uBinX+1,uBinY+1))>float(NumBootIter)*0.00107){
+                //printf("%f\n",h_fit_result->GetBinContent(uBinX+1,uBinY+1));
+                for(int iEntr=0; iEntr<h_fit_result->GetBinContent(uBinX+1,uBinY+1); iEntr++){
+                    h_fit_result_hc1->Fill(h_fit_result->GetXaxis()->GetBinCenter(uBinX+1),h_fit_result->GetYaxis()->GetBinCenter(uBinY+1));
+                }
+                fTot->FixParameter(0, h_fit_result->GetXaxis()->GetBinCenter(uBinX+1));
+                fTot->FixParameter(1, h_fit_result->GetYaxis()->GetBinCenter(uBinY+1));
+                gData->Fit(fTot,"Q, S, N, R, M");
+                if(MaxAllowedChi2<fTot->GetChisquare()) MaxAllowedChi2 = fTot->GetChisquare();
+            }
+            if(h_fit_result->GetBinContent(uBinX+1,uBinY+1)>float(NumBootIter)*0.0005)
+                for(int iEntr=0; iEntr<h_fit_result->GetBinContent(uBinX+1,uBinY+1); iEntr++)
+                    h_fit_result_hc2->Fill(h_fit_result->GetXaxis()->GetBinCenter(uBinX+1),h_fit_result->GetYaxis()->GetBinCenter(uBinY+1));
+        }
+    }
+    printf("chi2: %f %f, dchi2 = %f\n", MaxAllowedChi2, Base_Chi2, MaxAllowedChi2 - Base_Chi2);
+
+
+    TFile fOutput(TString::Format("%s/OtherTasks/DummyBootTest_pSigma_inspired.root",GetFemtoOutputFolder()), "recreate");
+    gData->Write();
+    h_fit_result->Write();
+    h_fit_result_v1p0->Write();
+    h_fit_result_v2p3->Write();
+    h_fit_result_dlt1p0->Write();
+    h_fit_result_dlt2p3->Write();   
+    h_fit_result_hc1->Write();   
+    h_fit_result_hc2->Write();   
+}
+
+
+void xCheck_Benedict_pSigma_v1(){
+    TString InputFileName = TString::Format("%s/p_Sigma/Benedict/pSigma_Variation_Distribution.root",GetCernBoxDimi());
+    TFile InFile(InputFileName, "read");
+    //InFile.ls();
+    TH2F* h2D_iter = (TH2F*)InFile.Get("var_dist");
+    printf("Total integral = %f\n", h2D_iter->Integral());
+    double missing_integral = 100. - h2D_iter->Integral();
+    double my_integral = 0;
+
+    unsigned NumElements = h2D_iter->GetXaxis()->GetNbins()*h2D_iter->GetYaxis()->GetNbins();
+    float* Elements = new float[NumElements];
+    for(unsigned uBinX=0; uBinX<h2D_iter->GetXaxis()->GetNbins(); uBinX++){
+        for(unsigned uBinY=0; uBinY<h2D_iter->GetYaxis()->GetNbins(); uBinY++){
+            Elements[uBinX*h2D_iter->GetYaxis()->GetNbins() + uBinY] = h2D_iter->GetBinContent(uBinX+1, uBinY+1);
+            my_integral += h2D_iter->GetBinContent(uBinX+1, uBinY+1);
+        }
+    }
+    printf("My integral = %f\n", my_integral);
+    DLM_Sort < float, unsigned > SortTool;
+    SortTool.SetData(Elements,NumElements);
+    SortTool.MergeSort(true);
+    SortTool.GetSortedData(Elements,Elements);
+    float cum_integral = 0;
+    float cut_off = 0;
+    for(unsigned uEl=0; uEl<NumElements; uEl++){
+        //printf("%u: %f\n",uEl,Elements[uEl]);
+        //if(uEl>200) break;
+        cum_integral += Elements[uEl];
+        if(cum_integral>68.2){
+            cut_off = Elements[uEl];
+            break;
+        }
+    }
+
+    TH2F* h1Sig = (TH2F*)h2D_iter->Clone("h1Sig");
+    for(unsigned uBinX=0; uBinX<h2D_iter->GetXaxis()->GetNbins(); uBinX++){
+        for(unsigned uBinY=0; uBinY<h2D_iter->GetYaxis()->GetNbins(); uBinY++){
+            Elements[uBinX*h2D_iter->GetYaxis()->GetNbins() + uBinY] = h2D_iter->GetBinContent(uBinX+1, uBinY+1);
+            my_integral += h2D_iter->GetBinContent(uBinX+1, uBinY+1);
+            if(h2D_iter->GetBinContent(uBinX+1, uBinY+1)>cut_off){
+                h1Sig->SetBinContent(uBinX+1, uBinY+1, h2D_iter->GetBinContent(uBinX+1, uBinY+1));
+            }
+            else{
+                h1Sig->SetBinContent(uBinX+1, uBinY+1, 0);
+            }
+        }
+    }    
+
+    TFile fOutput(TString::Format("%s/OtherTasks/xCheck_Benedict_pSigma_v1.root",GetFemtoOutputFolder()), "recreate");
+    h2D_iter->Write();
+    h1Sig->Write();
+}
+
 //
 int OTHERTASKS(int argc, char *argv[]){
+
+    //pp_large_RSM_source();
+    
+    //DummyBootTest_pSigma_inspired();
+    xCheck_Benedict_pSigma_v1();
+
+    //pd_withQS();
+
+    return 0;
 
   //TestLambdaKstar_Baseline("Baseline");
   //TestLambdaKstar_Baseline("NewCode");
@@ -17674,7 +18093,9 @@ int OTHERTASKS(int argc, char *argv[]){
 
 //Quick_pXi(); return 0;
     //pp_reff(1.075); return 0;
-    pSp_test2(); return 0;
+    //pSp_test2(); return 0;
+
+
 
   
   //Raffa_pLambda_Gauss();
