@@ -4670,6 +4670,7 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
     //const TString InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp200/pp200_pReso_PRIM_4PI_VER4.f19";
     //const TString InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp200/pp200_pReso_4PI_VER5.f19";
     //const TString InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp200/pp200_pReso_Oct2019_4PI.f19";
+    //const TString InputFileName = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/EPOS_OUTPUT_FILES/EPOS_LBF_pp200/pp200_pReso_Oct2019_4PI.f19";
 
     TString InputFileName;
     //if( (DataSetDescr.Contains("Xim")||DataSetDescr.Contains("Omega"))&&!DataSetDescr.Contains("Lam"))
@@ -4732,6 +4733,15 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
     else if(DataSetDescr=="etaReso_Xi"){
       InputFileName = TString::Format("%s/CatsFiles/Source/EposRawOutput/EtaXi/pp_etaReso_Xi_ALICE_Acceptance_FullWeights_AddedIntSurrogate_IncludesAllHeavy_reduced_width10GeV_fullscale.0",GetCernBoxDimi());
     }
+    else if(DataSetDescr=="KstarReso_LamReso" || DataSetDescr=="KstarReso_Lam" || DataSetDescr=="Kstar_LamReso"){
+        InputFileName = TString::Format("%s/CatsFiles/Source/EposRawOutput/strange_stuff/pp_KStarReso_LambReso_simple_ids.dimi",GetCernBoxDimi());
+    }
+    else if(DataSetDescr=="omegaMesonReso_pReso" || DataSetDescr=="omegaMesonReso_p" || DataSetDescr=="omegaMeson_pReso"){
+        InputFileName = TString::Format("%s/CatsFiles/Source/EposRawOutput/strange_stuff/pp_omegaMesonReso_pReso_simple_ids.dimi",GetCernBoxDimi());
+    }
+    else if(DataSetDescr=="rhoMesonReso_pReso" || DataSetDescr=="rhoMesonReso_p" || DataSetDescr=="rhoMeson_pReso"){
+        InputFileName = TString::Format("%s/CatsFiles/Source/EposRawOutput/strange_stuff/pp_rhoMesonReso_pReso_simple_ids.dimi",GetCernBoxDimi());
+    }    
 
     else//
         InputFileName = TString::Format("%s/scratch6/dmihaylov/OutputEPOS/13TeV/EPOS_LBF_pp200/pp200_pResoLamReso_Oct2019_4PI_ReducedWeights.f19",GetNx2Folder());
@@ -5728,6 +5738,258 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
 
         UseResoInfo = true;
     }
+    //the relevant angle will be RcP1
+    else if(DataSetDescr=="KstarReso_Lam"){
+        pdgID[0] = 0;//KstarReso
+        pdgID[1] = 3122;//Lam
+        Original_eposID[0] = 131;//Kstar
+        Original_eposID[1] = 2130;//Lam
+        Original_pdgID[0] = 323;//Kstar
+        Original_pdgID[1] = 3122;//Lam
+
+        DaughterMassP1[0] = 0.89166;
+        DaughterMassP1[1] = Mass_pic*0.001;
+        DaughterMassP1[2] = -1;
+        DaughterMassP1[3] = -1;
+
+        DaughterMassP2[0] = -1;
+        DaughterMassP2[1] = -1;
+        DaughterMassP2[2] = -1;
+        DaughterMassP2[3] = -1;
+
+        ResoMass[0] = 1.397;//reso of the Kstars
+        ResoMass[1] = -1;//reso of the Lambdas (none in this case)
+
+        FractionsNbody[0] = 1;
+        FractionsNbody[1] = 0;
+        FractionsNbody[2] = 0;
+
+        UseResoInfo = false;
+    }
+    //the relevant angle will be RcP2
+    else if(DataSetDescr=="Kstar_LamReso"){
+        pdgID[0] = 323;//Kstar
+        pdgID[1] = 1;//LamReso
+        Original_eposID[0] = 131;//Kstar
+        Original_eposID[1] = 2130;//Lam
+        Original_pdgID[0] = 323;//Kstar
+        Original_pdgID[1] = 3122;//Lam
+
+        DaughterMassP1[0] = -1;
+        DaughterMassP1[1] = -1;
+        DaughterMassP1[2] = -1;
+        DaughterMassP1[3] = -1;
+
+        DaughterMassP2[0] = Mass_L*0.001;
+        DaughterMassP2[1] = Mass_pic*0.001;
+        DaughterMassP2[2] = -1;
+        DaughterMassP2[3] = -1;
+
+        ResoMass[0] = -1;
+        ResoMass[1] = 1.46;
+
+        FractionsNbody[0] = 1;
+        FractionsNbody[1] = 0;
+        FractionsNbody[2] = 0;
+
+        UseResoInfo = false;
+    }
+    else if(DataSetDescr=="KstarReso_LamReso"){
+        pdgID[0] = 0;//KstarReso
+        pdgID[1] = 1;//LamReso
+        Original_eposID[0] = 131;//Kstar
+        Original_eposID[1] = 2130;//Lam
+        Original_pdgID[0] = 323;//Kstar
+        Original_pdgID[1] = 3122;//Lam
+
+        DaughterMassP1[0] = 0.89166;
+        DaughterMassP1[1] = Mass_pic*0.001;
+        DaughterMassP1[2] = -1;
+        DaughterMassP1[3] = -1;
+
+        DaughterMassP2[0] = Mass_L*0.001;
+        DaughterMassP2[1] = Mass_pic*0.001;
+        DaughterMassP2[2] = -1;
+        DaughterMassP2[3] = -1;
+
+        ResoMass[0] = 1.397;
+        ResoMass[1] = 1.46;
+
+        FractionsNbody[0] = 1;
+        FractionsNbody[1] = 0;
+        FractionsNbody[2] = 0;
+
+        UseResoInfo = false;
+    }
+
+    //the relevant angle will be RcP1
+    else if(DataSetDescr=="rhoMesonReso_p"){
+        pdgID[0] = 0;//rhoReso
+        pdgID[1] = 2212;//p
+        Original_eposID[0] = 113;//rho
+        Original_eposID[1] = 1120;//p
+        Original_pdgID[0] = 213;//rho
+        Original_pdgID[1] = 2212;//p
+
+        DaughterMassP1[0] = 0.775;
+        DaughterMassP1[1] = Mass_pic*0.001;
+        DaughterMassP1[2] = -1;
+        DaughterMassP1[3] = -1;
+
+        DaughterMassP2[0] = -1;
+        DaughterMassP2[1] = -1;
+        DaughterMassP2[2] = -1;
+        DaughterMassP2[3] = -1;
+
+        ResoMass[0] = 1.349;//reso of the rhos
+        ResoMass[1] = -1;//reso of the p (none in this case)
+
+        FractionsNbody[0] = 1;
+        FractionsNbody[1] = 0;
+        FractionsNbody[2] = 0;
+
+        UseResoInfo = false;
+    }
+    //the relevant angle will be RcP2
+    else if(DataSetDescr=="rhoMeson_pReso"){
+        pdgID[0] = 213;//rho
+        pdgID[1] = 1;//pReso
+        Original_eposID[0] = 113;//rho
+        Original_eposID[1] = 1120;//p
+        Original_pdgID[0] = 213;//rho
+        Original_pdgID[1] = 2212;//p
+
+        DaughterMassP1[0] = -1;
+        DaughterMassP1[1] = -1;
+        DaughterMassP1[2] = -1;
+        DaughterMassP1[3] = -1;
+
+        DaughterMassP2[0] = Mass_p*0.001;
+        DaughterMassP2[1] = Mass_pic*0.001;
+        DaughterMassP2[2] = -1;
+        DaughterMassP2[3] = -1;
+
+        ResoMass[0] = -1;
+        ResoMass[1] = 1.36;
+
+        FractionsNbody[0] = 1;
+        FractionsNbody[1] = 0;
+        FractionsNbody[2] = 0;
+
+        UseResoInfo = false;
+    }
+    else if(DataSetDescr=="rhoMesonReso_pReso"){
+        pdgID[0] = 0;//rhoReso
+        pdgID[1] = 1;//p
+        Original_eposID[0] = 131;//rho
+        Original_eposID[1] = 1120;//p
+        Original_pdgID[0] = 213;//rho
+        Original_pdgID[1] = 2212;//p
+
+        DaughterMassP1[0] = 0.775;
+        DaughterMassP1[1] = Mass_pic*0.001;
+        DaughterMassP1[2] = -1;
+        DaughterMassP1[3] = -1;
+
+        DaughterMassP2[0] = Mass_p*0.001;
+        DaughterMassP2[1] = Mass_pic*0.001;
+        DaughterMassP2[2] = -1;
+        DaughterMassP2[3] = -1;
+
+        ResoMass[0] = 1.349;
+        ResoMass[1] = 1.36;
+
+        FractionsNbody[0] = 1;
+        FractionsNbody[1] = 0;
+        FractionsNbody[2] = 0;
+
+        UseResoInfo = false;
+    }
+
+
+    //the relevant angle will be RcP1
+    else if(DataSetDescr=="omegaMesonReso_p"){
+        pdgID[0] = 0;//omegaReso
+        pdgID[1] = 2212;//p
+        Original_eposID[0] = 221;//omega
+        Original_eposID[1] = 1120;//p
+        Original_pdgID[0] = 223;//omega
+        Original_pdgID[1] = 2212;//p
+
+        DaughterMassP1[0] = 0.78266;
+        DaughterMassP1[1] = Mass_pic*0.001;
+        DaughterMassP1[2] = -1;
+        DaughterMassP1[3] = -1;
+
+        DaughterMassP2[0] = -1;
+        DaughterMassP2[1] = -1;
+        DaughterMassP2[2] = -1;
+        DaughterMassP2[3] = -1;
+
+        ResoMass[0] = 1.331;//reso of the omegas
+        ResoMass[1] = -1;//reso of the p (none in this case)
+
+        FractionsNbody[0] = 1;
+        FractionsNbody[1] = 0;
+        FractionsNbody[2] = 0;
+
+        UseResoInfo = false;
+    }
+    //the relevant angle will be RcP2
+    else if(DataSetDescr=="omegaMeson_pReso"){
+        pdgID[0] = 223;//omega
+        pdgID[1] = 1;//pReso
+        Original_eposID[0] = 221;//omega
+        Original_eposID[1] = 1120;//p
+        Original_pdgID[0] = 223;//omega
+        Original_pdgID[1] = 2212;//p
+
+        DaughterMassP1[0] = -1;
+        DaughterMassP1[1] = -1;
+        DaughterMassP1[2] = -1;
+        DaughterMassP1[3] = -1;
+
+        DaughterMassP2[0] = Mass_p*0.001;
+        DaughterMassP2[1] = Mass_pic*0.001;
+        DaughterMassP2[2] = -1;
+        DaughterMassP2[3] = -1;
+
+        ResoMass[0] = -1;
+        ResoMass[1] = 1.36;
+
+        FractionsNbody[0] = 1;
+        FractionsNbody[1] = 0;
+        FractionsNbody[2] = 0;
+
+        UseResoInfo = false;
+    }
+    else if(DataSetDescr=="omegaMesonReso_pReso"){
+        pdgID[0] = 0;//omegaReso
+        pdgID[1] = 1;//p
+        Original_eposID[0] = 221;//omega
+        Original_eposID[1] = 1120;//p
+        Original_pdgID[0] = 223;//omega
+        Original_pdgID[1] = 2212;//p
+
+        DaughterMassP1[0] = 0.78266;
+        DaughterMassP1[1] = Mass_pic*0.001;
+        DaughterMassP1[2] = -1;
+        DaughterMassP1[3] = -1;
+
+        DaughterMassP2[0] = Mass_p*0.001;
+        DaughterMassP2[1] = Mass_pic*0.001;
+        DaughterMassP2[2] = -1;
+        DaughterMassP2[3] = -1;
+
+        ResoMass[0] = 1.331;
+        ResoMass[1] = 1.36;
+
+        FractionsNbody[0] = 1;
+        FractionsNbody[1] = 0;
+        FractionsNbody[2] = 0;
+
+        UseResoInfo = false;
+    }
 
 
     FractionsNbodyC[0] = FractionsNbody[0];
@@ -5833,6 +6095,7 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
 
     CatsParticle KittyParticle;
     CatsEvent* KittyEvent = new CatsEvent(pdgID[0],pdgID[1]);
+//printf("ids: %i %i b%i\n", pdgID[0],pdgID[1],KittyEvent->GetSameType());
     CatsEvent* KittyFilteredEvent = new CatsEvent(pdgID[0],pdgID[1]);
 
     FILE *InFile;
@@ -5937,9 +6200,142 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
         //to boost statistics we take both the particles and antiparticles and treat them the same
         ParticlePID = abs(ParticlePID);
         KittyParticle.SetPid(ParticlePID);
+
+
+        if(DataSetDescr=="KstarReso_Lam"){
+            if(ParticlePID==3122){
+                ParentPID = 0;
+                ResoWidth = 0;
+            }
+            else if(ParticlePID==888323){
+                ParentPID = 323;
+                ResoWidth = 1;
+            }
+            else{
+                continue;
+            }
+        }
+        else if(DataSetDescr=="Kstar_LamReso"){
+            if(ParticlePID==323){
+                ParentPID = 0;
+                ResoWidth = 0;
+            }
+            else if(ParticlePID==8883122){
+                ParentPID = 3122;
+                ResoWidth = 1;    
+            }
+            else{
+                continue;
+            }
+        }        
+        else if(DataSetDescr=="KstarReso_LamReso"){
+            //if(ParticlePID==3122){
+            //    ParentPID = 0;
+            //    ResoWidth = 0;
+            //}
+            if(ParticlePID==888323){
+                ParentPID = 323;
+                ResoWidth = 1;
+            }
+            //else if(ParticlePID==323){
+            //    ParentPID = 0;
+            //    ResoWidth = 0;
+            //}
+            else if(ParticlePID==8883122){
+                ParentPID = 3122;
+                ResoWidth = 1;    
+            }
+            else{
+                continue;
+            }
+        }
+
+        else if(DataSetDescr=="rhoMesonReso_p"){
+            if(ParticlePID==2212){
+                ParentPID = 0;
+                ResoWidth = 0;
+            }
+            else if(ParticlePID==888213){
+                ParentPID = 213;
+                ResoWidth = 1;
+            }
+            else{
+                continue;
+            }
+        }
+        else if(DataSetDescr=="rhoMeson_pReso"){
+            if(ParticlePID==213){
+                ParentPID = 0;
+                ResoWidth = 0;
+            }
+            else if(ParticlePID==8882212){
+                ParentPID = 2212;
+                ResoWidth = 1;    
+            }
+            else{
+                continue;
+            }
+        }        
+        else if(DataSetDescr=="rhoMesonReso_pReso"){
+            if(ParticlePID==888213){
+                ParentPID = 213;
+                ResoWidth = 1;
+            }
+            else if(ParticlePID==8882212){
+                ParentPID = 2212;
+                ResoWidth = 1;    
+            }
+            else{
+                continue;
+            }
+        }
+
+        else if(DataSetDescr=="omegaMesonReso_p"){
+            if(ParticlePID==2212){
+                ParentPID = 0;
+                ResoWidth = 0;
+            }
+            else if(ParticlePID==888223){
+                ParentPID = 223;
+                ResoWidth = 1;
+            }
+            else{
+                continue;
+            }
+        }
+        else if(DataSetDescr=="omegaMeson_pReso"){
+            if(ParticlePID==223){
+                ParentPID = 0;
+                ResoWidth = 0;
+            }
+            else if(ParticlePID==8882212){
+                ParentPID = 2212;
+                ResoWidth = 1;    
+            }
+            else{
+                continue;
+            }
+        }        
+        else if(DataSetDescr=="omegaMesonReso_pReso"){
+            if(ParticlePID==888223){
+                ParentPID = 223;
+                ResoWidth = 1;
+            }
+            else if(ParticlePID==8882212){
+                ParentPID = 2212;
+                ResoWidth = 1;    
+            }
+            else{
+                continue;
+            }
+        }
+
+
+
+
         //ResoInfo should tell is which is the pid of the daughter associated with a resonances.
         //If it is zero, than it implies the current particle is a primary
-        if(ParticlePID==Original_pdgID[0]||ParticlePID==Original_eposID[0]||ParticlePID==Original_pdgID[1]||ParticlePID==Original_eposID[1]){
+        else if(ParticlePID==Original_pdgID[0]||ParticlePID==Original_eposID[0]||ParticlePID==Original_pdgID[1]||ParticlePID==Original_eposID[1]){
             ParentPID = 0;
             ResoWidth = 0;
         }
@@ -5954,6 +6350,7 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
 /// и на тази база да сложиш ParentPID.
 /// Няма да стане :( има дупликати, като н1440, за резонансите на протоните и каоните, ще трябва нещо друго да измислищ
         }
+
     }
 //printf("ParticlePID==%i; ParentPID==%i; ResoWidth==%.2f; %s\n",ParticlePID,ParentPID,ResoWidth,DataSetDescr.Data());
     if(ParticlePID==Original_pdgID[0]||ParticlePID==Original_eposID[0]) {KittyParticle.SetWidth(0);KittyParticle.SetPid(Original_pdgID[0]);}
@@ -5966,9 +6363,12 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
         //unknown particle
         else {printf(" AAA %i\n",ParentPID); continue;}
     }
-    //unknown particle
+    //unknown particle 
     else {
-      if(DataSetDescr!="p_Omega"){
+      if(   DataSetDescr!="p_Omega"&&DataSetDescr!="KstarReso_LamReso"&&DataSetDescr!="KstarReso_Lam"&&DataSetDescr!="Kstar_LamReso"&&
+            DataSetDescr!="rhoMesonReso_pReso"&&DataSetDescr!="rhoMesonReso_p"&&DataSetDescr!="rhoMeson_pReso" &&
+            DataSetDescr!="omegaMesonReso_pReso"&&DataSetDescr!="omegaMesonReso_p"&&DataSetDescr!="omegaMeson_pReso"
+            ){
         printf(" BBB %i\n",ParentPID);
       }
       continue;
@@ -6020,7 +6420,7 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
             if(KittyParticle.GetPid()!=pdgID[0] && KittyParticle.GetPid()!=pdgID[1])
                 continue; //don't save this particle if it is of the wrong type
 
-
+//printf("hi there\n");
 
             //GhettoStyle: get rid of the omegas for pions that max wrongly included in the evaluation of the source
             bool GhettoCleanPion = false;
@@ -6059,9 +6459,15 @@ if(KittyParticle.GetPid()==1)hResoMassP2->Fill(KittyParticle.GetMass()*1000.);
             //if(fabs(KittyEvent[uMeth][uMix]->GetParticleType1(uPart).GetPseudoRap())>0.8) continue;
             KittyFilteredEvent->AddParticle(KittyEvent->GetParticleType1(uPart));
         }
+//printf("hi there 2\n");
+//printf("st kitty: %i\n",KittyEvent->GetSameType());
+//if(KittyEvent->GetNumParticles1()!=0)
+   // printf("N2 = %i\n",KittyEvent->GetNumParticles1());
         for(unsigned uPart=0; uPart<KittyEvent->GetNumParticles2(); uPart++){
             //avoid double counting for identical particles
-            if(KittyEvent->GetSameType()) break;
+            if(KittyEvent->GetSameType()){
+                break;
+            }
 //printf("HELLO\n");
             //if(KittyEvent[uMeth][uMix]->GetParticleType2(uPart).GetP()<0.4) continue;
             //if(fabs(KittyEvent[uMeth][uMix]->GetParticleType2(uPart).GetPseudoRap())>0.8) continue;
@@ -7566,9 +7972,22 @@ int MIXEDEVENTS(int argc, char *argv[]){
     //ReferenceSampleStudy_2("Epos","pReso_Phi");
     //ReferenceSampleStudy_2("Epos","LamReso_Xim");
 
-    ReferenceSampleStudy_2("Vale","etaReso_Xi");
+    //ReferenceSampleStudy_2("Vale","etaReso_Xi");
     //ReferenceSampleStudy_2("Marcelo","pReso_pi");
     //ReferenceSampleStudy_2("Marcelo","pReso_piReso");
+
+    //ReferenceSampleStudy_2("ProfMax","KstarReso_Lam");
+    //ReferenceSampleStudy_2("ProfMax","Kstar_LamReso");
+    //ReferenceSampleStudy_2("ProfMax","KstarReso_LamReso");
+
+ 
+    //ReferenceSampleStudy_2("ProfMax","rhoMesonReso_p");
+    //ReferenceSampleStudy_2("ProfMax","rhoMeson_pReso");
+    //ReferenceSampleStudy_2("ProfMax","rhoMesonReso_pReso");   
+
+    ReferenceSampleStudy_2("ProfMax","omegaMesonReso_pReso");
+    ReferenceSampleStudy_2("ProfMax","omegaMeson_pReso");
+    ReferenceSampleStudy_2("ProfMax","omegaMesonReso_p"); 
 
     //dEta_dPhi_Ck_QS("QS", "pp", true);
     //CompareReferenceSamples("pp");

@@ -14824,6 +14824,73 @@ void p_pi_CommonTest1(){
   delete hSource;
 }
 
+
+void L_pi_CommonSource_based_on_p_pic(){
+  const unsigned NumBins = 200;
+  const double kMin = 0;
+  const double kMax = 400;
+  bool RSM = true;
+  const int source_settings = -200;
+  //r_core = 1.163 +0.047 -0.047 fm
+  const double SourceSize = 1.163;
+  CATS Cat;
+  Cat.SetMomBins(NumBins,kMin,kMax);
+
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
+  AnalysisObject.SetUpCats_ppic(Cat,"",RSM?"McGauss_ResoTM":"Gauss",0,RSM?source_settings:0);
+  Cat.SetAnaSource(0,SourceSize);
+  //if(RSM) Cat.SetAnaSource(1,2.0);
+  Cat.KillTheCat();
+
+  TH1F* hCk_Lpi = new TH1F("hCk_Lpi","hCk_Lpi",NumBins,kMin,kMax);
+  for(unsigned uBin=0; uBin<NumBins; uBin++){
+    hCk_Lpi->SetBinContent(uBin+1,Cat.GetCorrFun(uBin));
+  }
+
+  TH1F* hSource = new TH1F("hSource","hSource",1024,0,32);
+  for(unsigned uBin=0; uBin<hSource->GetNbinsX(); uBin++){
+    double rstar = hSource->GetBinCenter(uBin+1);
+    hSource->SetBinContent(uBin+1,Cat.EvaluateTheSource(0,rstar,0)*10000);
+  }
+  hSource->Sumw2();
+
+  TF1* fSource;
+  //double r_eff = Get_reff_TF1(hSource, fsource, 1,  0.9);
+  //double r_eff = GetReff(&AnalysisObject.GetCleverMcLevyResoTM_ppic(), SourceSize);
+
+  hSource->Scale(1. / hSource->Integral(), "width");
+
+  double lowerlimit;
+  double upperlimit;
+  GetCentralInterval(*hSource, 0.9, lowerlimit, upperlimit, true);
+
+  fSource = new TF1("fSource", "[0]*4.*TMath::Pi()*x*x*pow(4.*TMath::Pi()*[1]*[1],-1.5)*exp(-(x*x)/(4.*[1]*[1]))+1.-[0]", 0.5, 6);
+  fSource->SetParameter(0, 0.8);
+  fSource->SetParLimits(0, 0.6, 1.0);
+  fSource->SetParameter(1, hSource->GetMean() / 2.3);
+  fSource->SetParLimits(1, hSource->GetMean() / 10., hSource->GetMean() * 2.);
+
+  hSource->Fit(fSource, "S, N, R, M");
+
+  double r_eff = fSource->GetParameter(1);
+  double lambda = fSource->GetParameter(0);
+
+  printf("r_core / r_eff = %.3f / %.3f fm with lambda = %.3f\n", SourceSize, r_eff, lambda);
+
+
+  TFile fOutput(TString::Format("%s/OtherTasks/L_pi_CommonSource_based_on_p_pic_%s%.2f.root",GetFemtoOutputFolder(),RSM?"rcore":"reff",SourceSize), "RECREATE");
+  hCk_Lpi->Write();
+  hSource->Write();
+  fSource->Write();
+
+  delete hCk_Lpi;
+  delete hSource;
+  delete fSource;
+}
+
+
+
 //0 1
 //2 3 4 5
 //6 7 8 9
@@ -18077,14 +18144,16 @@ void xCheck_Benedict_pSigma_v1(){
 //
 int OTHERTASKS(int argc, char *argv[]){
 
+  L_pi_CommonSource_based_on_p_pic(); return 0;
+
     //pp_large_RSM_source();
     
     //DummyBootTest_pSigma_inspired();
-    xCheck_Benedict_pSigma_v1();
+    //xCheck_Benedict_pSigma_v1();
 
     //pd_withQS();
 
-    return 0;
+    //return 0;
 
   //TestLambdaKstar_Baseline("Baseline");
   //TestLambdaKstar_Baseline("NewCode");

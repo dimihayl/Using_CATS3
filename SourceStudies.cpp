@@ -6261,7 +6261,8 @@ Bool_t DRAWFIG = kTRUE;
 void Analyse_fit_results_pp(TString InputFolder){
 
   TString InputPublishedData = TString::Format("%s/CatsFiles/Source/SourcePaper_Published.root",GetCernBoxDimi());
-  TString OutputFileName = InputFolder+"Results_pp.root";
+  //TString OutputFileName = InputFolder+"Results_pp.root";
+  TString OutputFileName = InputFolder+"newARXIV_pp.root";
   TFile fOutput(OutputFileName, "recreate");
 
   TRandom3 rangen(23);
@@ -7069,6 +7070,20 @@ if(uAna!=ana_true && BaselineVar==10) continue;//this is our default, with pol0/
   hAxisDariusz->GetYaxis()->SetTitleOffset(1);
   hAxisDariusz->GetYaxis()->SetRangeUser(0.67, 1.43);
 
+  TH1F *hAxisDariusz_Gauss = new TH1F("hAxisDariusz_Gauss", "hAxisDariusz_Gauss", 128, 0.95, 2.7);
+  hAxisDariusz_Gauss->SetStats(false);
+  hAxisDariusz_Gauss->SetTitle("");
+  hAxisDariusz_Gauss->GetXaxis()->SetTitle("#LT#it{m}_{T}#GT (GeV/#it{c}^{2})");
+  hAxisDariusz_Gauss->GetXaxis()->SetTitleSize(0.05);
+  hAxisDariusz_Gauss->GetXaxis()->SetLabelSize(0.05);
+  hAxisDariusz_Gauss->GetXaxis()->SetTitleOffset(1.3);
+  hAxisDariusz_Gauss->GetXaxis()->SetLabelOffset(0.02);
+  hAxisDariusz_Gauss->GetYaxis()->SetTitle("#it{r}_{0} (fm)");
+  hAxisDariusz_Gauss->GetYaxis()->SetTitleSize(0.05);
+  hAxisDariusz_Gauss->GetYaxis()->SetLabelSize(0.05);
+  hAxisDariusz_Gauss->GetYaxis()->SetTitleOffset(1);
+  hAxisDariusz_Gauss->GetYaxis()->SetRangeUser(0.67+0.2, 1.43+0.2);
+
   TH1F *hAxisDariuszBand = new TH1F("hAxisDariuszBand", "hAxisDariuszBand", 128, 0.95, 2.7);
   hAxisDariuszBand->SetStats(false);
   hAxisDariuszBand->SetTitle("");
@@ -7219,88 +7234,90 @@ if(uAna!=ana_true && BaselineVar==10) continue;//this is our default, with pol0/
   can_ghetto_oton_pp_ONLY->SaveAs(InputFolder+"Results_ghetto_oton_pp_ONLY.pdf");
 
 
+  for(unsigned uSrc=0; uSrc<2; uSrc++){
+    g_pp[ana_original][uSrc][syst].SetFillColorAlpha(kBlue + 2, 0.7);//kGray+2
+    g_pp[ana_original][uSrc][syst].SetFillStyle(3125);
+    g_pp[ana_original][uSrc][syst].SetMarkerColor(kBlue + 2);
+    g_pp[ana_original][uSrc][syst].SetMarkerStyle(34);
+    g_pp[ana_original][uSrc][syst].SetMarkerSize(3.0);
+    g_pp[ana_original][uSrc][syst].SetLineColor(kBlue + 2);
+    g_pp[ana_original][uSrc][syst].SetLineWidth(2);
 
-  g_pp[ana_original][src_rsm][syst].SetFillColorAlpha(kBlue + 2, 0.7);//kGray+2
-  g_pp[ana_original][src_rsm][syst].SetFillStyle(3125);
-  g_pp[ana_original][src_rsm][syst].SetMarkerColor(kBlue + 2);
-  g_pp[ana_original][src_rsm][syst].SetMarkerStyle(34);
-  g_pp[ana_original][src_rsm][syst].SetMarkerSize(3.0);
-  g_pp[ana_original][src_rsm][syst].SetLineColor(kBlue + 2);
-  g_pp[ana_original][src_rsm][syst].SetLineWidth(2);
+    g_pp[ana_original][uSrc][stat].SetMarkerColor(kBlue + 2);
+    g_pp[ana_original][uSrc][stat].SetLineColor(kBlue + 2);
+    g_pp[ana_original][uSrc][stat].SetFillColorAlpha(kBlue + 2, 0.7);
+    g_pp[ana_original][uSrc][stat].SetLineWidth(2);
+    g_pp[ana_original][uSrc][stat].SetFillStyle(3125);
+    g_pp[ana_original][uSrc][stat].SetMarkerStyle(34);
+    g_pp[ana_original][uSrc][stat].SetMarkerSize(3.0);
 
-  g_pp[ana_original][src_rsm][stat].SetMarkerColor(kBlue + 2);
-  g_pp[ana_original][src_rsm][stat].SetLineColor(kBlue + 2);
-  g_pp[ana_original][src_rsm][stat].SetFillColorAlpha(kBlue + 2, 0.7);
-  g_pp[ana_original][src_rsm][stat].SetLineWidth(2);
-  g_pp[ana_original][src_rsm][stat].SetFillStyle(3125);
-  g_pp[ana_original][src_rsm][stat].SetMarkerStyle(34);
-  g_pp[ana_original][src_rsm][stat].SetMarkerSize(3.0);
-
-  g_pp[ana_remake][src_rsm][syst].SetFillColorAlpha(kBlue + 2, 0.7);
-  g_pp[ana_remake][src_rsm][syst].SetFillStyle(3125);
-  g_pp[ana_remake][src_rsm][syst].SetMarkerColor(kBlue + 2);
-  g_pp[ana_remake][src_rsm][syst].SetMarkerStyle(34);
-  g_pp[ana_remake][src_rsm][syst].SetMarkerSize(3.0);
-  g_pp[ana_remake][src_rsm][syst].SetLineColor(kBlue + 2);
-  g_pp[ana_remake][src_rsm][syst].SetLineWidth(2);
-
-
-  g_pp[ana_remake][src_rsm][stat].SetMarkerColor(kBlue + 2);
-  g_pp[ana_remake][src_rsm][stat].SetLineColor(kBlue + 2);
-  g_pp[ana_remake][src_rsm][stat].SetFillColorAlpha(kBlue + 2, 0.7);
-  g_pp[ana_remake][src_rsm][stat].SetLineWidth(2);
-  g_pp[ana_remake][src_rsm][stat].SetFillStyle(3125);
-  g_pp[ana_remake][src_rsm][stat].SetMarkerStyle(34);
-  g_pp[ana_remake][src_rsm][stat].SetMarkerSize(3.0);
-  
-  g_pp[ana_original_pL_LO][src_rsm][syst].SetFillColorAlpha(kGreen + 3, 0.7);
-  g_pp[ana_original_pL_LO][src_rsm][syst].SetFillStyle(3125);
-  g_pp[ana_original_pL_LO][src_rsm][syst].SetMarkerColor(kGreen + 3);
-  g_pp[ana_original_pL_LO][src_rsm][syst].SetMarkerStyle(49);
-  g_pp[ana_original_pL_LO][src_rsm][syst].SetMarkerSize(3.0);
-  g_pp[ana_original_pL_LO][src_rsm][syst].SetLineColor(kGreen + 3);
-  g_pp[ana_original_pL_LO][src_rsm][syst].SetLineWidth(2);
-
-  g_pp[ana_original_pL_LO][src_rsm][stat].SetMarkerColor(kGreen + 3);
-  g_pp[ana_original_pL_LO][src_rsm][stat].SetLineColor(kGreen + 3);
-  g_pp[ana_original_pL_LO][src_rsm][stat].SetFillColorAlpha(kGreen + 3, 0.7);
-  g_pp[ana_original_pL_LO][src_rsm][stat].SetLineWidth(2);
-  g_pp[ana_original_pL_LO][src_rsm][stat].SetFillStyle(3125);
-  g_pp[ana_original_pL_LO][src_rsm][stat].SetMarkerStyle(49);
-  g_pp[ana_original_pL_LO][src_rsm][stat].SetMarkerSize(3.0);
+    g_pp[ana_remake][uSrc][syst].SetFillColorAlpha(kBlue + 2, 0.7);
+    g_pp[ana_remake][uSrc][syst].SetFillStyle(3125);
+    g_pp[ana_remake][uSrc][syst].SetMarkerColor(kBlue + 2);
+    g_pp[ana_remake][uSrc][syst].SetMarkerStyle(34);
+    g_pp[ana_remake][uSrc][syst].SetMarkerSize(3.0);
+    g_pp[ana_remake][uSrc][syst].SetLineColor(kBlue + 2);
+    g_pp[ana_remake][uSrc][syst].SetLineWidth(2);
 
 
-  g_pp[ana_original_pL_NLO][src_rsm][syst].SetFillColorAlpha(kRed + 1, 0.7);
-  g_pp[ana_original_pL_NLO][src_rsm][syst].SetFillStyle(3125);
-  g_pp[ana_original_pL_NLO][src_rsm][syst].SetMarkerColor(kRed + 1);
-  g_pp[ana_original_pL_NLO][src_rsm][syst].SetMarkerStyle(41);
-  g_pp[ana_original_pL_NLO][src_rsm][syst].SetMarkerSize(3.0);
-  g_pp[ana_original_pL_NLO][src_rsm][syst].SetLineColor(kRed + 1);
-  g_pp[ana_original_pL_NLO][src_rsm][syst].SetLineWidth(2);
+    g_pp[ana_remake][uSrc][stat].SetMarkerColor(kBlue + 2);
+    g_pp[ana_remake][uSrc][stat].SetLineColor(kBlue + 2);
+    g_pp[ana_remake][uSrc][stat].SetFillColorAlpha(kBlue + 2, 0.7);
+    g_pp[ana_remake][uSrc][stat].SetLineWidth(2);
+    g_pp[ana_remake][uSrc][stat].SetFillStyle(3125);
+    g_pp[ana_remake][uSrc][stat].SetMarkerStyle(34);
+    g_pp[ana_remake][uSrc][stat].SetMarkerSize(3.0);
+    
+    g_pp[ana_original_pL_LO][uSrc][syst].SetFillColorAlpha(kGreen + 3, 0.7);
+    g_pp[ana_original_pL_LO][uSrc][syst].SetFillStyle(3125);
+    g_pp[ana_original_pL_LO][uSrc][syst].SetMarkerColor(kGreen + 3);
+    g_pp[ana_original_pL_LO][uSrc][syst].SetMarkerStyle(49);
+    g_pp[ana_original_pL_LO][uSrc][syst].SetMarkerSize(3.0);
+    g_pp[ana_original_pL_LO][uSrc][syst].SetLineColor(kGreen + 3);
+    g_pp[ana_original_pL_LO][uSrc][syst].SetLineWidth(2);
 
-  g_pp[ana_original_pL_NLO][src_rsm][stat].SetMarkerColor(kRed + 1);
-  g_pp[ana_original_pL_NLO][src_rsm][stat].SetLineColor(kRed + 1);
-  g_pp[ana_original_pL_NLO][src_rsm][stat].SetFillColorAlpha(kRed + 1, 0.7);
-  g_pp[ana_original_pL_NLO][src_rsm][stat].SetLineWidth(2);
-  g_pp[ana_original_pL_NLO][src_rsm][stat].SetFillStyle(3125);
-  g_pp[ana_original_pL_NLO][src_rsm][stat].SetMarkerStyle(41);
-  g_pp[ana_original_pL_NLO][src_rsm][stat].SetMarkerSize(3.0);
+    g_pp[ana_original_pL_LO][uSrc][stat].SetMarkerColor(kGreen + 3);
+    g_pp[ana_original_pL_LO][uSrc][stat].SetLineColor(kGreen + 3);
+    g_pp[ana_original_pL_LO][uSrc][stat].SetFillColorAlpha(kGreen + 3, 0.7);
+    g_pp[ana_original_pL_LO][uSrc][stat].SetLineWidth(2);
+    g_pp[ana_original_pL_LO][uSrc][stat].SetFillStyle(3125);
+    g_pp[ana_original_pL_LO][uSrc][stat].SetMarkerStyle(49);
+    g_pp[ana_original_pL_LO][uSrc][stat].SetMarkerSize(3.0);
 
-  g_pp[ana_original_pL_NLO_modified][src_rsm][syst].SetFillColorAlpha(kRed-6, 0.7);
-  g_pp[ana_original_pL_NLO_modified][src_rsm][syst].SetFillStyle(3125);
-  g_pp[ana_original_pL_NLO_modified][src_rsm][syst].SetMarkerColor(kRed-6);
-  g_pp[ana_original_pL_NLO_modified][src_rsm][syst].SetMarkerStyle(41);
-  g_pp[ana_original_pL_NLO_modified][src_rsm][syst].SetMarkerSize(3.0);
-  g_pp[ana_original_pL_NLO_modified][src_rsm][syst].SetLineColor(kRed-6);
-  g_pp[ana_original_pL_NLO_modified][src_rsm][syst].SetLineWidth(2);
 
-  g_pp[ana_original_pL_NLO_modified][src_rsm][stat].SetMarkerColor(kRed-6);
-  g_pp[ana_original_pL_NLO_modified][src_rsm][stat].SetLineColor(kRed-6);
-  g_pp[ana_original_pL_NLO_modified][src_rsm][stat].SetFillColorAlpha(kRed-6, 0.7);
-  g_pp[ana_original_pL_NLO_modified][src_rsm][stat].SetLineWidth(2);
-  g_pp[ana_original_pL_NLO_modified][src_rsm][stat].SetFillStyle(3125);
-  g_pp[ana_original_pL_NLO_modified][src_rsm][stat].SetMarkerStyle(41);
-  g_pp[ana_original_pL_NLO_modified][src_rsm][stat].SetMarkerSize(3.0);
+    g_pp[ana_original_pL_NLO][uSrc][syst].SetFillColorAlpha(kRed + 1, 0.7);
+    g_pp[ana_original_pL_NLO][uSrc][syst].SetFillStyle(3125);
+    g_pp[ana_original_pL_NLO][uSrc][syst].SetMarkerColor(kRed + 1);
+    g_pp[ana_original_pL_NLO][uSrc][syst].SetMarkerStyle(41);
+    g_pp[ana_original_pL_NLO][uSrc][syst].SetMarkerSize(3.0);
+    g_pp[ana_original_pL_NLO][uSrc][syst].SetLineColor(kRed + 1);
+    g_pp[ana_original_pL_NLO][uSrc][syst].SetLineWidth(2);
+
+    g_pp[ana_original_pL_NLO][uSrc][stat].SetMarkerColor(kRed + 1);
+    g_pp[ana_original_pL_NLO][uSrc][stat].SetLineColor(kRed + 1);
+    g_pp[ana_original_pL_NLO][uSrc][stat].SetFillColorAlpha(kRed + 1, 0.7);
+    g_pp[ana_original_pL_NLO][uSrc][stat].SetLineWidth(2);
+    g_pp[ana_original_pL_NLO][uSrc][stat].SetFillStyle(3125);
+    g_pp[ana_original_pL_NLO][uSrc][stat].SetMarkerStyle(41);
+    g_pp[ana_original_pL_NLO][uSrc][stat].SetMarkerSize(3.0);
+
+    g_pp[ana_original_pL_NLO_modified][uSrc][syst].SetFillColorAlpha(kRed-6, 0.7);
+    g_pp[ana_original_pL_NLO_modified][uSrc][syst].SetFillStyle(3125);
+    g_pp[ana_original_pL_NLO_modified][uSrc][syst].SetMarkerColor(kRed-6);
+    g_pp[ana_original_pL_NLO_modified][uSrc][syst].SetMarkerStyle(41);
+    g_pp[ana_original_pL_NLO_modified][uSrc][syst].SetMarkerSize(3.0);
+    g_pp[ana_original_pL_NLO_modified][uSrc][syst].SetLineColor(kRed-6);
+    g_pp[ana_original_pL_NLO_modified][uSrc][syst].SetLineWidth(2);
+
+    g_pp[ana_original_pL_NLO_modified][uSrc][stat].SetMarkerColor(kRed-6);
+    g_pp[ana_original_pL_NLO_modified][uSrc][stat].SetLineColor(kRed-6);
+    g_pp[ana_original_pL_NLO_modified][uSrc][stat].SetFillColorAlpha(kRed-6, 0.7);
+    g_pp[ana_original_pL_NLO_modified][uSrc][stat].SetLineWidth(2);
+    g_pp[ana_original_pL_NLO_modified][uSrc][stat].SetFillStyle(3125);
+    g_pp[ana_original_pL_NLO_modified][uSrc][stat].SetMarkerStyle(41);
+    g_pp[ana_original_pL_NLO_modified][uSrc][stat].SetMarkerSize(3.0);
+
+  }
 
 
 
@@ -7310,13 +7327,47 @@ if(uAna!=ana_true && BaselineVar==10) continue;//this is our default, with pol0/
   lLegend_ghetto_oton_dariusz_pp_pL->SetTextSize(0.04);
   lLegend_ghetto_oton_dariusz_pp_pL->AddEntry(&g_pp[ana_remake][src_rsm][syst], "p#minusp (AV18)", "pef");
   //lLegend_ghetto_oton_dariusz_pp_pL->AddEntry(gOtonScript_remake, "#it{r}_{core} = #it{a} #upoint #LT#it{m}_{T}#GT^{#it{b}} + #it{c}","fe");
-  lLegend_ghetto_oton_dariusz_pp_pL->AddEntry(&g_pp[ana_original_pL_NLO][src_rsm][syst], "p#minus#kern[-0.1]{#Lambda} (NLO13)", "pef");
+  //lLegend_ghetto_oton_dariusz_pp_pL->AddEntry(&g_pp[ana_original_pL_NLO][src_rsm][syst], "p#minus#kern[-0.1]{#Lambda} (NLO13)", "pef");
+  lLegend_ghetto_oton_dariusz_pp_pL->AddEntry(&g_pp[ana_original_pL_NLO][src_rsm][syst], "p#minus#kern[-0.1]{#Lambda} (NLO)", "pef");//for arxiv, for erratum use above
   lLegend_ghetto_oton_dariusz_pp_pL->AddEntry(&g_pp[ana_original_pL_LO][src_rsm][syst], "p#minus#kern[-0.1]{#Lambda} (LO)", "pef");
   lLegend_ghetto_oton_dariusz_pp_pL->SetBorderSize(0);
   lLegend_ghetto_oton_dariusz_pp_pL->Draw("same");
 
 
-//remake of the old plot
+//remake of the old plot, gauss
+  TCanvas* can_ghetto_oton_daruisz_pp_pL_GAUSS = new TCanvas("can_ghetto_oton_daruisz_pp_pL_GAUSS", "can_ghetto_oton_daruisz_pp_pL_GAUSS", 1);
+  can_ghetto_oton_daruisz_pp_pL_GAUSS->cd(0); can_ghetto_oton_daruisz_pp_pL_GAUSS->SetCanvasSize(1440, 1080); 
+  can_ghetto_oton_daruisz_pp_pL_GAUSS->SetMargin(0.12,0.025,0.15,0.025);//lrbt
+  hAxisDariusz_Gauss->Draw();
+  //gOtonScript_original_pL->Draw("3, same");
+  //gOtonScript_remake->Draw("3, same");
+  g_pp[ana_original_pL_NLO][src_gauss][syst].Draw("2PSAME");
+  g_pp[ana_original_pL_NLO][src_gauss][stat].Draw("pez same");
+  g_pp[ana_original_pL_LO][src_gauss][syst].Draw("2PSAME");
+  g_pp[ana_original_pL_LO][src_gauss][stat].Draw("pez same");
+  //g_pp[ana_original_pL_LO][src_gauss][tot].Draw("P, same");
+
+  g_pp[ana_original][src_gauss][syst].Draw("2PSAME");
+  g_pp[ana_original][src_gauss][stat].Draw("pez same");
+  //gFit->Draw("P, same");
+  lLegend_ghetto_oton_dariusz_pp_pL->Draw("same");
+  TLatex BeamText_oton_dariusz_pp_pL_GAUSS;
+  BeamText_oton_dariusz_pp_pL_GAUSS.SetTextFont(42);
+  BeamText_oton_dariusz_pp_pL_GAUSS.SetTextSize(gStyle->GetTextSize()*0.9);
+  BeamText_oton_dariusz_pp_pL_GAUSS.SetNDC(kTRUE);
+  BeamText_oton_dariusz_pp_pL_GAUSS.DrawLatex(0.5, 0.9,
+                      Form("ALICE %s #sqrt{#it{s}} = %i TeV", "pp", (int) 13));
+  BeamText_oton_dariusz_pp_pL_GAUSS.DrawLatex(0.5, 0.83, "High-mult. (0#minus0.17% INEL > 0)");
+  BeamText_oton_dariusz_pp_pL_GAUSS.DrawLatex(0.5, 0.76, "Gaussian Source");
+  TLatex BeamText_oton_dariusz_pp_pL_GAUSS_OBS;
+  BeamText_oton_dariusz_pp_pL_GAUSS_OBS.SetTextFont(62);
+  BeamText_oton_dariusz_pp_pL_GAUSS_OBS.SetTextSize(gStyle->GetTextSize()*0.9*1.1);
+  BeamText_oton_dariusz_pp_pL_GAUSS_OBS.SetNDC(kTRUE);
+  //BeamText_oton_dariusz_pp_pL_GAUSS_OBS.DrawLatex(0.60, 0.65, "Original result");
+  can_ghetto_oton_daruisz_pp_pL_GAUSS->SaveAs(InputFolder+"Results_ghetto_oton_daruisz_pp_pL_GAUSS.pdf");
+
+
+//remake of the old plot, core
   TCanvas* can_ghetto_oton_daruisz_pp_pL_OLD = new TCanvas("can_ghetto_oton_daruisz_pp_pL_OLD", "can_ghetto_oton_daruisz_pp_pL_OLD", 1);
   can_ghetto_oton_daruisz_pp_pL_OLD->cd(0); can_ghetto_oton_daruisz_pp_pL_OLD->SetCanvasSize(1440, 1080); 
   can_ghetto_oton_daruisz_pp_pL_OLD->SetMargin(0.12,0.025,0.15,0.025);//lrbt
@@ -7345,7 +7396,7 @@ if(uAna!=ana_true && BaselineVar==10) continue;//this is our default, with pol0/
   BeamText_oton_dariusz_pp_pL_OLD_OBS.SetTextFont(62);
   BeamText_oton_dariusz_pp_pL_OLD_OBS.SetTextSize(gStyle->GetTextSize()*0.9*1.1);
   BeamText_oton_dariusz_pp_pL_OLD_OBS.SetNDC(kTRUE);
-  BeamText_oton_dariusz_pp_pL_OLD_OBS.DrawLatex(0.60, 0.65, "Original result");
+  //BeamText_oton_dariusz_pp_pL_OLD_OBS.DrawLatex(0.60, 0.65, "Original result");
   can_ghetto_oton_daruisz_pp_pL_OLD->SaveAs(InputFolder+"Results_ghetto_oton_daruisz_pp_pL_OLD.pdf");
 
 //the updated plot, no band
@@ -7405,7 +7456,7 @@ if(uAna!=ana_true && BaselineVar==10) continue;//this is our default, with pol0/
   BeamText_oton_dariusz_pp_pL_OLD_UPD.SetTextFont(62);
   BeamText_oton_dariusz_pp_pL_OLD_UPD.SetTextSize(gStyle->GetTextSize()*0.9*1.1);
   BeamText_oton_dariusz_pp_pL_OLD_UPD.SetNDC(kTRUE);
-  BeamText_oton_dariusz_pp_pL_OLD_UPD.DrawLatex(0.60, 0.65, "Updated result");
+  //BeamText_oton_dariusz_pp_pL_OLD_UPD.DrawLatex(0.60, 0.65, "Updated result");
   can_ghetto_oton_daruisz_pp_pL->SaveAs(InputFolder+"Results_ghetto_oton_daruisz_pp_pL.pdf");
 
 //dariusz, but only new result

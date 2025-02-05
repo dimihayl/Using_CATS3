@@ -15,6 +15,7 @@
 #include "DLM_MathFunctions.h"
 #include "DLM_Ck.h"
 #include "DLM_CkDecomposition.h"
+#include "DLM_HistoAnalysis.h"
 
 #include "TGraph.h"
 #include "TGraphErrors.h"
@@ -1714,10 +1715,16 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
     eff_source_radii.push_back(reff_mTint_val-reff_mTint_err);
     eff_source_radii.push_back(reff_mTint_val+reff_mTint_err);
   }
-  
+
+
   TH2F* hResolution_pd = NULL;
   TH2F* hTemp = NULL;
   //printf("...\n");
+
+  
+
+  //PF
+/*
   TFile* fReso = new TFile(TString::Format("%s/pi_d/Bhawani/PdMomResoMEinjected.root",GetCernBoxDimi()), "read");
   //printf("%p\n",fReso);
   hTemp = (TH2F*)fReso->Get("MomentumResolutionME_Particle0_Particle2");
@@ -1726,6 +1733,59 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
   hResolution_pd = (TH2F*)hTemp->Clone("hResolution_pd");
   hResolution_pd->GetXaxis()->SetLimits(hTemp->GetXaxis()->GetXmin()*1000.,hTemp->GetXaxis()->GetXmax()*1000.);
   hResolution_pd->GetYaxis()->SetLimits(hTemp->GetYaxis()->GetXmin()*1000.,hTemp->GetYaxis()->GetXmax()*1000.);
+*/
+
+   
+  //December 2024
+  TFile* fReso = new TFile(TString::Format("%s/pi_d/Bhawani/AnalysisResults3996.root",GetCernBoxDimi()), "read");
+//fReso->ls();
+  TDirectoryFile* fDir_reso = NULL;
+  TList* fList1_reso = NULL;
+  TList* fList2_reso = NULL;
+  TList* fList3_reso = NULL;
+
+  fDir_reso = (TDirectoryFile*)(fReso->FindObjectAny("MBResultsQA0"));
+//fDir_reso->ls();
+  fDir_reso->GetObject("MBResultsQA0", fList1_reso);
+//fList1_reso->Print();
+  fList2_reso = (TList*)fList1_reso->FindObject("PairQA");
+//fList2_reso->Print();
+  fList3_reso = (TList*)fList2_reso->FindObject("QA_Particle0_Particle2");
+//fList3_reso->Print();
+//printf("-----\n");
+  hTemp = (TH2F*)fList3_reso->FindObject("MomentumResolutionME_Particle0_Particle2");
+  //TFile fTMP("wtf.root","recreate");
+  gROOT->cd();
+  hResolution_pd = (TH2F*)hTemp->Clone("hResolution_pd");
+//printf("1-----\n");
+  fList3_reso = (TList*)fList2_reso->FindObject("QA_Particle1_Particle3");
+  hTemp = (TH2F*)fList3_reso->FindObject("MomentumResolutionME_Particle1_Particle3");
+  gROOT->cd();
+  hResolution_pd->Add(hTemp);
+//printf("2-----\n");
+  fList3_reso = (TList*)fList2_reso->FindObject("QA_Particle0_Particle3");
+  hTemp = (TH2F*)fList3_reso->FindObject("MomentumResolutionME_Particle0_Particle3");
+  gROOT->cd();
+  hResolution_pd->Add(hTemp);
+//printf("3-----\n");
+  fList3_reso = (TList*)fList2_reso->FindObject("QA_Particle1_Particle2");
+  hTemp = (TH2F*)fList3_reso->FindObject("MomentumResolutionME_Particle1_Particle2");
+  gROOT->cd();
+  hResolution_pd->Add(hTemp);
+//printf("4-----\n");
+  hResolution_pd->GetXaxis()->SetLimits(hTemp->GetXaxis()->GetXmin()*1000.,hTemp->GetXaxis()->GetXmax()*1000.);
+  hResolution_pd->GetYaxis()->SetLimits(hTemp->GetYaxis()->GetXmin()*1000.,hTemp->GetYaxis()->GetXmax()*1000.);
+//printf("5-----\n");
+  //fTMP.cd();
+  //hResolution_pd->Write();
+  gROOT->cd();
+  
+
+
+
+
+
+
   delete fReso;
 
   TRandom3 rangen(SEED);
@@ -1986,7 +2046,7 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
   double Progress = 0;
   bool data_saved = false;
   for(int uIter=0; uIter<NumIter; uIter++){
-    //printf("uIter = %u\n",uIter);
+    printf("uIter = %u\n",uIter);
     TFile* fInputData = NULL;
     TH1F* hData = NULL;
     TDirectoryFile* fDir = NULL;
@@ -2087,6 +2147,7 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
         MeListName1 = "PairDist";
         MeListName2 = "PairReweighted";
         MeHistName = "hTotalMEpairs _Rebinned_5_Reweighted";
+        SeHistName = "hTotalMEpairs _Rebinned_5_Reweighted";//?
         fInputData = new TFile(InputDataFileName, "read");
         if(fInputData) hData = (TH1F*)fInputData->Get(DefaultHistoName);
         //printf("fInputData = %p\n",fInputData);
@@ -2165,6 +2226,9 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
         if(hSE){
           hSE->GetXaxis()->SetLimits(hSE->GetXaxis()->GetXmin()*1000.,hSE->GetXaxis()->GetXmax()*1000.);
         }
+//printf("hi there %p %p %s\n",hSE,hME,SeHistName.Data());
+//fList2->Print();
+
       } 
       //mt diff pim_d used for approvals at PF
       else if(mt_bin>=100 && mt_bin<200 && true){
@@ -2617,8 +2681,11 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
     }
     while(iRepeat<RepeatFit);
 
+    //printf("OUT OF WHILE\n");
+    //printf("%p %p\n", hSE, hME);
+
     double IntME = hME->Integral();
-    double IntSE = hSE->Integral();
+    double IntSE = hSE?hSE->Integral():0;
     NUM_DELTAS = 0;
     for(unsigned uBin=0; uBin<hME->GetNbinsX(); uBin++){
       //checked, this is correct
@@ -2628,6 +2695,9 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
     NUM_DELTAS *= IntSE;
     NUM_DELTAS /= IntME;
 
+    //printf("NUM_DELTAS = %f\n",NUM_DELTAS);
+
+    fOutputFile.cd();
     pi_d_Tree->Fill();
 
     //gData.Write();
@@ -2638,6 +2708,7 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
 
     //Progress = double(uIter)/double(NumIter+1);
 
+    //printf("end of loop\n");
     delete fData;
     delete fDataDummy;
     delete hDataToFit;
@@ -2668,7 +2739,6 @@ void pim_d_Coulomb_vs_RealSI(){
   KittyC.SetQ1Q2(-1);
   KittyC.KillTheCat();
 
-
   TGraph g_pim_d_SIplusC;
   g_pim_d_SIplusC.SetName("g_pim_d_SIplusC");
 
@@ -2679,12 +2749,165 @@ void pim_d_Coulomb_vs_RealSI(){
     g_pim_d_SIplusC.SetPoint(uMom, Kitty.GetMomentum(uMom), Kitty.GetCorrFun(uMom));
     g_pim_d_C.SetPoint(uMom, KittyC.GetMomentum(uMom), KittyC.GetCorrFun(uMom));
   }
+
   TFile fOutputFile(TString::Format("%s/pi_d/RealPotential/pim_d.root", GetCernBoxDimi()), "recreate");
   g_pim_d_SIplusC.Write();
   g_pim_d_C.Write();
 }
 
+
+//something bhawani gave you to run
+void PiDCF()
+{
+    TString FileName = "PiDCF";
+    TString FileNameOutput = TString::Format("%s/Deuteron/%s.root",GetFemtoOutputFolder(),FileName.Data());
+    TFile *OutputFile = new TFile(FileNameOutput, "recreate");
+    printf("File Created--- For pp AV18\n");
+    const double SourceSize = 1.51;
+    const double kMin = 0;
+    const double kMax = 300;
+    const unsigned NumMomBins = 60;
+    const double Md = 1875.61294257;
+    const double Mpi = 139.57039;
+    const double Mred = Md * Mpi / (Md + Mpi);
+    CATS Kitty_piDP;
+    CATS Kitty_piDM;
+    Kitty_piDP.SetMomBins(NumMomBins, kMin, kMax);
+    Kitty_piDP.SetExcludeFailedBins(false);
+    Kitty_piDP.SetQ1Q2(1);
+    Kitty_piDP.SetPdgId(211, 1000010020);
+    Kitty_piDP.SetRedMass(Mred);
+    Kitty_piDP.SetNumChannels(1);
+    Kitty_piDP.SetNumPW(0, 1);
+    Kitty_piDP.SetSpin(0, 1);
+    Kitty_piDP.SetChannelWeight(0, 1.0);
+    CATSparameters cPars(CATSparameters::tSource, 1, true);
+    cPars.SetParameter(0, SourceSize);
+    Kitty_piDP.SetAnaSource(GaussSource, cPars);
+    Kitty_piDP.SetUseAnalyticSource(true);
+    Kitty_piDP.SetAutoNormSource(false);
+    Kitty_piDP.KillTheCat();
+    DLM_Ck Ck_piDP(Kitty_piDP.GetNumSourcePars(), 0, Kitty_piDP);
+    Ck_piDP.Update();
+    Kitty_piDM.SetMomBins(NumMomBins, kMin, kMax);
+    Kitty_piDM.SetExcludeFailedBins(false);
+    Kitty_piDM.SetQ1Q2(-1);
+    Kitty_piDM.SetPdgId(211, 1000010020);
+    Kitty_piDM.SetRedMass(Mred);
+    Kitty_piDM.SetNumChannels(1);
+    Kitty_piDM.SetNumPW(0, 1);
+    Kitty_piDM.SetSpin(0, 1);
+    Kitty_piDM.SetChannelWeight(0, 1.0);
+    CATSparameters cPars2(CATSparameters::tSource, 1, true);
+    cPars2.SetParameter(0, SourceSize);
+    Kitty_piDM.SetAnaSource(GaussSource, cPars2);
+    Kitty_piDM.SetUseAnalyticSource(true);
+    Kitty_piDM.SetAutoNormSource(false);
+    Kitty_piDM.KillTheCat();
+    DLM_Ck Ck_piDM(Kitty_piDM.GetNumSourcePars(), 0, Kitty_piDM);
+    Ck_piDM.Update();
+    printf("File for CF  Created\n");
+    TGraph gKitty_piDP;
+    TGraph gKitty_piDM;
+    gKitty_piDP.SetName(TString::Format("gKittypi-dPositive"));
+    gKitty_piDM.SetName(TString::Format("gKittypi-dNeg"));
+    for (unsigned uBin = 0; uBin < NumMomBins; uBin++)
+    {
+        double kst = Kitty_piDP.GetMomentum(uBin);
+        double CkP = Ck_piDP.Eval(kst);
+        double CkM = Ck_piDM.Eval(kst);
+        printf("C(%.2f) = %.2f\n", kst, CkP);
+        gKitty_piDP.SetPoint(uBin, kst, CkP);
+        gKitty_piDM.SetPoint(uBin, kst, CkM);
+    }
+    gKitty_piDP.Write();
+    gKitty_piDM.Write();
+    delete OutputFile;
+}
+
+
+void Error_propagation_final_result(){
+  double f_Delta_exp = 0.54;
+  double err_f_Delta_exp = 0.06;
+
+  double P_Delta_shm = 0.4305;
+  double err_P_Delta_shm = 0.0065;
+
+  double P_Reso_shm = 0.645;
+  double err_P_Reso_shm = 0.003;
+
+  unsigned NumIter = 1000*1000;
+
+  double eff = 0.7;
+  double err_eff = 0.05;
+
+  double f_Delta;
+  double f_Reso;
+  TRandom3 rangen(23);
+  TH1F* h_f_Delta = new TH1F("h_f_Delta", "h_f_Delta", 4096, 0, 110);
+  TH1F* h_f_Reso = new TH1F("h_f_Reso", "h_f_Reso", 4096, 0, 110);
+  TH1F* h_f_Delta_shm = new TH1F("h_f_Delta_shm", "h_f_Delta_shm", 4096, 0, 110);
+  TH1F* h_f_Reso_shm = new TH1F("h_f_Reso_shm", "h_f_Reso_shm", 4096, 0, 110);
+  for(unsigned uIter=0; uIter<NumIter; uIter++){
+    double fdp = rangen.Gaus(f_Delta_exp, err_f_Delta_exp);
+    double eps = rangen.Gaus(eff, err_eff);
+    f_Delta = fdp/eps*(1.-fdp*0.25/eps);
+    
+    double pds = rangen.Gaus(P_Delta_shm, err_P_Delta_shm);
+    double prs = rangen.Gaus(P_Reso_shm, err_P_Reso_shm);
+    double f_Delta_shm = 2*pds*(1.-pds*0.5);
+    double f_Reso_shm = 2*prs*(1.-prs*0.5);
+
+
+    f_Reso = f_Delta*f_Reso_shm/f_Delta_shm;
+    h_f_Delta->Fill(f_Delta*100);
+    h_f_Reso->Fill(f_Reso*100);
+
+    h_f_Delta_shm->Fill(f_Delta_shm*100);
+    h_f_Reso_shm->Fill(f_Reso_shm*100);    
+  }
+
+  double f_Delta_Min;
+  double f_Delta_Max;
+  GetCentralInterval(*h_f_Delta, 0.68, f_Delta_Min, f_Delta_Max, true);
+  f_Delta = (f_Delta_Max+f_Delta_Min)*0.5;
+  double err_f_Delta = (f_Delta_Max-f_Delta_Min)*0.5;
+
+  double f_Reso_Min;
+  double f_Reso_Max;
+  GetCentralInterval(*h_f_Reso, 0.68, f_Reso_Min, f_Reso_Max, true); 
+  f_Reso = (f_Reso_Max+f_Reso_Min)*0.5;
+  double err_f_Reso = (f_Reso_Max-f_Reso_Min)*0.5;
+
+
+  double f_Delta_Min_shm;
+  double f_Delta_Max_shm;
+  GetCentralInterval(*h_f_Delta_shm, 0.68, f_Delta_Min_shm, f_Delta_Max_shm, true);
+  double f_Delta_shm = (f_Delta_Max_shm+f_Delta_Min_shm)*0.5;
+  double err_f_Delta_shm = (f_Delta_Max_shm-f_Delta_Min_shm)*0.5;
+
+  double f_Reso_Min_shm;
+  double f_Reso_Max_shm;
+  GetCentralInterval(*h_f_Reso_shm, 0.68, f_Reso_Min_shm, f_Reso_Max_shm, true); 
+  double f_Reso_shm = (f_Reso_Max_shm+f_Reso_Min_shm)*0.5;
+  double err_f_Reso_shm = (f_Reso_Max_shm-f_Reso_Min_shm)*0.5;
+
+
+  TFile fOutput(TString::Format("%s/Deuteron/Error_propagation_final_result.root",GetFemtoOutputFolder()), "recreate");
+  h_f_Delta->Write();
+  h_f_Reso->Write();
+  h_f_Delta_shm->Write();
+  h_f_Reso_shm->Write();
+
+  printf("f_Delta = %.1f +/- %.1f %% vs %.1f +/- %.1f %%\n", f_Delta, err_f_Delta, f_Delta_shm, err_f_Delta_shm);
+  printf("f_Reso = %.1f +/- %.1f %% vs %.1f +/- %.1f %%\n", f_Reso, err_f_Reso, f_Reso_shm, err_f_Reso_shm);
+
+}
+
 int DEUTERON_MAIN(int argc, char *argv[]){
+  //PiDCF();
+  Error_propagation_final_result();
+
   //p_pn_cumulant();
   //MyOwn_Kd_v2();
 
@@ -2701,7 +2924,7 @@ int DEUTERON_MAIN(int argc, char *argv[]){
   //TString Description, int mt_bin, int NumIter, bool Bootstrap=true, bool DataVar=true, bool FitVar=true, int SEED
   //BulgarianIndianGhetto("ghetto_output", atoi(argv[1]),atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),atoi(argv[5]),atoi(argv[6]));
   //USE THIS:
-  BulgarianIndianGhetto("pid_withMomReso_2024-12-06", atoi(argv[1]),atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),atoi(argv[5]),atoi(argv[6]));
+ // BulgarianIndianGhetto("pid_withMomResoME_2024-12-06", atoi(argv[1]),atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),atoi(argv[5]),atoi(argv[6]));
   //BulgarianIndianGhetto("TEST", atoi(argv[1]),atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),atoi(argv[5]),atoi(argv[6]));
   //BulgarianIndianGhetto(-1,10,true,true,true,23);
 

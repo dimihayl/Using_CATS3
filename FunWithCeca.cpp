@@ -11,6 +11,7 @@
 #include "DLM_Potentials.h"
 #include "DLM_Histo.h"
 #include "DLM_MathFunctions.h"
+#include "DLM_MultiFit.h"
 #include "CECA_Paper.h"
 
 #include <iostream>
@@ -19,6 +20,7 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <memory>
 
 #include "TREPNI.h"
 #include "CATS.h"
@@ -38,6 +40,9 @@
 #include "TNtuple.h"
 #include "TSystem.h"
 #include "TROOT.h"
+#include "TFitResultPtr.h"
+#include "TFitResult.h"
+
 
 #include <boost/algorithm/string.hpp>
 
@@ -10771,13 +10776,13 @@ void ThreeBody_test1(){
 //generate a source, and a create a dummy correlation with errors. Fit it using CECA source.
 //give it to Max, see what he gets with ML
 void MC_closure_for_Max(int SEED){
-  //std::vector<double> input_rd = {0.21, 0.23, 0.25, 0.27, 0.29};
-  //std::vector<double> input_ht = {3.9, 4.2, 4.5, 4.8, 5.1};
-  //std::vector<double> input_tau = {2.1, 2.3, 2.5, 2.7, 2.9};
+  std::vector<double> input_rd = {0.21, 0.23, 0.25, 0.27, 0.29};
+  std::vector<double> input_ht = {3.9, 4.2, 4.5, 4.8, 5.1};
+  std::vector<double> input_tau = {2.1, 2.3, 2.5, 2.7, 2.9};
 
-  std::vector<double> input_rd = {0.22, 0.25, 0.28};
-  std::vector<double> input_ht = {4.0, 4.5, 5.0};
-  std::vector<double> input_tau = {2.2, 2.5, 2.8};
+  //std::vector<double> input_rd = {0.22, 0.25, 0.28};
+  //std::vector<double> input_ht = {4.0, 4.5, 5.0};
+  //std::vector<double> input_tau = {2.2, 2.5, 2.8};
 
   std::vector<float> mT_values = {1100, 1200, 1300, 1400, 1600, 1900};
 
@@ -10808,7 +10813,7 @@ void MC_closure_for_Max(int SEED){
   double HadronSlope = 0;//0.2
   const bool PROTON_RESO = true;
   const bool EQUALIZE_TAU = true;
-  const double TIMEOUT = 30;
+  const double TIMEOUT = 15;
   const double GLOB_TIMEOUT = 24*60*60;
   const unsigned Multiplicity=2;
   const double femto_region = 100;
@@ -11048,9 +11053,240 @@ void MC_closure_for_Max(int SEED){
   delete dlm_pT_eta_p;
 }
 
+//we read a file of TH1s corresponding to different mT, rd, ht, tau
+//we save as an output the sources and corresponding correlation functions
+//for the central values of the parameters, we also generate a random Cks for each mt  
+//which we will end up using for the fitting procedure
 void MC_closure_FIT_for_Max(){
-  TString InputFileName = TString::Format("%s/FunWithCeca/MC_closure_for_Max/pp_S23_TY529K.root",GetFemtoOutputFolder());
+
+  //int default_values = {2,2,2};
+  std::vector<double> input_rd = {0.21,0.23, 0.25, 0.27, 0.29};
+  std::vector<double> input_ht = {3.9, 4.2, 4.5, 4.8, 5.1};
+  std::vector<double> input_tau = {2.1, 2.3, 2.5, 2.7, 2.9};
+  std::vector<float> input_mT = {1100, 1200, 1300, 1400, 1600, 1900};
+
+  //std::vector<double> input_rd = {0.21, 0.25};
+  //std::vector<double> input_ht = {3.9, 4.5};
+  //std::vector<double> input_tau = {2.1, 2.5};
+  //std::vector<float> input_mT = {1300, 1400};
+
+  TString BaseFileName = TString::Format("%s/FunWithCeca/MC_closure_for_Max/Official_v1/pp_S23_TY253K",GetFemtoOutputFolder());
+  TString InputFileName = TString::Format(BaseFileName+".root",GetFemtoOutputFolder());
+  TString OutputFileName = TString::Format(BaseFileName+"_kdp.root",GetFemtoOutputFolder());
+  TString OutputFileNameDlm = TString::Format(BaseFileName+"_kdp.dlm",GetFemtoOutputFolder());
   TFile InputFile(InputFileName,"read");
+  TFile OutputFile(OutputFileName,"recreate");
+
+  TRandom3 rangen(23);
+
+  unsigned NumBins_mT = input_mT.size();
+  unsigned NumBins_rd = input_rd.size();
+  unsigned NumBins_ht = input_ht.size();
+  unsigned NumBins_tau = input_tau.size();
+
+  // Create a unique pointer to the array
+  double* BinRange_mT = new double[NumBins_mT+1];
+  double* BinRange_rd = new double[NumBins_rd+1];
+  double* BinRange_ht = new double[NumBins_ht+1];
+  double* BinRange_tau = new double[NumBins_tau+1];
+
+  double* BinCenter_mT = new double[NumBins_mT];
+  double* BinCenter_rd = new double[NumBins_rd];
+  double* BinCenter_ht = new double[NumBins_ht];
+  double* BinCenter_tau = new double[NumBins_tau];
+
+  BinRange_mT[0] = input_mT.at(0) - 0.5*(input_mT.at(1)-input_mT.at(0));
+  BinCenter_mT[0] = input_mT.at(0);
+  for(unsigned umT=0; umT<NumBins_mT-1; umT++){
+    BinRange_mT[umT+1] = 0.5*(input_mT.at(umT+1)+input_mT.at(umT));
+    BinCenter_mT[umT+1] = input_mT.at(umT+1);
+  }
+  BinRange_mT[NumBins_mT] = input_mT.at(NumBins_mT-1) + 0.5*(input_mT.at(NumBins_mT-1)-input_mT.at(NumBins_mT-2));
+  
+
+  BinRange_rd[0] = input_rd.at(0) - 0.5*(input_rd.at(1)-input_rd.at(0));
+  BinCenter_rd[0] = input_rd.at(0);
+  for(unsigned urd=0; urd<NumBins_rd-1; urd++){
+    BinRange_rd[urd+1] = 0.5*(input_rd.at(urd+1)+input_rd.at(urd));
+    BinCenter_rd[urd+1] = input_rd.at(urd+1);
+  }
+  BinRange_rd[NumBins_rd] = input_rd.at(NumBins_rd-1) + 0.5*(input_rd.at(NumBins_rd-1)-input_rd.at(NumBins_rd-2));
+
+  BinRange_ht[0] = input_ht.at(0) - 0.5*(input_ht.at(1)-input_ht.at(0));
+  BinCenter_ht[0] = input_ht.at(0);
+  for(unsigned uht=0; uht<NumBins_ht-1; uht++){
+    BinRange_ht[uht+1] = 0.5*(input_ht.at(uht+1)+input_ht.at(uht));
+    BinCenter_ht[uht+1] = input_ht.at(uht+1);
+  }
+  BinRange_ht[NumBins_ht] = input_ht.at(NumBins_ht-1) + 0.5*(input_ht.at(NumBins_ht-1)-input_ht.at(NumBins_ht-2));
+
+  BinRange_tau[0] = input_tau.at(0) - 0.5*(input_tau.at(1)-input_tau.at(0));
+  BinCenter_tau[0] = input_tau.at(0);
+  for(unsigned utau=0; utau<NumBins_tau-1; utau++){
+    BinRange_tau[utau+1] = 0.5*(input_tau.at(utau+1)+input_tau.at(utau));
+    BinCenter_tau[utau+1] = input_tau.at(utau+1);
+  }
+  BinRange_tau[NumBins_tau] = input_tau.at(NumBins_tau-1) + 0.5*(input_tau.at(NumBins_tau-1)-input_tau.at(NumBins_tau-2));
+  for(unsigned utau=0; utau<NumBins_tau; utau++){
+    //printf("%.2f %.2f %.2f\n", BinRange_tau[utau], input_tau.at(utau), BinRange_tau[utau+1]);
+  }
+
+  //mT, rd, ht, tau
+  DLM_Histo<KdpPars> dlm_kdp_pars;
+  dlm_kdp_pars.SetUp(4);
+  dlm_kdp_pars.SetUp(0, NumBins_mT, BinRange_mT, BinCenter_mT);
+  dlm_kdp_pars.SetUp(1, NumBins_rd, BinRange_rd, BinCenter_rd);
+  dlm_kdp_pars.SetUp(2, NumBins_ht, BinRange_ht, BinCenter_ht);
+  dlm_kdp_pars.SetUp(3, NumBins_tau, BinRange_tau, BinCenter_tau);
+  dlm_kdp_pars.Initialize();
+
+  double kMin = 0;
+  double kMax = 160;
+  unsigned kSteps = 20;
+
+
+
+  TH1F* hErrors = new TH1F("hErrors", "hErrors", kSteps, kMin, kMax);
+  hErrors->SetBinContent(1, 1);
+  hErrors->SetBinError(1, 20./100.);
+  for(unsigned uMom=1; uMom<kSteps; uMom++){
+    hErrors->SetBinContent(uMom+1, 1);
+    double old_error = hErrors->GetBinError(uMom);
+    double new_error = old_error / pow(2,0.5);
+    if(new_error<0.08) new_error = old_error / pow(2,0.25);
+    if(new_error<0.02) new_error = old_error / pow(2,0.125);
+    hErrors->SetBinError(uMom+1, new_error);
+    //printf("%u %.3f\n", uMom, new_error*100);
+  }
+
+
+  TH1F** hCk_Synthetic = new TH1F*[NumBins_mT];
+
+
+  for(unsigned umT=0; umT<NumBins_mT; umT++){
+    double mT_val = input_mT.at(umT);
+    OutputFile.cd();
+    hCk_Synthetic[umT] = new TH1F(TString::Format("hCk_Synthetic_mT%.0f",mT_val), 
+    TString::Format("hCk_Synthetic_mT%.0f",mT_val), kSteps, kMin, kMax);
+    for(unsigned urd=0; urd<NumBins_rd; urd++){
+      double rd_val = input_rd.at(urd);
+      for(unsigned uht=0; uht<NumBins_ht; uht++){
+        double ht_val = input_ht[uht];
+        for(unsigned utau=0; utau<NumBins_tau; utau++){
+          double tau_val = input_tau[utau];
+          printf("%.0f %.2f %.2f %.2f\n", mT_val, rd_val, ht_val, tau_val);
+          TString histo_name = TString::Format("hSource_%.0f_%.2f_%.2f_%.2f", mT_val, rd_val, ht_val, tau_val);
+          InputFile.cd();
+          TH1F* hSource = (TH1F*)InputFile.Get(histo_name);
+          hSource->Scale(1./hSource->Integral(),"width");
+          OutputFile.cd();
+          //TH1F* hSourceCat = (TH1F*)hSource->Clone(TString::Format("hSourceCat_%.0f_%.2f_%.2f_%.2f", mT_val, rd_val, ht_val, tau_val));
+          DLM_Histo<float>* dlmSource = Convert_TH1F_DlmHisto(hSource);
+          double Chi2=0;
+          KdpPars my_kdp;
+          OutputFile.cd();
+          //mode 2 or 3?
+          TF1* fit_ptr = fit_source_kdp(hSource, my_kdp, Chi2, 3,96,2);
+          unsigned WhichBin[4] = {umT,urd,uht,utau};
+          dlm_kdp_pars.SetBinContent(WhichBin,my_kdp);
+          fit_ptr->SetName(TString::Format("fSource_%.0f_%.2f_%.2f_%.2f", mT_val, rd_val, ht_val, tau_val));
+          OutputFile.cd();
+          hSource->Write();
+          fit_ptr->Write();
+
+          TH1F* hCk = new TH1F(TString::Format("hCk_%.0f_%.2f_%.2f_%.2f", mT_val, rd_val, ht_val, tau_val),
+                  TString::Format("hCk_%.0f_%.2f_%.2f_%.2f", mT_val, rd_val, ht_val, tau_val),
+                  kSteps, kMin, kMax);
+
+          DLM_KdpSource my_kdp_source(my_kdp);
+          //
+          double dummy_r = 2;
+          double dummy_kxc[3] = {0,dummy_r,0};
+          DLM_HistoSource dlmSRC(dlmSource);
+
+
+  CATS Kitty_Dummy;
+  Kitty_Dummy.SetMomBins(kSteps,kMin,kMax);
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles/",GetCernBoxDimi()));
+  AnalysisObject.SetUpCats_pp(Kitty_Dummy,"AV18","",0,0);          
+          //printf("S(2) = %.3f vs %.3f vs %.3f\n",fit_ptr->Eval(dummy_r),my_kdp_source.Eval(&dummy_r), dlmSRC.Eval(dummy_kxc));
+          //Kitty_Dummy.SetAnaSource(CatsSourceForwarder, &dlmSRC, 0);
+          Kitty_Dummy.SetAnaSource(CatsSourceForwarder, &my_kdp_source, 0);
+          Kitty_Dummy.SetUseAnalyticSource(true);
+          Kitty_Dummy.SetAutoNormSource(false);
+          Kitty_Dummy.SetNormalizedSource(true);
+          Kitty_Dummy.SetNotifications(CATS::nError);
+          //I am not sure if the source is always properly listed as not update, just in case we always do it
+          //if(Kitty_Dummy.SourceStatus()==true){
+          //  printf("Update source\n");
+          //  Kitty_Dummy.KillTheCat(CATS::kSourceChanged);
+          //}
+          //else{
+            //printf("Normal update");
+            Kitty_Dummy.KillTheCat();
+
+            //for(unsigned uRad=0; uRad<hSourceCat->GetNbinsX(); uRad++){
+            //  double RAD = hSourceCat->GetBinCenter(uRad+1);
+            //  hSourceCat->SetBinContent(uRad+1, Kitty_Dummy.EvaluateTheSource(1,RAD,0));
+            //}
+
+          //}
+          for(unsigned uMom=0; uMom<kSteps; uMom++){
+            hCk->SetBinContent(uMom+1, Kitty_Dummy.GetCorrFun(uMom));
+          }
+
+          OutputFile.cd();
+          //hSourceCat->Write();
+          hCk->Write();
+          
+          
+          if(urd==NumBins_rd/2 && uht==NumBins_ht/2 && utau==NumBins_tau/2){
+            OutputFile.cd();
+            for(unsigned uMom=0; uMom<kSteps; uMom++){
+              double Ck_Mean = Kitty_Dummy.GetCorrFun(uMom);
+              double Ck_Err = Ck_Mean*hErrors->GetBinError(uMom+1);
+              if(uMom==0) Ck_Err = hErrors->GetBinError(uMom+1);
+              double Ck_Val = -1;
+              while(Ck_Val<0){
+                Ck_Val = rangen.Gaus(Ck_Mean, Ck_Err);
+              }
+            //  printf("%u %.3f %.3f\n", uMom, Ck_Mean, Ck_Err);
+              hCk_Synthetic[umT]->SetBinContent(uMom+1, Ck_Val);
+              hCk_Synthetic[umT]->SetBinError(uMom+1, Ck_Err);
+            }            
+          }
+
+          delete dlmSource;
+          delete fit_ptr;
+          delete hCk;
+        }
+      }
+    }
+    //hCk_Synthetic[umT]->Write();
+  }
+
+  OutputFile.cd();
+  for(unsigned umT=0; umT<NumBins_mT; umT++){
+    hCk_Synthetic[umT]->Write();
+    delete hCk_Synthetic[umT];
+  }
+  
+
+
+  dlm_kdp_pars.QuickWrite(OutputFileNameDlm.Data(), true);
+
+  delete [] BinRange_mT;
+  delete [] BinRange_rd;
+  delete [] BinRange_ht;
+  delete [] BinRange_tau;
+
+  delete [] BinCenter_mT;
+  delete [] BinCenter_rd;
+  delete [] BinCenter_ht;
+  delete [] BinCenter_tau; 
+
+  delete [] hCk_Synthetic;
 
     //CATS Kitty_Dummy;
     //Kitty_Dummy.SetMomBins(kSteps,kMin,kMax);
@@ -11063,10 +11299,124 @@ void MC_closure_FIT_for_Max(){
     //Kitty_Dummy.SetAutoNormSource(false);
     //Kitty_Dummy.SetNormalizedSource(true);
 
-
-
 }
 
+
+CATS* MC_closure_Cat=NULL;
+DLM_Histo<KdpPars>* MC_closure_kdp = NULL;
+
+
+//create custom source function HERE
+
+
+//pars[0,1,2] = rd,ht,tau
+double MC_closure_CK_for_Max_FF(double* x, double* pars){
+  double where_to_eval[3] = {pars[0],pars[1],pars[2]};
+  KdpPars current_kdp = MC_closure_kdp->Eval(where_to_eval);
+  MC_closure_Cat->SetAnaSource(CatsSourceForwarder, &current_kdp, 0);
+  MC_closure_Cat->KillTheCat();
+  return MC_closure_Cat->EvalCorrFun(*x);
+}
+
+//here we read the KDP file and finally make and fit the correlation
+//as a start, make QA to see if you can read everything alright from the kdp file
+void MC_closure_CK_for_Max(){
+/*
+  TString BaseFileName = TString::Format("%s/FunWithCeca/MC_closure_for_Max/Official_v1/pp_S23_TY253K",GetFemtoOutputFolder());
+  TString InputFileName = TString::Format(BaseFileName+"_kdp.root",GetFemtoOutputFolder());
+  TString OutputFileName = TString::Format(BaseFileName+"_kdp_fits.root",GetFemtoOutputFolder());
+  TString InputFileNameDlm = TString::Format(BaseFileName+"_kdp.dlm",GetFemtoOutputFolder());
+
+  TFile fOutput(OutputFileName, "recreate");
+  TFile fInput(InputFileName, "read");
+  
+
+  //DLM_Histo<KdpPars> dlm_kdp_pars;
+  if(!MC_closure_kdp) MC_closure_kdp = new DLM_Histo<KdpPars>();
+  MC_closure_kdp->QuickLoad(InputFileNameDlm.Data());
+
+  unsigned NumBins_mT = dlm_kdp_pars.GetNbins(0);
+  unsigned NumBins_rd = dlm_kdp_pars.GetNbins(1);
+  unsigned NumBins_ht = dlm_kdp_pars.GetNbins(2);
+  unsigned NumBins_tau = dlm_kdp_pars.GetNbins(3);
+
+  DLM_MultiFit GrandeFitter;
+
+  TH1F** hToFit = new TH1F*[NumBins_mT];
+  TF1** fitFun = new TF1*[NumBins_mT];
+  CATS* Kitty = new CATS[NumBins_mT];
+  for(unsigned umT=0; umT<NumBins_mT; umT++){
+    double mT_val = dlm_kdp_pars.GetBinCenter(0,umT);
+    fInput.cd();
+    fInput.ls();
+    TH1F* hTemp = (TH1F*)fInput.Get(TString::Format("hCk_Synthetic_mT%.0f",mT_val));
+    double kMin = hTemp->GetXaxis()->GetBinLowEdge(1);
+    double kMax = hTemp->GetXaxis()->GetBinUpEdge(hTemp->GetNbinsX());
+    fOutput.cd();
+    hToFit[umT] = (TH1F*)hTemp->Clone(TString::Format("hCk_Fit_mT%.0f",mT_val));
+    fitFun[umT] = new TF1(TString::Format("fitFun_mT%.0f",mT_val),MC_closure_CK_for_Max_FF,kMin,kMax,3);
+    //printf("add %u\n",umT);
+    GrandeFitter.AddSpectrum(hToFit[umT],fitFun[umT]);
+    //printf("done\n");
+  }
+
+  for(unsigned umT=1; umT<NumBins_mT; umT++){
+    GrandeFitter.SetEqualPar(umT,1,0,1);//d
+    GrandeFitter.SetEqualPar(umT,2,0,2);//ht
+    GrandeFitter.SetEqualPar(umT,3,0,3);//hz or tau
+  } 
+
+  ROOT::Fit::FitResult fitresptr = GrandeFitter.PerformGlobalFit(true);
+
+
+
+  for(unsigned umT=0; umT<NumBins_mT; umT++){
+    delete hToFit[umT];
+    delete fitFun[umT];
+  }
+  delete [] hToFit;
+  delete [] fitFun;
+  delete [] Kitty;
+*/
+
+/*
+  for(unsigned umT=0; umT<dlm_kdp_pars.GetNbins(0); umT++){
+    double mT_val = dlm_kdp_pars.GetBinCenter(0,umT);
+    for(unsigned urd=0; urd<dlm_kdp_pars.GetNbins(1); urd++){
+      double rd_val = dlm_kdp_pars.GetBinCenter(1,urd);
+      for(unsigned uht=0; uht<dlm_kdp_pars.GetNbins(2); uht++){
+        double ht_val = dlm_kdp_pars.GetBinCenter(2,uht);
+        for(unsigned utau=0; utau<dlm_kdp_pars.GetNbins(3); utau++){
+          double tau_val = dlm_kdp_pars.GetBinCenter(3,utau);
+          //printf("%.0f %.2f %.2f %.2f\n", mT_val, rd_val, ht_val, tau_val);
+          fOutput.cd();
+          
+          TH1F* hSource = new TH1F(TString::Format("hKDP_%.0f %.2f %.2f %.2f", mT_val, rd_val, ht_val, tau_val), 
+                        TString::Format("hKDP_%.0f %.2f %.2f %.2f", mT_val, rd_val, ht_val, tau_val),
+                        2048,0,32);
+          for(unsigned uRad=0; uRad<hSource->GetNbinsX(); uRad++){
+            double RAD = hSource->GetBinCenter(uRad+1);
+            unsigned WhichBin[4] = {umT,urd,uht,utau};
+            //printf("uRad = %.3f -> %.3f\n", RAD, PoissonSum(RAD, dlm_kdp_pars.GetBinContent(WhichBin))); usleep(10e3);
+            hSource->SetBinContent(uRad+1, PoissonSum(RAD, dlm_kdp_pars.GetBinContent(WhichBin)));
+          }
+          fOutput.cd();
+          hSource->SetLineColor(kGreen);
+          hSource->SetLineWidth(3);
+          
+
+
+
+
+          //hSource->Write();
+          delete hSource;
+        }
+      }
+    }
+  }  
+*/
+  //double PoissonSum(const double& xVal, const KdpPars& kdppars)
+}
 
 int FUN_WITH_CECA(int argc, char *argv[]){
   //Sources_In_SourcePaper("pp",1);
@@ -11076,8 +11426,9 @@ int FUN_WITH_CECA(int argc, char *argv[]){
 //for(int i=0; i<20; i++) printf("%i\n", rangen.Int(1));
 
 
-  MC_closure_for_Max(23); return 0;
-
+  //MC_closure_for_Max(11); return 0;
+  ////MC_closure_FIT_for_Max(); return 0;
+  MC_closure_CK_for_Max(); return 0;
 
 
   //Test1();
