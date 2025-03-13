@@ -10633,12 +10633,15 @@ void ThreeBody_test1(){
   const bool EQUALIZE_TAU = true;
   //const double TIMEOUT = 60;
   //const double GLOB_TIMEOUT = 30*60;
-  const double TIMEOUT = 1;
-  const double GLOB_TIMEOUT = 1;
+  const double TIMEOUT = 20;
+  const double GLOB_TIMEOUT = 3*60;
   const unsigned Multiplicity=3;
-  const double femto_region = 400;
-  const unsigned target_yield = 64*1000;
-  const unsigned NUM_CPU = 1;
+  const bool ThreeBody = true;
+  const double femto_region = ThreeBody?400:100;
+  const unsigned target_yield = 4096*1000;
+  const unsigned NUM_CPU = 8;
+  //2 or 3- body
+  
 
   DLM_Histo<float>* dlm_pT_eta_p;
   DLM_Histo<float>* dlm_pT_eta_L;
@@ -10673,10 +10676,11 @@ void ThreeBody_test1(){
     rSP_hadr = 2.68;
     rSP_tau = 3.76;
 
-    rSP_core = 1.62;
-    rSP_dispZ = 1.62;
-    rSP_hadr = 0.0;
-    rSP_tau = 0.0;   
+    //a silly test with a gauss only
+    //rSP_core = 1.10;
+    //rSP_dispZ = 1.10;
+    //rSP_hadr = 0.0;
+    //rSP_tau = 0.0;   
   }
   else{
     printf("BAD STUFF!\n");
@@ -10692,14 +10696,14 @@ void ThreeBody_test1(){
 
   TString OutputFolderName;
   OutputFolderName = "FunWithCeca/ThreeBody_test1";
-  TString BaseFileName = TString::Format("%s/%s/fOutput",GetFemtoOutputFolder(),OutputFolderName.Data());
+  TString BaseFileName = TString::Format("%s/%s/fOutput_%uM_%uB",GetFemtoOutputFolder(),OutputFolderName.Data(), Multiplicity, unsigned(ThreeBody)+2);
 
   TFile fOutput(BaseFileName+".root","recreate");
 
   for(TreParticle* prt : ParticleList){
     if(prt->GetName()=="Proton"){
       prt->SetMass(Mass_p);
-      if(type=="pp") prt->SetAbundance(35.78+64.22*(!PROTON_RESO));
+      if(type=="pp"||type=="ppp") prt->SetAbundance(35.78+64.22*(!PROTON_RESO));
       else if(type=="pP") prt->SetAbundance(100.);
       else prt->SetAbundance(0);
       prt->SetRadius(HadronSize);
@@ -10735,7 +10739,8 @@ void ThreeBody_test1(){
 
   ListOfParticles.push_back("Proton");
   ListOfParticles.push_back("Proton");
-  ListOfParticles.push_back("Proton");
+  if(ThreeBody)
+    ListOfParticles.push_back("Proton");
 
   CECA Ivana(Database,ListOfParticles);
 
@@ -10752,13 +10757,15 @@ void ThreeBody_test1(){
 
   Ivana.SetTargetStatistics(target_yield);
   Ivana.SetEventMult(Multiplicity);
-  Ivana.SetSourceDim(3);
+  Ivana.SetSourceDim(2+ThreeBody);
   Ivana.SetDebugMode(true);
   Ivana.SetThreadTimeout(TIMEOUT);
   Ivana.SetGlobalTimeout(GLOB_TIMEOUT);
   Ivana.EqualizeFsiTime(EQUALIZE_TAU);
   Ivana.SetFemtoRegion(femto_region);
   Ivana.GHETTO_EVENT = true;
+
+  Ivana.Ghetto_NumRadBins *= 2;
 
   printf("GoBabyGo\n");
   Ivana.GoBabyGo(NUM_CPU);
@@ -10767,9 +10774,271 @@ void ThreeBody_test1(){
   Ivana.Ghetto_kstar_rstar->ComputeError();
   TH2F* h_Ghetto_kstar_rstar = Convert_DlmHisto_TH2F(Ivana.Ghetto_kstar_rstar,"Ghetto_kstar_rstar");
 
+  Ivana.GhettoFemto_mT_rstar->ComputeError();
+  TH2F* h_GhettoFemto_mT_rstar = Convert_DlmHisto_TH2F(Ivana.GhettoFemto_mT_rstar,"GhettoFemto_mT_rstar");
+
   fOutput.cd();
   h_Ghetto_kstar_rstar->Write();
+  h_GhettoFemto_mT_rstar->Write();
+}
 
+void ThreeBody_test1_plots(){
+
+  TString OutputFolderName;
+  OutputFolderName = "FunWithCeca/ThreeBody_test1";
+  TString InFile_2M_2B = TString::Format("%s/%s/2025-03-06_CECA/fOutput_2M_2B.root",GetFemtoOutputFolder(),OutputFolderName.Data());
+  TString InFile_3M_2B = TString::Format("%s/%s/2025-03-06_CECA/fOutput_3M_2B.root",GetFemtoOutputFolder(),OutputFolderName.Data());
+  TString InFile_3M_3B = TString::Format("%s/%s/2025-03-06_CECA/fOutput_3M_3B.root",GetFemtoOutputFolder(),OutputFolderName.Data());
+  TString OutFileName = TString::Format("%s/%s/2025-03-06_CECA/fPlots.root",GetFemtoOutputFolder(),OutputFolderName.Data());
+
+
+  const double Q3_femto = 400;
+  const double kstar_femto = 100;
+
+  TFile fIn3M_3B(InFile_3M_3B,"read");
+  TH2F* h3M_3B_kstar_rstar = (TH2F*)fIn3M_3B.Get("Ghetto_kstar_rstar");
+  TH2F* h3M_3B_mT_rstar = (TH2F*)fIn3M_3B.Get("GhettoFemto_mT_rstar");
+
+  TFile fIn3M_2B(InFile_3M_2B,"read");
+  TH2F* h3M_2B_kstar_rstar = (TH2F*)fIn3M_2B.Get("Ghetto_kstar_rstar");
+  TH2F* h3M_2B_mT_rstar = (TH2F*)fIn3M_2B.Get("GhettoFemto_mT_rstar");
+  
+  TFile fIn2M_2B(InFile_2M_2B,"read");
+  TH2F* h2M_2B_kstar_rstar = (TH2F*)fIn2M_2B.Get("Ghetto_kstar_rstar");
+  TH2F* h2M_2B_mT_rstar = (TH2F*)fIn2M_2B.Get("GhettoFemto_mT_rstar");
+
+  unsigned kstar_bin_min;
+  unsigned kstar_bin_max;
+  unsigned NumMt;
+  TH1F* hSrc_2M_2B;
+  TH1F* hSrc_3M_2B;
+  TH1F* hSrc_3M_3B;
+
+  TFile fOutput(OutFileName, "recreate");
+
+  //3B source, mT integrated
+  kstar_bin_min = h3M_3B_kstar_rstar->GetXaxis()->FindBin(0.);
+  kstar_bin_max = h3M_3B_kstar_rstar->GetXaxis()->FindBin(Q3_femto);
+  fOutput.cd();
+  hSrc_3M_3B = (TH1F*)h3M_3B_kstar_rstar->ProjectionY(TString::Format("hSrc_3M_3B"),kstar_bin_min,kstar_bin_max);
+
+  hSrc_3M_3B->SetStats(false);
+  hSrc_3M_3B->SetTitle("");
+  hSrc_3M_3B->GetXaxis()->SetTitle("#rho (fm)");
+  hSrc_3M_3B->GetXaxis()->SetTitleSize(0.06);
+  hSrc_3M_3B->GetXaxis()->SetLabelSize(0.06);
+  hSrc_3M_3B->GetXaxis()->SetTitleOffset(1.3);
+  hSrc_3M_3B->GetXaxis()->SetLabelOffset(0.02);
+  hSrc_3M_3B->GetXaxis()->SetRangeUser(0.0,5.0);
+  hSrc_3M_3B->GetYaxis()->SetTitle("#rho^{5}S(#rho) (1/fm)");
+  hSrc_3M_3B->GetYaxis()->SetTitleSize(0.06);
+  hSrc_3M_3B->GetYaxis()->SetLabelSize(0.06);
+  hSrc_3M_3B->GetYaxis()->SetTitleOffset(1.00);
+  hSrc_3M_3B->GetYaxis()->SetRangeUser(0.001,1.50);
+  hSrc_3M_3B->SetLineColor(kOrange+2);
+  hSrc_3M_3B->SetLineWidth(6);
+  hSrc_3M_3B->Scale(1./hSrc_3M_3B->Integral(),"width");
+  hSrc_3M_3B->Write();
+  printf("3M_3B mean %.3f\n",hSrc_3M_3B->GetMean());
+
+  TH1F* hSrc_3M_3B_red = new TH1F("hSrc_3M_3B_red","hSrc_3M_3B_red",hSrc_3M_3B->GetNbinsX(),hSrc_3M_3B->GetXaxis()->GetXmin()*0.5,hSrc_3M_3B->GetXaxis()->GetXmax()*0.5);
+  for(unsigned uBin=0; uBin<hSrc_3M_3B_red->GetNbinsX(); uBin++){
+    hSrc_3M_3B_red->SetBinContent(uBin+1,hSrc_3M_3B->GetBinContent(uBin+1)*2);
+  }
+  hSrc_3M_3B_red->Write();
+
+  TH1F* hSrc_Ana_3B = (TH1F*)hSrc_3M_3B->Clone("hSrc_Ana_3B");
+  const double RM = 1.25;
+  const double rho0 = sqrt(2./3.)*RM;
+  for(unsigned uRho=0; uRho<hSrc_Ana_3B->GetNbinsX(); uRho++){
+    double rho = hSrc_Ana_3B->GetBinCenter(uRho+1);
+    
+    double src3b = pow(rho,5)*exp(-rho*rho/rho0/rho0)/(pow(TMath::Pi(),3)*pow(rho0,6.));
+    hSrc_Ana_3B->SetBinContent(uRho+1, src3b);
+    hSrc_Ana_3B->SetBinError(uRho+1, 0);
+  }
+  hSrc_Ana_3B->SetLineColor(kGreen+2);
+  hSrc_Ana_3B->SetLineWidth(4);
+  hSrc_Ana_3B->Scale(1./hSrc_Ana_3B->Integral(),"width");
+  hSrc_Ana_3B->Write();
+  printf("Ana_3B mean %.3f\n",hSrc_Ana_3B->GetMean());
+
+
+  //3B source, mT scaling
+  NumMt = h3M_3B_mT_rstar->GetXaxis()->GetNbins();
+  fOutput.cd();
+  TH1F* hmT_3M_3B = (TH1F*)h3M_3B_mT_rstar->ProjectionX(TString::Format("hmT_3M_3B"),1,h3M_3B_mT_rstar->GetXaxis()->GetNbins());
+
+  hmT_3M_3B->SetStats(false);
+  hmT_3M_3B->SetTitle("");
+  hmT_3M_3B->GetXaxis()->SetTitle("m_{T} (MeV)");
+  hmT_3M_3B->GetXaxis()->SetTitleSize(0.06);
+  hmT_3M_3B->GetXaxis()->SetLabelSize(0.06);
+  hmT_3M_3B->GetXaxis()->SetTitleOffset(1.3);
+  hmT_3M_3B->GetXaxis()->SetLabelOffset(0.02);
+  hmT_3M_3B->GetXaxis()->SetRangeUser(1000,2400);
+  hmT_3M_3B->GetYaxis()->SetTitle("<#rho> or <r*> (fm)");
+  hmT_3M_3B->GetYaxis()->SetTitleSize(0.06);
+  hmT_3M_3B->GetYaxis()->SetLabelSize(0.06);
+  hmT_3M_3B->GetYaxis()->SetTitleOffset(1.00);
+  //hmT_3M_3B->GetYaxis()->SetRangeUser(1000,2400);
+  hmT_3M_3B->SetLineColor(kOrange+2);
+  hmT_3M_3B->SetLineWidth(8);
+
+  for(unsigned uMt=0; uMt<NumMt; uMt++){
+    //printf("uMt %u\n",uMt);
+    gROOT->cd();
+    TH1F* hProj = (TH1F*)h3M_3B_mT_rstar->ProjectionY(TString::Format("hProj"),uMt+1,uMt+1);
+    double rad_mean = hProj->GetMean();
+    //printf(" %f\n",rad_mean);
+    hmT_3M_3B->SetBinContent(uMt+1, rad_mean);
+    hmT_3M_3B->SetBinError(uMt+1, 0);
+    delete hProj;
+  }
+  fOutput.cd();
+  hmT_3M_3B->Write();
+
+
+  //3B sim, 2B source, mT integrated
+  kstar_bin_min = h3M_2B_kstar_rstar->GetXaxis()->FindBin(0.);
+  kstar_bin_max = h3M_2B_kstar_rstar->GetXaxis()->FindBin(kstar_femto);
+  fOutput.cd();
+  hSrc_3M_2B = (TH1F*)h3M_2B_kstar_rstar->ProjectionY(TString::Format("hSrc_3M_2B"),kstar_bin_min,kstar_bin_max);
+  hSrc_3M_2B->SetStats(false);
+  hSrc_3M_2B->SetTitle("");
+  hSrc_3M_2B->GetXaxis()->SetTitle("r (fm)");
+  hSrc_3M_2B->GetXaxis()->SetTitleSize(0.06);
+  hSrc_3M_2B->GetXaxis()->SetLabelSize(0.06);
+  hSrc_3M_2B->GetXaxis()->SetTitleOffset(1.3);
+  hSrc_3M_2B->GetXaxis()->SetLabelOffset(0.02);
+  hSrc_3M_2B->GetXaxis()->SetRangeUser(0.0,7.0);
+  hSrc_3M_2B->GetYaxis()->SetTitle("4#pir*^{2}S(r) (1/fm)");
+  hSrc_3M_2B->GetYaxis()->SetTitleSize(0.06);
+  hSrc_3M_2B->GetYaxis()->SetLabelSize(0.06);
+  hSrc_3M_2B->GetYaxis()->SetTitleOffset(1.00);
+  hSrc_3M_2B->GetYaxis()->SetRangeUser(0.001,1.50);
+  hSrc_3M_2B->SetLineColor(kBlue);
+  hSrc_3M_2B->SetLineWidth(4);
+  hSrc_3M_2B->Scale(1./hSrc_3M_2B->Integral(),"width");
+  hSrc_3M_2B->Write();
+  printf("3M_2B mean %.3f\n",hSrc_3M_2B->GetMean());
+
+
+  //3B sim, 2B source, mT scaling
+  NumMt = h3M_2B_mT_rstar->GetXaxis()->GetNbins();
+  fOutput.cd();
+  TH1F* hmT_3M_2B = (TH1F*)h3M_2B_mT_rstar->ProjectionX(TString::Format("hmT_3M_2B"),1,h3M_2B_mT_rstar->GetXaxis()->GetNbins());
+
+  hmT_3M_2B->SetStats(false);
+  hmT_3M_2B->SetTitle("");
+  hmT_3M_2B->GetXaxis()->SetTitle("m_{T} (MeV)");
+  hmT_3M_2B->GetXaxis()->SetTitleSize(0.06);
+  hmT_3M_2B->GetXaxis()->SetLabelSize(0.06);
+  hmT_3M_2B->GetXaxis()->SetTitleOffset(1.3);
+  hmT_3M_2B->GetXaxis()->SetLabelOffset(0.02);
+  hmT_3M_2B->GetXaxis()->SetRangeUser(1000,2400);
+  hmT_3M_2B->GetYaxis()->SetTitle("<#rho> or <r*> (fm)");
+  hmT_3M_2B->GetYaxis()->SetTitleSize(0.06);
+  hmT_3M_2B->GetYaxis()->SetLabelSize(0.06);
+  hmT_3M_2B->GetYaxis()->SetTitleOffset(1.00);
+  //hmT_3M_2B->GetYaxis()->SetRangeUser(1000,2400);
+  hmT_3M_2B->SetLineColor(kBlue);
+  hmT_3M_2B->SetLineWidth(8);
+
+  for(unsigned uMt=0; uMt<NumMt; uMt++){
+    //printf("uMt %u\n",uMt);
+    gROOT->cd();
+    TH1F* hProj = (TH1F*)h3M_2B_mT_rstar->ProjectionY(TString::Format("hProj"),uMt+1,uMt+1);
+    double rad_mean = hProj->GetMean();
+    //printf(" %f\n",rad_mean);
+    hmT_3M_2B->SetBinContent(uMt+1, rad_mean);
+    hmT_3M_2B->SetBinError(uMt+1, 0);
+    delete hProj;
+  }
+  fOutput.cd();
+  hmT_3M_2B->Write();
+
+
+  //2B source, mT integrated
+  kstar_bin_min = h2M_2B_kstar_rstar->GetXaxis()->FindBin(0.);
+  kstar_bin_max = h2M_2B_kstar_rstar->GetXaxis()->FindBin(kstar_femto);
+  fOutput.cd();
+  hSrc_2M_2B = (TH1F*)h2M_2B_kstar_rstar->ProjectionY(TString::Format("hSrc_2M_2B"),kstar_bin_min,kstar_bin_max);
+  
+  
+  TH1F* hAxisSource = new TH1F("hAxisSource","hAxisSource",128,0,8);
+  hSrc_2M_2B->SetStats(false);
+  hSrc_2M_2B->SetTitle("");
+  hSrc_2M_2B->GetXaxis()->SetTitle("r (fm)");
+  hSrc_2M_2B->GetXaxis()->SetTitleSize(0.06);
+  hSrc_2M_2B->GetXaxis()->SetLabelSize(0.06);
+  hSrc_2M_2B->GetXaxis()->SetTitleOffset(1.3);
+  hSrc_2M_2B->GetXaxis()->SetLabelOffset(0.02);
+  hSrc_2M_2B->GetXaxis()->SetRangeUser(0.0,7.0);
+  hSrc_2M_2B->GetYaxis()->SetTitle("4#pir*^{2}S(r) (1/fm)");
+  hSrc_2M_2B->GetYaxis()->SetTitleSize(0.06);
+  hSrc_2M_2B->GetYaxis()->SetLabelSize(0.06);
+  hSrc_2M_2B->GetYaxis()->SetTitleOffset(1.00);
+  hSrc_2M_2B->GetYaxis()->SetRangeUser(0.001,1.50);
+  hSrc_2M_2B->SetLineColor(kViolet);
+  hSrc_2M_2B->SetLineWidth(6);
+  hSrc_2M_2B->Scale(1./hSrc_2M_2B->Integral(),"width");
+  hSrc_2M_2B->Write();
+  printf("2M_2B mean %.3f\n",hSrc_2M_2B->GetMean());
+
+  TH1F* hSrc_Ana_2B = (TH1F*)hSrc_2M_2B->Clone("hSrc_Ana_2B");
+  for(unsigned uRad=0; uRad<hSrc_Ana_2B->GetNbinsX(); uRad++){
+    double rad = hSrc_Ana_2B->GetBinCenter(uRad+1);
+    double rad0 = RM;
+    double src2b = 4.*TMath::Pi()*rad*rad/(pow(4.*TMath::Pi()*rad0*rad0,1.5))*exp(-rad*rad/(4.*rad0*rad0));
+    hSrc_Ana_2B->SetBinContent(uRad+1, src2b);
+    hSrc_Ana_2B->SetBinError(uRad+1, 0);
+  }
+  hSrc_Ana_2B->SetLineColor(kGreen+2);
+  hSrc_Ana_2B->SetLineWidth(4);
+  hSrc_Ana_2B->Scale(1./hSrc_Ana_2B->Integral(),"width");
+  hSrc_Ana_2B->Write();
+  printf("Ana_2B mean %.3f\n",hSrc_Ana_2B->GetMean());
+
+
+
+  //2B source, mT scaling
+  NumMt = h2M_2B_mT_rstar->GetXaxis()->GetNbins();
+  fOutput.cd();
+  TH1F* hmT_2M_2B = (TH1F*)h2M_2B_mT_rstar->ProjectionX(TString::Format("hmT_2M_2B"),1,h2M_2B_mT_rstar->GetXaxis()->GetNbins());
+
+  hmT_2M_2B->SetStats(false);
+  hmT_2M_2B->SetTitle("");
+  hmT_2M_2B->GetXaxis()->SetTitle("m_{T} (MeV)");
+  hmT_2M_2B->GetXaxis()->SetTitleSize(0.06);
+  hmT_2M_2B->GetXaxis()->SetLabelSize(0.06);
+  hmT_2M_2B->GetXaxis()->SetTitleOffset(1.3);
+  hmT_2M_2B->GetXaxis()->SetLabelOffset(0.02);
+  hmT_2M_2B->GetXaxis()->SetRangeUser(1000,2400);
+  hmT_2M_2B->GetYaxis()->SetTitle("<#rho> or <r*> (fm)");
+  hmT_2M_2B->GetYaxis()->SetTitleSize(0.06);
+  hmT_2M_2B->GetYaxis()->SetLabelSize(0.06);
+  hmT_2M_2B->GetYaxis()->SetTitleOffset(1.00);
+  //hmT_2M_2B->GetYaxis()->SetRangeUser(1000,2400);
+  hmT_2M_2B->SetLineColor(kViolet);
+  hmT_2M_2B->SetLineWidth(8);
+
+  for(unsigned uMt=0; uMt<NumMt; uMt++){
+    //printf("uMt %u\n",uMt);
+    gROOT->cd();
+    TH1F* hProj = (TH1F*)h2M_2B_mT_rstar->ProjectionY(TString::Format("hProj"),uMt+1,uMt+1);
+    double rad_mean = hProj->GetMean();
+    //printf(" %f\n",rad_mean);
+    hmT_2M_2B->SetBinContent(uMt+1, rad_mean);
+    hmT_2M_2B->SetBinError(uMt+1, 0);
+    delete hProj;
+  }
+  fOutput.cd();
+  hmT_2M_2B->Write();
+
+  //delete hSrc_3M_3B;
+  //delete hmT_3M_3B;
+  delete hSrc_Ana_3B;
 }
 
 
@@ -10783,6 +11052,11 @@ void MC_closure_for_Max(int SEED){
   //std::vector<double> input_rd = {0.22, 0.25, 0.28};
   //std::vector<double> input_ht = {4.0, 4.5, 5.0};
   //std::vector<double> input_tau = {2.2, 2.5, 2.8};
+
+  //std::vector<double> input_rd = {0.22, 0.28};
+  //std::vector<double> input_ht = {4.0, 5.0};
+  //std::vector<double> input_tau = {2.2, 2.8};
+
 
   std::vector<float> mT_values = {1100, 1200, 1300, 1400, 1600, 1900};
 
@@ -10818,6 +11092,7 @@ void MC_closure_for_Max(int SEED){
   const unsigned Multiplicity=2;
   const double femto_region = 100;
   const unsigned target_yield = 11*23*1000;
+  //const unsigned target_yield = 3*23*1000;
   const unsigned NUM_CPU = 16;
   TString BaseName = TString::Format("Eta%.1f",EtaCut);
 
@@ -10970,6 +11245,10 @@ void MC_closure_for_Max(int SEED){
     Ivana.GhettoFemto_mT_rstar->ComputeError();
 
 
+    Ivana.GhettoFemto_mT_kstar->ComputeError();
+    outFile->cd();
+    TH2F* h_GhettoFemto_mT_kstar = Convert_DlmHisto_TH2F(Ivana.GhettoFemto_mT_kstar,TString::Format("GhettoFemto_mT_kstar_%.2f_%.2f_%.2f",rSP_core, rSP_hadr, rSP_tau));
+    
 
     for(unsigned uMt=0; uMt<mT_values.size(); uMt++){
 
@@ -11030,17 +11309,22 @@ void MC_closure_for_Max(int SEED){
 
       outFile->cd();
       hSource->Write();
+      
       //hCk->Write();
       delete hSource;
+      
       //delete hCk;
     }
 
     outFile->cd();
+    h_GhettoFemto_mT_kstar->Write();
+    
     //ntuple->Write();
 
     // Clean up memory
     //delete ntuple;
     //delete outFile;
+    delete h_GhettoFemto_mT_kstar;
   
   }}} 
 
@@ -11070,7 +11354,7 @@ void MC_closure_FIT_for_Max(){
   //std::vector<double> input_tau = {2.1, 2.5};
   //std::vector<float> input_mT = {1300, 1400};
 
-  TString BaseFileName = TString::Format("%s/FunWithCeca/MC_closure_for_Max/Official_v1/pp_S23_TY253K",GetFemtoOutputFolder());
+  TString BaseFileName = TString::Format("%s/FunWithCeca/MC_closure_for_Max/Official_v2/pp_S69_TY253K",GetFemtoOutputFolder());
   TString InputFileName = TString::Format(BaseFileName+".root",GetFemtoOutputFolder());
   TString OutputFileName = TString::Format(BaseFileName+"_kdp.root",GetFemtoOutputFolder());
   TString OutputFileNameDlm = TString::Format(BaseFileName+"_kdp.dlm",GetFemtoOutputFolder());
@@ -11144,8 +11428,6 @@ void MC_closure_FIT_for_Max(){
   double kMax = 160;
   unsigned kSteps = 20;
 
-
-
   TH1F* hErrors = new TH1F("hErrors", "hErrors", kSteps, kMin, kMax);
   hErrors->SetBinContent(1, 1);
   hErrors->SetBinError(1, 20./100.);
@@ -11159,9 +11441,7 @@ void MC_closure_FIT_for_Max(){
     //printf("%u %.3f\n", uMom, new_error*100);
   }
 
-
   TH1F** hCk_Synthetic = new TH1F*[NumBins_mT];
-
 
   for(unsigned umT=0; umT<NumBins_mT; umT++){
     double mT_val = input_mT.at(umT);
@@ -11176,8 +11456,11 @@ void MC_closure_FIT_for_Max(){
           double tau_val = input_tau[utau];
           printf("%.0f %.2f %.2f %.2f\n", mT_val, rd_val, ht_val, tau_val);
           TString histo_name = TString::Format("hSource_%.0f_%.2f_%.2f_%.2f", mT_val, rd_val, ht_val, tau_val);
+          TString histo_name_mt = TString::Format("GhettoFemto_mT_kstar_%.2f_%.2f_%.2f", rd_val, ht_val, tau_val);
           InputFile.cd();
           TH1F* hSource = (TH1F*)InputFile.Get(histo_name);
+          TH2F* hMtKstar = NULL;
+          if(umT==0) {hMtKstar = (TH2F*)InputFile.Get(histo_name_mt);}
           hSource->Scale(1./hSource->Integral(),"width");
           OutputFile.cd();
           //TH1F* hSourceCat = (TH1F*)hSource->Clone(TString::Format("hSourceCat_%.0f_%.2f_%.2f_%.2f", mT_val, rd_val, ht_val, tau_val));
@@ -11191,9 +11474,10 @@ void MC_closure_FIT_for_Max(){
           dlm_kdp_pars.SetBinContent(WhichBin,my_kdp);
           fit_ptr->SetName(TString::Format("fSource_%.0f_%.2f_%.2f_%.2f", mT_val, rd_val, ht_val, tau_val));
           OutputFile.cd();
+          if(hMtKstar) hMtKstar->Write();
           hSource->Write();
           fit_ptr->Write();
-
+          
           TH1F* hCk = new TH1F(TString::Format("hCk_%.0f_%.2f_%.2f_%.2f", mT_val, rd_val, ht_val, tau_val),
                   TString::Format("hCk_%.0f_%.2f_%.2f_%.2f", mT_val, rd_val, ht_val, tau_val),
                   kSteps, kMin, kMax);
@@ -11426,9 +11710,9 @@ int FUN_WITH_CECA(int argc, char *argv[]){
 //for(int i=0; i<20; i++) printf("%i\n", rangen.Int(1));
 
 
-  //MC_closure_for_Max(11); return 0;
-  ////MC_closure_FIT_for_Max(); return 0;
-  MC_closure_CK_for_Max(); return 0;
+  //MC_closure_for_Max(69); return 0;
+  //MC_closure_FIT_for_Max(); return 0;
+  //MC_closure_CK_for_Max(); return 0;
 
 
   //Test1();
@@ -11456,14 +11740,14 @@ int FUN_WITH_CECA(int argc, char *argv[]){
   //for(int TAU=0; TAU<=120; TAU+=20){
   //std::vector<double> tau_list = {0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5};
   //std::vector<double> tau_list = {0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0};
-  std::vector<double> tau_list = {2.25, 4.75};
+  //std::vector<double> tau_list = {2.25, 4.75};
   //Ceca_pd_1(0,-1402,"KdReso");
-  for(double TAU : tau_list){
+  //for(double TAU : tau_list){
     //Ceca_pd_1(TAU,true,"Kd");
   //  Ceca_pd_1(TAU,false,"Kd");
     //Ceca_pd_1(TAU,-1408,"Kd");
     //Ceca_pd_1(TAU,-1408,"KdReso");
-  }return 0;
+  //}return 0;
   //Ceca_pd_1(0,true,"pd");
   //Ceca_pd_1(30,true,"pd");
   //Ceca_pd_1(60,true,"pd");
@@ -11595,7 +11879,8 @@ int FUN_WITH_CECA(int argc, char *argv[]){
 
   //TestTime();
 
-  //ThreeBody_test1();
+  ThreeBody_test1();
+  //ThreeBody_test1_plots();
 
   return 0;
 }

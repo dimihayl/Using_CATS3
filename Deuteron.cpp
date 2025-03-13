@@ -1780,12 +1780,6 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
   //hResolution_pd->Write();
   gROOT->cd();
   
-
-
-
-
-
-
   delete fReso;
 
   TRandom3 rangen(SEED);
@@ -1806,9 +1800,6 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
     hME->GetXaxis()->SetLimits(hME->GetXaxis()->GetXmin()*1000.,hME->GetXaxis()->GetXmax()*1000.);
   }
 */
-
-
-
 
   //GET THE PTs
   TFile fInput_pT(TString::Format("%s/pi_d/FitOct2024_Files/AnalysisResults_for_pT.root",GetCernBoxDimi()), "read");
@@ -1945,7 +1936,7 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
   }
 
   //int SEED, int mt_bin, int NumIter, bool Bootstrap=true, bool DataVar=true, bool FitVar=true
-  TFile fOutputFile(TString::Format("%s/pi_d/FitNov2024_Files/Results/%s_mT%i_B%i_DV%i_FV%i_S%i.root",
+  TFile fOutputFile(TString::Format("%s/pi_d/FitMar2025_Files/Results/%s_mT%i_B%i_DV%i_FV%i_S%i.root",
     GetCernBoxDimi(), Description.Data(), mt_bin, Bootstrap, DataVar, FitVar, SEED), "recreate");
   TTree* pi_d_Tree = new TTree("pi_d_Tree","pi_d_Tree");
   //pi_d_Tree->Branch("seed",&SEED,"seed/I")
@@ -2039,6 +2030,8 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
   CkKitty.Update();
 
   DLM_CkDecomposition CkDecKitty("pi_d",0,CkKitty,hResolution_pd);
+  //this was not included before March 2025
+  CkDecKitty.AddPhaseSpace(hF_ME);
   //DLM_CkDecomposition CkDecKitty("pi_d",0,CkKitty,NULL);
   CkDecKitty.Update(true, true);
   Bulgaristan_CkDec = &CkDecKitty;
@@ -2906,7 +2899,7 @@ void Error_propagation_final_result(){
 
 int DEUTERON_MAIN(int argc, char *argv[]){
   //PiDCF();
-  Error_propagation_final_result();
+  //Error_propagation_final_result();
 
   //p_pn_cumulant();
   //MyOwn_Kd_v2();
@@ -2921,11 +2914,12 @@ int DEUTERON_MAIN(int argc, char *argv[]){
 
   //test_sill_invM_to_kstar();
   //test_sill_ps();
-  //TString Description, int mt_bin, int NumIter, bool Bootstrap=true, bool DataVar=true, bool FitVar=true, int SEED
+  //TString Description, int mt_bin, int NumIter, bool Bootstrap=true, bool DataVar=true, bool FitVar=true, int SEED=0
   //BulgarianIndianGhetto("ghetto_output", atoi(argv[1]),atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),atoi(argv[5]),atoi(argv[6]));
   //USE THIS:
  // BulgarianIndianGhetto("pid_withMomResoME_2024-12-06", atoi(argv[1]),atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),atoi(argv[5]),atoi(argv[6]));
-  //BulgarianIndianGhetto("TEST", atoi(argv[1]),atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),atoi(argv[5]),atoi(argv[6]));
+ BulgarianIndianGhetto("pid_withMomResoSE_2025-03-13", atoi(argv[1]),atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),atoi(argv[5]),atoi(argv[6]));
+ //BulgarianIndianGhetto("TEST", atoi(argv[1]),atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),atoi(argv[5]),atoi(argv[6]));
   //BulgarianIndianGhetto(-1,10,true,true,true,23);
 
   //pim_d_Coulomb_vs_RealSI();

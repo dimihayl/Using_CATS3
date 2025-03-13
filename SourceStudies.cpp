@@ -7416,11 +7416,11 @@ if(uAna!=ana_true && BaselineVar==10) continue;//this is our default, with pol0/
   g_pp[ana_remake][src_rsm][stat].Draw("pez same");
 
   //HEP data for pp updated results
-    TString HepFileName = InputFolder+"pp_rcore_update_fig1_right.yaml";
+    TString HepFileName = InputFolder+"Figure5_pp_Updated.yaml";
     ofstream hepfile (HepFileName.Data(),ios::out);
     hepfile << "dependent_variables:" << endl;
     hepfile << "- header:" << endl;
-    hepfile << "    name: $r_{core}$ p-p" << endl;
+    hepfile << "    name: $r_\\mathrm{core}$ p-p" << endl;
     hepfile << "    units: fm" << endl;
     hepfile << "  values:" << endl;
     for(int iMt=0; iMt<NumMtBins; iMt++){
@@ -7433,7 +7433,7 @@ if(uAna!=ana_true && BaselineVar==10) continue;//this is our default, with pol0/
     }
     hepfile << "independent_variables:" << endl;
     hepfile << "- header:" << endl;
-    hepfile << "    name: $m_{T}$" << endl;
+    hepfile << "    name: $m_\\mathrm{T}$" << endl;
     hepfile << "    units: GeV/$c^{2}$" << endl;
     hepfile << "  values:" << endl;
     for(int iMt=0; iMt<NumMtBins; iMt++){
@@ -7527,11 +7527,11 @@ if(uAna!=ana_true && BaselineVar==10) continue;//this is our default, with pol0/
   can_ghetto_oton_daruisz_pp_pLtuned->SaveAs(InputFolder+"Results_ghetto_oton_daruisz_pp_pLtuned.pdf");
 
   //HEP data for pp updated results
-    TString HepFileName_pL = InputFolder+"pL_rcore_update_fig2_right.yaml";
+    TString HepFileName_pL = InputFolder+"Figure6_pL.yaml";
     ofstream hepfile_pL (HepFileName_pL.Data(),ios::out);
     hepfile_pL << "dependent_variables:" << endl;
     hepfile_pL << "- header:" << endl;
-    hepfile_pL << "    name: $r_{core}$ p-$\\Lambda$ (Usmani-tuned)" << endl;
+    hepfile_pL << "    name: $r_\\mathrm{core}$ p-$\\Lambda$ (Usmani-tuned)" << endl;
     hepfile_pL << "    units: fm" << endl;
     hepfile_pL << "  values:" << endl;
     for(int iMt=0; iMt<NumMtBins_pL; iMt++){
@@ -7544,7 +7544,7 @@ if(uAna!=ana_true && BaselineVar==10) continue;//this is our default, with pol0/
     }
     hepfile_pL << "independent_variables:" << endl;
     hepfile_pL << "- header:" << endl;
-    hepfile_pL << "    name: $m_{T}$" << endl;
+    hepfile_pL << "    name: $m_\\mathrm{T}$" << endl;
     hepfile_pL << "    units: GeV/$c^{2}$" << endl;
     hepfile_pL << "  values:" << endl;
     for(int iMt=0; iMt<NumMtBins_pL; iMt++){
