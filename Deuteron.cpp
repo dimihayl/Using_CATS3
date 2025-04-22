@@ -28,6 +28,8 @@
 #include "TSystem.h"
 #include "TROOT.h"
 #include "TCanvas.h"
+#include "TLorentzVector.h"
+#include "TGenPhaseSpace.h"
 
 //s-wave only
 void p_pn_cumulant(){
@@ -1548,7 +1550,7 @@ double Bulgaristan_fit(double* kstar, double* par){
 }
 
 //if the |mT_bin|>100 => we deal with pi^- d
-void BulgarianIndianGhetto(TString Description, int mt_bin, int NumIter, bool Bootstrap=true, bool DataVar=true, bool FitVar=true, int SEED=0){
+void BulgarianIndianGhetto(TString Description, std::vector<int> fit_types, int mt_bin, int NumIter, bool Bootstrap=true, bool DataVar=true, bool FitVar=true, int SEED=0){
 printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n AND UPDATE THE WIDTH AND TEMP BASED ON THE NEW RANGES!!! USE PythonPlot_Pi_d.py to get them out\n");
   if(mt_bin%100<-1 || mt_bin%100>5){
     printf("Bad mT bin\n");
@@ -1656,7 +1658,8 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
 
   //0 - do NOT multiply C_Delta
   //1 - do multiply C_Delta by C_genuine
-  std::vector<int> fit_types = {1,0};
+  //std::vector<int> fit_types = {1,0};
+
   //based on ME of a local test, for pairs below k* 300 MeV
   std::vector<float> piN_pT = {560, 800, 1000, 1200, 1500};
   float piN_pT_avg = 900;
@@ -1753,23 +1756,23 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
   fList3_reso = (TList*)fList2_reso->FindObject("QA_Particle0_Particle2");
 //fList3_reso->Print();
 //printf("-----\n");
-  hTemp = (TH2F*)fList3_reso->FindObject("MomentumResolutionME_Particle0_Particle2");
+  hTemp = (TH2F*)fList3_reso->FindObject("MomentumResolutionSE_Particle0_Particle2");
   //TFile fTMP("wtf.root","recreate");
   gROOT->cd();
   hResolution_pd = (TH2F*)hTemp->Clone("hResolution_pd");
 //printf("1-----\n");
   fList3_reso = (TList*)fList2_reso->FindObject("QA_Particle1_Particle3");
-  hTemp = (TH2F*)fList3_reso->FindObject("MomentumResolutionME_Particle1_Particle3");
+  hTemp = (TH2F*)fList3_reso->FindObject("MomentumResolutionSE_Particle1_Particle3");
   gROOT->cd();
   hResolution_pd->Add(hTemp);
 //printf("2-----\n");
   fList3_reso = (TList*)fList2_reso->FindObject("QA_Particle0_Particle3");
-  hTemp = (TH2F*)fList3_reso->FindObject("MomentumResolutionME_Particle0_Particle3");
+  hTemp = (TH2F*)fList3_reso->FindObject("MomentumResolutionSE_Particle0_Particle3");
   gROOT->cd();
   hResolution_pd->Add(hTemp);
 //printf("3-----\n");
   fList3_reso = (TList*)fList2_reso->FindObject("QA_Particle1_Particle2");
-  hTemp = (TH2F*)fList3_reso->FindObject("MomentumResolutionME_Particle1_Particle2");
+  hTemp = (TH2F*)fList3_reso->FindObject("MomentumResolutionSE_Particle1_Particle2");
   gROOT->cd();
   hResolution_pd->Add(hTemp);
 //printf("4-----\n");
@@ -1936,7 +1939,7 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
   }
 
   //int SEED, int mt_bin, int NumIter, bool Bootstrap=true, bool DataVar=true, bool FitVar=true
-  TFile fOutputFile(TString::Format("%s/pi_d/FitMar2025_Files/Results/%s_mT%i_B%i_DV%i_FV%i_S%i.root",
+  TFile fOutputFile(TString::Format("%s/pi_d/FitMar2025_Files/Results_v2/%s_mT%i_B%i_DV%i_FV%i_S%i.root",
     GetCernBoxDimi(), Description.Data(), mt_bin, Bootstrap, DataVar, FitVar, SEED), "recreate");
   TTree* pi_d_Tree = new TTree("pi_d_Tree","pi_d_Tree");
   //pi_d_Tree->Branch("seed",&SEED,"seed/I")
@@ -2030,11 +2033,10 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
   CkKitty.Update();
 
   DLM_CkDecomposition CkDecKitty("pi_d",0,CkKitty,hResolution_pd);
-  //this was not included before March 2025
-  CkDecKitty.AddPhaseSpace(hF_ME);
   //DLM_CkDecomposition CkDecKitty("pi_d",0,CkKitty,NULL);
   CkDecKitty.Update(true, true);
   Bulgaristan_CkDec = &CkDecKitty;
+
 
   double Progress = 0;
   bool data_saved = false;
@@ -2289,6 +2291,8 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
           //  printf(" ME_name = %s\n",MeHistName.Data());
           //}
         }
+      //tyj
+
 
     }
     //while(hData==NULL && iDataVar!=-1);//I dont know why this was like this
@@ -2380,11 +2384,16 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
     Kstar_Modifier = (TGraph*)fConversion.Get("gR_ppi_dpi_c");
 
 
+    Bulgaristan_CkDec->AddPhaseSpace(hME);
+
+
+
     DATA_TYPE = abs(iDataVar);
     if(Bootstrap==true) DATA_TYPE += 100;
     if(iDataVar<0) DATA_TYPE = -DATA_TYPE;
     //overrides the other stuff, this is default data with no boot
     if(iDataVar==-2) DATA_TYPE = -2;
+
 
     //par[0] = source size
     //par[1] = alpha par
@@ -2658,37 +2667,57 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
         for(unsigned uBin=0; uBin<hME->GetNbinsX(); uBin++){
           double MOM = hME->GetBinCenter(uBin+1);
           if(MOM<FIT_RANGE){
-            Integral_Primary += hME->GetBinContent(uBin+1) * (gFemto.Eval(MOM) - (1.-par_fmt));
+            Integral_Primary += hME->GetBinContent(uBin+1) * (gFemto.Eval(MOM) - (1.-par_fmt));//original
+            //Integral_Primary += hME->GetBinContent(uBin+1) * (gFemto.Eval(MOM) - par_fmt);
             Integral_FromDelta += hME->GetBinContent(uBin+1) * (gDelta.Eval(MOM)-1);
-            //printf("at %.0f += %.3e and %.3e -> %.3e vs %.3e\n",MOM,gFemto.Eval(MOM),gDelta.Eval(MOM)-1,Integral_Primary,Integral_FromDelta);
+            //printf("at %.0f += %.3e (%.3e) and %.3e -> %.3e vs %.3e\n",MOM,gFemto.Eval(MOM)- (1.-par_fmt),gFemto.Eval(MOM)- par_fmt,gDelta.Eval(MOM)-1,Integral_Primary,Integral_FromDelta);
           }
           else{
             //we assume gFemto is 1, while gDelta is zero
             Integral_Primary += hME->GetBinContent(uBin+1);
           }
         }   
+        //N.B. this is NOT used in the pi-d analysis, something for the Kd only
+        //it still plays some role for the normalization I feel like, this is our par[3]
         FRAC_D = Integral_FromDelta/(Integral_FromDelta+Integral_Primary);   
       }
       //printf("%i FRAC_D = %.3e at %p\n",iRepeat,FRAC_D, hME);
       iRepeat++;
     }
     while(iRepeat<RepeatFit);
-
+    
     //printf("OUT OF WHILE\n");
     //printf("%p %p\n", hSE, hME);
 
+
+    //N.B. ACTUALLY, gDelta has kind of the lambda effectively in. I mean, no explicitely, but it it is multiplied
+    //by a separate fit factor, where lambda can be factorized out
     double IntME = hME->Integral();
     double IntSE = hSE?hSE->Integral():0;
     NUM_DELTAS = 0;
+    double NUM_DELTAS_v1 = 0;//original, but scale by the lambda par
+    double NUM_DELTAS_v2 = 0;
+    double NUM_DELTAS_v3 = 0;//aprox fsi is not there
     for(unsigned uBin=0; uBin<hME->GetNbinsX(); uBin++){
       //checked, this is correct
       double MOM = hME->GetBinCenter(uBin+1);
       NUM_DELTAS += hME->GetBinContent(uBin+1) * (gDelta.Eval(MOM)-1);
+      NUM_DELTAS_v1 += hME->GetBinContent(uBin+1) * LAM_GEN*(gDelta.Eval(MOM)-1);
     }
+    for(unsigned uBin=0; uBin<hSE->GetNbinsX(); uBin++){
+      double MOM = hSE->GetBinCenter(uBin+1);
+      double CF = gFemto.Eval(MOM);
+      double CD = (gDelta.Eval(MOM)-1)/LAM_GEN;
+      //printf("%f %f\n",(1.-FRAC_D),LAM_GEN);
+      printf("k=%.0f, SE=%f, CD=%f, CF=%f, x%f\n",MOM,hSE->GetBinContent(uBin+1),CD,CF,(CF*CD)/(CF*CD+CF*(1.-FRAC_D)+1-LAM_GEN));
+      NUM_DELTAS_v2 += hSE->GetBinContent(uBin+1)*(CF*CD)/(CF*CD+CF*(1.-FRAC_D)+1-LAM_GEN);
+      NUM_DELTAS_v3 += hSE->GetBinContent(uBin+1)*(LAM_GEN*CD)/(LAM_GEN*CD+LAM_GEN*(1.-FRAC_D)+1-LAM_GEN);
+    }
+
     NUM_DELTAS *= IntSE;
     NUM_DELTAS /= IntME;
 
-    //printf("NUM_DELTAS = %f\n",NUM_DELTAS);
+    printf("NUM_DELTAS = %f vs %f vs %f vs %f\n",NUM_DELTAS,NUM_DELTAS_v1,NUM_DELTAS_v2,NUM_DELTAS_v3);
 
     fOutputFile.cd();
     pi_d_Tree->Fill();
@@ -2707,7 +2736,7 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
     delete hDataToFit;
     delete fInputData;
     if(hData && mt_bin==1000) {delete hData; hData=NULL;}
-  }
+  }//for iter
 
   fOutputFile.cd();
   pi_d_Tree->Write();
@@ -2885,7 +2914,6 @@ void Error_propagation_final_result(){
   double f_Reso_shm = (f_Reso_Max_shm+f_Reso_Min_shm)*0.5;
   double err_f_Reso_shm = (f_Reso_Max_shm-f_Reso_Min_shm)*0.5;
 
-
   TFile fOutput(TString::Format("%s/Deuteron/Error_propagation_final_result.root",GetFemtoOutputFolder()), "recreate");
   h_f_Delta->Write();
   h_f_Reso->Write();
@@ -2895,6 +2923,156 @@ void Error_propagation_final_result(){
   printf("f_Delta = %.1f +/- %.1f %% vs %.1f +/- %.1f %%\n", f_Delta, err_f_Delta, f_Delta_shm, err_f_Delta_shm);
   printf("f_Reso = %.1f +/- %.1f %% vs %.1f +/- %.1f %%\n", f_Reso, err_f_Reso, f_Reso_shm, err_f_Reso_shm);
 
+}
+
+void GypsyGhettoForAcceptance(){
+  const double eta_min = -0.8;
+  const double eta_max = 0.8;
+
+  const double d_pt_min = 800;
+  const double d_pt_max = 2400;
+
+  const double pic_pt_min = 140;
+  const double pic_pt_max = 4000;
+
+  //const double Mass_Delta = 1232.-100;
+  const double Mass_Delta = 1360;
+  //const double Mass_Delta = Mass_p+Mass_pic+1;
+  const double mom_mean = Mass_Delta*0.6;
+
+  const unsigned NumIter = 100*1000;
+
+  TRandom3 rangen(23);
+
+  unsigned NumAccDeuterons = 0;//these are essentially all our deuterons from Delta
+  unsigned NumAccPions = 0;
+
+  unsigned NumAccBoth = 0;//this is the number of reconstructed Deltas
+  unsigned NumAccDeuteronOnly = 0;
+  unsigned NumAccPionOnly = 0;
+
+  TH1F* h_d_pt = new TH1F("h_d_pt", "h_d_pt", 1024, 0, 4000);
+  TH1F* h_d_eta = new TH1F("h_d_eta", "h_d_eta", 1024, -1.5, 1.5);
+  TH1F* h_D_pt = new TH1F("h_D_pt", "h_D_pt", 1024, 0, 4000);
+
+  for(unsigned uIter=0; uIter<NumIter; uIter++){
+    double rnd_D_eta;
+    double rnd_D_phi;
+    double rnd_D_px, rnd_D_py, rnd_D_pz;
+    double rnd_D_p;
+
+    rnd_D_eta = rangen.Uniform(eta_min*1.5, eta_max*1.5);
+    rnd_D_phi = rangen.Uniform(0, 2.*Pi);
+
+    rnd_D_px = rangen.Gaus(0, mom_mean);
+    rnd_D_py = rangen.Gaus(0, mom_mean);
+    rnd_D_pz = rangen.Gaus(0, mom_mean);
+    rnd_D_p = sqrt(rnd_D_px*rnd_D_px+rnd_D_py*rnd_D_py+rnd_D_pz*rnd_D_pz);
+
+    double D_sin_th = 2.*exp(-rnd_D_eta)/(1.+exp(-2.*rnd_D_eta));
+    double D_cotg_th = (1.-exp(-2.*rnd_D_eta))/(2.*exp(-rnd_D_eta));
+    double D_cos_th = (1.-exp(-2.*rnd_D_eta))/(1.+exp(-2.*rnd_D_eta));
+
+    double D_px = rnd_D_p*cos(rnd_D_phi)*D_sin_th;
+    double D_py = rnd_D_p*sin(rnd_D_phi)*D_sin_th;
+    double D_pt = sqrt(D_px*D_px+D_py*D_py);
+    double D_pz = D_pt*D_cotg_th;
+
+
+    double daughter_mass[2];
+    daughter_mass[0] = Mass_p;
+    daughter_mass[1] = Mass_pic;
+    TLorentzVector tlv_D;
+    //tlv_D.SetPtEtaPhiM(D_pt,rnd_D_eta,rnd_D_phi,Mass_Delta);
+    tlv_D.SetXYZM(rnd_D_px,rnd_D_py,rnd_D_pz,Mass_Delta);
+
+    TGenPhaseSpace GenBod;
+    GenBod.SetDecay(tlv_D, 2, daughter_mass);
+    GenBod.Generate();
+    TLorentzVector& tlv_N = *GenBod.GetDecay(0);
+    TLorentzVector& tlv_pic = *GenBod.GetDecay(1);
+    TLorentzVector tlv_d;
+    tlv_d.SetPtEtaPhiM(tlv_N.Pt()*2,tlv_N.Eta(),tlv_N.Phi(),Mass_d);
+
+    TLorentzVector sum_vector = tlv_d + tlv_pic;;
+    TVector3 boost_vector = -sum_vector.BoostVector();
+
+    TLorentzVector tlvb_d(tlv_d);
+    tlvb_d.Boost(boost_vector);
+
+    TLorentzVector tlvb_pic(tlv_pic);
+    tlvb_pic.Boost(boost_vector);
+    
+    //TLorentzVector tlvb_sum = tlvb_d+tlvb_pic;
+    //tlvb_sum.Print();
+
+
+
+
+    double d_eta = tlv_d.Eta();
+    double d_pt = tlv_d.Pt();
+    double N_eta = tlv_N.Eta();
+    double pic_pt = tlv_pic.Pt();
+    double pic_eta = tlv_pic.Eta();
+
+    h_D_pt->Fill(D_pt);
+    //printf("%f %f\n",d_pt,d_eta);
+    bool PionInAcceptance = pic_eta>eta_min && pic_eta<eta_max && pic_pt>pic_pt_min && pic_pt<pic_pt_max;
+    bool DeuteronInAcceptance = d_eta>eta_min && d_eta<eta_max && d_pt>d_pt_min && d_pt<d_pt_max;
+
+    /*
+    tlv_N.Print();
+    tlv_pic.Print();
+    tlv_d.Print();
+    printf("PionInAcceptance = %i\n",PionInAcceptance);
+    printf("DeuteronInAcceptance = %i\n",DeuteronInAcceptance);
+    printf("\n");
+    */
+    double kstar = tlvb_d.P();
+    if(uIter==0){
+      printf("kstar = %.0f\n",kstar);
+    }
+      
+
+
+    //printf("kstar = %.0f\n",kstar);
+
+    if(DeuteronInAcceptance){
+      h_d_pt->Fill(d_pt);
+      h_d_eta->Fill(d_eta);
+      NumAccDeuterons++;
+    }
+
+    if(DeuteronInAcceptance && PionInAcceptance){
+      NumAccBoth++;
+    }
+    if(DeuteronInAcceptance && !PionInAcceptance){
+      NumAccDeuteronOnly++;
+    }
+    if(!DeuteronInAcceptance && PionInAcceptance){
+      NumAccPionOnly++;
+    }
+
+    //delete tlv_N; tlv_N=NULL;
+    //delete tlv_pic; tlv_pic=NULL;
+  }
+
+
+  printf("acceptance effect on the Delta: %.4f\n", double(NumAccBoth)/double(NumAccDeuterons));
+  printf("NumAccDeuterons = %u\n",NumAccDeuterons);
+  printf("NumAccBoth = %u\n",NumAccBoth);
+  printf("NumAccDeuteronOnly = %u\n",NumAccDeuteronOnly);
+  printf("NumAccPionOnly = %u\n",NumAccPionOnly);
+
+  TFile fOutput(TString::Format("%s/Deuteron/GypsyGhettoForAcceptance.root",GetFemtoOutputFolder()), "recreate");
+
+  h_d_pt->Write();
+  h_d_eta->Write();
+  h_D_pt->Write();
+
+  delete h_d_pt;
+  delete h_d_eta;
+  delete h_D_pt;
 }
 
 int DEUTERON_MAIN(int argc, char *argv[]){
@@ -2918,9 +3096,28 @@ int DEUTERON_MAIN(int argc, char *argv[]){
   //BulgarianIndianGhetto("ghetto_output", atoi(argv[1]),atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),atoi(argv[5]),atoi(argv[6]));
   //USE THIS:
  // BulgarianIndianGhetto("pid_withMomResoME_2024-12-06", atoi(argv[1]),atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),atoi(argv[5]),atoi(argv[6]));
- BulgarianIndianGhetto("pid_withMomResoSE_2025-03-13", atoi(argv[1]),atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),atoi(argv[5]),atoi(argv[6]));
+  //0 - do NOT multiply C_Delta
+  //1 - do multiply C_Delta by C_genuine
+ std::vector<int> fit_types = {1};
+ BulgarianIndianGhetto("fuck", fit_types, atoi(argv[1]),atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),atoi(argv[5]),atoi(argv[6]));
+ //GypsyGhettoForAcceptance();
  //BulgarianIndianGhetto("TEST", atoi(argv[1]),atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),atoi(argv[5]),atoi(argv[6]));
   //BulgarianIndianGhetto(-1,10,true,true,true,23);
+//for the mt_bin:
+/*
+      //mt diff pip_d used for approvals at PF
+      else if(mt_bin>=0 && mt_bin<100 && true){
+        //mt int pip_d used for aprovals at CF and PF
+  if(mt_bin == -1){
+  
+        //mt diff pim_d used for approvals at PF
+  else if(mt_bin>=100 && mt_bin<200 && true){
+        //mt int pim_d used for approvals at CF and PF
+  else if(mt_bin == -101){
+  
+       //this is the ULTRA-GHETTO Kminus-d fit, demanded by Laura on 14th Nov
+  else if(mt_bin==1000){
+*/
 
   //pim_d_Coulomb_vs_RealSI();
 

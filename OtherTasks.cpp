@@ -16558,6 +16558,46 @@ void KplusXi1530_KplusXi_Decay(int SEED, int MilNumIter){
   decMat.Run(SEED,MilNumIter*1000*1000);
 }
 
+void pL_LL_Decay(int SEED, int MilNumIter){
+  DLM_DecayMatrix decMat;
+  //TString OutputFileName = TString::Format("%s/CatsFiles/DecaySmear/Decay_matrix_pL_LL_RS%i.root",GetCernBoxDimi(),SEED);
+  TString OutputFileName = TString::Format("%s/OtherTasks/pL_LL_Decay/Decay_matrix_pL_LL_RS%i.root",GetFemtoOutputFolder(),SEED);
+  decMat.SetFileName(OutputFileName.Data());
+  decMat.SetHistoName("hRes_pL_LL");
+  decMat.SetBins(1024,0,1024);
+  decMat.SetNumDaughters1(1);
+  decMat.SetMotherMass1(Mass_L);
+  decMat.SetNumDaughters2(2);
+  decMat.SetDaughterMass2(0,Mass_p);
+  decMat.SetDaughterMass2(1,Mass_pi0);
+  decMat.SetMotherMass2(Mass_L);
+  decMat.SetMeanMomentum(0);
+  decMat.SetMomentumSpread(350);
+  decMat.Run(SEED,MilNumIter*1000*1000);
+}
+
+void pp_LL_Decay(int SEED, int MilNumIter){
+  DLM_DecayMatrix decMat;
+  //TString OutputFileName = TString::Format("%s/CatsFiles/DecaySmear/Decay_matrix_pL_LL_RS%i.root",GetCernBoxDimi(),SEED);
+  TString OutputFileName = TString::Format("%s/OtherTasks/pL_LL_Decay/Decay_matrix_pp_LL_RS%i.root",GetFemtoOutputFolder(),SEED);
+  decMat.SetFileName(OutputFileName.Data());
+  decMat.SetHistoName("hRes_pL_LL");
+  decMat.SetBins(1024,0,1024);
+  decMat.SetNumDaughters1(2);
+  decMat.SetDaughterMass1(0,Mass_p);
+  decMat.SetDaughterMass1(1,Mass_pi0);
+  decMat.SetMotherMass1(Mass_L);
+  decMat.SetNumDaughters2(2);
+  decMat.SetDaughterMass2(0,Mass_p);
+  decMat.SetDaughterMass2(1,Mass_pi0);
+  decMat.SetMotherMass2(Mass_L);
+  decMat.SetMeanMomentum(0);
+  decMat.SetMomentumSpread(350);
+  decMat.Run(SEED,MilNumIter*1000*1000); 
+}
+
+
+
 
 void pn_Xchecks_1(){
   const unsigned NumMomBins = 80;
@@ -18141,10 +18181,274 @@ void xCheck_Benedict_pSigma_v1(){
     h1Sig->Write();
 }
 
+
+void extrap_me_for_3b_v1(){
+
+  //ppp
+  TString InputFileName = TString::Format("%s/3body/LauraPrelim/Before_QM_ME/ppp_syst_defaultLarge.root",GetCernBoxDimi());
+  TString InputHistName = "ME_partPlusAntiPart";
+  //which bins to is (ROOT numbering) for the fit
+  int first_bin_id = 0;
+  int last_bin_id = 12;
+  TFile fOutput(TString::Format("%s/3body/LauraPrelim/Before_QM_ME/fit_result_ppp.root",GetCernBoxDimi()), "recreate");
+  
+  //ppL
+  //TString InputFileName = TString::Format("%s/3body/LauraPrelim/Before_QM_ME/ppL_syst_defaultLarge_MakeBigger.root",GetCernBoxDimi());
+  //TString InputHistName = "ME_partPlusAntiPart";
+  //which bins to is (ROOT numbering) for the fit
+  //int first_bin_id = 2;
+  //int last_bin_id = 20;  
+  //TFile fOutput(TString::Format("%s/3body/LauraPrelim/Before_QM_ME/fit_result_ppL.root",GetCernBoxDimi()), "recreate");
+
+  TFile fInput(InputFileName, "read");
+  TH1F* hME = (TH1F*)fInput.Get(InputHistName);
+
+
+  unsigned NumBootIter = 1000;
+  float q_min = hME->GetXaxis()->GetBinLowEdge(first_bin_id);
+  float q_max = hME->GetXaxis()->GetBinUpEdge(last_bin_id);
+
+  //TF1* fBGHetto = new TF1("fBGHetto", "[0]*x*x*exp(-pow(x/[1],[2]))",q_min,q_max*10);
+  TF1* fBGHetto = new TF1("fBGHetto", "[0]*x*x/([1]+[2]*exp(pow(x-[3],[4])))",q_min,q_max);
+
+  fBGHetto->SetParameter(0,1e3);
+  fBGHetto->FixParameter(1,1);
+  //fBGHetto->SetParLimits(1,0.05,40);
+  fBGHetto->SetParameter(2,1);
+  //fBGHetto->SetParLimits(2,0.5,40);
+  fBGHetto->SetParameter(3,3);
+  fBGHetto->FixParameter(4,1);
+  //fBGHetto->SetParLimits(4,0.5,2);
+  
+  hME->Fit(fBGHetto,"S, N, R, M");
+
+  fOutput.cd();
+  hME->Write();
+  fBGHetto->Write();
+
+  delete fBGHetto;
+}
+
+
+
+double Emma_potential(double* ppars){
+// ppars[0] - radius in fm
+// ppars[1] - k* in MeV
+// ppars[2] - scaling constant g
+// ppars[3] - scaling constant a
+// m - mass of mediating particle in MeV: neutral pion
+
+double& r = ppars[0];
+double& beta = ppars[2];
+double& a1 = ppars[3];
+double& b1 = ppars[4];//fm
+double& a2 = ppars[5];
+double& b2 = ppars[6];//fm
+double& a3mpi4 = ppars[7];
+double& b3 = ppars[8];//fm
+double& mpi = ppars[9];//MeV
+
+double fATFF = pow(1-exp(-pow(r/b3,2.)),2.);
+
+double rad = r;
+double result;
+//if(r<0.01){
+//  rad = 0.01;
+//}
+
+//if(r>16){
+//  result = 0;
+//}
+//else{
+  result = beta*(a1*exp(-pow(rad/b1,2.))+a2*exp(-pow(rad/b2,2.)))+a3mpi4*fATFF*exp(-2.*mpi*rad/hbarc)/pow(rad,2.);
+//}
+
+
+return result;
+}
+
+void Ghetto_pPhi_check_20250426(){
+  
+  const double source_size = 1.08;
+
+  CATS Kitty;
+	CATS smelly_cat;
+  double kMin = 0;
+  double kMax = 320;
+  unsigned NumMomBins = 80;
+	smelly_cat.SetMomBins(NumMomBins, kMin, kMax);
+	smelly_cat.SetThetaDependentSource(false);
+	CATSparameters ppars(CATSparameters::tSource, 1, true);
+
+	smelly_cat.SetAnaSource(GaussSource, ppars);
+	smelly_cat.SetAnaSource(0, source_size);
+	smelly_cat.SetAutoNormSource(true);
+	smelly_cat.SetUseAnalyticSource(true);
+	smelly_cat.SetMomentumDependentSource(false);
+	smelly_cat.SetExcludeFailedBins(false);
+	smelly_cat.SetQ1Q2(0);
+	smelly_cat.SetQuantumStatistics(false);
+	smelly_cat.SetRedMass((938*1019.461)/(938+1019.461));
+// set parameters for the interaction potential
+//double& r = ppars[0];
+//0 double& beta = ppars[2];
+//1 double& a1 = ppars[3];
+//2 double& b1 = ppars[4];//fm
+//3 double& a2 = ppars[5];
+//4 double& b2 = ppars[6];//fm
+//5 double& a3mpi4 = ppars[7];
+//6 double& b3 = ppars[8];//fm
+//7 double& mpi = ppars[9];//MeV
+	CATSparameters p01(CATSparameters::tPotential, 8, true);
+	p01.SetParameter(0, 1);//beta
+	p01.SetParameter(1, -392);//a1
+  p01.SetParameter(2, 0.128);//b1
+	p01.SetParameter(3, -145);//a2
+  p01.SetParameter(4, 0.284);//b2
+  p01.SetParameter(5, -83);//a3mpi4
+  p01.SetParameter(6, 0.582);//b3
+  p01.SetParameter(7, 146);//mpi
+
+	smelly_cat.SetNumChannels(1);
+	smelly_cat.SetNumPW(0, 1);
+	smelly_cat.SetShortRangePotential(0,0,Emma_potential, p01);
+	smelly_cat.SetSpin(0, 0);
+	smelly_cat.SetChannelWeight(0, 1);
+  smelly_cat.SetMaxRad(64);
+
+	smelly_cat.KillTheCat();
+
+  TFile fOutput(TString::Format("%s/OtherTasks/Ghetto_pPhi_check_20250426.root",GetFemtoOutputFolder()), "recreate");
+  TH1F* hCk_pphi = new TH1F("hCk_pphi", "hCk_pphi", NumMomBins, kMin, kMax);
+
+  for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+    hCk_pphi->SetBinContent(uMom+1, smelly_cat.GetCorrFun(uMom));
+
+  }
+
+  fOutput.cd();
+  hCk_pphi->Write();
+  delete hCk_pphi;
+}
+
+
+//save 2D histos, kstar vs rstar for the radial part of the WF
+//run for both SI only and SI+coulomb
+void pp_asymptotic(){
+  TString OutputFileName = TString::Format("%s/OtherTasks/pp_asymptotic_av18.root",GetFemtoOutputFolder());
+
+  unsigned NumMomBins = 30;
+  double kMin = 0;
+  double kMax = 300;
+
+  unsigned NumRadBins = 512;
+  double rMin = 0;
+  double rMax = 24;
+
+
+	CATS smelly_cat;
+// set how many points, k_min, k-max
+	smelly_cat.SetMomBins(NumMomBins, kMin, kMax);
+
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles/",GetCernBoxDimi()));
+  AnalysisObject.SetUpCats_pp(smelly_cat,"AV18","Gauss",0, 0);
+
+
+  smelly_cat.KillTheCat();
+
+  TFile fOutput(OutputFileName, "recreate");
+
+  TH2F* h_pp_av18_1S0_SI = new TH2F("h_pp_av18_1S0_SI", "h_pp_av18_1S0_SI", NumMomBins, kMin, kMax, NumRadBins, rMin, rMax);
+  TH2F* h_pp_av18_1S0_FULL = new TH2F("h_pp_av18_1S0_FULL", "h_pp_av18_1S0_FULL", NumMomBins, kMin, kMax, NumRadBins, rMin, rMax);
+
+  TH2F* h_pp_av18_3P0_SI = new TH2F("h_pp_av18_3P0_SI", "h_pp_av18_3P0_SI", NumMomBins, kMin, kMax, NumRadBins, rMin, rMax);
+  TH2F* h_pp_av18_3P0_FULL = new TH2F("h_pp_av18_3P0_FULL", "h_pp_av18_3P0_FULL", NumMomBins, kMin, kMax, NumRadBins, rMin, rMax);
+
+  TH2F* h_pp_av18_3P1_SI = new TH2F("h_pp_av18_3P1_SI", "h_pp_av18_3P1_SI", NumMomBins, kMin, kMax, NumRadBins, rMin, rMax);
+  TH2F* h_pp_av18_3P1_FULL = new TH2F("h_pp_av18_3P1_FULL", "h_pp_av18_3P1_FULL", NumMomBins, kMin, kMax, NumRadBins, rMin, rMax);
+
+  TH2F* h_pp_av18_3P2_SI = new TH2F("h_pp_av18_3P2_SI", "h_pp_av18_3P2_SI", NumMomBins, kMin, kMax, NumRadBins, rMin, rMax);
+  TH2F* h_pp_av18_3P2_FULL = new TH2F("h_pp_av18_3P2_FULL", "h_pp_av18_3P2_FULL", NumMomBins, kMin, kMax, NumRadBins, rMin, rMax);
+
+  TH2F* h_pp_av18_1D2_SI = new TH2F("h_pp_av18_1D2_SI", "h_pp_av18_1D2_SI", NumMomBins, kMin, kMax, NumRadBins, rMin, rMax);
+  TH2F* h_pp_av18_1D2_FULL = new TH2F("h_pp_av18_1D2_FULL", "h_pp_av18_1D2_FULL", NumMomBins, kMin, kMax, NumRadBins, rMin, rMax);
+
+  
+  for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+    for(unsigned uRad=0; uRad<NumRadBins; uRad++){
+      double RAD = h_pp_av18_1S0_SI->GetYaxis()->GetBinCenter(uRad+1);
+      h_pp_av18_1S0_FULL->SetBinContent(uMom+1, uRad+1, smelly_cat.EvalRadialWaveFunction(uMom, 0, 0, RAD, true).real());
+      h_pp_av18_3P0_FULL->SetBinContent(uMom+1, uRad+1, smelly_cat.EvalRadialWaveFunction(uMom, 1, 1, RAD, true).real());
+      h_pp_av18_3P1_FULL->SetBinContent(uMom+1, uRad+1, smelly_cat.EvalRadialWaveFunction(uMom, 2, 1, RAD, true).real());
+      h_pp_av18_3P2_FULL->SetBinContent(uMom+1, uRad+1, smelly_cat.EvalRadialWaveFunction(uMom, 3, 1, RAD, true).real());
+      h_pp_av18_1D2_FULL->SetBinContent(uMom+1, uRad+1, smelly_cat.EvalRadialWaveFunction(uMom, 0, 2, RAD, true).real());
+    }
+  }
+
+  smelly_cat.SetQ1Q2(0);
+  smelly_cat.KillTheCat();
+
+  for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+    for(unsigned uRad=0; uRad<NumRadBins; uRad++){
+      double RAD = h_pp_av18_1S0_SI->GetYaxis()->GetBinCenter(uRad+1);
+      h_pp_av18_1S0_SI->SetBinContent(uMom+1, uRad+1, smelly_cat.EvalRadialWaveFunction(uMom, 0, 0, RAD, true).real());
+      h_pp_av18_3P0_SI->SetBinContent(uMom+1, uRad+1, smelly_cat.EvalRadialWaveFunction(uMom, 1, 1, RAD, true).real());
+      h_pp_av18_3P1_SI->SetBinContent(uMom+1, uRad+1, smelly_cat.EvalRadialWaveFunction(uMom, 2, 1, RAD, true).real());
+      h_pp_av18_3P2_SI->SetBinContent(uMom+1, uRad+1, smelly_cat.EvalRadialWaveFunction(uMom, 3, 1, RAD, true).real());
+      h_pp_av18_1D2_SI->SetBinContent(uMom+1, uRad+1, smelly_cat.EvalRadialWaveFunction(uMom, 0, 2, RAD, true).real());
+    }
+  }
+
+  h_pp_av18_1S0_SI->GetXaxis()->SetTitle("k* (MeV)");
+  h_pp_av18_1S0_FULL->GetXaxis()->SetTitle("r* (fm)");
+
+  h_pp_av18_3P0_SI->GetXaxis()->SetTitle("k* (MeV)");
+  h_pp_av18_3P0_FULL->GetXaxis()->SetTitle("r* (fm)");
+
+  h_pp_av18_3P1_SI->GetXaxis()->SetTitle("k* (MeV)");
+  h_pp_av18_3P1_FULL->GetXaxis()->SetTitle("r* (fm)");
+
+  h_pp_av18_3P2_SI->GetXaxis()->SetTitle("k* (MeV)");
+  h_pp_av18_3P2_FULL->GetXaxis()->SetTitle("r* (fm)");
+
+  h_pp_av18_1D2_SI->GetXaxis()->SetTitle("k* (MeV)");
+  h_pp_av18_1D2_FULL->GetXaxis()->SetTitle("r* (fm)");
+
+
+
+  h_pp_av18_1S0_SI->Write();
+  h_pp_av18_1S0_FULL->Write();
+
+  h_pp_av18_3P0_SI->Write();
+  h_pp_av18_3P0_FULL->Write();
+
+  h_pp_av18_3P1_SI->Write();
+  h_pp_av18_3P1_FULL->Write();
+
+  h_pp_av18_3P2_SI->Write();
+  h_pp_av18_3P2_FULL->Write();
+
+  h_pp_av18_1D2_SI->Write();
+  h_pp_av18_1D2_FULL->Write();
+
+
+
+}
+
 //
 int OTHERTASKS(int argc, char *argv[]){
 
-  L_pi_CommonSource_based_on_p_pic(); return 0;
+  pp_asymptotic(); return 0;
+  //Ghetto_pPhi_check_20250426();
+
+  //L_pi_CommonSource_based_on_p_pic(); return 0;
+  //extrap_me_for_3b_v1(); return 0;
+  //pL_LL_Decay(atoi(argv[1]), atoi(argv[2])); return 0;
+
+  //pp_LL_Decay(atoi(argv[1]), atoi(argv[2])); return 0;
+
+
 
     //pp_large_RSM_source();
     
@@ -18391,3 +18695,4 @@ nsig 6 bins = 3.75
 
     return 0;
 }
+

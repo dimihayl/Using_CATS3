@@ -891,6 +891,8 @@ void Ghetto_Test1(){
   CATSparameters cPotPars3P1(CATSparameters::tPotential,8,true); cPotPars3P1.SetParameters(PotPars3P1);
   CATSparameters cPotPars3P2(CATSparameters::tPotential,8,true); cPotPars3P2.SetParameters(PotPars3P2);
   CATSparameters cPotPars1D2(CATSparameters::tPotential,8,true); cPotPars1D2.SetParameters(PotPars1D2);
+  
+
 
   const unsigned NumMomBins_pp = 100;
   const double kMin_pp = 0;
@@ -10279,7 +10281,7 @@ void CECA_sim_for_AI_pp_v0(int SEED, unsigned NUM_CPU){
 
 
   TString OutputFolderName;
-  OutputFolderName = TString::Format("%s/FunWithCeca/CECA_sim_for_AI_pp_v0",GetFemtoOutputFolder());
+  OutputFolderName = TString::Format("%s/FunWithCeca/CECA_sim_for_AI_pp",GetFemtoOutputFolder());
   //TFile fOutput(BaseFileName+".root","recreate");
 
 
@@ -10409,7 +10411,8 @@ void CECA_sim_for_AI_pp_v0(int SEED, unsigned NUM_CPU){
 
 //a second attempt to simulate CECA events for pp, to be used by the AI people
 //now, we have a fixed amount of yield per configurations simulated
-void CECA_sim_for_AI_pp_v1(int SEED, unsigned NUM_CPU, unsigned NUM_CONFIGS, unsigned K_YIELD_PER_CONFIG){
+//NUM_CONFIGS -> random configurations that we simulate
+void CECA_sim_for_AI_pp_v1(int SEED, unsigned NUM_CPU, unsigned NUM_CONFIGS, unsigned K_YIELD_PER_CONFIG, TString OutputFolderName){
 
   unsigned YIELD_PER_CONFIG = K_YIELD_PER_CONFIG*1000;
   double EtaCut = 0.8;
@@ -10448,8 +10451,8 @@ void CECA_sim_for_AI_pp_v1(int SEED, unsigned NUM_CPU, unsigned NUM_CONFIGS, uns
 
   TRandom3 rangen(SEED);
 
-  TString OutputFolderName;
-  OutputFolderName = TString::Format("%s/FunWithCeca/CECA_sim_for_AI_pp_v1",GetFemtoOutputFolder());
+  //TString OutputFolderName;
+  //OutputFolderName = TString::Format("%s/FunWithCeca/CECA_sim_for_AI_pp_v3",GetFemtoOutputFolder());
   //TFile fOutput(BaseFileName+".root","recreate");
 
   // Save TNtuple to ROOT file
@@ -10634,7 +10637,7 @@ void ThreeBody_test1(){
   //const double TIMEOUT = 60;
   //const double GLOB_TIMEOUT = 30*60;
   const double TIMEOUT = 20;
-  const double GLOB_TIMEOUT = 3*60;
+  const double GLOB_TIMEOUT = 1*60;
   const unsigned Multiplicity=3;
   const bool ThreeBody = true;
   const double femto_region = ThreeBody?400:100;
@@ -10704,6 +10707,7 @@ void ThreeBody_test1(){
     if(prt->GetName()=="Proton"){
       prt->SetMass(Mass_p);
       if(type=="pp"||type=="ppp") prt->SetAbundance(35.78+64.22*(!PROTON_RESO));
+      //if(type=="pp"||type=="ppp") prt->SetAbundance(0);
       else if(type=="pP") prt->SetAbundance(100.);
       else prt->SetAbundance(0);
       prt->SetRadius(HadronSize);
@@ -10721,6 +10725,7 @@ void ThreeBody_test1(){
     else if(prt->GetName()=="ProtonReso"){
       prt->SetMass(1362);
       prt->SetAbundance(64.22*PROTON_RESO);
+      //prt->SetAbundance(100);
       prt->SetWidth(hbarc/1.65);
       prt->SetRadius(HadronSize);
       prt->SetRadiusSlope(HadronSlope);
@@ -10786,10 +10791,10 @@ void ThreeBody_test1_plots(){
 
   TString OutputFolderName;
   OutputFolderName = "FunWithCeca/ThreeBody_test1";
-  TString InFile_2M_2B = TString::Format("%s/%s/2025-03-06_CECA/fOutput_2M_2B.root",GetFemtoOutputFolder(),OutputFolderName.Data());
-  TString InFile_3M_2B = TString::Format("%s/%s/2025-03-06_CECA/fOutput_3M_2B.root",GetFemtoOutputFolder(),OutputFolderName.Data());
-  TString InFile_3M_3B = TString::Format("%s/%s/2025-03-06_CECA/fOutput_3M_3B.root",GetFemtoOutputFolder(),OutputFolderName.Data());
-  TString OutFileName = TString::Format("%s/%s/2025-03-06_CECA/fPlots.root",GetFemtoOutputFolder(),OutputFolderName.Data());
+  TString InFile_2M_2B = TString::Format("%s/%s/2025-03-14_CECA/fOutput_2M_2B.root",GetFemtoOutputFolder(),OutputFolderName.Data());
+  TString InFile_3M_2B = TString::Format("%s/%s/2025-03-14_CECA/fOutput_3M_2B.root",GetFemtoOutputFolder(),OutputFolderName.Data());
+  TString InFile_3M_3B = TString::Format("%s/%s/2025-03-14_CECA/fOutput_3M_3B.root",GetFemtoOutputFolder(),OutputFolderName.Data());
+  TString OutFileName = TString::Format("%s/%s/2025-03-14_CECA/fPlots.root",GetFemtoOutputFolder(),OutputFolderName.Data());
 
 
   const double Q3_femto = 400;
@@ -11045,17 +11050,17 @@ void ThreeBody_test1_plots(){
 //generate a source, and a create a dummy correlation with errors. Fit it using CECA source.
 //give it to Max, see what he gets with ML
 void MC_closure_for_Max(int SEED){
-  std::vector<double> input_rd = {0.21, 0.23, 0.25, 0.27, 0.29};
-  std::vector<double> input_ht = {3.9, 4.2, 4.5, 4.8, 5.1};
-  std::vector<double> input_tau = {2.1, 2.3, 2.5, 2.7, 2.9};
+  //std::vector<double> input_rd = {0.21, 0.23, 0.25, 0.27, 0.29};
+  //std::vector<double> input_ht = {3.9, 4.2, 4.5, 4.8, 5.1};
+  //std::vector<double> input_tau = {2.1, 2.3, 2.5, 2.7, 2.9};
 
   //std::vector<double> input_rd = {0.22, 0.25, 0.28};
   //std::vector<double> input_ht = {4.0, 4.5, 5.0};
   //std::vector<double> input_tau = {2.2, 2.5, 2.8};
 
-  //std::vector<double> input_rd = {0.22, 0.28};
-  //std::vector<double> input_ht = {4.0, 5.0};
-  //std::vector<double> input_tau = {2.2, 2.8};
+  std::vector<double> input_rd = {0.22, 0.28};
+  std::vector<double> input_ht = {4.0, 5.0};
+  std::vector<double> input_tau = {2.2, 2.8};
 
 
   std::vector<float> mT_values = {1100, 1200, 1300, 1400, 1600, 1900};
@@ -11093,7 +11098,7 @@ void MC_closure_for_Max(int SEED){
   const double femto_region = 100;
   const unsigned target_yield = 11*23*1000;
   //const unsigned target_yield = 3*23*1000;
-  const unsigned NUM_CPU = 16;
+  const unsigned NUM_CPU = 8;
   TString BaseName = TString::Format("Eta%.1f",EtaCut);
 
   //we run to either reproduce the core of 0.97,
@@ -11240,6 +11245,7 @@ void MC_closure_for_Max(int SEED){
 
     Ivana.Ghetto_NumRadBins = 4096;
     Ivana.Ghetto_RadMax = 64;
+    Ivana.Ghetto_NumMtBins = 192;
     Ivana.GoBabyGo(NUM_CPU);
 
     Ivana.GhettoFemto_mT_rstar->ComputeError();
@@ -11248,6 +11254,7 @@ void MC_closure_for_Max(int SEED){
     Ivana.GhettoFemto_mT_kstar->ComputeError();
     outFile->cd();
     TH2F* h_GhettoFemto_mT_kstar = Convert_DlmHisto_TH2F(Ivana.GhettoFemto_mT_kstar,TString::Format("GhettoFemto_mT_kstar_%.2f_%.2f_%.2f",rSP_core, rSP_hadr, rSP_tau));
+    TH2F* h_GhettoFemto_mT_rstar = Convert_DlmHisto_TH2F(Ivana.GhettoFemto_mT_rstar,TString::Format("GhettoFemto_mT_rstar_%.2f_%.2f_%.2f",rSP_core, rSP_hadr, rSP_tau));
     
 
     for(unsigned uMt=0; uMt<mT_values.size(); uMt++){
@@ -11318,6 +11325,7 @@ void MC_closure_for_Max(int SEED){
 
     outFile->cd();
     h_GhettoFemto_mT_kstar->Write();
+    h_GhettoFemto_mT_rstar->Write();
     
     //ntuple->Write();
 
@@ -11325,6 +11333,7 @@ void MC_closure_for_Max(int SEED){
     //delete ntuple;
     //delete outFile;
     delete h_GhettoFemto_mT_kstar;
+    delete h_GhettoFemto_mT_rstar;
   
   }}} 
 
@@ -11710,7 +11719,7 @@ int FUN_WITH_CECA(int argc, char *argv[]){
 //for(int i=0; i<20; i++) printf("%i\n", rangen.Int(1));
 
 
-  //MC_closure_for_Max(69); return 0;
+  //MC_closure_for_Max(17); return 0;
   //MC_closure_FIT_for_Max(); return 0;
   //MC_closure_CK_for_Max(); return 0;
 
@@ -11730,7 +11739,7 @@ int FUN_WITH_CECA(int argc, char *argv[]){
 
   //CECA_sim_for_AI_pp_v0(atoi(argv[1]), atoi(argv[2]));
   //void CECA_sim_for_AI_pp_v1(int SEED, unsigned NUM_CPU, unsigned NUM_CONFIGS, unsigned K_YIELD_PER_CONFIG)
-  //CECA_sim_for_AI_pp_v1(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), atoi(argv[4])); return 0;
+  CECA_sim_for_AI_pp_v1(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), TString::Format("%s/FunWithCeca/CECA_sim_for_AI_pp_v3",GetFemtoOutputFolder())); return 0;
   //CECA_primoridal_disto(atoi(argv[1]), atoi(argv[2]));
 
 //printf("GaussFromMean 2.97 = %f\n",GaussFromMean(2.97));
