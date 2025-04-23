@@ -10412,7 +10412,11 @@ void CECA_sim_for_AI_pp_v0(int SEED, unsigned NUM_CPU){
 //a second attempt to simulate CECA events for pp, to be used by the AI people
 //now, we have a fixed amount of yield per configurations simulated
 //NUM_CONFIGS -> random configurations that we simulate
-void CECA_sim_for_AI_pp_v1(int SEED, unsigned NUM_CPU, unsigned NUM_CONFIGS, unsigned K_YIELD_PER_CONFIG, TString OutputFolderName){
+//the flag, so far is:
+//0 -> clean output into a root file
+//2 -> also ASCII files, with rd, hT, tau
+//do NOT use other flags, as the output will be even more
+void CECA_sim_for_AI_pp_v1(int SEED, unsigned NUM_CPU, unsigned NUM_CONFIGS, unsigned K_YIELD_PER_CONFIG, int flag, TString OutputFolderName){
 
   unsigned YIELD_PER_CONFIG = K_YIELD_PER_CONFIG*1000;
   double EtaCut = 0.8;
@@ -10559,7 +10563,7 @@ void CECA_sim_for_AI_pp_v1(int SEED, unsigned NUM_CPU, unsigned NUM_CONFIGS, uns
     Ivana.SetFemtoRegion(femto_region);
     Ivana.GHETTO_EVENT = true;
     std::string pair_file_name(TString::Format(OutputFolderName+"/pair_info_S%i_N%i_YPC%iK_C%u.data",SEED,NUM_CPU,K_YIELD_PER_CONFIG,uConfig).Data());
-    Ivana.SetExportPairs(2,pair_file_name);
+    Ivana.SetExportPairs(flag%10,pair_file_name);
 
     if(NUM_CPU>1){
       Ivana.SetDebugMode(true);
@@ -10620,6 +10624,202 @@ void CECA_sim_for_AI_pp_v1(int SEED, unsigned NUM_CPU, unsigned NUM_CONFIGS, uns
   delete dlm_pT_eta_p;
 }
 
+//a third attempt to simulate CECA events for pp, to be used by the AI/Carla people
+//now, we have a fixed amount of yield per configurations simulated, plus flexibility of the set up (phase space to explore)
+//NUM_CONFIGS -> random configurations that we simulate
+//the flag, so far is:
+//0 -> clean output into a root file
+//2 -> also ASCII files, with rd, hT, tau
+//do NOT use other flags, as the output will be even more
+void CECA_sim_for_AI_pp_v2(int SEED, unsigned NUM_CPU, unsigned NUM_CONFIGS, unsigned K_YIELD_PER_CONFIG, 
+  float min_rd, float max_rd, float min_ht, float max_ht, float min_tau, float max_tau,
+  int flag, TString OutputFolderName){
+
+  unsigned YIELD_PER_CONFIG = K_YIELD_PER_CONFIG*1000;
+  double EtaCut = 0.8;
+  DLM_Histo<float>* dlm_pT_eta_p;
+  dlm_pT_eta_p = GetPtEta_13TeV(
+      TString::Format("%s/CatsFiles/Source/CECA/proton_pT/p_dist_13TeV_ClassI.root",GetCernBoxDimi()),
+      "Graph1D_y1", 500, 4050, EtaCut);
+
+  double HadronSize = 0;//0.75
+  double HadronSlope = 0;//0.2
+  const bool PROTON_RESO = true;
+  const bool EQUALIZE_TAU = true;
+  const double TIMEOUT = 30;
+  const double GLOB_TIMEOUT = 14*60;
+  const unsigned Multiplicity=2;
+  const double femto_region = 100;
+  const unsigned target_yield = YIELD_PER_CONFIG;
+  TString BaseName = TString::Format("Eta%.1f",EtaCut);
+
+  //we run to either reproduce the core of 0.97,
+  //or the upper limit of reff = 1.06+0.04
+  //this leads to a 10% difference in the SP core source
+  double rSP_core=0;
+  double rSP_dispZ=0;
+  double rSP_hadr=0;
+  double rSP_hadrZ=0;
+  double rSP_hflc=0;
+  double rSP_tau=0;
+  bool tau_prp = true;
+  double rSP_tflc=0;
+  double rSP_ThK=0;
+  //default is true
+  bool rSP_FixedHadr = true;
+  //default is 0
+  float rSP_FragBeta = 0;
+
+  TRandom3 rangen(SEED);
+
+  //TString OutputFolderName;
+  //OutputFolderName = TString::Format("%s/FunWithCeca/CECA_sim_for_AI_pp_v3",GetFemtoOutputFolder());
+  //TFile fOutput(BaseFileName+".root","recreate");
+
+  // Save TNtuple to ROOT file
+  TString pair_root_name(TString::Format(OutputFolderName+"/pair_info_S%i_N%i_YPC%iK.root",SEED,NUM_CPU,K_YIELD_PER_CONFIG).Data());
+  TFile* outFile = new TFile(pair_root_name, "RECREATE");
+
+  // Create TNtuple
+  TNtuple* ntuple = new TNtuple("CECA_Data", "CECA_Data", "config_id:kstar:rstar:mT:rd:h:tau");
+
+
+  for(unsigned uConfig=0; uConfig<NUM_CONFIGS; uConfig++){
+
+    rSP_core = rangen.Uniform(min_rd, max_rd);
+    rSP_dispZ = rSP_core;
+
+    rSP_hadr = rangen.Uniform(min_ht, max_ht);
+
+    rSP_tau = rangen.Uniform(min_tau, max_tau);
+
+    TREPNI Database(0);
+    Database.SetSeed(11);
+    std::vector<TreParticle*> ParticleList;
+    ParticleList.push_back(Database.NewParticle("Proton"));
+    ParticleList.push_back(Database.NewParticle("Pion"));
+    ParticleList.push_back(Database.NewParticle("ProtonReso"));    
+
+    for(TreParticle* prt : ParticleList){
+      if(prt->GetName()=="Proton"){
+        prt->SetMass(Mass_p);
+        prt->SetAbundance(35.78+64.22*(!PROTON_RESO));
+        prt->SetRadius(HadronSize);
+        prt->SetRadiusSlope(HadronSlope);
+        prt->SetPtEtaPhi(*dlm_pT_eta_p);
+      }
+      else if(prt->GetName()=="Pion"){
+        prt->SetMass(Mass_pic);
+        prt->SetAbundance(0);
+        prt->SetRadius(HadronSize);
+        prt->SetRadiusSlope(HadronSlope);
+      }
+      else if(prt->GetName()=="ProtonReso"){
+        prt->SetMass(1362);
+        prt->SetAbundance(64.22*PROTON_RESO);
+        prt->SetWidth(hbarc/1.65);
+        prt->SetRadius(HadronSize);
+        prt->SetRadiusSlope(HadronSlope);
+        prt->SetPtEtaPhi(*dlm_pT_eta_p);
+
+        prt->NewDecay();
+        prt->GetDecay(0)->AddDaughter(*Database.GetParticle("Proton"));
+        prt->GetDecay(0)->AddDaughter(*Database.GetParticle("Pion"));
+        prt->GetDecay(0)->SetBranching(100);
+      }
+    }
+
+    std::vector<std::string> ListOfParticles;
+
+    ListOfParticles.push_back("Proton");
+    ListOfParticles.push_back("Proton");
+
+    CECA Ivana(Database,ListOfParticles);
+
+    Ivana.SetDisplacementZ(rSP_dispZ);
+    Ivana.SetDisplacementT(rSP_core);
+    //Ivana.SetDisplacementEbe(rSP_core_SIG/rSP_core);
+    Ivana.SetHadronizationZ(rSP_hadrZ);//0
+    Ivana.SetHadronizationT(rSP_hadr);
+    //Ivana.SetHadronizationEbe(rSP_hadr_SIG/rSP_hadr);
+    Ivana.SetHadrFluctuation(rSP_hflc);
+    Ivana.SetTau(rSP_tau,tau_prp);
+    //Ivana.SetTauEbe(rSP_tau_SIG/rSP_tau);
+    Ivana.SetTauFluct(rSP_tflc);
+    Ivana.SetThermalKick(rSP_ThK);
+    Ivana.SetFixedHadr(rSP_FixedHadr);
+    Ivana.SetFragmentBeta(rSP_FragBeta);
+
+    Ivana.SetTargetStatistics(target_yield);
+    Ivana.SetEventMult(Multiplicity);
+    Ivana.SetSourceDim(2);
+    Ivana.SetDebugMode(true);
+    Ivana.SetThreadTimeout(TIMEOUT);
+    Ivana.SetGlobalTimeout(GLOB_TIMEOUT);
+    Ivana.EqualizeFsiTime(EQUALIZE_TAU);
+    Ivana.SetFemtoRegion(femto_region);
+    Ivana.GHETTO_EVENT = true;
+    std::string pair_file_name(TString::Format(OutputFolderName+"/pair_info_S%i_N%i_YPC%iK_C%u.data",SEED,NUM_CPU,K_YIELD_PER_CONFIG,uConfig).Data());
+    Ivana.SetExportPairs(flag%10,pair_file_name);
+
+    if(NUM_CPU>1){
+      Ivana.SetDebugMode(true);
+      for(unsigned uTh=0; uTh<NUM_CPU; uTh++){
+        Ivana.SetSeed(uTh,SEED*(NUM_CPU)+uTh);
+      }
+    }
+    else{
+      Ivana.SetDebugMode(false);
+      Ivana.SetSeed(0,SEED);
+    }
+
+    Ivana.GoBabyGo(NUM_CPU);
+
+    // Open the text file
+    std::ifstream inFile(pair_file_name);
+
+    if (!inFile.is_open()) {
+        std::cerr << "Error opening input file." << std::endl;
+        return;
+    }
+
+    // Skip the first line
+    std::string line;
+    std::getline(inFile, line);
+
+    outFile->cd();
+    // Read and process the remaining lines
+    while (std::getline(inFile, line)) {
+        std::istringstream iss(line);
+        float kstar, rstar, mT, rd, h, tau;
+
+        // Read values from the line
+        iss >> kstar >> rstar >> mT >> rd >> h >> tau;
+
+        // Fill the TNtuple with the read values
+        ntuple->Fill(uConfig, kstar, rstar, mT, rd, h, tau);
+    }
+
+    // Close the input file
+    inFile.close();
+
+
+  }//uConfig
+
+  outFile->cd();
+  ntuple->Write();
+
+  // Clean up memory
+  delete ntuple;
+  delete outFile;
+  
+//rd,h,tau --> get a list of pairs with r* and mT
+//sample rd,h,tau randomly from a gauss
+//for the output, we need not a histo, but an ASCII or binary file with:
+//kstar,rstar,mT,rd,h,tau
+
+  delete dlm_pT_eta_p;
+}
 
 
 
@@ -11738,8 +11938,8 @@ int FUN_WITH_CECA(int argc, char *argv[]){
   //CecaTest_p_pi_1(true);
 
   //CECA_sim_for_AI_pp_v0(atoi(argv[1]), atoi(argv[2]));
-  //void CECA_sim_for_AI_pp_v1(int SEED, unsigned NUM_CPU, unsigned NUM_CONFIGS, unsigned K_YIELD_PER_CONFIG)
-  CECA_sim_for_AI_pp_v1(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), TString::Format("%s/FunWithCeca/CECA_sim_for_AI_pp_v3",GetFemtoOutputFolder())); return 0;
+  //void CECA_sim_for_AI_pp_v1(int SEED, unsigned NUM_CPU, unsigned NUM_CONFIGS, unsigned K_YIELD_PER_CONFIG, int flag, TString OutputFolderName)
+  CECA_sim_for_AI_pp_v1(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]), TString::Format("%s/FunWithCeca/CECA_sim_for_AI_pp_v3",GetFemtoOutputFolder())); return 0;
   //CECA_primoridal_disto(atoi(argv[1]), atoi(argv[2]));
 
 //printf("GaussFromMean 2.97 = %f\n",GaussFromMean(2.97));
