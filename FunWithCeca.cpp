@@ -10775,34 +10775,6 @@ void CECA_sim_for_AI_pp_v2(int SEED, unsigned NUM_CPU, unsigned NUM_CONFIGS, uns
 
     Ivana.GoBabyGo(NUM_CPU);
 
-    // Open the text file
-    std::ifstream inFile(pair_file_name);
-
-    if (!inFile.is_open()) {
-        std::cerr << "Error opening input file." << std::endl;
-        return;
-    }
-
-    // Skip the first line
-    std::string line;
-    std::getline(inFile, line);
-
-    outFile->cd();
-    // Read and process the remaining lines
-    while (std::getline(inFile, line)) {
-        std::istringstream iss(line);
-        float kstar, rstar, mT, rd, h, tau;
-
-        // Read values from the line
-        iss >> kstar >> rstar >> mT >> rd >> h >> tau;
-
-        // Fill the TNtuple with the read values
-        ntuple->Fill(uConfig, kstar, rstar, mT, rd, h, tau);
-    }
-
-    // Close the input file
-    inFile.close();
-
 
   }//uConfig
 
