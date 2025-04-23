@@ -10647,7 +10647,7 @@ void CECA_sim_for_AI_pp_v2(int SEED, unsigned NUM_CPU, unsigned NUM_CONFIGS, uns
   const bool PROTON_RESO = true;
   const bool EQUALIZE_TAU = true;
   const double TIMEOUT = 30;
-  const double GLOB_TIMEOUT = 14*60;
+  const double GLOB_TIMEOUT = 10*60;
   const unsigned Multiplicity=2;
   const double femto_region = 100;
   const unsigned target_yield = YIELD_PER_CONFIG;
