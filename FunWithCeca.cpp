@@ -10769,7 +10769,7 @@ void CECA_sim_for_AI_pp_v2(int SEED, unsigned NUM_CPU, unsigned NUM_CONFIGS, uns
       }
     }
     else{
-      Ivana.SetDebugMode(false);
+      Ivana.SetDebugMode(true);
       Ivana.SetSeed(0,SEED);
     }
 
