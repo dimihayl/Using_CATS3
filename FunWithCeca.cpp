@@ -10681,7 +10681,7 @@ void CECA_sim_for_AI_pp_v2(int SEED, unsigned NUM_CPU, unsigned NUM_CONFIGS, uns
   TFile* outFile = new TFile(pair_root_name, "RECREATE");
 
   // Create TNtuple
-  TNtuple* ntuple = new TNtuple("CECA_Data", "CECA_Data", "config_id:kstar:rstar:mT:rd:h:tau");
+  TNtuple* ntuple = new TNtuple("CECA_Data", "CECA_Data", "seed:config_id:kstar:rstar:mT:rd:h:tau");
 
 
   for(unsigned uConfig=0; uConfig<NUM_CONFIGS; uConfig++){
@@ -10775,6 +10775,42 @@ void CECA_sim_for_AI_pp_v2(int SEED, unsigned NUM_CPU, unsigned NUM_CONFIGS, uns
 
     Ivana.GoBabyGo(NUM_CPU);
 
+    // Open the text file
+    std::ifstream inFile(pair_file_name);
+
+    if (!inFile.is_open()) {
+        std::cerr << "Error opening input file." << std::endl;
+        return;
+    }
+
+    // Skip the first line
+    std::string line;
+    std::getline(inFile, line);
+
+    outFile->cd();
+    // Read and process the remaining lines
+    while (std::getline(inFile, line)) {
+        std::istringstream iss(line);
+        float kstar, rstar, mT, rd, h, tau;
+
+        // Read values from the line
+        iss >> kstar >> rstar >> mT >> rd >> h >> tau;
+
+        // Fill the TNtuple with the read values
+        ntuple->Fill(SEED, uConfig, kstar, rstar, mT, rd, h, tau);
+    }
+
+    // Close the input file
+    inFile.close();
+
+    if (std::remove(pair_file_name.c_str()) == 0) {
+      std::cout << "File deleted successfully.\n";
+    } 
+    else{
+      std::perror("Error deleting file");
+    }
+  
+  
 
   }//uConfig
 
@@ -11911,7 +11947,13 @@ int FUN_WITH_CECA(int argc, char *argv[]){
 
   //CECA_sim_for_AI_pp_v0(atoi(argv[1]), atoi(argv[2]));
   //void CECA_sim_for_AI_pp_v1(int SEED, unsigned NUM_CPU, unsigned NUM_CONFIGS, unsigned K_YIELD_PER_CONFIG, int flag, TString OutputFolderName)
-  CECA_sim_for_AI_pp_v1(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]), TString::Format("%s/FunWithCeca/CECA_sim_for_AI_pp_v3",GetFemtoOutputFolder())); return 0;
+  //CECA_sim_for_AI_pp_v1(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]), TString::Format("%s/FunWithCeca/CECA_sim_for_AI_pp_v3",GetFemtoOutputFolder())); return 0;
+  //int SEED, unsigned NUM_CPU, unsigned NUM_CONFIGS, unsigned K_YIELD_PER_CONFIG, 
+  //  float min_rd, float max_rd, float min_ht, float max_ht, float min_tau, float max_tau,
+  //  int flag, TString OutputFolderName
+  CECA_sim_for_AI_pp_v2(1,1,4,16,
+    0,1,0,6,0,6,
+    2,TString::Format("%s/FunWithCeca/CECA_sim_for_AI_pp_v3",GetFemtoOutputFolder())); return 0;
   //CECA_primoridal_disto(atoi(argv[1]), atoi(argv[2]));
 
 //printf("GaussFromMean 2.97 = %f\n",GaussFromMean(2.97));
