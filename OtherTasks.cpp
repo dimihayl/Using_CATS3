@@ -18337,9 +18337,9 @@ void Ghetto_pPhi_check_20250426(){
 void pp_asymptotic(){
   TString OutputFileName = TString::Format("%s/OtherTasks/pp_asymptotic_av18.root",GetFemtoOutputFolder());
 
-  unsigned NumMomBins = 30;
-  double kMin = 0;
-  double kMax = 300;
+  unsigned NumMomBins = 60;
+  double kMin = 2.5;
+  double kMax = 302.5;
 
   unsigned NumRadBins = 512;
   double rMin = 0;
@@ -18401,19 +18401,29 @@ void pp_asymptotic(){
   }
 
   h_pp_av18_1S0_SI->GetXaxis()->SetTitle("k* (MeV)");
-  h_pp_av18_1S0_FULL->GetXaxis()->SetTitle("r* (fm)");
+  h_pp_av18_1S0_FULL->GetXaxis()->SetTitle("k* (MeV)");
+  h_pp_av18_1S0_SI->GetYaxis()->SetTitle("r* (fm)");
+  h_pp_av18_1S0_FULL->GetYaxis()->SetTitle("r* (fm)");
 
   h_pp_av18_3P0_SI->GetXaxis()->SetTitle("k* (MeV)");
-  h_pp_av18_3P0_FULL->GetXaxis()->SetTitle("r* (fm)");
+  h_pp_av18_3P0_FULL->GetXaxis()->SetTitle("k* (MeV)");
+  h_pp_av18_3P0_SI->GetYaxis()->SetTitle("r* (fm)");
+  h_pp_av18_3P0_FULL->GetYaxis()->SetTitle("r* (fm)");
 
   h_pp_av18_3P1_SI->GetXaxis()->SetTitle("k* (MeV)");
-  h_pp_av18_3P1_FULL->GetXaxis()->SetTitle("r* (fm)");
+  h_pp_av18_3P1_FULL->GetXaxis()->SetTitle("k* (MeV)");
+  h_pp_av18_3P1_SI->GetYaxis()->SetTitle("r* (fm)");
+  h_pp_av18_3P1_FULL->GetYaxis()->SetTitle("r* (fm)");
 
   h_pp_av18_3P2_SI->GetXaxis()->SetTitle("k* (MeV)");
-  h_pp_av18_3P2_FULL->GetXaxis()->SetTitle("r* (fm)");
+  h_pp_av18_3P2_FULL->GetXaxis()->SetTitle("k* (MeV)");
+  h_pp_av18_3P2_SI->GetYaxis()->SetTitle("r* (fm)");
+  h_pp_av18_3P2_FULL->GetYaxis()->SetTitle("r* (fm)");
 
   h_pp_av18_1D2_SI->GetXaxis()->SetTitle("k* (MeV)");
-  h_pp_av18_1D2_FULL->GetXaxis()->SetTitle("r* (fm)");
+  h_pp_av18_1D2_FULL->GetXaxis()->SetTitle("k* (MeV)");
+  h_pp_av18_1D2_SI->GetYaxis()->SetTitle("r* (fm)");
+  h_pp_av18_1D2_FULL->GetYaxis()->SetTitle("r* (fm)");
 
 
 
@@ -18436,8 +18446,1941 @@ void pp_asymptotic(){
 
 }
 
+
+
+void pp_asymptotic_check_Epelbaum_v1(){
+  TString OutputFileName = TString::Format("%s/OtherTasks/pp_asymptotic_av18_epel.root",GetFemtoOutputFolder());
+
+  //8 start from zero
+  //5 start from 2.5
+  unsigned NumMomBins = 20;
+  double kMin = 0;
+  double kMax = 160;
+
+  unsigned NumRadBins = 512;
+  double rMin = 0;
+  double rMax = 24;
+
+  double source_size = 0.8;
+
+	CATS smelly_cat_av18;
+// set how many points, k_min, k-max
+	smelly_cat_av18.SetMomBins(NumMomBins, kMin, kMax);
+
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles/",GetCernBoxDimi()));
+  AnalysisObject.SetUpCats_pp(smelly_cat_av18,"AV18","Gauss",0, 0);
+  smelly_cat_av18.SetAnaSource(0, source_size);
+  smelly_cat_av18.KillTheCat();
+
+	CATS smelly_cat_epel;
+// set how many points, k_min, k-max
+	smelly_cat_epel.SetMomBins(NumMomBins, kMin, kMax);
+
+  AnalysisObject.SetUpCats_pp(smelly_cat_epel,"Epelbaum","Gauss",0, 0);
+  smelly_cat_epel.SetAnaSource(0, source_size);
+  smelly_cat_epel.KillTheCat();
+
+  TFile fOutput(OutputFileName, "recreate");
+
+  TH2F* h_pp_av18_1S0_SI = new TH2F("h_pp_av18_1S0_SI", "h_pp_av18_1S0_SI", NumMomBins, kMin, kMax, NumRadBins, rMin, rMax);
+  TH2F* h_pp_av18_1S0_FULL = new TH2F("h_pp_av18_1S0_FULL", "h_pp_av18_1S0_FULL", NumMomBins, kMin, kMax, NumRadBins, rMin, rMax);
+
+  TH2F* h_pp_av18_3P0_SI = new TH2F("h_pp_av18_3P0_SI", "h_pp_av18_3P0_SI", NumMomBins, kMin, kMax, NumRadBins, rMin, rMax);
+  TH2F* h_pp_av18_3P0_FULL = new TH2F("h_pp_av18_3P0_FULL", "h_pp_av18_3P0_FULL", NumMomBins, kMin, kMax, NumRadBins, rMin, rMax);
+
+  TH2F* h_pp_av18_3P1_SI = new TH2F("h_pp_av18_3P1_SI", "h_pp_av18_3P1_SI", NumMomBins, kMin, kMax, NumRadBins, rMin, rMax);
+  TH2F* h_pp_av18_3P1_FULL = new TH2F("h_pp_av18_3P1_FULL", "h_pp_av18_3P1_FULL", NumMomBins, kMin, kMax, NumRadBins, rMin, rMax);
+
+  TH2F* h_pp_av18_3P2_SI = new TH2F("h_pp_av18_3P2_SI", "h_pp_av18_3P2_SI", NumMomBins, kMin, kMax, NumRadBins, rMin, rMax);
+  TH2F* h_pp_av18_3P2_FULL = new TH2F("h_pp_av18_3P2_FULL", "h_pp_av18_3P2_FULL", NumMomBins, kMin, kMax, NumRadBins, rMin, rMax);
+
+  TH2F* h_pp_av18_1D2_SI = new TH2F("h_pp_av18_1D2_SI", "h_pp_av18_1D2_SI", NumMomBins, kMin, kMax, NumRadBins, rMin, rMax);
+  TH2F* h_pp_av18_1D2_FULL = new TH2F("h_pp_av18_1D2_FULL", "h_pp_av18_1D2_FULL", NumMomBins, kMin, kMax, NumRadBins, rMin, rMax);
+
+  TH2F* h_pp_epel_1S0_SI = new TH2F("h_pp_epel_1S0_SI", "h_pp_epel_1S0_SI", NumMomBins, kMin, kMax, NumRadBins, rMin, rMax);
+  TH2F* h_pp_epel_1S0_FULL = new TH2F("h_pp_epel_1S0_FULL", "h_pp_epel_1S0_FULL", NumMomBins, kMin, kMax, NumRadBins, rMin, rMax);
+
+  TH2F* h_pp_epel_3P0_SI = new TH2F("h_pp_epel_3P0_SI", "h_pp_epel_3P0_SI", NumMomBins, kMin, kMax, NumRadBins, rMin, rMax);
+  TH2F* h_pp_epel_3P0_FULL = new TH2F("h_pp_epel_3P0_FULL", "h_pp_epel_3P0_FULL", NumMomBins, kMin, kMax, NumRadBins, rMin, rMax);
+
+  TH2F* h_pp_epel_3P1_SI = new TH2F("h_pp_epel_3P1_SI", "h_pp_epel_3P1_SI", NumMomBins, kMin, kMax, NumRadBins, rMin, rMax);
+  TH2F* h_pp_epel_3P1_FULL = new TH2F("h_pp_epel_3P1_FULL", "h_pp_epel_3P1_FULL", NumMomBins, kMin, kMax, NumRadBins, rMin, rMax);
+
+  TH2F* h_pp_epel_3P2_SI = new TH2F("h_pp_epel_3P2_SI", "h_pp_epel_3P2_SI", NumMomBins, kMin, kMax, NumRadBins, rMin, rMax);
+  TH2F* h_pp_epel_3P2_FULL = new TH2F("h_pp_epel_3P2_FULL", "h_pp_epel_3P2_FULL", NumMomBins, kMin, kMax, NumRadBins, rMin, rMax);
+
+  TH2F* h_pp_epel_1D2_SI = new TH2F("h_pp_epel_1D2_SI", "h_pp_epel_1D2_SI", NumMomBins, kMin, kMax, NumRadBins, rMin, rMax);
+  TH2F* h_pp_epel_1D2_FULL = new TH2F("h_pp_epel_1D2_FULL", "h_pp_epel_1D2_FULL", NumMomBins, kMin, kMax, NumRadBins, rMin, rMax);
+
+  TH1F** h_pp_av18_1S0_FULL_k = new TH1F* [NumMomBins];
+  TH1F** h_pp_epel_1S0_FULL_k = new TH1F* [NumMomBins];
+
+  TH1F** h_pp_av18_1D2_FULL_k = new TH1F* [NumMomBins];
+  TH1F** h_pp_epel_1D2_FULL_k = new TH1F* [NumMomBins];
+
+  TH1F** h_pp_av18_3P0_FULL_k = new TH1F* [NumMomBins];
+  TH1F** h_pp_epel_3P0_FULL_k = new TH1F* [NumMomBins];
+
+  TH1F** h_pp_av18_3P1_FULL_k = new TH1F* [NumMomBins];
+  TH1F** h_pp_epel_3P1_FULL_k = new TH1F* [NumMomBins];
+
+  TH1F** h_pp_av18_3P2_FULL_k = new TH1F* [NumMomBins];
+  TH1F** h_pp_epel_3P2_FULL_k = new TH1F* [NumMomBins];
+
+  for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+    double kstar = h_pp_av18_1S0_FULL->GetXaxis()->GetBinCenter(uMom+1);
+    h_pp_av18_1S0_FULL_k[uMom] = new TH1F(TString::Format("h_pp_av18_1S0_FULL_k%.1f",kstar), TString::Format("h_pp_av18_1S0_FULL_k%.1f",kstar), NumRadBins, rMin, rMax);
+    h_pp_epel_1S0_FULL_k[uMom] = new TH1F(TString::Format("h_pp_epel_1S0_FULL_k%.1f",kstar), TString::Format("h_pp_epel_1S0_FULL_k%.1f",kstar), NumRadBins, rMin, rMax);
+    
+    h_pp_av18_1D2_FULL_k[uMom] = new TH1F(TString::Format("h_pp_av18_1D2_FULL_k%.1f",kstar), TString::Format("h_pp_av18_1D2_FULL_k%.1f",kstar), NumRadBins, rMin, rMax);
+    h_pp_epel_1D2_FULL_k[uMom] = new TH1F(TString::Format("h_pp_epel_1D2_FULL_k%.1f",kstar), TString::Format("h_pp_epel_1D2_FULL_k%.1f",kstar), NumRadBins, rMin, rMax);
+
+    h_pp_av18_3P0_FULL_k[uMom] = new TH1F(TString::Format("h_pp_av18_3P0_FULL_k%.1f",kstar), TString::Format("h_pp_av18_3P0_FULL_k%.1f",kstar), NumRadBins, rMin, rMax);
+    h_pp_epel_3P0_FULL_k[uMom] = new TH1F(TString::Format("h_pp_epel_3P0_FULL_k%.1f",kstar), TString::Format("h_pp_epel_3P0_FULL_k%.1f",kstar), NumRadBins, rMin, rMax);
+
+    h_pp_av18_3P1_FULL_k[uMom] = new TH1F(TString::Format("h_pp_av18_3P1_FULL_k%.1f",kstar), TString::Format("h_pp_av18_3P1_FULL_k%.1f",kstar), NumRadBins, rMin, rMax);
+    h_pp_epel_3P1_FULL_k[uMom] = new TH1F(TString::Format("h_pp_epel_3P1_FULL_k%.1f",kstar), TString::Format("h_pp_epel_3P1_FULL_k%.1f",kstar), NumRadBins, rMin, rMax);
+
+    h_pp_av18_3P2_FULL_k[uMom] = new TH1F(TString::Format("h_pp_av18_3P2_FULL_k%.1f",kstar), TString::Format("h_pp_av18_3P2_FULL_k%.1f",kstar), NumRadBins, rMin, rMax);
+    h_pp_epel_3P2_FULL_k[uMom] = new TH1F(TString::Format("h_pp_epel_3P2_FULL_k%.1f",kstar), TString::Format("h_pp_epel_3P2_FULL_k%.1f",kstar), NumRadBins, rMin, rMax);
+
+    for(unsigned uRad=0; uRad<NumRadBins; uRad++){
+      double RAD = h_pp_av18_1S0_SI->GetYaxis()->GetBinCenter(uRad+1);
+      h_pp_av18_1S0_FULL->SetBinContent(uMom+1, uRad+1, smelly_cat_av18.EvalRadialWaveFunction(uMom, 0, 0, RAD, true).real());
+      h_pp_av18_1S0_FULL_k[uMom]->SetBinContent(uRad+1, smelly_cat_av18.EvalRadialWaveFunction(uMom, 0, 0, RAD, true).real());
+      h_pp_av18_3P0_FULL_k[uMom]->SetBinContent(uRad+1, smelly_cat_av18.EvalRadialWaveFunction(uMom, 1, 1, RAD, true).real());
+      h_pp_av18_3P1_FULL_k[uMom]->SetBinContent(uRad+1, smelly_cat_av18.EvalRadialWaveFunction(uMom, 2, 1, RAD, true).real());
+      h_pp_av18_3P2_FULL_k[uMom]->SetBinContent(uRad+1, smelly_cat_av18.EvalRadialWaveFunction(uMom, 3, 1, RAD, true).real());
+      h_pp_av18_1D2_FULL_k[uMom]->SetBinContent(uRad+1, smelly_cat_av18.EvalRadialWaveFunction(uMom, 0, 2, RAD, true).real());
+      h_pp_av18_3P0_FULL->SetBinContent(uMom+1, uRad+1, smelly_cat_av18.EvalRadialWaveFunction(uMom, 1, 1, RAD, true).real());
+      h_pp_av18_3P1_FULL->SetBinContent(uMom+1, uRad+1, smelly_cat_av18.EvalRadialWaveFunction(uMom, 2, 1, RAD, true).real());
+      h_pp_av18_3P2_FULL->SetBinContent(uMom+1, uRad+1, smelly_cat_av18.EvalRadialWaveFunction(uMom, 3, 1, RAD, true).real());
+      h_pp_av18_1D2_FULL->SetBinContent(uMom+1, uRad+1, smelly_cat_av18.EvalRadialWaveFunction(uMom, 0, 2, RAD, true).real());
+
+      h_pp_epel_1S0_FULL->SetBinContent(uMom+1, uRad+1, smelly_cat_epel.EvalRadialWaveFunction(uMom, 0, 0, RAD, true).real());
+      h_pp_epel_1S0_FULL_k[uMom]->SetBinContent(uRad+1, smelly_cat_epel.EvalRadialWaveFunction(uMom, 0, 0, RAD, true).real());
+      h_pp_epel_3P0_FULL_k[uMom]->SetBinContent(uRad+1, smelly_cat_epel.EvalRadialWaveFunction(uMom, 1, 1, RAD, true).real());
+      h_pp_epel_3P1_FULL_k[uMom]->SetBinContent(uRad+1, smelly_cat_epel.EvalRadialWaveFunction(uMom, 4, 1, RAD, true).real());
+      h_pp_epel_3P2_FULL_k[uMom]->SetBinContent(uRad+1, smelly_cat_epel.EvalRadialWaveFunction(uMom, 7, 1, RAD, true).real());
+      h_pp_epel_1D2_FULL_k[uMom]->SetBinContent(uRad+1, smelly_cat_epel.EvalRadialWaveFunction(uMom, 0, 2, RAD, true).real());
+
+      h_pp_epel_3P0_FULL->SetBinContent(uMom+1, uRad+1, smelly_cat_epel.EvalRadialWaveFunction(uMom, 1, 1, RAD, true).real());
+      h_pp_epel_3P1_FULL->SetBinContent(uMom+1, uRad+1, smelly_cat_epel.EvalRadialWaveFunction(uMom, 2, 1, RAD, true).real());
+      h_pp_epel_3P2_FULL->SetBinContent(uMom+1, uRad+1, smelly_cat_epel.EvalRadialWaveFunction(uMom, 3, 1, RAD, true).real());
+      h_pp_epel_1D2_FULL->SetBinContent(uMom+1, uRad+1, smelly_cat_epel.EvalRadialWaveFunction(uMom, 0, 2, RAD, true).real());
+
+    }
+  }
+
+  TGraph gCk_av18;
+  gCk_av18.SetName("gCk_av18");
+  TGraph gCk_epel;
+  gCk_epel.SetName("gCk_epel");
+
+  TGraph gCk_ratio;
+  gCk_ratio.SetName("gCk_ratio");
+
+  for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+    gCk_av18.SetPoint(uMom,smelly_cat_av18.GetMomentum(uMom),smelly_cat_av18.GetCorrFun(uMom));
+    gCk_epel.SetPoint(uMom,smelly_cat_epel.GetMomentum(uMom),smelly_cat_epel.GetCorrFun(uMom));
+    gCk_ratio.SetPoint(uMom,smelly_cat_epel.GetMomentum(uMom),smelly_cat_epel.GetCorrFun(uMom)/smelly_cat_av18.GetCorrFun(uMom));
+  }
+
+  smelly_cat_av18.SetQ1Q2(0);
+  smelly_cat_av18.KillTheCat();
+
+  smelly_cat_epel.SetQ1Q2(0);
+  smelly_cat_epel.KillTheCat();
+
+  for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+    for(unsigned uRad=0; uRad<NumRadBins; uRad++){
+      double RAD = h_pp_av18_1S0_SI->GetYaxis()->GetBinCenter(uRad+1);
+      h_pp_av18_1S0_SI->SetBinContent(uMom+1, uRad+1, smelly_cat_av18.EvalRadialWaveFunction(uMom, 0, 0, RAD, true).real());
+      h_pp_av18_3P0_SI->SetBinContent(uMom+1, uRad+1, smelly_cat_av18.EvalRadialWaveFunction(uMom, 1, 1, RAD, true).real());
+      h_pp_av18_3P1_SI->SetBinContent(uMom+1, uRad+1, smelly_cat_av18.EvalRadialWaveFunction(uMom, 2, 1, RAD, true).real());
+      h_pp_av18_3P2_SI->SetBinContent(uMom+1, uRad+1, smelly_cat_av18.EvalRadialWaveFunction(uMom, 3, 1, RAD, true).real());
+      h_pp_av18_1D2_SI->SetBinContent(uMom+1, uRad+1, smelly_cat_av18.EvalRadialWaveFunction(uMom, 0, 2, RAD, true).real());
+
+      h_pp_epel_1S0_SI->SetBinContent(uMom+1, uRad+1, smelly_cat_epel.EvalRadialWaveFunction(uMom, 0, 0, RAD, true).real());
+      h_pp_epel_3P0_SI->SetBinContent(uMom+1, uRad+1, smelly_cat_epel.EvalRadialWaveFunction(uMom, 1, 1, RAD, true).real());
+      h_pp_epel_3P1_SI->SetBinContent(uMom+1, uRad+1, smelly_cat_epel.EvalRadialWaveFunction(uMom, 2, 1, RAD, true).real());
+      h_pp_epel_3P2_SI->SetBinContent(uMom+1, uRad+1, smelly_cat_epel.EvalRadialWaveFunction(uMom, 3, 1, RAD, true).real());
+      h_pp_epel_1D2_SI->SetBinContent(uMom+1, uRad+1, smelly_cat_epel.EvalRadialWaveFunction(uMom, 0, 2, RAD, true).real());
+    }
+  }
+
+  //without F-waves
+  smelly_cat_epel.SetQ1Q2(1);
+  for(unsigned uCh=1; uCh<12; uCh++){
+    smelly_cat_epel.SetChannelWeight(uCh,0);
+  }
+  smelly_cat_epel.SetChannelWeight(3,1./12.);
+  smelly_cat_epel.SetChannelWeight(6,3./12.);
+  smelly_cat_epel.SetChannelWeight(9,5./12.);
+  smelly_cat_epel.KillTheCat();  
+  TGraph gCk_epel_spd;
+  TGraph gCkNet_epel_spd;
+  gCk_epel_spd.SetName("gCk_epel_spd");
+  gCkNet_epel_spd.SetName("gCkNet_epel_spd");
+  for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+    gCk_epel_spd.SetPoint(uMom,smelly_cat_epel.GetMomentum(uMom),smelly_cat_epel.GetCorrFun(uMom));
+    double original = gCk_epel.GetPointY(uMom);
+    gCkNet_epel_spd.SetPoint(uMom,smelly_cat_epel.GetMomentum(uMom),original-smelly_cat_epel.GetCorrFun(uMom));
+  }
+
+  h_pp_av18_1S0_SI->GetXaxis()->SetTitle("k* (MeV)");
+  h_pp_av18_1S0_FULL->GetXaxis()->SetTitle("r* (fm)");
+
+  h_pp_av18_3P0_SI->GetXaxis()->SetTitle("k* (MeV)");
+  h_pp_av18_3P0_FULL->GetXaxis()->SetTitle("r* (fm)");
+
+  h_pp_av18_3P1_SI->GetXaxis()->SetTitle("k* (MeV)");
+  h_pp_av18_3P1_FULL->GetXaxis()->SetTitle("r* (fm)");
+
+  h_pp_av18_3P2_SI->GetXaxis()->SetTitle("k* (MeV)");
+  h_pp_av18_3P2_FULL->GetXaxis()->SetTitle("r* (fm)");
+
+  h_pp_av18_1D2_SI->GetXaxis()->SetTitle("k* (MeV)");
+  h_pp_av18_1D2_FULL->GetXaxis()->SetTitle("r* (fm)");
+
+
+  h_pp_epel_1S0_SI->GetXaxis()->SetTitle("k* (MeV)");
+  h_pp_epel_1S0_FULL->GetXaxis()->SetTitle("r* (fm)");
+
+  h_pp_epel_3P0_SI->GetXaxis()->SetTitle("k* (MeV)");
+  h_pp_epel_3P0_FULL->GetXaxis()->SetTitle("r* (fm)");
+
+  h_pp_epel_3P1_SI->GetXaxis()->SetTitle("k* (MeV)");
+  h_pp_epel_3P1_FULL->GetXaxis()->SetTitle("r* (fm)");
+
+  h_pp_epel_3P2_SI->GetXaxis()->SetTitle("k* (MeV)");
+  h_pp_epel_3P2_FULL->GetXaxis()->SetTitle("r* (fm)");
+
+  h_pp_epel_1D2_SI->GetXaxis()->SetTitle("k* (MeV)");
+  h_pp_epel_1D2_FULL->GetXaxis()->SetTitle("r* (fm)");
+
+  gCk_av18.Write();
+  gCk_epel.Write();
+  gCk_epel_spd.Write();
+  gCkNet_epel_spd.Write();
+  gCk_ratio.Write();
+
+  h_pp_av18_1S0_SI->Write();
+  h_pp_epel_1S0_SI->Write();
+  h_pp_av18_1S0_FULL->Write();
+  h_pp_epel_1S0_FULL->Write();
+
+  h_pp_av18_3P0_SI->Write();
+  h_pp_epel_3P0_SI->Write();
+  h_pp_av18_3P0_FULL->Write();
+  h_pp_epel_3P0_FULL->Write();
+
+  h_pp_av18_3P1_SI->Write();
+  h_pp_epel_3P1_SI->Write();
+  h_pp_av18_3P1_FULL->Write();
+  h_pp_epel_3P1_FULL->Write();
+
+  h_pp_av18_3P2_SI->Write();
+  h_pp_epel_3P2_SI->Write();
+  h_pp_av18_3P2_FULL->Write();
+  h_pp_epel_3P2_FULL->Write();
+
+  h_pp_av18_1D2_SI->Write();
+  h_pp_epel_1D2_SI->Write();
+  h_pp_av18_1D2_FULL->Write();
+  h_pp_epel_1D2_FULL->Write();
+
+  for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+    h_pp_av18_1S0_FULL_k[uMom]->Write();
+    h_pp_epel_1S0_FULL_k[uMom]->Write();
+
+    h_pp_av18_1D2_FULL_k[uMom]->Write();
+    h_pp_epel_1D2_FULL_k[uMom]->Write();  
+    
+    h_pp_av18_3P0_FULL_k[uMom]->Write();
+    h_pp_epel_3P0_FULL_k[uMom]->Write();  
+    
+    h_pp_av18_3P1_FULL_k[uMom]->Write();
+    h_pp_epel_3P1_FULL_k[uMom]->Write();  
+
+    h_pp_av18_3P2_FULL_k[uMom]->Write();
+    h_pp_epel_3P2_FULL_k[uMom]->Write();  
+  }
+
+}
+
+
+//it sucks to be honest
+void test_screen_coulomb(){
+
+  TString OutputFolder = TString::Format("%s/OtherTasks/test_screen_coulomb/",GetFemtoOutputFolder());
+
+  const unsigned NumMomBins = 75;
+  const double kMin = 0;
+  const double kMax = 300;
+  const double source_size = 1.2;
+
+  CATSparameters cSorPars(CATSparameters::tSource,1,true);
+  cSorPars.SetParameter(0,source_size);
+
+  CATS cat_pp_c;
+  cat_pp_c.SetMomBins(NumMomBins,kMin,kMax);
+  cat_pp_c.SetAnaSource(GaussSource, cSorPars);
+  cat_pp_c.SetUseAnalyticSource(true);
+  cat_pp_c.SetMomentumDependentSource(false);
+  cat_pp_c.SetThetaDependentSource(false);
+  cat_pp_c.SetExcludeFailedBins(false);
+  cat_pp_c.SetQ1Q2(1);
+  cat_pp_c.SetQuantumStatistics(false);
+  cat_pp_c.SetRedMass( 0.5*Mass_p );
+  cat_pp_c.SetNumChannels(1);
+  cat_pp_c.SetSpin(0,0);
+  cat_pp_c.SetChannelWeight(0, 1.);
+  cat_pp_c.KillTheCat();
+
+  CATS cat_pp_sc;
+  cat_pp_sc.SetMomBins(NumMomBins,kMin,kMax);
+  cat_pp_sc.SetAnaSource(GaussSource, cSorPars);
+  cat_pp_sc.SetUseAnalyticSource(true);
+  cat_pp_sc.SetMomentumDependentSource(false);
+  cat_pp_sc.SetThetaDependentSource(false);
+  cat_pp_sc.SetExcludeFailedBins(false);
+  cat_pp_sc.SetQ1Q2(0);
+  cat_pp_sc.SetQuantumStatistics(false);
+  cat_pp_sc.SetRedMass( 0.5*Mass_p );
+  cat_pp_sc.SetNumChannels(1);
+  cat_pp_sc.SetNumPW(0,1);
+  cat_pp_sc.SetSpin(0,0);
+  cat_pp_sc.SetChannelWeight(0, 1.);
+  CATSparameters cPotPars(CATSparameters::tPotential,3,true);
+  cPotPars.SetParameter(0,1);
+  cPotPars.SetParameter(1,64);
+  cPotPars.SetParameter(2,0.1);
+  cat_pp_sc.SetShortRangePotential(0,0,ScreenedCoulomb,cPotPars);
+  cat_pp_sc.SetEpsilonConv(1e-12);
+  cat_pp_sc.SetEpsilonProp(1e-8);
+  cat_pp_sc.SetMaxRad(128);
+  cat_pp_sc.SetMaxRho(8*cat_pp_sc.GetMaxRho());
+  cat_pp_sc.KillTheCat();
+
+  TGraph gCat_c;
+  gCat_c.SetName("gCat_c");
+
+  TGraph gCat_sc;
+  gCat_sc.SetName("gCat_sc");
+
+  for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+    double kstar = cat_pp_c.GetMomentum(uMom);
+    gCat_c.SetPoint(uMom, kstar, cat_pp_c.GetCorrFun(uMom));
+    gCat_sc.SetPoint(uMom, kstar, cat_pp_sc.GetCorrFun(uMom));
+  }
+
+  TFile fOutput(OutputFolder+"fOutput.root", "recreate");
+  gCat_c.Write();
+  gCat_sc.Write();
+}
+
+void big_core(){
+  TString OutputFolder = TString::Format("%s/OtherTasks/",GetFemtoOutputFolder());
+
+  const unsigned NumMomBins = 75;
+  const double kMin = 0;
+  const double kMax = 300;
+  const double source_size = 1.2;
+
+  CATSparameters cSorPars(CATSparameters::tSource,1,true);
+  cSorPars.SetParameter(0,source_size);
+
+  CATS cat_pp_c;
+  cat_pp_c.SetMomBins(NumMomBins,kMin,kMax);
+  cat_pp_c.SetAnaSource(GaussSource, cSorPars);
+  cat_pp_c.SetUseAnalyticSource(true);
+  cat_pp_c.SetMomentumDependentSource(false);
+  cat_pp_c.SetThetaDependentSource(false);
+  cat_pp_c.SetExcludeFailedBins(false);
+  cat_pp_c.SetQ1Q2(0);
+  cat_pp_c.SetQuantumStatistics(false);
+  cat_pp_c.SetRedMass( 0.5*Mass_p );
+  cat_pp_c.SetNumChannels(1);
+  cat_pp_c.SetNumPW(0,1);
+  cat_pp_c.SetSpin(0,0);
+  cat_pp_c.SetChannelWeight(0, 1.);
+  CATSparameters cPotPars(CATSparameters::tPotential,3,true);
+  cPotPars.SetParameter(0,1e4);
+  cPotPars.SetParameter(1,0.8);
+  cPotPars.SetParameter(2,0.01);
+  cat_pp_c.SetShortRangePotential(0,0,RepulsiveCore,cPotPars);
+  cat_pp_c.KillTheCat();
+
+
+  TGraph gCat_c1;
+  gCat_c1.SetName("gCat_c1");
+  for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+    double kstar = cat_pp_c.GetMomentum(uMom);
+    gCat_c1.SetPoint(uMom, kstar, cat_pp_c.GetCorrFun(uMom));
+  }
+
+
+  TGraph gCat_c2;
+  gCat_c2.SetName("gCat_c2");
+  cat_pp_c.SetShortRangePotential(0,0,0,1e5);
+  cat_pp_c.KillTheCat();  
+  for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+    double kstar = cat_pp_c.GetMomentum(uMom);
+    gCat_c2.SetPoint(uMom, kstar, cat_pp_c.GetCorrFun(uMom));
+  }
+
+  TGraph gCat_c3;
+  gCat_c3.SetName("gCat_c3");
+  cat_pp_c.SetShortRangePotential(0,0,0,1e6);
+  cat_pp_c.KillTheCat();  
+  for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+    double kstar = cat_pp_c.GetMomentum(uMom);
+    gCat_c3.SetPoint(uMom, kstar, cat_pp_c.GetCorrFun(uMom));
+  }
+
+
+
+  TFile fOutput(OutputFolder+"big_core.root", "recreate");
+  gCat_c1.Write();
+  gCat_c2.Write();
+  gCat_c3.Write();
+}
+
+CATS* cat_ps=NULL;
+double fit_ps_2p(double* x, double* pars){
+  if(!cat_ps) return 0;
+  cat_ps->SetShortRangePotential(0,0,0,pars[0]);
+  cat_ps->SetShortRangePotential(0,0,1,pars[1]);
+  cat_ps->KillTheCat();
+  return cat_ps->EvalPhaseShift(*x,0,0);
+}
+double fit_er_2p(double* x, double* pars){
+  if(!cat_ps) return 0;
+  cat_ps->SetShortRangePotential(0,0,0,pars[0]);
+  cat_ps->SetShortRangePotential(0,0,1,pars[1]);
+  cat_ps->KillTheCat();
+  return *x/tan(cat_ps->EvalPhaseShift(*x,0,0));
+}
+double fit_er_4p(double* x, double* pars){
+  if(!cat_ps) return 0;
+  cat_ps->SetShortRangePotential(0,0,0,pars[0]);
+  cat_ps->SetShortRangePotential(0,0,1,pars[1]);
+  cat_ps->SetShortRangePotential(0,0,2,pars[2]);
+  cat_ps->SetShortRangePotential(0,0,3,pars[3]);  
+  cat_ps->KillTheCat();
+  return *x/tan(cat_ps->EvalPhaseShift(*x,0,0));
+}
+
+//
+//linear potential, with pars V0,R0,V1,R1
+//the potential is equal to V0 at R0, and V1 at R1.
+//for r<R0 it becomes constant equal to V0
+//for r>R1 it becomes constant equal to 0
+double USR_pot_1(double* pars){
+  double& r = pars[0];
+  double& V0 = pars[2];
+  double& R0 = pars[3];
+  double& V1 = pars[4];
+  double& R1 = pars[5];  
+  //the linear parameters
+  double p1 = (V1-V0)/(R1-R0);
+  double p0 = V0-p1*R0;
+  if(r<R0) return V0;
+  if(r>R1) return 0;
+  return p0+p1*r;
+  
+  //if(r<pars[2]) return 0;
+  //return p0*(1-r*p1);s
+}
+
+//super silly potential: a polynomial castrated at both ends
+double USR_pot_2(double* pars){
+  double& r = pars[0];
+  double& max_r = pars[2];
+  double& p0 = pars[3];
+  double& p1 = pars[4];
+  double& p2 = pars[5];
+  //the linear parameters
+  if(r>max_r) return 0;
+  return p0+p1*r+p2*r*r;
+  
+  //if(r<pars[2]) return 0;
+  //return p0*(1-r*p1);
+}
+
+
+//same as 1, but the cut off on the far end now depends on rho = r*kstar rather than r
+double USR_pot_1k(double* pars){
+  /*
+  double& r = pars[0];
+  double& k = pars[1];
+  double& V0 = pars[2];
+  double& rho0 = pars[3];
+  double& V1 = pars[4];
+  double& rho1 = pars[5];  
+  //the linear parameters
+  double p1 = (V1-V0)/(rho1-rho0);
+  double p0 = V0-p1*R0;
+  if(r*k<rho0) return V0;
+  if(r*k>rho1) return 0;
+  return p0+p1*r;
+  */
+  return 0;
+  
+  //if(r<pars[2]) return 0;
+  //return p0*(1-r*p1);
+}
+
+
+//and ultra-short-ranged potential with a source which does not start from zero
+void USR_Potential_ShiftedSource(){
+  
+  TString OutputFolder = TString::Format("%s/OtherTasks/USR_Potential_ShiftedSource/",GetFemtoOutputFolder());
+  const double potential_depth = -10;
+  const double shift = 0.8;
+  const double source_size = 0.8;
+  const double source_size_def = 1.2;
+
+  unsigned kSteps = 70;
+  double kMin = 0;
+  double kMax = 280;
+
+  unsigned kFit = 10;
+  double kMaxFit = 40;
+
+  unsigned rSteps = 1024;
+  double rMin = 0;
+  double rMax = 4;
+  TH1F* hPot_Toy = new TH1F("hPot_Toy","hPot_Toy",rSteps,rMin,rMax);
+
+  CATS Kitty_AV18_Def;
+  Kitty_AV18_Def.SetMomBins(kSteps,kMin,kMax);
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles/",GetCernBoxDimi()));
+  AnalysisObject.SetUpCats_pp(Kitty_AV18_Def,"AV18_s","",0,0);
+  CATSparameters cSorPars_Def(CATSparameters::tSource,1,true);
+  cSorPars_Def.SetParameter(0,source_size_def);
+  Kitty_AV18_Def.SetAnaSource(GaussSource, cSorPars_Def);
+  Kitty_AV18_Def.SetUseAnalyticSource(true);
+  Kitty_AV18_Def.SetMomentumDependentSource(false);
+  Kitty_AV18_Def.SetThetaDependentSource(false);
+  Kitty_AV18_Def.SetNormalizedSource(true);
+  Kitty_AV18_Def.SetQ1Q2(0);
+  Kitty_AV18_Def.KillTheCat();
+  TH1F* hPS_AV18_Def = new TH1F("hPS_AV18_Def","hPS_AV18_Def",kSteps,kMin,kMax);
+  TH1F* hER_AV18_Def = new TH1F("hER_AV18_Def","hER_AV18_Def",kSteps,kMin,kMax);
+  for(unsigned uMom=0; uMom<kSteps; uMom++){
+    double kstar = Kitty_AV18_Def.GetMomentum(uMom);
+    hPS_AV18_Def->SetBinContent(uMom+1,Kitty_AV18_Def.GetPhaseShift(uMom,0,0));
+    //hPS_AV18_Def->SetBinError(uMom+1, 0.01 * sqrt(kstar*0.5));
+    hPS_AV18_Def->SetBinError(uMom+1, 0.001 + 0.0001 * kstar);
+
+    double ps = Kitty_AV18_Def.GetPhaseShift(uMom,0,0);
+    hER_AV18_Def->SetBinContent(uMom+1,kstar/tan(ps));
+    //printf("%f %f %f\n",kstar,ps,kstar/tan(ps));
+    double ps_err = kstar>=20?0.001*kstar*kstar/tan(ps):0.001* 20*kstar/tan(ps);
+    hER_AV18_Def->SetBinError(uMom+1, ps_err);    
+  }
+  Kitty_AV18_Def.SetQ1Q2(1);
+  Kitty_AV18_Def.KillTheCat();  
+  TF1* fPS = new TF1("fPS",fit_ps_2p,kMin,kMaxFit,2);
+  TF1* fER = new TF1("fER",fit_er_2p,kMin,kMaxFit,2);
+
+  CATS Kitty_AV18;
+  Kitty_AV18.SetMomBins(kSteps,kMin,kMax);
+  AnalysisObject.SetUpCats_pp(Kitty_AV18,"AV18_s","",0,0);
+  CATSparameters cSorPars(CATSparameters::tSource,2,true);
+  cSorPars.SetParameter(0,source_size);
+  cSorPars.SetParameter(1,shift);
+  Kitty_AV18.SetAnaSource(GaussSourceShifted, cSorPars);
+  Kitty_AV18.SetUseAnalyticSource(true);
+  Kitty_AV18.SetMomentumDependentSource(false);
+  Kitty_AV18.SetThetaDependentSource(false);
+  Kitty_AV18.SetNormalizedSource(true);
+  Kitty_AV18.KillTheCat();
+
+  CATS Kitty_SW_Def_fit;
+  Kitty_SW_Def_fit.SetMomBins(kFit,kMin,kMaxFit);
+  AnalysisObject.SetUpCats_pp(Kitty_SW_Def_fit,"SW_s","",0,0);
+  Kitty_SW_Def_fit.SetAnaSource(GaussSource, cSorPars_Def);
+  Kitty_SW_Def_fit.SetUseAnalyticSource(true);
+  Kitty_SW_Def_fit.SetMomentumDependentSource(false);
+  Kitty_SW_Def_fit.SetThetaDependentSource(false);
+  Kitty_SW_Def_fit.SetNormalizedSource(true);
+  Kitty_SW_Def_fit.SetQ1Q2(0);
+  Kitty_SW_Def_fit.KillTheCat();
+
+  cat_ps = &Kitty_SW_Def_fit;
+  cat_ps->SetNotifications(CATS::nWarning);
+  fPS->SetParameter(0,-20);
+  fPS->SetParLimits(0,-1000,0);
+  fPS->SetParameter(1,1.0);
+  fPS->SetParLimits(1,0.01,2);
+  hPS_AV18_Def->Fit(fPS,"S, N, R, M");
+  CATS Kitty_SW;
+  Kitty_SW.SetMomBins(kSteps,kMin,kMax);
+  AnalysisObject.SetUpCats_pp(Kitty_SW,"SW_s","",0,0);
+  Kitty_SW.SetAnaSource(GaussSourceShifted, cSorPars);
+  Kitty_SW.SetUseAnalyticSource(true);
+  Kitty_SW.SetMomentumDependentSource(false);
+  Kitty_SW.SetThetaDependentSource(false);
+  Kitty_SW.SetNormalizedSource(true);
+  Kitty_SW.SetShortRangePotential(0,0,0,fPS->GetParameter(0));
+  Kitty_SW.SetShortRangePotential(0,0,1,fPS->GetParameter(1));
+  Kitty_SW.KillTheCat();
+
+  fER->SetParameter(0,-20);
+  fER->SetParLimits(0,-1000,0);
+  //fER->SetParameter(1,1.0);
+  //fER->SetParLimits(1,0.01,2);
+  fER->FixParameter(1,0.5);
+  hER_AV18_Def->Fit(fER,"S, N, R, M");
+  CATS Kitty_SW_ER;
+  Kitty_SW_ER.SetMomBins(kSteps,kMin,kMax);
+  AnalysisObject.SetUpCats_pp(Kitty_SW_ER,"SW_s","",0,0);
+  Kitty_SW_ER.SetAnaSource(GaussSourceShifted, cSorPars);
+  Kitty_SW_ER.SetUseAnalyticSource(true);
+  Kitty_SW_ER.SetMomentumDependentSource(false);
+  Kitty_SW_ER.SetThetaDependentSource(false);
+  Kitty_SW_ER.SetNormalizedSource(true);
+  Kitty_SW_ER.SetShortRangePotential(0,0,0,fER->GetParameter(0));
+  Kitty_SW_ER.SetShortRangePotential(0,0,1,fER->GetParameter(1));
+  Kitty_SW_ER.KillTheCat();
+
+  //const double V_1S0 = -16200./Mass_p*1.;//c.a. 17.27 MeV
+  //const double d_1S0 = 2.3039*1.;
+  CATS Kitty_SW_Def;
+  Kitty_SW_Def.SetMomBins(kSteps,kMin,kMax);
+  AnalysisObject.SetUpCats_pp(Kitty_SW_Def,"SW_s","",0,0);
+  Kitty_SW_Def.SetAnaSource(GaussSource, cSorPars_Def);
+  Kitty_SW_Def.SetUseAnalyticSource(true);
+  Kitty_SW_Def.SetMomentumDependentSource(false);
+  Kitty_SW_Def.SetThetaDependentSource(false);
+  Kitty_SW_Def.SetNormalizedSource(true);
+  //Kitty_SW_Def.SetShortRangePotential(0,0,0,-17.27);
+  //Kitty_SW_Def.SetShortRangePotential(0,0,1,2.3039);
+  Kitty_SW_Def.SetShortRangePotential(0,0,0,-800);
+  Kitty_SW_Def.SetShortRangePotential(0,0,1,0.5); 
+  Kitty_SW_Def.SetEpsilonConv(1e-9);
+  Kitty_SW_Def.SetEpsilonProp(1e-9);
+  Kitty_SW_Def.KillTheCat();
+
+  TH1F* hPS_SW_Def = new TH1F("hPS_SW_Def","hPS_SW_Def",kSteps,kMin,kMax);
+  TH1F* hER_SW_Def = new TH1F("hER_SW_Def","hER_SW_Def",kSteps,kMin,kMax);
+  for(unsigned uMom=0; uMom<kSteps; uMom++){
+    double kstar = Kitty_SW_Def.GetMomentum(uMom);
+    hPS_SW_Def->SetBinContent(uMom+1,Kitty_SW_Def.GetPhaseShift(uMom,0,0));
+    //hPS_SW_Def->SetBinError(uMom+1, 0.01 * sqrt(kstar*0.5));
+
+    double ps = Kitty_SW_Def.GetPhaseShift(uMom,0,0);
+    hER_SW_Def->SetBinContent(uMom+1,kstar/tan(ps));
+    //hER_SW_Def->SetBinError(uMom+1, 0.001 * sqrt(kstar*0.5) * kstar/tan(ps));    
+
+  }
+
+  TH1F* hPS_SW = new TH1F("hPS_SW","hPS_SW",kSteps,kMin,kMax);
+  TH1F* hER_SW = new TH1F("hER_SW","hER_SW",kSteps,kMin,kMax);
+  for(unsigned uMom=0; uMom<kSteps; uMom++){
+    double kstar = Kitty_SW.GetMomentum(uMom);
+    hPS_SW->SetBinContent(uMom+1,Kitty_SW.GetPhaseShift(uMom,0,0));
+    double ps = Kitty_SW.GetPhaseShift(uMom,0,0);
+    hER_SW->SetBinContent(uMom+1,kstar/tan(ps));
+  }
+
+  TH1F* hPS_SW_ER = new TH1F("hPS_SW_ER","hPS_SW_ER",kSteps,kMin,kMax);
+  TH1F* hER_SW_ER = new TH1F("hER_SW_ER","hER_SW_ER",kSteps,kMin,kMax);
+  for(unsigned uMom=0; uMom<kSteps; uMom++){
+    double kstar = Kitty_SW_ER.GetMomentum(uMom);
+    hPS_SW_ER->SetBinContent(uMom+1,Kitty_SW_ER.GetPhaseShift(uMom,0,0));
+    double ps = Kitty_SW_ER.GetPhaseShift(uMom,0,0);
+    hER_SW_ER->SetBinContent(uMom+1,kstar/tan(ps));
+  }
+
+
+  CATS Kitty_ToyFit;
+  Kitty_ToyFit.SetMomBins(kFit,kMin,kMaxFit);
+  //AnalysisObject.SetUpCats_pp(Kitty_Toy,"","",0,0);
+  Kitty_ToyFit.SetAnaSource(GaussSourceShifted, cSorPars);
+  Kitty_ToyFit.SetUseAnalyticSource(true);
+  Kitty_ToyFit.SetMomentumDependentSource(false);
+  Kitty_ToyFit.SetThetaDependentSource(false);
+  Kitty_ToyFit.SetNormalizedSource(true);
+
+  Kitty_ToyFit.SetExcludeFailedBins(false);
+  Kitty_ToyFit.SetQ1Q2(1);
+  Kitty_ToyFit.SetQuantumStatistics(true);
+  Kitty_ToyFit.SetRedMass( 0.5*Mass_p );
+  Kitty_ToyFit.SetNumChannels(2);
+  Kitty_ToyFit.SetNumPW(0,1);
+  Kitty_ToyFit.SetSpin(0,0);
+  Kitty_ToyFit.SetSpin(1,1);
+  Kitty_ToyFit.SetChannelWeight(0, 1./4.);
+  Kitty_ToyFit.SetChannelWeight(1, 3./4.);
+  CATSparameters cToyPars(CATSparameters::tPotential,4,true);
+  Kitty_ToyFit.SetShortRangePotential(0,0,USR_pot_1,cToyPars);
+
+  Kitty_ToyFit.SetShortRangePotential(0,0,0,1000);
+  Kitty_ToyFit.SetShortRangePotential(0,0,1,0);  
+  Kitty_ToyFit.SetShortRangePotential(0,0,2,-540);
+  Kitty_ToyFit.SetShortRangePotential(0,0,3,0.8);
+
+  Kitty_ToyFit.KillTheCat();
+
+  TF1* fER_Toy = new TF1("fER_Toy",fit_er_4p,kMin,kMaxFit,4);
+
+  cat_ps = &Kitty_ToyFit;
+  cat_ps->SetNotifications(CATS::nWarning);
+  fER_Toy->SetParameter(0,1000);
+  fER_Toy->SetParLimits(0,0,10000);
+  fER_Toy->SetParameter(1,0);
+  fER_Toy->SetParLimits(1,0,0.3);
+  fER_Toy->SetParameter(2,-400);
+  fER_Toy->SetParLimits(2,-1000,0);
+  fER_Toy->SetParameter(3,0.6);
+  fER_Toy->SetParLimits(3,0.4,0.8);  
+
+  fER_Toy->FixParameter(0,1000);
+  fER_Toy->FixParameter(1,0);
+  fER_Toy->FixParameter(2,-520);
+  fER_Toy->FixParameter(3,0.8);
+
+  hPS_AV18_Def->Fit(fER_Toy,"S, N, R, M");
+
+  CATS Kitty_Toy;
+  Kitty_Toy.SetMomBins(kSteps,kMin,kMax);
+  //AnalysisObject.SetUpCats_pp(Kitty_Toy,"","",0,0);
+  Kitty_Toy.SetAnaSource(GaussSourceShifted, cSorPars);
+  Kitty_Toy.SetUseAnalyticSource(true);
+  Kitty_Toy.SetMomentumDependentSource(false);
+  Kitty_Toy.SetThetaDependentSource(false);
+  Kitty_Toy.SetNormalizedSource(true);
+
+  Kitty_Toy.SetExcludeFailedBins(false);
+  Kitty_Toy.SetQ1Q2(1);
+  Kitty_Toy.SetQuantumStatistics(true);
+  Kitty_Toy.SetRedMass( 0.5*Mass_p );
+  Kitty_Toy.SetNumChannels(2);
+  Kitty_Toy.SetNumPW(0,1);
+  Kitty_Toy.SetSpin(0,0);
+  Kitty_Toy.SetSpin(1,1);
+  Kitty_Toy.SetChannelWeight(0, 1./4.);
+  Kitty_Toy.SetChannelWeight(1, 3./4.);
+  Kitty_Toy.SetShortRangePotential(0,0,USR_pot_1,cToyPars);
+
+  //Kitty_Toy.SetShortRangePotential(0,0,0,1000);
+  //Kitty_Toy.SetShortRangePotential(0,0,1,0);  
+  //Kitty_Toy.SetShortRangePotential(0,0,2,-540);
+  //Kitty_Toy.SetShortRangePotential(0,0,3,0.8);
+  Kitty_Toy.SetShortRangePotential(0,0,0,fER_Toy->GetParameter(0));
+  Kitty_Toy.SetShortRangePotential(0,0,1,fER_Toy->GetParameter(1));  
+  Kitty_Toy.SetShortRangePotential(0,0,2,fER_Toy->GetParameter(2));
+  Kitty_Toy.SetShortRangePotential(0,0,3,fER_Toy->GetParameter(3));
+
+
+  
+
+  Kitty_Toy.KillTheCat();
+
+  TH1F* hPS_Toy = new TH1F("hPS_Toy","hPS_Toy",kSteps,kMin,kMax);
+  TH1F* hER_Toy = new TH1F("hER_Toy","hER_Toy",kSteps,kMin,kMax);
+  for(unsigned uMom=0; uMom<kSteps; uMom++){
+    double kstar = Kitty_SW_Def.GetMomentum(uMom);
+    hPS_Toy->SetBinContent(uMom+1,Kitty_Toy.GetPhaseShift(uMom,0,0));
+    double ps = Kitty_Toy.GetPhaseShift(uMom,0,0);
+    hER_Toy->SetBinContent(uMom+1,kstar/tan(ps));
+  }
+
+  for(unsigned uRad=0; uRad<rSteps; uRad++){
+    double rad = hPot_Toy->GetBinCenter(uRad+1);
+    double pot = Kitty_Toy.EvaluateThePotential(0,0,10,rad);
+    hPot_Toy->SetBinContent(uRad+1, pot);
+  }
+  
+  TGraph g_AV18_Def;
+  g_AV18_Def.SetName("g_AV18_Def");
+  g_AV18_Def.SetLineWidth(4);
+  g_AV18_Def.SetLineColor(kBlue);
+
+  TGraph g_AV18;
+  g_AV18.SetName("g_AV18");
+  g_AV18.SetLineWidth(4);
+  g_AV18.SetLineColor(kCyan+1);
+
+  TGraph g_SW_Def;
+  g_SW_Def.SetName("g_SW_Def");
+  g_SW_Def.SetLineWidth(4);
+  g_SW_Def.SetLineColor(kRed);
+
+  TGraph g_SW;
+  g_SW.SetName("g_SW");
+  g_SW.SetLineWidth(4);
+  g_SW.SetLineColor(kMagenta);
+
+  TGraph g_Toy;
+  g_Toy.SetName("g_Toy");
+  g_Toy.SetLineWidth(4);
+  g_Toy.SetLineColor(kYellow+2);
+
+  for(unsigned uMom=0; uMom<kSteps; uMom++){
+    double kstar = Kitty_AV18_Def.GetMomentum(uMom);
+    g_AV18_Def.SetPoint(uMom, kstar, Kitty_AV18_Def.GetCorrFun(uMom));
+    g_AV18.SetPoint(uMom, kstar, Kitty_AV18.GetCorrFun(uMom));
+    g_SW_Def.SetPoint(uMom, kstar, Kitty_SW_Def.GetCorrFun(uMom));
+    g_SW.SetPoint(uMom, kstar, Kitty_SW.GetCorrFun(uMom));
+    g_Toy.SetPoint(uMom, kstar, Kitty_Toy.GetCorrFun(uMom));
+  }
+
+  TFile fOutput(OutputFolder+"f1.root", "recreate");
+  g_AV18_Def.Write();
+  g_AV18.Write();
+  g_SW_Def.Write();
+  g_SW.Write();
+  g_Toy.Write();
+
+  hPS_AV18_Def->Write();
+  hPS_SW_Def->Write();
+  hPS_SW->Write();
+  hPS_SW_ER->Write();
+  hPS_Toy->Write();
+
+  hER_AV18_Def->Write();
+  hER_SW_Def->Write();
+  hER_SW->Write();
+  hER_SW_ER->Write();
+  hER_Toy->Write();
+
+  hPot_Toy->Write();
+}
+
+
+//DG super close to AV18:
+//V0 = 324.264
+//m0 = 0.16704
+//V1 = -33.0925
+//m1 = 1.74996
+void Toy_Potential_Scan(int SEED, unsigned NumIter){
+
+
+  TString OutputFile = TString::Format("%s/OtherTasks/Toy_Potential_Scan/dg_seed_%u.root",GetFemtoOutputFolder(),SEED);
+  unsigned kSteps = 16;
+  double kMin = 0;
+  double kMax = 160;
+  double kMin_ER = 10;
+  double kMax_ER = 80;
+
+  double source_size = 1.2;
+  double shift = 0.8;
+
+  CATSparameters cSorPars(CATSparameters::tSource,2,true);
+  cSorPars.SetParameter(0,source_size);
+  cSorPars.SetParameter(1,shift);
+
+
+  CATS Kitty_AV18_Def;
+  Kitty_AV18_Def.SetMomBins(kSteps,kMin,kMax);
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles/",GetCernBoxDimi()));
+  AnalysisObject.SetUpCats_pp(Kitty_AV18_Def,"AV18_s","",0,0);
+  Kitty_AV18_Def.SetAnaSource(GaussSource, cSorPars);
+  Kitty_AV18_Def.SetUseAnalyticSource(true);
+  Kitty_AV18_Def.SetMomentumDependentSource(false);
+  Kitty_AV18_Def.SetThetaDependentSource(false);
+  Kitty_AV18_Def.SetNormalizedSource(true);
+  Kitty_AV18_Def.SetQ1Q2(0);
+  Kitty_AV18_Def.KillTheCat();
+
+  TH1F* hPS_AV18 = new TH1F(TString::Format("hPS_AV18"),TString::Format("hPS_AV18"),kSteps,kMin,kMax);
+  TH1F* hER_AV18 = new TH1F(TString::Format("hER_AV18"),TString::Format("hER_AV18"),kSteps,kMin,kMax);
+  //TH1F* hCk_AV18 = new TH1F(TString::Format("hCk_AV18"),TString::Format("hCk_AV18"),kSteps,kMin,kMax);;
+  for(unsigned uMom=0; uMom<kSteps; uMom++){
+    double ps = Kitty_AV18_Def.GetPhaseShift(uMom,0,0);
+    double kstar = Kitty_AV18_Def.GetMomentum(uMom);
+
+    hPS_AV18->SetBinContent(uMom+1, ps);
+    hPS_AV18->SetBinError(uMom+1, 0.01);
+
+    hER_AV18->SetBinContent(uMom+1, kstar/tan(ps));
+    hER_AV18->SetBinError(uMom+1, 1);
+
+  }
+
+
+  CATS Kitty_Toy;
+  Kitty_Toy.SetMomBins(kSteps,kMin,kMax);
+  //AnalysisObject.SetUpCats_pp(Kitty_Toy,"","",0,0);
+  //Kitty_Toy.SetAnaSource(GaussSourceShifted, cSorPars);
+  Kitty_Toy.SetAnaSource(GaussSource, cSorPars);
+  Kitty_Toy.SetUseAnalyticSource(true);
+  Kitty_Toy.SetMomentumDependentSource(false);
+  Kitty_Toy.SetThetaDependentSource(false);
+  Kitty_Toy.SetNormalizedSource(true);
+
+  Kitty_Toy.SetExcludeFailedBins(false);
+  Kitty_Toy.SetQ1Q2(0);
+  Kitty_Toy.SetQuantumStatistics(true);
+  Kitty_Toy.SetRedMass( 0.5*Mass_p );
+  Kitty_Toy.SetNumChannels(2);
+  Kitty_Toy.SetNumPW(0,1);
+  Kitty_Toy.SetSpin(0,0);
+  Kitty_Toy.SetSpin(1,1);
+  Kitty_Toy.SetChannelWeight(0, 1./4.);
+  Kitty_Toy.SetChannelWeight(1, 3./4.);
+  CATSparameters cToyPars(CATSparameters::tPotential,4,true);
+  //Kitty_Toy.SetShortRangePotential(0,0,USR_pot_1,cToyPars);
+  Kitty_Toy.SetShortRangePotential(0,0,DoubleGaussSum,cToyPars);
+
+  TFile fOutput(OutputFile, "recreate");
+
+  TNtuple* ntToyPot = new TNtuple("ntToyPot", "ntToyPot","SEED:ID:V0:R0:V1:R1:shift:f0:d0:chi2:diff_av18");
+  Float_t ntBuffer[11];
+
+  TRandom3 rangen(SEED);
+  double best_diff_av18 = 1e6;
+  for(unsigned uIter=0; uIter<NumIter; uIter++){
+
+
+    TH1F* hPS = new TH1F(TString::Format("hPS_%u_%u",SEED,uIter),TString::Format("hPS_%u_%u",SEED,uIter),kSteps,kMin,kMax);
+    TH1F* hER = new TH1F(TString::Format("hER_%u_%u",SEED,uIter),TString::Format("hER_%u_%u",SEED,uIter),kSteps,kMin,kMax);
+    TF1* fER = new TF1(TString::Format("fER_%u_%u",SEED,uIter),"197.327*[0]+0.5*[1]/197.327*x*x",kMin_ER,kMax_ER);
+    TH1F* hPot = new TH1F(TString::Format("hPot_%u_%u",SEED,uIter),TString::Format("hPot_%u_%u",SEED,uIter),2048,0,2);
+
+
+
+    Kitty_Toy.SetShortRangePotential(0,0,0,324.264);
+    Kitty_Toy.SetShortRangePotential(0,0,1,0.16704);  
+    Kitty_Toy.SetShortRangePotential(0,0,2,-33.0925);
+    Kitty_Toy.SetShortRangePotential(0,0,3,1.74996);
+    //DG (up is for good descr. of av18)
+    //Kitty_Toy.SetShortRangePotential(0,0,0,rangen.Uniform(2000,4500));
+    //Kitty_Toy.SetShortRangePotential(0,0,1,rangen.Uniform(0.3,0.7));  
+    //Kitty_Toy.SetShortRangePotential(0,0,2,rangen.Uniform(-300,-50));
+    //Kitty_Toy.SetShortRangePotential(0,0,3,rangen.Uniform(0.7,2.0));
+
+    //toy1
+    //Kitty_Toy.SetShortRangePotential(0,0,0,rangen.Uniform(500,1500));
+    //Kitty_Toy.SetShortRangePotential(0,0,1,rangen.Uniform(0,shift*0.8));  
+    //Kitty_Toy.SetShortRangePotential(0,0,2,rangen.Uniform(-2000,-800));
+    //Kitty_Toy.SetShortRangePotential(0,0,3,rangen.Uniform(shift*0.8,shift));
+
+    //toy1k
+    //Kitty_Toy.SetShortRangePotential(0,0,0,rangen.Uniform(0,1500));
+    //Kitty_Toy.SetShortRangePotential(0,0,1,rangen.Uniform(0,shift*0.5));  
+    //Kitty_Toy.SetShortRangePotential(0,0,2,rangen.Uniform(-1500,0));
+    //Kitty_Toy.SetShortRangePotential(0,0,3,rangen.Uniform(shift*0.5,shift));
+
+    //toy2
+    //Kitty_Toy.SetShortRangePotential(0,0,0,rangen.Uniform(shift));
+    //Kitty_Toy.SetShortRangePotential(0,0,1,rangen.Uniform(-1000,1000));  
+    //Kitty_Toy.SetShortRangePotential(0,0,2,rangen.Uniform(-10, 10));
+    //Kitty_Toy.SetShortRangePotential(0,0,3,rangen.Uniform(-1, 1));
+
+
+    //Kitty_Toy.SetShortRangePotential(0,0,0,100);
+    //Kitty_Toy.SetShortRangePotential(0,0,1,0);  
+    //Kitty_Toy.SetShortRangePotential(0,0,2,-150);
+    //Kitty_Toy.SetShortRangePotential(0,0,3,0.8);    
+    Kitty_Toy.SetNotifications(CATS::nWarning);
+    Kitty_Toy.KillTheCat();
+
+    double diff_av18 = 0;
+    for(unsigned uMom=0; uMom<kSteps; uMom++){
+      double ps = Kitty_Toy.GetPhaseShift(uMom,0,0);
+      double kstar = Kitty_Toy.GetMomentum(uMom);
+      //printf("%f %f %f\n",kstar,ps,Kitty_Toy.GetCorrFun(uMom));
+      hER->SetBinContent(uMom+1, kstar/tan(ps));
+      hER->SetBinError(uMom+1, 1);
+
+      hPS->SetBinContent(uMom+1, ps);
+      hPS->SetBinError(uMom+1, 0.01);
+
+      if(kstar>=kMin_ER && kstar<=kMax_ER){
+        diff_av18 += pow(ps-hPS_AV18->GetBinContent(uMom+1),2.);
+      }
+    }
+    fER->SetParameter(0, 0);
+    fER->SetParLimits(0, -10,10);
+    fER->SetParLimits(1, -50,150);
+
+    hER->Fit(fER,"Q, S, N, R, M");\
+    //if(1/fER->GetParameter(0)>10)
+
+    for(unsigned uRad=0; uRad<hPot->GetNbinsX(); uRad++){
+      float rad = hPot->GetBinCenter(uRad+1);
+      hPot->SetBinContent(uRad+1, Kitty_Toy.EvaluateThePotential(0,0,10,rad));
+    }
+
+    if(fER->GetChisquare()<100){
+      if(diff_av18<best_diff_av18){
+
+        printf("%u: f; d = %.2f/%.2f; chi2=%.0f; diff=%.3f\n", uIter, 1/fER->GetParameter(0), fER->GetParameter(1), fER->GetChisquare(), diff_av18);
+        printf("    V0,R0,V1,R1 = %.3f, %.3f, %.3f, %.3f\n", Kitty_Toy.GetPotPar(0,0,0),Kitty_Toy.GetPotPar(0,0,1),Kitty_Toy.GetPotPar(0,0,2),Kitty_Toy.GetPotPar(0,0,3));
+
+        hPS->Write();
+        hER->Write();
+        fER->Write();
+        hPot->Write();
+
+        best_diff_av18 = diff_av18;
+      }
+      if(diff_av18<0.1){
+        ntBuffer[0] = SEED;
+        ntBuffer[1] = uIter;
+        ntBuffer[2] = Kitty_Toy.GetPotPar(0,0,0);
+        ntBuffer[3] = Kitty_Toy.GetPotPar(0,0,1);
+        ntBuffer[4] = Kitty_Toy.GetPotPar(0,0,2);
+        ntBuffer[5] = Kitty_Toy.GetPotPar(0,0,3);
+        ntBuffer[6] = shift;
+        ntBuffer[7] = 1/fER->GetParameter(0);
+        ntBuffer[8] = fER->GetParameter(1);
+        ntBuffer[9] = fER->GetChisquare();
+        ntBuffer[10] = diff_av18;
+        ntToyPot->Fill(ntBuffer);
+
+      }
+    }
+
+
+
+    
+
+    
+    delete hPS;
+    delete hER;
+    delete fER;
+    delete hPot;
+  }
+  //Kitty_Toy.SetShortRangePotential(0,0,0,1000);
+  //Kitty_Toy.SetShortRangePotential(0,0,1,0);  
+  //Kitty_Toy.SetShortRangePotential(0,0,2,-540);
+  //Kitty_Toy.SetShortRangePotential(0,0,3,0.8);
+  hPS_AV18->Write();
+  hER_AV18->Write();
+  ntToyPot->Write();
+
+  delete hPS_AV18;
+  delete ntToyPot;
+}
+
+
+void Toy_Potential_Compare(){
+
+
+  TString OutputFile = TString::Format("%s/OtherTasks/Toy_Potential_Scan/Toy_Potential_Compare.root",GetFemtoOutputFolder());
+  unsigned kSteps = 120;
+  double kMin = 0;
+  double kMax = 240;
+
+  double source_size = 0.7;
+
+  CATSparameters cSorPars(CATSparameters::tSource,1,true);
+  cSorPars.SetParameter(0,source_size);
+
+
+  CATS Kitty_AV18_Def;
+  Kitty_AV18_Def.SetMomBins(kSteps,kMin,kMax);
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles/",GetCernBoxDimi()));
+  AnalysisObject.SetUpCats_pp(Kitty_AV18_Def,"AV18_s","",0,0);
+  Kitty_AV18_Def.SetAnaSource(GaussSource, cSorPars);
+  Kitty_AV18_Def.SetUseAnalyticSource(true);
+  Kitty_AV18_Def.SetMomentumDependentSource(false);
+  Kitty_AV18_Def.SetThetaDependentSource(false);
+  Kitty_AV18_Def.SetNormalizedSource(true);
+  Kitty_AV18_Def.SetQ1Q2(0);
+  Kitty_AV18_Def.SetEpsilonConv(1e-9);
+  Kitty_AV18_Def.SetEpsilonProp(1e-9);
+  Kitty_AV18_Def.KillTheCat();
+
+
+  CATS Kitty_Toy;
+  Kitty_Toy.SetMomBins(kSteps,kMin,kMax);
+  Kitty_Toy.SetAnaSource(GaussSource, cSorPars);
+  Kitty_Toy.SetUseAnalyticSource(true);
+  Kitty_Toy.SetMomentumDependentSource(false);
+  Kitty_Toy.SetThetaDependentSource(false);
+  Kitty_Toy.SetNormalizedSource(true);
+
+  Kitty_Toy.SetExcludeFailedBins(false);
+  Kitty_Toy.SetQ1Q2(0);
+  Kitty_Toy.SetQuantumStatistics(true);
+  Kitty_Toy.SetRedMass( 0.5*Mass_p );
+  Kitty_Toy.SetNumChannels(2);
+  Kitty_Toy.SetNumPW(0,1);
+  Kitty_Toy.SetSpin(0,0);
+  Kitty_Toy.SetSpin(1,1);
+  Kitty_Toy.SetChannelWeight(0, 1./4.);
+  Kitty_Toy.SetChannelWeight(1, 3./4.);
+  CATSparameters cToyPars(CATSparameters::tPotential,4,true);
+  Kitty_Toy.SetShortRangePotential(0,0,DoubleGaussSum,cToyPars);
+  Kitty_Toy.SetShortRangePotential(0,0,0,324.264);
+  Kitty_Toy.SetShortRangePotential(0,0,1,0.16704);  
+  Kitty_Toy.SetShortRangePotential(0,0,2,-33.0925);
+  Kitty_Toy.SetShortRangePotential(0,0,3,1.74996);
+  Kitty_Toy.SetEpsilonConv(1e-9);
+  Kitty_Toy.SetEpsilonProp(1e-9);
+  Kitty_Toy.KillTheCat();
+
+  TFile fOutput(OutputFile, "recreate");
+
+
+  TH1F* hPS_AV18 = new TH1F(TString::Format("hPS_AV18"),TString::Format("hPS_AV18"),kSteps,kMin,kMax);
+  TH1F* hER_AV18 = new TH1F(TString::Format("hER_AV18"),TString::Format("hER_AV18"),kSteps,kMin,kMax);
+  TH1F* hCk_AV18 = new TH1F(TString::Format("hCk_AV18"),TString::Format("hCk_AV18"),kSteps,kMin,kMax);
+  TH1F* hdCdk_AV18 = new TH1F(TString::Format("hdCdk_AV18"),TString::Format("hdCdk_AV18"),kSteps,kMin,kMax);
+  TH1F* hPot_AV18 = new TH1F(TString::Format("hPot_AV18"),TString::Format("hPot_AV18"),2048,0,2);
+
+  TH1F* hPS = new TH1F(TString::Format("hPS_DG"),TString::Format("hPS_DG"),kSteps,kMin,kMax);
+  TH1F* hER = new TH1F(TString::Format("hER_DG"),TString::Format("hER_DG"),kSteps,kMin,kMax);
+  TH1F* hCk = new TH1F(TString::Format("hCk_DG"),TString::Format("hCk_DG"),kSteps,kMin,kMax);
+  TH1F* hdCdk = new TH1F(TString::Format("hdCdk"),TString::Format("hdCdk"),kSteps,kMin,kMax);
+  TH1F* hPot = new TH1F(TString::Format("hPot_DG"),TString::Format("hPot_DG"),2048,0,2);
+
+
+  for(unsigned uMom=0; uMom<kSteps; uMom++){
+    double ps = Kitty_AV18_Def.GetPhaseShift(uMom,0,0);
+    double kstar = Kitty_AV18_Def.GetMomentum(uMom);
+
+    hPS_AV18->SetBinContent(uMom+1, ps);
+    hPS_AV18->SetBinError(uMom+1, 0.01);
+
+    hER_AV18->SetBinContent(uMom+1, kstar/tan(ps));
+    hER_AV18->SetBinError(uMom+1, 1);
+
+    hCk_AV18->SetBinContent(uMom+1, Kitty_AV18_Def.GetCorrFun(uMom));
+    if(uMom){
+      double dC = Kitty_AV18_Def.GetCorrFun(uMom) - Kitty_AV18_Def.GetCorrFun(uMom-1);
+      double dk = Kitty_AV18_Def.GetMomentum(uMom) - Kitty_AV18_Def.GetMomentum(uMom-1);
+      hdCdk_AV18->SetBinContent(uMom, dC/dk );
+    }
+
+    ps = Kitty_Toy.GetPhaseShift(uMom,0,0);
+    hPS->SetBinContent(uMom+1, ps);
+    hPS->SetBinError(uMom+1, 0.01);
+
+    hER->SetBinContent(uMom+1, kstar/tan(ps));
+    hER->SetBinError(uMom+1, 1);
+
+    hCk->SetBinContent(uMom+1, Kitty_Toy.GetCorrFun(uMom));
+    if(uMom){
+      double dC = Kitty_Toy.GetCorrFun(uMom) - Kitty_Toy.GetCorrFun(uMom-1);
+      double dk = Kitty_Toy.GetMomentum(uMom) - Kitty_Toy.GetMomentum(uMom-1);
+      hdCdk->SetBinContent(uMom, dC/dk );
+    }
+  }
+
+  for(unsigned uRad=0; uRad<hPot->GetNbinsX(); uRad++){
+    float rad = hPot->GetBinCenter(uRad+1);
+    hPot_AV18->SetBinContent(uRad+1, Kitty_AV18_Def.EvaluateThePotential(0,0,10,rad));
+    hPot->SetBinContent(uRad+1, Kitty_Toy.EvaluateThePotential(0,0,10,rad));
+  }
+
+
+  hPS_AV18->Write();
+  hPS->Write();
+  hER->Write();
+  hER_AV18->Write();
+  hCk_AV18->Write();
+  hCk->Write();
+  hdCdk_AV18->Write();
+  hdCdk->Write();
+  hPot_AV18->Write();
+  hPot->Write();
+
+  delete hPS;
+  delete hER;
+  delete hCk;
+  delete hdCdk;
+  delete hPot;
+
+  delete hPS_AV18;
+  delete hER_AV18;
+  delete hCk_AV18;
+  delete hdCdk_AV18;
+  delete hPot_AV18;
+}
+
+
+void Toy_Potential_Scan_FloatGauss(int SEED, unsigned NumIter){
+
+
+  TString OutputFile = TString::Format("%s/OtherTasks/Toy_Potential_Scan_FloatGauss/seed_%u.root",GetFemtoOutputFolder(),SEED);
+  unsigned kSteps = 16;
+  double kMin = 0;
+  double kMax = 80;
+  double kMin_ER = 0;
+  double kMax_ER = 60;
+
+  double source_size = 1.2;
+
+  CATSparameters cSorPars(CATSparameters::tSource,1,true);
+  cSorPars.SetParameter(0,source_size);
+
+
+  CATS Kitty_AV18_Def;
+  Kitty_AV18_Def.SetMomBins(kSteps,kMin,kMax);
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles/",GetCernBoxDimi()));
+  AnalysisObject.SetUpCats_pp(Kitty_AV18_Def,"AV18_s","",0,0);
+  Kitty_AV18_Def.SetAnaSource(GaussSource, cSorPars);
+  Kitty_AV18_Def.SetUseAnalyticSource(true);
+  Kitty_AV18_Def.SetMomentumDependentSource(false);
+  Kitty_AV18_Def.SetThetaDependentSource(false);
+  Kitty_AV18_Def.SetNormalizedSource(true);
+  Kitty_AV18_Def.SetQ1Q2(0);
+  Kitty_AV18_Def.KillTheCat();
+  TH1F* hPS_AV18_Def = new TH1F("hPS_AV18_Def","hPS_AV18_Def",kSteps,kMin,kMax);
+  TH1F* hER_AV18_Def = new TH1F("hER_AV18_Def","hER_AV18_Def",kSteps,kMin,kMax);
+  for(unsigned uMom=0; uMom<kSteps; uMom++){
+    double kstar = Kitty_AV18_Def.GetMomentum(uMom);
+    hPS_AV18_Def->SetBinContent(uMom+1,Kitty_AV18_Def.GetPhaseShift(uMom,0,0));
+    //hPS_AV18_Def->SetBinError(uMom+1, 0.01 * sqrt(kstar*0.5));
+    hPS_AV18_Def->SetBinError(uMom+1, 0.001 + 0.0001 * kstar);
+
+    double ps = Kitty_AV18_Def.GetPhaseShift(uMom,0,0);
+    hER_AV18_Def->SetBinContent(uMom+1,kstar/tan(ps));
+    //printf("%f %f %f\n",kstar,ps,kstar/tan(ps));
+    double ps_err = kstar>=20?0.001*kstar*kstar/tan(ps):0.001* 20*kstar/tan(ps);
+    hER_AV18_Def->SetBinError(uMom+1, ps_err);    
+  }
+  //Kitty_AV18_Def.SetQ1Q2(1);
+  //Kitty_AV18_Def.KillTheCat();  
+
+
+
+  CATS Kitty_Toy;
+  Kitty_Toy.SetMomBins(kSteps,kMin,kMax);
+  Kitty_Toy.SetAnaSource(GaussSource, cSorPars);
+  Kitty_Toy.SetUseAnalyticSource(true);
+  Kitty_Toy.SetMomentumDependentSource(false);
+  Kitty_Toy.SetThetaDependentSource(false);
+  Kitty_Toy.SetNormalizedSource(true);
+
+  Kitty_Toy.SetExcludeFailedBins(false);
+  Kitty_Toy.SetQ1Q2(0);
+  Kitty_Toy.SetQuantumStatistics(true);
+  Kitty_Toy.SetRedMass( 0.5*Mass_p );
+  Kitty_Toy.SetNumChannels(2);
+  Kitty_Toy.SetNumPW(0,1);
+  Kitty_Toy.SetSpin(0,0);
+  Kitty_Toy.SetSpin(1,1);
+  Kitty_Toy.SetChannelWeight(0, 1./4.);
+  Kitty_Toy.SetChannelWeight(1, 3./4.);
+  CATSparameters cToyPars(CATSparameters::tPotential,10,true);
+  cToyPars.SetParameter(0,3);
+  Kitty_Toy.SetShortRangePotential(0,0,FloatingGaussians,cToyPars);
+
+
+  TFile fOutput(OutputFile, "recreate");
+
+  TNtuple* ntToyPot = new TNtuple("ntToyPot", "ntToyPot","SEED:ID:f0:d0:diff_av18:NumG:V0:mu0:r0:V1:mu1:r1:V2:mu2:r2");
+  Float_t ntBuffer[15];
+
+  TH1F* hPS_best = NULL;// = new TH1F(TString::Format("hPS_best_%u_%u",SEED,uIter),TString::Format("hPS_best_%u_%u",SEED,uIter),kSteps,kMin,kMax);
+  TH1F* hER_best = NULL;// = new TH1F(TString::Format("hER_best_%u_%u",SEED,uIter),TString::Format("hER_best_%u_%u",SEED,uIter),kSteps,kMin,kMax);
+  TF1* fER_best = NULL;// = new TF1(TString::Format("fER_best_%u_%u",SEED,uIter),"197.327*[0]+0.5*[1]/197.327*x*x",kMin_ER,kMax_ER);
+  TH1F* hPot_best = NULL;// = new TH1F(TString::Format("hPot_best_%u_%u",SEED,uIter),TString::Format("hPot_best_%u_%u",SEED,uIter),2048,0,2);
+
+  TRandom3 rangen(SEED);
+  double best_diff_av18 = 1e6;
+  for(unsigned uIter=0; uIter<NumIter; uIter++){
+
+    TH1F* hPS = new TH1F(TString::Format("hPS_%u_%u",SEED,uIter),TString::Format("hPS_%u_%u",SEED,uIter),kSteps,kMin,kMax);
+    TH1F* hER = new TH1F(TString::Format("hER_%u_%u",SEED,uIter),TString::Format("hER_%u_%u",SEED,uIter),kSteps,kMin,kMax);
+    TF1* fER = new TF1(TString::Format("fER_%u_%u",SEED,uIter),"197.327*[0]+0.5*[1]/197.327*x*x",kMin_ER,kMax_ER);
+    TH1F* hPot = new TH1F(TString::Format("hPot_%u_%u",SEED,uIter),TString::Format("hPot_%u_%u",SEED,uIter),2048,0,2);
+
+    //toy1
+    Kitty_Toy.SetShortRangePotential(0,0,1,rangen.Uniform(-10000,10000));
+    Kitty_Toy.SetShortRangePotential(0,0,2,0);  
+    Kitty_Toy.SetShortRangePotential(0,0,3,rangen.Uniform(0.01,0.1));
+    //Kitty_Toy.SetShortRangePotential(0,0,1,rangen.Uniform(0));
+    //Kitty_Toy.SetShortRangePotential(0,0,2,rangen.Uniform(0));  
+    //Kitty_Toy.SetShortRangePotential(0,0,3,rangen.Uniform(1));
+
+    Kitty_Toy.SetShortRangePotential(0,0,4,rangen.Uniform(-1000,1000));
+    Kitty_Toy.SetShortRangePotential(0,0,5,rangen.Uniform(0.1,0.4));  
+    Kitty_Toy.SetShortRangePotential(0,0,6,rangen.Uniform(0.1,0.4));
+    //Kitty_Toy.SetShortRangePotential(0,0,4,527.05401);
+    //Kitty_Toy.SetShortRangePotential(0,0,5,0.18620);  
+    //Kitty_Toy.SetShortRangePotential(0,0,6,0.00734);
+
+
+    Kitty_Toy.SetShortRangePotential(0,0,7,rangen.Uniform(-1000,1000));
+    Kitty_Toy.SetShortRangePotential(0,0,8,rangen.Uniform(0.1,0.4));  
+    Kitty_Toy.SetShortRangePotential(0,0,9,rangen.Uniform(0.1,0.4));
+    //Kitty_Toy.SetShortRangePotential(0,0,7,rangen.Uniform(-686.79650));
+    //Kitty_Toy.SetShortRangePotential(0,0,8,rangen.Uniform(0,0.35244));  
+    //Kitty_Toy.SetShortRangePotential(0,0,9,rangen.Uniform(0,0.09530));    
+
+    Kitty_Toy.SetNotifications(CATS::nWarning);
+    Kitty_Toy.KillTheCat();
+
+
+    double diff_av18 = 0;
+    for(unsigned uMom=0; uMom<kSteps; uMom++){
+      double ps = Kitty_Toy.GetPhaseShift(uMom,0,0);
+      double kstar = Kitty_Toy.GetMomentum(uMom);
+      //printf("%f %f %f\n",kstar,ps,Kitty_Toy.GetCorrFun(uMom));
+      hER->SetBinContent(uMom+1, kstar/tan(ps));
+      hER->SetBinError(uMom+1, 1+kstar*0.2);
+
+      hPS->SetBinContent(uMom+1, ps);
+      hPS->SetBinError(uMom+1, 0.01);
+
+      if(kstar>=kMin_ER && kstar<=kMax_ER){
+        diff_av18 += pow(ps-hPS_AV18_Def->GetBinContent(uMom+1),2.);
+      }
+    }
+    fER->SetParameter(0, 0);
+    fER->SetParLimits(0, -10,10);
+    fER->SetParLimits(1, -50,150);
+
+    hER->Fit(fER,"Q, S, N, R, M");\
+    //if(1/fER->GetParameter(0)>10)
+
+    for(unsigned uRad=0; uRad<hPot->GetNbinsX(); uRad++){
+      float rad = hPot->GetBinCenter(uRad+1);
+      hPot->SetBinContent(uRad+1, Kitty_Toy.EvaluateThePotential(0,0,10,rad));
+    }
+
+
+    //printf("%u: f; d = %.2f/%.2f; chi2=%.0f; diff=%.3f\n", uIter, 1/fER->GetParameter(0), fER->GetParameter(1), fER->GetChisquare(), diff_av18);
+    //printf("    V0,R0,V1,R1 = %.3f, %.3f, %.3f, %.3f\n", Kitty_Toy.GetPotPar(0,0,0),Kitty_Toy.GetPotPar(0,0,1),Kitty_Toy.GetPotPar(0,0,2),Kitty_Toy.GetPotPar(0,0,3));
+
+    //hPS->Write();
+    //hER->Write();
+    //fER->Write();
+    //hPot->Write();
+
+    if(fER->GetChisquare()<100){
+      ntBuffer[0] = SEED;
+      ntBuffer[1] = uIter;
+      ntBuffer[2] = 1/fER->GetParameter(0);
+      ntBuffer[3] = fER->GetParameter(1);
+      ntBuffer[4] = diff_av18;
+      ntBuffer[5] = Kitty_Toy.GetPotPar(0,0,0);
+      ntBuffer[6] = Kitty_Toy.GetPotPar(0,0,1);
+      ntBuffer[7] = Kitty_Toy.GetPotPar(0,0,2);
+      ntBuffer[8] = Kitty_Toy.GetPotPar(0,0,3);
+      ntBuffer[9] = Kitty_Toy.GetPotPar(0,0,4);
+      ntBuffer[10] = Kitty_Toy.GetPotPar(0,0,5);
+      ntBuffer[11] = Kitty_Toy.GetPotPar(0,0,6);
+      ntBuffer[12] = Kitty_Toy.GetPotPar(0,0,7);
+      ntBuffer[13] = Kitty_Toy.GetPotPar(0,0,8);
+      ntBuffer[14] = Kitty_Toy.GetPotPar(0,0,9);
+
+
+      ntToyPot->Fill(ntBuffer);
+
+      if(diff_av18<best_diff_av18 && 1./fER->GetParameter(0)>2 && fER->GetParameter(1)>2.0 && fER->GetParameter(1)<3.6){
+
+        printf("%u: f; d = %.2f/%.2f; chi2=%.0f; diff=%.3f\n", uIter, 1/fER->GetParameter(0), fER->GetParameter(1), fER->GetChisquare(), diff_av18);
+        printf("    V0,M0,R0 = %.5f, %.5f, %.5f\n", Kitty_Toy.GetPotPar(0,0,1),Kitty_Toy.GetPotPar(0,0,2),Kitty_Toy.GetPotPar(0,0,3));
+        printf("    V1,M1,R1 = %.5f, %.5f, %.5f\n", Kitty_Toy.GetPotPar(0,0,4),Kitty_Toy.GetPotPar(0,0,5),Kitty_Toy.GetPotPar(0,0,6));
+        printf("    V2,M2,R2 = %.5f, %.5f, %.5f\n", Kitty_Toy.GetPotPar(0,0,7),Kitty_Toy.GetPotPar(0,0,8),Kitty_Toy.GetPotPar(0,0,9));
+
+        //hPS->Write();
+        //hER->Write();
+        //fER->Write();
+        //hPot->Write();
+        if(hPS_best) delete hPS_best;
+        if(hER_best) delete hER_best;
+        if(fER_best) delete fER_best;
+        if(hPot_best) delete hPot_best;
+
+        hPS_best = (TH1F*)hPS->Clone("hPS_best");
+        hER_best = (TH1F*)hER->Clone("hER_best");
+        fER_best = (TF1*)fER->Clone("fER_best");
+        hPot_best = (TH1F*)hPot->Clone("hPot_best");
+
+        best_diff_av18 = diff_av18;
+      }
+    }
+
+    delete hPS;
+    delete hER;
+    delete fER;
+    delete hPot;
+  }
+  //Kitty_Toy.SetShortRangePotential(0,0,0,1000);
+  //Kitty_Toy.SetShortRangePotential(0,0,1,0);  
+  //Kitty_Toy.SetShortRangePotential(0,0,2,-540);
+  //Kitty_Toy.SetShortRangePotential(0,0,3,0.8);
+  hPS_AV18_Def->Write();
+  if(hPS_best) hPS_best->Write();
+  hER_AV18_Def->Write();
+  if(hER_best) hER_best->Write();
+  if(hPot_best) hPot_best->Write();
+  ntToyPot->Write();
+
+
+
+
+  delete ntToyPot;
+}
+
+
+void effect_of_square_barrier(){
+
+  TString OutputFolder = TString::Format("%s/OtherTasks/effect_of_square_barrier/",GetFemtoOutputFolder());
+
+  std::vector<float> positions = {0,0.1,0.2,0.4,0.8,1.6};
+  std::vector<float> amplitudes = {-400,-200,-100,-50,-25};
+  std::vector<float> half_widths = {0.001,0.1,0.2,0.4,0.8};
+
+
+  unsigned kSteps = 16;
+  double kMin = 0;
+  double kMax = 80;
+  double kMin_ER = 0;
+  double kMax_ER = 60;
+
+  double source_size = 1.2;
+
+  CATSparameters cSorPars(CATSparameters::tSource,1,true);
+  cSorPars.SetParameter(0,source_size);
+
+
+  CATS Kitty_AV18_Def;
+  Kitty_AV18_Def.SetMomBins(kSteps,kMin,kMax);
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles/",GetCernBoxDimi()));
+  AnalysisObject.SetUpCats_pp(Kitty_AV18_Def,"AV18_s","",0,0);
+  Kitty_AV18_Def.SetAnaSource(GaussSource, cSorPars);
+  Kitty_AV18_Def.SetUseAnalyticSource(true);
+  Kitty_AV18_Def.SetMomentumDependentSource(false);
+  Kitty_AV18_Def.SetThetaDependentSource(false);
+  Kitty_AV18_Def.SetNormalizedSource(true);
+  Kitty_AV18_Def.SetQ1Q2(0);
+  Kitty_AV18_Def.KillTheCat();
+  TH1F* hPS_AV18_Def = new TH1F("hPS_AV18_Def","hPS_AV18_Def",kSteps,kMin,kMax);
+  TH1F* hER_AV18_Def = new TH1F("hER_AV18_Def","hER_AV18_Def",kSteps,kMin,kMax);
+  for(unsigned uMom=0; uMom<kSteps; uMom++){
+    double kstar = Kitty_AV18_Def.GetMomentum(uMom);
+    hPS_AV18_Def->SetBinContent(uMom+1,Kitty_AV18_Def.GetPhaseShift(uMom,0,0));
+    //hPS_AV18_Def->SetBinError(uMom+1, 0.01 * sqrt(kstar*0.5));
+    hPS_AV18_Def->SetBinError(uMom+1, 0.001 + 0.0001 * kstar);
+
+    double ps = Kitty_AV18_Def.GetPhaseShift(uMom,0,0);
+    hER_AV18_Def->SetBinContent(uMom+1,kstar/tan(ps));
+    //printf("%f %f %f\n",kstar,ps,kstar/tan(ps));
+    double ps_err = kstar>=20?0.001*kstar*kstar/tan(ps):0.001* 20*kstar/tan(ps);
+    hER_AV18_Def->SetBinError(uMom+1, ps_err);    
+  }
+
+
+
+  CATS Kitty_Toy;
+  Kitty_Toy.SetMomBins(kSteps,kMin,kMax);
+  Kitty_Toy.SetAnaSource(GaussSource, cSorPars);
+  Kitty_Toy.SetUseAnalyticSource(true);
+  Kitty_Toy.SetMomentumDependentSource(false);
+  Kitty_Toy.SetThetaDependentSource(false);
+  Kitty_Toy.SetNormalizedSource(true);
+
+  Kitty_Toy.SetExcludeFailedBins(false);
+  Kitty_Toy.SetQ1Q2(0);
+  Kitty_Toy.SetQuantumStatistics(false);
+  Kitty_Toy.SetRedMass( 0.5*Mass_p );
+  Kitty_Toy.SetNumChannels(2);
+  Kitty_Toy.SetNumPW(0,1);
+  Kitty_Toy.SetSpin(0,0);
+  Kitty_Toy.SetSpin(1,1);
+  Kitty_Toy.SetChannelWeight(0, 1);
+  Kitty_Toy.SetChannelWeight(1, 0);
+  CATSparameters cToyPars(CATSparameters::tPotential,3,true);
+  Kitty_Toy.SetShortRangePotential(0,0,PotentialBarrier,cToyPars);
+  Kitty_Toy.SetNotifications(CATS::nWarning);
+
+  std::vector<TH1F*> hPS;
+  std::vector<TH1F*> hER;
+
+  TFile fOutput(OutputFolder+"fOutput.root", "recreate");
+  for(int iAmp=0; iAmp<amplitudes.size(); iAmp++){
+    //printf("amp = %.0f\n",amplitudes.at(iAmp));
+    Kitty_Toy.SetShortRangePotential(0,0,0,amplitudes.at(iAmp));
+    for(int iPos=0; iPos<positions.size(); iPos++){
+      //printf(" pos = %.2f\n",positions.at(iPos));
+      Kitty_Toy.SetShortRangePotential(0,0,1,positions.at(iPos));
+      for(int iHw=0; iHw<half_widths.size(); iHw++){
+        //printf("  hw = %.3f\n",half_widths.at(iHw));
+        Kitty_Toy.SetShortRangePotential(0,0,2,half_widths.at(iHw));
+        Kitty_Toy.KillTheCat();
+        TH1F* hPS_PB = new TH1F(TString::Format("hPS_PB_A%.0f_R%.3f_HW%.3f",amplitudes.at(iAmp),positions.at(iPos),half_widths.at(iHw)),TString::Format("hPS_PB_A%.0f_R%.3f_HW%.3f",amplitudes.at(iAmp),positions.at(iPos),half_widths.at(iHw)),kSteps,kMin,kMax);
+        TH1F* hER_PB = new TH1F(TString::Format("hER_PB_A%.0f_R%.3f_HW%.3f",amplitudes.at(iAmp),positions.at(iPos),half_widths.at(iHw)),TString::Format("hER_PB_A%.0f_R%.3f_HW%.3f",amplitudes.at(iAmp),positions.at(iPos),half_widths.at(iHw)),kSteps,kMin,kMax);
+        for(unsigned uMom=0; uMom<kSteps; uMom++){
+          double kstar = Kitty_AV18_Def.GetMomentum(uMom);
+          hPS_PB->SetBinContent(uMom+1,Kitty_Toy.GetPhaseShift(uMom,0,0));
+          //hPS_AV18_Def->SetBinError(uMom+1, 0.01 * sqrt(kstar*0.5));
+          //hPS_PB->SetBinError(uMom+1, 0.001 + 0.0001 * kstar);
+          
+
+          double ps = Kitty_Toy.GetPhaseShift(uMom,0,0);
+          hER_PB->SetBinContent(uMom+1,kstar/tan(ps));
+          if(uMom==0 && tan(ps)/kstar*hbarc>2){
+            printf("amp = %.0f\n",amplitudes.at(iAmp));
+            printf(" pos = %.2f\n",positions.at(iPos));
+            printf("  hw = %.3f\n",half_widths.at(iHw));
+            printf("   f=%.2f\n",tan(ps)/kstar*hbarc);
+          }
+            
+          //printf("%f %f %f\n",kstar,ps,kstar/tan(ps));
+          double ps_err = kstar>=20?0.001*kstar*kstar/tan(ps):0.001* 20*kstar/tan(ps);
+          //hER_PB->SetBinError(uMom+1, ps_err);
+         
+        }
+        hPS.push_back(hPS_PB);
+        hER.push_back(hER_PB);
+      }
+    }
+  }
+
+  //TFile fOutput(OutputFolder+"effect_of_square_barrier.root","recreate");
+  fOutput.cd();
+  hPS_AV18_Def->Write();
+  for (TH1F* histPS : hPS){
+    histPS->Write();
+  }
+  hER_AV18_Def->Write();
+  for (TH1F* histER : hER){
+    histER->Write();
+  }  
+
+}
+
+
+std::vector<int> get_available_slots(int* airport_status, int* gate_status, int slot_len){
+  std::vector<int> list_of_available_slots;
+  for(int iSlot=0; iSlot<144; iSlot++){
+    bool status=true;
+    //end of the day
+    if(iSlot>144-slot_len) {status=false;}
+    //runway blocked
+    if(airport_status[iSlot]/1000==1) {status=false;}
+    //taxi blocked at landing
+    if( (airport_status[iSlot+1]/10)%10==1 ) {status=false;}
+    //gate blocked at landing
+    if( airport_status[iSlot+1]%10==1 || airport_status[iSlot+2]%10==1 ) {status=false;}
+    int last_slot = iSlot+slot_len-1;
+    int departure_slot = last_slot-3;
+    int departure_len = 2;
+    if(slot_len<=18) {departure_slot = last_slot-2; departure_len = 1;} //short hauls
+    //gate blocked at departure
+    if( airport_status[departure_slot]%10==1 ) {status=false;}
+    //taxi blocked at departure
+    if( (airport_status[departure_slot]/10)%10==1 ) {status=false;}
+    if( departure_len==2 && (airport_status[departure_slot+1]/10)%10==1 ) {status=false;}
+    //runway blocked at departure
+    if( (airport_status[last_slot-1]/100)%10==1) {status=false;}
+    if( airport_status[last_slot]/1000==1) {status=false;}
+    for(int iSlot2=iSlot; iSlot2<iSlot+slot_len; iSlot2++){
+      if( gate_status[iSlot2]!=0 ) {status=false; break;}
+    }
+    
+
+    //if(iSlot==3&&status==false){
+    //  printf("airport_status[iSlot] = %i\n",airport_status[iSlot]);
+    //  printf("airport_status[iSlot+1] = %i\n",airport_status[iSlot+1]);
+    //  printf("departure_slot = %i\n",departure_slot);
+    //  printf("departure_len = %i\n",departure_len);
+    //  printf("airport_status[departure_slot] = %i\n",airport_status[departure_slot]);
+    //  printf("airport_status[departure_slot+1] = %i\n",airport_status[departure_slot+1]);
+    //  printf("last_slot = %i\n",last_slot);
+    //  printf("airport_status[last_slot-1] = %i\n",airport_status[last_slot-1]);
+    //  printf("airport_status[last_slot] = %i\n",airport_status[last_slot]);     
+    //}
+
+    if(status){
+      list_of_available_slots.push_back(iSlot);
+    }
+  }
+  return list_of_available_slots;
+}
+
+void AirSim_Schedule(int SEED, int nIter, int nSH, int nMH, int nLH){
+
+  const double rating_SH = 1;
+  const double rating_MH = 2;
+  const double rating_LH = 3;
+  const int slot_len_SH = 18;
+  const int slot_len_MH = 24;
+  const int slot_len_LH = 36;
+
+
+  double best_rating = 0;
+
+  TRandom3 rangen(SEED);
+  for(int iIter=0; iIter<nIter; iIter++){
+
+    int nGate = nSH+nMH+nLH;
+    //slot values:
+    //0 = available (for the gate -1 is booked, currently at parked)
+    //!0 = booked
+    //ABCD with 
+    //  A runway status: 0 free, 1 blocled
+    //  B taxi to runway: 0 free, 1 blocled 
+    //  C taxi status: 0 free, 1 blocked (at the cross road)
+    //  D terminal status: 0 free, 1 blocked
+    //The rule is: 
+    int** gate = new int* [nGate];
+    int* airport_status = new int [144];
+    for(int iSlot=0; iSlot<144; iSlot++){
+      airport_status[iSlot] = 0;
+    }
+    for(int iGate=0; iGate<nGate; iGate++){
+      gate[iGate] = new int[144];//24*6
+      for(int iSlot=0; iSlot<144; iSlot++){
+        gate[iGate][iSlot] = 0;
+      }
+    }
+
+    const int max_dev = 4;
+    double total_rating = 0;
+    for(int iLH=0; iLH<nLH; iLH++){
+      int counter=0;
+      while(true){
+        std::vector<int> available_slots = get_available_slots(airport_status, gate[iLH], slot_len_LH);
+        //for(int iav=0; iav<available_slots.size(); iav++){
+        //  printf("%i\n",available_slots.at(iav));
+        //}
+        if(available_slots.size()==0) break;
+        int new_slot = available_slots.at(rangen.Integer(available_slots.size()<max_dev?available_slots.size():max_dev));
+        //int new_slot = available_slots.at(0);
+        total_rating += rating_LH;
+        gate[iLH][new_slot] = 1000;
+        gate[iLH][new_slot+1] = 11;
+        for(int iSlot=new_slot+2; iSlot<new_slot+32; iSlot++){
+          gate[iLH][iSlot] = -1;
+        }
+        gate[iLH][new_slot+32] = 11;
+        gate[iLH][new_slot+33] = 10;
+        gate[iLH][new_slot+34] = 100;
+        gate[iLH][new_slot+35] = 1000;
+
+        airport_status[new_slot] = airport_status[new_slot]%1000 + 1000;
+        airport_status[new_slot+1] = (airport_status[new_slot+1]/100)*100 + 11;
+        airport_status[new_slot+32] = (airport_status[new_slot+32]/100)*100 + 11;
+        airport_status[new_slot+33] = airport_status[new_slot+33] - ((airport_status[new_slot+33]/10)%10)*10 + 10;//change the second digit
+        airport_status[new_slot+34] = airport_status[new_slot+34] - ((airport_status[new_slot+34]/100)%10)*100 + 100;//change the third digit
+        airport_status[new_slot+35] = airport_status[new_slot+35]%1000 + 1000;
+        //printf("new_slot = %i\n",new_slot);
+        counter++;
+//if(counter==2) break;
+      }
+    }
+
+    for(int iMH=0; iMH<nMH; iMH++){
+      int counter=0;
+      while(true){
+        std::vector<int> available_slots = get_available_slots(airport_status, gate[iMH], slot_len_MH);
+        if(available_slots.size()==0) break;
+        int new_slot = available_slots.at(rangen.Integer(available_slots.size()<max_dev?available_slots.size():max_dev));
+        total_rating += rating_MH;
+        gate[iMH][new_slot] = 1000;
+        gate[iMH][new_slot+1] = 11;
+        for(int iSlot=new_slot+2; iSlot<new_slot+20; iSlot++){
+          gate[iMH][iSlot] = -1;
+        }
+        gate[iMH][new_slot+20] = 11;
+        gate[iMH][new_slot+21] = 10;
+        gate[iMH][new_slot+22] = 100;
+        gate[iMH][new_slot+23] = 1000;
+
+        airport_status[new_slot] = airport_status[new_slot]%1000 + 1000;
+        airport_status[new_slot+1] = (airport_status[new_slot+1]/100)*100 + 11;
+        airport_status[new_slot+20] = (airport_status[new_slot+20]/100)*100 + 11;
+        airport_status[new_slot+21] = airport_status[new_slot+21] - ((airport_status[new_slot+21]/10)%10)*10 + 10;//change the second digit
+        airport_status[new_slot+22] = airport_status[new_slot+22] - ((airport_status[new_slot+22]/100)%10)*100 + 100;//change the third digit
+        airport_status[new_slot+23] = airport_status[new_slot+23]%1000 + 1000;
+        counter++;
+      }
+    }
+
+    for(int iSH=0; iSH<nSH; iSH++){
+      int counter=0;
+      while(true){
+        std::vector<int> available_slots = get_available_slots(airport_status, gate[iSH], slot_len_SH);
+        if(available_slots.size()==0) break;
+        int new_slot = available_slots.at(rangen.Integer(available_slots.size()<max_dev?available_slots.size():max_dev));
+        total_rating += rating_SH;
+        gate[iSH][new_slot] = 1000;
+        gate[iSH][new_slot+1] = 11;
+        for(int iSlot=new_slot+2; iSlot<new_slot+15; iSlot++){
+          gate[iSH][iSlot] = -1;
+        }
+        gate[iSH][new_slot+15] = 11;
+        gate[iSH][new_slot+16] = 100;
+        gate[iSH][new_slot+17] = 1000;
+
+        airport_status[new_slot] = airport_status[new_slot]%1000 + 1000;
+        airport_status[new_slot+1] = (airport_status[new_slot+1]/100)*100 + 11;
+        airport_status[new_slot+15] = (airport_status[new_slot+15]/100)*100 + 11;
+        airport_status[new_slot+16] = airport_status[new_slot+16] - ((airport_status[new_slot+16]/100)%10)*100 + 100;//change the third digit
+        airport_status[new_slot+17] = airport_status[new_slot+17]%1000 + 1000;
+        counter++;
+      }
+    }
+
+    
+    if(total_rating>best_rating){
+      best_rating = total_rating;
+      printf("best_rating = %f\n",best_rating);
+    }
+    for(int iGate=0; iGate<nGate; iGate++){
+      delete [] gate[iGate];
+    }
+    delete [] gate;
+    delete [] airport_status;
+  }
+  
+}
+
+
+//what I leaned
+//for pp the position of the maximum goes up (in k*, amplitude actually goes down for same f0) as the eff range goes down
+//in any case, it will not work by simply shifting the WF, as the division by 1/r kind of makes any inperfections at low kstar to explode
+//so probably, I will only get e "perfect" fit in the effective range zero approximation
+void Sofia_test1(){
+  TString OutputFolder = TString::Format("%s/OtherTasks/Sofia_test1/",GetFemtoOutputFolder());
+
+  unsigned NumMomBins = 60;
+  double kMin = 0;
+  double kMax = 240;
+  double source_size = 1.8;
+  double cut_off = 0.8;
+
+
+  CATSparameters cSorPars_Castrate(CATSparameters::tSource,3,true);
+  cSorPars_Castrate.SetParameter(0,source_size);
+  cSorPars_Castrate.SetParameter(1,cut_off);
+  cSorPars_Castrate.SetParameter(2,0.01);
+
+  CATS Nala;
+  Nala.SetMomBins(NumMomBins,kMin,kMax);
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles/",GetCernBoxDimi()));
+  AnalysisObject.SetUpCats_pp(Nala,"AV18_s","",0,0);
+  Nala.SetAnaSource(GaussSourceGentleCutOff, cSorPars_Castrate);
+  Nala.SetUseAnalyticSource(true);
+  Nala.SetMomentumDependentSource(false);
+  Nala.SetThetaDependentSource(false);
+  Nala.SetNormalizedSource(false);
+  Nala.SetAutoNormSource(true);
+  //Nala.SetAnaSource(0,source_size);
+
+  //Nala.SetThetaDependentSource(true);
+  Nala.ComputeTheSource();
+  printf("AV18\n");
+  Nala.KillTheCat(); 
+
+  TFile fOutput(OutputFolder+"SOF.root", "recreate");
+  TGraph* gComputedSource_Normal = GetSourceFromCATS_TGraph(Nala, 0, 0, "gComputedSource_Normal");
+
+  TF1* fSource = new TF1("fSource",GaussSourceTF1,0,16,1);
+  fSource->SetParameter(0,source_size);
+
+  fOutput.cd();
+  TGraph g_AV18;
+  g_AV18.SetName("g_AV18");
+  g_AV18.SetLineWidth(6);
+  g_AV18.SetLineColor(kBlue+1);
+  for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+    double kstar = Nala.GetMomentum(uMom);
+    g_AV18.SetPoint(uMom, kstar, Nala.GetCorrFun(uMom));
+  }
+
+  Nala.SetShortRangeSofia(cut_off);
+  printf("AV18 SOF\n");
+  Nala.KillTheCat(); 
+
+  fOutput.cd();
+  TGraph* gComputedSource_CutOff = GetSourceFromCATS_TGraph(Nala, 0, 0, "gComputedSource_CutOff");
+  fOutput.cd();
+  TGraph g_SOF;
+  g_SOF.SetName("g_SOF");
+  g_SOF.SetLineWidth(4);
+  g_SOF.SetLineColor(kGray);
+  for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+    double kstar = Nala.GetMomentum(uMom);
+    g_SOF.SetPoint(uMom, kstar, Nala.GetCorrFun(uMom));
+  }  
+
+
+
+  CATS NalaG;
+  NalaG.SetMomBins(NumMomBins,kMin,kMax);
+  CATSparameters sPars(CATSparameters::tSource,1,true);
+  //NalaG.SetAnaSource(GaussSource, sPars);
+  //NalaG.SetUseAnalyticSource(true);
+  //NalaG.SetAnaSource(0,source_size);
+  NalaG.SetAnaSource(GaussSourceGentleCutOff, cSorPars_Castrate);
+  NalaG.SetUseAnalyticSource(true);
+  NalaG.SetMomentumDependentSource(false);
+  NalaG.SetThetaDependentSource(false);
+  NalaG.SetNormalizedSource(false);
+  NalaG.SetAutoNormSource(true);
+
+  NalaG.SetRedMass(0.5*Mass_p);
+  NalaG.SetQ1Q2(1);
+  NalaG.SetQuantumStatistics(true);
+  NalaG.SetNumChannels(2);
+  NalaG.SetSpin(0,0);
+  NalaG.SetSpin(1,1);
+  NalaG.SetNumPW(0,1);
+  NalaG.SetNumPW(1,0);
+  NalaG.SetChannelWeight(0, 0.25);
+  NalaG.SetChannelWeight(1, 0.75);
+  double PotPars1S0[2]={-29.32577,1.841348};
+  CATSparameters cPotPars1S0(CATSparameters::tPotential,2,true);
+  cPotPars1S0.SetParameters(PotPars1S0);
+  NalaG.SetShortRangePotential(0,0,SingleGauss,cPotPars1S0);
+
+  printf("Gauss to AV18\n");
+  NalaG.KillTheCat(); 
+
+  NalaG.SetShortRangePotential(0,0,0,-29.32577);
+  NalaG.SetShortRangePotential(0,0,1,1.841348);
+  NalaG.KillTheCat(); 
+
+  fOutput.cd();
+  TGraph g_Gauss;
+  g_Gauss.SetName("g_Gauss");
+  g_Gauss.SetLineWidth(6);
+  g_Gauss.SetLineColor(kRed);
+  for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+    double kstar = Nala.GetMomentum(uMom);
+    g_Gauss.SetPoint(uMom, kstar, NalaG.GetCorrFun(uMom));
+  }
+
+
+  //small ~0.8fm effective range
+  NalaG.SetShortRangePotential(0,0,0,-360.376357);
+  NalaG.SetShortRangePotential(0,0,1,0.5463289867);
+  //NalaG.SetAnaSource(0,source_size+0.25);
+  printf("0.8 ER\n");
+  NalaG.KillTheCat(); 
+  
+
+  fOutput.cd();
+  TGraph g_Gauss_smallER;
+  g_Gauss_smallER.SetName("g_Gauss_smallER");
+  g_Gauss_smallER.SetLineWidth(6);
+  g_Gauss_smallER.SetLineColor(kRed-2);
+  for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+    double kstar = Nala.GetMomentum(uMom);
+    g_Gauss_smallER.SetPoint(uMom, kstar, NalaG.GetCorrFun(uMom));
+  }
+
+  //zero ~0.14fm effective range
+  NalaG.SetShortRangePotential(0,0,0,-11094.11455);
+  NalaG.SetShortRangePotential(0,0,1,0.09987347);
+  //NalaG.SetAnaSource(0,source_size+0.25);
+  printf("0.15 ER\n");
+  NalaG.KillTheCat(); 
+
+  fOutput.cd();
+  TGraph g_Gauss_zeroER;
+  g_Gauss_zeroER.SetName("g_Gauss_zeroER");
+  g_Gauss_zeroER.SetLineWidth(6);
+  g_Gauss_zeroER.SetLineColor(kCyan-1);
+  for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+    double kstar = Nala.GetMomentum(uMom);
+    g_Gauss_zeroER.SetPoint(uMom, kstar, NalaG.GetCorrFun(uMom));
+  }
+
+
+  //NalaG.SetAnaSource(0,source_size);
+
+
+  printf("SOF\n");
+  NalaG.SetShortRangeSofia(cut_off);
+  NalaG.KillTheCat(); 
+
+
+  fOutput.cd();
+  TGraph g_Gauss_SOF;
+  g_Gauss_SOF.SetName("g_Gauss_SOF");
+  g_Gauss_SOF.SetLineWidth(4);
+  g_Gauss_SOF.SetLineColor(kRed+3);
+  for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+    double kstar = Nala.GetMomentum(uMom);
+    g_Gauss_SOF.SetPoint(uMom, kstar, NalaG.GetCorrFun(uMom));
+  }  
+
+
+  fOutput.cd();
+  g_AV18.Write();
+  g_Gauss_smallER.Write();
+  g_Gauss_zeroER.Write();
+  g_Gauss.Write();
+  g_SOF.Write();
+  g_Gauss_SOF.Write();
+  fSource->Write();
+  gComputedSource_Normal->Write();
+  gComputedSource_CutOff->Write();
+
+  delete fSource;
+  gROOT->cd();
+  delete gComputedSource_Normal;
+  delete gComputedSource_CutOff;
+  
+}
+
+//two gaussians of exactly the same scattering pars, but rather different range parameters
+//BOTH are SHORT RANGED though!!
+void compare_pot_same_shift_diff_range(){
+  /*
+  CATS NalaG;
+  NalaG.SetMomBins(NumMomBins,kMin,kMax);
+  CATSparameters sPars(CATSparameters::tSource,1,true);
+  //NalaG.SetAnaSource(GaussSource, sPars);
+  //NalaG.SetUseAnalyticSource(true);
+  //NalaG.SetAnaSource(0,source_size);
+  NalaG.SetAnaSource(GaussSourceGentleCutOff, cSorPars_Castrate);
+  NalaG.SetUseAnalyticSource(true);
+  NalaG.SetMomentumDependentSource(false);
+  NalaG.SetThetaDependentSource(false);
+  NalaG.SetNormalizedSource(false);
+  NalaG.SetAutoNormSource(true);
+
+  NalaG.SetRedMass(0.5*Mass_p);
+  NalaG.SetQ1Q2(1);
+  NalaG.SetQuantumStatistics(true);
+  NalaG.SetNumChannels(2);
+  NalaG.SetSpin(0,0);
+  NalaG.SetSpin(1,1);
+  NalaG.SetNumPW(0,1);
+  NalaG.SetNumPW(1,0);
+  NalaG.SetChannelWeight(0, 0.25);
+  NalaG.SetChannelWeight(1, 0.75);
+  double PotPars1S0[2]={-29.32577,1.841348};
+  CATSparameters cPotPars1S0(CATSparameters::tPotential,2,true);
+  cPotPars1S0.SetParameters(PotPars1S0);
+  NalaG.SetShortRangePotential(0,0,SingleGauss,cPotPars1S0);
+
+  printf("Gauss to AV18\n");
+  NalaG.KillTheCat(); 
+  */
+}
+
+
 //
 int OTHERTASKS(int argc, char *argv[]){
+  //Toy_Potential_Compare(); return 0;
+  //pp_asymptotic_check_Epelbaum_v1(); return 0;
+  //Sofia_test1(); return 0;
+  //Toy_Potential_Scan(atoi(argv[2]), atoi(argv[1])); return 0;
+  //Toy_Potential_Scan_FloatGauss(atoi(argv[2]), atoi(argv[1])); return 0;
+  //AirSim_Schedule(23,4000000,4,2,0); return 0;
+  //effect_of_square_barrier(); return 0;
+
+
+  //USR_Potential_ShiftedSource(); return 0;
+  //big_core(); return 0;
+
+  //test_screen_coulomb(); return 0;
 
   pp_asymptotic(); return 0;
   //Ghetto_pPhi_check_20250426();
@@ -18465,7 +20408,11 @@ int OTHERTASKS(int argc, char *argv[]){
   //TestLambdaKstar_KstarDep("Dynamic");
 
 //Quick_pXi(); return 0;
-    //pp_reff(1.075); return 0;
+    //pp_reff(1.08); //return 0;
+    //pp_reff(1.11); //return 0;
+    //pp_reff(1.15); return 0;
+
+
     //pSp_test2(); return 0;
 
 

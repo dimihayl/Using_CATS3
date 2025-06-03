@@ -1758,10 +1758,115 @@ if(uMom>=12*0)
 }
 
 
+double CutOffSource(double* Pars){
+    double& Radius = Pars[1];
+    double& Size = Pars[3];
+    double& CutOff = Pars[4];
+
+    double Csrc = CauchySource(Pars);
+
+    if(Radius < CutOff) Csrc *= 0.001;
+
+    return Csrc;
+}
+
+
+void ck_pion_with_source_cutoff(){
+    unsigned NumMomBins = 150;
+    double kMin = 0;
+    double kMax = 300;
+    double SourceSize = 0.7;
+    double SrcCutOff = 0.8;
+
+    //DLM_CommonAnaFunctions AnalysisObject;
+    //AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles/",GetCernBoxDimi()).Data());
+  
+    CATS Kitty;
+    Kitty.SetMomBins(NumMomBins,kMin,kMax);
+
+    CATSparameters cPars(CATSparameters::tSource,1,true);
+    cPars.SetParameter(0,SourceSize);
+
+    Kitty.SetAnaSource(CauchySource, cPars);
+    Kitty.SetAnaSource(0,SourceSize);
+    Kitty.SetUseAnalyticSource(true);
+    Kitty.SetNormalizedSource(false);
+    Kitty.SetAutoNormSource(true);
+  
+    Kitty.SetMomentumDependentSource(false);
+    Kitty.SetExcludeFailedBins(false);
+
+    Kitty.SetQ1Q2(1);
+    Kitty.SetQuantumStatistics(true);
+    Kitty.SetRedMass(0.5 * Mass_pic);
+
+    Kitty.SetNumChannels(1);
+    Kitty.SetNumPW(0, 0);
+    Kitty.SetSpin(0, 0);
+    Kitty.SetChannelWeight(0, 1.);
+
+    Kitty.KillTheCat();
+
+
+
+    CATS Kitty_castrated;
+    Kitty_castrated.SetMomBins(NumMomBins,kMin,kMax);
+
+    CATSparameters cPars_castrated(CATSparameters::tSource,2,true);
+    cPars_castrated.SetParameter(0,SourceSize);
+    cPars_castrated.SetParameter(1,SrcCutOff);
+
+    Kitty_castrated.SetAnaSource(CutOffSource, cPars_castrated);
+    Kitty_castrated.SetAnaSource(0,SourceSize);
+    Kitty_castrated.SetAnaSource(1,SrcCutOff);
+    Kitty_castrated.SetUseAnalyticSource(true);
+    Kitty_castrated.SetNormalizedSource(false);
+    Kitty_castrated.SetAutoNormSource(true);
+  
+    Kitty_castrated.SetMomentumDependentSource(false);
+    Kitty_castrated.SetExcludeFailedBins(false);
+
+    Kitty_castrated.SetQ1Q2(1);
+    Kitty_castrated.SetQuantumStatistics(true);
+    Kitty_castrated.SetRedMass(0.5 * Mass_pic);
+
+    Kitty_castrated.SetNumChannels(1);
+    Kitty_castrated.SetNumPW(0, 0);
+    Kitty_castrated.SetSpin(0, 0);
+    Kitty_castrated.SetChannelWeight(0, 1.);
+
+    Kitty_castrated.KillTheCat();
+
+
+    TGraph gCauchy;
+    gCauchy.SetName("gCauchy");
+    gCauchy.SetLineWidth(6);
+    gCauchy.SetLineColor(kBlue);
+
+    TGraph gCastrated;
+    gCastrated.SetName("gCastrated");
+    gCastrated.SetLineWidth(4);
+    gCastrated.SetLineColor(kRed);
+    
+    for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+        gCauchy.SetPoint(uMom, Kitty.GetMomentum(uMom), Kitty.GetCorrFun(uMom));
+        gCastrated.SetPoint(uMom, Kitty_castrated.GetMomentum(uMom), Kitty_castrated.GetCorrFun(uMom));
+    }
+
+    TString OutputFolderName = TString::Format("%s/PionAnalysis/ck_pion_with_source_cutoff/",GetFemtoOutputFolder());
+    TFile fOutput(OutputFolderName+"fOutput.root", "recreate");
+    gCauchy.Write();
+    gCastrated.Write();
+
+}
+
 int PION_ANA(int narg, char** ARGS){
+
+    ck_pion_with_source_cutoff(); return 0;
+
     //FAST_MT_PLOTS();
     //pion_core_effect(false);
-    pion_core_effect(true);
+    //pion_core_effect(true);
     //pipi_alarm();
     //pipi_test();
     //pipi_omega();

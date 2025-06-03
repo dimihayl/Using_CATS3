@@ -26,7 +26,7 @@
 
 //test the idea, so get two particles, say proton and Lambda in spin 0, lets see how C(k) would look like
 void Toy_MC_1(){
-  const int NumIter = 200*1000;
+  const int NumIter = 2000*1000;
   const double dt = 0.002*FmToNu*2;
   const double tmax = 20*FmToNu;
 
@@ -96,11 +96,11 @@ void Toy_MC_1(){
     double drho = dr*kstar;
     for(double ftime=0; ftime<=tmax; ftime+=dt){
       pot_pars[0] = dist*NuToFm;
-      //double pot = UsmaniPotentialCats(pot_pars);
-      double pot = 90.*exp(-pow((rho)/0.5,2.)) - 20.*exp(-pow((rho)/1.,2.));
+      double pot = UsmaniPotentialCats(pot_pars);
+      //double pot = 90.*exp(-pow((rho)/0.5,2.)) - 20.*exp(-pow((rho)/1.,2.));
       pot_pars[0] = (dist+dr)*NuToFm;
-      //double poth = UsmaniPotentialCats(pot_pars)
-      double poth = 90.*exp(-pow((rho+drho)/0.5,2.)) - 20.*exp(-pow((rho+drho)/1.,2.));
+      double poth = UsmaniPotentialCats(pot_pars);
+      //double poth = 90.*exp(-pow((rho+drho)/0.5,2.)) - 20.*exp(-pow((rho+drho)/1.,2.));
       //in this convension, (+) force means the particles fly away from each other, i.e. repulsion
       double force = -(poth-pot)/dr;
       //in relativity, F = dp/dt, or for us dk = F*dt

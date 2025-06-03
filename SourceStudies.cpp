@@ -1,4 +1,6 @@
 
+#include <memory>
+
 #include "SourceStudies.h"
 #include "CommonAnaFunctions.h"
 #include "CATS.h"
@@ -17,8 +19,10 @@
 #include "DLM_MathFunctions.h"
 #include "DLM_HistoAnalysis.h"
 #include "DLM_CkModels.h"
+#include "DLM_DrawingTools.h"
 #include "CECA.h"
 #include "TREPNI.h"
+#include "CECA_Paper.h"
 
 #include "TRandom3.h"
 #include "TFile.h"
@@ -7763,7 +7767,878 @@ void Estimate_pp_pL_discr(){
 
 }
 
+TH1F* hCosTheta = NULL;
+double GaussSource_UniTheta(double* Pars){
+    //double& Momentum = Pars[0];
+    double& Radius = Pars[1];
+    double& CosTheta = Pars[2];
+    double& Size = Pars[3];
+    double& cos_min = Pars[4];
+    double& cos_max = Pars[5];
+
+    double modify_by = 1;
+    if(hCosTheta){
+      //static double integral_histo = hCosTheta->Integral(1,hCosTheta->GetNbinsX());
+      modify_by = hCosTheta->GetBinContent(hCosTheta->FindBin(CosTheta));
+    }
+    else{
+      if(CosTheta<cos_min || CosTheta>cos_max) return 0;
+      modify_by = 1./(cos_max-cos_min);
+    }
+    return 4.*Pi*Radius*Radius*pow(4.*Pi*Size*Size,-1.5)*exp(-(Radius*Radius)/(4.*Size*Size))*modify_by;
+}
+
+void theta_dep_source_v1(TString Description){
+  
+  unsigned NumMomBins = 30;
+  double kMin = 0;
+  double kMax = 300;
+
+  const TString OutputFolder = TString::Format("%s/SourceStudies/theta_dep_source_v1/",GetFemtoOutputFolder());
+  TFile fAngle(OutputFolder+"/angles/ceca_pp_source_angles.root", "read");
+  hCosTheta = (TH1F*)fAngle.Get("h1");
+  hCosTheta->Scale(1./hCosTheta->Integral(1,hCosTheta->GetNbinsX()), "width");
+  
+  double SourceSize = 1.2;
+  //the theta dep is based on Uniform sampling of the cosTheta between these two values
+  double Source_Cos_min = -1;
+  double Source_Cos_max = -0.3;
+  if(hCosTheta){
+    Source_Cos_min = 23;
+    Source_Cos_max = 23;
+  }
+
+  CATS simple_cat;
+  CATS complicated_cat;
+
+  simple_cat.SetMomBins(NumMomBins, kMin, kMax);
+  complicated_cat.SetMomBins(NumMomBins, kMin, kMax);
+
+  CATSparameters cPars_simple(CATSparameters::tSource,1,true);
+  simple_cat.SetAnaSource(GaussSource, cPars_simple);
+  simple_cat.SetAnaSource(0, SourceSize);
+  CATSparameters cPars_complicated(CATSparameters::tSource,3,true);
+  complicated_cat.SetAnaSource(GaussSource_UniTheta, cPars_complicated);  
+  complicated_cat.SetAnaSource(0, SourceSize);
+  complicated_cat.SetAnaSource(1, Source_Cos_min);
+  complicated_cat.SetAnaSource(2, Source_Cos_max);
+
+  simple_cat.SetAutoNormSource(false);
+  complicated_cat.SetAutoNormSource(false);
+
+  simple_cat.SetNormalizedSource(true);
+  complicated_cat.SetNormalizedSource(true);
+
+  simple_cat.SetThetaDependentSource(false);
+  complicated_cat.SetThetaDependentSource(true);
+
+  simple_cat.SetExcludeFailedBins(false);
+  complicated_cat.SetExcludeFailedBins(false);
+
+  simple_cat.SetQ1Q2(0);
+  complicated_cat.SetQ1Q2(0);
+
+  simple_cat.SetQuantumStatistics(false);
+  complicated_cat.SetQuantumStatistics(false);
+
+  simple_cat.SetRedMass( (Mass_p*Mass_p)/(Mass_p+Mass_L) );
+  complicated_cat.SetRedMass( (Mass_p*Mass_p)/(Mass_p+Mass_L) );
+
+  simple_cat.SetNumChannels(1);
+  complicated_cat.SetNumChannels(1);
+
+  simple_cat.SetNumPW(0,1);
+  complicated_cat.SetNumPW(0,1);
+
+  simple_cat.SetSpin(0,0);
+  complicated_cat.SetSpin(0,0);
+
+  simple_cat.SetChannelWeight(0, 1);
+  complicated_cat.SetChannelWeight(0, 1);
+
+  //vii in PLB
+  double PotPars1S0[4] = {0, 1976.88, 0.520216, 0.199594};
+  CATSparameters pPars_simple(CATSparameters::tPotential,4,true);
+  pPars_simple.SetParameters(PotPars1S0);
+  simple_cat.SetShortRangePotential(0, 0, UsmaniFit, pPars_simple);
+  complicated_cat.SetShortRangePotential(0, 0, UsmaniFit, pPars_simple);
+
+  simple_cat.KillTheCat();
+  complicated_cat.KillTheCat();
+  
+  TGraph gCk_simple; gCk_simple.SetName("gCk_simple");
+  TGraph gCk_complicated; gCk_complicated.SetName("gCk_complicated");
+
+  for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+    gCk_simple.SetPoint(uMom,simple_cat.GetMomentum(uMom),simple_cat.GetCorrFun(uMom));
+    gCk_complicated.SetPoint(uMom,complicated_cat.GetMomentum(uMom),complicated_cat.GetCorrFun(uMom));
+  }
+
+  
+  TFile fOutput(OutputFolder+Description+TString::Format("_sz%.2f_cmin%.2f_cmax%.2f.root",SourceSize,Source_Cos_min,Source_Cos_max), "recreate");
+  gCk_simple.Write();
+  gCk_complicated.Write();
+
+}
+
+void CECA_pp_angles(){
+
+  TString OutputFolderName = TString::Format("%s/SourceStudies/theta_dep_source_v1/",GetFemtoOutputFolder());
+
+  double EtaCut = 0.8;
+  DLM_Histo<float>* dlm_pT_eta_p;
+  dlm_pT_eta_p = GetPtEta_13TeV(
+      TString::Format("%s/CatsFiles/Source/CECA/proton_pT/p_dist_13TeV_ClassI.root",GetCernBoxDimi()),
+      "Graph1D_y1", 500, 4050, EtaCut);
+
+  double HadronSize = 0;//0.75
+  double HadronSlope = 0;//0.2
+  const bool PROTON_RESO = true;
+  const bool EQUALIZE_TAU = true;
+  const double TIMEOUT = 30;
+  const double GLOB_TIMEOUT = 10*60;
+  const unsigned Multiplicity=2;
+  const double femto_region = 100;
+  const unsigned target_yield = 1024*1000;
+  TString BaseName = TString::Format("Eta%.1f",EtaCut);
+
+  //we run to either reproduce the core of 0.97,
+  //or the upper limit of reff = 1.06+0.04
+  //this leads to a 10% difference in the SP core source
+  double rSP_core=0;
+  double rSP_dispZ=0;
+  double rSP_hadr=0;
+  double rSP_hadrZ=0;
+  double rSP_hflc=0;
+  double rSP_tau=0;
+  bool tau_prp = true;
+  double rSP_tflc=0;
+  double rSP_ThK=0;
+  //default is true
+  bool rSP_FixedHadr = true;
+  //default is 0
+  float rSP_FragBeta = 0;
+  
+  int SEED = 23;
+  int NUM_CPU = 8;
+
+  TRandom3 rangen(SEED);
+
+  // Save TNtuple to ROOT file
+  TString pair_root_name(TString::Format(OutputFolderName+"/CECA_pp_angles_S%i_N%i_YPC%iK.root",SEED,NUM_CPU,target_yield/1000).Data());
+  TFile* outFile = new TFile(pair_root_name, "RECREATE");
+
+  // Create TNtuple
+  TNtuple* ntuple = new TNtuple("CECA_Data", "CECA_Data", "seed:kstar:rstar:cos_th_star:mT:PR1:PR2:rd:h:tau");
+
+
+  //rSP_core = 0.176;
+  //rSP_dispZ = 0.176;
+  //rSP_hadr = 2.68;
+  //rSP_tau = 3.76;
+
+  //usmani fit in the CECA paper
+  rSP_core = 0.176;
+  rSP_dispZ = rSP_core;
+  rSP_hadr = 2.68;
+  rSP_tau = 3.76;
+
+  TREPNI Database(0);
+  Database.SetSeed(11);
+  std::vector<TreParticle*> ParticleList;
+  ParticleList.push_back(Database.NewParticle("Proton"));
+  ParticleList.push_back(Database.NewParticle("Pion"));
+  ParticleList.push_back(Database.NewParticle("ProtonReso"));    
+
+  for(TreParticle* prt : ParticleList){
+    if(prt->GetName()=="Proton"){
+      prt->SetMass(Mass_p);
+      prt->SetAbundance(35.78+64.22*(!PROTON_RESO));
+      prt->SetRadius(HadronSize);
+      prt->SetRadiusSlope(HadronSlope);
+      prt->SetPtEtaPhi(*dlm_pT_eta_p);
+    }
+    else if(prt->GetName()=="Pion"){
+      prt->SetMass(Mass_pic);
+      prt->SetAbundance(0);
+      prt->SetRadius(HadronSize);
+      prt->SetRadiusSlope(HadronSlope);
+    }
+    else if(prt->GetName()=="ProtonReso"){
+      prt->SetMass(1362);
+      prt->SetAbundance(64.22*PROTON_RESO);
+      prt->SetWidth(hbarc/1.65);
+      prt->SetRadius(HadronSize);
+      prt->SetRadiusSlope(HadronSlope);
+      prt->SetPtEtaPhi(*dlm_pT_eta_p);
+
+      prt->NewDecay();
+      prt->GetDecay(0)->AddDaughter(*Database.GetParticle("Proton"));
+      prt->GetDecay(0)->AddDaughter(*Database.GetParticle("Pion"));
+      prt->GetDecay(0)->SetBranching(100);
+    }
+  }
+
+  std::vector<std::string> ListOfParticles;
+
+  ListOfParticles.push_back("Proton");
+  ListOfParticles.push_back("Proton");
+
+  CECA Ivana(Database,ListOfParticles);
+
+  Ivana.SetDisplacementZ(rSP_dispZ);
+  Ivana.SetDisplacementT(rSP_core);
+  //Ivana.SetDisplacementEbe(rSP_core_SIG/rSP_core);
+  Ivana.SetHadronizationZ(rSP_hadrZ);//0
+  Ivana.SetHadronizationT(rSP_hadr);
+  //Ivana.SetHadronizationEbe(rSP_hadr_SIG/rSP_hadr);
+  Ivana.SetHadrFluctuation(rSP_hflc);
+  Ivana.SetTau(rSP_tau,tau_prp);
+  //Ivana.SetTauEbe(rSP_tau_SIG/rSP_tau);
+  Ivana.SetTauFluct(rSP_tflc);
+  Ivana.SetThermalKick(rSP_ThK);
+  Ivana.SetFixedHadr(rSP_FixedHadr);
+  Ivana.SetFragmentBeta(rSP_FragBeta);
+
+  Ivana.SetTargetStatistics(target_yield);
+  Ivana.SetEventMult(Multiplicity);
+  Ivana.SetSourceDim(2);
+  Ivana.SetDebugMode(true);
+  Ivana.SetThreadTimeout(TIMEOUT);
+  Ivana.SetGlobalTimeout(GLOB_TIMEOUT);
+  Ivana.EqualizeFsiTime(EQUALIZE_TAU);
+  Ivana.SetFemtoRegion(femto_region);
+  Ivana.GHETTO_EVENT = true;
+  std::string pair_file_name(TString::Format(OutputFolderName+"/pair_info_S%i_N%i_YPC%iK.data",SEED,NUM_CPU,target_yield/1000).Data());
+  Ivana.SetExportPairs(10,pair_file_name);
+
+  if(NUM_CPU>1){
+    Ivana.SetDebugMode(true);
+    for(unsigned uTh=0; uTh<NUM_CPU; uTh++){
+      Ivana.SetSeed(uTh,SEED*(NUM_CPU)+uTh);
+    }
+  }
+  else{
+    Ivana.SetDebugMode(true);
+    Ivana.SetSeed(0,SEED);
+  }
+
+  Ivana.GoBabyGo(NUM_CPU);
+
+  // Open the text file
+  std::ifstream inFile(pair_file_name);
+
+  if (!inFile.is_open()) {
+      std::cerr << "Error opening input file." << std::endl;
+      return;
+  }
+
+  // Skip the first line
+  std::string line;
+  std::getline(inFile, line);
+
+  outFile->cd();
+  // Read and process the remaining lines
+  while (std::getline(inFile, line)) {
+      std::istringstream iss(line);
+      float kstar, rstar, cos_th_star, mT, PR1, PR2;
+
+      // Read values from the line
+      iss >> kstar >> rstar >> cos_th_star >> mT >> PR1 >> PR2;
+
+      // Fill the TNtuple with the read values
+      ntuple->Fill(SEED, kstar, rstar, cos_th_star, mT, PR1, PR2, rSP_core, rSP_hadr, rSP_tau);
+  }
+
+  // Close the input file
+  inFile.close();
+
+  //if (std::remove(pair_file_name.c_str()) == 0) {
+  //  std::cout << "File deleted successfully.\n";
+  //} 
+  //else{
+  //  std::perror("Error deleting file");
+  //}
+  
+
+  outFile->cd();
+  ntuple->Write();
+
+  // Clean up memory
+  delete ntuple;
+  delete outFile;
+  
+//rd,h,tau --> get a list of pairs with r* and mT
+//sample rd,h,tau randomly from a gauss
+//for the output, we need not a histo, but an ASCII or binary file with:
+//kstar,rstar,mT,rd,h,tau
+
+  delete dlm_pT_eta_p;
+}
+
+void compare_several_sources(){
+  std::vector<double> source_size = {0.7,0.9,1.1,1.3,1.5};
+
+  const int NumRadBins = 2048;
+  const double rMin = 0;
+  const double rMax = 16;
+  const int NumPlots = source_size.size();
+  TH1F** hSource = new TH1F* [NumPlots];
+  double* SrcPars = new double[16];
+
+  for(int iPlot=0; iPlot<NumPlots; iPlot++){
+    hSource[iPlot] = new TH1F(TString::Format("hSource_%.2f",source_size[iPlot]), TString::Format("hSource_%.2f",source_size[iPlot]), NumRadBins, rMin, rMax);
+    for(unsigned uRad=0; uRad<NumRadBins; uRad++){
+      SrcPars[1] =  hSource[iPlot]->GetBinCenter(uRad+1);
+      SrcPars[3] = source_size[iPlot];
+      double src_val = GaussSource(SrcPars);
+      hSource[iPlot]->SetBinContent(uRad+1, src_val);
+    }
+  }
+
+  DLM_DtColor dlm_colors;
+
+
+  TString OutputFolder = TString::Format("%s/SourceStudies/compare_several_sources/",GetFemtoOutputFolder());
+  TFile fOutput(OutputFolder+"fOutput.root", "recreate");
+  for(int iPlot=0; iPlot<NumPlots; iPlot++){
+    hSource[iPlot]->GetXaxis()->SetTitle("r* (fm)");
+    hSource[iPlot]->GetYaxis()->SetTitle("4#pir*^{2} S(r*) (1/fm)");
+    hSource[iPlot]->SetLineColor(dlm_colors.GetColor(iPlot));
+    hSource[iPlot]->SetLineWidth(5-0*double(iPlot)/2.);
+    //hSource[iPlot]->SetLineStyle(iPlot+1);
+    hSource[iPlot]->Write();
+  }
+
+
+  for(int iPlot=0; iPlot<NumPlots; iPlot++){
+    delete hSource[iPlot];
+  }
+  delete [] hSource;
+  delete [] SrcPars;
+}
+
+void gentle_source_cutoff(){
+  TString OutputFolder = TString::Format("%s/SourceStudies/gentle_source_cutoff/",GetFemtoOutputFolder());
+
+  const unsigned NumMomBins = 75;
+  const double kMin = 0;
+  const double kMax = 300;
+  const double source_size = 1.0;
+
+  double PotPars1S0[8]={NN_AV18,v18_Coupled3P2,1,1,1,0,0,0};
+  CATSparameters cSorPars_Def(CATSparameters::tSource,1,true);
+  cSorPars_Def.SetParameter(0,source_size);
+  CATSparameters cPotPars1S0_Def(CATSparameters::tPotential,8,true);
+  cPotPars1S0_Def.SetParameters(PotPars1S0);
+
+  CATSparameters cSorPars_Cut(CATSparameters::tSource,3,true);
+  cSorPars_Cut.SetParameter(0,source_size*0.95);
+  cSorPars_Cut.SetParameter(1,1.0);
+  cSorPars_Cut.SetParameter(2,0.05);
+  CATSparameters cPotPars1S0_Cut(CATSparameters::tPotential,8,true);
+  cPotPars1S0_Cut.SetParameters(PotPars1S0);
+
+  CATS cat_pp_Def;
+  cat_pp_Def.SetMomBins(NumMomBins,kMin,kMax);
+  cat_pp_Def.SetAnaSource(GaussSource, cSorPars_Def);
+  cat_pp_Def.SetUseAnalyticSource(true);
+  cat_pp_Def.SetMomentumDependentSource(false);
+  cat_pp_Def.SetThetaDependentSource(false);
+  cat_pp_Def.SetExcludeFailedBins(false);
+  cat_pp_Def.SetQ1Q2(1);
+  cat_pp_Def.SetQuantumStatistics(true);
+  cat_pp_Def.SetRedMass( 0.5*Mass_p );
+  cat_pp_Def.SetNumChannels(2);
+  cat_pp_Def.SetNumPW(0,1);
+  cat_pp_Def.SetSpin(0,0);
+  cat_pp_Def.SetSpin(1,1);
+  cat_pp_Def.SetChannelWeight(0, 1./4.);
+  cat_pp_Def.SetChannelWeight(1, 3./4.);
+  cat_pp_Def.SetShortRangePotential(0,0,fDlmPot,cPotPars1S0_Def);
+  cat_pp_Def.KillTheCat();
+
+  CATS cat_pp_SrcC;
+  cat_pp_SrcC.SetMomBins(NumMomBins,kMin,kMax);
+  cat_pp_SrcC.SetAnaSource(GaussSourceGentleCutOff, cSorPars_Cut);
+  cat_pp_SrcC.SetUseAnalyticSource(true);
+  cat_pp_SrcC.SetMomentumDependentSource(false);
+  cat_pp_SrcC.SetNormalizedSource(false);
+  cat_pp_SrcC.SetAutoNormSource(true);
+  cat_pp_SrcC.SetThetaDependentSource(false);
+  cat_pp_SrcC.SetExcludeFailedBins(false);
+  cat_pp_SrcC.SetQ1Q2(1);
+  cat_pp_SrcC.SetQuantumStatistics(true);
+  cat_pp_SrcC.SetRedMass( 0.5*Mass_p );
+  cat_pp_SrcC.SetNumChannels(2);
+  cat_pp_SrcC.SetNumPW(0,1);
+  cat_pp_SrcC.SetSpin(0,0);
+  cat_pp_SrcC.SetSpin(1,1);
+  cat_pp_SrcC.SetChannelWeight(0, 1./4.);
+  cat_pp_SrcC.SetChannelWeight(1, 3./4.);
+  cat_pp_SrcC.SetShortRangePotential(0,0,fDlmPot,cPotPars1S0_Cut);
+  cat_pp_SrcC.KillTheCat();  
+
+  TGraph gCat_Def;
+  gCat_Def.SetName("gCat_Def");
+  gCat_Def.SetLineWidth(6);
+  gCat_Def.SetLineColor(kGreen);
+
+  TGraph gCat_SrcC;
+  gCat_SrcC.SetName("gCat_SrcC");
+  gCat_SrcC.SetLineWidth(4);
+  gCat_SrcC.SetLineColor(kRed);
+
+  TGraph gCat_Rat;
+  gCat_Rat.SetName("gCat_Rat");
+  gCat_Rat.SetLineWidth(4);
+  gCat_Rat.SetLineColor(kBlack);
+
+  for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+    double kstar = cat_pp_Def.GetMomentum(uMom);
+    gCat_Def.SetPoint(uMom, kstar, cat_pp_Def.GetCorrFun(uMom));
+    gCat_SrcC.SetPoint(uMom, kstar, cat_pp_SrcC.GetCorrFun(uMom));
+    gCat_Rat.SetPoint(uMom, kstar, cat_pp_Def.GetCorrFun(uMom)/cat_pp_SrcC.GetCorrFun(uMom));
+  }
+
+  TFile fOutput(OutputFolder+"fOutput.root", "recreate");
+  gCat_Def.Write();
+  gCat_SrcC.Write();  
+  gCat_Rat.Write();  
+}
+
+
+//what is the reff required to have a castrated source, which has the same mean value as the original one
+double reff_to_match_mean(const double original_size, const double castration_point, const double castration_length){
+
+  const double rstep = 0.0005;
+  const double rMin = 0;
+  const double rMax = 32;
+
+  TF1* fOriginal = new TF1("fOriginal",GaussSourceTF1,rMin,rMax,1);
+  fOriginal->SetParameter(0, original_size);
+  TF1* fCastratedGauss = new TF1("fCastratedGauss",GaussSourceGentleCutOffTF1,rMin,rMax,3);
+  double modified_size = original_size;
+  fCastratedGauss->SetParameter(0, modified_size);
+  fCastratedGauss->SetParameter(1, castration_point);
+  fCastratedGauss->SetParameter(2, castration_length);
+
+  const double original_mean = fOriginal->Mean(rMin,rMax);
+  //printf("%.3f vs %.3f\n", fCastratedGauss->Mean(rMin,rMax), original_mean);
+  while(fCastratedGauss->Mean(rMin,rMax)>original_mean){
+    modified_size -= rstep;
+    fCastratedGauss->SetParameter(0, modified_size);
+    //printf("%.3f: %.3f vs %.3f\n", modified_size, fCastratedGauss->Mean(rMin,rMax), original_mean);
+  }
+
+  return modified_size;
+}
+double reff_to_match_mean_shift(const double original_size, const double shift_size){
+
+  const double rstep = 0.0005;
+  const double rMin = 0;
+  const double rMax = 32;
+
+  TF1* fOriginal = new TF1("fOriginal",GaussSourceTF1,rMin,rMax,1);
+  fOriginal->SetParameter(0, original_size);
+  TF1* fShiftedGauss = new TF1("fShiftedGauss",GaussSourceShiftedTF1,rMin,rMax,2);
+  double modified_size = original_size;
+  fShiftedGauss->SetParameter(0, modified_size);
+  fShiftedGauss->SetParameter(1, shift_size);
+
+  const double original_mean = fOriginal->Mean(rMin,rMax);
+  while(fShiftedGauss->Mean(rMin,rMax)>original_mean){
+    modified_size -= rstep;
+    fShiftedGauss->SetParameter(0, modified_size);
+  }
+
+  return modified_size;
+}
+
+
+void Source_Cut_Off_Scan(){
+  std::vector<double> castration_point = {0.2,0.4,0.6, 0.8, 1.0,1.2,1.4};
+  std::vector<double> extra_modification = {1,1.0,1.00,1.0,1.0,1.0,1};
+  std::vector<double> shift_size = {0.2,0.4,0.6, 0.8, 1.0,1.2,1.4};
+  std::vector<double> plot_colors = {kViolet+1, kCyan+1, kGreen+1, kYellow+1, kOrange+1, kRed+0, kRed+1};
+
+  const bool retune = false;
+  const bool only_odd = false;
+  const double source_size = 1.0;
+  const double castration_length = 0.01;
+  const double kMin = 0;
+  const double kMax = 200;
+  const unsigned kSteps = 50;
+  const double rMin = 0;
+  const double rMax = 8;
+  const double rSteps = 4096;
+
+  TString OutputFolder = TString::Format("%s/SourceStudies/gentle_source_cutoff/",GetFemtoOutputFolder());
+
+
+  //printf("mod reff: %f\n", reff_to_match_mean(1.0, 1, 0.05));
+
+  CATSparameters cSorPars_Def(CATSparameters::tSource,1,true);
+  cSorPars_Def.SetParameter(0,source_size);
+  CATS Kitty_AV18_Def;
+  Kitty_AV18_Def.SetMomBins(kSteps,kMin,kMax);
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles/",GetCernBoxDimi()));
+  AnalysisObject.SetUpCats_pp(Kitty_AV18_Def,"AV18","Gauss",0,0);
+  Kitty_AV18_Def.SetAnaSource(0, source_size);
+  Kitty_AV18_Def.KillTheCat();
+
+  TFile fOutput(OutputFolder+"Source_Cut_Off_Scan.root", "recreate");
+  TGraph* gCk_AV18_Def = new TGraph();
+  gCk_AV18_Def->SetName("gCk_AV18_Def");
+  gCk_AV18_Def->SetLineColor(kBlue+1);
+  gCk_AV18_Def->SetLineWidth(6);
+  gCk_AV18_Def->SetLineStyle(2);
+  for(unsigned uMom=0; uMom<kSteps; uMom++){
+    double kstar = Kitty_AV18_Def.GetMomentum(uMom);
+    gCk_AV18_Def->SetPoint(uMom, kstar, Kitty_AV18_Def.GetCorrFun(uMom));
+  }
+
+  TH1F* hRad_Def = new TH1F("hRad_Def", "hRad_Def", rSteps, rMin, rMax);
+  hRad_Def->SetLineColor(kBlue+1);
+  hRad_Def->SetLineWidth(6);
+  hRad_Def->SetLineStyle(2);
+  for(unsigned uRad=0; uRad<rSteps; uRad++){
+    hRad_Def->SetBinContent(uRad+1, Kitty_AV18_Def.EvaluateTheSource(10, hRad_Def->GetBinCenter(uRad+1), 0));
+  }
+
+  TH1F** hRad_Cas = new TH1F* [castration_point.size()];
+  TGraph** gCk_AV18_Cas = new TGraph* [castration_point.size()];
+
+  for(unsigned uCas=0; uCas<castration_point.size(); uCas++){
+    CATSparameters cSorPars_Castrate(CATSparameters::tSource,3,true);
+    cSorPars_Castrate.SetParameter(0,retune?reff_to_match_mean(source_size, castration_point.at(uCas), castration_length)*extra_modification.at(uCas):source_size);
+    cSorPars_Castrate.SetParameter(1,castration_point.at(uCas));
+    cSorPars_Castrate.SetParameter(2,castration_length);
+    CATS Kitty_AV18_Castrate;
+    Kitty_AV18_Castrate.SetMomBins(kSteps,kMin,kMax);
+    AnalysisObject.SetUpCats_pp(Kitty_AV18_Castrate,"AV18","",0,0);
+    Kitty_AV18_Castrate.SetAnaSource(GaussSourceGentleCutOff, cSorPars_Castrate);
+    Kitty_AV18_Castrate.SetUseAnalyticSource(true);
+    Kitty_AV18_Castrate.SetMomentumDependentSource(false);
+    Kitty_AV18_Castrate.SetThetaDependentSource(false);
+    Kitty_AV18_Castrate.SetNormalizedSource(false);
+    Kitty_AV18_Castrate.SetAutoNormSource(true);
+    Kitty_AV18_Castrate.KillTheCat();  
+
+    gCk_AV18_Cas[uCas] = new TGraph();//new TH1F(TString::Format("hCk_AV18_Cas_%.2f",castration_point.at(uCas)),TString::Format("hCk_AV18_Cas_%.2f",castration_point.at(uCas)),kSteps,kMin,kMax);
+    gCk_AV18_Cas[uCas]->SetName(TString::Format("gCk_AV18_Cas_%.2f",castration_point.at(uCas)));
+    gCk_AV18_Cas[uCas]->SetLineColor(plot_colors.at(uCas));
+    gCk_AV18_Cas[uCas]->SetLineWidth(6-uCas*0.5);
+    for(unsigned uMom=0; uMom<kSteps; uMom++){
+      double kstar = Kitty_AV18_Castrate.GetMomentum(uMom);
+      gCk_AV18_Cas[uCas]->SetPoint(uMom, kstar, Kitty_AV18_Castrate.GetCorrFun(uMom));
+    } 
+
+    hRad_Cas[uCas] = new TH1F(TString::Format("hRad_Cas_%.2f",castration_point.at(uCas)), TString::Format("hRad_Cas_%.2f",castration_point.at(uCas)), rSteps, rMin, rMax);
+    hRad_Cas[uCas]->SetLineColor(plot_colors.at(uCas));
+    hRad_Cas[uCas]->SetLineWidth(6-uCas*0.5);
+    for(unsigned uRad=0; uRad<rSteps; uRad++){
+      hRad_Cas[uCas]->SetBinContent(uRad+1, Kitty_AV18_Castrate.EvaluateTheSource(10, hRad_Cas[uCas]->GetBinCenter(uRad+1), 0));
+      hRad_Cas[uCas]->SetBinError(uRad+1, 0);
+    }
+    hRad_Cas[uCas]->Scale(hRad_Def->Integral()/hRad_Cas[uCas]->Integral());
+    
+
+    fOutput.cd();
+    gCk_AV18_Cas[uCas]->Write();
+    hRad_Cas[uCas]->Write();
+    //delete gCk_AV18_Cas;
+    //delete hRad_Cas;
+/*
+    Kitty_AV18_Castrate.SetAnaSource(0, source_size);
+    Kitty_AV18_Castrate.KillTheCat();  
+    TGraph* gCk_AV18_Cas2 = new TGraph();//new TH1F(TString::Format("hCk_AV18_Cas_%.2f",castration_point.at(uCas)),TString::Format("hCk_AV18_Cas_%.2f",castration_point.at(uCas)),kSteps,kMin,kMax);
+    gCk_AV18_Cas2->SetName(TString::Format("gCk_AV18_Cas2_%.2f",castration_point.at(uCas)));
+    gCk_AV18_Cas2->SetLineColor(plot_colors.at(uCas));
+    gCk_AV18_Cas2->SetLineWidth(7.5-uCas*0.5);
+    for(unsigned uMom=0; uMom<kSteps; uMom++){
+      double kstar = Kitty_AV18_Castrate.GetMomentum(uMom);
+      gCk_AV18_Cas2->SetPoint(uMom, kstar, Kitty_AV18_Castrate.GetCorrFun(uMom));
+    } 
+
+    TH1F* hRad_Cas2 = new TH1F(TString::Format("hRad_Cas2_%.2f",castration_point.at(uCas)), TString::Format("hRad_Cas2_%.2f",castration_point.at(uCas)), rSteps, rMin, rMax);
+    hRad_Cas2->SetLineColor(plot_colors.at(uCas));
+    hRad_Cas2->SetLineWidth(7.5-uCas*0.5);
+    for(unsigned uRad=0; uRad<rSteps; uRad++){
+      hRad_Cas2->SetBinContent(uRad+1, Kitty_AV18_Castrate.EvaluateTheSource(10, hRad_Cas2->GetBinCenter(uRad+1), 0));
+      hRad_Cas2->SetBinError(uRad+1, 0);
+    }
+    hRad_Cas2->Scale(hRad_Def->Integral()/hRad_Cas2->Integral());
+    
+
+    fOutput.cd();
+    gCk_AV18_Cas2->Write();
+    hRad_Cas2->Write();
+    delete gCk_AV18_Cas2;
+    delete hRad_Cas2;
+*/
+  }
+
+
+  for(unsigned uShift=0; uShift<shift_size.size(); uShift++){
+    CATSparameters cSorPars_Shift(CATSparameters::tSource,2,true);
+    cSorPars_Shift.SetParameter(0,retune?reff_to_match_mean_shift(source_size, shift_size.at(uShift)):source_size);
+    cSorPars_Shift.SetParameter(1,shift_size.at(uShift));
+    CATS Kitty_AV18_Shift;
+    Kitty_AV18_Shift.SetMomBins(kSteps,kMin,kMax);
+    AnalysisObject.SetUpCats_pp(Kitty_AV18_Shift,"AV18","",0,0);
+    Kitty_AV18_Shift.SetAnaSource(GaussSourceShifted, cSorPars_Shift);
+    Kitty_AV18_Shift.SetUseAnalyticSource(true);
+    Kitty_AV18_Shift.SetMomentumDependentSource(false);
+    Kitty_AV18_Shift.SetThetaDependentSource(false);
+    Kitty_AV18_Shift.SetNormalizedSource(false);
+    Kitty_AV18_Shift.SetAutoNormSource(true);
+    Kitty_AV18_Shift.KillTheCat();
+
+    TGraph* gCk_AV18_Shift = new TGraph();//new TH1F(TString::Format("hCk_AV18_Cas_%.2f",castration_point.at(uCas)),TString::Format("hCk_AV18_Cas_%.2f",castration_point.at(uCas)),kSteps,kMin,kMax);
+    gCk_AV18_Shift->SetName(TString::Format("gCk_AV18_Shift_%.2f",shift_size.at(uShift)));
+    gCk_AV18_Shift->SetLineColor(plot_colors.at(uShift));
+    gCk_AV18_Shift->SetLineWidth(7.5-uShift*0.5);
+    for(unsigned uMom=0; uMom<kSteps; uMom++){
+      double kstar = Kitty_AV18_Shift.GetMomentum(uMom);
+      gCk_AV18_Shift->SetPoint(uMom, kstar, Kitty_AV18_Shift.GetCorrFun(uMom));
+    } 
+
+    TH1F* hRad_Sfift = new TH1F(TString::Format("hRad_Sfift_%.2f",castration_point.at(uShift)), TString::Format("hRad_Sfift_%.2f",castration_point.at(uShift)), rSteps, rMin, rMax);
+    hRad_Sfift->SetLineColor(plot_colors.at(uShift));
+    hRad_Sfift->SetLineWidth(7.5-uShift*0.5);
+    for(unsigned uRad=0; uRad<rSteps; uRad++){
+      hRad_Sfift->SetBinContent(uRad+1, Kitty_AV18_Shift.EvaluateTheSource(10, hRad_Sfift->GetBinCenter(uRad+1), 0));
+      hRad_Sfift->SetBinError(uRad+1, 0);
+    }
+    hRad_Sfift->Scale(hRad_Def->Integral()/hRad_Sfift->Integral());
+
+    fOutput.cd();
+    gCk_AV18_Shift->Write();
+    hRad_Sfift->Write();
+    delete gCk_AV18_Shift;
+    delete hRad_Sfift;
+  }
+
+  
+  hRad_Def->SetStats(false);
+  hRad_Def->SetTitle("");
+  hRad_Def->GetXaxis()->SetLabelSize(0.065);
+  hRad_Def->GetXaxis()->SetTitle("r* (fm)");
+  //hRad_Def->GetXaxis()->CenterTitle();
+  hRad_Def->GetXaxis()->SetTitleOffset(1.10);
+  hRad_Def->GetXaxis()->SetLabelOffset(0.02);
+  hRad_Def->GetXaxis()->SetTitleSize(0.065);
+  hRad_Def->GetYaxis()->SetLabelSize(0.065);
+  //hRad_Def->GetYaxis()->SetTitle("(N per bin)x10^{-3}");
+  hRad_Def->GetYaxis()->SetTitle("4#pir*^{2}S(r*) (1/fm)");
+  //hRad_Def->GetYaxis()->CenterTitle();
+  hRad_Def->GetYaxis()->SetTitleOffset(0.85);
+  hRad_Def->GetYaxis()->SetTitleSize(0.065);
+  hRad_Def->GetXaxis()->SetRangeUser(0,6);
+  hRad_Def->GetYaxis()->SetRangeUser(0,0.65);
+  
+
+  TLegend* lLegend = new TLegend(0.59,0.48,0.90,0.83);//lbrt
+  lLegend->SetName(TString::Format("lLegend"));
+  lLegend->SetTextSize(0.05);
+  lLegend->SetBorderSize(0);
+  lLegend->AddEntry(hRad_Def,TString::Format("Gauss (r_{0} = %.2f fm)", source_size));
+  for(unsigned uCas=0; uCas<castration_point.size(); uCas++){
+    if(uCas%2 && only_odd) continue;
+    lLegend->AddEntry(hRad_Cas[uCas],TString::Format("Gauss cut off @ %.2f fm",castration_point.at(uCas)));
+  }
+
+  TGraph gRad_Def;
+  gRad_Def.SetName("gRad_Def");
+  gRad_Def.SetLineColor(hRad_Def->GetLineColor());
+  gRad_Def.SetLineWidth(hRad_Def->GetLineWidth());
+  gRad_Def.SetLineStyle(hRad_Def->GetLineStyle());
+  gRad_Def.SetMarkerStyle(1);
+  int rescale=256;
+  int counter = 0;
+  for(unsigned uRad=0; uRad<hRad_Def->GetNbinsX(); uRad++){
+    double rstar = hRad_Def->GetBinCenter(uRad+1);
+    if(uRad%rescale==0){
+      gRad_Def.SetPoint(counter, rstar, hRad_Def->GetBinContent(uRad+1));
+      counter++;
+    }
+  } 
+
+
+
+  TCanvas* cSources = new TCanvas("cSources", "cSources", 1);
+  cSources->cd(0); 
+  cSources->SetCanvasSize(1280, 720); 
+  cSources->SetMargin(0.11,0.03,0.15,0.03);//lrbt
+  hRad_Def->Draw("axis");
+  for(unsigned uCas=0; uCas<castration_point.size(); uCas++){
+    if(uCas%2 && only_odd) continue;
+    hRad_Cas[uCas]->Draw("same");
+  }
+  gRad_Def.Draw("same,C");
+  cSources->SetLogy(0);
+
+  TLatex SomeText1;
+  SomeText1.SetTextSize(0.04);
+  SomeText1.SetTextFont(42);
+  SomeText1.SetNDC(kTRUE);
+  if(retune){
+    SomeText1.DrawLatex(0.547, 0.92, "All sources are tuned to have a mean value");
+    SomeText1.DrawLatex(0.547, 0.88, TString::Format("equal to a Gaussian source of %.2f fm", source_size));
+  }
+
+  lLegend->Draw("same");
+
+  cSources->SaveAs(OutputFolder+"cSources.pdf");
+
+  TH1F* hCk_AV18_Def = new TH1F("gCk_AV18_Def","gCk_AV18_Def",kSteps,kMin,kMax);
+  hCk_AV18_Def->SetStats(false);
+  hCk_AV18_Def->SetTitle("");
+  hCk_AV18_Def->GetXaxis()->SetLabelSize(0.065);
+  hCk_AV18_Def->GetXaxis()->SetTitle("k* (MeV)");
+  //hCk_AV18_Def->GetXaxis()->CenterTitle();
+  hCk_AV18_Def->GetXaxis()->SetTitleOffset(1.10);
+  hCk_AV18_Def->GetXaxis()->SetLabelOffset(0.02);
+  hCk_AV18_Def->GetXaxis()->SetTitleSize(0.065);
+  hCk_AV18_Def->GetYaxis()->SetLabelSize(0.065);
+  //hCk_AV18_Def->GetYaxis()->SetTitle("(N per bin)x10^{-3}");
+  hCk_AV18_Def->GetYaxis()->SetTitle("C(k*)");
+  //hCk_AV18_Def->GetYaxis()->CenterTitle();
+  hCk_AV18_Def->GetYaxis()->SetTitleOffset(0.75);
+  hCk_AV18_Def->GetYaxis()->SetTitleSize(0.065);
+  hCk_AV18_Def->GetXaxis()->SetRangeUser(kMin,kMax);
+  hCk_AV18_Def->GetYaxis()->SetRangeUser(0,6);
+
+
+  TCanvas* cCk = new TCanvas("cCk", "cCk", 1);
+  cCk->cd(0); 
+  cCk->SetCanvasSize(1280, 720); 
+  cCk->SetMargin(0.11,0.03,0.15,0.03);//lrbt
+  hCk_AV18_Def->Draw("axis");
+  for(unsigned uCas=0; uCas<castration_point.size(); uCas++){
+    if(uCas%2 && only_odd) continue;
+    gCk_AV18_Cas[uCas]->Draw("same");
+  }
+  gCk_AV18_Def->Draw("same");
+  cCk->SetLogy(0);
+
+  lLegend->Draw("same");
+
+  TLatex SomeText2;
+  SomeText2.SetTextSize(0.05);
+  SomeText2.SetTextFont(42);
+  SomeText2.SetNDC(kTRUE);
+  SomeText2.DrawLatex(0.547, 0.90, "AV18 with s,p,d waves used");
+  //SomeText2.DrawLatex(0.547, 0.88, TString::Format("equal to a Gaussian source of %.2f fm", source_size));
+
+  cCk->SaveAs(OutputFolder+"cCk.pdf");  
+
+  TH1F* hCk_Dev = new TH1F("hCk_Dev","hCk_Dev",kSteps,kMin,kMax);
+  hCk_Dev->SetStats(false);
+  hCk_Dev->SetTitle("");
+  hCk_Dev->GetXaxis()->SetLabelSize(0.065);
+  hCk_Dev->GetXaxis()->SetTitle("k* (MeV)");
+  //hCk_Dev->GetXaxis()->CenterTitle();
+  hCk_Dev->GetXaxis()->SetTitleOffset(1.10);
+  hCk_Dev->GetXaxis()->SetLabelOffset(0.02);
+  hCk_Dev->GetXaxis()->SetTitleSize(0.065);
+  hCk_Dev->GetYaxis()->SetLabelSize(0.065);
+  //hCk_Dev->GetYaxis()->SetTitle("(N per bin)x10^{-3}");
+  //hCk_Dev->GetYaxis()->SetTitle("Max |C_{cut}(k*)-C_{default}(k*)|/C_{default}(k*)");
+  hCk_Dev->GetYaxis()->SetTitle("C(k*) deviation (%)");
+  //hCk_AV18_Def->GetYaxis()->CenterTitle();
+  hCk_Dev->GetYaxis()->SetTitleOffset(0.75);
+  hCk_Dev->GetYaxis()->SetTitleSize(0.065);
+  hCk_Dev->GetXaxis()->SetRangeUser(kMin,kMax);
+  hCk_Dev->GetYaxis()->SetRangeUser(0,6);
+
+  TCanvas* cCkDev = new TCanvas("cCkDev", "cCkDev", 1);
+  cCkDev->cd(0); 
+  cCkDev->SetCanvasSize(1280, 540); 
+  cCkDev->SetMargin(0.11,0.03,0.15,0.03);//lrbt
+  
+  TGraph gCk_MaxDev;
+  gCk_MaxDev.SetName("gCk_MaxDev");
+  gCk_MaxDev.SetLineColor(kBlack);
+  gCk_MaxDev.SetLineWidth(4);
+  TGraph* gCk_Dev = new TGraph[castration_point.size()];
+  for(unsigned uMom=0; uMom<kSteps; uMom++){
+    double max_dev = 0;
+    double def_val = Kitty_AV18_Def.GetCorrFun(uMom);
+    for(unsigned uCas=0; uCas<castration_point.size(); uCas++){
+      if(max_dev < fabs(def_val-gCk_AV18_Cas[uCas]->GetPointY(uMom))/def_val){
+        max_dev = fabs(def_val-gCk_AV18_Cas[uCas]->GetPointY(uMom))/def_val;
+      }
+      gCk_Dev[uCas].SetPoint(uMom, hCk_Dev->GetBinCenter(uMom+1), fabs(def_val-gCk_AV18_Cas[uCas]->GetPointY(uMom))/def_val*100);
+      if(uMom==0){
+        gCk_Dev[uCas].SetLineColor(gCk_AV18_Cas[uCas]->GetLineColor());
+        gCk_Dev[uCas].SetLineWidth(gCk_AV18_Cas[uCas]->GetLineWidth());
+      }
+    }
+    max_dev *= 100;
+    hCk_Dev->SetBinContent(uMom+1, max_dev);
+    gCk_MaxDev.SetPoint(uMom, hCk_Dev->GetBinCenter(uMom+1), max_dev);
+
+  }
+
+  TLegend* lLegendDev = new TLegend(0.19,0.61,0.50,0.85);//lbrt
+  lLegendDev->SetName(TString::Format("lLegend"));
+  lLegendDev->SetTextSize(0.045);
+  lLegendDev->SetBorderSize(0);
+  for(unsigned uCas=0; uCas<castration_point.size(); uCas++){
+    if(uCas%2 && only_odd) continue;
+    lLegendDev->AddEntry(hRad_Cas[uCas],TString::Format("Gauss cut off @ %.2f fm",castration_point.at(uCas)));
+  }
+
+  hCk_Dev->Draw("axis");
+  for(unsigned uCas=0; uCas<castration_point.size(); uCas++){
+    if(uCas%2 && only_odd) continue;
+    gCk_Dev[uCas].Draw("same,C");
+  }
+  lLegendDev->Draw("same");
+
+  TLatex SomeText3;
+  SomeText3.SetTextSize(0.04);
+  SomeText3.SetTextFont(42);
+  SomeText3.SetNDC(kTRUE);
+  SomeText3.DrawLatex(0.147, 0.90, "The deviation is given as |C_{default} - C_{cutoff}|/C_{default}");
+
+  //gCk_Dev.Draw("same,C");
+  cCkDev->SaveAs(OutputFolder+"hCk_Dev.pdf");  
+
+
+
+  fOutput.cd();
+  gCk_AV18_Def->Write();
+  gCk_MaxDev.Write();
+  hRad_Def->Write();
+  gRad_Def.Write();
+  
+  cSources->Write();
+  for(unsigned uCas=0; uCas<castration_point.size(); uCas++){
+    gCk_Dev[uCas].Write();
+    delete hRad_Cas[uCas];
+    delete gCk_AV18_Cas[uCas];
+  }
+  delete [] gCk_Dev;
+  delete [] hRad_Cas;
+  delete [] gCk_AV18_Cas;
+  delete gCk_AV18_Def;
+  delete hRad_Def;
+  delete cSources;
+}
+
 int SOURCESTUDIES(int argc, char *argv[]){
+
+  Source_Cut_Off_Scan(); return 0;
+  //theta_dep_source_v1("SI"); return 0;
+  //compare_several_sources(); return 0;
+  //gentle_source_cutoff(); return 0;
+  //CECA_pp_angles(); return 0;
+
+
   //dCore_to_dEff(); return 0;
   //pp_WrongSignEffect(); return 0;
     //
@@ -7808,7 +8683,7 @@ int SOURCESTUDIES(int argc, char *argv[]){
     //SourcePaper_pL(argv[1],atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),argv[5]);
     
     //Estimate_pp_pL_discr(); return 0;
-    Analyse_fit_results_pp(TString::Format("%s/SourceRun2_reanalysis/BigLoop_v7_all/",GetCernBoxDimi()));
+    //Analyse_fit_results_pp(TString::Format("%s/SourceRun2_reanalysis/BigLoop_v7_all/",GetCernBoxDimi()));
 
     //TestReadTTree();
     //Estimate_Reff("pLambda","oton","RSM_PLB",3.0);
