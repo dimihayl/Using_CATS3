@@ -1499,6 +1499,12 @@ void clean_graph(TGraph* gInput){
 //par[18] = position of the max of the pol3
 //par[19] = p3 parameter of the pol3
 //par[20] = -1e6 to switch off the pol4
+//NEW in JULY 2025:
+//par[21] = amplitude of extra sill reso
+//par[22] = mass of daughter 1 (d)
+//par[23] = mass of daughter 1 (pi)
+//par[24] = mass of an extra sill reso
+//par[25] = width of an extra sill reso
 //the total fit function is:
 //Baseline*(lambda_femto*(1-frac_d)*Ck_femto + norm_delta*Ck_delta*(either 1 or Ck_femto) + lamda_flat)
 DLM_CkDecomposition* Bulgaristan_CkDec=NULL;
@@ -1535,21 +1541,33 @@ double Bulgaristan_fit(double* kstar, double* par){
     Delta = SillBoltzmann_kstar(&modified_kstar, &par[8]);
   }
   double Femto = Bulgaristan_CkDec->EvalCk(MOM);
+  double MadeUpResonance = 0;
+  if(TMath::Nint(par[7])>=10){
+    //par[0] = NORM
+    //par[1/2] = masses of the daughters
+    //par[3] = mass (mother)
+    //par[4] = width
+    MadeUpResonance = Sill_kstar(kstar, &par[21]);
+  }
+  //printf("MadeUpResonance = %f\n",MadeUpResonance);
   //printf("%f %f\n",MOM, Femto);
   //if(MOM==10){
   //  printf("%.3e * (%.3e*%.3e + %.3e*%.3e + %.3e)\n",Baseline, par[2], Femto, par[3], Delta, 1.-par[2]);
   //}
   //N.B. the Delta goes to zero, hence does not count as a proper lambda par!
   if(TMath::Nint(par[7])==0){
-    return Baseline*(par[2]*(1.-par[3])*Femto + par[4]*Delta + (1.-par[2]));
+    return Baseline*(par[2]*(1.-par[3])*Femto + par[4]*Delta + (1.-par[2]) + MadeUpResonance);
   }
   else{
-    return Baseline*(par[2]*(1.-par[3])*Femto + par[4]*Delta*Femto + (1.-par[2]));
+    return Baseline*(par[2]*(1.-par[3])*Femto + par[4]*Delta*Femto + (1.-par[2]) + MadeUpResonance);
   }
   
 }
 
 //if the |mT_bin|>100 => we deal with pi^- d
+//if its >0, we deal with pi^+ d
+//-1 = pip mt int
+//-101 = pim mt int
 void BulgarianIndianGhetto(TString Description, std::vector<int> fit_types, int mt_bin, int NumIter, bool Bootstrap=true, bool DataVar=true, bool FitVar=true, int SEED=0){
 printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n AND UPDATE THE WIDTH AND TEMP BASED ON THE NEW RANGES!!! USE PythonPlot_Pi_d.py to get them out\n");
   if(mt_bin%100<-1 || mt_bin%100>5){
@@ -1899,6 +1917,11 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
   gDelta.SetLineColor(kOrange-1);
   gDelta.SetLineWidth(4);
 
+  TGraph gMadeUpReso(max_mom_bins);
+  gMadeUpReso.SetName("gMadeUpReso");
+  gMadeUpReso.SetLineColor(kAzure+10);
+  gMadeUpReso.SetLineWidth(4); 
+
   float MT_LOW;
   float MT_UP;
   float RADIUS;
@@ -1909,6 +1932,7 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
   float LAM_GEN;
   float FRAC_D;
   float NUM_DELTAS;
+  float NUM_MADEUP_RESO;
   float AMP_DELTA;
   float DELTA_MASS;
   float DELTA_WIDTH;
@@ -1948,6 +1972,7 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
   pi_d_Tree->Branch("gBaseline","TGraph",&gBaseline,32000,0);//
   pi_d_Tree->Branch("gFemto","TGraph",&gFemto,32000,0);//
   pi_d_Tree->Branch("gDelta","TGraph",&gDelta,32000,0);//
+  pi_d_Tree->Branch("gMadeUpReso","TGraph",&gMadeUpReso,32000,0);//
   pi_d_Tree->Branch("mT_low",&MT_LOW,"mT_low/F");//
   pi_d_Tree->Branch("mT_up",&MT_UP,"mT_up/F");//
   pi_d_Tree->Branch("mT_id",&MT_ID,"mT_id/I");//
@@ -1958,6 +1983,7 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
   pi_d_Tree->Branch("lam_gen",&LAM_GEN,"lam_gen/F");//
   pi_d_Tree->Branch("frac_D",&FRAC_D,"frac_D/F");//
   pi_d_Tree->Branch("num_deltas",&NUM_DELTAS,"num_deltas/F");//
+  pi_d_Tree->Branch("num_madeup_reso",&NUM_MADEUP_RESO,"num_madeup_reso/F");//
   pi_d_Tree->Branch("amp_delta",&AMP_DELTA,"amp_delta/F");//
   pi_d_Tree->Branch("CkCutOff",&CKCUTOFF,"CkCutOff/F");//
   pi_d_Tree->Branch("delta_mass",&DELTA_MASS,"delta_mass/F");//
@@ -1966,6 +1992,7 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
   pi_d_Tree->Branch("ps_Temp",&PS_TEMP,"ps_Temp/F");//
   pi_d_Tree->Branch("pT_scale",&PT_SCALE,"pT_scale/F");//
   pi_d_Tree->Branch("chi2_500",&CHI2_500,"chi2_500/F");//
+
 /*
   ppTree->Branch("gBl","TGraph",&GBL,32000,0);//
   ppTree->Branch("gFemto","TGraph",&GFEMTO,32000,0);//
@@ -2416,7 +2443,8 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
     //par[18] = position of the max of the pol3
     //par[19] = p3 parameter of the pol3
     //par[20] = -1e6 to switch off the pol4
-    const int NumFitPar = 21;
+    //[21-25] parameters of the extra resonances added during the review at Nature, see Bulgaristan_fit for details 
+    const int NumFitPar = 26;
     TF1* fData = new TF1("fData",Bulgaristan_fit,0,FIT_RANGE,NumFitPar);
     TF1* fDataDummy = new TF1("fDataDummy",Bulgaristan_fit,0,FIT_RANGE,NumFitPar);
 
@@ -2569,6 +2597,23 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
         fData->SetParLimits(19,-1e-8,1e-8);
         fData->FixParameter(20, -1e6);
       }
+
+      if(FIT_TYPE<10){
+        fData->FixParameter(21, 0);
+        fData->FixParameter(22, 1);
+        fData->FixParameter(23, 1);
+        fData->FixParameter(24, 1);
+        fData->FixParameter(25, 1);
+      }
+      else{
+        //fData->FixParameter(21, 5*1.07719e-02);
+        fData->SetParameter(21, 1e-4);
+        fData->SetParLimits(21, 0,10);
+        fData->FixParameter(22, Mass_d);
+        fData->FixParameter(23, Mass_pic);
+        fData->FixParameter(24, 2114);
+        fData->FixParameter(25, 20);
+      }
 //printf("FRAC_D = %f\n",FRAC_D);
       fData->FixParameter(3,FRAC_D);
       hDataToFit->Fit(fData,"Q, S, N, R, M");   
@@ -2598,6 +2643,7 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
       clean_graph(&gFemto);
       clean_graph(&gBaseline);
       clean_graph(&gDelta);
+      clean_graph(&gMadeUpReso);
 
       for(unsigned uBin=0; uBin<hDataToFit->GetNbinsX(); uBin++){
         double MOM = hDataToFit->GetBinCenter(uBin+1);
@@ -2626,6 +2672,11 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
       double par_fmt = fData->GetParameter(2);//lambda_gen
       double par_dlt = fData->GetParameter(4);
       double par_frc = fData->GetParameter(3);
+      double par_er_n = fData->GetParameter(21);
+      double par_er_Mm = fData->GetParameter(22);
+      double par_er_Md1 = fData->GetParameter(23);
+      double par_er_Md2 = fData->GetParameter(24);
+      double par_er_w = fData->GetParameter(25);
 
       fDataDummy->FixParameter(2, 0);
       fDataDummy->FixParameter(4, 0);
@@ -2640,6 +2691,7 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
       fDataDummy->FixParameter(18, 0);
       fDataDummy->FixParameter(19, 0);
       fDataDummy->FixParameter(20, 0);
+      fDataDummy->FixParameter(21, 0);
       fDataDummy->FixParameter(2, par_fmt);
       fDataDummy->FixParameter(4, 0);
       fDataDummy->FixParameter(3, 0);
@@ -2658,10 +2710,30 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
         gDelta.SetPoint(uBin, MOM, fDataDummy->Eval(MOM));
       }
 
+      //fDataDummy->FixParameter(3, 0);
+      fDataDummy->FixParameter(4, 0);
+      fDataDummy->FixParameter(21, par_er_n);
+      for(unsigned uBin=0; uBin<hDataToFit->GetNbinsX(); uBin++){
+        double MOM = hDataToFit->GetBinCenter(uBin+1);
+        if(MOM>FIT_RANGE) break;
+        gMadeUpReso.SetPoint(uBin, MOM, fDataDummy->Eval(MOM));
+        //printf("%f %f\n", MOM, fDataDummy->Eval(MOM));
+      }
+
+
+  //if(TMath::Nint(par[7])==0){
+  //  return Baseline*(par[2]*(1.-par[3])*Femto + par[4]*Delta + (1.-par[2]) + MadeUpResonance);
+  //}
+  //else{
+  //  return Baseline*(par[2]*(1.-par[3])*Femto + par[4]*Delta*Femto + (1.-par[2]) + MadeUpResonance);
+  //}
+
+
       //evaluate the integrals of the SE related to d from Delta and d not from Delta
       //the norm of the integral is not relevant, as we only care about the ratio FRAC_D
       double Integral_Primary = 0;
       double Integral_FromDelta = 0;
+      double Integral_MadeUpReso = 0;
       FRAC_D = 0;
       if(hME){
         for(unsigned uBin=0; uBin<hME->GetNbinsX(); uBin++){
@@ -2670,6 +2742,7 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
             Integral_Primary += hME->GetBinContent(uBin+1) * (gFemto.Eval(MOM) - (1.-par_fmt));//original
             //Integral_Primary += hME->GetBinContent(uBin+1) * (gFemto.Eval(MOM) - par_fmt);
             Integral_FromDelta += hME->GetBinContent(uBin+1) * (gDelta.Eval(MOM)-1);
+            Integral_MadeUpReso += hME->GetBinContent(uBin+1) * (gMadeUpReso.Eval(MOM)-1);
             //printf("at %.0f += %.3e (%.3e) and %.3e -> %.3e vs %.3e\n",MOM,gFemto.Eval(MOM)- (1.-par_fmt),gFemto.Eval(MOM)- par_fmt,gDelta.Eval(MOM)-1,Integral_Primary,Integral_FromDelta);
           }
           else{
@@ -2695,6 +2768,7 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
     double IntME = hME->Integral();
     double IntSE = hSE?hSE->Integral():0;
     NUM_DELTAS = 0;
+    NUM_MADEUP_RESO = 0;
     double NUM_DELTAS_v1 = 0;//original, but scale by the lambda par
     double NUM_DELTAS_v2 = 0;
     double NUM_DELTAS_v3 = 0;//aprox fsi is not there
@@ -2702,6 +2776,7 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
       //checked, this is correct
       double MOM = hME->GetBinCenter(uBin+1);
       NUM_DELTAS += hME->GetBinContent(uBin+1) * (gDelta.Eval(MOM)-1);
+      NUM_MADEUP_RESO += hME->GetBinContent(uBin+1) * (gMadeUpReso.Eval(MOM)-1);
       NUM_DELTAS_v1 += hME->GetBinContent(uBin+1) * LAM_GEN*(gDelta.Eval(MOM)-1);
     }
     for(unsigned uBin=0; uBin<hSE->GetNbinsX(); uBin++){
@@ -2709,7 +2784,7 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
       double CF = gFemto.Eval(MOM);
       double CD = (gDelta.Eval(MOM)-1)/LAM_GEN;
       //printf("%f %f\n",(1.-FRAC_D),LAM_GEN);
-      printf("k=%.0f, SE=%f, CD=%f, CF=%f, x%f\n",MOM,hSE->GetBinContent(uBin+1),CD,CF,(CF*CD)/(CF*CD+CF*(1.-FRAC_D)+1-LAM_GEN));
+      //printf("k=%.0f, SE=%f, CD=%f, CF=%f, x%f\n",MOM,hSE->GetBinContent(uBin+1),CD,CF,(CF*CD)/(CF*CD+CF*(1.-FRAC_D)+1-LAM_GEN));
       NUM_DELTAS_v2 += hSE->GetBinContent(uBin+1)*(CF*CD)/(CF*CD+CF*(1.-FRAC_D)+1-LAM_GEN);
       NUM_DELTAS_v3 += hSE->GetBinContent(uBin+1)*(LAM_GEN*CD)/(LAM_GEN*CD+LAM_GEN*(1.-FRAC_D)+1-LAM_GEN);
     }
@@ -2717,7 +2792,12 @@ printf("WHEN YOU FIT THE NEW DATA USE THE MT RANGES IN SUBFOLDER *2024-10-22\n A
     NUM_DELTAS *= IntSE;
     NUM_DELTAS /= IntME;
 
-    printf("NUM_DELTAS = %f vs %f vs %f vs %f\n",NUM_DELTAS,NUM_DELTAS_v1,NUM_DELTAS_v2,NUM_DELTAS_v3);
+    NUM_MADEUP_RESO *= IntSE;
+    NUM_MADEUP_RESO /= IntME;    
+
+    //printf("NUM_DELTAS = %f vs %f vs %f vs %f\n",NUM_DELTAS,NUM_DELTAS_v1,NUM_DELTAS_v2,NUM_DELTAS_v3);
+    //printf("NUM_MADEUP_RESO = %f\n", NUM_MADEUP_RESO);
+
 
     fOutputFile.cd();
     pi_d_Tree->Fill();
@@ -3075,6 +3155,109 @@ void GypsyGhettoForAcceptance(){
   delete h_D_pt;
 }
 
+
+
+
+
+
+  
+//par[5] = Femto
+//par[6] = norm
+//par[7] = 0 to castrate the pol3
+//par[8] = position of the max of the pol3
+//par[9] = p3 parameter of the pol3
+//par[10] = -1e6 to switch off the pol4
+double MC_Dfrac_closure_fit(double* kstar, double* pars){
+  double Femto = pars[5];
+    //par[0] = NORM
+    //par[1/2] = masses of the daughters
+    //par[3] = mass (mother)
+    //par[4] = width
+  double Delta = Sill_kstar(kstar, pars);
+  double Baseline = DLM_Baseline(kstar, &pars[6]);
+  return (Femto + Delta) * Baseline;
+}
+
+
+
+void MC_Dfrac_closure(){
+  
+  TFile fInput(TString::Format("%s/pi_d/Maxi/Merged_MnAM_CC.root",GetCernBoxDimi()), "read");
+  TH1F* hSE = (TH1F*)fInput.Get("hSameEvtDPiFullmT");
+  TH1F* hME = (TH1F*)fInput.Get("hMixedEvtDPiFull");
+
+  hSE->GetXaxis()->SetLimits(hSE->GetXaxis()->GetXmin()*1000.,hSE->GetXaxis()->GetXmax()*1000.);
+  hME->GetXaxis()->SetLimits(hME->GetXaxis()->GetXmin()*1000.,hME->GetXaxis()->GetXmax()*1000.);
+
+  double SE_int = hSE->Integral();
+  hSE->Scale(1./hSE->Integral());
+  hME->Scale(1./hME->Integral());
+
+  TFile fOutput(TString::Format("%s/pi_d/MC_closure/MC_closure.root",GetCernBoxDimi()), "recreate");
+
+  TH1F* hCk = (TH1F*)hSE->Clone("hCk");
+  hCk->Divide(hME);
+
+  TF1* total_fit = new TF1("total_fit",MC_Dfrac_closure_fit,0,1000,11);
+
+
+  total_fit->SetParameter(0, 1);
+  total_fit->FixParameter(1, Mass_p);
+  total_fit->FixParameter(2, Mass_pic);
+  total_fit->SetParameter(3, 1232);
+  total_fit->SetParameter(4, 120);
+
+  total_fit->FixParameter(5, 1);
+
+  total_fit->SetParameter(6, 1);
+  total_fit->FixParameter(7, 0);
+  total_fit->SetParameter(8, 200);
+  total_fit->SetParLimits(8, 5,1300);
+  total_fit->SetParameter(9, 0);
+  total_fit->SetParLimits(9, -1e-3, 1e-3);
+  total_fit->FixParameter(10, -1e6);
+
+  hCk->Fit(total_fit,"S, N, R, M");
+
+  total_fit->FixParameter(5, 0);
+  total_fit->FixParameter(6, 1);
+  total_fit->FixParameter(7, 0);
+  total_fit->FixParameter(8, 0);
+  total_fit->FixParameter(9, 0);
+  total_fit->FixParameter(10, 0);
+
+
+  double Integral_FromDelta = 0;
+  double Integral_Primary = 0;
+
+  double FRAC_D = 0;
+
+  for(unsigned uBin=0; uBin<hME->GetNbinsX(); uBin++){
+    double MOM = hME->GetBinCenter(uBin+1);
+    if(MOM<1000){
+      Integral_Primary += hME->GetBinContent(uBin+1)*SE_int * (1);//original
+      Integral_FromDelta += hME->GetBinContent(uBin+1)*SE_int * (total_fit->Eval(MOM));
+    }
+    else{
+      Integral_Primary += hME->GetBinContent(uBin+1);
+    }
+  }
+  
+
+  FRAC_D = Integral_FromDelta/(Integral_FromDelta+Integral_Primary);   
+
+  printf("FRAC_D = %f\n", FRAC_D);
+  printf("Integral_FromDelta = %f\n", Integral_FromDelta);
+
+
+
+  hSE->Write();
+  hME->Write();
+  hCk->Write();
+  total_fit->Write();
+
+}
+
 int DEUTERON_MAIN(int argc, char *argv[]){
   //PiDCF();
   //Error_propagation_final_result();
@@ -3092,14 +3275,15 @@ int DEUTERON_MAIN(int argc, char *argv[]){
 
   //test_sill_invM_to_kstar();
   //test_sill_ps();
-  //TString Description, int mt_bin, int NumIter, bool Bootstrap=true, bool DataVar=true, bool FitVar=true, int SEED=0
+  //TString Description, types, int mt_bin, int NumIter, bool Bootstrap=true, bool DataVar=true, bool FitVar=true, int SEED=0
   //BulgarianIndianGhetto("ghetto_output", atoi(argv[1]),atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),atoi(argv[5]),atoi(argv[6]));
   //USE THIS:
  // BulgarianIndianGhetto("pid_withMomResoME_2024-12-06", atoi(argv[1]),atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),atoi(argv[5]),atoi(argv[6]));
   //0 - do NOT multiply C_Delta
   //1 - do multiply C_Delta by C_genuine
- std::vector<int> fit_types = {1};
- BulgarianIndianGhetto("fuck", fit_types, atoi(argv[1]),atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),atoi(argv[5]),atoi(argv[6]));
+  //11 - as 1, but now also include the extra 2110 reso
+ std::vector<int> fit_types = {11};
+ //BulgarianIndianGhetto("ExtraReso2", fit_types, atoi(argv[1]),atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),atoi(argv[5]),atoi(argv[6]));
  //GypsyGhettoForAcceptance();
  //BulgarianIndianGhetto("TEST", atoi(argv[1]),atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),atoi(argv[5]),atoi(argv[6]));
   //BulgarianIndianGhetto(-1,10,true,true,true,23);
@@ -3118,6 +3302,9 @@ int DEUTERON_MAIN(int argc, char *argv[]){
        //this is the ULTRA-GHETTO Kminus-d fit, demanded by Laura on 14th Nov
   else if(mt_bin==1000){
 */
+
+
+  MC_Dfrac_closure();
 
   //pim_d_Coulomb_vs_RealSI();
 

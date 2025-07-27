@@ -23,6 +23,7 @@
 #include "CECA.h"
 #include "TREPNI.h"
 #include "CECA_Paper.h"
+#include "DLM_MultiFit.h"
 
 #include "TRandom3.h"
 #include "TFile.h"
@@ -42,6 +43,9 @@
 #include "TVector3.h"
 #include "TStyle.h"
 #include "TLatex.h"
+
+#include "TFitResultPtr.h"
+#include "TFitResult.h"
 
 //for the source paper, we compare C(k) and S(r) of pp and pL based on
 //Gaussian and Gaussian+Reso sources
@@ -8630,9 +8634,113 @@ void Source_Cut_Off_Scan(){
   delete cSources;
 }
 
+
+//[4]+[5]*mT^[6]
+//[3] = mT
+double test_glob_fit_S1(double* pars){
+  double g_pars [4];
+  for(int i=0; i<4; i++){
+    g_pars[i] = pars[i];
+  }
+  g_pars[3] = pars[4] + pars[5]*pow(pars[3]*0.001,pars[6]);
+  return GaussSource(g_pars);
+}
+
+CATS* GLOB_CAT=NULL;
+double test_glob_fit_F1(double* x, double* pars){
+  if(!GLOB_CAT) return 0;
+  GLOB_CAT->SetAnaSource(0, pars[0], true);//mt
+  GLOB_CAT->SetAnaSource(1, pars[1], true);//a
+  GLOB_CAT->SetAnaSource(2, pars[2], true);//b
+  GLOB_CAT->SetAnaSource(3, pars[3], true);//c
+  GLOB_CAT->KillTheCat();
+  return GLOB_CAT->EvalCorrFun(*x);
+}
+void test_glob_fit_1(){
+  TString InputFileName = TString::Format("%s/FunWithCeca/MC_closure_for_Max/pp_S253_TY5819K.root",GetFemtoOutputFolder());;
+  std::vector<TString> histo_names;
+  histo_names.push_back("hCk_Synthetic_950_1150");
+  histo_names.push_back("hCk_Synthetic_1150_1250");
+  histo_names.push_back("hCk_Synthetic_1250_1350");
+  histo_names.push_back("hCk_Synthetic_1350_1450");
+  histo_names.push_back("hCk_Synthetic_1450_1750");
+  histo_names.push_back("hCk_Synthetic_1750_2500");
+
+  std::vector<float> mt_val;
+  mt_val.push_back(1000);
+  mt_val.push_back(1200);
+  mt_val.push_back(1300);
+  mt_val.push_back(1400);
+  mt_val.push_back(1600);
+  mt_val.push_back(2000); 
+
+  DLM_MultiFit dlmmf;
+
+  const double kMin = 0;
+  const double kMax = 160;
+  const unsigned kStep = 40;
+
+
+  TH1F** hCk = new TH1F* [histo_names.size()];
+  TFile fInput(InputFileName,"read");
+  for(int iCk=0; iCk<histo_names.size(); iCk++){
+    hCk[iCk] = (TH1F*)fInput.Get(histo_names.at(iCk));
+  }
+
+  TF1** fCk = new TF1* [histo_names.size()];
+  for(int iCk=0; iCk<histo_names.size(); iCk++){
+    fCk[iCk] = new TF1(TString::Format("fCk_%i",iCk),test_glob_fit_F1,kMin,kMax,4);
+    fCk[iCk]->FixParameter(0, mt_val.at(iCk));
+    fCk[iCk]->SetParameter(1, 0.8);
+    fCk[iCk]->SetParameter(2, -1.4);
+    fCk[iCk]->SetParameter(3, 0.6);
+    fCk[iCk]->SetParLimits(3, 0.3, 0.9);
+
+    dlmmf.AddSpectrum(hCk[iCk], fCk[iCk]);
+    if(iCk){
+      dlmmf.SetEqualPar(0,1,iCk,1);
+      dlmmf.SetEqualPar(0,2,iCk,2);
+      dlmmf.SetEqualPar(0,3,iCk,3);
+    }
+  }
+
+
+  DLM_CommonAnaFunctions AnalysisObject; AnalysisObject.SetCatsFilesFolder("/mnt/Ubuntu_Data/CernBox/Sync/CatsFiles");
+
+  CATS AB_pp;
+  AB_pp.SetMomBins(kStep,kMin,kMax);
+  //the source should have these pars:
+  CATSparameters cSorPars(CATSparameters::tSource,4,true);
+  cSorPars.SetParameter(0,1400);
+  cSorPars.SetParameter(1,0.8);
+  cSorPars.SetParameter(2,-1.39);
+  cSorPars.SetParameter(3,0.6);
+  AnalysisObject.SetUpCats_pp(AB_pp,"AV18","");
+  AB_pp.SetAnaSource(test_glob_fit_S1,cSorPars);
+  AB_pp.KillTheCat();
+
+  GLOB_CAT = &AB_pp;
+  
+  AB_pp.SetNotifications(CATS::nWarning);
+
+  //ROOT::EnableImplicitMT();
+  ROOT::Fit::FitResult fitresptr = dlmmf.PerformGlobalFit();
+
+  TFile fOutput(TString::Format("%s/SourceStudies/test_glob_fit_1.root",GetFemtoOutputFolder()),"recreate");
+  for(int iCk=0; iCk<histo_names.size(); iCk++){
+    hCk[iCk]->Write();
+    fCk[iCk]->Write();
+  }
+  
+}
+
+
+
 int SOURCESTUDIES(int argc, char *argv[]){
 
-  Source_Cut_Off_Scan(); return 0;
+  //test_glob_fit_1(); return 0;
+
+  //Source_Cut_Off_Scan(); return 0;
   //theta_dep_source_v1("SI"); return 0;
   //compare_several_sources(); return 0;
   //gentle_source_cutoff(); return 0;
@@ -8704,7 +8812,7 @@ int SOURCESTUDIES(int argc, char *argv[]){
     //Estimate_Reff("pd","oton","RSM_PLB",3.0);
     //Estimate_Reff("pd_max","oton","RSM_PLB",3.0);
 
-    //source_pp_syst();
+    source_pp_syst();
     //source_pL_syst();
     //estimate_syst_fit();
 

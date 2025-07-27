@@ -4742,6 +4742,17 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
     else if(DataSetDescr=="rhoMesonReso_pReso" || DataSetDescr=="rhoMesonReso_p" || DataSetDescr=="rhoMeson_pReso"){
         InputFileName = TString::Format("%s/CatsFiles/Source/EposRawOutput/strange_stuff/pp_rhoMesonReso_pReso_simple_ids.dimi",GetCernBoxDimi());
     }    
+    else if(DataSetDescr=="etaReso_pReso" || DataSetDescr=="etaReso_p" || DataSetDescr=="eta_pReso"){
+      if(DataSetDescr=="etaReso_pReso"){
+        InputFileName = TString::Format("%s/CatsFiles/Source/EposRawOutput/eta_n/v2/etaReso_pReso.dimi",GetCernBoxDimi());
+      }
+      else if(DataSetDescr=="etaReso_p"){
+        InputFileName = TString::Format("%s/CatsFiles/Source/EposRawOutput/eta_n/v2/etaReso_p.dimi",GetCernBoxDimi());
+      }
+      else {
+        InputFileName = TString::Format("%s/CatsFiles/Source/EposRawOutput/eta_n/v2/eta_pReso.dimi",GetCernBoxDimi());
+      }
+    }  
 
     else//
         InputFileName = TString::Format("%s/scratch6/dmihaylov/OutputEPOS/13TeV/EPOS_LBF_pp200/pp200_pResoLamReso_Oct2019_4PI_ReducedWeights.f19",GetNx2Folder());
@@ -5906,6 +5917,93 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
         UseResoInfo = false;
     }
 
+    //the relevant angle will be RcP1
+    else if(DataSetDescr=="etaReso_p"){
+        pdgID[0] = 0;//etaReso
+        pdgID[1] = 2212;//p
+        Original_eposID[0] = 220;//eta
+        Original_eposID[1] = 1120;//p
+        Original_pdgID[0] = 221;//eta
+        Original_pdgID[1] = 2212;//p
+
+        DaughterMassP1[0] = Mass_eta*0.001;
+        DaughterMassP1[1] = Mass_pic*0.001;
+        DaughterMassP1[2] = -1;
+        DaughterMassP1[3] = -1;
+
+        DaughterMassP2[0] = -1;
+        DaughterMassP2[1] = -1;
+        DaughterMassP2[2] = -1;
+        DaughterMassP2[3] = -1;
+
+        //printf("THE ETA RESO MASS / WIDTH NOT YET SET !!!!!!!!!!!\nERROR\nERROR\nERROR\nDO NOT IGNORE!!!!!\n");
+        ResoMass[0] = 1.522;//reso of the eta
+        ResoMass[1] = -1;//reso of the p (none in this case)
+
+        FractionsNbody[0] = 1;
+        FractionsNbody[1] = 0;
+        FractionsNbody[2] = 0;
+
+        UseResoInfo = false;
+    }
+    //the relevant angle will be RcP2
+    else if(DataSetDescr=="eta_pReso"){
+        pdgID[0] = 221;//eta
+        pdgID[1] = 1;//pReso
+        Original_eposID[0] = 220;//eta
+        Original_eposID[1] = 1120;//p
+        Original_pdgID[0] = 221;//eta
+        Original_pdgID[1] = 2212;//p
+
+        DaughterMassP1[0] = -1;
+        DaughterMassP1[1] = -1;
+        DaughterMassP1[2] = -1;
+        DaughterMassP1[3] = -1;
+
+        DaughterMassP2[0] = Mass_p*0.001;
+        DaughterMassP2[1] = Mass_pic*0.001;
+        DaughterMassP2[2] = -1;
+        DaughterMassP2[3] = -1;
+
+        ResoMass[0] = -1;
+        ResoMass[1] = 1.36;
+
+        FractionsNbody[0] = 1;
+        FractionsNbody[1] = 0;
+        FractionsNbody[2] = 0;
+
+        UseResoInfo = false;
+    }
+    else if(DataSetDescr=="etaReso_pReso"){
+        pdgID[0] = 0;//etaReso
+        pdgID[1] = 1;//p
+        Original_eposID[0] = 220;//eta
+        Original_eposID[1] = 1120;//p
+        Original_pdgID[0] = 221;//eta
+        Original_pdgID[1] = 2212;//p
+
+        DaughterMassP1[0] = Mass_eta*0.001;
+        DaughterMassP1[1] = Mass_pic*0.001;
+        DaughterMassP1[2] = -1;
+        DaughterMassP1[3] = -1;
+
+        DaughterMassP2[0] = Mass_p*0.001;
+        DaughterMassP2[1] = Mass_pic*0.001;
+        DaughterMassP2[2] = -1;
+        DaughterMassP2[3] = -1;
+
+        //printf("THE ETA RESO MASS / WIDTH NOT YET SET !!!!!!!!!!!\nERROR\nERROR\nERROR\nDO NOT IGNORE!!!!!\n");
+        ResoMass[0] = 1.09;//from Max Mattermost, eta: Meff=1522 MeV/c^2 and ctau=3.959 fm/c. But these are excluding the light stuff, which we have here
+        ResoMass[1] = 1.36;
+
+        FractionsNbody[0] = 1;
+        FractionsNbody[1] = 0;
+        FractionsNbody[2] = 0;
+
+        UseResoInfo = false;
+    }
+
+
 
     //the relevant angle will be RcP1
     else if(DataSetDescr=="omegaMesonReso_p"){
@@ -6290,6 +6388,52 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
             }
         }
 
+        else if(DataSetDescr=="etaReso_p"){
+            //if(ParticlePID==1120){
+            //    printf("AH, WTF!!! CHECK THIS SH*T\n");
+            //}
+
+
+            if(ParticlePID==2212 || ParticlePID==1120){
+                ParentPID = 0;
+                ResoWidth = 0;
+            }
+            else if(ParticlePID==888221){
+                ParentPID = 221;
+                ResoWidth = 1;
+            }
+            else{
+                continue;
+            }
+        }
+        else if(DataSetDescr=="eta_pReso"){
+            if(ParticlePID==221 || ParticlePID==220){
+                ParentPID = 0;
+                ResoWidth = 0;
+            }
+            else if(ParticlePID==8882212){
+                ParentPID = 2212;
+                ResoWidth = 1;    
+            }
+            else{
+                continue;
+            }
+        }        
+        else if(DataSetDescr=="etaReso_pReso"){
+            if(ParticlePID==888221){
+                ParentPID = 221;
+                ResoWidth = 1;
+            }
+            else if(ParticlePID==8882212){
+                ParentPID = 2212;
+                ResoWidth = 1;    
+            }
+            else{
+                continue;
+            }
+        }
+
+
         else if(DataSetDescr=="omegaMesonReso_p"){
             if(ParticlePID==2212){
                 ParentPID = 0;
@@ -6367,6 +6511,7 @@ void ReferenceSampleStudy_2(const TString& TranModDescr, const TString& DataSetD
     else {
       if(   DataSetDescr!="p_Omega"&&DataSetDescr!="KstarReso_LamReso"&&DataSetDescr!="KstarReso_Lam"&&DataSetDescr!="Kstar_LamReso"&&
             DataSetDescr!="rhoMesonReso_pReso"&&DataSetDescr!="rhoMesonReso_p"&&DataSetDescr!="rhoMeson_pReso" &&
+            DataSetDescr!="etaReso_pReso"&&DataSetDescr!="etaReso_p"&&DataSetDescr!="eta_pReso" &&
             DataSetDescr!="omegaMesonReso_pReso"&&DataSetDescr!="omegaMesonReso_p"&&DataSetDescr!="omegaMeson_pReso"
             ){
         printf(" BBB %i\n",ParentPID);
@@ -6721,6 +6866,14 @@ usleep(100e3);
 
             if(eventRan1) eventRan1->SetDecay(TLV_P1, NbodyDecayP1, DaughterMassP1);
             if(eventRan2) eventRan2->SetDecay(TLV_P2, NbodyDecayP2, DaughterMassP2);
+
+            //printf("TM1 = %.3f; TM2 = %.3f\n",TLV_P1.M(),TLV_P2.M());
+            //printf("NBDP1 = %u M1=%.3f M2=%.3f; NBDP2 = %u M1=%.3f M2=%.3f\n",
+            //    NbodyDecayP1, DaughterMassP1[0], DaughterMassP1[1],NbodyDecayP2, DaughterMassP2[0], DaughterMassP2[1]);
+            //TLV_P1.Print();
+            //TLV_P2.Print();
+            //printf("\n------------------\n");
+            //usleep(40e3);
 
             //if(eventRan1) printf("1\n");
             //if(eventRan2) printf("2\n");
@@ -7985,9 +8138,13 @@ int MIXEDEVENTS(int argc, char *argv[]){
     //ReferenceSampleStudy_2("ProfMax","rhoMeson_pReso");
     //ReferenceSampleStudy_2("ProfMax","rhoMesonReso_pReso");   
 
-    ReferenceSampleStudy_2("ProfMax","omegaMesonReso_pReso");
-    ReferenceSampleStudy_2("ProfMax","omegaMeson_pReso");
-    ReferenceSampleStudy_2("ProfMax","omegaMesonReso_p"); 
+    //ReferenceSampleStudy_2("ProfMax","omegaMesonReso_pReso");
+    //ReferenceSampleStudy_2("ProfMax","omegaMeson_pReso");
+    //ReferenceSampleStudy_2("ProfMax","omegaMesonReso_p"); 
+
+    ReferenceSampleStudy_2("Vale_eta_n","etaReso_pReso");
+    //ReferenceSampleStudy_2("Vale_eta_n","eta_pReso");
+    //ReferenceSampleStudy_2("Vale_eta_n","etaReso_p");
 
     //dEta_dPhi_Ck_QS("QS", "pp", true);
     //CompareReferenceSamples("pp");

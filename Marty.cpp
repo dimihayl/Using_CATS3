@@ -436,8 +436,9 @@ DLM_Histo<float>* dlm_pot = NULL;
 //pars[0] = rad
 //pars[1] = kstar
 double DLM_Potential(double* pars){
-    if(!dlm_pot) return 0;
-    return dlm_pot->Eval(pars);
+    //if(!dlm_pot) return 0;
+    //if(dlm_pot->GetTotBin(pars))
+    //return dlm_pot->Eval(pars);
 }
 
 //the idea is to craft a potential that is defined as a DLM_Histo and interpolates between 
@@ -449,10 +450,12 @@ void DLM_Potential_main1(TString OutputFolder, const unsigned NumRadPts, const u
 
     const double rMin = 0;
     const double rMax = 8;
-    const unsigned rSteps = NumRadPts;
-    DLM_Histo<float> my_potential;
-    my_potential.SetUp(2);
-    my_potential.SetUp(0,);
+    //we will have 2 points at rMin, rMax, NumRadPts are the points inbetween
+    //the potential function will return zero if we try to go outside rMin or rMax
+    const unsigned rSteps = NumRadPts+2;
+    //DLM_Histo<float> my_potential;
+    //my_potential.SetUp(2);
+    //my_potential.SetUp(0,);
 }
 
 

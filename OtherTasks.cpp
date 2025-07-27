@@ -20366,8 +20366,546 @@ void compare_pot_same_shift_diff_range(){
 }
 
 
+void get_eta_fractions(){
+  TString InputFileName = TString::Format("%s/CatsFiles/Source/CECA/eta_reso/eta_reso_list.txt",GetCernBoxDimi());
+  //stuff with larger ctau will be counted as a lambda par of flat contrib
+  const float upper_tau = 10;
+  //stuff with smaller fraction will be added into one single effective resonance
+  const float upper_fraction = 0.1 / 100.;
+
+  
+
+}
+
+
+
+
+
+
+void ThreeBodyDecay(unsigned NumIter, const int SEED){
+
+  //https://link.aps.org/accepted/10.1103/PhysRevLett.114.013003
+  //we have 3H -> 3He(+) + e + antineutr
+  //so the He is missing 1 e !!!
+  double MASS = 2809.4321;//mother
+  double mass[3] = {2809.4135-0.51099895,0.51099895,0.0};
+  std::vector<double> vec_mass;
+  //vec_mass.push_back(1);
+  //vec_mass.push_back(1);
+  vec_mass.push_back(mass[0]);
+  vec_mass.push_back(mass[1]);
+  vec_mass.push_back(mass[2]);
+  NumIter *= 1000;
+  double available_energy = MASS - mass[0] - mass[1] - mass[2];
+  const double epsilon = 1e-6;
+  printf("available_energy = %.6f\n",available_energy);
+  printf(" for the e = %.6f\n",available_energy-mass[1]);
+
+  TRandom3 rangen(SEED);
+  double cos_th, sin_th, eta, phi, ptot, px, py, pz, ekin;
+  TLorentzVector particle[3];
+  TLorentzVector total;
+
+  TFile fOutput(TString::Format("%s/OtherTasks/ThreeBodyDecay/fOutput_%iK_S%i.root",GetFemtoOutputFolder(),NumIter/1000,SEED), "recreate");
+  TH1F* electon_spectrum = new TH1F("electon_spectrum","electon_spectrum",1024,0,250);
+  TH1F* electon_ekin = new TH1F("electon_ekin","electon_ekin",1024,0,50);
+  TH1F* electon_spectrum_cos_th = new TH1F("electon_spectrum_cos_th","electon_spectrum_cos_th",1024,-1,1);
+
+  for(unsigned uIter=0; uIter<NumIter/100; uIter++){
+    do{
+      //tot_engy = 0;
+      total.SetPxPyPzE(0,0,0,0);
+      for(unsigned uDaughter=0; uDaughter<3; uDaughter++){
+          cos_th = rangen.Uniform(-1,1);
+          phi = rangen.Uniform(0,TMath::Pi()*2);
+          //ekin = rangen.Uniform(0,available_energy);
+          //ptot = rangen.Uniform(0,available_energy);
+          //ptot = sqrt(ekin*ekin+2*ekin*mass[uDaughter]);
+          ptot = rangen.Uniform(0,sqrt(available_energy*available_energy+2*available_energy*mass[uDaughter]));
+
+          //ptot = fabs(rangen.Gaus(0,available_energy/1.5));
+          eta = -0.5*log((1.-cos_th)/(1.+cos_th));
+          //sin_th = 2.*exp(-eta)/(1.+exp(-2.*eta));
+          sin_th = sqrt(1.-cos_th*cos_th);//okay, as theta is 0 - 180
+          px = ptot*cos(phi)*sin_th;
+          py = ptot*sin(phi)*sin_th;
+          pz = ptot*cos_th;
+          //printf(" d%i ptot = %f\n",uDaughter, ptot);
+          particle[uDaughter].SetPxPyPzE(px,py,pz,sqrt(ptot*ptot+mass[uDaughter]*mass[uDaughter]));
+          //tot_engy += particle[uDaughter].M2();
+          total += particle[uDaughter];
+        }
+       //tot_engy = sqrt(tot_engy);
+       //printf("tot_engy = %f; MASS = %f\n",total.M(),MASS);
+       //usleep(40e3);
+    }
+    while(fabs(MASS-total.M())>epsilon);
+    if(uIter%1000==0){
+      printf("uIter = %u K \n",uIter/1000);
+    }
+    
+    electon_spectrum->Fill( particle[1].P()*1000. );
+    electon_spectrum_cos_th->Fill( particle[1].CosTheta() );
+    electon_ekin->Fill( (particle[1].E()-particle[1].M())*1000 );
+  }
+
+
+
+  TH1F* electon_spectrum_dlm = new TH1F("electon_spectrum_dlm","electon_spectrum_dlm",1024,0,250);
+  TH1F* electon_ekin_dlm = new TH1F("electon_ekin_dlm","electon_ekin_dlm",1024,0,50);
+  DLM_Random dlm_rangen(11);
+  for(unsigned uIter=0; uIter<NumIter; uIter++){
+    
+    CatsParticle cp_triton;
+    cp_triton.SetMass(MASS);
+    cp_triton.SetWidth(1e-30);
+    cp_triton.SetDecayRanGen(dlm_rangen);
+    CatsParticle* daughters = cp_triton.DecayN(vec_mass,true);
+
+    double toteng=daughters[0].GetE()+daughters[1].GetE()+daughters[2].GetE();
+    //printf("M=%f; toteng=%f\n",MASS,toteng);
+    //printf(" daughters[0].GetMass() = %f; p = %f; e = %f\n",daughters[0].GetMass(), daughters[0].GetP(), daughters[0].GetE());
+    //printf(" daughters[1].GetMass() = %f; p = %f; e = %f\n",daughters[1].GetMass(), daughters[1].GetP(), daughters[1].GetE());
+    //printf(" daughters[2].GetMass() = %f; p = %f; e = %f\n",daughters[2].GetMass(), daughters[2].GetP(), daughters[2].GetE());
+    electon_spectrum_dlm->Fill(daughters[1].GetP()*1000);
+    electon_ekin_dlm->Fill((daughters[1].GetE()-daughters[1].GetMass())*1000);
+
+    //printf("%u %e\n",uIter,daughters[1].GetP());
+    delete [] daughters;
+  }
+
+
+  fOutput.cd();
+  electon_spectrum->Write();
+  electon_spectrum_cos_th->Write();
+  electon_ekin->Write();
+
+  electon_spectrum_dlm->Write();
+  electon_ekin_dlm->Write();
+  
+  delete electon_spectrum;
+  delete electon_spectrum_dlm;
+}
+
+
+
+/*
+void ThreeBodyDecay(unsigned NumIter, const int SEED){
+
+  double MASS = 2809.4321;//mother
+  double mass[3] = {2809.4135-0.51099895,0.51099895,0.0};
+  std::vector<double> vec_mass;
+  //vec_mass.push_back(1);
+  //vec_mass.push_back(1);
+  vec_mass.push_back(mass[0]);
+  vec_mass.push_back(mass[1]);
+  vec_mass.push_back(mass[2]);
+  NumIter *= 1000;
+  double available_energy = MASS - mass[0] - mass[1] - mass[2];
+  const double epsilon = 1e-6;
+  printf("available_energy = %.6f\n",available_energy);
+  printf(" for the e = %.6f\n",available_energy-mass[1]);
+
+  TRandom3 rangen(SEED);
+  double cos_th, sin_th, eta, phi, ptot, px, py, pz, ekin;
+  TLorentzVector particle[3];
+  TLorentzVector total;
+
+  TFile fOutput(TString::Format("%s/OtherTasks/ThreeBodyDecay/fOutput_%iK_S%i.root",GetFemtoOutputFolder(),NumIter/1000,SEED), "recreate");
+  TH1F* electon_spectrum = new TH1F("electon_spectrum","electon_spectrum",1024,0,250);
+  TH1F* electon_ekin = new TH1F("electon_ekin","electon_ekin",1024,0,50);
+  TH1F* electon_spectrum_cos_th = new TH1F("electon_spectrum_cos_th","electon_spectrum_cos_th",1024,-1,1);
+
+  for(unsigned uIter=0; uIter<NumIter/100; uIter++){
+    do{
+      //tot_engy = 0;
+      total.SetPxPyPzE(0,0,0,0);
+      for(unsigned uDaughter=0; uDaughter<3; uDaughter++){
+          cos_th = rangen.Uniform(-1,1);
+          phi = rangen.Uniform(0,TMath::Pi()*2);
+          //ekin = rangen.Uniform(0,available_energy);
+          //ptot = rangen.Uniform(0,available_energy);
+          //ptot = sqrt(ekin*ekin+2*ekin*mass[uDaughter]);
+          ptot = rangen.Uniform(0,sqrt(available_energy*available_energy+2*available_energy*mass[uDaughter]));
+
+          //ptot = fabs(rangen.Gaus(0,available_energy/1.5));
+          eta = -0.5*log((1.-cos_th)/(1.+cos_th));
+          //sin_th = 2.*exp(-eta)/(1.+exp(-2.*eta));
+          sin_th = sqrt(1.-cos_th*cos_th);//okay, as theta is 0 - 180
+          px = ptot*cos(phi)*sin_th;
+          py = ptot*sin(phi)*sin_th;
+          pz = ptot*cos_th;
+          //printf(" d%i ptot = %f\n",uDaughter, ptot);
+          particle[uDaughter].SetPxPyPzE(px,py,pz,sqrt(ptot*ptot+mass[uDaughter]*mass[uDaughter]));
+          //tot_engy += particle[uDaughter].M2();
+          total += particle[uDaughter];
+        }
+       //tot_engy = sqrt(tot_engy);
+       //printf("tot_engy = %f; MASS = %f\n",total.M(),MASS);
+       //usleep(40e3);
+    }
+    while(fabs(MASS-total.M())>epsilon);
+    if(uIter%1000==0){
+      printf("uIter = %u K \n",uIter/1000);
+    }
+    
+    electon_spectrum->Fill( particle[1].P()*1000. );
+    electon_spectrum_cos_th->Fill( particle[1].CosTheta() );
+    electon_ekin->Fill( (particle[1].E()-particle[1].M())*1000 );
+  }
+
+
+
+  TH1F* electon_spectrum_dlm = new TH1F("electon_spectrum_dlm","electon_spectrum_dlm",1024,0,250);
+  TH1F* electon_ekin_dlm = new TH1F("electon_ekin_dlm","electon_ekin_dlm",1024,0,50);
+  DLM_Random dlm_rangen(11);
+  for(unsigned uIter=0; uIter<NumIter; uIter++){
+    
+    CatsParticle cp_triton;
+    cp_triton.SetMass(MASS);
+    cp_triton.SetWidth(1e-30);
+    cp_triton.SetDecayRanGen(dlm_rangen);
+    CatsParticle* daughters = cp_triton.DecayN(vec_mass,true);
+
+    double toteng=daughters[0].GetE()+daughters[1].GetE()+daughters[2].GetE();
+    //printf("M=%f; toteng=%f\n",MASS,toteng);
+    //printf(" daughters[0].GetMass() = %f; p = %f; e = %f\n",daughters[0].GetMass(), daughters[0].GetP(), daughters[0].GetE());
+    //printf(" daughters[1].GetMass() = %f; p = %f; e = %f\n",daughters[1].GetMass(), daughters[1].GetP(), daughters[1].GetE());
+    //printf(" daughters[2].GetMass() = %f; p = %f; e = %f\n",daughters[2].GetMass(), daughters[2].GetP(), daughters[2].GetE());
+    electon_spectrum_dlm->Fill(daughters[1].GetP()*1000);
+    electon_ekin_dlm->Fill((daughters[1].GetE()-daughters[1].GetMass())*1000);
+
+    //printf("%u %e\n",uIter,daughters[1].GetP());
+    delete [] daughters;
+  }
+
+
+  fOutput.cd();
+  electon_spectrum->Write();
+  electon_spectrum_cos_th->Write();
+  electon_ekin->Write();
+
+  electon_spectrum_dlm->Write();
+  electon_ekin_dlm->Write();
+  
+  delete electon_spectrum;
+  delete electon_spectrum_dlm;
+}
+*/
+
+void pL_DanielPolish_test(){
+  double source_size = 1.0;
+
+  unsigned NumMomBins = 100;
+  double kMin = 0;
+  double kMax = 125;
+
+
+  CATSparameters cSorPars(CATSparameters::tSource,1,true);
+  cSorPars.SetParameter(0,source_size);
+
+  CATS Nala;
+  Nala.SetMomBins(NumMomBins,kMin,kMax);
+  DLM_CommonAnaFunctions AnalysisObject;
+  AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles/",GetCernBoxDimi()));
+  AnalysisObject.SetUpCats_pL(Nala,"Usmani","",0,0);
+  Nala.SetAnaSource(GaussSource, cSorPars);
+  Nala.SetUseAnalyticSource(true);
+  Nala.SetMomentumDependentSource(false);
+  Nala.SetThetaDependentSource(false);
+  Nala.SetNormalizedSource(false);
+  Nala.SetAutoNormSource(true);
+  Nala.SetChannelWeight(0,1);
+  Nala.SetChannelWeight(1,0);
+  Nala.KillTheCat(); 
+
+  for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+    printf("%.3f   %.3f\n",Nala.GetMomentum(uMom),Nala.GetCorrFun(uMom));
+  }
+
+}
+
+
+
+void PlaneTimeSlots(){
+  
+
+  const int NumIter = 1;
+
+  TRandom3 rangen(23);
+
+  const int NumDest = 15;
+  const int NumDays = 7;
+  const int NumSlots = NumDays*24*4;
+  TString* Destination = new TString [NumDest];
+  //if 0 at the hub, else id of the plane counting from 1
+  //the departure slot is marked with minus plane id
+  int** RouteSlots = new int* [NumDest];
+  //if true we depart at that slot
+  bool** DeparSlots = new bool* [NumDest];
+  //travel time in num slots
+  int* TravelSlots = new int [NumDest];
+  for(int iDest=0; iDest<NumDest; iDest++){
+    RouteSlots[iDest] = new int [NumSlots];
+    DeparSlots[iDest] = new bool [NumSlots];
+    for(int iSlot=0; iSlot<NumSlots; iSlot++){
+      RouteSlots[iDest][iSlot] = 0;
+      DeparSlots[iDest][iSlot] = 0;
+    }
+  }
+
+  const int NumAircraft = 19;
+  int* AircraftID = new int [NumAircraft];
+  for(int iPlane = 0; iPlane<NumAircraft; iPlane++){
+    AircraftID[iPlane] = iPlane + 1;
+  }
+
+
+  
+  int di = 0;
+  int dep_hour;
+  int dep_mins;
+  int trv_hour;
+  int trv_mins;
+
+
+  for(int iDay = 0; iDay<NumDays; iDay++){
+    dep_hour = 17;
+    dep_mins = 0;
+    DeparSlots[di][iDay*24*4 + dep_hour*4 + dep_mins/15] = true;
+  }
+  trv_hour = 31;
+  trv_mins = 0;
+  TravelSlots[di] = trv_hour*4 + trv_mins%15;
+  Destination[di++] = "Honolulu";//0
+
+
+
+  for(int iDay = 0; iDay<NumDays; iDay++){
+    dep_hour = 10;
+    dep_mins = 0;
+    DeparSlots[di][iDay*24*4 + dep_hour*4 + dep_mins/15] = true;
+  }
+  trv_hour = 26;
+  trv_mins = 0;
+  TravelSlots[di] = trv_hour*4 + trv_mins%15;
+  Destination[di++] = "Los Angeles";//1
+
+
+
+
+  for(int iDay = 0; iDay<NumDays; iDay++){
+    dep_hour = 15;
+    dep_mins = 15;
+    DeparSlots[di][iDay*24*4 + dep_hour*4 + dep_mins/15] = true;
+  }
+  trv_hour = 25;
+  trv_mins = 30;  
+  TravelSlots[di] = trv_hour*4 + trv_mins%15;
+  Destination[di++] = "San Francisco";//2
+
+
+  for(int iDay = 0; iDay<NumDays; iDay++){
+    dep_hour = 13;
+    dep_mins = 00;
+    DeparSlots[di][iDay*24*4 + dep_hour*4 + dep_mins/15] = true;
+  }
+  trv_hour = 26;
+  trv_mins = 45;    
+  TravelSlots[di] = trv_hour*4 + trv_mins%15;
+  Destination[di++] = "Mexico City";//3
+
+
+  for(int iDay = 0; iDay<NumDays; iDay++){
+    if(iDay%2==0){
+      dep_hour = 9;
+      dep_mins = 45;
+    }
+    else{
+      dep_hour = 4;
+      dep_mins = 30;      
+    }
+    DeparSlots[di][iDay*24*4 + dep_hour*4 + dep_mins/15] = true;
+  }
+  trv_hour = 25;
+  trv_mins = 15;    
+  TravelSlots[di] = trv_hour*4 + trv_mins%15;
+  Destination[di++] = "Bogotá";//4
+
+
+
+  for(int iDay = 0; iDay<NumDays; iDay++){
+    if(iDay%2==0){
+      dep_hour = 4;
+      dep_mins = 45;
+    }
+    else{
+      dep_hour = 12;
+      dep_mins = 00;      
+    }
+    DeparSlots[di][iDay*24*4 + dep_hour*4 + dep_mins/15] = true;
+  }
+  trv_hour = 28;
+  trv_mins = 00;    
+  TravelSlots[di] = trv_hour*4 + trv_mins%15;  
+  Destination[di++] = "Lima";//5
+
+  for(int iDay = 0; iDay<NumDays; iDay++){
+    dep_hour = 9;
+    dep_mins = 30;
+    DeparSlots[di][iDay*24*4 + dep_hour*4 + dep_mins/15] = true;
+  }
+  trv_hour = 25;
+  trv_mins = 00;    
+  TravelSlots[di] = trv_hour*4 + trv_mins%15;
+  Destination[di++] = "São Paulo";//6
+
+  for(int iDay = 0; iDay<NumDays; iDay++){
+    dep_hour = 13;
+    dep_mins = 15;
+    DeparSlots[di][iDay*24*4 + dep_hour*4 + dep_mins/15] = true;
+  }
+  trv_hour = 36;
+  trv_mins = 45;    
+  TravelSlots[di] = trv_hour*4 + trv_mins%15;
+  Destination[di++] = "Sydney";//7
+
+
+  for(int iDay = 0; iDay<NumDays; iDay++){
+    dep_hour = 13;
+    dep_mins = 00;
+    DeparSlots[di][iDay*24*4 + dep_hour*4 + dep_mins/15] = true;
+  }
+  trv_hour = 36;
+  trv_mins = 00;    
+  TravelSlots[di] = trv_hour*4 + trv_mins%15; 
+  Destination[di++] = "Melbourne";//8
+
+
+  for(int iDay = 0; iDay<NumDays; iDay++){
+    dep_hour = 15;
+    dep_mins = 00;
+    DeparSlots[di][iDay*24*4 + dep_hour*4 + dep_mins/15] = true;
+  }
+  trv_hour = 41;
+  trv_mins = 30;    
+  TravelSlots[di] = trv_hour*4 + trv_mins%15; 
+  Destination[di++] = "Aukland";//9
+
+  for(int iDay = 0; iDay<NumDays; iDay++){
+    dep_hour = 19;
+    dep_mins = 30;
+    DeparSlots[di][iDay*24*4 + dep_hour*4 + dep_mins/15] = true;
+  }
+  trv_hour = 14;
+  trv_mins = 00; 
+  TravelSlots[di] = trv_hour*4 + trv_mins%15;  
+  Destination[di++] = "Mumbai";//10
+
+  for(int iDay = 0; iDay<NumDays; iDay++){
+    dep_hour = 20;
+    dep_mins = 15;
+    DeparSlots[di][iDay*24*4 + dep_hour*4 + dep_mins/15] = true;
+  }
+  trv_hour = 13;
+  trv_mins = 15;   
+  TravelSlots[di] = trv_hour*4 + trv_mins%15;  
+  Destination[di++] = "New Delhi";//11
+
+
+  for(int iDay = 0; iDay<NumDays; iDay++){
+    dep_hour = 0;
+    dep_mins = 30;
+    DeparSlots[di][iDay*24*4 + dep_hour*4 + dep_mins/15] = true;
+  }
+  trv_hour = 11;
+  trv_mins = 15;  
+  TravelSlots[di] = trv_hour*4 + trv_mins%15;  
+  Destination[di++] = "Addis Ababa";//12
+
+  for(int iDay = 0; iDay<NumDays; iDay++){
+    dep_hour = 13;
+    dep_mins = 00;
+    DeparSlots[di][iDay*24*4 + dep_hour*4 + dep_mins/15] = true;
+  }
+  trv_hour = 7;
+  trv_mins = 15;  
+  TravelSlots[di] = trv_hour*4 + trv_mins%15;    
+  Destination[di++] = "Madrid";//13
+
+
+  for(int iDay = 0; iDay<NumDays; iDay++){
+    dep_hour = 13;
+    dep_mins = 30;
+    DeparSlots[di][iDay*24*4 + dep_hour*4 + dep_mins/15] = true;
+  }
+  trv_hour = 8;
+  trv_mins = 15;  
+  TravelSlots[di] = trv_hour*4 + trv_mins%15;   
+  Destination[di++] = "Jeddah";//14
+
+
+  for(int iIter=0; iIter<NumIter; iIter++){
+    bool NoSolution = false;
+    for(int iDest=0; iDest<NumDest; iDest++){
+      break;
+      for(int iSlot=0; iSlot<NumSlots; iSlot++){
+        if(DeparSlots[iDest][iSlot]==true)
+          printf("%s departs on slot nr: %i\n", Destination[iDest].Data(), iSlot);
+      }
+      //if(iDest>2) break;
+    }
+    
+    bool** PlaneBusy = new bool* [NumAircraft];
+    for(int iPlane=0; iPlane<NumAircraft; iPlane++){
+      PlaneBusy[iPlane] = new bool [NumSlots];
+      for(int iSlot=0; iSlot<NumSlots; iSlot++){
+        PlaneBusy[iPlane][iSlot] = false;
+      }
+    }
+
+    for(int iSlot=0; iSlot<NumSlots; iSlot++){
+      std::vector<int> available_aircraft;
+      for(int iPlane=0; iPlane<NumAircraft; iPlane++){
+        if(PlaneBusy[iPlane][iSlot]== false)
+        available_aircraft.push_back(AircraftID[iPlane]);
+      }
+      for(int iDest=0; iDest<NumDest; iDest++){
+        if(DeparSlots[iDest][iSlot]==true){
+          if(available_aircraft.size() == 0){
+            NoSolution = true;
+            break;
+          }
+          int rnd_plane_id = available_aircraft.at(rangen.Integer(available_aircraft.size()));
+          
+        }
+      }
+      if(NoSolution) break;
+    }
+    if(NoSolution) continue;
+  }
+
+
+
+
+  
+  
+
+
+
+
+}
+
+
+
+
 //
 int OTHERTASKS(int argc, char *argv[]){
+
+  PlaneTimeSlots(); return 0;
+
+  pL_DanielPolish_test(); return 0;
+
   //Toy_Potential_Compare(); return 0;
   //pp_asymptotic_check_Epelbaum_v1(); return 0;
   //Sofia_test1(); return 0;
@@ -20376,13 +20914,15 @@ int OTHERTASKS(int argc, char *argv[]){
   //AirSim_Schedule(23,4000000,4,2,0); return 0;
   //effect_of_square_barrier(); return 0;
 
+  ThreeBodyDecay(atoi(argv[1]), atoi(argv[2])); return 0;
 
   //USR_Potential_ShiftedSource(); return 0;
   //big_core(); return 0;
 
   //test_screen_coulomb(); return 0;
 
-  pp_asymptotic(); return 0;
+  //get_eta_fractions(); return 0;
+  //pp_asymptotic(); return 0;
   //Ghetto_pPhi_check_20250426();
 
   //L_pi_CommonSource_based_on_p_pic(); return 0;
