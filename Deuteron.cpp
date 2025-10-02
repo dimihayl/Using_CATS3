@@ -3258,6 +3258,73 @@ void MC_Dfrac_closure(){
 
 }
 
+
+void GetMomSmearMatrix_HEP(){
+  /*
+  //December 2024
+  TFile* fReso = new TFile(TString::Format("%s/pi_d/Bhawani/AnalysisResults3996.root",GetCernBoxDimi()), "read");
+//fReso->ls();
+  TDirectoryFile* fDir_reso = NULL;
+  TList* fList1_reso = NULL;
+  TList* fList2_reso = NULL;
+  TList* fList3_reso = NULL;
+
+  fDir_reso = (TDirectoryFile*)(fReso->FindObjectAny("MBResultsQA0"));
+//fDir_reso->ls();
+  fDir_reso->GetObject("MBResultsQA0", fList1_reso);
+//fList1_reso->Print();
+  fList2_reso = (TList*)fList1_reso->FindObject("PairQA");
+//fList2_reso->Print();
+  fList3_reso = (TList*)fList2_reso->FindObject("QA_Particle0_Particle2");
+//fList3_reso->Print();
+//printf("-----\n");
+  hTemp = (TH2F*)fList3_reso->FindObject("MomentumResolutionSE_Particle0_Particle2");
+  //TFile fTMP("wtf.root","recreate");
+  gROOT->cd();
+  hResolution_pd = (TH2F*)hTemp->Clone("hResolution_pd");
+//printf("1-----\n");
+  fList3_reso = (TList*)fList2_reso->FindObject("QA_Particle1_Particle3");
+  hTemp = (TH2F*)fList3_reso->FindObject("MomentumResolutionSE_Particle1_Particle3");
+  gROOT->cd();
+  hResolution_pd->Add(hTemp);
+//printf("2-----\n");
+  fList3_reso = (TList*)fList2_reso->FindObject("QA_Particle0_Particle3");
+  hTemp = (TH2F*)fList3_reso->FindObject("MomentumResolutionSE_Particle0_Particle3");
+  gROOT->cd();
+  hResolution_pd->Add(hTemp);
+//printf("3-----\n");
+  fList3_reso = (TList*)fList2_reso->FindObject("QA_Particle1_Particle2");
+  hTemp = (TH2F*)fList3_reso->FindObject("MomentumResolutionSE_Particle1_Particle2");
+  gROOT->cd();
+  hResolution_pd->Add(hTemp);
+//printf("4-----\n");
+  hResolution_pd->GetXaxis()->SetLimits(hTemp->GetXaxis()->GetXmin()*1000.,hTemp->GetXaxis()->GetXmax()*1000.);
+  hResolution_pd->GetYaxis()->SetLimits(hTemp->GetYaxis()->GetXmin()*1000.,hTemp->GetYaxis()->GetXmax()*1000.);
+//printf("5-----\n");
+  //fTMP.cd();
+  //hResolution_pd->Write();
+  gROOT->cd();
+
+  hResolution_pd->Rebin2D(5,5);
+  //iterate over the true k* bins
+  for(int iBinY=0; iBinY<hResolution_pd->GetYaxis()->GetNbins(); iBinY++){
+    double kstar = hResolution_pd->GetYaxis()->GetBinCenter(iBinY+1);
+    if(kstar>600) break;
+    //this would be the projection at fixed k* (k_true)
+    TH1F* hProj = (TH1F*)hResolution_pd->ProjectionX(iBinY+1,iBinY+1);
+    
+  }
+
+  for(int iBinX=0; iBinX<hResolution_pd->GetXaxis()->GetNbins(); iBinX++){
+
+
+  }
+  
+  delete fReso;
+  */
+}
+
+
 int DEUTERON_MAIN(int argc, char *argv[]){
   //PiDCF();
   //Error_propagation_final_result();
@@ -3304,9 +3371,11 @@ int DEUTERON_MAIN(int argc, char *argv[]){
 */
 
 
-  MC_Dfrac_closure();
+  //MC_Dfrac_closure();
 
   //pim_d_Coulomb_vs_RealSI();
+
+  GetMomSmearMatrix_HEP();
 
   return 0;
 }

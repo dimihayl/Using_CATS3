@@ -1992,12 +1992,12 @@ void Ceca_pd_1(const double& d_delay, const int& EffFix, const TString type="pd"
   const double frac_protons = 35.78;
   const double frac_kaons = 52.4*1.1;
   const bool EQUALIZE_TAU = true;
-  const double TIMEOUT = 20;
+  const double TIMEOUT = 10;
   const double GLOB_TIMEOUT = 60*60;
   const unsigned Multiplicity=2;
   const double femto_region = 100;
-  const unsigned target_yield = 512*1000/5;//originally 4M
-  const unsigned NUM_CPU = 6;
+  const unsigned target_yield = 512*1000/64.;//originally 4M
+  const unsigned NUM_CPU = 1;
   //TString BaseName = "KstarDist";
   TString BaseName = TString::Format("Eta%.1f",EtaCut);
 
@@ -12574,7 +12574,7 @@ int FUN_WITH_CECA(int argc, char *argv[]){
   //MC_closure_FIT_for_Max(); return 0;
   //MC_closure_CK_for_Max(); return 0;
 
-  Ceca_eta_n_1("Tiny", "DummyPt"); return 0;
+  //Ceca_eta_n_1("Tiny", "DummyPt"); return 0;
   //Ceca_eta_n_1("Tiny", "ValePt"); return 0;
   //Ceca_eta_n_1("Chubby", "DummyPt"); return 0;
   //Ceca_eta_n_1("Chubby", "ValePt"); return 0;
@@ -12648,7 +12648,7 @@ int FUN_WITH_CECA(int argc, char *argv[]){
   //Ceca_pd_1(0.0,atoi(argv[1]),"pp");
 
   //Ceca_pd_1(0.0,-1402,"pd");
-  //Ceca_pd_1(0.0,-1402,"pp");
+  Ceca_pd_1(0.0,-1402,"pp");
 
 
 //TFile fOutput(,"recreate");
@@ -12751,7 +12751,7 @@ int FUN_WITH_CECA(int argc, char *argv[]){
   //TestTime();
 
   //ThreeBody_test1();
-  ThreeBody_test1_plots();
+  //ThreeBody_test1_plots();
 
   return 0;
 }
