@@ -20898,7 +20898,7 @@ void PlaneTimeSlots(){
 }
 
 
-void pSigmap_reso(TString InputFileName){
+void pSigmap_reso(TString InputFileName, const int REBIN, bool SmoothSmear){
 
   std::vector<std::string> list_of_graphs;
   list_of_graphs.push_back("Red_total");
@@ -20920,12 +20920,13 @@ void pSigmap_reso(TString InputFileName){
   err_descr[1] = "up";
   err_descr[2] = "low";
 
-  TFile fInputMain(TString::Format("%s/p_Sigma/Benedict/pSigmaResolutionFiles.root",GetCernBoxDimi()), "read");
-  //TGraphAsymmErrors* gTheory = (TGraphAsymmErrors*)fInputMain.Get("Green_Curve");
-  TH2F* inverted_Resolution_Matrix = (TH2F*)fInputMain.Get("Resolution_Matrix");
-  TH1D* Mixed_Event_Distribution = (TH1D*)fInputMain.Get("Mixed_Event_Distribution");
 
-  TFile fOutput(TString::Format("%s/p_Sigma/Benedict/smeared_result_8MeV.root",GetCernBoxDimi()), "recreate");
+  TFile fInputReso(TString::Format("%s/p_Sigma/Benedict/pSigmaResolutionFiles%s.root",GetCernBoxDimi(),SmoothSmear?"_Smooth":""), "read");
+  fInputReso.ls();
+  TH2F* inverted_Resolution_Matrix = (TH2F*)fInputReso.Get(TString::Format("Resolution_Matrix%s",SmoothSmear?"_smooth":""));
+  TH1D* Mixed_Event_Distribution = (TH1D*)fInputReso.Get(TString::Format("Mixed_Event_Distribution%s",SmoothSmear?"_smooth":""));
+
+  TFile fOutput(TString::Format("%s/p_Sigma/Benedict/smeared_result_%iMeV%s.root",GetCernBoxDimi(), REBIN, SmoothSmear?"_Smooth":""), "recreate");
   TH2F* hReso_pSigmap = new TH2F("hReso_pSigmap","hReso_pSigmap", 
     inverted_Resolution_Matrix->GetYaxis()->GetNbins(), inverted_Resolution_Matrix->GetYaxis()->GetBinLowEdge(1), inverted_Resolution_Matrix->GetYaxis()->GetBinUpEdge(inverted_Resolution_Matrix->GetYaxis()->GetNbins()),
     inverted_Resolution_Matrix->GetXaxis()->GetNbins(), inverted_Resolution_Matrix->GetXaxis()->GetBinLowEdge(1), inverted_Resolution_Matrix->GetXaxis()->GetBinUpEdge(inverted_Resolution_Matrix->GetXaxis()->GetNbins()));
@@ -20939,7 +20940,7 @@ void pSigmap_reso(TString InputFileName){
       hReso_pSigmap->SetBinContent(uMomX+1,uMomY+1,inverted_Resolution_Matrix->GetBinContent(uMomY+1,uMomX+1));
     }
   }
-  hReso_pSigmap->Rebin2D(5,5);
+  hReso_pSigmap->Rebin2D(REBIN,REBIN);
   hReso_pSigmap->Write();
 
   TH1F* hME = new TH1F("hME","hME",Mixed_Event_Distribution->GetNbinsX(), Mixed_Event_Distribution->GetBinLowEdge(1), Mixed_Event_Distribution->GetXaxis()->GetBinUpEdge(Mixed_Event_Distribution->GetNbinsX()));
@@ -20951,7 +20952,7 @@ void pSigmap_reso(TString InputFileName){
     hME->SetBinContent(uMom+1, Mixed_Event_Distribution->GetBinContent(uMom+1));
     hME->SetBinError(uMom+1, Mixed_Event_Distribution->GetBinError(uMom+1));
   }
-  hME->Rebin(5);
+  hME->Rebin(REBIN);
   hME->Write();
 
   unsigned NumMomBins = 50;
@@ -21030,9 +21031,11 @@ void pSigmap_reso(TString InputFileName){
 
 }
 
-void pSigmap_reso_SYST(TString WorkFolder, TString BaseFileName, std::string specific_model = ""){
+void pSigmap_reso_SYST(TString WorkFolder, TString BaseFileName, bool SmoothSmear, std::string specific_model = ""){
 
-  const int REBIN = 8;
+  const int REBIN = 1;
+
+  TRandom3 rangen(23);
 
   TString InputFileName = WorkFolder+BaseFileName+".root";
   TString OutputFileName; 
@@ -21040,7 +21043,7 @@ void pSigmap_reso_SYST(TString WorkFolder, TString BaseFileName, std::string spe
   std::vector<std::string> list_of_theories;
   if(specific_model!=""){
     list_of_theories.push_back(specific_model);
-    OutputFileName = WorkFolder+BaseFileName+TString::Format("_smeared_%s.root",specific_model.c_str());
+    OutputFileName = WorkFolder+"/Output/"+BaseFileName+TString::Format("_smeared%s_%s_REB%i.root",SmoothSmear?"_Smooth":"",specific_model.c_str(), REBIN);
   }
   else{
     list_of_theories.push_back("Sing_ReidA");
@@ -21049,14 +21052,19 @@ void pSigmap_reso_SYST(TString WorkFolder, TString BaseFileName, std::string spe
     list_of_theories.push_back("Trip_ReidB");
     list_of_theories.push_back("Gauss14");
     list_of_theories.push_back("Gauss18");
-    OutputFileName = WorkFolder+BaseFileName+"_smeared.root";
+    OutputFileName = WorkFolder+"/Output/"+BaseFileName+TString::Format("_smeared%s.root",SmoothSmear?"_Smooth":"");
   }
 
 
 
-  TFile fInputReso(TString::Format("%s/p_Sigma/Benedict/pSigmaResolutionFiles.root",GetCernBoxDimi()), "read");
-  TH2F* inverted_Resolution_Matrix = (TH2F*)fInputReso.Get("Resolution_Matrix");
-  TH1D* Mixed_Event_Distribution = (TH1D*)fInputReso.Get("Mixed_Event_Distribution");
+  //TFile fInputReso(TString::Format("%s/p_Sigma/Benedict/pSigmaResolutionFiles.root",GetCernBoxDimi()), "read");
+  //TH2F* inverted_Resolution_Matrix = (TH2F*)fInputReso.Get("Resolution_Matrix");
+  //TH1D* Mixed_Event_Distribution = (TH1D*)fInputReso.Get("Mixed_Event_Distribution");
+
+  TFile fInputReso(TString::Format("%s/p_Sigma/Benedict/pSigmaResolutionFiles%s.root",GetCernBoxDimi(),SmoothSmear?"_Smooth":""), "read");
+  fInputReso.ls();
+  TH2F* inverted_Resolution_Matrix = (TH2F*)fInputReso.Get(TString::Format("Resolution_Matrix%s",SmoothSmear?"_smooth":""));
+  TH1D* Mixed_Event_Distribution = (TH1D*)fInputReso.Get(TString::Format("Mixed_Event_Distribution%s",SmoothSmear?"_smooth":""));
 
   TFile fOutput(OutputFileName, "recreate");
   TH2F* hReso_pSigmap = new TH2F("hReso_pSigmap","hReso_pSigmap", 
@@ -21092,7 +21100,7 @@ void pSigmap_reso_SYST(TString WorkFolder, TString BaseFileName, std::string spe
     fBigInput.cd();
     TH3D* big_histo = (TH3D*)fBigInput.Get(list_of_theories.at(uTh).c_str());
     fOutput.cd();
-    TH3D* big_histo_smeared = (TH3D*)big_histo->Clone(TString::Format("%s_smeared", list_of_theories.at(uTh).c_str()));
+    //TH3D* big_histo_smeared = (TH3D*)big_histo->Clone(TString::Format("%s_smeared", list_of_theories.at(uTh).c_str()));
     
       
     unsigned NumMomBins = big_histo->GetXaxis()->GetNbins()/REBIN;
@@ -21105,8 +21113,22 @@ void pSigmap_reso_SYST(TString WorkFolder, TString BaseFileName, std::string spe
     dlm_Theory.SetUp(0,NumMomBins,kMin,kMax);
     dlm_Theory.Initialize();
 
-    TH1F* one_example = new TH1F(TString::Format("example_%s_smeared", list_of_theories.at(uTh).c_str()),TString::Format("example_%s_smeared", list_of_theories.at(uTh).c_str()),NumMomBins,kMin,kMax);
-    TH1F* one_exampleO = new TH1F(TString::Format("exampleO_%s_smeared", list_of_theories.at(uTh).c_str()),TString::Format("exampleO_%s_smeared", list_of_theories.at(uTh).c_str()),NumMomBins,kMin,kMax);
+
+    TH3D* big_histo_smeared = new TH3D(TString::Format("%s_smeared", list_of_theories.at(uTh).c_str()),TString::Format("%s_smeared", list_of_theories.at(uTh).c_str()),
+          NumMomBins,kMin,kMax,
+          big_histo->GetYaxis()->GetNbins(),big_histo->GetYaxis()->GetBinLowEdge(1),big_histo->GetYaxis()->GetBinUpEdge(big_histo->GetYaxis()->GetNbins()),
+          big_histo->GetZaxis()->GetNbins(),big_histo->GetZaxis()->GetBinLowEdge(1),big_histo->GetZaxis()->GetBinUpEdge(big_histo->GetZaxis()->GetNbins())
+        );
+
+
+    unsigned rnd_var = rangen.Integer(big_histo->GetYaxis()->GetNbins());
+    unsigned rnd_rad = rangen.Integer(big_histo->GetZaxis()->GetNbins());
+    
+
+
+    TH1F* one_example = new TH1F(TString::Format("example_%s_smeared_%u_%u", list_of_theories.at(uTh).c_str(),rnd_var,rnd_rad),TString::Format("example_%s_smeared_%u_%u", list_of_theories.at(uTh).c_str(),rnd_var,rnd_rad),NumMomBins,kMin,kMax);
+    TH1F* one_exampleO = new TH1F(TString::Format("exampleO_%s_smeared_%u_%u", list_of_theories.at(uTh).c_str(),rnd_var,rnd_rad),TString::Format("exampleO_%s_smeared_%u_%u", list_of_theories.at(uTh).c_str(),rnd_var,rnd_rad),NumMomBins,kMin,kMax);
+      
 
     for(unsigned uVar=0; uVar<big_histo->GetYaxis()->GetNbins(); uVar++){
       //TH1F* h_Theory = new TH1F(TString::Format("h_%s_v%u", list_of_theories.at(uTh).c_str(),TString::Format("h_%s_v%u", list_of_theories.at(uTh).c_str(),uVar)),NumMomBins,kMin,kMax);
@@ -21118,7 +21140,7 @@ void pSigmap_reso_SYST(TString WorkFolder, TString BaseFileName, std::string spe
           unsigned origBin = big_histo->GetXaxis()->FindBin(kstar);
           ck = big_histo->GetBinContent(origBin, uVar+1, uRad+1);
           dlm_Theory.SetBinContent(uMom,ck);
-          if(uVar==0 && uRad==0){
+          if(uVar==rnd_var && uRad==rnd_rad){
             one_exampleO->SetBinContent(uMom+1, ck);
           }
           //h_Theory->SetBinContent(uMom+1,ck);
@@ -21139,7 +21161,7 @@ void pSigmap_reso_SYST(TString WorkFolder, TString BaseFileName, std::string spe
         for(unsigned uMom=0; uMom<NumMomBins; uMom++){
           double kstar = dlm_Theory.GetBinCenter(0, uMom);
           big_histo_smeared->SetBinContent(uMom+1, uVar+1, uRad+1, dlmDec_pSigma.EvalCk(kstar));
-          if(uVar==0 && uRad==0){
+          if(uVar==rnd_var && uRad==rnd_rad){
             one_example->SetBinContent(uMom+1, dlmDec_pSigma.EvalCk(kstar));
           }
           //double kstar = h_Theory_Smeared->GetBinCenter(uMom+1);
@@ -21151,32 +21173,294 @@ void pSigmap_reso_SYST(TString WorkFolder, TString BaseFileName, std::string spe
       }//uRad
     }//uVar
 
+    TH1F* qa_example = new TH1F(TString::Format("exampleQA_%s_smeared_%u_%u", list_of_theories.at(uTh).c_str(),rnd_var,rnd_rad),TString::Format("exampleQA_%s_smeared_%u_%u", list_of_theories.at(uTh).c_str(),rnd_var,rnd_rad),NumMomBins,kMin,kMax);
+    for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+      qa_example->SetBinContent(uMom+1, big_histo_smeared->GetBinContent(uMom+1,rnd_var+1,rnd_rad+1));
+    }
+
     fOutput.cd();
     big_histo_smeared->Write();
-    //one_example->Write();
-    //one_exampleO->Write();
+    one_example->Write();
+    one_exampleO->Write();
+    qa_example->Write();
     delete big_histo_smeared;
     delete one_example;
     delete one_exampleO;
   }
+}
 
+
+
+
+/*
+void pSigmap_reso_SYST_TGraph(TString WorkFolder, TString BaseFileName, bool SmoothSmear, std::string specific_model = ""){
+
+  const int REBIN = 8;
+
+  TRandom3 rangen(23);
+
+  TString InputFileName = WorkFolder+BaseFileName+".root";
+  TString OutputFileName; 
+
+  std::vector<std::string> list_of_theories;
+  if(specific_model!=""){
+    list_of_theories.push_back(specific_model);
+    OutputFileName = WorkFolder+"/Output/"+BaseFileName+TString::Format("_smeared%s_%s_REB%i.root",SmoothSmear?"_Smooth":"",specific_model.c_str(), REBIN);
+  }
+  else{
+    list_of_theories.push_back("Red_total");
+    list_of_theories.push_back("Green_total");
+    list_of_theories.push_back("Purple_total");
+    list_of_theories.push_back("Orange_total");
+    list_of_theories.push_back("Blue_total");
+    list_of_theories.push_back("Julich_total");
+
+    list_of_theories.push_back("Coulomb");
+    list_of_theories.push_back("Red_dashed");
+    list_of_theories.push_back("Green_dashed");
+    list_of_theories.push_back("Purple_dashed");
+    list_of_theories.push_back("Red_dashdotted");
+    list_of_theories.push_back("Green_dashdotted");
+    list_of_theories.push_back("Purple_dashdotted");
+    OutputFileName = WorkFolder+"/Output/"+BaseFileName+TString::Format("_smeared%s.root",SmoothSmear?"_Smooth":"");
+  }
+
+
+
+  //TFile fInputReso(TString::Format("%s/p_Sigma/Benedict/pSigmaResolutionFiles.root",GetCernBoxDimi()), "read");
+  //TH2F* inverted_Resolution_Matrix = (TH2F*)fInputReso.Get("Resolution_Matrix");
+  //TH1D* Mixed_Event_Distribution = (TH1D*)fInputReso.Get("Mixed_Event_Distribution");
+
+  TFile fInputReso(TString::Format("%s/p_Sigma/Benedict/pSigmaResolutionFiles%s.root",GetCernBoxDimi(),SmoothSmear?"_Smooth":""), "read");
+  fInputReso.ls();
+  TH2F* inverted_Resolution_Matrix = (TH2F*)fInputReso.Get(TString::Format("Resolution_Matrix%s",SmoothSmear?"_smooth":""));
+  TH1D* Mixed_Event_Distribution = (TH1D*)fInputReso.Get(TString::Format("Mixed_Event_Distribution%s",SmoothSmear?"_smooth":""));
+
+  TFile fOutput(OutputFileName, "recreate");
+  TH2F* hReso_pSigmap = new TH2F("hReso_pSigmap","hReso_pSigmap", 
+    inverted_Resolution_Matrix->GetYaxis()->GetNbins(), inverted_Resolution_Matrix->GetYaxis()->GetBinLowEdge(1), inverted_Resolution_Matrix->GetYaxis()->GetBinUpEdge(inverted_Resolution_Matrix->GetYaxis()->GetNbins()),
+    inverted_Resolution_Matrix->GetXaxis()->GetNbins(), inverted_Resolution_Matrix->GetXaxis()->GetBinLowEdge(1), inverted_Resolution_Matrix->GetXaxis()->GetBinUpEdge(inverted_Resolution_Matrix->GetXaxis()->GetNbins()));
+
+  for(unsigned uMomX=0; uMomX<hReso_pSigmap->GetXaxis()->GetNbins(); uMomX++){
+    double kstarX = hReso_pSigmap->GetXaxis()->GetBinCenter(uMomX+1);
+    for(unsigned uMomY=0; uMomY<hReso_pSigmap->GetYaxis()->GetNbins(); uMomY++){
+      double kstarY = hReso_pSigmap->GetYaxis()->GetBinCenter(uMomY+1);
+      hReso_pSigmap->SetBinContent(uMomX+1,uMomY+1,inverted_Resolution_Matrix->GetBinContent(uMomY+1,uMomX+1));
+    }
+  }
+  hReso_pSigmap->Rebin2D(REBIN,REBIN);
+  hReso_pSigmap->Write();
+
+
+  TH1F* hME = new TH1F("hME","hME",Mixed_Event_Distribution->GetNbinsX(), Mixed_Event_Distribution->GetBinLowEdge(1), Mixed_Event_Distribution->GetXaxis()->GetBinUpEdge(Mixed_Event_Distribution->GetNbinsX()));
+  for(unsigned uMom=0; uMom<hME->GetNbinsX(); uMom++){
+    double kstar = hME->GetBinCenter(uMom+1);
+    if(fabs(kstar-Mixed_Event_Distribution->GetBinCenter(uMom+1))>1e-3){
+      printf("BIG WTF\n");
+    }
+    hME->SetBinContent(uMom+1, Mixed_Event_Distribution->GetBinContent(uMom+1));
+    hME->SetBinError(uMom+1, Mixed_Event_Distribution->GetBinError(uMom+1));
+  }
+  hME->Rebin(REBIN);
+  hME->Write();
+
+
+
+
+
+
+  TFile fBigInput(InputFileName, "read");
+  for(unsigned uTh=0; uTh<list_of_theories.size(); uTh++){
+    printf("%s\n",list_of_theories.at(uTh).c_str());
+    fBigInput.cd();
+    TGraphAsymmErrors* data_histo = (TGraphAsymmErrors*)fBigInput.Get(list_of_theories.at(uTh).c_str());
+    fOutput.cd();
+    //TH3D* big_histo_smeared = (TH3D*)big_histo->Clone(TString::Format("%s_smeared", list_of_theories.at(uTh).c_str()));
+    
+
+    double dummy_x, dummy_y;
+    double kMin = 0;
+    data_histo->GetPoint(data_histo->GetN(),dummy_x, dummy_y);
+    double kMax = dummy_x;
+    unsigned NumMomBins = int(kMax)/REBIN + 1;
+    kMax = kMin + NumMomBins*REBIN;
+    //unsigned LostBins = big_histo->GetXaxis()->GetNbins()%REBIN;
+    
+    
+    printf("kMin/kMax nb%u = %.f %.f\n",kMin,kMax,NumMomBins);
+    DLM_Histo<double> dlm_Theory;
+    dlm_Theory.SetUp(1);
+    dlm_Theory.SetUp(0,NumMomBins,kMin,kMax);
+    dlm_Theory.Initialize();
+
+
+    TH3D* big_histo_smeared = new TH3D(TString::Format("%s_smeared", list_of_theories.at(uTh).c_str()),TString::Format("%s_smeared", list_of_theories.at(uTh).c_str()),
+          NumMomBins,kMin,kMax,
+          big_histo->GetYaxis()->GetNbins(),big_histo->GetYaxis()->GetBinLowEdge(1),big_histo->GetYaxis()->GetBinUpEdge(big_histo->GetYaxis()->GetNbins()),
+          big_histo->GetZaxis()->GetNbins(),big_histo->GetZaxis()->GetBinLowEdge(1),big_histo->GetZaxis()->GetBinUpEdge(big_histo->GetZaxis()->GetNbins())
+        );
+
+
+    unsigned rnd_var = rangen.Integer(big_histo->GetYaxis()->GetNbins());
+    unsigned rnd_rad = rangen.Integer(big_histo->GetZaxis()->GetNbins());
+    
+
+
+    TH1F* one_example = new TH1F(TString::Format("example_%s_smeared_%u_%u", list_of_theories.at(uTh).c_str(),rnd_var,rnd_rad),TString::Format("example_%s_smeared_%u_%u", list_of_theories.at(uTh).c_str(),rnd_var,rnd_rad),NumMomBins,kMin,kMax);
+    TH1F* one_exampleO = new TH1F(TString::Format("exampleO_%s_smeared_%u_%u", list_of_theories.at(uTh).c_str(),rnd_var,rnd_rad),TString::Format("exampleO_%s_smeared_%u_%u", list_of_theories.at(uTh).c_str(),rnd_var,rnd_rad),NumMomBins,kMin,kMax);
+      
+
+    for(unsigned uVar=0; uVar<big_histo->GetYaxis()->GetNbins(); uVar++){
+      //TH1F* h_Theory = new TH1F(TString::Format("h_%s_v%u", list_of_theories.at(uTh).c_str(),TString::Format("h_%s_v%u", list_of_theories.at(uTh).c_str(),uVar)),NumMomBins,kMin,kMax);
+      //printf("  var %u\n", uVar);
+      for(unsigned uRad=0; uRad<big_histo->GetZaxis()->GetNbins(); uRad++){
+        for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+          double kstar, ck;
+          kstar = dlm_Theory.GetBinCenter(0, uMom);
+          unsigned origBin = big_histo->GetXaxis()->FindBin(kstar);
+          ck = big_histo->GetBinContent(origBin, uVar+1, uRad+1);
+          dlm_Theory.SetBinContent(uMom,ck);
+          if(uVar==rnd_var && uRad==rnd_rad){
+            one_exampleO->SetBinContent(uMom+1, ck);
+          }
+          //h_Theory->SetBinContent(uMom+1,ck);
+        }
+        fOutput.cd();
+      
+        DLM_Ck dlmCk_Theory(dlm_Theory);
+        dlmCk_Theory.SetCutOff(550,800);
+        dlmCk_Theory.Update(true);
+        
+        DLM_CkDecomposition dlmDec_pSigma("pSigmap",0,dlmCk_Theory,hReso_pSigmap);
+        dlmDec_pSigma.AddPhaseSpace(hME);
+        dlmDec_pSigma.Update(true, true);
+
+        //TH1F* h_Theory_Smeared = new TH1F(TString::Format("hsmeared_%s_%s", list_of_graphs.at(uLine).c_str(),err_descr[uErr].Data()),TString::Format("hsmeared_%s_%s", list_of_graphs.at(uLine).c_str(),err_descr[uErr].Data()),NumMomBins,kMin,kMax);
+        //TH1F* h_Theory_Smearing_Ratio = new TH1F(TString::Format("hratio_%s_%s", list_of_graphs.at(uLine).c_str(),err_descr[uErr].Data()),TString::Format("hratio_%s_%s", list_of_graphs.at(uLine).c_str(),err_descr[uErr].Data()),NumMomBins,kMin,kMax);
+        //h_Theory_Smearing_Ratio->GetYaxis()->SetTitle("smeared / original");
+        for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+          double kstar = dlm_Theory.GetBinCenter(0, uMom);
+          big_histo_smeared->SetBinContent(uMom+1, uVar+1, uRad+1, dlmDec_pSigma.EvalCk(kstar));
+          if(uVar==rnd_var && uRad==rnd_rad){
+            one_example->SetBinContent(uMom+1, dlmDec_pSigma.EvalCk(kstar));
+          }
+          //double kstar = h_Theory_Smeared->GetBinCenter(uMom+1);
+          //h_Theory_Smeared->SetBinContent(uMom+1,dlmDec_pSigma.EvalCk(kstar));
+          //h_Theory_Smearing_Ratio->SetBinContent(uMom+1,dlmDec_pSigma.EvalCk(kstar)/dlmCk_Theory.Eval(kstar));
+          //printf("%u %f %f %f %f\n", uMom, kstar, dlm_Theory.Eval(kstar), dlmCk_Theory.Eval(kstar), dlmDec_pSigma.EvalCk(kstar));
+        }
+        //fOutput.cd();
+      }//uRad
+    }//uVar
+
+    TH1F* qa_example = new TH1F(TString::Format("exampleQA_%s_smeared_%u_%u", list_of_theories.at(uTh).c_str(),rnd_var,rnd_rad),TString::Format("exampleQA_%s_smeared_%u_%u", list_of_theories.at(uTh).c_str(),rnd_var,rnd_rad),NumMomBins,kMin,kMax);
+    for(unsigned uMom=0; uMom<NumMomBins; uMom++){
+      qa_example->SetBinContent(uMom+1, big_histo_smeared->GetBinContent(uMom+1,rnd_var+1,rnd_rad+1));
+    }
+
+    fOutput.cd();
+    big_histo_smeared->Write();
+    one_example->Write();
+    one_exampleO->Write();
+    qa_example->Write();
+    delete big_histo_smeared;
+    delete one_example;
+    delete one_exampleO;
+  }
+}
+*/
+
+DLM_Histo<float>* dlmSrc = NULL;
+double IdioticSource(double* pars){
+  return dlmSrc->Eval(pars[1]);
+}
+
+void Quick_Max_Carla_check(){
+  TString InputFileName = TString::Format("%s/Max/CECA_QA/Seed1234.0.root",GetCernBoxDimi());
+  TFile fInput(InputFileName, "read");
+  //fInput.ls();
+  const unsigned NumMt = 7;
+  
+  const unsigned kSteps = 45;
+  const double kMin = 0;
+  const double kMax = 180;
+
+  std::vector<float> src_eff_g;
+  src_eff_g.push_back(1.37);
+  src_eff_g.push_back(1.30);
+  src_eff_g.push_back(1.27);
+  src_eff_g.push_back(1.21);
+  src_eff_g.push_back(1.14);
+  src_eff_g.push_back(1.05);
+  src_eff_g.push_back(0.96);
+
+
+  TFile fOutput(TString::Format("%s/Max/CECA_QA/xCheck.root",GetCernBoxDimi()), "recreate");
   
   
+  for(unsigned uMt=0; uMt<NumMt; uMt++){
+    TH1F* hSrc = (TH1F*)fInput.Get(TString::Format("Source_%u",uMt+1));
+    printf("hSrc = %p\n",hSrc);
+    hSrc->Scale(1./hSrc->Integral(),"width");
+    if(dlmSrc) {delete dlmSrc; dlmSrc=NULL;}
+    dlmSrc = Convert_TH1F_DlmHisto(hSrc);
+    TGraph* gCk_AI = (TGraph*)fInput.Get(TString::Format("CFpp_check_%u",uMt+1));
+    CATS Kitty_AV18;
+    Kitty_AV18.SetMomBins(kSteps, kMin, kMax);
+    Kitty_AV18.SetNotifications(CATS::nWarning);
+    DLM_CommonAnaFunctions AnalysisObject; 
+    AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
+
+    AnalysisObject.SetUpCats_pp(Kitty_AV18,"AV18","",0,0);
+    CATSparameters cPars (CATSparameters::tSource, 0, true);
+    Kitty_AV18.SetAnaSource(IdioticSource, cPars);
+    Kitty_AV18.SetUseAnalyticSource(true);
+    Kitty_AV18.KillTheCat(CATS::kAllChanged);
+
+    CATS Kitty_EffG;
+    Kitty_EffG.SetMomBins(kSteps, kMin, kMax);
+    Kitty_EffG.SetNotifications(CATS::nWarning);
+
+    AnalysisObject.SetUpCats_pp(Kitty_EffG,"AV18","Gauss",0,0);
+    Kitty_EffG.SetAnaSource(0, src_eff_g.at(uMt));
+    Kitty_EffG.KillTheCat(CATS::kAllChanged);
+
+    fOutput.cd();
+    TH1F* hCkXcheck = new TH1F(TString::Format("hCkXcheck_%u",uMt+1),TString::Format("hCkXcheck_%u",uMt+1),kSteps,kMin,kMax);
+    TH1F* hCkEffG = new TH1F(TString::Format("hCkEffG_%u",uMt+1),TString::Format("hCkEffG_%u",uMt+1),kSteps,kMin,kMax);
+    
+    for(unsigned uMom=0; uMom<kSteps; uMom++){
+      hCkXcheck->SetBinContent(uMom+1, Kitty_AV18.GetCorrFun(uMom));
+      hCkEffG->SetBinContent(uMom+1, Kitty_EffG.GetCorrFun(uMom));
+    }
+
+    fOutput.cd();
+    gCk_AI->Write();
+    hCkXcheck->Write();
+    hCkEffG->Write();
+
+    delete hCkXcheck;
+    delete hCkEffG;
+  }
 
 
 }
 
+
+
+
 //
 int OTHERTASKS(int argc, char *argv[]){
 
+  Quick_Max_Carla_check(); return 0;
 
-  pSigmap_reso_SYST("/home/dimihayl/CernBox/Sync/p_Sigma/Benedict/", "pSigma_FitFunctions", argv[1]);  return 0;
-  //pSigmap_reso("/home/dimihayl/CernBox/Sync/p_Sigma/Benedict/pSigma_Allmodels.root"); return 0;
+  //pSigmap_reso_SYST("/home/dimihayl/CernBox/Sync/p_Sigma/Benedict/", "pSigma_FitFunctions", atoi(argv[2]), argv[1]);  return 0;
+  //pSigmap_reso("/home/dimihayl/CernBox/Sync/p_Sigma/Benedict/pSigma_Allmodels.root",8,true); return 0;
 
 
-  PlaneTimeSlots(); return 0;
+  //PlaneTimeSlots(); return 0;
 
-  pL_DanielPolish_test(); return 0;
+  //pL_DanielPolish_test(); return 0;
 
   //Toy_Potential_Compare(); return 0;
   //pp_asymptotic_check_Epelbaum_v1(); return 0;
