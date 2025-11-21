@@ -26,6 +26,10 @@
 #include <fstream>   // at the top of your file
 #include <iomanip>
 
+#include "Math/MinimizerOptions.h"
+
+
+
 //4D: //f0,d0,kstar,rstar
 DLM_Histo<float>* dlm_wf_u_pp_coarse = NULL;
 DLM_Histo<float>* dlm_wf_u_pp_fine = NULL;
@@ -1083,13 +1087,19 @@ double CatFitter_pp(double* x, double* par){
 
         if(!dlm_wf_u_pp) {printf("!dlm_wf_u_pp\n"); return 0;}
         unsigned WhichBin[4];
+        double axis_values[4];
         WhichBin[0] = dlm_wf_u_pp->FindBin(0, par[0]);
         WhichBin[1] = dlm_wf_u_pp->FindBin(1, par[1]);
+        axis_values[0] = par[0];
+        axis_values[1] = par[1];
         for(unsigned uMom=0; uMom<dlm_wf_u_pp->GetNbins(2); uMom++){
             WhichBin[2] = uMom;
+            axis_values[2] = dlm_wf_u_pp->GetBinCenter(2, uMom);
             for(unsigned uRad=0; uRad<dlm_wf_u_pp->GetNbins(3); uRad++){
                 WhichBin[3] = uRad;
-                FIT_WF_U->SetBinContent(&WhichBin[2], dlm_wf_u_pp->GetBinContent(WhichBin));
+                axis_values[3] = dlm_wf_u_pp->GetBinCenter(3, uRad);
+                //FIT_WF_U->SetBinContent(&WhichBin[2], dlm_wf_u_pp->GetBinContent(WhichBin));
+                FIT_WF_U->SetBinContent(&WhichBin[2], dlm_wf_u_pp->Eval(axis_values));
             }
         }
         //printf("Setting up WF\n");
@@ -1108,12 +1118,13 @@ double CatFitter_pp(double* x, double* par){
 //4 different lambda pars
 //attempt to make a fit with rad,lam,f0,d0 all free and see what comes out
 //use s-wave only
+//pot 1 Gauss, 11 is SW
 void CompareToAv18(int pot_id){
 
     //for the cats setup
     const double kMin = 0;
-    const double kMax = 240/3;
-    const unsigned kSteps = 60/3;
+    const double kMax = 400;
+    const unsigned kSteps = 100;
     //for the fit
     //const double kMaxFit = 200;
     const double kMaxFit = 60;
@@ -1122,8 +1133,8 @@ void CompareToAv18(int pot_id){
     const double rMax = 16;
     const unsigned rSteps = 320;
 
-    TString fileName_wf_u_pp_coarse = TString::Format("%s/AI_ScatteringPars/non-AI_stuff/LookUps/wf_u_pp_30p.dlm",GetCernBoxDimi());
-    TString fileName_wf_u_pp_fine = TString::Format("%s/AI_ScatteringPars/non-AI_stuff/LookUps/wf_u_pp_30p.dlm",GetCernBoxDimi());
+    TString fileName_wf_u_pp_coarse = TString::Format("%s/AI_ScatteringPars/non-AI_stuff/LookUps/wf_u_pp_Pot%i_30p.dlm",GetCernBoxDimi());
+    TString fileName_wf_u_pp_fine = TString::Format("%s/AI_ScatteringPars/non-AI_stuff/LookUps/wf_u_pp_Pot%i_30p.dlm",GetCernBoxDimi());
 
     TFile* fInput = NULL;
     if(pot_id==11){
@@ -1157,13 +1168,16 @@ void CompareToAv18(int pot_id){
     CATS Kitty_AV18;
     Kitty_AV18.SetMomBins(kSteps, kMin, kMax);
     //Kitty_AV18.SetNotifications(CATS::nWarning);
-    AnalysisObject.SetUpCats_pp(Kitty_AV18,"AV18_s","Gauss",0,0);
+    //AnalysisObject.SetUpCats_pp(Kitty_AV18,"AV18_s","Gauss",0,0);
+    AnalysisObject.SetUpCats_pp(Kitty_AV18,"AV18","Gauss",0,0);
     Kitty_AV18.SetEpsilonConv(2e-9);
     Kitty_AV18.SetEpsilonProp(2e-9);
 
     CATSparameters sPars(CATSparameters::tSource,1,true);
     CATS FatCat;
     FatCat.SetMomBins(kSteps, kMin, kMax);
+
+    /*
     FatCat.SetAnaSource(GaussSource, sPars);
     FatCat.SetAnaSource(0, 1.0);
     FatCat.SetUseAnalyticSource(true);
@@ -1182,6 +1196,10 @@ void CompareToAv18(int pot_id){
     FatCat.SetNumPW(0,1);
     FatCat.SetChannelWeight(0, 0.25);
     FatCat.SetChannelWeight(1, 0.75);
+    */
+    AnalysisObject.SetUpCats_pp(FatCat,"AV18","Gauss",0,0);
+    
+
 
     FatCat.SetNotifications(CATS::nWarning);
 
@@ -1208,7 +1226,7 @@ void CompareToAv18(int pot_id){
                                 kSteps, kMin, kMax, 
                                 rSteps, rMin, rMax,
                                 *mytn, pot_id, dlm_wf_u_pp_coarse);
-            dlm_wf_u_pp_coarse->QuickWrite(TString::Format("%s/AI_ScatteringPars/non-AI_stuff/LookUps/wf_u_pp_30p.dlm",GetCernBoxDimi()).Data(),true);
+            dlm_wf_u_pp_coarse->QuickWrite(TString::Format("%s/AI_ScatteringPars/non-AI_stuff/LookUps/wf_u_pp_Pot%i_30p.dlm",GetCernBoxDimi(),pot_id).Data(),true);
             
             if(dlm_wf_u_pp_fine) {delete dlm_wf_u_pp_fine; dlm_wf_u_pp_fine = NULL;}
             SetUp_Ganio_pp_pot( 96,17.3*0.9,17.3*1.1,
@@ -1216,7 +1234,7 @@ void CompareToAv18(int pot_id){
                                 kSteps, kMin, kMax, 
                                 rSteps, rMin, rMax,
                                 *mytn, pot_id, dlm_wf_u_pp_fine);   
-            dlm_wf_u_pp_fine->QuickWrite(TString::Format("%s/AI_ScatteringPars/non-AI_stuff/LookUps/wf_u_pp_10p.dlm",GetCernBoxDimi()).Data(),true);     
+            dlm_wf_u_pp_fine->QuickWrite(TString::Format("%s/AI_ScatteringPars/non-AI_stuff/LookUps/wf_u_pp_Pot%i_10p.dlm",GetCernBoxDimi(),pot_id).Data(),true);     
         }
         else{
             printf("I cannot load anything from anywhere\n");
@@ -1265,10 +1283,41 @@ void CompareToAv18(int pot_id){
     Kitty_AV18.SetAnaSource(0, tf1_av18->GetParameter(4));
 
     Kitty_AV18.KillTheCat();
-
     printf("AV18 cat killed\n");
-    TFile fOut(TString::Format("%s/BaiGanio/Generate_GaussPotPars_For_Kali/CompareToAv18.root", GetFemtoOutputFolder()),"recreate");
+
+    TFile fOutQA(TString::Format("%s/BaiGanio/Generate_GaussPotPars_For_Kali/CompareToAv18_QA.root", GetFemtoOutputFolder()),"recreate");
+
+    //save some QA output
+    //steps in f0, for several k* bins, save the WF
+    for(float v_f0=17.2; v_f0<17.4; v_f0+=0.01){
+        tf1_av18->SetParameter(0, v_f0);
+        TGraph* gCk_qa = new TGraph();
+        gCk_qa->SetName(TString::Format("gCk_qa_f%.2f",v_f0));
+        for(unsigned uMom=0; uMom<CatFitter->GetNumMomBins(); uMom++){
+            float v_ks = CatFitter->GetMomentum(uMom);
+            if(v_ks > 80) break;
+            TGraph* gwf_qa = new TGraph();
+            gwf_qa->SetName(TString::Format("gwf_qa_f%.2f_k%.2f",v_f0,v_ks));
+            gCk_qa->SetPoint(uMom, v_ks, tf1_av18->Eval(v_ks));
+            for(float v_rad=0; v_rad < 32; v_rad += 0.05){
+                gwf_qa->SetPoint(gwf_qa->GetN(), v_rad, real(CatFitter->EvalRadialWaveFunction(uMom, 0, 0, v_rad, false)));
+            }
+            //gCk_qa->SetPoint(gCk_qa->GetN(), v_ks, tf1_av18->Eval(v_ks));
+
+            fOutQA.cd();
+            gwf_qa->Write();
+            delete gwf_qa;
+        }
+        fOutQA.cd();
+        gCk_qa->Write();
+        delete gCk_qa;
+    }
+    fOutQA.Close();
+
+    
+    TFile fOut(TString::Format("%s/BaiGanio/Generate_GaussPotPars_For_Kali/CompareToAv18_Pot%i.root", GetFemtoOutputFolder(),pot_id),"recreate");
     TH1F* hAv18 = new TH1F("hAv18","hAv18",kSteps, kMin, kMax);
+
 
     TGraph gAv18;
     gAv18.SetName("gAv18");
@@ -1285,7 +1334,7 @@ void CompareToAv18(int pot_id){
         gAv18.SetPoint(uKstar, kstar, Ck_Av18);
         gPotDef.SetPoint(uKstar, kstar, Ck_Pot);
     }
-    hAv18->Fit(tf1_av18,"S, N, R, M");
+    hAv18->Fit(tf1_av18,"S, N, R");
 
     TGraph gFatCatU50;
     gFatCatU50.SetName("gFatCatU50");
@@ -1307,7 +1356,8 @@ void CompareToAv18(int pot_id){
     gFatCatU50.Write();
     gAv18U50.Write();
 
-    TH2F* h_chi2_map = new TH2F("h_chi2_map","h_chi2_map",32,17.3*0.9,17.3*1.1,32,2.8*0.9,2.8*1.1);
+    //TH2F* h_chi2_map = new TH2F("h_chi2_map","h_chi2_map",32,17.3*0.9,17.3*1.1,32,2.8*0.9,2.8*1.1);
+    TH2F* h_chi2_map = new TH2F("h_chi2_map","h_chi2_map",32,17.7*0.99,17.7*1.01,32,2.75*0.99,2.75*1.01);
     for(unsigned uf0=0; uf0<h_chi2_map->GetXaxis()->GetNbins(); uf0++){
         printf("uf0 = %u\n",uf0);
         double f0_val = h_chi2_map->GetXaxis()->GetBinCenter(uf0+1);
@@ -1315,7 +1365,7 @@ void CompareToAv18(int pot_id){
             double d0_val = h_chi2_map->GetYaxis()->GetBinCenter(ud0+1);
             tf1_av18->FixParameter(0,f0_val);
             tf1_av18->FixParameter(1,d0_val);
-            hAv18->Fit(tf1_av18,"Q, S, N, R, M");
+            hAv18->Fit(tf1_av18,"Q, S, N, R");
             h_chi2_map->SetBinContent(uf0+1,ud0+1,tf1_av18->GetChisquare());
         }
     }
@@ -1374,8 +1424,13 @@ void Test_Ck_at_zero(){
 
 
 int BAI_GANIO(int argc, char *argv[]){
-    Test_Ck_at_zero(); return 0;
-    //CompareToAv18(11); return 0;
+
+//ROOT::Math::MinimizerOptions::SetDefaultMaxFunctionCalls(20000);  // more than default 5000
+//ROOT::Math::MinimizerOptions::SetDefaultTolerance(1e-3);           // or a bit looser than default 1e-4
+//ROOT::Math::MinimizerOptions::SetDefaultPrintLevel(2);             // more diagnostics
+
+    //Test_Ck_at_zero(); return 0;
+    CompareToAv18(11); return 0;
     //Check_ScattPars(); return 0;
 
     //simulate enough events, so that when you run:

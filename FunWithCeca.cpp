@@ -11865,9 +11865,14 @@ void MC_closure_for_Max(int SEED){
   //std::vector<double> input_ht = {3.9, 4.2, 4.5, 4.8, 5.1};
   //std::vector<double> input_tau = {2.1, 2.3, 2.5, 2.7, 2.9};
 
-  std::vector<double> input_rd = {0.27};
-  std::vector<double> input_ht = {4.4};
-  std::vector<double> input_tau = {2.5};
+  //std::vector<double> input_rd = {0.27};
+  //std::vector<double> input_ht = {4.4};
+  //std::vector<double> input_tau = {2.5};
+
+  std::vector<double> input_rd = {0.176};
+  std::vector<double> input_ht = {2.68};
+  std::vector<double> input_tau = {3.76};
+
 
   //std::vector<double> input_rd = {0.23};
   //std::vector<double> input_ht = {4.2};
@@ -11910,8 +11915,8 @@ void MC_closure_for_Max(int SEED){
   const double GLOB_TIMEOUT = 24*60*60;
   const unsigned Multiplicity=2;
   const double femto_region = 100;
-  const unsigned target_yield = 23*11*23*1000;
-  //const unsigned target_yield = 3*23*1000;
+  //const unsigned target_yield = 23*11*23*1000;
+  const unsigned target_yield = 11*23*1000;
   const unsigned NUM_CPU = 8;
   TString BaseName = TString::Format("Eta%.1f",EtaCut);
 
@@ -12570,7 +12575,7 @@ int FUN_WITH_CECA(int argc, char *argv[]){
 //for(int i=0; i<20; i++) printf("%i\n", rangen.Int(1));
 
 
-  //MC_closure_for_Max(42); return 0;
+  MC_closure_for_Max(1764); return 0;
   //MC_closure_FIT_for_Max(); return 0;
   //MC_closure_CK_for_Max(); return 0;
 
