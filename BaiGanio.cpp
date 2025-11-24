@@ -169,6 +169,7 @@ void SetUp_Ganio_pp_pot(const int n_f0, const double min_f0, const double max_f0
     TH2F* h_V0_mu0_input = new TH2F("h_V0_mu0_input","h_V0_mu0_input",512,-128,0,512,0,8);  
     TH2F* h_V0_mu0_selection = new TH2F("h_V0_mu0_selection","h_V0_mu0_selection",512,-128,0,512,0,8);  
 
+    //cut out regions in the parameter space (inspect visually)
     if(pot_id==1){
 
         
@@ -261,8 +262,21 @@ void SetUp_Ganio_pp_pot(const int n_f0, const double min_f0, const double max_f0
         fUpperLimit_V0->SetParameter(1, 0);
         fUpperLimit_V0->SetParameter(2, 0);        
     }
-
-
+    if(pot_id==201){
+       printf("pot_id==201 not set up yet !!!!\n");
+    }
+    if(pot_id==202){
+       printf("pot_id==202 not set up yet !!!!\n");
+    }
+    if(pot_id==203){
+       printf("pot_id==203 not set up yet !!!!\n");
+    }
+    if(pot_id==204){
+       printf("pot_id==204 not set up yet !!!!\n");
+    }
+    if(pot_id==205){
+       printf("pot_id==205 not set up yet !!!!\n");
+    }
 
     for(unsigned uEntry=0; uEntry<input_ntuple.GetEntries(); uEntry++){
         if(uEntry%1000000==0) printf("%u of %u M\n", uEntry/1000000, input_ntuple.GetEntries()/1000000);
@@ -355,7 +369,7 @@ void SetUp_Ganio_pp_pot(const int n_f0, const double min_f0, const double max_f0
     Kitty.SetEpsilonConv(2e-9);
     Kitty.SetEpsilonProp(2e-9);
     
-    CATSparameters cPotPars(CATSparameters::tPotential,2,true);
+    
     
     CATS FatCat;
     FatCat.SetMomBins(n_kstar, min_kstar, max_kstar);
@@ -390,6 +404,7 @@ void SetUp_Ganio_pp_pot(const int n_f0, const double min_f0, const double max_f0
         double PotPars[2]={dlm_par_map.Eval2D(17.3,2.8,false).V0, dlm_par_map.Eval2D(17.3,2.8,false).mu0};
 //PotPars[0] = -14.08;
 //PotPars[1] = 2.547;
+        CATSparameters cPotPars(CATSparameters::tPotential,2,true);
         cPotPars.SetParameters(PotPars);
         Kitty.SetShortRangePotential(0,0,SquareWell,cPotPars);
         FatCat.SetShortRangePotential(0,0,SquareWell,cPotPars);
@@ -397,10 +412,21 @@ void SetUp_Ganio_pp_pot(const int n_f0, const double min_f0, const double max_f0
     }
     else if(pot_id==1){
         double PotPars[2]={dlm_par_map.Eval2D(17.3,2.8,false).V0, dlm_par_map.Eval2D(17.3,2.8,false).mu0};
+        CATSparameters cPotPars(CATSparameters::tPotential,2,true);
         cPotPars.SetParameters(PotPars);
         Kitty.SetShortRangePotential(0,0,SingleGauss,cPotPars);
         FatCat.SetShortRangePotential(0,0,SingleGauss,cPotPars);
         printf(" sg pot_pars: %.3f %3f\n", Kitty.GetPotPar(0,0,0), Kitty.GetPotPar(0,0,1));        
+    }
+    //DG
+    else if(pot_id>=200 && pot_id<=299){
+        double PotPars[4]={dlm_par_map.Eval2D(17.3,2.8,false).V0, dlm_par_map.Eval2D(17.3,2.8,false).mu0,
+                            dlm_par_map.Eval2D(17.3,2.8,false).V1, dlm_par_map.Eval2D(17.3,2.8,false).mu1};
+        CATSparameters cPotPars(CATSparameters::tPotential,4,true);
+        cPotPars.SetParameters(PotPars);
+        Kitty.SetShortRangePotential(0,0,DoubleGaussSum,cPotPars);
+        FatCat.SetShortRangePotential(0,0,DoubleGaussSum,cPotPars);
+        printf(" dg pot_pars: %.3f %3f\n", Kitty.GetPotPar(0,0,0), Kitty.GetPotPar(0,0,1), Kitty.GetPotPar(0,0,2), Kitty.GetPotPar(0,0,3));     
     }
 
     printf("we have a cat\n");
@@ -491,6 +517,13 @@ void SetUp_Ganio_pp_pot(const int n_f0, const double min_f0, const double max_f0
     TGraph gAv18U50;
     gAv18U50.SetName("gAv18U50");    
 
+    TGraphErrors gPotAv18;
+    gPotAv18.SetName("gPotAv18");
+    for(double frad=0.05; frad<10; frad+=0.05){
+        gPotAv18.SetPoint(gPotAv18.GetN(), frad, Kitty_AV18.EvaluateThePotential(0,0,10,frad));
+        gPotAv18.SetPointError(gPotAv18.GetN()-1, 0.0, 0.1);
+    }
+
     for(unsigned uKstar=0; uKstar<kSteps; uKstar++){
         double kstar, Ck_Kitty;
         kstar = Kitty.GetMomentum(uKstar);
@@ -519,6 +552,7 @@ void SetUp_Ganio_pp_pot(const int n_f0, const double min_f0, const double max_f0
 
     gFatCatPS.Write();
     gAv18PS.Write();    
+    gPotAv18.Write();
 
     gFatCatU50.Write();
     gAv18U50.Write();
@@ -555,7 +589,7 @@ double Ganio_pp_pot(double* pars){
 
 
 //NumEvents in K
-void Generate_GaussPotPars_For_Kali(bool ASCII, TString Description, TString PotType, float MinRedM, float MaxRedM, unsigned NumEvents, int SEED){
+void Generate_GaussPotPars_For_Kali(bool ASCII, TString Description, TString PotType, int PotVar, float MinRedM, float MaxRedM, unsigned NumEvents, int SEED){
 
     NumEvents *= 1000;
 
@@ -591,11 +625,17 @@ void Generate_GaussPotPars_For_Kali(bool ASCII, TString Description, TString Pot
     double f0_goal_min = 17.3*0.6;
     double f0_goal_max = 17.3*1.4;
     unsigned Num_f0 = 32;
-f0_goal_min = 17.3*0.8;//temp
-f0_goal_max = 17.3*1.2;//temp
+//f0_goal_min = 17.3*0.85;//temp
+//f0_goal_max = 17.3*1.15;//temp
+f0_goal_min = 17.0;
+f0_goal_max = 20.0;
     //2.8
     double d0_goal_min = 2.8*0.6;
     double d0_goal_max = 2.8*1.4;
+//d0_goal_min = 2.8*0.85;//temp
+//d0_goal_max = 2.8*1.15;//temp
+d0_goal_min = 2.55;
+d0_goal_max = 2.65;
     unsigned Num_d0 = 32;//was 16
 
     unsigned EachXevent_rnd = 4;
@@ -662,27 +702,142 @@ f0_goal_max = 17.3*1.2;//temp
         LogSampling[1] = false;
     }
     else if(PotType=="DoubleGauss"){
-        potential_id = 2;
+//do these variations for the core:
+//3000, 0.4
+//4500, 0.4
+//2250, 0.4
+//4500, 0.3
+//2250, 0.6
+
+        potential_id = 200;
+        potential_id += PotVar;
         NumPotPars = 4;
 
         Kitty.SetShortRangePotential(0,0,DoubleGaussSum,cPotPars);
-        MinPar[0] = -100;
-        MaxPar[0] = 0;
-        NumBinsPar[0] = 24;
-        LogSampling[0] = false;
-        MinPar[1] = 1.0;
-        MaxPar[1] = 2.1;
-        NumBinsPar[1] = 24;
-        LogSampling[1] = false;
 
-        MinPar[2] = 1;
-        MaxPar[2] = 5000;
-        NumBinsPar[2] = 24;
-        LogSampling[2] = true;
-        MinPar[3] = 0.0;
-        MaxPar[3] = 1.0;
-        NumBinsPar[3] = 24;
-        LogSampling[3] = false;
+        if(PotVar==1){
+
+            MinPar[0] = -420;//480
+            MaxPar[0] = -30;//160
+            NumBinsPar[0] = 24;
+            LogSampling[0] = false;
+            MinPar[1] = 0.8;//0.7
+            MaxPar[1] = 2.0;//1.4
+            NumBinsPar[1] = 24;
+            LogSampling[1] = false;
+
+            MinPar[2] = 3000;
+            MaxPar[2] = 3000;
+            NumBinsPar[2] = 1;
+            LogSampling[2] = true;
+            MinPar[3] = 0.4;
+            MaxPar[3] = 0.4;
+            NumBinsPar[3] = 1;
+            LogSampling[3] = false;            
+        }
+        else if(PotVar==2){
+
+            MinPar[0] = -500;//560
+            MaxPar[0] = -60;//240
+            NumBinsPar[0] = 24;
+            LogSampling[0] = false;
+            MinPar[1] = 0.75;//0.6
+            MaxPar[1] = 1.8;//1.3
+            NumBinsPar[1] = 24;
+            LogSampling[1] = false;
+
+            MinPar[2] = 4500;
+            MaxPar[2] = 4500;
+            NumBinsPar[2] = 1;
+            LogSampling[2] = true;
+            MinPar[3] = 0.4;
+            MaxPar[3] = 0.4;
+            NumBinsPar[3] = 1;
+            LogSampling[3] = false;            
+        }
+        else if(PotVar==3){
+
+
+            MinPar[0] = -300;//420
+            MaxPar[0] = -35;//120
+            NumBinsPar[0] = 24;
+            LogSampling[0] = false;
+            MinPar[1] = 0.85;//0.7
+            MaxPar[1] = 1.95;//1.4
+            NumBinsPar[1] = 24;
+            LogSampling[1] = false;
+
+            MinPar[2] = 2250;
+            MaxPar[2] = 2250;
+            NumBinsPar[2] = 1;
+            LogSampling[2] = true;
+            MinPar[3] = 0.4;
+            MaxPar[3] = 0.4;
+            NumBinsPar[3] = 1;
+            LogSampling[3] = false;            
+        }        
+        else if(PotVar==4){
+
+            MinPar[0] = -260;//480
+            MaxPar[0] = -25;//160
+            NumBinsPar[0] = 24;
+            LogSampling[0] = false;
+            MinPar[1] = 0.8;//0.7
+            MaxPar[1] = 2.2;//1.4
+            NumBinsPar[1] = 24;
+            LogSampling[1] = false;
+
+            MinPar[2] = 4500;
+            MaxPar[2] = 4500;
+            NumBinsPar[2] = 1;
+            LogSampling[2] = true;
+            MinPar[3] = 0.3;
+            MaxPar[3] = 0.3;
+            NumBinsPar[3] = 1;
+            LogSampling[3] = false;            
+        }  
+        else if(PotVar==5){
+            MinPar[0] = -1600;//480
+            MaxPar[0] = -90;//160
+            NumBinsPar[0] = 24;
+            LogSampling[0] = false;
+            MinPar[1] = 0.7;//0.7
+            MaxPar[1] = 1.6;//1.4
+            NumBinsPar[1] = 24;
+            LogSampling[1] = false;
+
+            MinPar[2] = 2250;
+            MaxPar[2] = 2250;
+            NumBinsPar[2] = 1;
+            LogSampling[2] = true;
+            MinPar[3] = 0.6;
+            MaxPar[3] = 0.6;
+            NumBinsPar[3] = 1;
+            LogSampling[3] = false;            
+        }
+        else{
+
+            MinPar[0] = -100;
+            MaxPar[0] = 0;
+            NumBinsPar[0] = 24;
+            LogSampling[0] = false;
+            MinPar[1] = 1.0;
+            MaxPar[1] = 2.1;
+            NumBinsPar[1] = 24;
+            LogSampling[1] = false;
+
+            MinPar[2] = 1;
+            MaxPar[2] = 5000;
+            NumBinsPar[2] = 24;
+            LogSampling[2] = true;
+            MinPar[3] = 0.0;
+            MaxPar[3] = 1.0;
+            NumBinsPar[3] = 24;
+            LogSampling[3] = false;
+
+        }
+
+
     }
     else if(PotType=="SquareWell"){
         potential_id = 11;
@@ -721,7 +876,13 @@ f0_goal_max = 17.3*1.2;//temp
     dlmTable.SetUp(0,Num_f0, f0_goal_min, f0_goal_max);
     dlmTable.SetUp(1,Num_d0, d0_goal_min, d0_goal_max);
     for(unsigned uPar=0; uPar<NumPotPars; uPar++){
-        dlmTable.SetUp(2+uPar,NumBinsPar[uPar],MinPar[uPar],MaxPar[uPar]);
+        if(NumBinsPar[uPar]==1){
+            dlmTable.SetUp(2+uPar,NumBinsPar[uPar],MinPar[uPar]*0.99,MaxPar[uPar]*1.01);
+        }
+        else{
+            dlmTable.SetUp(2+uPar,NumBinsPar[uPar],MinPar[uPar],MaxPar[uPar]);
+        }
+        
     }
     dlmTable.Initialize();
     dlmTable.SetBinContentAll(false);
@@ -731,12 +892,12 @@ f0_goal_max = 17.3*1.2;//temp
 
     // before the loop
     std::ofstream* outFile = NULL;
-    if(ASCII) outFile = new std::ofstream(TString::Format("%s/BaiGanio/Generate_GaussPotPars_For_Kali/output_%s_SEED%i.txt",GetFemtoOutputFolder(), PotType.Data(), SEED).Data());
+    if(ASCII) outFile = new std::ofstream(TString::Format("%s/BaiGanio/Generate_GaussPotPars_For_Kali/output_%s_pv%i_SEED%i.txt",GetFemtoOutputFolder(), PotType.Data(), PotVar, SEED).Data());
     //std::ofstream outFile(TString::Format("%s/BaiGanio/Generate_GaussPotPars_For_Kali/output_%s_SEED%i.txt",GetFemtoOutputFolder(), PotType.Data(), SEED).Data());
     if(outFile) *outFile << "RED_MASS\tSCAT_LEN\tEFF_RNG\t\tPOT_PAR1\tPOT_PAR2\tPOT_PAR3\tPOT_PAR4\n"; 
     
     //TFile fTemp(TString::Format("%s/BaiGanio/Generate_GaussPotPars_For_Kali/froot_%s_SEED%i.root",GetFemtoOutputFolder(), PotType.Data(), SEED).Data(), "recreate");
-    TFile fOutput(TString::Format("%s/BaiGanio/Generate_GaussPotPars_For_Kali/%s_%s_SEED%i.root",GetFemtoOutputFolder(), Description.Data(), PotType.Data(), SEED).Data(), "recreate");
+    TFile fOutput(TString::Format("%s/BaiGanio/Generate_GaussPotPars_For_Kali/%s_%s_pv%i_SEED%i.root",GetFemtoOutputFolder(), Description.Data(), PotType.Data(), PotVar, SEED).Data(), "recreate");
 
     TNtuple* nt_pp_pars = new TNtuple("nt_pp_pars", "nt_pp_pars","SEED:POT_ID:RedM:f0:d0:V0:mu0:V1:mu1");
     Float_t nt_buffer[9];
@@ -760,7 +921,10 @@ f0_goal_max = 17.3*1.2;//temp
 
         if(whileEvent%EachXevent_rnd==0 || evaluated_bins.size()==0){
             for(unsigned uPar=0; uPar<NumPotPars; uPar++){
-                if(LogSampling[uPar]){
+                if(MinPar[uPar]==MaxPar[uPar]){
+                    RndPar[uPar] = MinPar[uPar];
+                }
+                else if(LogSampling[uPar]){
                     RndPar[uPar] = rangen.Uniform(log(MinPar[uPar]), log(MaxPar[uPar]));
                     RndPar[uPar] = exp(RndPar[uPar]);                
                 }
@@ -775,7 +939,12 @@ f0_goal_max = 17.3*1.2;//temp
             dlmTable.GetBinCoordinates(evaluated_bins.at(RndBin), BinIdPerAxis);
             //printf("sampling from %u (%u)\n",RndBin,evaluated_bins.at(RndBin));
             for(unsigned uPar=0; uPar<NumPotPars; uPar++){
-                RndPar[uPar] = rangen.Uniform(dlmTable.GetBinLowEdge(2+uPar, BinIdPerAxis[2+uPar]), dlmTable.GetBinUpEdge(2+uPar, BinIdPerAxis[2+uPar]));
+                if(MinPar[uPar]==MaxPar[uPar]){
+                    RndPar[uPar] = MinPar[uPar];
+                }
+                else{
+                    RndPar[uPar] = rangen.Uniform(dlmTable.GetBinLowEdge(2+uPar, BinIdPerAxis[2+uPar]), dlmTable.GetBinUpEdge(2+uPar, BinIdPerAxis[2+uPar]));
+                }
                 //printf(" %u %.3f\n", uPar, RndPar[uPar]);
                 //usleep(500e3);
             }
@@ -1133,8 +1302,8 @@ void CompareToAv18(int pot_id){
     const double rMax = 16;
     const unsigned rSteps = 320;
 
-    TString fileName_wf_u_pp_coarse = TString::Format("%s/AI_ScatteringPars/non-AI_stuff/LookUps/wf_u_pp_Pot%i_30p.dlm",GetCernBoxDimi());
-    TString fileName_wf_u_pp_fine = TString::Format("%s/AI_ScatteringPars/non-AI_stuff/LookUps/wf_u_pp_Pot%i_30p.dlm",GetCernBoxDimi());
+    TString fileName_wf_u_pp_coarse = TString::Format("%s/AI_ScatteringPars/non-AI_stuff/LookUps/wf_u_pp_Pot%i_30p.dlm",GetCernBoxDimi(),pot_id);
+    TString fileName_wf_u_pp_fine = TString::Format("%s/AI_ScatteringPars/non-AI_stuff/LookUps/wf_u_pp_Pot%i_30p.dlm",GetCernBoxDimi(),pot_id);
 
     TFile* fInput = NULL;
     if(pot_id==11){
@@ -1430,14 +1599,14 @@ int BAI_GANIO(int argc, char *argv[]){
 //ROOT::Math::MinimizerOptions::SetDefaultPrintLevel(2);             // more diagnostics
 
     //Test_Ck_at_zero(); return 0;
-    CompareToAv18(11); return 0;
+    //CompareToAv18(atoi(argv[1])); return 0;
     //Check_ScattPars(); return 0;
 
     //simulate enough events, so that when you run:
     //nt_pp_pars->Draw("mu0:V0>>(192,-30,-5,192,1.2,2.4)","POT_ID==1 && f0>14.3*0.998 && f0 <14.3*1.002 && d0 > 2.3*0.998 && d0<2.3*1.002","colz")
     //for each potential you get at least 150 entries. After that you make a code which takes the par values within this 0.2% interval
-    //bool ASCII, TString Description, TString PotType, float MinRedM, float MaxRedM, unsigned NumEvents, int SEED
-    //Generate_GaussPotPars_For_Kali(atoi(argv[1]), argv[2], argv[3], Mass_p*0.5, Mass_p*0.5, atoi(argv[4]), atoi(argv[5])); return 0;
+    //bool ASCII, TString Description, TString PotType, int PotVar, float MinRedM, float MaxRedM, unsigned NumEvents, int SEED
+    Generate_GaussPotPars_For_Kali(atoi(argv[1]), argv[2], argv[3], atoi(argv[4]), Mass_p*0.5, Mass_p*0.5, atoi(argv[5]), atoi(argv[6])); return 0;
     
     //Generate_pp_swave_events_v1(argv[1], atoi(argv[2]), atoi(argv[3]));
 
@@ -1446,10 +1615,10 @@ int BAI_GANIO(int argc, char *argv[]){
 //                        const int n_kstar, const double min_kstar, const double max_kstar, 
 //                        const int n_rstar, const double min_rstar, const double max_rstar,
 //                        TNtuple& input_ntuple, const int pot_id)
-    //TFile fInput("/home/dimihayl/Software/LocalFemto/Output/BaiGanio/Generate_GaussPotPars_For_Kali/SW_2025-10-27_up_to_183.root","read");
-    //TNtuple* mytn = (TNtuple*)fInput.Get("nt_pp_pars");
+    TFile fInput("/home/dimihayl/Software/LocalFemto/Output/BaiGanio/Generate_GaussPotPars_For_Kali/SW_2025-10-27_up_to_183.root","read");
+    TNtuple* mytn = (TNtuple*)fInput.Get("nt_pp_pars");
     //SetUp_Ganio_pp_pot(32,17.3*0.94,17.3*1.06,32,2.8*0.94,2.8*1.06,80,0,320,320,0,16,*mytn,11);
-    //SetUp_Ganio_pp_pot(5,17.1,17.5,5,2.7,2.9,80,0,320,320,0,16,*mytn,11);
+    SetUp_Ganio_pp_pot(5,17.1,17.5,5,2.7,2.9,60,0,240,240,0,12,*mytn,2,dlm_wf_u_pp_coarse);
     //qa for +/- 30%
     ////nt_pp_pars->Draw("d0:f0>>(96,12.11,22.49,96,1.96,3.64)","POT_ID==11","colz")
     //for a high quality fit, redo it all with +/-10%:
