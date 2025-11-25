@@ -622,21 +622,24 @@ void Generate_GaussPotPars_For_Kali(bool ASCII, TString Description, TString Pot
     const unsigned kSteps = 6;
 
     //17.3
-    double f0_goal_min = 17.3*0.6;
-    double f0_goal_max = 17.3*1.4;
+    double f0_goal_min = 17.3*0.7;
+    double f0_goal_max = 17.3*1.3;
     unsigned Num_f0 = 32;
 //f0_goal_min = 17.3*0.85;//temp
 //f0_goal_max = 17.3*1.15;//temp
-f0_goal_min = 17.0;
-f0_goal_max = 20.0;
+//f0_goal_min = 17.0;
+//f0_goal_max = 20.0;
+//Num_f0 = 8;
     //2.8
-    double d0_goal_min = 2.8*0.6;
-    double d0_goal_max = 2.8*1.4;
+    double d0_goal_min = 2.8*0.7;
+    double d0_goal_max = 2.8*1.3;
+    unsigned Num_d0 = 32;//was 16
 //d0_goal_min = 2.8*0.85;//temp
 //d0_goal_max = 2.8*1.15;//temp
-d0_goal_min = 2.55;
-d0_goal_max = 2.65;
-    unsigned Num_d0 = 32;//was 16
+//d0_goal_min = 2.5;
+//d0_goal_max = 2.7;
+//Num_d0 = 8;
+    
 
     unsigned EachXevent_rnd = 4;
 
@@ -719,11 +722,11 @@ d0_goal_max = 2.65;
 
             MinPar[0] = -420;//480
             MaxPar[0] = -30;//160
-            NumBinsPar[0] = 24;
+            NumBinsPar[0] = 24*4;
             LogSampling[0] = false;
             MinPar[1] = 0.8;//0.7
             MaxPar[1] = 2.0;//1.4
-            NumBinsPar[1] = 24;
+            NumBinsPar[1] = 24*4;
             LogSampling[1] = false;
 
             MinPar[2] = 3000;
@@ -739,11 +742,11 @@ d0_goal_max = 2.65;
 
             MinPar[0] = -500;//560
             MaxPar[0] = -60;//240
-            NumBinsPar[0] = 24;
+            NumBinsPar[0] = 24*4;
             LogSampling[0] = false;
             MinPar[1] = 0.75;//0.6
             MaxPar[1] = 1.8;//1.3
-            NumBinsPar[1] = 24;
+            NumBinsPar[1] = 24*4;
             LogSampling[1] = false;
 
             MinPar[2] = 4500;
@@ -760,11 +763,11 @@ d0_goal_max = 2.65;
 
             MinPar[0] = -300;//420
             MaxPar[0] = -35;//120
-            NumBinsPar[0] = 24;
+            NumBinsPar[0] = 24*4;
             LogSampling[0] = false;
             MinPar[1] = 0.85;//0.7
             MaxPar[1] = 1.95;//1.4
-            NumBinsPar[1] = 24;
+            NumBinsPar[1] = 24*4;
             LogSampling[1] = false;
 
             MinPar[2] = 2250;
@@ -780,11 +783,11 @@ d0_goal_max = 2.65;
 
             MinPar[0] = -260;//480
             MaxPar[0] = -25;//160
-            NumBinsPar[0] = 24;
+            NumBinsPar[0] = 24*4;
             LogSampling[0] = false;
             MinPar[1] = 0.8;//0.7
             MaxPar[1] = 2.2;//1.4
-            NumBinsPar[1] = 24;
+            NumBinsPar[1] = 24*4;
             LogSampling[1] = false;
 
             MinPar[2] = 4500;
@@ -799,11 +802,11 @@ d0_goal_max = 2.65;
         else if(PotVar==5){
             MinPar[0] = -1600;//480
             MaxPar[0] = -90;//160
-            NumBinsPar[0] = 24;
+            NumBinsPar[0] = 24*4;
             LogSampling[0] = false;
             MinPar[1] = 0.7;//0.7
             MaxPar[1] = 1.6;//1.4
-            NumBinsPar[1] = 24;
+            NumBinsPar[1] = 24*4;
             LogSampling[1] = false;
 
             MinPar[2] = 2250;
@@ -946,7 +949,7 @@ d0_goal_max = 2.65;
                     RndPar[uPar] = rangen.Uniform(dlmTable.GetBinLowEdge(2+uPar, BinIdPerAxis[2+uPar]), dlmTable.GetBinUpEdge(2+uPar, BinIdPerAxis[2+uPar]));
                 }
                 //printf(" %u %.3f\n", uPar, RndPar[uPar]);
-                //usleep(500e3);
+                //usleep(100e3);
             }
             delete [] BinIdPerAxis;
         }
@@ -1058,7 +1061,8 @@ d0_goal_max = 2.65;
 
         AxisValues[0] = SCAT_LEN;
         AxisValues[1] = EFF_RNG;
-        if(SCAT_LEN>=f0_goal_min && SCAT_LEN<=f0_goal_max){
+        if(SCAT_LEN>=f0_goal_min && SCAT_LEN<=f0_goal_max 
+            && EFF_RNG>=d0_goal_min && EFF_RNG<=d0_goal_max){
             TotBinId = dlmTable.FindTotBin(AxisValues);
             if(dlmTable.GetBinContent(TotBinId)==false){
                 evaluated_bins.push_back(TotBinId);
