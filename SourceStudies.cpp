@@ -8737,7 +8737,7 @@ void test_glob_fit_1(){
 
 
 int SOURCESTUDIES(int argc, char *argv[]){
-
+  printf("SOURCE STUDIES\n");
   //test_glob_fit_1(); return 0;
 
   //Source_Cut_Off_Scan(); return 0;
@@ -8812,8 +8812,8 @@ int SOURCESTUDIES(int argc, char *argv[]){
     //Estimate_Reff("pd","oton","RSM_PLB",3.0);
     //Estimate_Reff("pd_max","oton","RSM_PLB",3.0);
 
-    source_pp_syst();
-    //source_pL_syst();
+    //source_pp_syst();
+    source_pL_syst();
     //estimate_syst_fit();
 
     //SourceDensity();

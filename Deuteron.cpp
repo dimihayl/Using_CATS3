@@ -1437,6 +1437,39 @@ void test_sill_invM_to_kstar(){
 
   }
 
+
+  TString InputDataFileNameME = TString::Format("%s/pi_d/FitOct2024_Files/2024-10-29/mTIntegrated_pim_d/CF_AntiPiondeuteron_Var0.root",GetCernBoxDimi());
+  TString DefaultHistoName = "hCk_ReweightedPidVar0MeV_0";
+  TString MeListName1 = "PairDist";
+  TString MeListName2 = "PairReweighted";
+  TString MeHistName = "hTotalME _Rebinned_5_Reweighted";
+  TString SeHistName = "hTotalSE _Rebinned_5_Reweighted";
+
+  TH1F* hDataME;
+  TFile* fInputME = new TFile(InputDataFileNameME, "read");
+  if(fInputME) hDataME = (TH1F*)fInputME->Get(DefaultHistoName);
+
+  TH1F* hME;
+  TList* fList1;
+  TList* fList2;
+  if(fInputME) fList1 = (TList*)(fInputME->FindObjectAny(MeListName1));
+  if(fList1) fList2 = (TList*)fList1->FindObject(MeListName2);
+  if(fList2) hME = (TH1F*)fList2->FindObject(MeHistName);
+  if(hME){
+    hME->GetXaxis()->SetLimits(hME->GetXaxis()->GetXmin()*1000.,hME->GetXaxis()->GetXmax()*1000.);
+  }
+  TGraph gME;
+  TGraph gSillKstarME;
+  gME.SetName("gME");
+  gSillKstarME.SetName("gSillKstarME");
+  for(unsigned uBin=0; uBin<hME->GetNbinsX(); uBin++){
+    double kstar = hME->GetBinCenter(uBin+1);
+    double ghettoNorm = 4e5;
+    double me_val = hME->GetBinContent(uBin+1);
+    gME.SetPoint(uBin, kstar, hME->GetBinContent(uBin+1));
+    gSillKstarME.SetPoint(uBin, kstar, (fSill_kstar->Eval(kstar)*ghettoNorm+me_val)/me_val-1);
+  }
+
   hInvMass->Scale(fSill_IM->Integral(1000,3000)/hInvMass->Integral(),"width");
   hKstar->Scale(fSill_kstar->Integral(0,2000)/hKstar->Integral(),"width");
 
@@ -1446,11 +1479,13 @@ void test_sill_invM_to_kstar(){
   hSillBoltzmann_IM->Scale(fSillBoltzmann_IM->Integral(1000,3000)/hSillBoltzmann_IM->Integral(),"width");
   hSillBoltzmann_kstar->Scale(fSillBoltzmann_kstar->Integral(0,2000)/hSillBoltzmann_kstar->Integral(),"width");
 
-  TFile fOutput(TString::Format("%s/Deuteron/test_sill_invM_to_kstar.root",GetFemtoOutputFolder()), "recreate");
+  TFile fOutput(TString::Format("%s/Deuteron/test_sill_invM_to_kstar_NEW.root",GetFemtoOutputFolder()), "recreate");
+  gME.Write();
   hInvMass->Write();
   fSill_IM->Write();
   hKstar->Write();
   fSill_kstar->Write();
+  gSillKstarME.Write();
 
   hSillBoltzmann_IM->Write();
   fSillBoltzmann_IM->Write();
@@ -3340,7 +3375,7 @@ int DEUTERON_MAIN(int argc, char *argv[]){
 
   //pi_d_source();
 
-  //test_sill_invM_to_kstar();
+  test_sill_invM_to_kstar(); return 0;
   //test_sill_ps();
   //TString Description, types, int mt_bin, int NumIter, bool Bootstrap=true, bool DataVar=true, bool FitVar=true, int SEED=0
   //BulgarianIndianGhetto("ghetto_output", atoi(argv[1]),atoi(argv[2]),atoi(argv[3]),atoi(argv[4]),atoi(argv[5]),atoi(argv[6]));

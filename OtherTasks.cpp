@@ -54,6 +54,9 @@
 #include "gsl_sf_dawson.h"
 #include "Math/Vector4Dfwd.h"
 
+#include "PionAnalysis.h"
+
+
 void pp_CompareToNorfolk(){
     const TString OutputFolder = "/home/dmihaylov/Dudek_Ubuntu/Work/Kclus/GeneralFemtoStuff/Using_CATS3/Output/OtherTasks/pp_CompareToNorfolk/Reid/FAST/";
     const unsigned NumPotentials = 4;
@@ -21447,12 +21450,450 @@ void Quick_Max_Carla_check(){
 }
 
 
+void pXi_WF_Haide(){
+  double source_size = 1.0;
 
+  unsigned NumMomBins = 40;
+  double kMin = 0;
+  double kMax = 200;
+
+  CATSparameters cSorPars(CATSparameters::tSource,1,true);
+  cSorPars.SetParameter(0,source_size);
+
+  CATS Nala;
+  Nala.SetMomBins(NumMomBins,kMin,kMax);
+  Nala.SetAnaSource(GaussSource, cSorPars);
+  Nala.SetUseAnalyticSource(true);
+  Nala.SetMomentumDependentSource(false);
+  Nala.SetThetaDependentSource(false);
+  Nala.SetNormalizedSource(false);
+  Nala.SetAutoNormSource(true);
+
+  Nala.SetQ1Q2(0);
+  Nala.SetQuantumStatistics(false);
+  Nala.SetRedMass((Mass_Xim * Mass_p) / (Mass_Xim + Mass_p));
+
+  //Nala.SetNumChannels(9);
+  DLM_Histo<complex<double>> ***ExternalWF = Init_pXi_Haidenbauer2025(TString::Format("%s/CatsFiles/Interaction/Haidenbauer/pXi_2025-12-05/",GetCernBoxDimi()), Nala, 0, 0);
+  for(unsigned uCh=0; uCh<9; uCh++){
+    Nala.SetExternalWaveFunction(uCh, 0, ExternalWF[0][uCh][0], ExternalWF[1][uCh][0]);
+    if(uCh==1){
+      Nala.SetExternalWaveFunction(uCh, 2, ExternalWF[0][uCh][2], ExternalWF[1][uCh][2]);
+    }
+  }
+
+  Nala.KillTheCat();   
+}
+
+
+const double Mass_He3 = 2808.39142;
+double kstarToInvariantMass(const double kstar) {
+  return std::sqrt(Mass_He3 * Mass_He3 + kstar * kstar) + std::sqrt(Mass_p * Mass_p + kstar * kstar);
+}
+//***************************************************************************
+void he3p_square_well()
+{
+  TFile *OutputFile;
+
+  // SET THE GAUSSIAN SOURCE in fm
+  CATSparameters SOURCE_PARS(CATSparameters::tSource, 1, true);
+  double radius = 4.45;
+
+  // SET THE BINNING
+  double kmin = 1.;
+  double kmax = 20;
+  double binwidth = 1;
+  unsigned NumMomBins = int((kmax - kmin) / binwidth); // 1 MeV binning
+  const double mmin = 3747;
+  const double mmax = 4247;
+
+  OutputFile = new TFile("CATS_square_well_CF_LS_DUMMMY.root", "recreate");
+
+  std::vector<double> radii = {1.5}; //, 2., 2.5, 3., 4., 5., 6., 6.23, 7.};
+
+  for (const auto& radius : radii) {
+    
+    std::cout << "Computing the correlation function for R = " << radius << " fm\n";
+
+    SOURCE_PARS.SetParameter(0, radius);
+    // Assuming only Coulomb
+    CATS He3_p_coul;
+    He3_p_coul.SetMomBins(NumMomBins, kmin, kmax);
+    He3_p_coul.SetAnaSource(GaussSource, SOURCE_PARS);
+    He3_p_coul.SetAnaSource(0, SOURCE_PARS.GetParameter(0));
+    He3_p_coul.SetUseAnalyticSource(true);
+    He3_p_coul.SetMomentumDependentSource(false);
+    He3_p_coul.SetThetaDependentSource(false);
+    He3_p_coul.SetExcludeFailedBins(false);
+    He3_p_coul.SetQ1Q2(2);
+    He3_p_coul.SetQuantumStatistics(false);
+    
+    He3_p_coul.SetRedMass((Mass_He3 * Mass_p) / (Mass_He3 + Mass_p));
+    He3_p_coul.SetNumChannels(2);
+    He3_p_coul.SetChannelWeight(0, 0.25);
+    He3_p_coul.SetChannelWeight(1, 0.75);
+    He3_p_coul.SetQuantumStatistics(0);
+    
+    He3_p_coul.SetNumPW(0, 1);
+    He3_p_coul.SetNumPW(1, 1);
+
+    // Strong interaction
+    // L=0, S=0
+    //double squareWllSingletPars[4] = {-2.3806, 1.796947, -114.5162, 2.049168};
+    //CATSparameters catsSquareWellSingletPars(CATSparameters::tPotential, 4, true);
+    //catsSquareWellSingletPars.SetParameters(squareWllSingletPars);
+    //He3_p_coul.SetShortRangePotential(0, 0, DoubleSquareWell, catsSquareWellSingletPars);
+
+    double squareWllSingletPars[2] = {-114.5162, 2.049168};
+    CATSparameters catsSquareWellSingletPars(CATSparameters::tPotential, 2, true);
+    catsSquareWellSingletPars.SetParameters(squareWllSingletPars);
+    He3_p_coul.SetShortRangePotential(0, 0, SquareWell, catsSquareWellSingletPars);
+
+    // L=0, S=1
+    //double squareWelTripletPars[4] = {-6.3256, 0.922117, -155.1059, 1.175850};
+    //double squareWelTripletPars[4] = {-6.3256, 0.922117, -10000., 10.0};
+    //CATSparameters catsSquareWellTripletPars(CATSparameters::tPotential, 4, true);
+    //catsSquareWellTripletPars.SetParameters(squareWelTripletPars);
+    //He3_p_coul.SetShortRangePotential(1, 0, DoubleSquareWell, catsSquareWellTripletPars);
+    
+    double squareWelTripletPars[2] = {-155.1059, 1.175850};
+    CATSparameters catsSquareWellTripletPars(CATSparameters::tPotential, 2, true);
+    catsSquareWellTripletPars.SetParameters(squareWelTripletPars);
+    He3_p_coul.SetShortRangePotential(1, 0, SquareWell, catsSquareWellTripletPars);
+    ////////////////////////////////////
+
+    He3_p_coul.SetEpsilonProp(He3_p_coul.GetEpsilonProp()*0.02);
+    He3_p_coul.SetEpsilonConv(He3_p_coul.GetEpsilonConv()*0.2);
+    He3_p_coul.SetMaxRad(He3_p_coul.GetMaxRad()*8);
+    He3_p_coul.SetMaxRho(He3_p_coul.GetMaxRho()*8);
+    He3_p_coul.KillTheCat();
+
+    TH1F He3_p_Coul_CF("hHe3_p_Coul_CF", "He3_p_Coul_CF; #it{k}* (MeV/#it{c})", NumMomBins, kmin, kmax);
+    TH1F He3_p_Coul_InvMass("hHe3_p_Coul_InvMass", "He3_p_Coul_InvMass; #it{m}_{inv} (MeV/#it{c}^{2})", NumMomBins, mmin, mmax);
+    for (unsigned uBin = 0; uBin < NumMomBins; uBin++)
+    {
+      double CF = He3_p_coul.GetCorrFun(uBin);
+      double CF_err = He3_p_coul.GetCorrFunErr(uBin);
+      He3_p_Coul_CF.SetBinContent(uBin, CF);
+      He3_p_Coul_CF.SetBinError(uBin, CF_err);
+      double kStar = He3_p_Coul_CF.GetBinCenter(uBin);
+      double invMass = kstarToInvariantMass(kStar);
+      He3_p_Coul_InvMass.SetBinContent(He3_p_Coul_InvMass.FindBin(invMass), CF);
+      He3_p_Coul_InvMass.SetBinError(He3_p_Coul_InvMass.FindBin(invMass), CF_err);
+    }
+
+    TDirectory* OutputDir = OutputFile->mkdir(Form("r=%f_fm", radius));
+    OutputDir->cd();
+    He3_p_Coul_CF.Write();
+    He3_p_Coul_InvMass.Write();
+
+  }
+
+  delete OutputFile;
+}
+
+
+void p_f1_source(){
+    double kMin = 0;
+    double kMax = 200;
+    unsigned kSteps = 20;
+
+    TString CatsFolder = TString::Format("%s/CatsFiles/",GetCernBoxDimi());
+    DLM_CommonAnaFunctions AnalysisObject;
+    AnalysisObject.SetCatsFilesFolder(CatsFolder);
+
+    DLM_CleverMcLevyResoTM MagicSource;
+    //double frac1 = 0.3578;//syst 0.344
+    double frac1 = 0.344;
+    double frac2 = 0.944;//syst 0.943
+    //we use frac2 zero for now, as we have no angle on that
+    BasicSetUp_MS(MagicSource, frac1, 0);
+    double SourcePars[2];
+    SourcePars[1] = 2;
+
+    Float_t k_D;
+    Float_t fP1;
+    Float_t fP2;
+    Float_t fM1;
+    Float_t fM2;
+    Float_t Tau1;
+    Float_t Tau2;
+    Float_t AngleRcP1;
+    Float_t AngleRcP2;
+    Float_t AngleP1P2;
+    DLM_Random RanGen(11);
+    double RanVal1;
+    double RanVal2;
+    double RanVal3;
+
+    const double Tau_Proton = 1.65;
+    const double Mass_ProtonReso = 1362;
+    const double q_CutOff = 200;
+
+    TFile *F_EposDisto_pReso_Xim = new TFile(CatsFolder + "/Source/EposAngularDist/EposDisto_pReso_Xim.root");
+    TNtuple *T_EposDisto_pReso_Xim = (TNtuple *)F_EposDisto_pReso_Xim->Get("InfoTuple_ClosePairs");
+    unsigned N_EposDisto_pReso_Xim = T_EposDisto_pReso_Xim->GetEntries();
+    T_EposDisto_pReso_Xim->SetBranchAddress("k_D", &k_D);
+    T_EposDisto_pReso_Xim->SetBranchAddress("P1", &fP1);
+    T_EposDisto_pReso_Xim->SetBranchAddress("P2", &fP2);
+    T_EposDisto_pReso_Xim->SetBranchAddress("M1", &fM1);
+    T_EposDisto_pReso_Xim->SetBranchAddress("M2", &fM2);
+    T_EposDisto_pReso_Xim->SetBranchAddress("Tau1", &Tau1);
+    T_EposDisto_pReso_Xim->SetBranchAddress("Tau2", &Tau2);
+    T_EposDisto_pReso_Xim->SetBranchAddress("AngleRcP1", &AngleRcP1);
+    T_EposDisto_pReso_Xim->SetBranchAddress("AngleRcP2", &AngleRcP2);
+    T_EposDisto_pReso_Xim->SetBranchAddress("AngleP1P2", &AngleP1P2);
+    for (unsigned uEntry = 0; uEntry < N_EposDisto_pReso_Xim; uEntry++)
+    {
+        T_EposDisto_pReso_Xim->GetEntry(uEntry);
+        Tau1 = 1.65;
+        Tau2 = 0;
+        fM1 = 1362;
+        if (k_D > q_CutOff)
+            continue;
+        RanVal1 = RanGen.Exponential(fM1 / (fP1 * Tau1));
+        MagicSource.AddBGT_RP(RanVal1, cos(AngleRcP1));
+    }
+    delete F_EposDisto_pReso_Xim;
+
+    const int NumSources = 2;
+    double SourceSize[NumSources];
+    SourceSize[0] = 0.650;
+    SourceSize[1] = 0.776;
+
+    const int NumRadPts = 256;
+    const float rMin = 0;
+    const float rMax = 16;
+    
+    TFile fOutput(TString::Format("%s/OtherTasks/p_f1_source_fracp%.3f.root",GetFemtoOutputFolder(),frac1), "recreate");
+    for(int iSrc=0; iSrc<NumSources; iSrc++){
+        SourcePars[0] = SourceSize[iSrc];
+        TH1F* hSrc = new TH1F(TString::Format("hSrc_pf1_rcore_%.2f",SourcePars[0]),TString::Format("hSrc_rcore_%.2f",SourcePars[0]),
+                                    NumRadPts,rMin,rMax);
+        TGraph gSource_pf1;
+        gSource_pf1.SetName(TString::Format("gSrc_pf1_rcore_%.2f",SourcePars[0]));
+        for(int iRad=0; iRad<NumRadPts; iRad++){
+            double rad = hSrc->GetBinCenter(iRad+1);
+            double src = MagicSource.RootEval(&rad, SourcePars);
+            hSrc->SetBinContent(iRad+1,src);
+            hSrc->SetBinError(iRad+1,0.001);
+            gSource_pf1.SetPoint(iRad,rad,src);
+        }
+
+        TF1* fSource;
+        double reff = Get_reff_TF1(hSrc, fSource);
+        fSource->SetName(TString::Format("fSrc_pf1_rcore_%.2f",SourcePars[0]));
+        printf("rc = %f; reff = %f\n",SourcePars[0],reff);
+        
+        hSrc->Write();
+        gSource_pf1.Write();
+        fSource->Write();
+        delete hSrc;
+    }
+    
+}
+
+
+void core_source_and_ck_pp_pipi(){
+
+    const double r_core = 1.21;
+    const double avg_mt = 1.11;
+
+    const double kMin = 0;
+    const double kMax = 200;
+    const unsigned NumMomBins = 100;
+
+    DLM_CommonAnaFunctions AnalysisObject; 
+    AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
+    
+
+    CATS Kitty_pp;
+    Kitty_pp.SetMomBins(NumMomBins,kMin,kMax);
+    AnalysisObject.SetUpCats_pp(Kitty_pp,"AV18","McLevy_ResoTM",0, 202);
+    Kitty_pp.SetAnaSource(0,r_core);
+    Kitty_pp.KillTheCat();
+    
+    CATS Kitty_pipi;
+    Kitty_pipi.SetMomBins(NumMomBins,kMin,kMax);
+    AnalysisObject.SetUpCats_pipi(Kitty_pipi,"McGauss_ResoTM",202);
+    Kitty_pipi.SetAnaSource(0,r_core);
+    Kitty_pipi.KillTheCat();
+
+    CATS Kitty_pipi_Levy;
+    Kitty_pipi_Levy.SetMomBins(NumMomBins,kMin,kMax);
+    AnalysisObject.SetUpCats_pipi(Kitty_pipi_Levy,"",0);
+    CATSparameters cPars(CATSparameters::tSource, 2, true);
+    cPars.SetParameter(0, 1.5);
+    cPars.SetParameter(1, 1.5);
+    Kitty_pipi_Levy.SetAnaSource(LevySrc, cPars);
+    Kitty_pipi_Levy.SetUseAnalyticSource(true);
+    //Kitty_pipi_Levy.KillTheCat();
+
+
+/*
+    const double prim = 0.270;
+    const double reso_short = 0.150;
+    const double reso_rho = 0.175;
+    const double reso_inter = 0.175;
+    const double reso_long = 0.100;
+    const double reso_omega = 0.075;
+    const double reso_infinite = 0.055;
+
+    const double ctau_short = 0.5;
+    const double ctau_rho = 1.3;
+    const double ctau_ShortRho = (ctau_short*reso_short+ctau_rho*reso_rho)/(reso_short+reso_rho);
+    const double ctau_long = 3.35;
+    const double ctau_NoLong = (ctau_short*reso_short+ctau_rho*reso_rho+ctau_long*reso_long)/(reso_short+reso_rho+reso_long);
+
+
+    CATS Kitty_pipi;
+    DLM_CleverMcLevyResoTM CMLRTM_Full;
+    Kitty_pipi.SetMomBins(NumMomBins,kMin,kMax);
+    SetUpReso_pipi_CUSTOM(Kitty_pipi, CMLRTM_Full, 1.5, 1180, reso_short+reso_rho+reso_inter+reso_long, reso_omega, reso_infinite, true);
+    //printf("Full: cTau = %.2f; f = %.2f\n",1.5,reso_short+reso_rho+reso_inter+reso_long+reso_omega+reso_infinite);
+    Kitty_pipi.SetAnaSource(0,r_core);
+    Kitty_pipi.SetAutoNormSource(false);
+    Kitty_pipi.KillTheCat();
+*/
+
+
+    TH1F* hSr_pp_RSM = new TH1F("hSr_pp_RSM","hSr_pp_RSM",256,0,16);
+    TH1F* hSr_pp_G = new TH1F("hSr_pp_G","hSr_pp_G",256,0,16);
+
+    TH1F* hSr_pipi_RSM = new TH1F("hSr_pipi_RSM","hSr_pipi_RSM",256,0,16);
+    TH1F* hSr_pipi_L = new TH1F("hSr_pipi_L","hSr_pipi_L",256,0,16);
+
+    TGraph gCk_pp_RSM;
+    gCk_pp_RSM.SetName("gCk_pp_RSM");
+
+    TGraph gCk_pp_G;
+    gCk_pp_G.SetName("gCk_pp_G");
+
+    TGraph gCk_pipi_RSM;
+    gCk_pipi_RSM.SetName("gCk_pipi_RSM");
+
+    TGraph gCk_pipi_L;   
+    gCk_pipi_L.SetName("gCk_pipi_L");
+    
+    TGraph gCk_pipi_G; 
+    gCk_pipi_G.SetName("gCk_pipi_G");   
+
+    //for(unsigned uBin=0; uBin<NumMomBins; uBin++){
+    //    hCk_pp->SetBinContent(uBin+1,AB_pp.GetCorrFun(uBin));
+    //}
+
+    
+    for(unsigned uRad=0; uRad<hSr_pp_RSM->GetNbinsX(); uRad++){
+        double rad = hSr_pp_RSM->GetBinCenter(uRad+1);
+
+        hSr_pp_RSM->SetBinContent(uRad+1,Kitty_pp.EvaluateTheSource(0,rad,0));
+        hSr_pp_RSM->SetBinError(uRad+1,Kitty_pp.EvaluateTheSource(0,rad,0)*0.01);
+
+        hSr_pipi_RSM->SetBinContent(uRad+1,Kitty_pipi.EvaluateTheSource(0,rad,0));
+        hSr_pipi_RSM->SetBinError(uRad+1,Kitty_pipi.EvaluateTheSource(0,rad,0)*0.01);        
+    }
+
+    TFile fOutput(TString::Format("%s/OtherTasks/core_source_and_ck_pp_pipi.root",GetFemtoOutputFolder()), "recreate");
+    
+    TF1 *fit_S_core = new TF1("fit_S_core", "[0]*4.*TMath::Pi()*x*x*pow(4.*TMath::Pi()*[1]*[1],-1.5)*exp(-(x*x)/(4.*[1]*[1]))", 0, 16);
+    fit_S_core->FixParameter(0, 1.0);
+    //fit_S_core->SetParLimits(0, 0.0, 1.0);
+    fit_S_core->FixParameter(1, r_core);
+
+
+
+    double lowerlimit;
+    double upperlimit;
+    double CEI = 0.9;
+    GetCentralInterval(*hSr_pp_RSM, CEI, lowerlimit, upperlimit, true);
+    
+    TF1 *fit_S_pp = new TF1("fit_S_pp", "[0]*4.*TMath::Pi()*x*x*pow(4.*TMath::Pi()*[1]*[1],-1.5)*exp(-(x*x)/(4.*[1]*[1]))", lowerlimit, upperlimit);
+    fit_S_pp->FixParameter(0, 1.0);
+    //fit_S_pp->SetParLimits(0, 0.0, 1.0);
+    fit_S_pp->SetParameter(1, hSr_pp_RSM->GetMean() / 2.3);
+    fit_S_pp->SetParLimits(1, hSr_pp_RSM->GetMean() / 10., hSr_pp_RSM->GetMean() * 2.);
+    hSr_pp_RSM->Fit(fit_S_pp, "S, N, R, M");
+    double reff_pp = fit_S_pp->GetParameter(1);
+    double lam_pp = fit_S_pp->GetParameter(0);
+
+    CEI = 0.9;
+    GetCentralInterval(*hSr_pipi_RSM, CEI, lowerlimit, upperlimit, true);
+    //TF1 *fit_S_pipi = new TF1("fit_S_pipi", "[0]*4.*x*x * [1] / (TMath::Pi()*pow([1]*[1]+x*x,2.))", lowerlimit, upperlimit);
+    //fit_S_pipi->SetParameter(0, 0.5);
+    //fit_S_pipi->SetParLimits(0, 0.0, 1.0);
+    //fit_S_pipi->SetParameter(1, hSr_pipi_RSM->GetMean() );
+    //fit_S_pipi->SetParLimits(1, hSr_pipi_RSM->GetMean() / 5., hSr_pipi_RSM->GetMean() * 5.);
+
+    TF1 *fit_S_pipi = new TF1("fit_S_pipi",LevySrcTF1,lowerlimit, upperlimit,2);
+    fit_S_pipi->SetParameter(0, 1.5);
+    fit_S_pipi->SetParameter(1, 1.5);
+    fit_S_pipi->SetParLimits(1, 1, 2);
+
+    //fit_S_pipi->FixParameter(0,fit_S_pp->GetParameter(1));
+    //fit_S_pipi->FixParameter(1,2);
+
+
+    hSr_pipi_RSM->Fit(fit_S_pipi, "S, N, R, M");
+    double reff_pipi = fit_S_pipi->GetParameter(0);
+    double lam_pipi = fit_S_pipi->GetParameter(1);
+
+
+    fit_S_core->SetRange(0, 16);
+    fit_S_pp->SetRange(0, 16);
+    fit_S_pipi->SetRange(0, 16);
+
+
+    fit_S_core->Write();
+
+    hSr_pp_RSM->Write();
+    fit_S_pp->Write();
+
+    hSr_pipi_RSM->Write();
+    fit_S_pipi->Write();    
+
+    printf("pp   : eff %.3f; lam %.3f\n",reff_pp,lam_pp);
+    printf("pipi : eff %.3f; lam %.3f\n",reff_pipi,lam_pipi);
+
+
+
+    for(unsigned uRad=0; uRad<hSr_pp_RSM->GetNbinsX(); uRad++){
+        double rad = hSr_pp_RSM->GetBinCenter(uRad+1);
+
+    }    
+
+    Kitty_pipi_Levy.SetAnaSource(0, reff_pipi);
+    Kitty_pipi_Levy.SetAnaSource(1, lam_pipi);
+    Kitty_pipi_Levy.KillTheCat();
+    for(unsigned uBin=0; uBin<NumMomBins; uBin++){
+        gCk_pipi_RSM.SetPoint(uBin,Kitty_pipi.GetMomentum(uBin),Kitty_pipi.GetCorrFun(uBin));
+        gCk_pipi_L.SetPoint(uBin,Kitty_pipi_Levy.GetMomentum(uBin),Kitty_pipi_Levy.GetCorrFun(uBin));
+    }
+
+    Kitty_pipi_Levy.SetAnaSource(0, reff_pp);
+    Kitty_pipi_Levy.SetAnaSource(1, 2);
+    Kitty_pipi_Levy.KillTheCat();    
+    for(unsigned uBin=0; uBin<NumMomBins; uBin++){
+        gCk_pipi_G.SetPoint(uBin,Kitty_pipi_Levy.GetMomentum(uBin),Kitty_pipi_Levy.GetCorrFun(uBin));
+    }
+
+    gCk_pipi_RSM.Write();
+    gCk_pipi_L.Write();
+    gCk_pipi_G.Write();
+
+}
 
 //
 int OTHERTASKS(int argc, char *argv[]){
 
-  Quick_Max_Carla_check(); return 0;
+
+    core_source_and_ck_pp_pipi(); return 0;
+
+    //p_f1_source(); return 0;
+
+  //he3p_square_well(); return 0;
+  //pXi_WF_Haide(); return 0;
+
+  //Quick_Max_Carla_check(); return 0;
 
   //pSigmap_reso_SYST("/home/dimihayl/CernBox/Sync/p_Sigma/Benedict/", "pSigma_FitFunctions", atoi(argv[2]), argv[1]);  return 0;
   //pSigmap_reso("/home/dimihayl/CernBox/Sync/p_Sigma/Benedict/pSigma_Allmodels.root",8,true); return 0;
@@ -21470,7 +21911,7 @@ int OTHERTASKS(int argc, char *argv[]){
   //AirSim_Schedule(23,4000000,4,2,0); return 0;
   //effect_of_square_barrier(); return 0;
 
-  ThreeBodyDecay(atoi(argv[1]), atoi(argv[2])); return 0;
+  //ThreeBodyDecay(atoi(argv[1]), atoi(argv[2])); return 0;
 
   //USR_Potential_ShiftedSource(); return 0;
   //big_core(); return 0;

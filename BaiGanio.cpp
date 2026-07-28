@@ -327,7 +327,7 @@ void SetUp_Ganio_pp_pot(const int n_f0, const double min_f0, const double max_f0
         if( dlm_par_map.GetBinLowEdge(0,WhichBin[0])<=17.3 && dlm_par_map.GetBinUpEdge(0,WhichBin[0])>17.3 && 
             dlm_par_map.GetBinLowEdge(1,WhichBin[1])<=2.8 && dlm_par_map.GetBinUpEdge(1,WhichBin[1])>2.8){
 
-            dlm_par_map.GetBinElement(uBin).print();
+            //dlm_par_map.GetBinElement(uBin).print();
             //printf(" bc %.3ef %.3ef\n",dlm_par_map.GetBinCenter(0,WhichBin[0]),dlm_par_map.GetBinCenter(1,WhichBin[1]));
             //printf("\n");
             //usleep(40e3);
@@ -443,11 +443,37 @@ void SetUp_Ganio_pp_pot(const int n_f0, const double min_f0, const double max_f0
             //printf("    ud0 %u of %u (%.2f)\n",ud0,n_d0,d0_val);
             double PotPars[2]={dlm_par_map.Eval2D(f0_val,d0_val,false).V0, dlm_par_map.Eval2D(f0_val,d0_val,false).mu0};
             //printf("    V = %.3f; mu = %.4f\n",PotPars[0],PotPars[1]);
-            //dlm_par_map.GetBinContent(uf0,ud0).print();
+            dlm_par_map.GetBinContent(uf0,ud0).print();
             //usleep(100e3);
             FatCat.SetShortRangePotential(0,0,0,PotPars[0]);
             FatCat.SetShortRangePotential(0,0,1,PotPars[1]);
             FatCat.KillTheCat(); 
+
+            if( fabs(dlm_par_map.GetBinContent(uf0,ud0).f0-1.725e+01)<0.01 &&  fabs(dlm_par_map.GetBinContent(uf0,ud0).d0-3.1)<0.001){
+                Kitty.SetShortRangePotential(0,0,0,PotPars[0]);
+                Kitty.SetShortRangePotential(0,0,1,PotPars[1]);
+                Kitty.KillTheCat(); 
+
+                double ScatLen, EffRan;
+                TH1F *hFit;
+                TF1 *fitSP;
+                GetScattParameters(Kitty, ScatLen, EffRan, hFit, fitSP, 2, false, false, 0);  
+
+                //printf("    V = %.3f; mu = %.4f\n",PotPars[0],PotPars[1]);
+                dlm_par_map.GetBinContent(uf0,ud0).print();
+                printf(" -from CATS: %.3e %.3e\n", ScatLen, EffRan);
+                usleep(100e3);
+
+                Kitty.SetShortRangePotential(0,0,0,-11.59);
+                Kitty.SetShortRangePotential(0,0,1,2.794);
+                Kitty.KillTheCat(); 
+                delete hFit;
+                delete fitSP;
+                GetScattParameters(Kitty, ScatLen, EffRan, hFit, fitSP, 2, false, false, 0);  
+                printf(" -from Marty+CATS: %.3e %.3e\n", ScatLen, EffRan);
+
+            }
+
             //put the vals for the WF
             for(unsigned uks=0; uks<n_kstar; uks++){
                 WhichBin[2] = uks;
@@ -600,7 +626,7 @@ void Generate_GaussPotPars_For_Kali(bool ASCII, TString Description, TString Pot
     float* MinPar = new float [4];
     float* MaxPar = new float [4];
     bool* LogSampling = new bool [4];
-
+    
     //double MinAmp1;
     //double MaxAmp1;
     //unsigned NumAmp1;
@@ -627,22 +653,22 @@ void Generate_GaussPotPars_For_Kali(bool ASCII, TString Description, TString Pot
     unsigned Num_f0 = 32;
 //f0_goal_min = 17.3*0.85;//temp
 //f0_goal_max = 17.3*1.15;//temp
-//f0_goal_min = 17.0;
-//f0_goal_max = 20.0;
-//Num_f0 = 8;
+f0_goal_min = 17.5;
+f0_goal_max = 19.5;
+Num_f0 = 12;
     //2.8
     double d0_goal_min = 2.8*0.7;
     double d0_goal_max = 2.8*1.3;
     unsigned Num_d0 = 32;//was 16
 //d0_goal_min = 2.8*0.85;//temp
 //d0_goal_max = 2.8*1.15;//temp
-//d0_goal_min = 2.5;
-//d0_goal_max = 2.7;
-//Num_d0 = 8;
+d0_goal_min = 2.55;
+d0_goal_max = 2.65;
+Num_d0 = 12;
     
 
     unsigned EachXevent_rnd = 4;
-
+EachXevent_rnd = 2;
     //this turned out VERY tricky, we need fine, really fine binning
     if(PotType=="SquareWell"){
         Num_f0 = 48;
@@ -681,7 +707,7 @@ void Generate_GaussPotPars_For_Kali(bool ASCII, TString Description, TString Pot
 
     printf("we have a cat\n");
 
-
+    //TH1F* hPoorManERE = new TH1F("hPoorManERE", "hPoorManERE", kSteps, kMin, kMax);
 
     float potential_id = 0;
     unsigned NumPotPars = 0;
@@ -900,6 +926,7 @@ void Generate_GaussPotPars_For_Kali(bool ASCII, TString Description, TString Pot
     if(outFile) *outFile << "RED_MASS\tSCAT_LEN\tEFF_RNG\t\tPOT_PAR1\tPOT_PAR2\tPOT_PAR3\tPOT_PAR4\n"; 
     
     //TFile fTemp(TString::Format("%s/BaiGanio/Generate_GaussPotPars_For_Kali/froot_%s_SEED%i.root",GetFemtoOutputFolder(), PotType.Data(), SEED).Data(), "recreate");
+    //TFile fTemp(TString::Format("%s/BaiGanio/Generate_GaussPotPars_For_Kali/tmp_pp.root",GetFemtoOutputFolder(), PotType.Data(), SEED).Data(), "recreate");
     TFile fOutput(TString::Format("%s/BaiGanio/Generate_GaussPotPars_For_Kali/%s_%s_pv%i_SEED%i.root",GetFemtoOutputFolder(), Description.Data(), PotType.Data(), PotVar, SEED).Data(), "recreate");
 
     TNtuple* nt_pp_pars = new TNtuple("nt_pp_pars", "nt_pp_pars","SEED:POT_ID:RedM:f0:d0:V0:mu0:V1:mu1");
@@ -1036,18 +1063,35 @@ void Generate_GaussPotPars_For_Kali(bool ASCII, TString Description, TString Pot
             continue;
         }
 
-        //printf("%f %f %f %f\n",RndPar[0],RndPar[1],SCAT_LEN,EFF_RNG);
+        //for(unsigned uKstar=0; uKstar<kSteps; uKstar++){
+        //    double kstar = hPoorManERE->GetBinCenter(uKstar+1)/hbarc;
+        //    double ERE = kstar/tan(Kitty.GetPhaseShift(uKstar,0,0));
+        //    hPoorManERE->SetBinContent(uKstar+1, ERE);
+        //}
+        //double k1,k2,ere1,ere2;
+        //k1 = hPoorManERE->GetBinCenter(1)/hbarc;
+        //k2 = hPoorManERE->GetBinCenter(2)/hbarc;
+        //ere1 = hPoorManERE->GetBinContent(1);
+        //ere2 = hPoorManERE->GetBinContent(2);
+  
+        //double f_est1 = (k2*k2-k1*k1)/(ere1*k2*k2-ere2*k1*k1);
+        //double d_est1 = 2.*(ere2-ere1)/(k2*k2-k1*k1);
+
+        //printf("%f %f %f %f: %f %f\n",RndPar[0],RndPar[1],SCAT_LEN,EFF_RNG,f_est1,d_est1);
         //if(SCAT_LEN>17.0 && SCAT_LEN <17.6 && EFF_RNG>2.6 && EFF_RNG<3.0){
         //    printf("%f %f %f %f\n",RndPar[0],RndPar[1],SCAT_LEN,EFF_RNG);
         //    printf(" k*/tg(delta) @ k*=%.1f = %.2f\n",Kitty.GetMomentum(0),Kitty.GetMomentum(0)/tan(Kitty.GetPhaseShift(0,0,0)));
         //}
 
-        //fTemp.cd();
+        
         fOutput.cd();
         hFIT->SetName(TString::Format("hFIT_%i",whileEvent));
         fFIT->SetName(TString::Format("fFIT_%i",whileEvent));
+
+        //fTemp.cd();
         //hFIT->Write();
         //fFIT->Write();
+        //hPoorManERE->Write();
         //printf("%p %p, %f %f\n",hFIT,fFIT,SCAT_LEN,EFF_RNG);
         delete hFIT;
         delete fFIT;
@@ -1125,6 +1169,353 @@ void Generate_GaussPotPars_For_Kali(bool ASCII, TString Description, TString Pot
     delete [] MaxPar;
     delete [] LogSampling;
 }
+
+
+
+
+//NumEvents in K
+//PotVar -> if positive: p-pi^+, else p-pi^-
+//seems we need ERE in very very short range, say 0 - 10 MeV
+void Generate_GaussPotPars_pi_p(bool ASCII, TString Description, TString PotType, int PotVar, float MinRedM, float MaxRedM, unsigned NumEvents, int SEED){
+
+    NumEvents *= 1000;
+    
+    unsigned* NumBinsPar = new unsigned [4];
+    float* MinPar = new float [4];
+    float* MaxPar = new float [4];
+    bool* LogSampling = new bool [4];
+
+    const double kMin = 0;
+    const double kMax = 60;
+    const unsigned kSteps = 6;
+    TH1F* hPoorManERE = new TH1F("hPoorManERE", "hPoorManERE", kSteps, kMin, kMax);
+    TH1F* hPoorManPS = new TH1F("hPoorManPS", "hPoorManPS", kSteps, kMin, kMax);
+
+
+    //pi^+
+    double f0_goal_min = -0.2;
+    double f0_goal_max = -0.05;
+    unsigned Num_f0 = 32;
+    if(PotVar<0){
+        f0_goal_min = 0.12*0.6;
+        f0_goal_max = 0.12*1.5;
+    }
+
+    double d0_goal_min = -30;
+    double d0_goal_max = -5;
+    unsigned Num_d0 = 32;//was 16
+    
+    unsigned EachXevent_rnd = 4;
+
+    TRandom3 rangen(SEED);
+
+    CATS Kitty;
+    Kitty.SetMomBins(kSteps, kMin, kMax);
+    DLM_CommonAnaFunctions AnalysisObject; 
+    AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
+    if(PotVar>0){
+        AnalysisObject.SetUpCats_ppic(Kitty,"DG_pip_d", "Gauss", 0, 0);
+    } 
+    else{
+        AnalysisObject.SetUpCats_ppic(Kitty,"DG_pim_d", "Gauss", 0, 0);
+    }
+    Kitty.SetQ1Q2(0);
+        
+    printf("we have a cat\n");
+
+    float potential_id = PotVar;
+    unsigned NumPotPars = 2;
+
+    double epsc = 1e-9;
+    double epsp = 1e-9;
+    
+    if(PotVar>0){
+        MinPar[0] = 5;
+        MaxPar[0] = 700;
+        NumBinsPar[0] = 35;
+        LogSampling[0] = false;
+
+        MinPar[1] = 0.4;
+        MaxPar[1] = 3;
+        NumBinsPar[1] = 44;
+        LogSampling[1] = false;
+    }
+    else{
+
+        NumPotPars = 2;
+
+        d0_goal_min = 5;
+        d0_goal_max = 20;
+
+        MinPar[0] = -500;
+        MaxPar[0] = -1;
+        NumBinsPar[0] = 35;
+        LogSampling[0] = false;
+
+        MinPar[1] = 0.1;
+        MaxPar[1] = 2;
+        NumBinsPar[1] = 44;
+        LogSampling[1] = false;
+        
+        //MinPar[2] = 10;
+        //MaxPar[2] = 500;
+        //NumBinsPar[2] = 35;
+        //LogSampling[2] = false;
+
+        //MinPar[3] = 0.1;
+        //MaxPar[3] = 0.3;
+        //NumBinsPar[3] = 44;
+        //LogSampling[3] = false;        
+
+    }
+    
+    //MinPar[2] = -163.44;
+    //MaxPar[2] = -163.4389565795085;
+    //NumBinsPar[2] = 35;
+    //LogSampling[2] = false;
+
+    //MinPar[3] = 0.82;
+    //MaxPar[3] = 0.8269303105321447;
+    //NumBinsPar[3] = 44;
+    //LogSampling[3] = false;
+
+
+
+
+    DLM_Histo<bool> dlmTable;
+    //f0,d0 and the pot pars
+    dlmTable.SetUp(2+NumPotPars);
+    dlmTable.SetUp(0,Num_f0, f0_goal_min, f0_goal_max);
+    dlmTable.SetUp(1,Num_d0, d0_goal_min, d0_goal_max);
+    for(unsigned uPar=0; uPar<NumPotPars; uPar++){
+        if(NumBinsPar[uPar]==1){
+            dlmTable.SetUp(2+uPar,NumBinsPar[uPar],MinPar[uPar]*0.99,MaxPar[uPar]*1.01);
+        }
+        else{
+            dlmTable.SetUp(2+uPar,NumBinsPar[uPar],MinPar[uPar],MaxPar[uPar]);
+        }
+        
+    }
+    dlmTable.Initialize();
+    dlmTable.SetBinContentAll(false);
+
+    Kitty.SetNotifications(CATS::nWarning);
+    //Kitty.KillTheCat();
+    //return;
+
+    // before the loop
+    std::ofstream* outFile = NULL;
+    if(ASCII) outFile = new std::ofstream(TString::Format("%s/BaiGanio/Generate_GaussPotPars_For_Kali/output_pip_%s_pv%i_SEED%i.txt",GetFemtoOutputFolder(), PotType.Data(), PotVar, SEED).Data());
+    if(outFile) *outFile << "RED_MASS\tSCAT_LEN\tEFF_RNG\t\tPOT_PAR1\tPOT_PAR2\tPOT_PAR3\tPOT_PAR4\n"; 
+    
+    //TFile fTemp(TString::Format("%s/BaiGanio/Generate_GaussPotPars_For_Kali/TEMP.root",GetFemtoOutputFolder(), PotType.Data(), SEED).Data(), "recreate");
+    TFile fOutput(TString::Format("%s/BaiGanio/Generate_GaussPotPars_For_Kali/%s_%s_pv%i_SEED%i.root",GetFemtoOutputFolder(), Description.Data(), PotType.Data(), PotVar, SEED).Data(), "recreate");
+
+    TNtuple* nt_pp_pars = new TNtuple("nt_pp_pars", "nt_pp_pars","SEED:POT_ID:RedM:f0:d0:V0:mu0:V1:mu1");
+    Float_t nt_buffer[9];
+    nt_buffer[0] = SEED;
+    nt_buffer[1] = potential_id;
+
+
+    double RedM = MinRedM;
+    //a trick to have the RndPar count from zero, but we can also access the axes of our dlm_histo
+    double* AxisValues = new double [6];
+    double* RndPar = &AxisValues[2];
+    std::vector<unsigned> evaluated_bins;
+
+    //printf("go go %u\n", evaluated_bins.size());
+    
+    unsigned whileEvent = 0;
+    unsigned TotBinId;
+    unsigned RndBin;
+    while(whileEvent<NumEvents){
+        if(whileEvent%1000==0) printf("whileEvent = %u\n",whileEvent);
+        if(MinRedM!=MaxRedM) RedM = rangen.Uniform(MinRedM, MaxRedM);
+
+        if(whileEvent%EachXevent_rnd==0 || evaluated_bins.size()==0){
+            for(unsigned uPar=0; uPar<NumPotPars; uPar++){
+                if(MinPar[uPar]==MaxPar[uPar]){
+                    RndPar[uPar] = MinPar[uPar];
+                }
+                else if(LogSampling[uPar]){
+                    RndPar[uPar] = rangen.Uniform(log(MinPar[uPar]), log(MaxPar[uPar]));
+                    RndPar[uPar] = exp(RndPar[uPar]);                
+                }
+                else{
+                    RndPar[uPar] = rangen.Uniform(MinPar[uPar], MaxPar[uPar]);
+                }
+            }
+        }
+        else{
+            RndBin = rangen.Integer(evaluated_bins.size());
+            unsigned* BinIdPerAxis = new unsigned [2+NumPotPars];
+            dlmTable.GetBinCoordinates(evaluated_bins.at(RndBin), BinIdPerAxis);
+            //printf("sampling from %u (%u)\n",RndBin,evaluated_bins.at(RndBin));
+            for(unsigned uPar=0; uPar<NumPotPars; uPar++){
+                if(MinPar[uPar]==MaxPar[uPar]){
+                    RndPar[uPar] = MinPar[uPar];
+                }
+                else{
+                    RndPar[uPar] = rangen.Uniform(dlmTable.GetBinLowEdge(2+uPar, BinIdPerAxis[2+uPar]), dlmTable.GetBinUpEdge(2+uPar, BinIdPerAxis[2+uPar]));
+                }
+                //printf(" %u %.3f\n", uPar, RndPar[uPar]);
+                //usleep(100e3);
+            }
+            delete [] BinIdPerAxis;
+        }
+    
+
+        Kitty.SetRedMass(RedM);
+        for(unsigned uPar=0; uPar<NumPotPars; uPar++){
+            Kitty.SetShortRangePotential(0,0,uPar,RndPar[uPar]);
+        }
+
+        Kitty.SetEpsilonConv(epsc);
+        Kitty.SetEpsilonProp(epsp);
+        Kitty.KillTheCat();
+
+        double SCAT_LEN;
+        double EFF_RNG;
+        TH1F* hFIT=NULL;
+        TF1* fFIT=NULL;
+        if(!GetScattParameters(Kitty, SCAT_LEN, EFF_RNG, hFIT, fFIT, 2, false, false, 0)){
+            continue;
+        }
+        /*
+        for(unsigned uKstar=0; uKstar<kSteps; uKstar++){
+            double kstar = hPoorManERE->GetBinCenter(uKstar+1)/hbarc;
+            double ERE = kstar/tan(Kitty.GetPhaseShift(uKstar,0,0));
+            hPoorManERE->SetBinContent(uKstar+1, ERE);
+            hPoorManPS->SetBinContent(uKstar+1, Kitty.GetPhaseShift(uKstar,0,0));
+        }
+        double k1,k2,ere1,ere2;
+        k1 = hPoorManERE->GetBinCenter(1)/hbarc;
+        k2 = hPoorManERE->GetBinCenter(2)/hbarc;
+        ere1 = hPoorManERE->GetBinContent(1);
+        ere2 = hPoorManERE->GetBinContent(2);
+        double f_est1 = (k2*k2-k1*k1)/(ere1*k2*k2-ere2*k1*k1);
+        double d_est1 = 2.*(ere2-ere1)/(k2*k2-k1*k1);
+        */
+        //SCAT_LEN = f_est1;
+        //EFF_RNG = d_est1;
+        
+
+        double a_approx = 197.327/(Kitty.GetMomentum(0)/tan(Kitty.GetPhaseShift(0,0,0)));
+
+        //if(SCAT_LEN>-0.2 && SCAT_LEN<0.0 && EFF_RNG<-10 && EFF_RNG>-30){
+        if(false){
+            //printf("%f %f %f %f : %f\n",RndPar[0],RndPar[1],SCAT_LEN,EFF_RNG,a_approx);
+            //printf("  --> %f %f\n",f_est1,d_est1);
+        }
+
+        //if(SCAT_LEN>17.0 && SCAT_LEN <17.6 && EFF_RNG>2.6 && EFF_RNG<3.0){
+        //    printf("%f %f %f %f\n",RndPar[0],RndPar[1],SCAT_LEN,EFF_RNG);
+        //    printf(" k*/tg(delta) @ k*=%.1f = %.2f\n",Kitty.GetMomentum(0),Kitty.GetMomentum(0)/tan(Kitty.GetPhaseShift(0,0,0)));
+        //}
+
+        
+        fOutput.cd();
+        //fTemp.cd();
+        if(hFIT){
+            hFIT->SetName(TString::Format("hFIT_%i",whileEvent));
+            fFIT->SetName(TString::Format("fFIT_%i",whileEvent));
+            //hFIT->Write();
+            //fFIT->Write();
+            //hPoorManERE->Write();
+            //hPoorManPS->Write();
+            //printf("%p %p, %f %f\n",hFIT,fFIT,SCAT_LEN,EFF_RNG);
+            delete hFIT;
+            delete fFIT;
+
+        }
+        //abort();
+
+        if (std::isnan(SCAT_LEN) || std::isnan(EFF_RNG)) {
+            continue;
+        }
+        if(fabs(EFF_RNG)>=50){
+            continue;
+        }
+
+        AxisValues[0] = SCAT_LEN;
+        AxisValues[1] = EFF_RNG;
+        if(SCAT_LEN>=f0_goal_min && SCAT_LEN<=f0_goal_max 
+            && EFF_RNG>=d0_goal_min && EFF_RNG<=d0_goal_max){
+            TotBinId = dlmTable.FindTotBin(AxisValues);
+            if(dlmTable.GetBinContent(TotBinId)==false){
+                evaluated_bins.push_back(TotBinId);
+                dlmTable.SetBinContent(TotBinId,true);
+                //printf("added %.2f %.2f at %u - prs: %.2f %.2f\n",SCAT_LEN,EFF_RNG,TotBinId,RndPar[0],RndPar[1]);
+                //for(unsigned uPar=0; uPar<NumPotPars+2; uPar++){
+                //    printf(" av%u:%.2f ", uPar, AxisValues[uPar]);
+                //}
+                //printf("\n");
+                //usleep(100e3);
+            }
+        }
+
+        nt_buffer[2] = RedM;
+        nt_buffer[3] = SCAT_LEN;
+        nt_buffer[4] = EFF_RNG;
+
+        for(unsigned uPar=0; uPar<NumPotPars; uPar++){
+            nt_buffer[5+uPar] = RndPar[uPar];
+        }
+
+        fOutput.cd();
+        nt_pp_pars->Fill(nt_buffer);
+
+
+        if(outFile){
+            *outFile << std::fixed << std::setprecision(3) << RedM << "\t\t";
+            if(SCAT_LEN>=1000 || SCAT_LEN<=-100)
+                *outFile << std::setprecision(2) << SCAT_LEN << "\t\t";
+            else if(SCAT_LEN>=10000 || SCAT_LEN<=-1000)
+                *outFile << std::setprecision(1) << SCAT_LEN << "\t\t";
+            else
+                *outFile << std::setprecision(3) << SCAT_LEN << "\t\t";
+            if(EFF_RNG>=1000 || EFF_RNG<=-100)
+                *outFile << std::setprecision(2) << EFF_RNG << "\t\t";
+            else if(EFF_RNG>=10000 || EFF_RNG<=-1000)
+                *outFile << std::setprecision(1) << EFF_RNG << "\t\t";
+            else
+                *outFile << std::setprecision(3) << EFF_RNG << "\t\t";
+            *outFile << std::setprecision(3) << RndPar[0] << "\t\t";
+            *outFile << std::setprecision(5) << RndPar[1] << "\t\t";
+            *outFile << std::setprecision(3) << RndPar[2] << "\t\t";
+            *outFile << std::setprecision(5) << RndPar[3] << "\t\t";
+            *outFile << "\n";
+
+        }
+
+        whileEvent++;
+
+    }
+
+    fOutput.cd();
+    nt_pp_pars->Write();
+    delete nt_pp_pars;
+    delete hPoorManERE;
+    if(outFile) outFile->close();
+
+    
+    delete [] AxisValues;
+    delete [] NumBinsPar;
+    delete [] MinPar;
+    delete [] MaxPar;
+    delete [] LogSampling;
+}
+
+
+
+
+
+
+
+
+
+
+
 /*
 void Generate_pp_swave_events_v1(){
     const float f0_min = 15;
@@ -1610,8 +2001,11 @@ int BAI_GANIO(int argc, char *argv[]){
     //nt_pp_pars->Draw("mu0:V0>>(192,-30,-5,192,1.2,2.4)","POT_ID==1 && f0>14.3*0.998 && f0 <14.3*1.002 && d0 > 2.3*0.998 && d0<2.3*1.002","colz")
     //for each potential you get at least 150 entries. After that you make a code which takes the par values within this 0.2% interval
     //bool ASCII, TString Description, TString PotType, int PotVar, float MinRedM, float MaxRedM, unsigned NumEvents, int SEED
-    Generate_GaussPotPars_For_Kali(atoi(argv[1]), argv[2], argv[3], atoi(argv[4]), Mass_p*0.5, Mass_p*0.5, atoi(argv[5]), atoi(argv[6])); return 0;
+    //Generate_GaussPotPars_For_Kali(atoi(argv[1]), argv[2], argv[3], atoi(argv[4]), Mass_p*0.5, Mass_p*0.5, atoi(argv[5]), atoi(argv[6])); return 0;
     
+    double RED_MASS = Mass_p * Mass_pic / (Mass_p + Mass_pic);
+    //bool ASCII, TString Description, TString PotType, int PotVar (+/- 1 for pion charge), --float MinRedM, --float MaxRedM, unsigned NumEvents [in K], int SEED
+    Generate_GaussPotPars_pi_p(atoi(argv[1]), argv[2], argv[3], atoi(argv[4]), RED_MASS, RED_MASS, atoi(argv[5]), atoi(argv[6])); return 0;
     //Generate_pp_swave_events_v1(argv[1], atoi(argv[2]), atoi(argv[3]));
 
 //void SetUp_Ganio_pp_pot(const int n_f0, const double min_f0, const double max_f0,
@@ -1619,10 +2013,11 @@ int BAI_GANIO(int argc, char *argv[]){
 //                        const int n_kstar, const double min_kstar, const double max_kstar, 
 //                        const int n_rstar, const double min_rstar, const double max_rstar,
 //                        TNtuple& input_ntuple, const int pot_id)
-    TFile fInput("/home/dimihayl/Software/LocalFemto/Output/BaiGanio/Generate_GaussPotPars_For_Kali/SW_2025-10-27_up_to_183.root","read");
-    TNtuple* mytn = (TNtuple*)fInput.Get("nt_pp_pars");
-    //SetUp_Ganio_pp_pot(32,17.3*0.94,17.3*1.06,32,2.8*0.94,2.8*1.06,80,0,320,320,0,16,*mytn,11);
-    SetUp_Ganio_pp_pot(5,17.1,17.5,5,2.7,2.9,60,0,240,240,0,12,*mytn,2,dlm_wf_u_pp_coarse);
+    //TFile fInput("/home/dimihayl/Software/LocalFemto/Output/BaiGanio/Generate_GaussPotPars_For_Kali/SW_2025-10-27_up_to_183.root","read");
+    //TNtuple* mytn = (TNtuple*)fInput.Get("nt_pp_pars");
+    //SetUp_Ganio_pp_pot(8,17.3*0.94,17.3*1.06,8,2.8*0.94,2.8*1.06,80,0,320,320,0,16,*mytn,11,dlm_wf_u_pp_coarse);
+//SetUp_Ganio_pp_pot(5,17.3*0.94,17.3*1.06,5,3.1*0.94,3.1*1.06,80,0,320,320,0,16,*mytn,11,dlm_wf_u_pp_coarse);
+    //SetUp_Ganio_pp_pot(5,17.1,17.5,5,2.7,2.9,60,0,240,240,0,12,*mytn,2,dlm_wf_u_pp_coarse);
     //qa for +/- 30%
     ////nt_pp_pars->Draw("d0:f0>>(96,12.11,22.49,96,1.96,3.64)","POT_ID==11","colz")
     //for a high quality fit, redo it all with +/-10%:

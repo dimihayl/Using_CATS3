@@ -530,7 +530,7 @@ void EffectOnTailFor_pp_pL(){
 
 
 
-void SetUpReso_pipi_CUSTOM(CATS& Kitty, DLM_CleverMcLevyResoTM& CleverMcLevyResoTM, const double& cTau, const double& avgmass, const double& fraction, const double& fractionomega, const double& fractionlong, const bool& randomangle=false){
+void SetUpReso_pipi_CUSTOM(CATS& Kitty, DLM_CleverMcLevyResoTM& CleverMcLevyResoTM, const double& cTau, const double& avgmass, const double& fraction, const double& fractionomega, const double& fractionlong, const bool& randomangle){
 
     Kitty.SetThetaDependentSource(false);
 
@@ -1860,9 +1860,174 @@ void ck_pion_with_source_cutoff(){
 
 }
 
+
+
+
+
+
+bool TEST_SP(CATS* Kitty, double& f, double& fe, double& d, double& de){
+    if(!Kitty) return false;
+    if(!Kitty->CkStatus()) return false;
+
+    double f0 = 0;
+    double fe0 = 0;
+    double d0 = 0;
+    double de0 = 0;
+    double f_val;
+    double d_val;
+    unsigned prm = 0;
+    double eps_f = 0.001;
+    double eps_d = 0.01;
+    for(unsigned iKstar=0; iKstar<Kitty->GetNumMomBins(); iKstar++){
+        double ki = Kitty->GetMomentum(iKstar);
+        double gi = ki/(tan(Kitty->GetPhaseShift(iKstar,0,0)));
+        //printf("ki, gi = %f %f\n",ki,gi);
+        for(unsigned jKstar=iKstar+1; jKstar<Kitty->GetNumMomBins(); jKstar++){
+            double kj = Kitty->GetMomentum(jKstar);
+            double gj = kj/(tan(Kitty->GetPhaseShift(jKstar,0,0)));
+            f_val = (kj*kj-ki*ki)/(gi*kj*kj-gj*ki*ki) * hbarc;
+            d_val = 2.*(gj-gi)/(kj*kj-ki*ki) * hbarc;
+            //printf("  - %.3e %.3e\n",f_val,d_val);
+            f0 += f_val;
+            fe0 += f_val*f_val;
+            d0 += d_val;
+            de0 += d_val*d_val;
+            prm++;
+        }
+    }
+    f0 /= double(prm);
+    d0 /= double(prm);
+    fe0 /= double(prm); 
+    de0 /= double(prm); 
+    if(fe0-f0*f0<=0) {fe0 = 0;}
+    else {fe0 = sqrt(fe0-f0*f0);}
+    if(de0-d0*d0<=0) {de0 = 0;}
+    else {de0 = sqrt(de0-d0*d0);}
+    //printf(" %.3e %.3e\n",f0,d0);
+    //printf("  %.3e %.3e\n",fe0,de0);
+
+    f = 0;
+    fe = 0;
+    d = 0;
+    de = 0;
+    prm = 0;
+    for(unsigned iKstar=0; iKstar<Kitty->GetNumMomBins(); iKstar++){
+        double ki = Kitty->GetMomentum(iKstar);
+        double gi = ki/(tan(Kitty->GetPhaseShift(iKstar,0,0)));
+        //printf("ki, gi = %f %f\n",ki,gi);
+        for(unsigned jKstar=iKstar+1; jKstar<Kitty->GetNumMomBins(); jKstar++){
+            double kj = Kitty->GetMomentum(jKstar);
+            double gj = kj/(tan(Kitty->GetPhaseShift(jKstar,0,0)));
+            f_val = (kj*kj-ki*ki)/(gi*kj*kj-gj*ki*ki) * hbarc;
+            d_val = 2.*(gj-gi)/(kj*kj-ki*ki) * hbarc;
+            //printf("  errors %.3e %.3e\n",fabs(f_val-f0)/fe0, fabs(d_val-d0)/de0);
+            if(fabs(f_val-f0)/fe0<1 && fabs(d_val-d0)/de0<1){
+                //printf(" !!!! \n");
+                f += f_val;
+                fe += f_val*f_val;
+                d += d_val;
+                de += d_val*d_val;
+                prm++;
+            }
+        }
+    }
+
+    f /= double(prm);
+    d /= double(prm);
+    fe /= double(prm); 
+    de /= double(prm); 
+    if(fe-f*f<=0) {fe = 0;}
+    else {fe = sqrt(fe-f*f);}
+    if(de-d*d<=0) {de = 0;}
+    else {de = sqrt(de-d*d);}
+
+    //f = f0;
+    //d = d0;
+    //fe = fe0;
+    //de = de0;    
+    if(fabs(fe/f)>eps_f || fabs(de/d)>eps_d) return false;
+    return true;
+}
+
+
+
+
+void pion_proton_scatt_pars(){
+
+    //"pip_Marcel"
+    //"pim_Marcel"
+    TString Descriptor = "pip_DLM";
+
+    const unsigned NumBins = 100;
+    const double kMin = 0;
+    const double kMax = 100;
+    const double SourceSize = 1.2;
+    CATS Kitty;
+    Kitty.SetMomBins(NumBins,kMin,kMax);
+
+    DLM_CommonAnaFunctions AnalysisObject;
+    AnalysisObject.SetCatsFilesFolder(TString::Format("%s/CatsFiles",GetCernBoxDimi()).Data());
+
+    if(Descriptor=="pip_Marcel"){
+        AnalysisObject.SetUpCats_ppic(Kitty,"DG_pip_d","Gauss",0,0);
+        Kitty.SetShortRangePotential(0,0,0,765.1-20.);
+        Kitty.SetShortRangePotential(0,0,1,0.367);
+        Kitty.SetShortRangePotential(0,0,2,685.93);
+        Kitty.SetShortRangePotential(0,0,3,0.331);
+    }
+    if(Descriptor=="pim_Marcel"){
+        AnalysisObject.SetUpCats_ppic(Kitty,"DG_pip_d","Gauss",0,0);
+        Kitty.SetShortRangePotential(0,0,0,-32.32);
+        Kitty.SetShortRangePotential(0,0,1,1.078);
+        Kitty.SetShortRangePotential(0,0,2,-222.8);
+        Kitty.SetShortRangePotential(0,0,3,0.097);
+    }    
+    if(Descriptor=="pip_DLM"){
+        AnalysisObject.SetUpCats_ppic(Kitty,"DG_pip_d","Gauss",0,0);
+        Kitty.SetShortRangePotential(0,0,0,296.93);
+        Kitty.SetShortRangePotential(0,0,1,0.8);
+        Kitty.SetShortRangePotential(0,0,2,-20.931);
+        Kitty.SetShortRangePotential(0,0,3,1.6);
+    }        
+
+    Kitty.SetQ1Q2(0);
+    Kitty.SetAnaSource(0,SourceSize);
+    Kitty.SetEpsilonProp(1e-10);
+    Kitty.SetEpsilonConv(1e-10);
+    //Kitty.SetMaxRho(32);
+    //Kitty.SetMaxRad(128);
+    Kitty.KillTheCat();
+
+    double tf0,td0,tf0e,td0e;
+    TEST_SP(&Kitty,tf0,tf0e,td0,td0e);
+
+    double f0,d0;
+    int Nterms = 3;
+
+    TH1F* hFit;
+    TF1* fitSP;
+    GetScattParameters(Kitty, f0, d0, hFit, fitSP, Nterms, false, false, 0);
+
+    printf("--- %s ---\n",Descriptor.Data());
+    printf(" Nterms = %i\n", Nterms);
+    printf(" f0 = %.3f (%.3f)\n", f0, tf0);
+    printf(" d0 = %.3f (%.3f)\n", d0, td0);
+    
+    TH1F* hPS = new TH1F("hPS","hPS",NumBins, kMin, kMax);
+    for(unsigned uMom=0; uMom<NumBins; uMom++){
+        hPS->SetBinContent(uMom+1,Kitty.GetPhaseShift(uMom,0,0));
+    }
+
+    TFile fOutput(TString::Format("%s/PionAnalysis/pion_proton_scatt_pars/fOutput_%s_N%i_f%.2f_d%.2f.root",GetFemtoOutputFolder(),Descriptor.Data(),Nterms,f0,d0), "RECREATE");
+    hFit->Write();
+    fitSP->Write();
+    hPS->Write();
+    
+}
+
 int PION_ANA(int narg, char** ARGS){
 
-    ck_pion_with_source_cutoff(); return 0;
+    //ck_pion_with_source_cutoff(); return 0;
 
     //FAST_MT_PLOTS();
     //pion_core_effect(false);
@@ -1878,6 +2043,8 @@ int PION_ANA(int narg, char** ARGS){
     //pion_proton_FastLook();
     //pion_proton_FastLook(1.0,0.6,0.1,0.1,0.1);
     //pion_proton_FastLook(1.2,0.6,0.1,0.1,0.1);
+
+    pion_proton_scatt_pars(); return 0;
 
     return 0;
 }
